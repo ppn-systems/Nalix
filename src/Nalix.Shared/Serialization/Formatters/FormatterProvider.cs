@@ -31,6 +31,11 @@ public static class FormatterProvider
         Register<System.Boolean>(new UnmanagedFormatter<System.Boolean>());
         Register<System.Decimal>(new UnmanagedFormatter<System.Decimal>());
 
+        Register<System.Guid>(new UnmanagedFormatter<System.Guid>());
+        Register<System.DateTime>(new UnmanagedFormatter<System.DateTime>());
+        Register<System.DateTimeOffset>(new UnmanagedFormatter<System.DateTimeOffset>());
+        Register<System.TimeSpan>(new UnmanagedFormatter<System.TimeSpan>());
+
         // ============================================================ //
         // Integer arrays
         Register<System.Char[]>(new ArrayFormatter<System.Char>());
@@ -65,6 +70,12 @@ public static class FormatterProvider
         Register<System.Nullable<System.Double>>(new NullableFormatter<System.Double>());
         Register<System.Nullable<System.Decimal>>(new NullableFormatter<System.Decimal>());
         Register<System.Nullable<System.Boolean>>(new NullableFormatter<System.Boolean>());
+
+        // Nullable complex types
+        Register<System.Nullable<System.Guid>>(new NullableFormatter<System.Guid>());
+        Register<System.Nullable<System.DateTime>>(new NullableFormatter<System.DateTime>());
+        Register<System.Nullable<System.DateTimeOffset>>(new NullableFormatter<System.DateTimeOffset>());
+        Register<System.Nullable<System.TimeSpan>>(new NullableFormatter<System.TimeSpan>());
     }
 
     /// <summary>
@@ -123,6 +134,21 @@ public static class FormatterProvider
         if (typeof(T).IsEnum)
         {
             return FormatterEnum<T>();
+        }
+
+        if (typeof(T).IsArray)
+        {
+            System.Type? elementType = typeof(T).GetElementType();
+
+            if (elementType is { IsEnum: true })
+            {
+                // T là kiểu TEnum[], ta cần tạo EnumArrayFormatter<TEnum>
+                System.Type formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
+                System.Object instance = System.Activator.CreateInstance(formatterType)!;
+
+                Register((IFormatter<T>)instance);
+                return (IFormatter<T>)instance;
+            }
         }
 
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
