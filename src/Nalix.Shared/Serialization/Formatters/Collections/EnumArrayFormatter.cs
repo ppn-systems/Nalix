@@ -83,7 +83,7 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
                                          .Deserialize(ref reader);
 
         if (length == 0) return [];
-        if (length == SerializerBounds.Null) return [];
+        if (length == SerializerBounds.Null) return null!;
         if (length > SerializerBounds.MaxArray) throw new SerializationException("Array length out of range");
 
         System.Int32 totalBytes = length * _elementSize;
