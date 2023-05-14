@@ -1,67 +1,147 @@
-using Nalix.Shared.Serialization.Internal;
-
 namespace Nalix.Shared.Serialization.Buffers;
 
 /// <summary>
-/// Provides functionality for writing serialized data with an internal buffer.
+/// Represents a mutable buffer segment that can expand dynamically, optionally renting from the ArrayPool.
+/// Designed for high-performance serialization scenarios.
 /// </summary>
-public struct DataWriter : System.IDisposable
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Auto)]
+public struct DataWriter
 {
-    private BufferSegment _segment;
+    private readonly bool _rent;
+
+    private int _written;
+    private byte[] _buffer;
 
     /// <summary>
-    /// Gets the current buffer segment used for writing data.
+    /// Initializes a new instance of <see cref="DataWriter"/> with a rented buffer of the specified size.
     /// </summary>
-    public readonly System.Int32 BytesWritten => _segment.WrittenCount;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DataWriter"/> struct with the specified initial buffer size.
-    /// </summary>
-    /// <param name="initialSize">The initial size of the buffer.</param>
-    public DataWriter(System.Int32 initialSize) => _segment = new BufferSegment(initialSize);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DataWriter"/> struct with the specified byte array.
-    /// </summary>
-    /// <param name="bytes">The byte array to initialize the buffer with.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when the provided byte array is null or empty.</exception>
-    public DataWriter(System.Byte[] bytes)
+    /// <param name="size">The initial size of the buffer.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if size is not positive.</exception>
+    public DataWriter(int size)
     {
-        if (bytes == null || bytes.Length == 0)
+        if (size <= 0)
         {
-            throw new System.ArgumentNullException(nameof(bytes), "Buffer cannot be null or empty.");
+            throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
         }
-        _segment = new BufferSegment(bytes);
+
+        _rent = true;
+        _written = 0;
+        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
     }
 
     /// <summary>
-    /// Advances the current position in the buffer by the specified number of bytes.
+    /// Initializes a new instance of <see cref="DataWriter"/> using an existing buffer (no renting).
     /// </summary>
-    /// <param name="count">The number of bytes to advance.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(System.Int32 count)
+    /// <param name="buffer">The external buffer to use.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the buffer has zero length.</exception>
+    public DataWriter(byte[] buffer)
     {
-        _segment.Advance(count);
-#if DEBUG
-        System.Console.WriteLine($"[DEBUG] Writer advanced by {count} → total {_segment.WrittenCount} bytes");
-#endif
+        if (buffer.Length <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(buffer), "Size must be greater than zero.");
+        }
+
+        _rent = false;
+        _written = 0;
+        _buffer = buffer;
     }
 
     /// <summary>
-    /// Expands the buffer to accommodate additional data.
+    /// Gets the number of bytes written to the buffer.
     /// </summary>
-    /// <param name="count">The number of bytes to expand.</param>
-    public void Expand(System.Int32 count) => _segment.Expand(count);
+    public readonly int WrittenCount => _written;
 
     /// <summary>
-    /// Retrieves a span of free buffer space with the specified length.
+    /// Gets a value indicating whether the buffer is null.
     /// </summary>
-    /// <param name="length">The requested length of the span.</param>
-    /// <returns>A span of bytes representing the available buffer space.</returns>
+    public readonly bool IsNull => _buffer == null;
+
+    /// <summary>
+    /// Gets the total capacity of the internal buffer.
+    /// </summary>
+    public readonly int Length => _buffer?.Length ?? 0;
+
+    /// <summary>
+    /// Gets a span of the remaining unwritten portion of the buffer.
+    /// </summary>
+    public readonly System.Span<byte> FreeBuffer
+        => System.MemoryExtensions.AsSpan(_buffer, _written);
+
+    /// <summary>
+    /// Gets a span of the written portion of the buffer.
+    /// </summary>
+    public readonly System.Span<byte> WrittenBuffer
+        => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
+
+    /// <summary>
+    /// Gets a memory representation of the written data.
+    /// </summary>
+    public readonly System.Memory<byte> WrittenMemory
+        => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
+
+    /// <summary>
+    /// Advances the write cursor by the specified count.
+    /// </summary>
+    /// <param name="count">The number of bytes written.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Span<System.Byte> GetSpan(System.Int32 length) => _segment.FreeBuffer[..length];
+    public void Advance(int count)
+    {
+        if (count <= 0 || _written + count > _buffer.Length)
+            throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+
+        _written += count;
+    }
+
+    /// <summary>
+    /// Retrieves a reference to the first byte in the free buffer space.
+    /// </summary>
+    /// <returns>A reference to the first byte in the free buffer.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public readonly ref byte GetFreeBufferReference()
+        => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
+
+    /// <summary>
+    /// Ensures the buffer has enough free space, expanding if necessary.
+    /// </summary>
+    /// <param name="minimumSize">The minimum number of bytes required.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if minimumSize is not positive.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Expand(int minimumSize)
+    {
+        if (minimumSize <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
+        }
+
+        if (_buffer != null && _buffer.Length - _written >= minimumSize)
+        {
+            return;
+        }
+
+        if (!_rent)
+        {
+            throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
+        }
+
+        int newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
+        byte[] newBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(newSize);
+
+        if (_buffer != null && _written > 0)
+        {
+            System.Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _written);
+        }
+
+        if (_buffer != null && _rent)
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+        }
+
+        _buffer = newBuffer;
+    }
 
     /// <summary>
     /// Retrieves a reference to the first byte in the free buffer space with the specified size hint.
@@ -70,16 +150,26 @@ public struct DataWriter : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly byte[] ToArray()
     {
-        if (_segment.WrittenCount == 0)
+        if (_written == 0)
             return [];
 
-        return _segment.WrittenBuffer[.._segment.WrittenCount].ToArray();
+        return _buffer[.._written];
     }
 
     /// <summary>
-    /// Xoá bộ nhớ đệm, trả lại ArrayPool.
+    /// Clears the buffer and returns it to the ArrayPool if rented.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Dispose() => _segment.Clear();
+    public void Dispose()
+    {
+        if (_buffer != null)
+        {
+            if (_rent)
+                System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+
+            _written = 0;
+            _buffer = null!;
+        }
+    }
 }
