@@ -160,6 +160,9 @@ public static class FormatterProvider
         IFormatter<T> formatter;
         System.Type type = typeof(T);
 
+        if (typeof(T) == typeof(System.String))
+            return (IFormatter<T>)FormatterCache<System.String>.Formatter!;
+
         if (type.IsValueType && !type.IsEnum)
         {
             formatter = ComplexTypeCache<T>.Struct;
