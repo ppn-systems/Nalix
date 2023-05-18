@@ -49,7 +49,7 @@ public static class LiteSerializer
             return array;
         }
 
-        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
         if (kind is TypeKind.None)
@@ -163,7 +163,7 @@ public static class LiteSerializer
             if (buffer.Length < fixedSize)
                 throw new SerializationException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
 
-            IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
             DataWriter writer = new(buffer);
 
             formatter.Serialize(ref writer, value);
@@ -196,7 +196,7 @@ public static class LiteSerializer
         {
             if (buffer.Length < size) throw new SerializationException("Buffer too small.");
             DataWriter writer = new(buffer.ToArray());
-            FormatterProvider.GetComplex<T>().Serialize(ref writer, value);
+            FormatterProvider.Get<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
         }
 
@@ -288,7 +288,7 @@ public static class LiteSerializer
             return dataSize + 4;
         }
 
-        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
         return reader.BytesRead;
