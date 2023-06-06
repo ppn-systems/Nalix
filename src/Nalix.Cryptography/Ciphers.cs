@@ -2,6 +2,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric.Block;
 using Nalix.Cryptography.Utils;
 using Nalix.Randomization;
 
