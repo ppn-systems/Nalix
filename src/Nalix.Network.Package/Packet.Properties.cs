@@ -3,6 +3,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Network.Package.Engine.Internal;
 
 namespace Nalix.Network.Package;
 
@@ -17,25 +18,29 @@ public readonly partial struct Packet
     private const System.Int32 MaxHeapAllocSize = PacketConstants.HeapAllocLimit;
     private const System.Int32 MaxStackAllocSize = PacketConstants.StackAllocLimit;
 
-    /// <summary>
-    /// UTF-8 encoding instance for packet processing.
-    /// </summary>
-    public static readonly System.Text.Encoding Utf = System.Text.Encoding.UTF8;
-
     #endregion Constants
 
     #region Fields
 
     [SerializeIgnore]
+    private readonly System.Int32 _hash;
+
+    [SerializeIgnore]
+    private readonly ManagedBuffer _buffer;
+
+    [SerializeIgnore]
     private static readonly Packet _empty = new(
-        0,
+        0, 0, 0, 0,
         PacketType.None,
         PacketFlags.None,
         PacketPriority.Low,
-        System.Memory<System.Byte>.Empty);
+        System.ReadOnlyMemory<byte>.Empty);
 
+    /// <summary>
+    /// UTF-8 encoding instance for packet processing.
+    /// </summary>
     [SerializeIgnore]
-    private readonly System.Int32 _hash;
+    public static readonly System.Text.Encoding Utf = System.Text.Encoding.UTF8;
 
     #endregion Fields
 
