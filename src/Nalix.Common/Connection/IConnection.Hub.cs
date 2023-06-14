@@ -30,7 +30,7 @@ public interface IConnectionHub
     /// </summary>
     /// <param name="id">The unique identifier of the connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    System.Boolean UnregisterConnection(IEncodedId id);
+    System.Boolean UnregisterConnection(IIdentifier id);
 
     /// <summary>
     /// Closes all active client connections with an optional reason.
@@ -43,7 +43,7 @@ public interface IConnectionHub
     /// </summary>
     /// <param name="id">The unique identifier of the connection to retrieve.</param>
     /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection(IEncodedId id);
+    IConnection GetConnection(IIdentifier id);
 
     /// <summary>
     /// Retrieves a client connection by its unique identifier.

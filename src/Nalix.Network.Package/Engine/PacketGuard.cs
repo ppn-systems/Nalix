@@ -38,7 +38,7 @@ public static class PacketGuard
     [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Encrypt(
-        in Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
+        in Packet packet, byte[] key, SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Payload is empty and cannot be processed.");
@@ -91,7 +91,7 @@ public static class PacketGuard
     [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Decrypt(
-        in Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
+        in Packet packet, byte[] key, SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Payload is empty and cannot be processed.");

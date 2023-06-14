@@ -15,14 +15,14 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     private ILogger? _logger;
 
     // Separate dictionaries for better cache locality and reduced contention
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IEncodedId, string> _usernames =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, string> _usernames =
         new(System.Environment.ProcessorCount * 2, 1024);
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IEncodedId, IConnection> _connections =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, IConnection> _connections =
         new(System.Environment.ProcessorCount * 2, 1024);
 
     // Username-to-ID reverse lookup for fast user-based operations
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IEncodedId> _usernameToId =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IIdentifier> _usernameToId =
         new(System.Environment.ProcessorCount * 2, 1024, System.StringComparer.OrdinalIgnoreCase);
 
     // Connection statistics for monitoring
@@ -102,7 +102,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool UnregisterConnection(IEncodedId id)
+    public bool UnregisterConnection(IIdentifier id)
     {
         if (id is null || _disposed)
             return false;
@@ -130,7 +130,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public IConnection? GetConnection(IEncodedId id)
+    public IConnection? GetConnection(IIdentifier id)
         => _connections.TryGetValue(id, out var connection) ? connection : null;
 
     /// <inheritdoc/>
@@ -157,7 +157,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public string? GetUsername(IEncodedId id)
+    public string? GetUsername(IIdentifier id)
         => _usernames.TryGetValue(id, out var username) ? username : null;
 
     /// <inheritdoc/>

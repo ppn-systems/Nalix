@@ -11,8 +11,8 @@ internal sealed class TransportCache : System.IDisposable
 {
     #region Fields
 
-    private static Configurations.CacheSizeConfig Config
-        => ConfigurationStore.Instance.Get<Configurations.CacheSizeConfig>();
+    private static Configurations.NetworkCacheSizeOptions Config
+        => ConfigurationStore.Instance.Get<Configurations.NetworkCacheSizeOptions>();
 
     private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
 

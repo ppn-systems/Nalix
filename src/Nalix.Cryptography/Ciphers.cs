@@ -24,7 +24,7 @@ public static class Ciphers
     /// <returns>The encrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
     public static System.ReadOnlyMemory<byte> Encrypt(
         System.ReadOnlyMemory<byte> data, byte[] key,
-        EncryptionType algorithm)
+        SymmetricAlgorithmType algorithm)
     {
         if (key == null)
             throw new System.ArgumentNullException(
@@ -41,7 +41,7 @@ public static class Ciphers
         {
             switch (algorithm)
             {
-                case EncryptionType.ChaCha20Poly1305:
+                case SymmetricAlgorithmType.ChaCha20Poly1305:
                     {
                         System.Span<byte> nonce = RandGenerator.CreateNonce();
 
@@ -57,7 +57,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionType.Salsa20:
+                case SymmetricAlgorithmType.Salsa20:
                     {
                         ulong counter = 0;
                         System.Span<byte> nonce = new byte[8];
@@ -68,7 +68,7 @@ public static class Ciphers
                         return ciphertext;
                     }
 
-                case EncryptionType.Speck:
+                case SymmetricAlgorithmType.Speck:
                     {
                         const int blockSize = 8;
                         int originalLength = data.Length;
@@ -107,7 +107,7 @@ public static class Ciphers
                         }
                     }
 
-                case EncryptionType.TwofishECB:
+                case SymmetricAlgorithmType.TwofishECB:
                     {
                         const int blockSize = 16;
                         int originalLength = data.Length;
@@ -142,7 +142,7 @@ public static class Ciphers
                         }
                     }
 
-                case EncryptionType.TwofishCBC:
+                case SymmetricAlgorithmType.TwofishCBC:
                     {
                         const int blockSize = 16;
                         int originalLength = data.Length;
@@ -181,7 +181,7 @@ public static class Ciphers
                         }
                     }
 
-                case EncryptionType.XTEA:
+                case SymmetricAlgorithmType.XTEA:
                     {
                         int originalLength = data.Length;
                         if (originalLength == 0)
@@ -252,7 +252,7 @@ public static class Ciphers
     /// <returns>The decrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
     public static System.ReadOnlyMemory<byte> Decrypt(
         System.ReadOnlyMemory<byte> data, byte[] key,
-        EncryptionType algorithm = EncryptionType.XTEA)
+        SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
     {
         if (key == null)
             throw new System.ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
@@ -267,7 +267,7 @@ public static class Ciphers
         {
             switch (algorithm)
             {
-                case EncryptionType.ChaCha20Poly1305:
+                case SymmetricAlgorithmType.ChaCha20Poly1305:
                     {
                         System.ReadOnlySpan<byte> input = data.Span;
                         if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
@@ -286,7 +286,7 @@ public static class Ciphers
                         return plaintext;
                     }
 
-                case EncryptionType.Salsa20:
+                case SymmetricAlgorithmType.Salsa20:
                     {
                         ulong counter = 0;
                         System.Span<byte> nonce = new byte[8];
@@ -297,7 +297,7 @@ public static class Ciphers
                         return plaintext;
                     }
 
-                case EncryptionType.Speck:
+                case SymmetricAlgorithmType.Speck:
                     {
                         const int blockSize = 8;
 
@@ -343,7 +343,7 @@ public static class Ciphers
                         }
                     }
 
-                case EncryptionType.TwofishECB:
+                case SymmetricAlgorithmType.TwofishECB:
                     {
                         const int blockSize = 16;
 
@@ -361,7 +361,7 @@ public static class Ciphers
                         return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength); // remove padding
                     }
 
-                case EncryptionType.TwofishCBC:
+                case SymmetricAlgorithmType.TwofishCBC:
                     {
                         const int blockSize = 16;
 
@@ -388,7 +388,7 @@ public static class Ciphers
                         return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength);
                     }
 
-                case EncryptionType.XTEA:
+                case SymmetricAlgorithmType.XTEA:
                     {
                         if (data.Length < 4)
                             throw new CryptoException("Invalid encrypted data format.");
@@ -435,12 +435,12 @@ public static class Ciphers
     /// <param name="memory">
     /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
     /// </param>
-    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="SymmetricAlgorithmType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryEncrypt(
         System.ReadOnlyMemory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.ReadOnlyMemory<byte> memory, EncryptionType mode)
+        out System.ReadOnlyMemory<byte> memory, SymmetricAlgorithmType mode)
     {
         try
         {
@@ -462,12 +462,12 @@ public static class Ciphers
     /// <param name="memory">
     /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
     /// </param>
-    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="SymmetricAlgorithmType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryDecrypt(
         System.ReadOnlyMemory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.ReadOnlyMemory<byte> memory, EncryptionType mode)
+        out System.ReadOnlyMemory<byte> memory, SymmetricAlgorithmType mode)
     {
         try
         {

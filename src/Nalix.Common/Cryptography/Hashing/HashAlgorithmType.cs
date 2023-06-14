@@ -3,7 +3,7 @@ namespace Nalix.Common.Cryptography.Hashing;
 /// <summary>
 /// Supported hash algorithms for HMAC computation.
 /// </summary>
-public enum HashingMode : System.Byte
+public enum HashAlgorithmType : System.Byte
 {
     /// <summary>
     /// No hash algorithm specified

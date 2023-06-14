@@ -14,7 +14,7 @@ public sealed class PBKDF2 : System.IDisposable
     private readonly byte[] _salt;
     private readonly int _keyLength;
     private readonly int _iterations;
-    private readonly HashingMode _hashType;
+    private readonly HashAlgorithmType _hashType;
     private bool _disposed;
 
     #endregion Fields
@@ -32,7 +32,7 @@ public sealed class PBKDF2 : System.IDisposable
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
     public PBKDF2(
         byte[] salt, int iterations, int keyLength,
-        HashingMode hashType = HashingMode.Sha1)
+        HashAlgorithmType hashType = HashAlgorithmType.Sha1)
     {
         if (salt == null || salt.Length == 0)
             throw new System.ArgumentException("Salt cannot be empty.", nameof(salt));
@@ -72,9 +72,9 @@ public sealed class PBKDF2 : System.IDisposable
 
         return _hashType switch
         {
-            HashingMode.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
-            HashingMode.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
-            HashingMode.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
+            HashAlgorithmType.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
+            HashAlgorithmType.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
+            HashAlgorithmType.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
             _ => throw new System.NotSupportedException($"Hash algorithm {_hashType} is not supported.")
         };
     }
@@ -96,9 +96,9 @@ public sealed class PBKDF2 : System.IDisposable
 
         return _hashType switch
         {
-            HashingMode.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
-            HashingMode.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
-            HashingMode.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
+            HashAlgorithmType.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
+            HashAlgorithmType.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
+            HashAlgorithmType.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
             _ => throw new System.NotSupportedException($"Hash algorithm {_hashType} is not supported.")
         };
     }
