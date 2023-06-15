@@ -1,8 +1,5 @@
 ﻿using Nalix.Common.Identity;
-using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using Nalix.Shared.Randomization;
 
 namespace Nalix.Shared.Identifiers;
 
@@ -13,36 +10,37 @@ namespace Nalix.Shared.Identifiers;
 /// serialization capabilities.
 /// </summary>
 /// <remarks>
-/// The Identifier uses explicit layout to ensure consistent memory representation
+/// The Handle uses explicit layout to ensure consistent memory representation
 /// across different platforms and provides both hexadecimal and Base36 string representations.
 ///
 /// Memory layout:
 /// - Bytes 0-3: Value (uint, little-endian)
 /// - Bytes 4-5: Machine ID (ushort, little-endian)
-/// - Byte 6: Identifier type (byte)
+/// - Byte 6: Handle type (byte)
 /// </remarks>
-[StructLayout(LayoutKind.Explicit, Size = 7)]
-public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7)]
+public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
 {
     #region Private Fields
 
     /// <summary>
     /// The main identifier value (32-bit unsigned integer).
     /// </summary>
-    [FieldOffset(0)]
-    private readonly uint _value;
+    [System.Runtime.InteropServices.FieldOffset(0)]
+    private readonly System.UInt32 _value;
 
     /// <summary>
     /// The machine identifier (16-bit unsigned integer).
     /// </summary>
-    [FieldOffset(4)]
-    private readonly ushort _machineId;
+    [System.Runtime.InteropServices.FieldOffset(4)]
+    private readonly System.UInt16 _machineId;
 
     /// <summary>
     /// The identifier type (8-bit unsigned integer).
     /// </summary>
-    [FieldOffset(6)]
-    private readonly byte _type;
+    [System.Runtime.InteropServices.FieldOffset(6)]
+    private readonly System.Byte _type;
 
     #endregion Private Fields
 
@@ -52,60 +50,79 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// Gets the main identifier value.
     /// </summary>
     /// <value>A 32-bit unsigned integer representing the core identifier.</value>
-    public uint Value => _value;
+    public System.UInt32 Value => _value;
 
     /// <summary>
     /// Gets the machine identifier.
     /// </summary>
     /// <value>A 16-bit unsigned integer representing the originating machine.</value>
-    public ushort MachineId => _machineId;
+    public System.UInt16 MachineId => _machineId;
 
     /// <summary>
     /// Gets the identifier type.
     /// </summary>
     /// <value>An enum value representing the type of this identifier.</value>
-    public IdentifierType Type => (IdentifierType)_type;
+    public HandleType Type => (HandleType)_type;
 
     #endregion Public Properties
 
     #region Constructors and Factory Methods
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Identifier"/> struct.
+    /// Initializes a new instance of the <see cref="Handle"/> struct.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    private Identifier(uint value, ushort machineId, IdentifierType type)
+    private Handle(System.UInt32 value, System.UInt16 machineId, HandleType type)
     {
         _value = value;
         _machineId = machineId;
-        _type = (byte)type;
+        _type = (System.Byte)type;
     }
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// Creates a new <see cref="Handle"/> with the specified components.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <returns>A new <see cref="Handle"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.CreateNew(12345, 1001, IdentifierType.User);
+    /// var id = Handle.NewId(12345, 1001, HandleType.User);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Identifier CreateNew(uint value, ushort machineId, IdentifierType type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Handle NewId(System.UInt32 value, System.UInt16 machineId, HandleType type)
         => new(value, machineId, type);
 
     /// <summary>
-    /// Creates an empty <see cref="Identifier"/> with all components set to zero.
+    /// Creates a new <see cref="Handle"/> with the specified components.
     /// </summary>
-    /// <returns>An empty <see cref="Identifier"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Identifier CreateEmpty()
+    /// <param name="type">The identifier type.</param>
+    /// <param name="machineId">The machine identifier.</param>
+    /// <returns>A new <see cref="Handle"/> instance.</returns>
+    /// <example>
+    /// <code>
+    /// var id = Handle.NewId(HandleType.System);
+    /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
+    /// </code>
+    /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Handle NewId(HandleType type, System.UInt16 machineId = 1)
+        => new(RandGenerator.NextUInt32(), machineId, type);
+
+    /// <summary>
+    /// Creates an empty <see cref="Handle"/> with all components set to zero.
+    /// </summary>
+    /// <returns>An empty <see cref="Handle"/> instance.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Handle CreateEmpty()
         => new(0, 0, 0);
 
     #endregion Constructors and Factory Methods
@@ -118,8 +135,9 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <returns>
     /// <c>true</c> if all components (value, machine ID, and type) are zero; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsEmpty() => (_value | _machineId | _type) == 0;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsEmpty() => (_value | _machineId | _type) == 0;
 
     /// <summary>
     /// Determines whether this identifier is valid (not empty).
@@ -127,8 +145,9 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <returns>
     /// <c>true</c> if the identifier is not empty; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsValid() => !IsEmpty();
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsValid() => !IsEmpty();
 
     #endregion State Checking Methods
 
@@ -138,7 +157,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// Returns the Base36 string representation of this identifier.
     /// </summary>
     /// <returns>A Base36 encoded string representing this identifier.</returns>
-    public override string ToString() => ToBase36String();
+    public override System.String ToString() => ToBase36String();
 
     /// <summary>
     /// Converts this identifier to its Base36 string representation.
@@ -148,9 +167,9 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// Base36 encoding uses digits 0-9 and letters A-Z, providing a compact
     /// and URL-safe string representation.
     /// </remarks>
-    public string ToBase36String()
+    public System.String ToBase36String()
     {
-        ulong combinedValue = GetCombinedValue();
+        System.UInt64 combinedValue = GetCombinedValue();
         return EncodeToBase36(combinedValue);
     }
 
@@ -161,11 +180,11 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <remarks>
     /// The hexadecimal representation shows the raw byte values of the identifier.
     /// </remarks>
-    public string ToHexString()
+    public System.String ToHexString()
     {
-        Span<byte> buffer = stackalloc byte[7];
+        System.Span<System.Byte> buffer = stackalloc System.Byte[7];
         TryWriteBytes(buffer, out _);
-        return Convert.ToHexString(buffer);
+        return System.Convert.ToHexString(buffer);
     }
 
     /// <summary>
@@ -175,7 +194,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <c>true</c> to use hexadecimal format; <c>false</c> to use Base36 format.
     /// </param>
     /// <returns>A string representation of this identifier in the specified format.</returns>
-    public string ToString(bool useHexFormat)
+    public System.String ToString(bool useHexFormat)
         => useHexFormat ? ToHexString() : ToBase36String();
 
     #endregion String Representation Methods
@@ -192,11 +211,51 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// - Bytes 4-5: Machine ID (ushort)
     /// - Byte 6: Type (byte)
     /// </remarks>
-    public byte[] ToByteArray()
+    public System.Byte[] ToByteArray()
     {
-        byte[] result = new byte[7];
+        System.Byte[] result = new System.Byte[7];
         TryWriteBytes(result, out _);
         return result;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// </summary>
+    /// <param name="bytes">The byte array containing the identifier data.</param>
+    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Handle FromByteArray(System.ReadOnlySpan<System.Byte> bytes)
+    {
+        if (bytes.Length != 7)
+            throw new System.ArgumentException("Input must be exactly 7 bytes.", nameof(bytes));
+
+        System.UInt32 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bytes));
+
+        System.UInt16 machineId = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bytes[4..]));
+
+        byte type = bytes[6];
+
+        return new Handle(value, machineId, (HandleType)type);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// </summary>
+    /// <param name="bytes">The byte array containing the identifier data.</param>
+    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Handle FromByteArray(System.Byte[] bytes)
+    {
+        if (bytes == null || bytes.Length != 7)
+            throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes));
+
+        return FromByteArray(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -213,8 +272,9 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// This method requires at least 7 bytes of space in the destination span.
     /// The bytes are written in little-endian format.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten)
     {
         if (destination.Length < 7)
         {
@@ -223,10 +283,14 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
         }
 
         // Use unsafe operations for optimal performance
-        ref byte destinationRef = ref MemoryMarshal.GetReference(destination);
+        ref byte destinationRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(destination);
 
-        // Fix: Use MemoryMarshal to treat the Identifier struct as a ReadOnlySpan<byte>
-        ReadOnlySpan<byte> sourceSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in this), 1));
+        // Fix: Use MemoryMarshal to treat the Handle struct as a ReadOnlySpan<byte>
+        System.ReadOnlySpan<System.Byte> sourceSpan =
+            System.Runtime.InteropServices.MemoryMarshal.AsBytes(
+            System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(
+                ref System.Runtime.CompilerServices.Unsafe.AsRef(in this), 1));
+
         sourceSpan[..7].CopyTo(destination);
 
         bytesWritten = 7;
@@ -244,19 +308,21 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(IIdentifier? other)
-        => other is Identifier compactId && Equals(compactId);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean Equals(IIdentifier? other)
+        => other is Handle compactId && Equals(compactId);
 
     /// <summary>
-    /// Determines whether this identifier is equal to another <see cref="Identifier"/>.
+    /// Determines whether this identifier is equal to another <see cref="Handle"/>.
     /// </summary>
     /// <param name="other">The identifier to compare with this instance.</param>
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Identifier other)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean Equals(Handle other)
     {
         // Optimize comparison by treating the struct as a single 64-bit value
         ulong thisValue = GetCombinedValue();
@@ -269,11 +335,11 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// </summary>
     /// <param name="obj">The object to compare with this instance.</param>
     /// <returns>
-    /// <c>true</c> if the object is a <see cref="Identifier"/> and is equal to this instance;
+    /// <c>true</c> if the object is a <see cref="Handle"/> and is equal to this instance;
     /// otherwise, <c>false</c>.
     /// </returns>
-    public override bool Equals(object? obj)
-        => obj is Identifier other && Equals(other);
+    public override System.Boolean Equals(System.Object? obj)
+        => obj is Handle other && Equals(other);
 
     /// <summary>
     /// Returns the hash code for this identifier.
@@ -281,13 +347,14 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <returns>A 32-bit signed integer hash code.</returns>
     /// <remarks>
     /// The hash code is computed efficiently using all components of the identifier
-    /// and is suitable for use in hash-based collections like <see cref="Dictionary{TKey,TValue}"/>.
+    /// and is suitable for use in hash-based collections like <see cref="System.Collections.Generic.Dictionary{TKey,TValue}"/>.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public override System.Int32 GetHashCode()
     {
         // Use the combined value for consistent hashing
-        ulong combinedValue = GetCombinedValue();
+        System.UInt64 combinedValue = GetCombinedValue();
         return combinedValue.GetHashCode();
     }
 
@@ -296,28 +363,28 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     #region Operators
 
     /// <summary>
-    /// Determines whether two <see cref="Identifier"/> instances are equal.
+    /// Determines whether two <see cref="Handle"/> instances are equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Identifier left, Identifier right)
-        => left.Equals(right);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Boolean operator ==(Handle left, Handle right) => left.Equals(right);
 
     /// <summary>
-    /// Determines whether two <see cref="Identifier"/> instances are not equal.
+    /// Determines whether two <see cref="Handle"/> instances are not equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
     /// <returns>
     /// <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Identifier left, Identifier right)
-        => !left.Equals(right);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Boolean operator !=(Handle left, Handle right) => !left.Equals(right);
 
     #endregion Operators
 
@@ -327,11 +394,13 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// Gets the combined 64-bit representation of this identifier.
     /// </summary>
     /// <returns>A 64-bit unsigned integer containing all identifier components.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ulong GetCombinedValue()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.UInt64 GetCombinedValue()
     {
         // Mask to ensure we only use the lower 56 bits (7 bytes)
-        return Unsafe.As<Identifier, ulong>(ref Unsafe.AsRef(in this)) & 0x00FFFFFFFFFFFFFF;
+        return System.Runtime.CompilerServices.Unsafe.As<Handle, System.UInt64>(
+            ref System.Runtime.CompilerServices.Unsafe.AsRef(in this)) & 0x00FFFFFFFFFFFFFF;
     }
 
     /// <summary>
@@ -339,24 +408,24 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// </summary>
     /// <param name="value">The value to encode.</param>
     /// <returns>A Base36 encoded string.</returns>
-    private static string EncodeToBase36(ulong value)
+    private static System.String EncodeToBase36(System.UInt64 value)
     {
         if (value == 0) return "0";
 
-        const string base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        Span<char> buffer = stackalloc char[13]; // Maximum length for 64-bit Base36
-        int charIndex = 0;
+        const System.String base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        System.Span<System.Char> buffer = stackalloc System.Char[13]; // Maximum length for 64-bit Base36
+        System.Byte charIndex = 0;
 
         do
         {
-            buffer[charIndex++] = base36Chars[(int)(value % 36)];
+            buffer[charIndex++] = base36Chars[(System.Byte)(value % 36)];
             value /= 36;
         } while (value > 0);
 
         // Reverse the buffer to get the correct order
-        Span<char> result = buffer[..charIndex];
-        result.Reverse();
-        return new string(result);
+        System.Span<System.Char> result = buffer[..charIndex];
+        System.MemoryExtensions.Reverse(result);
+        return new System.String(result);
     }
 
     #endregion Private Helper Methods
