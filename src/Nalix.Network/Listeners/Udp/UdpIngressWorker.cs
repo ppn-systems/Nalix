@@ -2,7 +2,7 @@ using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Protocols;
 
-namespace Nalix.Network.Listeners.Internal;
+namespace Nalix.Network.Listeners.Udp;
 
 internal class UdpIngressWorker
 {
