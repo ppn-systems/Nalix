@@ -29,8 +29,8 @@ public sealed partial class Connection : IConnection
     private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
     private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
-    private bool _disposed;
-    private byte[] _encryptionKey;
+    private System.Boolean _disposed;
+    private System.Byte[] _encryptionKey;
 
     #endregion Fields
 
@@ -64,7 +64,7 @@ public sealed partial class Connection : IConnection
         _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
 
         _disposed = false;
-        _encryptionKey = new byte[32];
+        _encryptionKey = new System.Byte[32];
 
         _tcp = new TcpTransport(this);
         _udp = new UdpTransport(this);
@@ -90,16 +90,13 @@ public sealed partial class Connection : IConnection
     public System.Net.EndPoint RemoteEndPoint => _endPoint;
 
     /// <inheritdoc />
-    public long UpTime => _cstream.UpTime;
+    public System.Int64 UpTime => _cstream.UpTime;
 
     /// <inheritdoc />
-    public long LastPingTime => _cstream.LastPingTime;
-
-    /// <inheritdoc/>
-    public System.Collections.Generic.Dictionary<string, object> Metadata { get; } = [];
+    public System.Int64 LastPingTime => _cstream.LastPingTime;
 
     /// <inheritdoc />
-    public byte[] EncryptionKey
+    public System.Byte[] EncryptionKey
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -117,7 +114,7 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public System.ReadOnlyMemory<byte> IncomingPacket => _cstream.GetIncomingPackets();
+    public System.ReadOnlyMemory<System.Byte> IncomingPacket => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
@@ -157,7 +154,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Close(bool force = false)
+    public void Close(System.Boolean force = false)
     {
         try
         {
@@ -179,7 +176,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Disconnect(string? reason = null) => Close(force: true);
+    public void Disconnect(System.String? reason = null) => Close(force: true);
 
     #endregion Methods
 
