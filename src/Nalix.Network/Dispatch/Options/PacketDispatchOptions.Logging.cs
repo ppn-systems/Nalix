@@ -9,33 +9,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketCompressor<TPacket>
 {
     /// <summary>
-    /// Enables metrics tracking for packet processing, allowing you to monitor execution times of handlers.
-    /// </summary>
-    /// <param name="metricsCallback">
-    /// A callback function that receives the handler name and execution time in milliseconds.
-    /// This callback is invoked each time a packet handler is executed, providing performance insights.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance to allow method chaining.
-    /// </returns>
-    /// <remarks>
-    /// Enabling this feature helps to track how long packet handlers take to execute, which can be useful
-    /// for performance monitoring and optimization. The callback provides a way to record or process these metrics.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithMetrics(
-        System.Action<System.String, System.Int64> metricsCallback)
-    {
-        _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
-
-        _isMetricsEnabled = true;
-        _metricsCallback = metricsCallback;
-
-        return this;
-    }
-
-    /// <summary>
     /// Configures logging for the packet dispatcher, enabling logging of packet processing details.
     /// </summary>
     /// <param name="logger">The logger instance that will be used for logging packet processing events.</param>
