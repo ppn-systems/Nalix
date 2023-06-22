@@ -13,7 +13,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
         ResolveHandlerDelegate(System.Type returnType)
-        => _handlerLookup.TryGetValue(
+        => _typeCache.TryGetValue(
             returnType, out System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>? handler)
             ? handler : CreateUnsupportedHandler(returnType);
 

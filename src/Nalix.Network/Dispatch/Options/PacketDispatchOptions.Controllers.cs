@@ -131,7 +131,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         .GetCustomAttribute<PacketOpcodeAttribute>(method)!
                         .OpCode;
 
-            if (_handlers.ContainsKey(id))
+            if (_handlerCache.ContainsKey(id))
             {
                 _logger?.Error("OpCode '{0}' already registered in another controller. " +
                                "Conflict in controller '{1}'.", id, controllerName);
@@ -139,7 +139,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 throw new System.InvalidOperationException($"OpCode '{id}' already registered.");
             }
 
-            _handlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
+            _handlerCache[id] = this.CreateHandlerDelegate(method, controllerInstance);
             registeredIds.Add(id);
         }
 
@@ -185,7 +185,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
-        if (_handlers.TryGetValue(id, out handler))
+        if (_handlerCache.TryGetValue(id, out handler))
             return true;
 
         Logger?.Warn("No handler found for packet [OpCode={0}]", id);
