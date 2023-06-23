@@ -1,6 +1,6 @@
+using Nalix.Framework.Time;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
-using Nalix.Shared.Time;
 
 namespace Nalix.Network.Connection.Transport;
 
