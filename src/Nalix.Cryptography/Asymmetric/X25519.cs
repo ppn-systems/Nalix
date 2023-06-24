@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography.Asymmetric;
+using Nalix.Common.Security.Cryptography.Asymmetric;
 using Nalix.Framework.Randomization;
 using System;
 using System.Numerics;

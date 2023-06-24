@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography;
+using Nalix.Common.Security.Cryptography;
 
 namespace Nalix.Common.Package.Attributes;
 

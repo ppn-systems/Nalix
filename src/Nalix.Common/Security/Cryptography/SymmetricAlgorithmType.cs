@@ -1,4 +1,4 @@
-namespace Nalix.Common.Cryptography;
+namespace Nalix.Common.Security.Cryptography;
 
 /// <summary>
 /// Specifies the encryption modes available for symmetric encryption.
