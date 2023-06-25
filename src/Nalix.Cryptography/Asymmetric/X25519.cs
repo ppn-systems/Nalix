@@ -1,277 +1,371 @@
-using Nalix.Common.Security.Cryptography.Asymmetric;
 using Nalix.Framework.Randomization;
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Asymmetric;
 
 /// <summary>
-/// High-performance implementation of the X25519 elliptic curve Diffie-Hellman (ECDH) key exchange protocol.
+/// Provides an implementation of the X25519 elliptic curve Diffie–Hellman key exchange.
+/// Includes utilities for key generation, scalar multiplication, and shared secret computation.
+/// Optimized with aggressive inlining and low-level stack-allocated buffers.
 /// </summary>
-/// <remarks>
-/// X25519 is a specific elliptic curve designed for use in cryptographic protocols like TLS.
-/// It allows two parties to securely exchange keys without needing to share a secret in advance.
-/// This implementation follows RFC 7748 specifications.
-/// </remarks>
-public sealed class X25519 : IX25519
+public static unsafe class X25519
 {
-    #region Constants
+    #region Const
+
+    private const System.Byte ScalarSize = 32;
+    private const System.Byte PointSize = 32;
+    private const System.Byte FieldElementSize = 32;
+
+    #endregion Const
+
+    #region APIs
 
     /// <summary>
-    /// The size of a field element in bytes.
+    /// Applies clamping to a scalar to conform with X25519 security requirements.
     /// </summary>
-    public const int FieldElementSize = 32;
-
-    #endregion Constants
-
-    #region Fields
-
-    // Prime p = 2^255 - 19
-    private static readonly BigInteger P = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
-
-    // Constant A24 = (486662 - 2)/4 = 121665
-    private static readonly BigInteger A24 = 121665;
-
-    // BaseValue36 point u = 9 (encoded as 32-byte little-endian)
-    private static readonly byte[] BasePoint = CreateBasePoint();
-
-    #endregion Fields
-
-    #region Public Methods
-
-    /// <summary>
-    /// Generates an X25519 key pair.
-    /// </summary>
-    /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public (byte[] PrivateKey, byte[] PublicKey) Generate() => GenerateKeyPair();
-
-    /// <summary>
-    /// Computes the shared secret between your private key and a peer's public key.
-    /// </summary>
-    /// <param name="privateKey">Your 32-byte private key.</param>
-    /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
-    /// <returns>The shared secret as a 32-byte array.</returns>
-    /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] Compute(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey)
-        => ComputeSharedSecret(privateKey, peerPublicKey);
-
-    /// <summary>
-    /// Generates an X25519 key pair.
-    /// </summary>
-    /// <param name="privateKey">Output 32-byte private key.</param>
-    /// <param name="publicKey">Output 32-byte public key.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void GenerateKeyPair(out byte[] privateKey, out byte[] publicKey)
+    /// <param name="scalar">A 32-byte buffer representing the scalar.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void ClampScalar(System.Span<System.Byte> scalar)
     {
-        // Allocate and fill private key
-        privateKey = new byte[FieldElementSize];
-        RandGenerator.Fill(privateKey);
-        X25519.ClampScalar(privateKey);
+        if (scalar.Length != ScalarSize)
+            throw new System.ArgumentException("Scalar must be 32 bytes");
 
-        // Compute public key from private key
-        publicKey = X25519.ScalarMult(privateKey, BasePoint);
+        scalar[0] &= 248;
+        scalar[31] &= 127;
+        scalar[31] |= 64;
     }
 
     /// <summary>
-    /// Generates an X25519 key pair.
+    /// Performs scalar multiplication between a private scalar and a public base point.
     /// </summary>
-    /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
+    /// <param name="scalar">The clamped private scalar.</param>
+    /// <param name="basePoint">The public base point (usually 0x09 followed by zeroes).</param>
+    /// <param name="result">The resulting public key or shared secret.</param>
+    public static void ScalarMult(
+        System.ReadOnlySpan<System.Byte> scalar,
+        System.ReadOnlySpan<System.Byte> basePoint,
+        System.Span<System.Byte> result)
     {
-        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
-        return (privateKey, publicKey);
+        if (scalar.Length != ScalarSize || basePoint.Length != PointSize || result.Length != PointSize)
+            throw new System.ArgumentException("Invalid input sizes");
+
+        System.Span<System.UInt32> x1 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> x2 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> z2 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> x3 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> z3 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> tmp0 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> tmp1 = stackalloc System.UInt32[10];
+
+        // Unpack base point
+        Unpack25519(x1, basePoint);
+
+        // Initialize
+        x2[0] = 1;
+        // With the following code
+        x1.CopyTo(x3);
+        z3[0] = 1;
+
+        System.UInt32 swap = 0;
+        for (System.Byte pos = 254; pos >= 0; --pos)
+        {
+            System.UInt32 b = (System.UInt32)(scalar[pos / 8] >> (pos & 7)) & 1;
+            swap ^= b;
+            CSwap(x2, x3, swap);
+            CSwap(z2, z3, swap);
+            swap = b;
+
+            // Montgomery ladder step
+            Add(tmp0, x2, z2);
+            Sub(tmp1, x2, z2);
+            Add(x2, x3, z3);
+            Sub(z2, x3, z3);
+            Mult(z3, tmp0, z2);
+            Mult(z2, tmp1, x2);
+            Add(tmp0, z3, z2);
+            Sub(tmp1, z3, z2);
+            Square(x3, tmp0);
+            Square(z2, tmp1);
+            Mult(z3, z2, x1);
+            Square(tmp0, tmp1);
+            Mult(z2, tmp0, tmp1);
+            Square(tmp1, tmp0);
+            Mult(tmp0, z2, tmp1);
+            Mult(z2, tmp0, tmp1);
+            Square(tmp1, tmp0);
+            Mult(tmp0, z2, tmp1);
+        }
+
+        CSwap(x2, x3, swap);
+        CSwap(z2, z3, swap);
+
+        // Invert z2
+        Invert(z2, z2);
+        Mult(x2, x2, z2);
+
+        // Pack result
+        Pack25519(result, x2);
     }
 
     /// <summary>
-    /// Computes the shared secret between your private key and a peer's public key.
+    /// Generates a new private/public key pair for X25519 key exchange.
     /// </summary>
-    /// <param name="privateKey">Your 32-byte private key.</param>
-    /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
-    /// <returns>The shared secret as a 32-byte array.</returns>
-    /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ComputeSharedSecret(
-        ReadOnlySpan<byte> privateKey,
-        ReadOnlySpan<byte> peerPublicKey)
+    /// <param name="privateKey">Output buffer containing the generated private key.</param>
+    /// <param name="publicKey">Output buffer containing the corresponding public key.</param>
+    public static void Generate(out System.Byte[] privateKey, out System.Byte[] publicKey)
     {
-        if (privateKey.Length != FieldElementSize)
-            throw new ArgumentException(
-                $"Private key must be {FieldElementSize} bytes.", nameof(privateKey));
+        privateKey = new System.Byte[ScalarSize];
+        publicKey = new System.Byte[PointSize];
 
-        if (peerPublicKey.Length != FieldElementSize)
-            throw new ArgumentException(
-                $"Public key must be {FieldElementSize} bytes.", nameof(peerPublicKey));
+        RandGenerator.NextBytes(privateKey);
 
-        // Create a copy of the private key to clamp it without modifying the original
-        Span<byte> clampedPrivateKey = stackalloc byte[FieldElementSize];
-        privateKey.CopyTo(clampedPrivateKey);
-        X25519.ClampScalar(clampedPrivateKey);
+        ClampScalar(privateKey);
 
-        // Compute the shared secret
-        return X25519.ScalarMult(clampedPrivateKey, peerPublicKey);
+        System.ReadOnlySpan<System.Byte> basePoint =
+        [
+            9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+
+        ScalarMult(privateKey, basePoint, publicKey);
     }
 
-    #endregion Public Methods
+    /// <summary>
+    /// Computes a shared secret using a private key and a peer's public key.
+    /// </summary>
+    /// <param name="privateKey">Your private key.</param>
+    /// <param name="peerPublicKey">The public key of your peer.</param>
+    /// <param name="result">The computed shared secret.</param>
+    public static void ComputeSharedSecret(
+        System.ReadOnlySpan<System.Byte> privateKey,
+        System.ReadOnlySpan<System.Byte> peerPublicKey,
+        System.Span<System.Byte> result)
+    {
+        if (privateKey.Length != ScalarSize || peerPublicKey.Length != PointSize || result.Length != PointSize)
+            throw new System.ArgumentException("Invalid input sizes");
+
+        ScalarMult(privateKey, peerPublicKey, result);
+    }
+
+    #endregion APIs
 
     #region Private Methods
 
-    /// <summary>
-    /// Clamps a 32-byte scalar for X25519 as specified in RFC 7748.
-    /// The clamping is done in-place.
-    /// </summary>
-    /// <param name="scalar">The scalar to clamp (must be 32 bytes).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ClampScalar(Span<byte> scalar)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Unpack25519(
+        System.Span<System.UInt32> output,
+        System.ReadOnlySpan<System.Byte> input)
     {
-        scalar[0] &= 248;     // Clear lower 3 bits
-        scalar[31] &= 127;    // Clear high bit
-        scalar[31] |= 64;     // Set second-highest bit
-    }
-
-    /// <summary>
-    /// Creates the base point for X25519.
-    /// </summary>
-    /// <returns>A 32-byte array representing u=9 in little-endian.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] CreateBasePoint()
-    {
-        var basePoint = new byte[FieldElementSize];
-        basePoint[0] = 9;  // u=9 in little-endian
-        return basePoint;
-    }
-
-    /// <summary>
-    /// Computes X25519 scalar multiplication using optimized Montgomery ladder.
-    /// </summary>
-    /// <param name="scalar">A 32-byte scalar (will be clamped)</param>
-    /// <param name="uCoordinate">A 32-byte u-coordinate</param>
-    /// <returns>The resulting 32-byte u-coordinate.</returns>
-    private static byte[] ScalarMult(ReadOnlySpan<byte> scalar, ReadOnlySpan<byte> uCoordinate)
-    {
-        // Convert little-endian byte arrays to BigInteger
-        BigInteger uValue = ToBigInteger(uCoordinate);
-
-        // Create intermediate values for Montgomery ladder
-        BigInteger x1 = uValue;
-        BigInteger z1 = BigInteger.One;
-        BigInteger x2 = BigInteger.One;
-        BigInteger z2 = BigInteger.Zero;
-
-        int swapBit = 0;
-
-        // Process bits from most significant to least significant (except the top bit which is always 0)
-        // We process from bits 254 down to 0
-        for (int i = 254; i >= 0; i--)
+        fixed (System.Byte* inp = input)
+        fixed (System.UInt32* outp = output)
         {
-            // Extract the current bit
-            int bit = (scalar[i >> 3] >> (i & 7)) & 1;
+            for (System.Byte i = 0; i < 10; i++)
+                outp[i] = 0;
 
-            // Conditional swap based on current bit
-            int swap = bit ^ swapBit;
-            if (swap == 1)
+            for (System.Byte i = 0; i < 32; i++)
             {
-                SwapFieldElements(ref x1, ref x2);
-                SwapFieldElements(ref z1, ref z2);
+                outp[i >> 2] |= (System.UInt32)inp[i] << ((i & 3) << 3);
             }
-            swapBit = bit;
-
-            // Montgomery ladder step
-            // Ensure all calculations produce non-negative results modulo P
-            BigInteger a = PositiveMod(x2 + z2);
-            BigInteger b = PositiveMod(x2 - z2);
-            BigInteger c = PositiveMod(x1 + z1);
-            BigInteger d = PositiveMod(x1 - z1);
-
-            BigInteger da = PositiveMod(d * a);
-            BigInteger cb = PositiveMod(c * b);
-
-            x1 = PositiveMod(ModMul(da + cb, da + cb));
-            z1 = PositiveMod(ModMul(uValue, ModMul(PositiveMod(da - cb), PositiveMod(da - cb))));
-
-            x2 = PositiveMod(ModMul(a * b, a * b));
-            BigInteger e = PositiveMod((a * a) - (b * b));
-            z2 = PositiveMod(ModMul(e, PositiveMod((a * a) + ModMul(A24, e))));
         }
-
-        // Final conditional swap
-        if (swapBit == 1)
-        {
-            SwapFieldElements(ref x1, ref x2);
-            SwapFieldElements(ref z1, ref z2);
-        }
-
-        // Compute x2/z2 using modular inverse
-        BigInteger result = PositiveMod(ModMul(x2, ModInverse(z2)));
-
-        // Convert result to little-endian bytes
-        return ToLittleEndianBytes(result);
     }
 
-    /// <summary>
-    /// Ensures a BigInteger is in the range [0, P-1]
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static BigInteger PositiveMod(BigInteger x)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Pack25519(
+        System.Span<System.Byte> output,
+        System.ReadOnlySpan<System.UInt32> input)
     {
-        BigInteger result = x % P;
-        // If the result is negative, add P to make it positive
-        return result < 0 ? result + P : result;
+        System.Span<System.UInt32> temp = stackalloc System.UInt32[10];
+        input.CopyTo(temp);
+
+        Carry(temp);
+        Carry(temp);
+        Carry(temp);
+
+        fixed (System.Byte* outp = output)
+        fixed (System.UInt32* inp = temp)
+        {
+            for (System.Byte i = 0; i < 32; i++)
+            {
+                outp[i] = (System.Byte)(inp[i >> 2] >> ((i & 3) << 3));
+            }
+        }
     }
 
-    /// <summary>
-    /// Modular multiplication with reduction modulo P
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static BigInteger ModMul(BigInteger a, BigInteger b)
-        => PositiveMod(a * b);
-
-    /// <summary>
-    /// Computes the modular inverse of a modulo p using Fermat's little theorem.
-    /// Since p is prime, a^(p-2) mod p is the inverse.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static BigInteger ModInverse(BigInteger a)
-        => BigInteger.ModPow(a, P - 2, P);
-
-    /// <summary>
-    /// Swaps two field elements if the swap bit is 1
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SwapFieldElements(ref BigInteger a, ref BigInteger b)
-        => (b, a) = (a, b);
-
-    /// <summary>
-    /// Converts a little-endian byte span to a BigInteger
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static BigInteger ToBigInteger(ReadOnlySpan<byte> bytes)
-        => new(bytes, isUnsigned: true, isBigEndian: false);
-
-    /// <summary>
-    /// Converts a BigInteger to a little-endian byte array of fixed length.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] ToLittleEndianBytes(BigInteger value)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Carry(System.Span<System.UInt32> h)
     {
-        // Ensure the value is non-negative before conversion
-        if (value < 0)
+        System.UInt32 c;
+        for (System.Byte i = 0; i < 10; i++)
         {
-            throw new InvalidOperationException("Cannot convert negative BigInteger to unsigned bytes");
+            c = h[i] >> 26;
+            h[i] -= c << 26;
+            h[(i + 1) % 10] += c * (i == 9 ? 19u : 1u);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Add(
+        System.Span<System.UInt32> h,
+        System.ReadOnlySpan<System.UInt32> f,
+        System.ReadOnlySpan<System.UInt32> g)
+    {
+        for (System.Byte i = 0; i < 10; i++)
+        {
+            h[i] = f[i] + g[i];
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Sub(
+        System.Span<System.UInt32> h,
+        System.ReadOnlySpan<System.UInt32> f,
+        System.ReadOnlySpan<System.UInt32> g)
+    {
+        for (System.Byte i = 0; i < 10; i++)
+        {
+            h[i] = f[i] + 0x3ffffed + (0x1ffffff << 1) - g[i];
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Mult(
+        System.Span<System.UInt32> h,
+        System.ReadOnlySpan<System.UInt32> f,
+        System.ReadOnlySpan<System.UInt32> g)
+    {
+        System.Span<System.Int64> temp = stackalloc System.Int64[19];
+
+        for (System.Byte i = 0; i < 10; i++)
+        {
+            for (System.Byte j = 0; j < 10; j++)
+            {
+                temp[i + j] += (System.Int64)f[i] * g[j];
+            }
         }
 
-        byte[] result = new byte[FieldElementSize];
-
-        // Get the bytes in little-endian order
-        if (!value.TryWriteBytes(result, out _, isUnsigned: true, isBigEndian: false))
+        for (System.Byte i = 0; i < 19; i++)
         {
-            throw new InvalidOperationException("Failed to convert BigInteger to byte array");
+            if (i >= 10)
+            {
+                temp[i - 10] += 19 * temp[i];
+            }
         }
 
-        return result;
+        for (System.Byte i = 0; i < 10; i++)
+        {
+            h[i] = (System.UInt32)temp[i];
+        }
+
+        Carry(h);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Square(
+        System.Span<System.UInt32> h,
+        System.ReadOnlySpan<System.UInt32> f) => Mult(h, f, f);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void CSwap(
+        System.Span<System.UInt32> a,
+        System.Span<System.UInt32> b,
+        System.UInt32 swap)
+    {
+        System.UInt32 mask = 0u - swap;
+        for (System.Byte i = 0; i < 10; i++)
+        {
+            System.UInt32 t = mask & (a[i] ^ b[i]);
+            a[i] ^= t;
+            b[i] ^= t;
+        }
+    }
+
+    private static void Invert(
+        System.Span<System.UInt32> output,
+        System.ReadOnlySpan<System.UInt32> z)
+    {
+        System.Span<System.UInt32> t0 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> t1 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> t2 = stackalloc System.UInt32[10];
+        System.Span<System.UInt32> t3 = stackalloc System.UInt32[10];
+
+        z.CopyTo(t0);
+
+        // x^(2^255-21) = x^(2^255-19-2) = x^(p-2)
+        // where p = 2^255-19
+        Square(t1, t0);
+        Square(t2, t1);
+        Square(t2, t2);
+        Mult(t2, z, t2);
+        Mult(t1, t1, t2);
+        Square(t1, t1);
+        Mult(t2, t2, t1);
+        Square(t1, t2);
+
+        for (System.Byte i = 1; i < 5; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t2, t1, t2);
+        Square(t1, t2);
+
+        for (System.Byte i = 1; i < 10; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t3, t1, t2);
+        Square(t1, t3);
+
+        for (System.Byte i = 1; i < 20; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t1, t1, t3);
+        Square(t1, t1);
+
+        for (System.Byte i = 1; i < 10; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t2, t1, t2);
+        Square(t1, t2);
+
+        for (System.Byte i = 1; i < 50; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t3, t1, t2);
+        Square(t1, t3);
+
+        for (System.Byte i = 1; i < 100; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t1, t1, t3);
+        Square(t1, t1);
+
+        for (System.Byte i = 1; i < 50; i++)
+        {
+            Square(t1, t1);
+        }
+
+        Mult(t2, t1, t2);
+        Square(t2, t2);
+        Square(t2, t2);
+        Mult(output, t2, z);
     }
 
     #endregion Private Methods
