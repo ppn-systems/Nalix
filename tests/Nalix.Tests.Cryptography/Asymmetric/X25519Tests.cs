@@ -41,7 +41,7 @@ public class X25519Tests
     public void GenerateKeyPair_ReturnsValidKeyPair()
     {
         // Act
-        var (privateKey, publicKey) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
 
         // Assert
         Assert.NotNull(privateKey);
@@ -55,8 +55,9 @@ public class X25519Tests
         Assert.NotEqual(0, privateKey[31] & 0x40); // Second highest bit set
 
         // Verify that the generated key pair works for shared secret computation
-        byte[] sharedSecret = X25519.ComputeSharedSecret(privateKey, publicKey);
-        Assert.NotNull(sharedSecret);
+
+        Span<byte> sharedSecret = stackalloc byte[32];
+        X25519.ComputeSharedSecret(privateKey, publicKey, sharedSecret);
         Assert.Equal(32, sharedSecret.Length);
     }
 
@@ -64,8 +65,8 @@ public class X25519Tests
     public void GenerateKeyPair_ReturnsDifferentKeysOnMultipleCalls()
     {
         // Act
-        var (privateKey1, publicKey1) = X25519.GenerateKeyPair();
-        var (privateKey2, publicKey2) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey1, out byte[] publicKey1);
+        X25519.GenerateKeyPair(out byte[] privateKey2, out byte[] publicKey2);
 
         // Assert
         Assert.False(privateKey1.SequenceEqual(privateKey2), "Generated private keys should be different");
@@ -80,8 +81,8 @@ public class X25519Tests
     public void GenerateKeyPair_ReturnsValidKeys()
     {
         // Act: Generate key pairs
-        var (privateKey1, publicKey1) = X25519.GenerateKeyPair();
-        var (privateKey2, publicKey2) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey1, out byte[] publicKey1);
+        X25519.GenerateKeyPair(out byte[] privateKey2, out byte[] publicKey2);
 
         // Assert: Check that private and public keys are 32 bytes long
         Assert.Equal(32, privateKey1.Length);
@@ -95,9 +96,12 @@ public class X25519Tests
         // Assert: Check that public keys are different (not the same for different key pairs)
         Assert.NotEqual(publicKey1, publicKey2);
 
+        Span<byte> sharedSecret1 = stackalloc byte[32];
+        Span<byte> sharedSecret2 = stackalloc byte[32];
+
         // Assert: Check that each public key corresponds to the correct private key
-        var sharedSecret1 = X25519.ComputeSharedSecret(privateKey1, publicKey2);
-        var sharedSecret2 = X25519.ComputeSharedSecret(privateKey2, publicKey1);
+        X25519.ComputeSharedSecret(privateKey1, publicKey2, sharedSecret1);
+        X25519.ComputeSharedSecret(privateKey2, publicKey1, sharedSecret2);
         Assert.Equal(sharedSecret1, sharedSecret2);
     }
 
@@ -109,12 +113,15 @@ public class X25519Tests
     public void KeyExchange_BothParties_ComputeSameSharedSecret()
     {
         // Arrange - Generate key pairs for Alice and Bob
-        var (alicePrivate, alicePublic) = X25519.GenerateKeyPair();
-        var (bobPrivate, bobPublic) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] alicePrivate, out byte[] alicePublic);
+        X25519.GenerateKeyPair(out byte[] bobPrivate, out byte[] bobPublic);
+
+        Span<byte> aliceSharedSecret = stackalloc byte[32];
+        Span<byte> bobSharedSecret = stackalloc byte[32];
 
         // Act - Compute shared secrets on both sides
-        var aliceSharedSecret = X25519.ComputeSharedSecret(alicePrivate, bobPublic);
-        var bobSharedSecret = X25519.ComputeSharedSecret(bobPrivate, alicePublic);
+        X25519.ComputeSharedSecret(alicePrivate, bobPublic, aliceSharedSecret);
+        X25519.ComputeSharedSecret(bobPrivate, alicePublic, bobSharedSecret);
 
         // Assert - Both parties should compute the same shared secret
         Assert.Equal(aliceSharedSecret, bobSharedSecret);
@@ -127,13 +134,17 @@ public class X25519Tests
         const int pairCount = 5;
         var sharedSecrets = new byte[pairCount][];
 
+        Span<byte> aliceSharedSecret = stackalloc byte[32];
+
         // Act - Generate multiple key pairs and compute shared secrets
         for (int i = 0; i < pairCount; i++)
         {
-            var (alicePrivate, alicePublic) = X25519.GenerateKeyPair();
-            var (bobPrivate, bobPublic) = X25519.GenerateKeyPair();
+            X25519.GenerateKeyPair(out byte[] alicePrivate, out byte[] alicePublic);
+            X25519.GenerateKeyPair(out byte[] bobPrivate, out byte[] bobPublic);
 
-            sharedSecrets[i] = X25519.ComputeSharedSecret(alicePrivate, bobPublic);
+            X25519.ComputeSharedSecret(alicePrivate, bobPublic, aliceSharedSecret);
+
+            sharedSecrets[i] = aliceSharedSecret.ToArray();
         }
 
         // Assert - All shared secrets should be unique
@@ -157,10 +168,11 @@ public class X25519Tests
         // Arrange
         var invalidPrivateKey = new byte[16]; // Too short
         var validPublicKey = new byte[32];
+        var bytes = new byte[32]; // Changed from Span<byte> to byte[]
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() =>
-            X25519.ComputeSharedSecret(invalidPrivateKey, validPublicKey));
+            X25519.ComputeSharedSecret(invalidPrivateKey, validPublicKey, bytes));
         Assert.Contains("Private key must be 32 bytes", ex.Message);
     }
 
@@ -201,15 +213,17 @@ public class X25519Tests
     {
         // Arrange
         const int iterations = 100;
-        var (privateKey, _) = X25519.GenerateKeyPair();
-        var (_, publicKey) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] _);
+        X25519.GenerateKeyPair(out byte[] _, out byte[] publicKey);
 
         // Act
         var startTime = DateTime.Now;
 
+        Span<byte> sharedSecret = stackalloc byte[32];
+
         for (int i = 0; i < iterations; i++)
         {
-            var sharedSecret = X25519.ComputeSharedSecret(privateKey, publicKey);
+            X25519.ComputeSharedSecret(privateKey, publicKey, sharedSecret);
             Assert.Equal(32, sharedSecret.Length);
         }
 
@@ -229,27 +243,30 @@ public class X25519Tests
     public void ComputeSharedSecret_UsingBasePoint_ProducesExpectedResult()
     {
         // Arrange
-        var (privateKey, publicKey) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
+
+        Span<byte> secret = stackalloc byte[32];
 
         // Act - Using the base point u=9
-        var result = X25519.ComputeSharedSecret(privateKey, BasePoint);
+        X25519.ComputeSharedSecret(privateKey, BasePoint, secret);
 
         // Assert - Result should equal the public key for this private key
         // (since the public key is computed as scalar_mult(private_key, base_point))
-        Assert.Equal(publicKey, result);
+        Assert.Equal(publicKey, secret);
     }
 
     [Fact]
     public void ComputeSharedSecret_WithSelfPublicKey_WorksAsExpected()
     {
         // Arrange - Generate a key pair
-        var (privateKey, publicKey) = X25519.GenerateKeyPair();
+        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
+
+        Span<byte> result = stackalloc byte[32];
 
         // Act - Compute "shared secret" with own public key
-        var result = X25519.ComputeSharedSecret(privateKey, publicKey);
+        X25519.ComputeSharedSecret(privateKey, publicKey, result);
 
         // Assert - Should produce a valid result
-        Assert.NotNull(result);
         Assert.Equal(32, result.Length);
     }
 
