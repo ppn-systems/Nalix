@@ -3,7 +3,7 @@ namespace Nalix.Common.Security.Identity;
 /// <summary>
 /// Number type to serve different purposes in the system.
 /// </summary>
-public enum TokenType : System.Byte
+public enum IdentifierType : System.Byte
 {
     #region Core System
 

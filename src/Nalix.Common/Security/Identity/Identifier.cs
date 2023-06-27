@@ -11,9 +11,9 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     System.UInt32 Value { get; }
 
     /// <summary>
-    /// Gets the TokenType encoded within this identifier.
+    /// Gets the IdentifierType encoded within this identifier.
     /// </summary>
-    TokenType Type { get; }
+    IdentifierType Type { get; }
 
     /// <summary>
     /// Gets the machine Number component encoded within this identifier.

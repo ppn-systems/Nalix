@@ -40,7 +40,7 @@ public static class SecureCredentials
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void GenerateCredentialHash(string credential, out byte[] salt, out byte[] hash)
     {
-        salt = RandGenerator.GetBytes(SaltSize);
+        salt = SecureRandom.GetBytes(SaltSize);
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithmType.Sha256);
         hash = pbkdf2.DeriveKey(credential);
     }

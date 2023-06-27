@@ -4,10 +4,10 @@ namespace Nalix.Framework.Randomization;
 /// A high-performance class for generating random numbers with various data types and ranges.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="Rand"/> class with a specified seed.
+/// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
 /// <param name="seed">The seed value to initialize the random Number generator.</param>
-public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
+public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 {
     /// <summary>
     /// Returns a random integer in the range [0, max).

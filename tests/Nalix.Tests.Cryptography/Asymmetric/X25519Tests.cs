@@ -185,7 +185,7 @@ public class X25519Tests
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() =>
-            X25519.ComputeSharedSecret(validPrivateKey, invalidPublicKey));
+            X25519.ComputeSharedSecret(validPrivateKey, invalidPublicKey, new byte[32]));
         Assert.Contains("Public key must be 32 bytes", ex.Message);
     }
 
@@ -196,12 +196,13 @@ public class X25519Tests
         var zeroScalar = new byte[32]; // All zeros
         var somePublicKey = new byte[32];
         new Random(42).NextBytes(somePublicKey); // Some random value
+        Span<byte> result = stackalloc byte[32];
 
         // Act
-        var result = X25519.ComputeSharedSecret(zeroScalar, somePublicKey);
+        X25519.ComputeSharedSecret(zeroScalar, somePublicKey, result);
 
         // Assert - Result should be non-zero (due to the clamping, which sets certain bits)
-        Assert.NotEqual(new byte[32], result);
+        Assert.NotEqual(new byte[32], result.ToArray());
     }
 
     #endregion Input Validation Tests

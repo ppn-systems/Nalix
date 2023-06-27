@@ -80,7 +80,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <returns>Server credentials as a byte array.</returns>
     public byte[] GenerateServerCredentials()
     {
-        _serverPrivateValue = new BigInteger(RandGenerator.GetBytes((int)128u), true);
+        _serverPrivateValue = new BigInteger(SecureRandom.GetBytes((int)128u), true);
         BigInteger multiplierParameter = Hash(true, N, G);
         _serverPublicValue = ((multiplierParameter * _verifier) + BigInteger.ModPow(G, _serverPrivateValue, N)) % N;
 
