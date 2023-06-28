@@ -5,7 +5,7 @@ using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class PriorityQueue<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
+public sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
 {
     #region Properties
 
