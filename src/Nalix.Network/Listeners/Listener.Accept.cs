@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Connection;
+using Nalix.Network.Connection;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pools;
+using System.Net;
 
 namespace Nalix.Network.Listeners;
 
@@ -40,6 +42,7 @@ public abstract partial class Listener
 
         IConnection connection = new Connection.Connection(socket, _bufferPool, _logger);
 
+        connection.EnforceLimiterOnClose(_connectionLimiter);
         connection.OnCloseEvent += HandleConnectionClose;
         connection.OnProcessEvent += _protocol.ProcessMessage!;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
@@ -152,8 +155,19 @@ public abstract partial class Listener
 
         try
         {
+            System.Net.Sockets.Socket socket;
+
             if (!_listener.AcceptAsync(state.Args))
             {
+                socket = state.Args.AcceptSocket!;
+
+                if (!_connectionLimiter.IsConnectionAllowed(
+                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+                {
+                    socket.Close();
+                    throw new System.OperationCanceledException();
+                }
+
                 if (state.Args.SocketError == System.Net.Sockets.SocketError.Success)
                 {
                     return InitializeConnection(state.Args.AcceptSocket!);
@@ -162,7 +176,15 @@ public abstract partial class Listener
                 throw new System.Net.Sockets.SocketException((int)state.Args.SocketError);
             }
 
-            System.Net.Sockets.Socket socket = await state.Tcs.Task.ConfigureAwait(false);
+            socket = await state.Tcs.Task.ConfigureAwait(false);
+
+            if (!_connectionLimiter.IsConnectionAllowed(
+                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+            {
+                socket.Close();
+                throw new System.OperationCanceledException();
+            }
+
             return InitializeConnection(socket);
         }
         finally
@@ -235,6 +257,13 @@ public abstract partial class Listener
         {
             try
             {
+                if (!_connectionLimiter.IsConnectionAllowed(
+                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+                {
+                    socket.Close();
+                    return;
+                }
+
                 // Create and process connection similar to async version
                 IConnection connection = this.InitializeConnection(socket);
 

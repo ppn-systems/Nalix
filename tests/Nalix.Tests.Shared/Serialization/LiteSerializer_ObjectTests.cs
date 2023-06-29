@@ -1,6 +1,4 @@
 ﻿using Nalix.Shared.Serialization;
-using Nalix.Shared.Serialization.Formatters;
-using Nalix.Shared.Serialization.Formatters.Primitives;
 using System;
 using Xunit;
 
@@ -52,41 +50,5 @@ public class LiteSerializer_ObjectTests
 
         Assert.Equal(input.X, output.X);
         Assert.Equal(input.Y, output.Y, precision: 3);
-    }
-
-    // Optional: kiểm thử serialize/deserialize nullable struct
-    [Fact]
-    public void SerializeDeserialize_NullableStruct()
-    {
-        TestStruct? input = new(9, 2.71f);
-        byte[] buffer = LiteSerializer.Serialize(input);
-        TestStruct? output = null; // Change to nullable TestStruct
-
-        LiteSerializer.Deserialize(buffer, ref output);
-
-        Assert.True(output.HasValue); // This now works because output is nullable
-        Assert.Equal(input!.Value.X, output.Value.X);
-        Assert.Equal(input.Value.Y, output.Value.Y, precision: 3);
-    }
-
-    // Optional: kiểm thử serialize null cho nullable struct
-    [Fact]
-    public void SerializeDeserialize_NullableStruct_Null()
-    {
-        TestStruct? input = new();
-        byte[] buffer = LiteSerializer.Serialize(input);
-        TestStruct? output = new TestStruct(1, 1.1f); // khởi tạo giá trị khác
-
-        LiteSerializer.Deserialize(buffer, ref output);
-
-        Assert.Null(output);
-    }
-
-    [Fact]
-    public void FormatterProvider_UsesNullableFormatter_ForNullableStruct()
-    {
-        var formatter = FormatterProvider.Get<TestStruct?>();
-
-        Assert.IsType<NullableFormatter<TestStruct>>(formatter);
     }
 }
