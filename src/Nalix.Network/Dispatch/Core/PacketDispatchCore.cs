@@ -5,7 +5,7 @@ using Nalix.Network.Dispatch.Middleware;
 using Nalix.Network.Dispatch.Middleware.Inbound;
 using Nalix.Network.Dispatch.Options;
 
-namespace Nalix.Network.Dispatch;
+namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.
@@ -51,14 +51,14 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// Thrown if <paramref name="options"/> is <c>null</c>.
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+        "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
     protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
     {
         Options = options ?? throw new System.ArgumentNullException(nameof(options));
         Pipeline = new PacketMiddlewarePipeline<TPacket>()
-            .Use(new RateLimitMiddleware<TPacket>())
-            .Use(new DecompressionMiddleware<TPacket>())
-            .Use(new DecryptionMiddleware<TPacket>());
+            .UsePre(new RateLimitMiddleware<TPacket>())
+            .UsePre(new DecompressionMiddleware<TPacket>())
+            .UsePre(new DecryptionMiddleware<TPacket>());
     }
 
     /// <summary>
