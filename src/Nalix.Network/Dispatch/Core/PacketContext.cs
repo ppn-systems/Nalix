@@ -104,6 +104,12 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         _properties.Clear();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void SetPacket(TPacket packet)
+    {
+        _packet = packet;
+    }
+
     /// <summary>
     /// Set property value.
     /// </summary>
