@@ -20,7 +20,7 @@ public sealed class BufferPoolShared : IDisposable
     private readonly int _bufferSize;
     private readonly Lock _disposeLock = new();
 
-    private BufferInfo _poolInfo;
+    private BufferPoolSnapshot _poolInfo;
     private int _totalBuffers;
     private bool _disposed;
     private int _misses;
@@ -178,7 +178,7 @@ public sealed class BufferPoolShared : IDisposable
     /// Gets information about the buffer pool.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BufferInfo GetPoolInfo()
+    public BufferPoolSnapshot GetPoolInfo()
         => new()
         {
             FreeBuffers = _freeBuffers.Count,
@@ -191,10 +191,10 @@ public sealed class BufferPoolShared : IDisposable
     /// Gets information about the buffer pool by reference for better performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref readonly BufferInfo GetPoolInfoRef()
+    public ref readonly BufferPoolSnapshot GetPoolInfoRef()
     {
         // Caches the pool info in a private field (FIFO cache)
-        _poolInfo = new BufferInfo
+        _poolInfo = new BufferPoolSnapshot
         {
             FreeBuffers = _freeBuffers.Count,
             TotalBuffers = Volatile.Read(ref _totalBuffers),

@@ -3,7 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;
-using Nalix.Shared.Memory.Pools;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection.Transport;
 
