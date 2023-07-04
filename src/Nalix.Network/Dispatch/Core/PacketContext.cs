@@ -46,7 +46,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Packet descriptor với attributes.
     /// </summary>
-    public PacketMetadata Descriptor
+    public PacketMetadata Attributes
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _descriptor;
