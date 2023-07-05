@@ -1,0 +1,84 @@
+﻿using Nalix.Common.Package;
+using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Middleware;
+using Nalix.Network.Dispatch.ReturnHandlers;
+
+namespace Nalix.Network.Dispatch.Options;
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>
+{
+    #region Private Methods
+
+    /// <summary>
+    /// Configure default middleware pipeline.
+    /// </summary>
+    private void ConfigureDefaultMiddleware()
+    {
+        // Pre-processing middleware
+        _pipeline
+            .UsePre(new RateLimitMiddleware<TPacket>())
+            .UsePre(new DecompressionMiddleware<TPacket>())
+            .UsePre(new DecryptionMiddleware<TPacket>());
+        //.UsePre(new ValidationMiddleware<TPacket>());
+
+        // Post-processing middleware
+        //_pipeline
+        //    .UsePost(new CompressionMiddleware<TPacket>())
+        //    .UsePost(new EncryptionMiddleware<TPacket>())
+        //    .UsePost(new LoggingMiddleware<TPacket>(_logger));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.ValueTask ExecuteHandler(
+        PacketHandlerDelegate<TPacket> descriptor,
+        PacketContext<TPacket> context)
+    {
+        // Validation check
+        //if (!descriptor.CanExecute(context))
+        //{
+        //}
+
+        try
+        {
+            // Execute compiled handler
+            System.Object? result = await descriptor.ExecuteAsync(context);
+
+            // Handle return value
+            IPacketReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+            await returnHandler.HandleAsync(result, context);
+        }
+        catch (System.Exception ex)
+        {
+            await HandleExecutionException(descriptor, context, ex);
+        }
+    }
+
+    /// <summary>
+    /// Handle execution exception.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.ValueTask HandleExecutionException(
+        PacketHandlerDelegate<TPacket> descriptor,
+        PacketContext<TPacket> context,
+        System.Exception exception)
+    {
+        _logger?.Error("Handler execution failed for OpCode={0}: {1}",
+            descriptor.OpCode, exception.Message);
+
+        _errorHandler?.Invoke(exception, descriptor.OpCode);
+
+        TPacket errorPacket = TPacket.Create(0, "Internal server error");
+        await context.Connection.Tcp.SendAsync(errorPacket.Serialize());
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static T EnsureNotNull<T>(T value, string paramName) where T : class
+        => value ?? throw new System.ArgumentNullException(paramName);
+
+    #endregion Private Methods
+}

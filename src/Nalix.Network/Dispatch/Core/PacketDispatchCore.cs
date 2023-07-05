@@ -1,8 +1,6 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Package;
-using Nalix.Network.Dispatch.Middleware;
-using Nalix.Network.Dispatch.Middleware.Inbound;
 using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch.Core;
@@ -31,11 +29,6 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// </summary>
     protected readonly PacketDispatchOptions<TPacket> Options;
 
-    /// <summary>
-    /// The middleware pipeline used for processing packets.
-    /// </summary>
-    protected readonly PacketMiddlewarePipeline<TPacket> Pipeline;
-
     #endregion Properties
 
     #region Constructors
@@ -55,10 +48,6 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
     {
         Options = options ?? throw new System.ArgumentNullException(nameof(options));
-        Pipeline = new PacketMiddlewarePipeline<TPacket>()
-            .UsePre(new RateLimitMiddleware<TPacket>())
-            .UsePre(new DecompressionMiddleware<TPacket>())
-            .UsePre(new DecryptionMiddleware<TPacket>());
     }
 
     /// <summary>
@@ -103,16 +92,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
         TPacket packet,
         IConnection connection,
         System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
-    {
-        PacketContext<TPacket> context = new(packet, connection);
-
-        async System.Threading.Tasks.Task HandlerWrapper()
-        {
-            await handler(context.Packet, context.Connection).ConfigureAwait(false);
-        }
-
-        await Pipeline.ExecuteAsync(context, HandlerWrapper).ConfigureAwait(false);
-    }
+        => await handler(packet, connection).ConfigureAwait(false);
 
     /// <summary>
     /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.
