@@ -1,7 +1,6 @@
 ﻿using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Shared.Memory.Pooling;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Core;
 
@@ -30,7 +29,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     public TPacket Packet
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _packet;
     }
 
@@ -39,7 +39,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     public IConnection Connection
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _connection;
     }
 
@@ -48,7 +49,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     public PacketMetadata Attributes
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _descriptor;
     }
 
@@ -89,7 +91,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Initialize context với new values (dùng khi rent từ pool).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
     {
         _packet = packet;
@@ -101,7 +104,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Reset context state để có thể return về pool.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
         _packet = default!;
@@ -111,7 +115,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         _properties.Clear();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void SetPacket(TPacket packet)
     {
         _packet = packet;
@@ -120,7 +125,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Set property value.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetProperty<T>(System.String key, T value) where T : notnull
     {
         _properties[key] = value;
@@ -129,7 +135,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Get property value.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? GetProperty<T>(System.String key) where T : class
     {
         return _properties.TryGetValue(key, out var value) ? value as T : null;
@@ -138,7 +145,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Get value type property.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
     {
         if (_properties.TryGetValue(key, out var value) && value is T typedValue)
