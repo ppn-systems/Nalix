@@ -1,7 +1,6 @@
 ﻿using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Middleware.Core;
 
-namespace Nalix.Network.Dispatch.Middleware;
+namespace Nalix.Network.Dispatch.Middleware.Core;
 
 /// <summary>
 /// Represents a middleware pipeline for processing packets.

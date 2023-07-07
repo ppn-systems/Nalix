@@ -1,17 +1,18 @@
 ﻿using Nalix.Common.Logging;
 using Nalix.Common.Package.Attributes;
+using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Core;
+namespace Nalix.Network.Dispatch.Internal.Analyzers;
 
 /// <summary>
-/// High-performance controller scanner với caching và zero-allocation lookups.
-/// Sử dụng compiled expressions cho maximum performance.
+/// High-performance controller scanner with caching and zero-allocation lookups.
+/// Uses compiled expression trees for maximum dispatch performance.
 /// </summary>
-/// <typeparam name="TController">Controller type</typeparam>
-/// <typeparam name="TPacket">Packet type</typeparam>
-public sealed class PacketAnalyzer<[
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
+/// <typeparam name="TController">The controller type to scan.</typeparam>
+/// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
+internal sealed class PacketAnalyzer<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
     where TController : class
     where TPacket : Common.Package.IPacket,
                    Common.Package.IPacketFactory<TPacket>,
@@ -20,39 +21,44 @@ public sealed class PacketAnalyzer<[
 {
     #region Fields
 
-    // Cache compiled method accessors để tránh reflection overhead
+    /// <summary>
+    /// Caches compiled method delegates for each controller type to eliminate reflection.
+    /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, CompiledMethodInfo<TPacket>>> _compiledMethodCache = new();
+            System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
 
-    // Cache attribute lookups
+    /// <summary>
+    /// Caches attribute lookups per method for performance.
+    /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
 
-    #endregion Fields
+    #endregion
 
     /// <summary>
-    /// Scan controller và return array của handler descriptors.
+    /// Scans the controller and returns an array of packet handler delegates.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="factory">A factory method that creates a controller instance.</param>
+    /// <returns>An array of compiled packet handler delegates.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
-        System.Type controllerType = typeof(TController);
+        var controllerType = typeof(TController);
 
-
-        // Validate controller có PacketController attribute
-        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions
+        // Ensure controller has [PacketController] attribute
+        var controllerAttr = System.Reflection.CustomAttributeExtensions
             .GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new System.InvalidOperationException(
-                $"Controller '{controllerType.Name}' thiếu [PacketController] attribute.");
+                $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        // Get hoặc compile method accessors
+        // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
-        // Create controller instance
+        // Create the controller instance
         TController controllerInstance = factory();
 
+        // Build delegate descriptors
         PacketHandlerDelegate<TPacket>[] descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
         System.Int16 index = 0;
 
@@ -75,34 +81,38 @@ public sealed class PacketAnalyzer<[
         return descriptors;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<
-        System.UInt16, CompiledMethodInfo<TPacket>> GetOrCompileMethodAccessors(
+    /// <summary>
+    /// Gets or compiles method handlers for a controller type.
+    /// </summary>
+    /// <param name="controllerType">The controller type.</param>
+    /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>>
+        GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
+        System.Type controllerType)
     {
+        // Get methods with [PacketOpcode] attribute
         var methodInfos = System.Linq.Enumerable.ToArray(
             System.Linq.Enumerable.Where(
                 controllerType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
                 m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null
-            )
-        );
+            ));
 
-        // Fail early nếu không có method nào có PacketOpcode
         if (methodInfos.Length == 0)
         {
             throw new System.InvalidOperationException(
-                $"Controller '{controllerType.Name}' không có method nào với [PacketOpcode] attribute.");
+                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.");
         }
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<ushort, CompiledMethodInfo<TPacket>> compiled = new(methods.Length);
+            var compiled = new System.Collections.Generic.Dictionary<ushort, CompiledHandler<TPacket>>(methods.Length);
 
             foreach (var method in methods)
             {
-                PacketOpcodeAttribute opcodeAttr = System.Reflection.CustomAttributeExtensions
+                var opcodeAttr = System.Reflection.CustomAttributeExtensions
                     .GetCustomAttribute<PacketOpcodeAttribute>(method)!;
 
                 var compiledMethod = CompileMethodAccessor(method);
@@ -110,86 +120,72 @@ public sealed class PacketAnalyzer<[
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     throw new System.InvalidOperationException(
-                        $"Duplicate OpCode {opcodeAttr.OpCode} trong controller {method.DeclaringType?.Name ?? "Unknown"}.");
+                        $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
                 }
 
                 compiled[opcodeAttr.OpCode] = compiledMethod;
             }
 
             return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
-        }, methodInfos); // Pass methods as state để không lặp lại logic trong Add
+        }, methodInfos);
     }
 
     /// <summary>
-    /// Compile method accessor sử dụng expressions cho maximum performance.
-    /// PERFORMANCE CRITICAL: Đây là nơi tạo compiled delegates.
+    /// Compiles a method accessor into a high-performance delegate using expression trees.
     /// </summary>
+    /// <param name="method">The method to compile.</param>
+    /// <returns>A compiled handler delegate.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
-        "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.",
-        Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private static CompiledMethodInfo<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
+        "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
+        "The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    private static CompiledHandler<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
-        // Tạo expression tree cho method call
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
         var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
-        // Cast instance to controller type
         var castedInstance = System.Linq.Expressions.Expression.Convert(instanceParam, method.DeclaringType!);
 
-        // Replace the problematic line with the following code to avoid using the Expression.Property method with a string parameter.
         var packetProperty = System.Linq.Expressions.Expression.Property(
             contextParam,
-            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Packet))!
-        );
+            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Packet))!);
+
         var connectionProperty = System.Linq.Expressions.Expression.Property(
             contextParam,
-            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Connection))!
-        );
+            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Connection))!);
 
-        // Create method call expression
         var methodCall = System.Linq.Expressions.Expression.Call(
-            castedInstance,
-            method,
-            packetProperty,
-            connectionProperty);
+            castedInstance, method, packetProperty, connectionProperty);
 
-        // Handle return type
-        System.Linq.Expressions.Expression body;
-        if (method.ReturnType == typeof(void))
-        {
-            // Void method - wrap trong block và return null
-            body = System.Linq.Expressions.Expression.Block(
+        // Wrap result appropriately
+        System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
+            ? System.Linq.Expressions.Expression.Block(
                 methodCall,
-                System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)));
-        }
-        else
-        {
-            // Non-void method - cast result to object
-            body = System.Linq.Expressions.Expression.Convert(methodCall, typeof(System.Object));
-        }
+                System.Linq.Expressions.Expression.Constant(null, typeof(object)))
+            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(object));
 
-        // Compile expression thành delegate
         var lambda = System.Linq.Expressions.Expression.Lambda<
-            System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
+            System.Func<object, PacketContext<TPacket>, object?>>(
             body, instanceParam, contextParam);
 
         var compiledDelegate = lambda.Compile();
 
-        // Wrap trong async delegate nếu cần
         var asyncDelegate = CreateAsyncWrapper(compiledDelegate, method.ReturnType);
 
-        return new CompiledMethodInfo<TPacket>(method, method.ReturnType, asyncDelegate);
+        return new CompiledHandler<TPacket>(method, method.ReturnType, asyncDelegate);
     }
 
     /// <summary>
-    /// Tạo async wrapper cho compiled delegate.
+    /// Creates an async-compatible wrapper for a compiled delegate,
+    /// handling Task, ValueTask, and their generic variants.
     /// </summary>
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>>
+    private static System.Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object?>>
         CreateAsyncWrapper(
-            System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
-            [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type returnType)
+        System.Func<object, PacketContext<TPacket>, object?> syncDelegate,
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
+        System.Type returnType)
     {
         if (returnType == typeof(System.Threading.Tasks.Task))
         {
@@ -213,7 +209,6 @@ public sealed class PacketAnalyzer<[
                 if (result is System.Threading.Tasks.Task task)
                 {
                     await task;
-                    // Get Result property value
                     var resultProperty = GetResultProperty(returnType);
                     return resultProperty?.GetValue(task);
                 }
@@ -242,10 +237,7 @@ public sealed class PacketAnalyzer<[
                 var result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.ValueTask valueTask)
                 {
-                    // This is tricky - need to handle ValueTask<T> generically
                     await valueTask;
-
-                    // Use reflection to get Result (cached for performance)
                     var resultProperty = GetResultProperty(returnType);
                     return resultProperty?.GetValue(result);
                 }
@@ -253,19 +245,15 @@ public sealed class PacketAnalyzer<[
             };
         }
 
-        // Synchronous method
-        return (instance, context) =>
-        {
-            var result = syncDelegate(instance, context);
-            return System.Threading.Tasks.ValueTask.FromResult(result);
-        };
+        return (instance, context) => System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context));
     }
 
     /// <summary>
-    /// Get cached attributes cho method.
+    /// Retrieves all cached metadata attributes associated with a handler method.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="method">The method to scan.</param>
+    /// <returns>The parsed packet metadata.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static PacketMetadata GetCachedAttributes(System.Reflection.MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
@@ -277,21 +265,15 @@ public sealed class PacketAnalyzer<[
         ));
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <summary>
+    /// Gets the 'Result' property info from a Task/ValueTask generic return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Reflection.PropertyInfo? GetResultProperty(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type type)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
+        System.Type type)
     {
         return type.GetProperty("Result");
     }
 }
-
-/// <summary>
-/// Chứa compiled method information để tránh reflection overhead.
-/// </summary>
-public readonly record struct CompiledMethodInfo<TPacket>(
-    System.Reflection.MethodInfo MethodInfo,
-    System.Type ReturnType,
-    System.Func<System.Object, PacketContext<TPacket>,
-        System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker);
