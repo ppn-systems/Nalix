@@ -35,7 +35,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
             return;
         }
 
-        HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
+        this.HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
     }
 
     /// <inheritdoc />
@@ -54,7 +54,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
             return;
         }
 
-        HandlePacket(raw.Value.Span, connection);
+        this.HandlePacket(raw.Value.Span, connection);
     }
 
     /// <inheritdoc />
@@ -74,7 +74,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
             return;
         }
 
-        HandlePacketAsync(TPacket.Deserialize(raw), connection);
+        this.HandlePacketAsync(TPacket.Deserialize(raw), connection);
     }
 
     /// <inheritdoc />

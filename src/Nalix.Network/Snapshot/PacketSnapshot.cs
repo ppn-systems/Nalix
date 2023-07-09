@@ -10,12 +10,12 @@ public record PacketSnapshot
     /// <summary>
     /// Gets the total number of packets currently in the queue across all priority levels.
     /// </summary>
-    public int TotalPendingPackets { get; init; }
+    public System.Int32 TotalPendingPackets { get; init; }
 
     /// <summary>
     /// Gets the average packet processing time in milliseconds.
     /// </summary>
-    public float AvgProcessingTimeMs { get; init; }
+    public System.Single AvgProcessingTimeMs { get; init; }
 
     /// <summary>
     /// Gets the per-priority level statistics, grouped by <see cref="PacketPriority"/>.

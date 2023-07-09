@@ -13,37 +13,39 @@ public abstract partial class Listener
     public async System.Threading.Tasks.Task StartListeningAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
         if (Config.MaxParallel < 1)
-            throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
-
-        if (_isRunning)
         {
-            _logger.Warn("[TCP] Accept connections is already running.");
+            throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
+        }
+
+        if (this._isRunning)
+        {
+            this._logger.Warn("[TCP] Accept connections is already running.");
             return;
         }
 
-        _isRunning = true;
-        _logger.Debug("Starting listener");
+        this._isRunning = true;
+        this._logger.Debug("Starting listener");
 
         // Create a linked token source to combine external cancellation with Internal cancellation
-        _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        System.Threading.CancellationToken linkedToken = _cts.Token;
+        this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        System.Threading.CancellationToken linkedToken = this._cts.Token;
 
-        await _lock.WaitAsync(linkedToken).ConfigureAwait(false);
+        await this._lock.WaitAsync(linkedToken).ConfigureAwait(false);
 
         try
         {
-            _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.Port);
+            this._logger.Info("[TCP] {0} listening on port {1}", this._protocol, Config.Port);
 
             // Create multiple accept tasks in parallel for higher throughput
-            int acceptCount = Config.MaxParallel;
+            System.Int32 acceptCount = Config.MaxParallel;
 
-            System.Threading.Tasks.Task updateTask = _timeSyncWorker.RunAsync(linkedToken);
+            System.Threading.Tasks.Task updateTask = this._timeSyncWorker.RunAsync(linkedToken);
             System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[acceptCount + 1];
 
-            for (int i = 0; i < acceptCount; i++)
+            for (System.Int32 i = 0; i < acceptCount; i++)
             {
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
             }
@@ -54,11 +56,11 @@ public abstract partial class Listener
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
+            this._logger.Info("[TCP] Listener on {0} stopped", Config.Port);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            throw new InternalErrorException($"[TCP] Could not start {_protocol} on port {Config.Port}", ex);
+            throw new InternalErrorException($"[TCP] Could not start {this._protocol} on port {Config.Port}", ex);
         }
         catch (System.Exception ex)
         {
@@ -68,11 +70,11 @@ public abstract partial class Listener
         {
             try
             {
-                _listener.Close();
+                this._listener.Close();
             }
             catch { }
 
-            _lock.Release();
+            _ = this._lock.Release();
         }
     }
 
@@ -81,32 +83,32 @@ public abstract partial class Listener
     /// </summary>
     public void StopListening()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
-        _cts?.Cancel();
+        this._cts?.Cancel();
 
         try
         {
             // Close the socket listener to deactivate the accept
-            if (_isRunning)
+            if (this._isRunning)
             {
-                _listener.Close();
-                _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
+                this._listener.Close();
+                this._logger.Info("[TCP] Listener on {0} stopped", Config.Port);
             }
         }
         catch (System.Exception ex)
         {
-            _logger.Error("Error closing listener socket: {0}", ex.Message);
+            this._logger.Error("Error closing listener socket: {0}", ex.Message);
         }
 
-        _isRunning = false;
-        _logger.Info("Listener stopped.");
+        this._isRunning = false;
+        this._logger.Info("Listener stopped.");
     }
 
     /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    public virtual void SynchronizeTime(long milliseconds)
+    public virtual void SynchronizeTime(System.Int64 milliseconds)
     { }
 }

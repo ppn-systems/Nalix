@@ -16,7 +16,7 @@ internal class TimeSynchronizer(ILogger logger)
     /// <summary>
     /// Gets a value indicating whether the time synchronization loop is currently running.
     /// </summary>
-    public System.Boolean IsRunning => _isRunning;
+    public System.Boolean IsRunning => this._isRunning;
 
     /// <summary>
     /// Gets or sets a value indicating whether time synchronization is enabled.
@@ -24,8 +24,8 @@ internal class TimeSynchronizer(ILogger logger)
     /// </summary>
     public System.Boolean IsTimeSyncEnabled
     {
-        get => _isTimeSyncEnabled;
-        set => _isTimeSyncEnabled = value;
+        get => this._isTimeSyncEnabled;
+        set => this._isTimeSyncEnabled = value;
     }
 
     /// <summary>
@@ -44,36 +44,36 @@ internal class TimeSynchronizer(ILogger logger)
     public async System.Threading.Tasks.Task RunAsync(
         System.Threading.CancellationToken cancellationToken)
     {
-        if (_isRunning)
+        if (this._isRunning)
         {
-            _logger.Warn("Time synchronization loop is already running.");
+            this._logger.Warn("Time synchronization loop is already running.");
             return;
         }
 
-        _isRunning = true;
+        this._isRunning = true;
 
         try
         {
-            if (!_isTimeSyncEnabled)
+            if (!this._isTimeSyncEnabled)
             {
-                _logger.Debug("Waiting for time sync loop to be enabled...");
+                this._logger.Debug("Waiting for time sync loop to be enabled...");
             }
 
-            while (!_isTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
+            while (!this._isTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
             {
                 await System.Threading.Tasks.Task.Delay(10000, cancellationToken).ConfigureAwait(false);
             }
 
-            _logger.Info("Time sync loop enabled, starting update cycle.");
+            this._logger.Info("Time sync loop enabled, starting update cycle.");
 
-            while (_isRunning && !cancellationToken.IsCancellationRequested)
+            while (this._isRunning && !cancellationToken.IsCancellationRequested)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                long current = Clock.UnixMillisecondsNow();
+                System.Int64 current = Clock.UnixMillisecondsNow();
                 this.TimeSynchronized?.Invoke(current);
 
-                long elapsed = Clock.UnixMillisecondsNow() - current;
-                long remaining = 16 - elapsed;
+                System.Int64 elapsed = Clock.UnixMillisecondsNow() - current;
+                System.Int64 remaining = 16 - elapsed;
 
                 if (remaining > 0)
                 {
@@ -84,15 +84,15 @@ internal class TimeSynchronizer(ILogger logger)
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Debug("Time synchronization loop cancelled");
+            this._logger.Debug("Time synchronization loop cancelled");
         }
         catch (System.Exception ex)
         {
-            _logger.Error("Time synchronization loop error: {0}", ex.Message);
+            this._logger.Error("Time synchronization loop error: {0}", ex.Message);
         }
         finally
         {
-            _isRunning = false;
+            this._isRunning = false;
         }
     }
 
@@ -101,10 +101,12 @@ internal class TimeSynchronizer(ILogger logger)
     /// </summary>
     public void Stop()
     {
-        if (!_isRunning)
+        if (!this._isRunning)
+        {
             return;
+        }
 
-        _isRunning = false;
-        _logger.Info("Time synchronization loop stopped.");
+        this._isRunning = false;
+        this._logger.Info("Time synchronization loop stopped.");
     }
 }

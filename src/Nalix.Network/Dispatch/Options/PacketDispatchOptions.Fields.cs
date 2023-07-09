@@ -19,7 +19,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Fields
 
-    private ILogger? _logger;
 
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 
@@ -39,8 +38,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     public PacketDispatchOptions()
     {
-        _handlerCache = [];
-        _pipeline = new PacketMiddlewarePipeline<TPacket>();
+        this._handlerCache = [];
+        this._pipeline = new PacketMiddlewarePipeline<TPacket>();
     }
 
     #endregion Fields
@@ -50,7 +49,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
-    public ILogger? Logger => _logger;
+    public ILogger? Logger { get; private set; }
 
     /// <summary>
     /// Gets the dispatch queue options.

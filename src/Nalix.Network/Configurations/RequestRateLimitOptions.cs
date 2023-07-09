@@ -44,7 +44,7 @@ public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : Con
     /// <param name="requests">The maximum Number of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
-    public RequestRateLimitOptions(int requests, int lockoutSeconds, int windowMilliseconds)
+    public RequestRateLimitOptions(System.Int32 requests, System.Int32 lockoutSeconds, System.Int32 windowMilliseconds)
         : this(new RequestLimitSettings(requests, lockoutSeconds, windowMilliseconds))
     {
     }
@@ -75,21 +75,21 @@ public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : Con
     /// </summary>
     /// <value>The maximum Number of requests allowed in a given time window.</value>
     /// <remarks>Value must be between 1 and 1000 requests per window.</remarks>
-    public int MaxAllowedRequests { get; set; } = settings.Requests;
+    public System.Int32 MaxAllowedRequests { get; set; } = settings.Requests;
 
     /// <summary>
     /// Gets or sets the duration in seconds for which an IP is locked out after exceeding the maximum allowed requests.
     /// </summary>
     /// <value>The lockout duration in seconds after exceeding the request limit.</value>
     /// <remarks>Value must be between 1 and 3600 seconds (1 hour).</remarks>
-    public int LockoutDurationSeconds { get; set; } = settings.LockoutDurationSec;
+    public System.Int32 LockoutDurationSeconds { get; set; } = settings.LockoutDurationSec;
 
     /// <summary>
     /// Gets or sets the time window in milliseconds during which requests are counted.
     /// </summary>
     /// <value>The time window in milliseconds.</value>
     /// <remarks>Value must be greater than or equal to 1000 milliseconds (1 second).</remarks>
-    public int TimeWindowInMilliseconds { get; set; } = settings.TimeWindowMs;
+    public System.Int32 TimeWindowInMilliseconds { get; set; } = settings.TimeWindowMs;
 
     /// <summary>
     /// Gets the time window as a TimeSpan.

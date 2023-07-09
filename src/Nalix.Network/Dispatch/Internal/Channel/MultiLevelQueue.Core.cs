@@ -3,7 +3,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Dispatch.Channel;
+namespace Nalix.Network.Dispatch.Internal.Channel;
 
 /// <summary>
 /// A high-performance priority queue for network packets based on System.Threading.Channels.

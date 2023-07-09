@@ -2,7 +2,7 @@
 using Nalix.Common.Package.Enums;
 using Nalix.Shared.Memory.Pools;
 
-namespace Nalix.Network.Dispatch.Channel;
+namespace Nalix.Network.Dispatch.Internal.Channel;
 
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.
@@ -19,7 +19,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Flush() => ClearInternal();
+    public void Flush() => this.ClearInternal();
 
     /// <summary>
     /// Removes all packets from the specified priority queue.
@@ -33,19 +33,19 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int Flush(PacketPriority priority)
+    public System.Int32 Flush(PacketPriority priority)
     {
-        int index = (int)priority;
-        int removed = FlushInternal(index);
+        System.Int32 index = (System.Int32)priority;
+        System.Int32 removed = this.FlushInternal(index);
 
         if (removed > 0)
         {
-            System.Threading.Interlocked.Add(ref _totalCount, -removed);
-            System.Threading.Interlocked.Exchange(ref _priorityCounts[index], 0);
+            _ = System.Threading.Interlocked.Add(ref this._totalCount, -removed);
+            _ = System.Threading.Interlocked.Exchange(ref this._priorityCounts[index], 0);
 
-            if (_options.EnableMetrics)
+            if (this._options.EnableMetrics)
             {
-                _expiredCounts![index] = 0;
+                this._expiredCounts![index] = 0;
                 this.ClearStatistics(index);
             }
         }
@@ -63,7 +63,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.Task<int> SweepExpiredAsync() => PruneExpiredInternalAsync();
+    public System.Threading.Tasks.Task<System.Int32> SweepExpiredAsync() => this.PruneExpiredInternalAsync();
 
     /// <summary>
     /// Starts a background task to periodically remove expired packets.
@@ -87,7 +87,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
                 try
                 {
                     await System.Threading.Tasks.Task.Delay(interval, cancellationToken);
-                    await SweepExpiredAsync();
+                    _ = await this.SweepExpiredAsync();
                 }
                 catch (System.OperationCanceledException) { break; }
                 catch { /* Optional: Logging */ }
@@ -98,10 +98,10 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 
     #region Private Methods
 
-    private int FlushInternal(int index)
+    private System.Int32 FlushInternal(System.Int32 index)
     {
-        int cleared = 0;
-        var reader = _priorityChannels[index].Reader;
+        System.Int32 cleared = 0;
+        var reader = this._priorityChannels[index].Reader;
 
         while (reader.TryRead(out TPacket? packet))
         {
@@ -117,26 +117,28 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private async System.Threading.Tasks.Task<int> PruneExpiredInternalAsync()
+    private async System.Threading.Tasks.Task<System.Int32> PruneExpiredInternalAsync()
     {
-        int totalExpired = 0;
+        System.Int32 totalExpired = 0;
 
-        for (int i = 0; i < _priorityCount; i++)
+        for (System.Int32 i = 0; i < this._priorityCount; i++)
         {
-            var reader = _priorityChannels[i].Reader;
-            var writer = _priorityChannels[i].Writer;
+            var reader = this._priorityChannels[i].Reader;
+            var writer = this._priorityChannels[i].Writer;
 
             System.Collections.Generic.List<TPacket> buffer = ListPool<TPacket>.Instance.Rent();
 
             while (reader.TryRead(out TPacket? packet))
             {
-                if (packet.IsExpired(_options.Timeout))
+                if (packet.IsExpired(this._options.Timeout))
                 {
                     packet.Dispose();
                     totalExpired++;
 
-                    if (_options.EnableMetrics)
-                        _expiredCounts![i]++;
+                    if (this._options.EnableMetrics)
+                    {
+                        this._expiredCounts![i]++;
+                    }
                 }
                 else
                 {
@@ -144,7 +146,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
                 }
             }
 
-            for (int j = 0; j < buffer.Count; j++)
+            for (System.Int32 j = 0; j < buffer.Count; j++)
             {
                 await writer.WriteAsync(buffer[j]);
             }
@@ -154,7 +156,9 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
         }
 
         if (totalExpired > 0)
-            System.Threading.Interlocked.Add(ref _totalCount, -totalExpired);
+        {
+            _ = System.Threading.Interlocked.Add(ref this._totalCount, -totalExpired);
+        }
 
         return totalExpired;
     }
@@ -166,23 +170,25 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ClearInternal()
     {
-        int totalCleared = 0;
+        System.Int32 totalCleared = 0;
 
-        for (int i = 0; i < _priorityCount; i++)
+        for (System.Int32 i = 0; i < this._priorityCount; i++)
         {
-            int removed = FlushInternal(i);
+            System.Int32 removed = this.FlushInternal(i);
             totalCleared += removed;
 
-            if (_options.EnableMetrics)
+            if (this._options.EnableMetrics)
             {
-                System.Threading.Interlocked.Exchange(ref _priorityCounts[i], 0);
-                _expiredCounts![i] = 0;
+                _ = System.Threading.Interlocked.Exchange(ref this._priorityCounts[i], 0);
+                this._expiredCounts![i] = 0;
                 this.ClearStatistics(i);
             }
         }
 
         if (totalCleared > 0)
-            System.Threading.Interlocked.Exchange(ref _totalCount, 0);
+        {
+            _ = System.Threading.Interlocked.Exchange(ref this._totalCount, 0);
+        }
     }
 
     /// <summary>
@@ -190,10 +196,10 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static int DrainAndDisposePackets(
+    private static System.Int32 DrainAndDisposePackets(
         System.Threading.Channels.ChannelReader<TPacket> reader)
     {
-        int count = 0;
+        System.Int32 count = 0;
         while (reader.TryRead(out TPacket? packet))
         {
             packet.Dispose();
