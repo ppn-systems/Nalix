@@ -18,7 +18,7 @@ namespace Nalix.Cryptography.Asymmetric;
 /// <param name="username">User name.</param>
 /// <param name="salt">Salt value as byte array.</param>
 /// <param name="verifier">Verifier value as byte array.</param>
-public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
+public sealed class Srp6(String username, Byte[] salt, Byte[] verifier) : ISrp6
 {
     #region Properties
 
@@ -46,7 +46,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     private readonly BigInteger _saltValue = new(salt, true);
     private readonly BigInteger _verifier = new(verifier, true);
-    private readonly byte[] _usernameBytes = System.Text.Encoding.UTF8.GetBytes(username);
+    private readonly Byte[] _usernameBytes = System.Text.Encoding.UTF8.GetBytes(username);
 
     private BigInteger _sessionKey;
     private BigInteger _clientProof;
@@ -66,9 +66,9 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <param name="username">User name.</param>
     /// <param name="password">Password.</param>
     /// <returns>Verifier as a byte array.</returns>
-    public static byte[] GenerateVerifier(byte[] salt, string username, string password)
+    public static Byte[] GenerateVerifier(Byte[] salt, String username, String password)
     {
-        byte[] data = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
+        Byte[] data = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
         BigInteger x = Hash(true, new BigInteger(salt, true), new BigInteger(data, true));
 
         return BigInteger.ModPow(G, x, N).ToByteArray();
@@ -78,9 +78,9 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// Create server credentials to send to the client.
     /// </summary>
     /// <returns>Server credentials as a byte array.</returns>
-    public byte[] GenerateServerCredentials()
+    public Byte[] GenerateServerCredentials()
     {
-        _serverPrivateValue = new BigInteger(SecureRandom.GetBytes((int)128u), true);
+        _serverPrivateValue = new BigInteger(SecureRandom.GetBytes((Int32)128u), true);
         BigInteger multiplierParameter = Hash(true, N, G);
         _serverPublicValue = ((multiplierParameter * _verifier) + BigInteger.ModPow(G, _serverPrivateValue, N)) % N;
 
@@ -91,12 +91,14 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// Processes the client's authentication information. If valid, the shared secret is generated.
     /// </summary>
     /// <param name="clientPublicValueBytes">The client's public value as a byte array.</param>
-    public void CalculateSecret(byte[] clientPublicValueBytes)
+    public void CalculateSecret(Byte[] clientPublicValueBytes)
     {
         var clientPublicValue = new BigInteger(clientPublicValueBytes, true);
 
         if (clientPublicValue % N == BigInteger.Zero)
+        {
             throw new CryptoException("The value of clientPublicValue cannot be divisible by N");
+        }
 
         _clientPublicValue = clientPublicValue;
         BigInteger u = Hash(true, _clientPublicValue, _serverPublicValue);
@@ -107,10 +109,12 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// Calculate session key from the shared secret.
     /// </summary>
     /// <returns>Session key as a byte array.</returns>
-    public byte[] CalculateSessionKey()
+    public Byte[] CalculateSessionKey()
     {
         if (_sharedSecret == BigInteger.Zero)
+        {
             throw new CryptoException("Missing data from previous operations: sharedSecret");
+        }
 
         _sessionKey = ShaInterleave(_sharedSecret);
         return _sessionKey.ToByteArray(true);
@@ -121,20 +125,24 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// </summary>
     /// <param name="clientProofMessage">The client proof message as a byte array.</param>
     /// <returns>True if the client proof message is valid, otherwise false.</returns>
-    public bool VerifyClientEvidenceMessage(byte[] clientProofMessage)
+    public Boolean VerifyClientEvidenceMessage(Byte[] clientProofMessage)
     {
         if (_clientPublicValue == BigInteger.Zero ||
             _serverPublicValue == BigInteger.Zero ||
             _sharedSecret == BigInteger.Zero)
+        {
             throw new CryptoException(
                 "Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
+        }
 
         var usernameHash = SHA256.HashData(_usernameBytes);
         BigInteger expectedClientProof = Hash(false, Hash(false, N) ^ Hash(false, G),
             new BigInteger(usernameHash, true), _saltValue, _clientPublicValue, _serverPublicValue, _sessionKey);
 
         if (!clientProofMessage.SequenceEqual(expectedClientProof.ToByteArray(true)))
+        {
             return false;
+        }
 
         _clientProof = new BigInteger(clientProofMessage, true);
         return true;
@@ -144,14 +152,16 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// Compute the server proof message using previously verified values.
     /// </summary>
     /// <returns>The server proof message as a byte array.</returns>
-    public byte[] CalculateServerEvidenceMessage()
+    public Byte[] CalculateServerEvidenceMessage()
     {
         if (_clientPublicValue == BigInteger.Zero || _clientProof == BigInteger.Zero || _sessionKey == BigInteger.Zero)
+        {
             throw new CryptoException("Missing data from previous operations: clientPublicValue, clientProof, sessionKey");
+        }
 
         BigInteger serverProof = Hash(true, _clientPublicValue, _clientProof, _sessionKey);
 
-        byte[] serverProofBytes = serverProof.ToByteArray(true);
+        Byte[] serverProofBytes = serverProof.ToByteArray(true);
         ReverseBytesAsUInt32(serverProofBytes);
         return serverProofBytes;
     }
@@ -160,73 +170,87 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     #region Private Methods
 
-    private static BigInteger Hash(bool reverse, params BigInteger[] integers)
+    private static BigInteger Hash(Boolean reverse, params BigInteger[] integers)
     {
         using SHA256 sha256 = new();
         sha256.Initialize();
 
-        for (int i = 0; i < integers.Length; i++)
+        for (Int32 i = 0; i < integers.Length; i++)
         {
-            byte[] buffer = integers[i].ToByteArray(true);
-            int padding = buffer.Length % 4;
+            Byte[] buffer = integers[i].ToByteArray(true);
+            Int32 padding = buffer.Length % 4;
             if (padding != 0)
+            {
                 Array.Resize(ref buffer, buffer.Length + (4 - padding));
+            }
 
             if (i == integers.Length - 1)
+            {
                 sha256.TransformFinalBlock(buffer, 0, buffer.Length);
+            }
             else
-                sha256.TransformBlock(buffer, 0, buffer.Length, null, 0);
+            {
+                _ = sha256.TransformBlock(buffer, 0, buffer.Length, null, 0);
+            }
         }
 
-        byte[] hash = sha256.Hash ?? [];
+        Byte[] hash = sha256.Hash ?? [];
         if (reverse)
+        {
             ReverseBytesAsUInt32(hash);
+        }
+
         return new BigInteger(hash, true);
     }
 
     private static BigInteger ShaInterleave(BigInteger sharedSecret)
     {
-        byte[] secretBytes = sharedSecret.ToByteArray(true);
-        byte[] reversedSecretBytes = [.. secretBytes.Reverse()];
+        Byte[] secretBytes = sharedSecret.ToByteArray(true);
+        Byte[] reversedSecretBytes = [.. secretBytes.Reverse()];
 
-        int firstZeroIndex = Array.IndexOf(secretBytes, (byte)0);
-        int length = 4;
+        Int32 firstZeroIndex = Array.IndexOf(secretBytes, (Byte)0);
+        Int32 length = 4;
 
         if (firstZeroIndex >= 0 && firstZeroIndex < reversedSecretBytes.Length - 4)
-            length = reversedSecretBytes.Length - firstZeroIndex;
-
-        byte[] evenIndexedBytes = new byte[length / 2];
-        for (uint i = 0u; i < evenIndexedBytes.Length; i++)
-            evenIndexedBytes[i] = reversedSecretBytes[i * 2];
-
-        byte[] oddIndexedBytes = new byte[length / 2];
-        for (uint i = 0u; i < oddIndexedBytes.Length; i++)
-            oddIndexedBytes[i] = reversedSecretBytes[(i * 2) + 1];
-
-        byte[] evenHash = SHA256.HashData(evenIndexedBytes);
-        byte[] oddHash = SHA256.HashData(oddIndexedBytes);
-
-        byte[] interleavedHash = new byte[evenHash.Length + oddHash.Length];
-        for (uint i = 0u; i < interleavedHash.Length; i++)
         {
-            if (i % 2 == 0)
-                interleavedHash[i] = evenHash[i / 2];
-            else
-                interleavedHash[i] = oddHash[i / 2];
+            length = reversedSecretBytes.Length - firstZeroIndex;
+        }
+
+        Byte[] evenIndexedBytes = new Byte[length / 2];
+        for (UInt32 i = 0u; i < evenIndexedBytes.Length; i++)
+        {
+            evenIndexedBytes[i] = reversedSecretBytes[i * 2];
+        }
+
+        Byte[] oddIndexedBytes = new Byte[length / 2];
+        for (UInt32 i = 0u; i < oddIndexedBytes.Length; i++)
+        {
+            oddIndexedBytes[i] = reversedSecretBytes[(i * 2) + 1];
+        }
+
+        Byte[] evenHash = SHA256.HashData(evenIndexedBytes);
+        Byte[] oddHash = SHA256.HashData(oddIndexedBytes);
+
+        Byte[] interleavedHash = new Byte[evenHash.Length + oddHash.Length];
+        for (UInt32 i = 0u; i < interleavedHash.Length; i++)
+        {
+            interleavedHash[i] = i % 2 == 0 ? evenHash[i / 2] : oddHash[i / 2];
         }
 
         return new BigInteger(interleavedHash, true);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReverseBytesAsUInt32(byte[] byteArray)
+    private static void ReverseBytesAsUInt32(Byte[] byteArray)
     {
         // Efficiently reverses byte order in groups of 4 (UInt32).
         if (byteArray.Length % 4 != 0)
+        {
             throw new ArgumentException("Array length must be a multiple of 4.");
+        }
 
-        int j = byteArray.Length - 4;
-        for (int i = 0; i < byteArray.Length / 2; i += 4, j -= 4)
+        Int32 j = byteArray.Length - 4;
+        for (Int32 i = 0; i < byteArray.Length / 2; i += 4, j -= 4)
         {
             (byteArray[j + 0], byteArray[i + 0]) = (byteArray[i + 0], byteArray[j + 0]);
             (byteArray[j + 1], byteArray[i + 1]) = (byteArray[i + 1], byteArray[j + 1]);

@@ -28,7 +28,9 @@ public static unsafe class X25519
     public static void ClampScalar(System.Span<System.Byte> scalar)
     {
         if (scalar.Length != ScalarSize)
+        {
             throw new System.ArgumentException("Scalar must be 32 bytes");
+        }
 
         scalar[0] &= 248;
         scalar[31] &= 127;
@@ -47,7 +49,9 @@ public static unsafe class X25519
         System.Span<System.Byte> result)
     {
         if (scalar.Length != ScalarSize || basePoint.Length != PointSize || result.Length != PointSize)
+        {
             throw new System.ArgumentException("Invalid input sizes");
+        }
 
         System.Span<System.UInt32> x1 = stackalloc System.UInt32[10];
         System.Span<System.UInt32> x2 = stackalloc System.UInt32[10];
@@ -142,7 +146,9 @@ public static unsafe class X25519
         System.Span<System.Byte> result)
     {
         if (privateKey.Length != ScalarSize || peerPublicKey.Length != PointSize || result.Length != PointSize)
+        {
             throw new System.ArgumentException("Invalid input sizes");
+        }
 
         ScalarMult(privateKey, peerPublicKey, result);
     }
@@ -161,7 +167,9 @@ public static unsafe class X25519
         fixed (System.UInt32* outp = output)
         {
             for (System.Byte i = 0; i < 10; i++)
+            {
                 outp[i] = 0;
+            }
 
             for (System.Byte i = 0; i < 32; i++)
             {

@@ -41,10 +41,14 @@ public sealed class Arc4 : System.IDisposable
     public Arc4(System.ReadOnlySpan<System.Byte> key)
     {
         if (key.IsEmpty)
+        {
             throw new System.ArgumentNullException(nameof(key));
+        }
 
-        if (key.Length < 5 || key.Length > 256)
+        if (key.Length is < 5 or > 256)
+        {
             throw new System.ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
+        }
 
         this.Initialize(key);
     }
