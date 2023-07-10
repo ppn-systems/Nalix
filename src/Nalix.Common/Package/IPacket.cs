@@ -83,7 +83,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// </list>
     /// This hash can be used as a fast lookup key for caching or deduplication.
     /// </returns>
-    public System.Int32 Hash { get; }
+    System.Int32 Hash { get; }
 
     #endregion Properties
 
