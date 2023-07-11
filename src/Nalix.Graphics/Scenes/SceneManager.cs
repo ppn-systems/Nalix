@@ -68,12 +68,15 @@ public static class SceneManager
                         t.Namespace.Contains(GameEngine.GraphicsConfig.ScenesNamespace));
 
         // HashSet to check for duplicate scene names efficiently
-        System.Collections.Generic.HashSet<string> sceneNames = [];
+        System.Collections.Generic.HashSet<System.String> sceneNames = [];
 
         foreach (System.Type type in sceneTypes)
         {
             // Skip compiler-generated types (like anonymous types or internal generic types)
-            if (type.Name.Contains('<')) continue;
+            if (type.Name.Contains('<'))
+            {
+                continue;
+            }
 
             // Check if the class has the IgnoredLoadAttribute
             if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IgnoredLoadAttribute>(type) != null)
@@ -87,7 +90,10 @@ public static class SceneManager
 
             // Attempt to find a constructor with no parameters
             System.Reflection.ConstructorInfo constructor = type.GetConstructor(System.Type.EmptyTypes);
-            if (constructor == null) continue;
+            if (constructor == null)
+            {
+                continue;
+            }
 
             // Instantiate the scene using the parameterless constructor
             Scene scene;
@@ -114,7 +120,7 @@ public static class SceneManager
             }
 
             // Add the scene name to the HashSet for future checks
-            sceneNames.Add(scene.Name);
+            _ = sceneNames.Add(scene.Name);
 
             // Add the scene to the list
             _scenes.Add(scene);
@@ -138,15 +144,21 @@ public static class SceneManager
     {
         foreach (SceneObject sceneObject in _sceneObjects)
         {
-            if (!sceneObject.PersistOnSceneChange) sceneObject.BeforeDestroy();
+            if (!sceneObject.PersistOnSceneChange)
+            {
+                sceneObject.BeforeDestroy();
+            }
         }
-        _sceneObjects.RemoveWhere(o => !o.PersistOnSceneChange);
+        _ = _sceneObjects.RemoveWhere(o => !o.PersistOnSceneChange);
 
         foreach (SceneObject queued in _spawnQueue)
         {
-            if (!queued.PersistOnSceneChange) queued.BeforeDestroy();
+            if (!queued.PersistOnSceneChange)
+            {
+                queued.BeforeDestroy();
+            }
         }
-        _spawnQueue.RemoveWhere(o => !o.PersistOnSceneChange);
+        _ = _spawnQueue.RemoveWhere(o => !o.PersistOnSceneChange);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -229,9 +241,13 @@ public static class SceneManager
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void ProcessLoadScene()
     {
-        if (_nextScene == "") return;
+        if (_nextScene == "")
+        {
+            return;
+        }
+
         ClearScene();
-        string lastScene = _currentScene?.Name ?? "";
+        System.String lastScene = _currentScene?.Name ?? "";
         LoadScene(_nextScene);
         SceneChanged?.Invoke(lastScene, _nextScene);
         _nextScene = "";
@@ -269,17 +285,23 @@ public static class SceneManager
 
         foreach (SceneObject o in _sceneObjects)
         {
-            if (!o.Initialized) o.InitializeSceneObject();
+            if (!o.Initialized)
+            {
+                o.InitializeSceneObject();
+            }
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void UpdateSceneObjects(float deltaTime)
+    internal static void UpdateSceneObjects(System.Single deltaTime)
     {
         foreach (SceneObject o in _sceneObjects)
         {
-            if (o.Enabled) o.Update(deltaTime);
+            if (o.Enabled)
+            {
+                o.Update(deltaTime);
+            }
         }
     }
 
@@ -293,11 +315,6 @@ public static class SceneManager
     public static T FindByType<T>() where T : SceneObject
     {
         System.Collections.Generic.HashSet<T> objects = AllObjects<T>();
-        if (objects.Count != 0)
-        {
-            return objects.First();
-        }
-
-        return null;
+        return objects.Count != 0 ? objects.First() : null;
     }
 }

@@ -76,7 +76,7 @@ public static class GameEngine
         while (_window.IsOpen)
         {
             _window.DispatchEvents();
-            float deltaTime = clock.Restart().AsSeconds();
+            System.Single deltaTime = clock.Restart().AsSeconds();
             Update(deltaTime);
 
             _window.Clear();
@@ -115,7 +115,10 @@ public static class GameEngine
         renderObjects.Sort(RenderObject.CompareByZIndex);
         foreach (RenderObject r in renderObjects)
         {
-            if (r.Enabled || !r.Visible) r.Render(target);
+            if (r.Enabled || !r.Visible)
+            {
+                r.Render(target);
+            }
         }
     }
 }
