@@ -58,9 +58,9 @@ internal static class ColorAnsi
     internal static System.String GetColorCode(LogLevel level)
     {
         // Use the cached color if level is within range
-        if ((int)level >= 0 && (int)level < _levelColorCache.Length)
+        if ((System.Int32)level >= 0 && (System.Int32)level < _levelColorCache.Length)
         {
-            return _levelColorCache[(int)level];
+            return _levelColorCache[(System.Int32)level];
         }
 
         return White; // Default color for unknown levels

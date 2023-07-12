@@ -40,7 +40,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <example>
     /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
-    public string FormatLogEntry(
+    public System.String FormatLogEntry(
         System.DateTime timeStamp, LogLevel logLevel,
         EventId eventId, System.String message, System.Exception? exception)
     {
