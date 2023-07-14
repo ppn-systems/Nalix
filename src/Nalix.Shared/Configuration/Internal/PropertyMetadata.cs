@@ -19,7 +19,7 @@ internal class PropertyMetadata
     /// <summary>
     /// Gets or sets the name of the property.
     /// </summary>
-    public string Name { get; init; } = null!;
+    public String Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
@@ -41,7 +41,7 @@ internal class PropertyMetadata
     /// <param name="target">The target object.</param>
     /// <param name="value">The value to set.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetValue(object target, object? value)
+    public void SetValue(Object target, Object? value)
     {
         // Only set if the types are compatible
         if (value == null || PropertyType.IsInstanceOfType(value))

@@ -22,7 +22,7 @@ public abstract partial class ConfigurationLoader
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, ConfigurationMetadata> _metadataCache;
 
-    private static readonly string[] _suffixesToTrim =
+    private static readonly System.String[] _suffixesToTrim =
     [
         "Configuration",
         "Settings",
@@ -33,8 +33,7 @@ public abstract partial class ConfigurationLoader
 
     private readonly ILogger? _logger;
 
-    private int _isInitialized; // Flag to track initialization status
-    private System.DateTime _lastInitializationTime; // Track the last initialization time
+    private System.Int32 _isInitialized; // Flag to track initialization status
 
     #endregion Fields
 
@@ -58,7 +57,7 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Gets the time when this configuration was last initialized.
     /// </summary>
-    public System.DateTime LastInitializationTime => _lastInitializationTime;
+    public System.DateTime LastInitializationTime { get; private set; }
 
     #endregion Properties
 
@@ -103,8 +102,8 @@ public abstract partial class ConfigurationLoader
         }
 
         // Mark as initialized
-        System.Threading.Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
-        clone._lastInitializationTime = _lastInitializationTime;
+        _ = System.Threading.Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
+        clone.LastInitializationTime = LastInitializationTime;
 
         return clone;
     }
@@ -136,7 +135,7 @@ public abstract partial class ConfigurationLoader
             try
             {
                 // Get the configuration value using the appropriate method
-                object? value = GetConfigValue(configFile, section, propertyInfo);
+                System.Object? value = GetConfigValue(configFile, section, propertyInfo);
 
                 // Handle missing or empty configuration values
                 if (value == null ||
@@ -156,8 +155,8 @@ public abstract partial class ConfigurationLoader
         }
 
         // Mark as initialized and record timestamp
-        System.Threading.Interlocked.Exchange(ref _isInitialized, 1);
-        _lastInitializationTime = System.DateTime.UtcNow;
+        _ = System.Threading.Interlocked.Exchange(ref _isInitialized, 1);
+        LastInitializationTime = System.DateTime.UtcNow;
     }
 
     #endregion Private Methods

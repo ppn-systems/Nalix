@@ -16,16 +16,16 @@ internal static partial class TypeMetadata
 
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
-        public static bool IsUnmanaged;
-        public static bool IsNullable;
-        public static bool IsReference;
-        public static bool IsUnmanagedSZArray;
-        public static bool IsFixedSizeSerializable = false;
-        public static bool IsCompositeSerializable = false;
+        public static System.Boolean IsUnmanaged;
+        public static System.Boolean IsNullable;
+        public static System.Boolean IsReference;
+        public static System.Boolean IsUnmanagedSZArray;
+        public static System.Boolean IsFixedSizeSerializable = false;
+        public static System.Boolean IsCompositeSerializable = false;
 
-        public static int SerializableFixedSize = 0;
-        public static int CompositeSerializableSize = 0;
-        public static int UnmanagedSZArrayElementSize = 0;
+        public static System.Int32 SerializableFixedSize = 0;
+        public static System.Int32 CompositeSerializableSize = 0;
+        public static System.Int32 UnmanagedSZArrayElementSize = 0;
 
         static Cache()
         {
@@ -58,7 +58,7 @@ internal static partial class TypeMetadata
                         if (prop != null)
                         {
                             IsFixedSizeSerializable = true;
-                            SerializableFixedSize = (int)prop.GetValue(null)!;
+                            SerializableFixedSize = (System.Int32)prop.GetValue(null)!;
                         }
                     }
                 }

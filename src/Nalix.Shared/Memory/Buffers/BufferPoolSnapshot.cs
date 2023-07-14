@@ -10,45 +10,45 @@ public readonly record struct BufferPoolSnapshot : System.IEquatable<BufferPoolS
     /// <summary>
     /// Number of misses
     /// </summary>
-    public required int Misses { get; init; }
+    public required System.Int32 Misses { get; init; }
 
     /// <summary>
     /// Size of the buffer
     /// </summary>
-    public required int BufferSize { get; init; }
+    public required System.Int32 BufferSize { get; init; }
 
     /// <summary>
     /// Number of free buffers
     /// </summary>
-    public required int FreeBuffers { get; init; }
+    public required System.Int32 FreeBuffers { get; init; }
 
     /// <summary>
     /// Total Number of buffers
     /// </summary>
-    public required int TotalBuffers { get; init; }
+    public required System.Int32 TotalBuffers { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the pool can be shrunk
     /// </summary>
-    public bool CanShrink => FreeBuffers > (TotalBuffers * 0.5);
+    public System.Boolean CanShrink => FreeBuffers > (TotalBuffers * 0.5);
 
     /// <summary>
     /// Gets a value indicating whether the pool needs expansion
     /// </summary>
-    public bool NeedsExpansion => FreeBuffers < (TotalBuffers * 0.25);
+    public System.Boolean NeedsExpansion => FreeBuffers < (TotalBuffers * 0.25);
 
     /// <summary>
     /// Gets the usage ratio of the buffer pool
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public double GetUsageRatio()
-        => System.Math.Max(0, System.Math.Min(1.0, 1.0 - (FreeBuffers / (double)System.Math.Max(1, TotalBuffers))));
+    public System.Double GetUsageRatio()
+        => System.Math.Max(0, System.Math.Min(1.0, 1.0 - (FreeBuffers / (System.Double)System.Math.Max(1, TotalBuffers))));
 
     /// <summary>
     /// Gets the miss rate as a ratio of total buffers
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public double GetMissRate() => Misses / (double)System.Math.Max(1, TotalBuffers);
+    public System.Double GetMissRate() => Misses / (System.Double)System.Math.Max(1, TotalBuffers);
 }

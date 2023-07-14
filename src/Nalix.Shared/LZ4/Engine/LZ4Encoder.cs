@@ -24,11 +24,15 @@ internal readonly struct LZ4Encoder
     {
         // Token empty input
         if (input.IsEmpty)
+        {
             return WriteEmptyHeader(output);
+        }
 
         // Ensure space for at least the header
         if (output.Length < Header.Size)
+        {
             return -1;
+        }
 
         // Allocate hash table for compression
         System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
@@ -40,7 +44,9 @@ internal readonly struct LZ4Encoder
 
         // Token compression failure
         if (compressedDataLength < 0)
+        {
             return -1;
+        }
 
         // WriteInt16 the header and return total compressed length
         System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
@@ -61,7 +67,7 @@ internal readonly struct LZ4Encoder
     public static unsafe System.Boolean Encode(
         System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Span<System.Byte> output,
-        out int bytesWritten)
+        out System.Int32 bytesWritten)
     {
         bytesWritten = 0;
 
@@ -69,7 +75,9 @@ internal readonly struct LZ4Encoder
         if (input.IsEmpty)
         {
             if (WriteEmptyHeader(output) == -1)
+            {
                 return false;
+            }
 
             bytesWritten = Header.Size;
             return true;
@@ -77,7 +85,9 @@ internal readonly struct LZ4Encoder
 
         // Ensure space for at least the header
         if (output.Length < Header.Size)
+        {
             return false;
+        }
 
         // Allocate hash table for compression
         System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
@@ -89,7 +99,9 @@ internal readonly struct LZ4Encoder
 
         // Token compression failure
         if (compressedDataLength < 0)
+        {
             return false;
+        }
 
         // WriteInt16 the header and calculate total compressed length
         System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
@@ -118,7 +130,9 @@ internal readonly struct LZ4Encoder
     private static System.Int32 WriteEmptyHeader(System.Span<System.Byte> output)
     {
         if (output.Length < Header.Size)
+        {
             return -1;
+        }
 
         Header header = new(0, Header.Size);
         MemOps.WriteUnaligned(output, header);

@@ -6,34 +6,28 @@ internal static partial class FieldCache<T>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TField GetValue<TField>(T obj, int fieldIndex)
+    public static TField GetValue<TField>(T obj, System.Int32 fieldIndex)
     {
         var metadata = _metadata[fieldIndex];
 
-        if (metadata.FieldType != typeof(TField))
-        {
-            throw new System.InvalidOperationException(
-                $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
-        }
-
-        return (TField)metadata.FieldInfo.GetValue(obj)!;
+        return metadata.FieldType != typeof(TField)
+            ? throw new System.InvalidOperationException(
+                $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'")
+            : (TField)metadata.FieldInfo.GetValue(obj)!;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TField GetValue<TField>(T obj, string fieldName)
+    public static TField GetValue<TField>(T obj, System.String fieldName)
     {
-        if (!_fieldIndex.TryGetValue(fieldName, out var index))
-        {
-            throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
-        }
-
-        return GetValue<TField>(obj, index);
+        return !_fieldIndex.TryGetValue(fieldName, out var index)
+            ? throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}")
+            : GetValue<TField>(obj, index);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetValue<TField>(T obj, int fieldIndex, TField value)
+    public static void SetValue<TField>(T obj, System.Int32 fieldIndex, TField value)
     {
         var metadata = _metadata[fieldIndex];
 
@@ -48,7 +42,7 @@ internal static partial class FieldCache<T>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetValue<TField>(T obj, string fieldName, TField value)
+    public static void SetValue<TField>(T obj, System.String fieldName, TField value)
     {
         if (!_fieldIndex.TryGetValue(fieldName, out var index))
         {
@@ -64,21 +58,15 @@ internal static partial class FieldCache<T>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static object GetValueBoxed(T obj, int fieldIndex)
-    {
-        return _metadata[fieldIndex].FieldInfo.GetValue(obj)!;
-    }
+    public static System.Object GetValueBoxed(T obj, System.Int32 fieldIndex) => _metadata[fieldIndex].FieldInfo.GetValue(obj)!;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static object GetValueBoxed(T obj, string fieldName)
+    public static System.Object GetValueBoxed(T obj, System.String fieldName)
     {
-        if (!_fieldIndex.TryGetValue(fieldName, out var index))
-        {
-            throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
-        }
-
-        return GetValueBoxed(obj, index);
+        return !_fieldIndex.TryGetValue(fieldName, out var index)
+            ? throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}")
+            : GetValueBoxed(obj, index);
     }
 
     #endregion Boxed Value Operations - Fallback

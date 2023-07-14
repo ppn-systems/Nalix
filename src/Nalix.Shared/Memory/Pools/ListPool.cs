@@ -17,15 +17,15 @@ namespace Nalix.Shared.Memory.Pools;
 /// </remarks>
 /// <param name="maxPoolSize">The maximum Number of lists to keep in the pool.</param>
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
-public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
+public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
 {
     #region Constants
 
     // Configuration constants
-    private const int DefaultMaxPoolSize = 1024;
+    private const Int32 DefaultMaxPoolSize = 1024;
 
-    private const int DefaultInitialCapacity = 16;
-    private const int MaxInitialCapacity = 8192;
+    private const Int32 DefaultInitialCapacity = 16;
+    private const Int32 MaxInitialCapacity = 8192;
 
     #endregion Constants
 
@@ -35,15 +35,15 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     private readonly ConcurrentBag<List<T>> _listBag = [];
 
     // Statistics tracking
-    private long _rented;
+    private Int64 _rented;
 
-    private long _returned;
-    private long _created;
-    private long _trimmed;
+    private Int64 _returned;
+    private Int64 _created;
+    private Int64 _trimmed;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
 
-    private readonly int _maxPoolSize = maxPoolSize > 0 ? maxPoolSize : DefaultMaxPoolSize;
-    private readonly int _initialCapacity = ValidateCapacity(initialCapacity);
+    private readonly Int32 _maxPoolSize = maxPoolSize > 0 ? maxPoolSize : DefaultMaxPoolSize;
+    private readonly Int32 _initialCapacity = ValidateCapacity(initialCapacity);
 
     #endregion Fields
 
@@ -52,7 +52,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// <summary>
     /// Event for trace information.
     /// </summary>
-    public event Action<string>? TraceOccurred;
+    public event Action<String>? TraceOccurred;
 
     /// <summary>
     /// Gets the singleton instance of the <see cref="ListPool{T}"/>.
@@ -62,37 +62,37 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// <summary>
     /// Gets the Number of lists currently available in the pool.
     /// </summary>
-    public int AvailableCount => _listBag.Count;
+    public Int32 AvailableCount => _listBag.Count;
 
     /// <summary>
     /// Gets the total Number of lists created by this pool.
     /// </summary>
-    public long CreatedCount => Interlocked.Read(ref _created);
+    public Int64 CreatedCount => Interlocked.Read(ref _created);
 
     /// <summary>
     /// Gets the Number of lists currently rented from the pool.
     /// </summary>
-    public long RentedCount => Interlocked.Read(ref _rented) - Interlocked.Read(ref _returned);
+    public Int64 RentedCount => Interlocked.Read(ref _rented) - Interlocked.Read(ref _returned);
 
     /// <summary>
     /// Gets the total Number of rent operations performed.
     /// </summary>
-    public long TotalRentOperations => Interlocked.Read(ref _rented);
+    public Int64 TotalRentOperations => Interlocked.Read(ref _rented);
 
     /// <summary>
     /// Gets the total Number of return operations performed.
     /// </summary>
-    public long TotalReturnOperations => Interlocked.Read(ref _returned);
+    public Int64 TotalReturnOperations => Interlocked.Read(ref _returned);
 
     /// <summary>
     /// Gets the Number of lists that have been trimmed from the pool.
     /// </summary>
-    public long TrimmedCount => Interlocked.Read(ref _trimmed);
+    public Int64 TrimmedCount => Interlocked.Read(ref _trimmed);
 
     /// <summary>
     /// Gets the uptime of the pool in milliseconds.
     /// </summary>
-    public long UptimeMs => _uptime.ElapsedMilliseconds;
+    public Int64 UptimeMs => _uptime.ElapsedMilliseconds;
 
     #endregion Properties
 
@@ -116,9 +116,9 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// <param name="minimumCapacity">Optional. The minimum capacity required for the list.</param>
     /// <returns>A <see cref="List{T}"/> instance that can be used and then returned to the pool.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public List<T> Rent(int minimumCapacity = 0)
+    public List<T> Rent(Int32 minimumCapacity = 0)
     {
-        Interlocked.Increment(ref _rented);
+        _ = Interlocked.Increment(ref _rented);
 
         // Try to get a list from the pool
         if (_listBag.TryTake(out List<T>? list))
@@ -133,10 +133,10 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         }
 
         // Create a new list with appropriate capacity
-        int capacity = minimumCapacity > 0 ? Math.Max(minimumCapacity, _initialCapacity) : _initialCapacity;
+        Int32 capacity = minimumCapacity > 0 ? Math.Max(minimumCapacity, _initialCapacity) : _initialCapacity;
         var newList = new List<T>(capacity);
 
-        Interlocked.Increment(ref _created);
+        _ = Interlocked.Increment(ref _created);
         TraceOccurred?.Invoke($"Rent(): Created new List<{typeof(T).Name}> instance (Capacity={capacity}, TotalCreated={CreatedCount})");
 
         return newList;
@@ -148,11 +148,11 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// <param name="list">The list to return to the pool.</param>
     /// <param name="clearItems">Whether to clear the list before returning it. Standard is true.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(List<T> list, bool clearItems = true)
+    public void Return(List<T> list, Boolean clearItems = true)
     {
         ArgumentNullException.ThrowIfNull(list);
 
-        Interlocked.Increment(ref _returned);
+        _ = Interlocked.Increment(ref _returned);
 
         // Dispose the list if requested
         if (clearItems)
@@ -168,7 +168,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         else
         {
             // The list will be garbage collected since we're not storing it
-            Interlocked.Increment(ref _trimmed);
+            _ = Interlocked.Increment(ref _trimmed);
             TraceOccurred?.Invoke($"Return(): Pools size limit reached, discarding list (MaxSize={_maxPoolSize}, Trimmed={TrimmedCount})");
         }
     }
@@ -178,20 +178,26 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// </summary>
     /// <param name="count">The Number of lists to preallocate.</param>
     /// <param name="capacity">The capacity for each preallocated list.</param>
-    public void Prealloc(int count, int capacity = 0)
+    public void Prealloc(Int32 count, Int32 capacity = 0)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
 
-        int listCapacity = capacity > 0 ? capacity : _initialCapacity;
-        int preallocationCount = Math.Min(count, _maxPoolSize - _listBag.Count);
+        Int32 listCapacity = capacity > 0 ? capacity : _initialCapacity;
+        Int32 preallocationCount = Math.Min(count, _maxPoolSize - _listBag.Count);
 
-        if (preallocationCount <= 0) return;
+        if (preallocationCount <= 0)
+        {
+            return;
+        }
 
-        for (int i = 0; i < preallocationCount; i++)
+        for (Int32 i = 0; i < preallocationCount; i++)
         {
             var list = new List<T>(listCapacity);
             _listBag.Add(list);
-            Interlocked.Increment(ref _created);
+            _ = Interlocked.Increment(ref _created);
         }
 
         TraceOccurred?.Invoke($"Prealloc(): Created {preallocationCount} List<{typeof(T).Name}> instances (Capacity={listCapacity})");
@@ -202,10 +208,10 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// </summary>
     /// <param name="maximumSize">The maximum Number of lists to keep in the pool.</param>
     /// <returns>The Number of lists removed from the pool.</returns>
-    public int Trim(int maximumSize = 0)
+    public Int32 Trim(Int32 maximumSize = 0)
     {
-        int targetSize = maximumSize > 0 ? maximumSize : _maxPoolSize / 2;
-        int trimCount = 0;
+        Int32 targetSize = maximumSize > 0 ? maximumSize : _maxPoolSize / 2;
+        Int32 trimCount = 0;
 
         while (_listBag.Count > targetSize && _listBag.TryTake(out _))
         {
@@ -214,7 +220,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 
         if (trimCount > 0)
         {
-            Interlocked.Add(ref _trimmed, trimCount);
+            _ = Interlocked.Add(ref _trimmed, trimCount);
             TraceOccurred?.Invoke($"Trim(): Removed {trimCount} List<{typeof(T).Name}> instances from pool");
         }
 
@@ -225,13 +231,13 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// Clears all lists from the pool.
     /// </summary>
     /// <returns>The Number of lists removed from the pool.</returns>
-    public int Clear()
+    public Int32 Clear()
     {
-        int count = _listBag.Count;
+        Int32 count = _listBag.Count;
 
         while (_listBag.TryTake(out _)) { }
 
-        Interlocked.Add(ref _trimmed, count);
+        _ = Interlocked.Add(ref _trimmed, count);
         TraceOccurred?.Invoke($"Dispose(): Removed all {count} List<{typeof(T).Name}> instances from pool");
 
         return count;
@@ -242,9 +248,9 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// </summary>
     /// <returns>A dictionary containing statistics about the pool.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<string, object> GetStatistics()
+    public Dictionary<String, Object> GetStatistics()
     {
-        return new Dictionary<string, object>
+        return new Dictionary<String, Object>
         {
             ["MaxPoolSize"] = _maxPoolSize,
             ["InitialCapacity"] = _initialCapacity,
@@ -264,10 +270,10 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        Interlocked.Exchange(ref _rented, 0);
-        Interlocked.Exchange(ref _returned, 0);
-        Interlocked.Exchange(ref _created, 0);
-        Interlocked.Exchange(ref _trimmed, 0);
+        _ = Interlocked.Exchange(ref _rented, 0);
+        _ = Interlocked.Exchange(ref _returned, 0);
+        _ = Interlocked.Exchange(ref _created, 0);
+        _ = Interlocked.Exchange(ref _trimmed, 0);
         _uptime.Restart();
     }
 
@@ -276,15 +282,14 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ValidateCapacity(int capacity)
+    private static Int32 ValidateCapacity(Int32 capacity)
     {
         if (capacity <= 0)
+        {
             return DefaultInitialCapacity;
+        }
 
-        if (capacity > MaxInitialCapacity)
-            return MaxInitialCapacity;
-
-        return capacity;
+        return capacity > MaxInitialCapacity ? MaxInitialCapacity : capacity;
     }
 
     #endregion Private Methods

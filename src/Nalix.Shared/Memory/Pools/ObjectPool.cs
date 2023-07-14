@@ -17,14 +17,14 @@ namespace Nalix.Shared.Memory.Pools;
 /// Initializes a new instance of the <see cref="ObjectPool"/> class with the specified maximum items per type.
 /// </remarks>
 /// <param name="defaultMaxItemsPerType">The default maximum Number of items to store per type.</param>
-public sealed class ObjectPool(int defaultMaxItemsPerType)
+public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
 {
     #region Constants
 
     /// <summary>
     /// Standard maximum pool size to prevent unbounded memory growth
     /// </summary>
-    public const int DefaultMaxSize = 1024;
+    public const Int32 DefaultMaxSize = 1024;
 
     #endregion Constants
 
@@ -34,14 +34,14 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     private readonly ConcurrentDictionary<Type, TypePool> _typePools = new();
 
     // Statistics tracking
-    private long _totalCreated;
+    private Int64 _totalCreated;
 
-    private long _totalReturned;
-    private long _totalRented;
+    private Int64 _totalReturned;
+    private Int64 _totalRented;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
 
     // Configuration
-    private readonly int _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
+    private readonly Int32 _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
 
     #endregion Fields
 
@@ -55,21 +55,21 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Event for trace information.
     /// </summary>
-    public event Action<string>? TraceOccurred;
+    public event Action<String>? TraceOccurred;
 
     /// <summary>
     /// Gets the total Number of objects created across all types.
     /// </summary>
-    public long TotalCreatedCount => Interlocked.Read(ref _totalCreated);
+    public Int64 TotalCreatedCount => Interlocked.Read(ref _totalCreated);
 
     /// <summary>
     /// Gets the total Number of currently pooled objects across all types.
     /// </summary>
-    public int TotalAvailableCount
+    public Int32 TotalAvailableCount
     {
         get
         {
-            int count = 0;
+            Int32 count = 0;
             foreach (var pool in _typePools.Values)
             {
                 count += pool.AvailableCount;
@@ -81,22 +81,22 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Gets the Number of object types currently being pooled.
     /// </summary>
-    public int TypeCount => _typePools.Count;
+    public Int32 TypeCount => _typePools.Count;
 
     /// <summary>
     /// Gets the total Number of objects returned to the pool.
     /// </summary>
-    public long TotalReturnedCount => Interlocked.Read(ref _totalReturned);
+    public Int64 TotalReturnedCount => Interlocked.Read(ref _totalReturned);
 
     /// <summary>
     /// Gets the total Number of objects rented from the pool.
     /// </summary>
-    public long TotalRentedCount => Interlocked.Read(ref _totalRented);
+    public Int64 TotalRentedCount => Interlocked.Read(ref _totalRented);
 
     /// <summary>
     /// Gets the pool uptime in milliseconds.
     /// </summary>
-    public long UptimeMs => _uptime.ElapsedMilliseconds;
+    public Int64 UptimeMs => _uptime.ElapsedMilliseconds;
 
     #endregion Properties
 
@@ -129,15 +129,15 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         // Try to get an object from the pool or create a new one
         if (typePool.TryPop(out IPoolable? obj) && obj != null)
         {
-            Interlocked.Increment(ref _totalRented);
+            _ = Interlocked.Increment(ref _totalRented);
             return (T)obj;
         }
 
         // Create a new instance if the pool is empty
         T newObj = new();
 
-        Interlocked.Increment(ref _totalCreated);
-        Interlocked.Increment(ref _totalRented);
+        _ = Interlocked.Increment(ref _totalCreated);
+        _ = Interlocked.Increment(ref _totalRented);
 
         TraceOccurred?.Invoke($"Get<{type.Name}>: Created new instance (TotalCreated={TotalCreatedCount})");
 
@@ -153,7 +153,10 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return<T>(T obj) where T : IPoolable, new()
     {
-        if (obj == null) throw new ArgumentNullException(nameof(obj));
+        if (obj == null)
+        {
+            throw new ArgumentNullException(nameof(obj));
+        }
 
         Type type = typeof(T);
 
@@ -166,7 +169,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         // Try to add the object to the pool
         if (typePool.TryPush(obj))
         {
-            Interlocked.Increment(ref _totalReturned);
+            _ = Interlocked.Increment(ref _totalReturned);
             return;
         }
 
@@ -181,23 +184,26 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <param name="count">The Number of instances to preallocate.</param>
     /// <returns>The Number of instances successfully preallocated.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Prealloc<T>(int count) where T : IPoolable, new()
+    public Int32 Prealloc<T>(Int32 count) where T : IPoolable, new()
     {
-        if (count <= 0) return 0;
+        if (count <= 0)
+        {
+            return 0;
+        }
 
         Type type = typeof(T);
         var typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
 
-        int created = 0;
-        for (int i = 0; i < count; i++)
+        Int32 created = 0;
+        for (Int32 i = 0; i < count; i++)
         {
             // Create a new instance and try to add it to the pool
             T obj = new();
             if (typePool.TryPush(obj))
             {
                 created++;
-                Interlocked.Increment(ref _totalCreated);
-                Interlocked.Increment(ref _totalReturned);
+                _ = Interlocked.Increment(ref _totalCreated);
+                _ = Interlocked.Increment(ref _totalReturned);
             }
             else
             {
@@ -221,9 +227,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <param name="maxCapacity">The maximum capacity for the type's pool.</param>
     /// <returns>True if the capacity was set, false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
+    public Boolean SetMaxCapacity<T>(Int32 maxCapacity) where T : IPoolable
     {
-        if (maxCapacity < 0) return false;
+        if (maxCapacity < 0)
+        {
+            return false;
+        }
 
         Type type = typeof(T);
         if (_typePools.TryGetValue(type, out TypePool? typePool))
@@ -245,27 +254,24 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <typeparam name="T">The type to get information about.</typeparam>
     /// <returns>A dictionary containing pool statistics for the type.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable
+    public Dictionary<String, Object> GetTypeInfo<T>() where T : IPoolable
     {
         Type type = typeof(T);
-        if (_typePools.TryGetValue(type, out TypePool? typePool))
-        {
-            return new Dictionary<string, object>
+        return _typePools.TryGetValue(type, out TypePool? typePool)
+            ? new Dictionary<String, Object>
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = typePool.AvailableCount,
                 ["MaxCapacity"] = typePool.MaxCapacity,
                 ["IsActive"] = true
+            }
+            : new Dictionary<String, Object>
+            {
+                ["TypeName"] = type.Name,
+                ["AvailableCount"] = 0,
+                ["MaxCapacity"] = _defaultMaxItemsPerType,
+                ["IsActive"] = false
             };
-        }
-
-        return new Dictionary<string, object>
-        {
-            ["TypeName"] = type.Name,
-            ["AvailableCount"] = 0,
-            ["MaxCapacity"] = _defaultMaxItemsPerType,
-            ["IsActive"] = false
-        };
     }
 
     /// <summary>
@@ -273,9 +279,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <returns>A dictionary containing statistics about the pool.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<string, object> GetStatistics()
+    public Dictionary<String, Object> GetStatistics()
     {
-        return new Dictionary<string, object>
+        return new Dictionary<String, Object>
         {
             ["TotalCreatedCount"] = TotalCreatedCount,
             ["TotalAvailableCount"] = TotalAvailableCount,
@@ -293,9 +299,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <returns>The total Number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Clear()
+    public Int32 Clear()
     {
-        int removedCount = 0;
+        Int32 removedCount = 0;
         foreach (var pool in _typePools.Values)
         {
             removedCount += pool.Clear();
@@ -311,12 +317,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
     /// <returns>The Number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int ClearType<T>() where T : IPoolable
+    public Int32 ClearType<T>() where T : IPoolable
     {
         Type type = typeof(T);
         if (_typePools.TryGetValue(type, out TypePool? typePool))
         {
-            int removedCount = typePool.Clear();
+            Int32 removedCount = typePool.Clear();
             TraceOccurred?.Invoke($"ClearType<{type.Name}>: Removed {removedCount} objects");
             return removedCount;
         }
@@ -329,12 +335,19 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to trim to (0-100).</param>
     /// <returns>The total Number of objects removed.</returns>
-    public int Trim(int percentage = 50)
+    public Int32 Trim(Int32 percentage = 50)
     {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
+        if (percentage < 0)
+        {
+            percentage = 0;
+        }
 
-        int removedCount = 0;
+        if (percentage > 100)
+        {
+            percentage = 100;
+        }
+
+        Int32 removedCount = 0;
         foreach (var pool in _typePools.Values)
         {
             removedCount += pool.Trim(percentage);
@@ -354,9 +367,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        Interlocked.Exchange(ref _totalCreated, 0);
-        Interlocked.Exchange(ref _totalRented, 0);
-        Interlocked.Exchange(ref _totalReturned, 0);
+        _ = Interlocked.Exchange(ref _totalCreated, 0);
+        _ = Interlocked.Exchange(ref _totalRented, 0);
+        _ = Interlocked.Exchange(ref _totalReturned, 0);
         _uptime.Restart();
 
         TraceOccurred?.Invoke("ResetStatistics: Pools statistics reset");
@@ -367,14 +380,14 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <returns>A list of dictionaries containing information about each type pool.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public List<Dictionary<string, object>> GetAllTypeInfo()
+    public List<Dictionary<String, Object>> GetAllTypeInfo()
     {
-        List<Dictionary<string, object>> result = [];
+        List<Dictionary<String, Object>> result = [];
 
         foreach (var kvp in _typePools)
         {
             var typePool = kvp.Value;
-            result.Add(new Dictionary<string, object>
+            result.Add(new Dictionary<String, Object>
             {
                 ["TypeName"] = kvp.Key.Name,
                 ["AvailableCount"] = typePool.AvailableCount,
@@ -393,24 +406,27 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <param name="objects">The objects to return to the pool.</param>
     /// <returns>The Number of objects successfully returned to the pool.</returns>
     /// <exception cref="ArgumentNullException">Thrown when objects is null.</exception>
-    public int ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable, new()
+    public Int32 ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable, new()
     {
         ArgumentNullException.ThrowIfNull(objects);
 
-        int returnedCount = 0;
+        Int32 returnedCount = 0;
         Type type = typeof(T);
         var typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
 
         foreach (var obj in objects)
         {
-            if (obj == null) continue;
+            if (obj == null)
+            {
+                continue;
+            }
 
             obj.ResetForPool();
 
             if (typePool.TryPush(obj))
             {
                 returnedCount++;
-                Interlocked.Increment(ref _totalReturned);
+                _ = Interlocked.Increment(ref _totalReturned);
             }
         }
 
@@ -429,14 +445,17 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <param name="count">The Number of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     /// <exception cref="ArgumentException">Thrown when count is less than or equal to zero.</exception>
-    public List<T> GetMultiple<T>(int count) where T : IPoolable, new()
+    public List<T> GetMultiple<T>(Int32 count) where T : IPoolable, new()
     {
-        if (count <= 0) throw new ArgumentException("Count must be greater than zero.", nameof(count));
+        if (count <= 0)
+        {
+            throw new ArgumentException("Count must be greater than zero.", nameof(count));
+        }
 
         var result = new List<T>(count);
         Type type = typeof(T);
 
-        for (int i = 0; i < count; i++)
+        for (Int32 i = 0; i < count; i++)
         {
             result.Add(Get<T>());
         }

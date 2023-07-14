@@ -16,14 +16,14 @@ internal sealed class IniConfig
     #region Constants
 
     // LZ4Constants for better readability and performance
-    private const char SectionStart = '[';
+    private const Char SectionStart = '[';
 
-    private const char SectionEnd = ']';
-    private const char KeyValueSeparator = '=';
-    private const char CommentChar = ';';
+    private const Char SectionEnd = ']';
+    private const Char KeyValueSeparator = '=';
+    private const Char CommentChar = ';';
 
     // Standard buffer sizes
-    private const int DefaultBufferSize = 4096;
+    private const Int32 DefaultBufferSize = 4096;
 
     #endregion Constants
 
@@ -32,14 +32,14 @@ internal sealed class IniConfig
     // Thread synchronization for file operations
     private readonly ReaderWriterLockSlim _fileLock = new(LockRecursionPolicy.NoRecursion);
 
-    private readonly string _path;
-    private readonly Dictionary<string, Dictionary<string, string>> _iniData;
+    private readonly String _path;
+    private readonly Dictionary<String, Dictionary<String, String>> _iniData;
 
     // Caches for frequently accessed values
-    private readonly Dictionary<string, object> _valueCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<String, Object> _valueCache = new(StringComparer.OrdinalIgnoreCase);
 
     // Track if the file has been modified
-    private bool _isDirty;
+    private Boolean _isDirty;
 
     private DateTime _lastFileReadTime;
 
@@ -50,7 +50,7 @@ internal sealed class IniConfig
     /// <summary>
     /// Checks whether the file exists at the provided path.
     /// </summary>
-    public bool ExistsFile => File.Exists(_path);
+    public Boolean ExistsFile => File.Exists(_path);
 
     #endregion Properties
 
@@ -60,12 +60,12 @@ internal sealed class IniConfig
     /// Initializes a new instance of the <see cref="IniConfig"/> class for the specified path.
     /// </summary>
     /// <param name="path">The path to the INI file.</param>
-    public IniConfig(string path)
+    public IniConfig(String path)
     {
         _path = path ?? throw new ArgumentNullException(nameof(path));
 
         // Use case-insensitive keys for sections and keys
-        _iniData = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        _iniData = new Dictionary<String, Dictionary<String, String>>(StringComparer.OrdinalIgnoreCase);
 
         // Load the file if it exists
         if (ExistsFile)
@@ -89,7 +89,7 @@ internal sealed class IniConfig
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <param name="value">The value to write.</param>
-    public void WriteValue(string section, string key, object value)
+    public void WriteValue(String section, String key, Object value)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(section);
@@ -100,12 +100,12 @@ internal sealed class IniConfig
             // Check for external file changes
             CheckFileChanges();
 
-            if (!_iniData.TryGetValue(section, out Dictionary<string, string>? sectionData))
+            if (!_iniData.TryGetValue(section, out Dictionary<String, String>? sectionData))
             {
                 _fileLock.EnterWriteLock();
                 try
                 {
-                    sectionData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    sectionData = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
                     _iniData[section] = sectionData;
                 }
                 finally
@@ -120,12 +120,12 @@ internal sealed class IniConfig
                 _fileLock.EnterWriteLock();
                 try
                 {
-                    string stringValue = FormatValue(value);
+                    String stringValue = FormatValue(value);
                     sectionData[key] = stringValue;
 
                     // Dispose any cached value for this key
-                    string cacheKey = $"{section}:{key}";
-                    _valueCache.Remove(cacheKey);
+                    String cacheKey = $"{section}:{key}";
+                    _ = _valueCache.Remove(cacheKey);
 
                     _isDirty = true;
                 }
@@ -151,7 +151,7 @@ internal sealed class IniConfig
     /// <param name="key">The key name in the section.</param>
     /// <returns>The string value, or an empty string if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetString(string section, string key)
+    public String GetString(String section, String key)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(section);
@@ -162,13 +162,10 @@ internal sealed class IniConfig
         _fileLock.EnterReadLock();
         try
         {
-            if (_iniData.TryGetValue(section, out Dictionary<string, string>? sectionData) &&
-                sectionData.TryGetValue(key, out string? value))
-            {
-                return value;
-            }
-
-            return string.Empty;
+            return _iniData.TryGetValue(section, out Dictionary<String, String>? sectionData) &&
+                sectionData.TryGetValue(key, out String? value)
+                ? value
+                : String.Empty;
         }
         finally
         {
@@ -182,28 +179,28 @@ internal sealed class IniConfig
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
-    public char? GetChar(string section, string key)
+    public Char? GetChar(String section, String key)
     {
-        string stringValue = GetString(section, key);
-        return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
+        String stringValue = GetString(section, key);
+        return !String.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
     }
 
     /// <summary>
     /// Gets the value for the specified key in the specified section as a boolean.
     /// </summary>
-    public bool? GetBool(string section, string key)
+    public Boolean? GetBool(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:bool";
+        String cacheKey = $"{section}:{key}:bool";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (bool?)cachedValue;
+            return (Boolean?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
-        bool? result = null;
+        String stringValue = GetString(section, key);
+        Boolean? result = null;
 
-        if (!string.IsNullOrEmpty(stringValue))
+        if (!String.IsNullOrEmpty(stringValue))
         {
             // Optimize common boolean representations
             if (stringValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
@@ -220,7 +217,7 @@ internal sealed class IniConfig
             }
             else
             {
-                _ = bool.TryParse(stringValue, out bool parsedValue);
+                _ = Boolean.TryParse(stringValue, out Boolean parsedValue);
                 result = parsedValue;
             }
 
@@ -234,18 +231,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a decimal.
     /// </summary>
-    public decimal? GetDecimal(string section, string key)
+    public Decimal? GetDecimal(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:decimal";
+        String cacheKey = $"{section}:{key}:decimal";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (decimal?)cachedValue;
+            return (Decimal?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsedValue))
+        if (Decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out Decimal parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -257,18 +254,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a byte.
     /// </summary>
-    public byte? GetByte(string section, string key)
+    public Byte? GetByte(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:byte";
+        String cacheKey = $"{section}:{key}:byte";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (byte?)cachedValue;
+            return (Byte?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (byte.TryParse(stringValue, out byte parsedValue))
+        if (Byte.TryParse(stringValue, out Byte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -280,18 +277,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an sbyte.
     /// </summary>
-    public sbyte? GetSByte(string section, string key)
+    public SByte? GetSByte(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:sbyte";
+        String cacheKey = $"{section}:{key}:sbyte";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (sbyte?)cachedValue;
+            return (SByte?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (sbyte.TryParse(stringValue, out sbyte parsedValue))
+        if (SByte.TryParse(stringValue, out SByte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -303,18 +300,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a short.
     /// </summary>
-    public short? GetInt16(string section, string key)
+    public Int16? GetInt16(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:int16";
+        String cacheKey = $"{section}:{key}:int16";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (short?)cachedValue;
+            return (Int16?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (short.TryParse(stringValue, out short parsedValue))
+        if (Int16.TryParse(stringValue, out Int16 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -326,18 +323,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned short.
     /// </summary>
-    public ushort? GetUInt16(string section, string key)
+    public UInt16? GetUInt16(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:uint16";
+        String cacheKey = $"{section}:{key}:uint16";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (ushort?)cachedValue;
+            return (UInt16?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (ushort.TryParse(stringValue, out ushort parsedValue))
+        if (UInt16.TryParse(stringValue, out UInt16 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -349,18 +346,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an integer.
     /// </summary>
-    public int? GetInt32(string section, string key)
+    public Int32? GetInt32(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:int32";
+        String cacheKey = $"{section}:{key}:int32";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (int?)cachedValue;
+            return (Int32?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (int.TryParse(stringValue, out int parsedValue))
+        if (Int32.TryParse(stringValue, out Int32 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -372,18 +369,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned integer.
     /// </summary>
-    public uint? GetUInt32(string section, string key)
+    public UInt32? GetUInt32(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:uint32";
+        String cacheKey = $"{section}:{key}:uint32";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (uint?)cachedValue;
+            return (UInt32?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (uint.TryParse(stringValue, out uint parsedValue))
+        if (UInt32.TryParse(stringValue, out UInt32 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -395,18 +392,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a long.
     /// </summary>
-    public long? GetInt64(string section, string key)
+    public Int64? GetInt64(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:int64";
+        String cacheKey = $"{section}:{key}:int64";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (long?)cachedValue;
+            return (Int64?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (long.TryParse(stringValue, out long parsedValue))
+        if (Int64.TryParse(stringValue, out Int64 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -418,18 +415,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned long.
     /// </summary>
-    public ulong? GetUInt64(string section, string key)
+    public UInt64? GetUInt64(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:uint64";
+        String cacheKey = $"{section}:{key}:uint64";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (ulong?)cachedValue;
+            return (UInt64?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (ulong.TryParse(stringValue, out ulong parsedValue))
+        if (UInt64.TryParse(stringValue, out UInt64 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -441,18 +438,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a float.
     /// </summary>
-    public float? GetSingle(string section, string key)
+    public Single? GetSingle(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:single";
+        String cacheKey = $"{section}:{key}:single";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (float?)cachedValue;
+            return (Single?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue))
+        if (Single.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out Single parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -464,18 +461,18 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a double.
     /// </summary>
-    public double? GetDouble(string section, string key)
+    public Double? GetDouble(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:double";
+        String cacheKey = $"{section}:{key}:double";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
-            return (double?)cachedValue;
+            return (Double?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
-        if (double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedValue))
+        if (Double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out Double parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -487,16 +484,16 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a DateTime.
     /// </summary>
-    public DateTime? GetDateTime(string section, string key)
+    public DateTime? GetDateTime(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:datetime";
+        String cacheKey = $"{section}:{key}:datetime";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
             return (DateTime?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
         if (DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedValue))
         {
@@ -510,16 +507,16 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a TimeSpan.
     /// </summary>
-    public TimeSpan? GetTimeSpan(string section, string key)
+    public TimeSpan? GetTimeSpan(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:timespan";
+        String cacheKey = $"{section}:{key}:timespan";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
             return (TimeSpan?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
         if (TimeSpan.TryParse(stringValue, CultureInfo.InvariantCulture, out TimeSpan parsedValue))
         {
@@ -533,16 +530,16 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a Guid.
     /// </summary>
-    public Guid? GetGuid(string section, string key)
+    public Guid? GetGuid(String section, String key)
     {
-        string cacheKey = $"{section}:{key}:guid";
+        String cacheKey = $"{section}:{key}:guid";
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out Object? cachedValue))
         {
             return (Guid?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        String stringValue = GetString(section, key);
 
         if (Guid.TryParse(stringValue, out Guid parsedValue))
         {
@@ -556,7 +553,7 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets all sections in the INI file.
     /// </summary>
-    public IEnumerable<string> GetSections()
+    public IEnumerable<String> GetSections()
     {
         _fileLock.EnterReadLock();
         try
@@ -572,19 +569,14 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets all keys in the specified section.
     /// </summary>
-    public IEnumerable<string> GetKeys(string section)
+    public IEnumerable<String> GetKeys(String section)
     {
         ArgumentNullException.ThrowIfNull(section);
 
         _fileLock.EnterReadLock();
         try
         {
-            if (_iniData.TryGetValue(section, out var sectionData))
-            {
-                return [.. sectionData.Keys];
-            }
-
-            return [];
+            return _iniData.TryGetValue(section, out var sectionData) ? [.. sectionData.Keys] : [];
         }
         finally
         {
@@ -628,9 +620,9 @@ internal sealed class IniConfig
     /// </summary>
     private void LoadWithRetry()
     {
-        const int maxRetries = 3;
-        int retryCount = 0;
-        bool success = false;
+        const Int32 maxRetries = 3;
+        Int32 retryCount = 0;
+        Boolean success = false;
 
         while (!success && retryCount < maxRetries)
         {
@@ -643,10 +635,12 @@ internal sealed class IniConfig
             {
                 retryCount++;
                 if (retryCount >= maxRetries)
+                {
                     throw;
+                }
 
                 // Add exponential backoff delay
-                Thread.Sleep(100 * (int)Math.Pow(2, retryCount - 1));
+                Thread.Sleep(100 * (Int32)Math.Pow(2, retryCount - 1));
             }
         }
     }
@@ -657,7 +651,9 @@ internal sealed class IniConfig
     private void Load()
     {
         if (!ExistsFile)
+        {
             return;
+        }
 
         _fileLock.EnterReadLock();
         try
@@ -666,21 +662,23 @@ internal sealed class IniConfig
             _iniData.Clear();
             _valueCache.Clear();
 
-            string currentSection = string.Empty;
-            Dictionary<string, string> currentSectionData = new(StringComparer.OrdinalIgnoreCase);
+            String currentSection = String.Empty;
+            Dictionary<String, String> currentSectionData = new(StringComparer.OrdinalIgnoreCase);
             _iniData[currentSection] = currentSectionData;
 
             // Use a buffered reader for better performance
             using var reader = new StreamReader(_path, Encoding.UTF8, true, DefaultBufferSize);
 
-            string? line;
+            String? line;
             while ((line = reader.ReadLine()) != null)
             {
-                string trimmedLine = line.Trim();
+                String trimmedLine = line.Trim();
 
                 // Skip empty lines or comments
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine[0] == CommentChar)
+                if (String.IsNullOrEmpty(trimmedLine) || trimmedLine[0] == CommentChar)
+                {
                     continue;
+                }
 
                 // Process section
                 if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
@@ -689,18 +687,18 @@ internal sealed class IniConfig
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
                     {
-                        currentSectionData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        currentSectionData = new Dictionary<String, String>(StringComparer.OrdinalIgnoreCase);
                         _iniData[currentSection] = currentSectionData;
                     }
                 }
                 else
                 {
                     // Handle key-value pairs with optimized parsing
-                    int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
+                    Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
                     if (separatorIndex > 0)
                     {
-                        string key = trimmedLine[..separatorIndex].Trim();
-                        string value = trimmedLine[(separatorIndex + 1)..].Trim();
+                        String key = trimmedLine[..separatorIndex].Trim();
+                        String value = trimmedLine[(separatorIndex + 1)..].Trim();
 
                         // Store the key-value pair in the current section
                         currentSectionData[key] = value;
@@ -723,7 +721,10 @@ internal sealed class IniConfig
     /// </summary>
     private void CheckFileChanges()
     {
-        if (!ExistsFile) return;
+        if (!ExistsFile)
+        {
+            return;
+        }
 
         try
         {
@@ -742,18 +743,21 @@ internal sealed class IniConfig
     /// <summary>
     /// Formats a value for storage in the INI file.
     /// </summary>
-    private static string FormatValue(object value)
+    private static String FormatValue(Object value)
     {
-        if (value == null) return string.Empty;
+        if (value == null)
+        {
+            return String.Empty;
+        }
 
         // Format numeric values with invariant culture for consistency
         return value switch
         {
-            float f => f.ToString("G", CultureInfo.InvariantCulture),
-            double d => d.ToString("G", CultureInfo.InvariantCulture),
-            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
+            Single f => f.ToString("G", CultureInfo.InvariantCulture),
+            Double d => d.ToString("G", CultureInfo.InvariantCulture),
+            Decimal m => m.ToString("G", CultureInfo.InvariantCulture),
             DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? string.Empty
+            _ => value.ToString() ?? String.Empty
         };
     }
 
@@ -762,26 +766,29 @@ internal sealed class IniConfig
     /// </summary>
     private void WriteFile()
     {
-        if (!_isDirty) return;
+        if (!_isDirty)
+        {
+            return;
+        }
 
         _fileLock.EnterWriteLock();
         try
         {
             // Ensure directory exists
-            string? directory = Path.GetDirectoryName(_path);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            String? directory = Path.GetDirectoryName(_path);
+            if (!String.IsNullOrEmpty(directory) && !Directory.Exists(directory))
             {
-                Directory.CreateDirectory(directory);
+                _ = Directory.CreateDirectory(directory);
             }
 
             // WriteInt16 to a temporary file first to prevent corruption
-            string tempFileName = _path + ".tmp";
+            String tempFileName = _path + ".tmp";
 
             using (var writer = new StreamWriter(tempFileName, false, Encoding.UTF8, DefaultBufferSize))
             {
                 foreach (var section in _iniData)
                 {
-                    if (section.Key != string.Empty)
+                    if (section.Key != String.Empty)
                     {
                         writer.WriteLine($"[{section.Key}]");
                     }

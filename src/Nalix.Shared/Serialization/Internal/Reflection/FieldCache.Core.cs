@@ -9,7 +9,7 @@ internal static partial class FieldCache<T>
 
     private static readonly FieldSchema[] _metadata;
     private static readonly SerializeLayout _layout;
-    private static readonly System.Collections.Generic.Dictionary<string, int> _fieldIndex;
+    private static readonly System.Collections.Generic.Dictionary<System.String, System.Int32> _fieldIndex;
 
     #endregion Static Fields
 
@@ -44,13 +44,16 @@ internal static partial class FieldCache<T>
             System.Reflection.BindingFlags.Instance);
 
         System.Collections.Generic.List<FieldSchema> includedFields = new(fields.Length);
-        int sequentialOrder = 0;
+        System.Int32 sequentialOrder = 0;
 
         foreach (System.Reflection.FieldInfo field in fields)
         {
-            if (ShouldIgnoreField(field)) continue;
+            if (ShouldIgnoreField(field))
+            {
+                continue;
+            }
 
-            int order;
+            System.Int32 order;
 
             if (_layout is SerializeLayout.Explicit)
             {
@@ -92,7 +95,7 @@ internal static partial class FieldCache<T>
         System.Collections.Generic.Dictionary<System.String, System.Int32> index = new(
             _metadata.Length, System.StringComparer.Ordinal);
 
-        for (int i = 0; i < _metadata.Length; i++)
+        for (System.Int32 i = 0; i < _metadata.Length; i++)
         {
             index[_metadata[i].Name] = i;
         }
@@ -106,7 +109,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static int? GetExplicitOrder(System.Reflection.FieldInfo field)
+    private static System.Int32? GetExplicitOrder(System.Reflection.FieldInfo field)
     {
         System.Reflection.PropertyInfo? property =
             System.Linq.Enumerable.FirstOrDefault(
@@ -118,7 +121,10 @@ internal static partial class FieldCache<T>
         {
             SerializeOrderAttribute? orderAttr = System.Reflection.CustomAttributeExtensions
                 .GetCustomAttribute<SerializeOrderAttribute>(property);
-            if (orderAttr is not null) return orderAttr.Order;
+            if (orderAttr is not null)
+            {
+                return orderAttr.Order;
+            }
         }
 
         return null;
@@ -126,7 +132,7 @@ internal static partial class FieldCache<T>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool IsBackingFieldFor(
+    private static System.Boolean IsBackingFieldFor(
         System.Reflection.FieldInfo field,
         System.Reflection.PropertyInfo property)
         => field.Name == $"<{property.Name}>k__BackingField";
@@ -135,7 +141,7 @@ internal static partial class FieldCache<T>
 
     #region Domain Rules - Business Logic
 
-    private static bool ShouldIgnoreField(System.Reflection.FieldInfo field)
+    private static System.Boolean ShouldIgnoreField(System.Reflection.FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
@@ -153,13 +159,8 @@ internal static partial class FieldCache<T>
         }
 
         // Rule 2: Skip fields có SerializeIgnoreAttribute
-        if (System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null)
-        {
-            return true;
-        }
-
-        return false;
+        return System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
     }
 
     #endregion Domain Rules - Business Logic
@@ -186,7 +187,10 @@ internal static partial class FieldCache<T>
 
     private static void EnsureExplicitLayoutIsValid()
     {
-        if (_layout is not SerializeLayout.Explicit) return;
+        if (_layout is not SerializeLayout.Explicit)
+        {
+            return;
+        }
 
         EnsureNoDuplicateOrders();
         EnsureNoNegativeOrders();
