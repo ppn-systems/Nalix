@@ -19,6 +19,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Fields
 
+    private ILogger? _logger;
 
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 

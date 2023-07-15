@@ -60,6 +60,7 @@ public sealed partial class Connection : IConnection
         this._cstream.SetPacketCached(() => this._onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
 
         this._disposed = false;
+
         this._encryptionKey = new System.Byte[32];
 
         this.Tcp = new TcpTransport(this);
