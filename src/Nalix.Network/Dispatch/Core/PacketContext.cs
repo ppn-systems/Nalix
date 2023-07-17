@@ -24,9 +24,12 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Current packet being processed.
     /// </summary>
-    public TPacket Packet { [System.Runtime.CompilerServices.MethodImpl(
-                                System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get; private set; } = default!;
+    public TPacket Packet
+    {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get; private set;
+    } = default!;
 
     /// <summary>
     /// Connection associated with packet.
@@ -34,7 +37,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     public IConnection Connection
     {
         [System.Runtime.CompilerServices.MethodImpl(
-                                        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get; private set;
     } = default!;
 
@@ -44,7 +47,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     public PacketMetadata Attributes
     {
         [System.Runtime.CompilerServices.MethodImpl(
-                                           System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get; private set;
     }
 
@@ -58,9 +61,13 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
 
     #region Constructor
 
-    static PacketContext() =>
+    static PacketContext()
+    {
         // Register pool for PacketContext<TPacket>
-        ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(10);
+        _ = ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(64);
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PacketContext<TPacket>>(1000);
+    }
+
 
     /// <summary>
     /// Default constructor cho pooling.
@@ -120,14 +127,16 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T? GetProperty<T>(System.String key) where T : class => this._properties.TryGetValue(key, out var value) ? value as T : null;
+    public T? GetProperty<T>(System.String key) where T : class
+        => this._properties.TryGetValue(key, out var value) ? value as T : null;
 
     /// <summary>
     /// Get value type property.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct => this._properties.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
+    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
+        => this._properties.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
 
     #endregion Methods
 

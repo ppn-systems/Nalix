@@ -24,7 +24,7 @@ public sealed partial class NLogix
             {
                 // Configure default logging outputs
                 _ = cfg.AddTarget(new ConsoleLogTarget())
-                   .AddTarget(new FileLogTarget());
+                       .AddTarget(new FileLogTarget());
             }));
 
         /// <summary>

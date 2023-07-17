@@ -40,7 +40,7 @@ internal readonly struct LZ4Encoder
 
         // Compress the data
         System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
-        System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
+        System.Int32 compressedDataLength = Encoders.LZ4BlockCompressor.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Token compression failure
         if (compressedDataLength < 0)
@@ -95,7 +95,7 @@ internal readonly struct LZ4Encoder
 
         // Compress the data
         System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
-        System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
+        System.Int32 compressedDataLength = Encoders.LZ4BlockCompressor.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Token compression failure
         if (compressedDataLength < 0)
