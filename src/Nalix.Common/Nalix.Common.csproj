@@ -13,13 +13,13 @@ Nalix.Common is a foundational .NET library that provides essential utilities fo
         </Description>
 
         <PackageReleaseNotes>
-          - Initial release of Nalix.Common.
-          - Features include:
-          • Cryptography and security utilities for secure data handling.
-          • Robust logging and exception management for debugging.
-          • Efficient memory management utilities.
-          • System utilities for low-level operations.
-          • Repository and connection management for structured data handling.
+			- Initial release of Nalix.Common.
+			- Features include:
+			• Cryptography and security utilities for secure data handling.
+			• Robust logging and exception management for debugging.
+			• Efficient memory management utilities.
+			• System utilities for low-level operations.
+			• Repository and connection management for structured data handling.
         </PackageReleaseNotes>
 	
     </PropertyGroup>

@@ -12,6 +12,7 @@
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
