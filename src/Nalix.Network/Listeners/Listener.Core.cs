@@ -34,6 +34,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
+    private readonly System.Threading.Lock _socketLock;
     private readonly System.Net.Sockets.Socket _listener;
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly ConnectionLimiter _connectionLimiter;
@@ -95,6 +96,8 @@ public abstract partial class Listener : IListener, System.IDisposable
         this._protocol = protocol;
         this._bufferPool = bufferPool;
         this._connectionLimiter = new ConnectionLimiter(logger);
+
+        this._socketLock = new();
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
