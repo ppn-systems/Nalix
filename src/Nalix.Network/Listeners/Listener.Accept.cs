@@ -323,12 +323,6 @@ public abstract partial class Listener
     {
         try
         {
-            socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both);
-        }
-        catch { }
-
-        try
-        {
             socket?.Close();
         }
         catch (System.Exception ex)
