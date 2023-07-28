@@ -193,7 +193,7 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     #endregion IDispose
 
-    private void CreateSocketListener()
+    private void InitializeTcpListenerSocket()
     {
         // Create the optimal socket listener.
         this._listener = new System.Net.Sockets.Socket(

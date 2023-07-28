@@ -3,7 +3,7 @@ using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Protocols;
 
-public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
+public abstract partial class Protocol : ISnapshot<ProtocolStats>
 {
     #region Fields
 
@@ -31,15 +31,15 @@ public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
     /// including connection acceptance status and message statistics.
     /// </summary>
     /// <returns>
-    /// A <see cref="ProtocolSnapshot"/> containing metrics like
+    /// A <see cref="ProtocolStats"/> containing metrics like
     /// total messages processed and total errors encountered.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual ProtocolSnapshot GetSnapshot() => new()
+    public virtual ProtocolStats GetSnapshot() => new()
     {
         IsListening = this.IsAccepting,
-        TotalMessages = System.Threading.Interlocked.Read(ref this._totalMessages),
         TotalErrors = System.Threading.Interlocked.Read(ref this._totalErrors),
+        TotalMessages = System.Threading.Interlocked.Read(ref this._totalMessages)
     };
 }
