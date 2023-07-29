@@ -3,13 +3,13 @@
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
 		<IsPackable>true</IsPackable>
-		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>2.1.7</Version>
-		<PackageVersion>2.1.7</PackageVersion>
+		<Version>2.3.0</Version>
+		<PackageVersion>2.3.0</PackageVersion>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

@@ -73,7 +73,7 @@ public sealed class ConnectionLimiter : IDisposable
         this._connectionInfo = new ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo>();
         this._cleanupLock = new SemaphoreSlim(1, 1);
 
-        // RunAsync cleanup timer with configured interval
+        // StartTickLoopAsync cleanup timer with configured interval
         this._cleanupTimer = new Timer(
             async _ => await this.CleanupStaleConnectionsAsync().ConfigureAwait(false),
             null,
@@ -222,7 +222,7 @@ public sealed class ConnectionLimiter : IDisposable
 
         if (this._connectionInfo.TryGetValue(endPoint, out var stats))
         {
-            this._logger?.Trace("Stats for {0}: {1} current, {2} today",
+            this._logger?.Trace("Observability for {0}: {1} current, {2} today",
                 endPoint, stats.CurrentConnections, stats.TotalConnectionsToday);
             return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
         }

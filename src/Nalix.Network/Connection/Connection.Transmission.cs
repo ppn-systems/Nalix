@@ -1,5 +1,5 @@
+﻿using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
 using Nalix.Common.Package;
 
 namespace Nalix.Network.Connection;
@@ -9,13 +9,12 @@ public sealed partial class Connection : IConnection
     #region User Datagram Protocol
 
     /// <inheritdoc />
-    public sealed class UdpTransport : IConnection.IUdp
+    public sealed class UdpTransport : IConnection.IUdp, IPoolable
     {
         #region Fields
 
-        private readonly ILogger? _logger;
-        private readonly System.Net.EndPoint _endPoint;
-        private static readonly System.Net.Sockets.Socket _socket;
+        private System.Net.EndPoint? _endPoint;
+        private System.Net.Sockets.Socket _socket;
 
         #endregion Fields
 
@@ -24,7 +23,7 @@ public sealed partial class Connection : IConnection
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
-        static UdpTransport()
+        public UdpTransport()
         {
             _socket = new System.Net.Sockets.Socket(
                 System.Net.Sockets.AddressFamily.InterNetwork,
@@ -37,13 +36,7 @@ public sealed partial class Connection : IConnection
         /// </summary>
         /// <param name="outer"></param>
         /// <exception cref="System.InvalidOperationException"></exception>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
-        public UdpTransport(Connection outer)
-        {
-            this._logger = outer._logger;
-            this._endPoint = outer.RemoteEndPoint;
-        }
+        public void Initialize(IConnection outer) => this._endPoint = outer.RemoteEndPoint;
 
         #endregion Constructor
 
@@ -56,13 +49,7 @@ public sealed partial class Connection : IConnection
         {
             try
             {
-                if (packet is null)
-                {
-                    this._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
-                    return false;
-                }
-
-                return this.Send(packet.Serialize().Span);
+                return packet is not null && this.Send(packet.Serialize().Span);
             }
             finally
             {
@@ -82,12 +69,24 @@ public sealed partial class Connection : IConnection
 
             if (this._endPoint is null)
             {
-                this._logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
-            System.Int32 sentBytes = _socket.SendTo(message.ToArray(), this._endPoint);
-            return sentBytes == message.Length;
+            System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(message.Length);
+            message.CopyTo(rented);
+
+            try
+            {
+                System.Int32 sent = _socket.SendTo(
+                    rented, 0, message.Length,
+                    System.Net.Sockets.SocketFlags.None, _endPoint);
+
+                return sent == message.Length;
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
+            }
         }
 
         #endregion Synchronous Methods
@@ -99,16 +98,7 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default)
-        {
-            if (packet is null)
-            {
-                this._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
-                return false;
-            }
-
-            return await this.SendAsync(packet.Serialize(), cancellationToken);
-        }
+            System.Threading.CancellationToken cancellationToken = default) => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -124,7 +114,6 @@ public sealed partial class Connection : IConnection
 
             if (this._endPoint is null)
             {
-                this._logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
@@ -132,6 +121,17 @@ public sealed partial class Connection : IConnection
                 message.ToArray(), this._endPoint, cancellationToken);
 
             return sentBytes == message.Length;
+        }
+
+        /// <inheritdoc />
+        public void ResetForPool()
+        {
+            _endPoint = null;
+            _socket.Dispose();
+            _socket = new System.Net.Sockets.Socket(
+                System.Net.Sockets.AddressFamily.InterNetwork,
+                System.Net.Sockets.SocketType.Dgram,
+                System.Net.Sockets.ProtocolType.Udp);
         }
 
         #endregion Asynchronous Methods

@@ -2,12 +2,12 @@
 
     <PropertyGroup>
         <IsPackable>true</IsPackable>
-        <IsTrimmable>true</IsTrimmable>
         <OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 
-		<Version>2.1.7</Version>
-		<PackageVersion>2.1.7</PackageVersion>
+		<Version>2.3.0</Version>
+		<PackageVersion>2.3.0</PackageVersion>
 
         <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 
