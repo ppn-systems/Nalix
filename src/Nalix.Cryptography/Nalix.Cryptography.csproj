@@ -5,7 +5,6 @@
 		<OutputType>Library</OutputType>
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
-        <DefineConstants>UNSAFE</DefineConstants>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<Version>2.3.0</Version>
