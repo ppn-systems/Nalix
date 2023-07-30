@@ -9,7 +9,7 @@ using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase : IListener, System.IDisposable
 {
