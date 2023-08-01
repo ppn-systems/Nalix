@@ -2,7 +2,7 @@
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
-using Nalix.Network.Security.Guard;
+using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Middleware;
