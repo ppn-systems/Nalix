@@ -3,6 +3,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// <summary>
 /// Helper methods for working with Spans.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static unsafe class SpanOps
 {
     /// <summary>

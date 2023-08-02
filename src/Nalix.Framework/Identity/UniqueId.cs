@@ -3,7 +3,13 @@ using Nalix.Framework.Time;
 
 namespace Nalix.Framework.Identity;
 
-internal static class Identity64
+/// <summary>
+/// Provides high-performance 64-bit identity generation for session, cache keys, or tokens.
+/// Combines timestamp, machineId, and random sequence to ensure uniqueness across servers.
+/// </summary>
+[System.Obsolete("This API is for internal use only.")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public static class UniqueId
 {
     #region Constants
 
@@ -27,7 +33,7 @@ internal static class Identity64
 
     #region Constructor
 
-    static Identity64()
+    static UniqueId()
     {
         _cache = [];
         _threadRandom = new(() => new SeededRandom(
@@ -39,18 +45,44 @@ internal static class Identity64
 
     #region APIs
 
+    /// <summary>
+    /// Generates a new 64-bit unique identity value.
+    /// </summary>
+    /// <param name="machineId">Optional machine identifier. If not specified, uses the hash of the machine name.</param>
+    /// <returns>A unique 64-bit unsigned integer identity.</returns>
     public static System.UInt64 Generate(System.Int32? machineId = null)
     {
         System.UInt64 mid = GetCached(machineId);
-        System.UInt64 timestamp = (System.UInt64)(Clock.UnixMillisecondsNow() & (System.Int64)MaxTimestamp);
-
         System.UInt64 seq = GenerateSecureSequenceId();
-
-        System.UInt64 id = (timestamp << (MachineIdBits + SequenceBits))
-                 | (mid << SequenceBits)
-                 | seq;
+        System.UInt64 timestamp = (System.UInt64)(Clock.UnixMillisecondsNow() & (System.Int64)MaxTimestamp);
+        System.UInt64 id = (timestamp << (MachineIdBits + SequenceBits)) | (mid << SequenceBits) | seq;
 
         return id;
+    }
+
+    /// <summary>
+    /// Generates a new 64-bit unique identity value as an 8-byte array.
+    /// </summary>
+    /// <param name="machineId">Optional machine identifier. If not specified, uses the hash of the machine name.</param>
+    /// <returns>
+    /// An 8-byte array (byte[]) representing a unique 64-bit identity.
+    /// </returns>
+    public static System.Byte[] GenerateBytes(System.Int32? machineId = null)
+        => System.BitConverter.GetBytes(Generate(machineId));
+
+    /// <summary>
+    /// Converts an 8-byte array to a 64-bit unsigned integer.
+    /// </summary>
+    /// <param name="bytes">The byte array to convert. Must be exactly 8 bytes in length.</param>
+    /// <returns>The 64-bit unsigned integer represented by the byte array.</returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when the byte array length is not exactly 8.
+    /// </exception>
+    public static System.UInt64 ToUInt64(this System.Byte[] bytes)
+    {
+        return bytes.Length != 8
+            ? throw new System.ArgumentException("Byte array must be exactly 8 bytes.", nameof(bytes))
+            : System.BitConverter.ToUInt64(bytes);
     }
 
     #endregion APIs

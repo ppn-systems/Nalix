@@ -8,6 +8,8 @@ namespace Nalix.Network.Listeners.Udp;
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
+[System.Obsolete("This API is for internal use only.", error: true)]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public abstract partial class UdpListenerBase : IListener, System.IDisposable
 {
     /// <summary>

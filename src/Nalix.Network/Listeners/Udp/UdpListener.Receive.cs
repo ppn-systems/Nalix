@@ -49,7 +49,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IIdentifier identifier = Identifier.FromByteArray(result.Buffer[^7..]);
+        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^7..]);
         IConnection? connection = ConnectionHub.Instance.GetConnection(identifier);
         ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer);
     }

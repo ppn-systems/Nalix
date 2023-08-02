@@ -4,6 +4,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// Provides methods to efficiently write literal bytes directly to a memory destination.
 /// This class is optimized for high-performance memory operations with minimal overhead.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static unsafe class LiteralWriter
 {
     /// <summary>

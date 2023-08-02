@@ -141,7 +141,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(System.ReadOnlySpan<System.Byte> id)
-        => this._connections.TryGetValue(Identifier.FromByteArray(id), out var connection) ? connection : null;
+        => this._connections.TryGetValue(Identifier.Deserialize(id), out var connection) ? connection : null;
 
     /// <summary>
     /// Get connection by username (fast lookup)

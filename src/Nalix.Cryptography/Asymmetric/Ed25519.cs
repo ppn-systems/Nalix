@@ -265,7 +265,7 @@ public sealed class Ed25519
     }
 
     /// <summary>
-    /// Encodes a point to a fixed 32-byte representation using TryWriteBytes to avoid allocations.
+    /// Encodes a point to a fixed 32-byte representation using TryDeserialize to avoid allocations.
     /// </summary>
     /// <param name="p">The point to encode.</param>
     /// <param name="destination">The destination span to write the encoded point.</param>

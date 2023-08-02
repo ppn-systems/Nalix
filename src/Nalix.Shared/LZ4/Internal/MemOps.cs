@@ -8,6 +8,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// copying memory blocks, and comparing memory regions. It utilizes `unsafe` code to perform these operations directly
 /// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
 /// </remarks>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static unsafe class MemOps
 {
     /// <summary>
