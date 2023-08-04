@@ -70,7 +70,7 @@ public sealed class ServerProtocol(IPacketDispatch<Packet> packetDispatcher) : P
     public override void ProcessMessage(ReadOnlySpan<Byte> bytes)
     {
         // Extract connectionId as UInt32 from the packet bytes
-        Identifier connectionId = Identifier.FromByteArray(bytes.Slice(
+        Identifier connectionId = Identifier.Deserialize(bytes.Slice(
             PacketSize.Header, sizeof(UInt32) + sizeof(UInt16) + sizeof(Byte)));
 
         IConnection? connection = ConnectionHub.Instance.GetConnection(connectionId);
