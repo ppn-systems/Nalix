@@ -1,5 +1,6 @@
 ﻿using Nalix.Common.Logging;
-using Nalix.Common.Package.Attributes;
+using Nalix.Common.Packets;
+using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.Internal.Analyzers;
@@ -14,10 +15,10 @@ internal sealed class PacketAnalyzer<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
     where TController : class
-    where TPacket : Common.Package.IPacket,
-                   Common.Package.IPacketFactory<TPacket>,
-                   Common.Package.IPacketEncryptor<TPacket>,
-                   Common.Package.IPacketCompressor<TPacket>
+    where TPacket : IPacket,
+                   IPacketFactory<TPacket>,
+                   IPacketEncryptor<TPacket>,
+                   IPacketCompressor<TPacket>
 {
     #region Fields
 

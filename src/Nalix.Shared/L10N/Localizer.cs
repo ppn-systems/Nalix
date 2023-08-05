@@ -72,12 +72,12 @@ public sealed class Localizer
     public void Load(System.String path) => _catalog.LoadFromFile(path);
 
     /// <summary>
-    /// Retrieves the localized string for the specified message Number.
-    /// If no translation is found, the original Number is returned.
+    /// Retrieves the localized string for the specified message ProtocolType.
+    /// If no translation is found, the original ProtocolType is returned.
     /// </summary>
-    /// <param name="id">The message Number.</param>
+    /// <param name="id">The message ProtocolType.</param>
     /// <returns>
-    /// The translated string if available; otherwise, the original Number.
+    /// The translated string if available; otherwise, the original ProtocolType.
     /// </returns>
     /// <example>
     /// <code>
@@ -88,12 +88,12 @@ public sealed class Localizer
 
     /// <summary>
     /// Retrieves the localized string for a message within a specific context.
-    /// If no translation is found, the original Number is returned.
+    /// If no translation is found, the original ProtocolType is returned.
     /// </summary>
     /// <param name="context">The translation context.</param>
-    /// <param name="id">The message Number.</param>
+    /// <param name="id">The message ProtocolType.</param>
     /// <returns>
-    /// The translated string if available; otherwise, the original Number.
+    /// The translated string if available; otherwise, the original ProtocolType.
     /// </returns>
     /// <example>
     /// <code>
@@ -105,14 +105,14 @@ public sealed class Localizer
 
     /// <summary>
     /// Retrieves the singular or plural localized string based on a count.
-    /// If no translation is found, the original Number or plural form is returned.
+    /// If no translation is found, the original ProtocolType or plural form is returned.
     /// </summary>
-    /// <param name="id">The singular message Number.</param>
-    /// <param name="idPlural">The plural message Number.</param>
+    /// <param name="id">The singular message ProtocolType.</param>
+    /// <param name="idPlural">The plural message ProtocolType.</param>
     /// <param name="n">The quantity to determine singular or plural form.</param>
     /// <returns>
     /// The translated string in singular or plural form if available;
-    /// otherwise, the original Number or plural form.
+    /// otherwise, the original ProtocolType or plural form.
     /// </returns>
     /// <example>
     /// <code>
@@ -125,15 +125,15 @@ public sealed class Localizer
     /// <summary>
     /// Retrieves the singular or plural localized string based on a count
     /// within a specific context. If no translation is found, the original
-    /// Number or plural form is returned.
+    /// ProtocolType or plural form is returned.
     /// </summary>
     /// <param name="context">The translation context.</param>
-    /// <param name="id">The singular message Number.</param>
-    /// <param name="idPlural">The plural message Number.</param>
+    /// <param name="id">The singular message ProtocolType.</param>
+    /// <param name="idPlural">The plural message ProtocolType.</param>
     /// <param name="n">The quantity to determine singular or plural form.</param>
     /// <returns>
     /// The translated string in singular or plural form if available;
-    /// otherwise, the original Number or plural form.
+    /// otherwise, the original ProtocolType or plural form.
     /// </returns>
     /// <example>
     /// <code>

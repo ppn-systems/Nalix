@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Metadata;
+namespace Nalix.Common.Packets.Metadata;
 
 /// <summary>
 /// Defines the sizes of the components in the packet header.
@@ -11,14 +11,14 @@ public static class PacketSize
     public const System.Int32 Length = sizeof(System.UInt16);
 
     /// <summary>
-    /// The size of the Number field in the packet header, in bytes.
+    /// The size of the ProtocolType field in the packet header, in bytes.
     /// </summary>
     public const System.Int32 OpCode = sizeof(System.UInt16);
 
     /// <summary>
-    /// The size of the Number field in the packet header, in bytes.
+    /// The size of the ProtocolType field in the packet header, in bytes.
     /// </summary>
-    public const System.Int32 Number = sizeof(System.Byte);
+    public const System.Int32 Protocol = sizeof(System.Byte);
 
     /// <summary>
     /// The size of the Checksum field in the packet header, in bytes.
@@ -48,5 +48,5 @@ public static class PacketSize
     /// <summary>
     /// The total size of the packet header, which is the sum of the sizes of all header fields.
     /// </summary>
-    public const System.Int32 Header = OpCode + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
+    public const System.Int32 Header = OpCode + Length + Protocol + Type + Flags + Priority + Timestamp + Checksum;
 }
