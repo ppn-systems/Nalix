@@ -9,7 +9,7 @@ namespace Nalix.Network.Throttling.Metadata;
 internal readonly record struct ConnectionLimitInfo
 {
     /// <summary>
-    /// The current ProtocolType of active connections.
+    /// The current TransportProtocol of active connections.
     /// </summary>
     public readonly System.Int32 CurrentConnections { get; init; }
 
@@ -19,7 +19,7 @@ internal readonly record struct ConnectionLimitInfo
     public readonly System.DateTime LastConnectionTime { get; init; }
 
     /// <summary>
-    /// The total ProtocolType of connections made today.
+    /// The total TransportProtocol of connections made today.
     /// </summary>
     public readonly System.Int32 TotalConnectionsToday { get; init; }
 

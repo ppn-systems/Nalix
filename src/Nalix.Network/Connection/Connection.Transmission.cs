@@ -45,17 +45,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Send(in IPacket packet)
-        {
-            try
-            {
-                return packet is not null && this.Send(packet.Serialize().Span);
-            }
-            finally
-            {
-                packet.Dispose();
-            }
-        }
+        public System.Boolean Send(in IPacket packet) => packet is not null && this.Send(packet.Serialize());
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -166,20 +156,13 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public System.Boolean Send(in IPacket packet)
         {
-            try
+            if (packet is null)
             {
-                if (packet is null)
-                {
-                    this._outer._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
-                    return false;
-                }
+                this._outer._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                return false;
+            }
 
-                return this.Send(packet.Serialize().Span);
-            }
-            finally
-            {
-                packet.Dispose();
-            }
+            return this.Send(packet.Serialize());
         }
 
         /// <inheritdoc />

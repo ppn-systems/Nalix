@@ -140,7 +140,7 @@ public static class Twofish
         /// <param name="key">Key of 16, 24, or 32 bytes (128, 192, or 256 bits)</param>
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
-        /// <returns>ProtocolType of bytes written</returns>
+        /// <returns>TransportProtocol of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Int32 Encrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> plaintext, Span<Byte> ciphertext)
         {
@@ -185,7 +185,7 @@ public static class Twofish
         /// <param name="key">Key of 16, 24, or 32 bytes (128, 192, or 256 bits)</param>
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <param name="plaintext">Buffer to receive decrypted data</param>
-        /// <returns>ProtocolType of bytes written</returns>
+        /// <returns>TransportProtocol of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Int32 Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> ciphertext, Span<Byte> plaintext)
         {
@@ -242,7 +242,7 @@ public static class Twofish
         /// <param name="iv">Initialization vector (16 bytes)</param>
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
-        /// <returns>ProtocolType of bytes written</returns>
+        /// <returns>TransportProtocol of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Int32 Encrypt(
             ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> iv,
@@ -319,7 +319,7 @@ public static class Twofish
         /// <param name="iv">Initialization vector (16 bytes, same as used for encryption)</param>
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <param name="plaintext">Buffer to receive decrypted data</param>
-        /// <returns>ProtocolType of bytes written</returns>
+        /// <returns>TransportProtocol of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Int32 Decrypt(
             ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> iv,
@@ -572,7 +572,7 @@ public static class Twofish
     {
         // Input: X, a 32-bit input
         // L, key material
-        // k, ProtocolType of 64-bit words in key
+        // k, TransportProtocol of 64-bit words in key
 
         Byte y0 = Q00((Byte)(X & 0xFF));
         Byte y1 = Q01((Byte)((X >> 8) & 0xFF));

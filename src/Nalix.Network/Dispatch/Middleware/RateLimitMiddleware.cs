@@ -13,10 +13,10 @@ namespace Nalix.Network.Dispatch.Middleware;
 /// and further processing is halted.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type, which must implement both <see cref="IPacket"/> and <see cref="IPacketFactory{TPacket}"/>.
+/// The packet type, which must implement both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
 public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket, IPacketFactory<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     private readonly RequestLimiter _limiter;
 

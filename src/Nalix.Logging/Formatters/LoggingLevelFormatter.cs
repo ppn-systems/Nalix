@@ -122,7 +122,7 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level.</param>
     /// <param name="destination">The destination character span.</param>
-    /// <returns>The ProtocolType of characters written.</returns>
+    /// <returns>The TransportProtocol of characters written.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static System.Int32 CopyTo(LogLevel logLevel, System.Span<System.Char> destination)

@@ -13,7 +13,7 @@ namespace Nalix.SDK.Remote.Internal;
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for receiving data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
-    where TPacket : IPacket, IPacketDeserializer<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
