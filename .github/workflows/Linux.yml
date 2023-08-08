@@ -21,10 +21,9 @@ jobs:
       os: ubuntu-latest
       project:  |
         src/Nalix.Common/Nalix.Common.csproj
-        src/Nalix.Cryptography/Nalix.Cryptography.csproj
+        src/Nalix.Shared/Nalix.Shared.csproj
         src/Nalix.Logging/Nalix.Logging.csproj
         src/Nalix.Network/Nalix.Network.csproj
-        src/Nalix.Network.Package/Nalix.Network.Package.csproj
-        src/Nalix.Shared/Nalix.Shared.csproj
+        src/Nalix.Cryptography/Nalix.Cryptography.csproj
       test: tests/Nalix.Tests.sln
       deploy: false
