@@ -17,8 +17,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         _ = this._pipeline
             .UsePre(new RateLimitMiddleware<TPacket>())
             .UsePre(new PermissionMiddleware<TPacket>())
-            .UsePre(new DecompressMiddleware<TPacket>())
-            .UsePre(new DecryptionMiddleware<TPacket>());
+            .UsePre(new PacketTransformMiddleware<TPacket>());
         //.UsePre(new ValidationMiddleware<TPacket>());
 
         // Post-processing middleware
@@ -69,7 +68,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, 0));
+        _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Internal server error"));
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
