@@ -182,9 +182,8 @@ internal sealed class PacketAnalyzer<
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
         System.Type returnType)
     {
-        if (returnType == typeof(System.Threading.Tasks.Task))
-        {
-            return async (instance, context) =>
+        return returnType == typeof(System.Threading.Tasks.Task)
+            ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.Task task)
@@ -193,10 +192,8 @@ internal sealed class PacketAnalyzer<
                     return null;
                 }
                 return result;
-            };
-        }
-
-        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>)
+            })
+            : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>)
             ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);
@@ -245,7 +242,6 @@ internal sealed class PacketAnalyzer<
         return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m)!,
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m)
         ));

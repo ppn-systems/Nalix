@@ -5,7 +5,7 @@ using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Dispatch.Middleware;
+namespace Nalix.Network.Dispatch.Middleware.Pre;
 
 /// <summary>
 /// Middleware that enforces rate limiting for incoming packets.

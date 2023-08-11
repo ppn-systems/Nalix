@@ -18,7 +18,6 @@ namespace Nalix.Network.Dispatch.Core;
 public readonly struct PacketMetadata(
     PacketOpcodeAttribute opCode,
     PacketTimeoutAttribute? timeout,
-    PacketRateLimitAttribute? rateLimit,
     PacketPermissionAttribute? permission,
     PacketEncryptionAttribute? encryption)
 {
@@ -32,12 +31,6 @@ public readonly struct PacketMetadata(
     /// after which the packet operation is considered expired.
     /// </summary>
     public readonly PacketTimeoutAttribute? Timeout = timeout;
-
-    /// <summary>
-    /// Gets the optional rate limiting attribute that controls the frequency
-    /// at which the packet can be processed to prevent abuse.
-    /// </summary>
-    public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
 
     /// <summary>
     /// Gets the optional permission attribute that specifies access control
