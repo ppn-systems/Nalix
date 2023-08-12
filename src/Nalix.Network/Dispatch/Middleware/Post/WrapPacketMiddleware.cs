@@ -4,9 +4,18 @@ using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 
 namespace Nalix.Network.Dispatch.Middleware.Post;
-internal class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
+
+/// <summary>
+/// Middleware that wraps a packet with compression and encryption as needed before dispatch.
+/// </summary>
+/// <typeparam name="TPacket">
+/// The type of packet, which must implement <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
+/// </typeparam>
+[PacketMiddleware(MiddlewareStage.Post, order: 2, name: "Wrap")]
+public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
+    /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> next)

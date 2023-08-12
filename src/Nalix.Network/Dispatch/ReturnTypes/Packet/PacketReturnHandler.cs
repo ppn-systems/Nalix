@@ -1,12 +1,13 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.ReturnTypes;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
+namespace Nalix.Network.Dispatch.ReturnTypes.Packet;
 
 /// <inheritdoc/>
-internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket>
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
+    where TPacket : IPacket
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -14,9 +15,9 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.String data)
+        if (result is TPacket packet)
         {
-            _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, data).Serialize());
+            _ = await context.Connection.Tcp.SendAsync(packet.Serialize());
         }
     }
 }
