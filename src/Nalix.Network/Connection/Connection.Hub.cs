@@ -67,7 +67,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
-            this._logger?.Info("[{0}] Connection registered: {1} (Total: {2})",
+            this._logger?.Debug("[{0}] Connection registered: {1} (Total: {2})",
                 nameof(ConnectionHub), connection.Id, this._connectionCount);
             return true;
         }
@@ -122,7 +122,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent -= this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
 
-            this._logger?.Info("[{0}] Connection unregistered: {1} (Total: {2})",
+            this._logger?.Debug("[{0}] Connection unregistered: {1} (Total: {2})",
                 nameof(ConnectionHub), id, this._connectionCount);
             return true;
         }
@@ -249,7 +249,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         }
         catch (System.OperationCanceledException)
         {
-            this._logger?.Info("[{0}] Broadcast cancelled", nameof(ConnectionHub));
+            this._logger?.Debug("[{0}] Broadcast cancelled", nameof(ConnectionHub));
         }
     }
 
@@ -305,7 +305,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         }
         catch (System.OperationCanceledException)
         {
-            this._logger?.Info("[{0}] Filtered broadcast cancelled", nameof(ConnectionHub));
+            this._logger?.Debug("[{0}] Filtered broadcast cancelled", nameof(ConnectionHub));
         }
     }
 
@@ -386,6 +386,6 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent -= this.OnClientDisconnected;
         }
 
-        this._logger?.Info("[{0}] Disposed", nameof(ConnectionHub));
+        this._logger?.Warn("[{0}] Disposed", nameof(ConnectionHub));
     }
 }

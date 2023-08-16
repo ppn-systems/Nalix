@@ -3,7 +3,7 @@ using Nalix.Common.Packets;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Internal.Analyzers;
+namespace Nalix.Network.Dispatch.Analyzers;
 
 /// <summary>
 /// High-performance controller scanner with caching and zero-allocation lookups.
