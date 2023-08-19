@@ -13,6 +13,8 @@ namespace Nalix.Cryptography;
 /// </summary>
 public static class Ciphers
 {
+    #region Constants
+
     private const System.Int32 ChaCha20NonceSize = 12;
     private const System.Int32 ChaCha20TagSize = 16;
     private const System.Int32 Salsa20NonceSize = 8;
@@ -20,6 +22,10 @@ public static class Ciphers
     private const System.Int32 TwofishBlockSize = 16;
     private const System.Int32 XteaBlockSize = 8;
     private const System.Int32 LengthPrefixSize = 4;
+
+    #endregion Constants
+
+    #region APIs
 
     /// <summary>
     /// Encrypts the provided data using the specified algorithm.
@@ -149,6 +155,8 @@ public static class Ciphers
         }
     }
 
+    #endregion APIs
+
     #region Validation Methods
 
     private static void ValidateEncryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, SymmetricAlgorithmType algorithm)
@@ -191,7 +199,8 @@ public static class Ciphers
 
     #region Encryption Methods
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptChaCha20Poly1305(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptChaCha20Poly1305(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.Span<System.Byte> nonce = SecureRandom.CreateNonce(ChaCha20NonceSize);
 
@@ -206,7 +215,8 @@ public static class Ciphers
         return result;
     }
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptSalsa20(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptSalsa20(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         const System.UInt64 counter = 0;
         System.Span<System.Byte> nonce = new System.Byte[Salsa20NonceSize];
@@ -216,7 +226,8 @@ public static class Ciphers
         return ciphertext;
     }
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptSpeck(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptSpeck(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.Int32 originalLength = data.Length;
         System.Int32 bufferSize = AlignToBlockSize(originalLength, SpeckBlockSize);
@@ -246,7 +257,8 @@ public static class Ciphers
         }
     }
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptTwofishECB(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptTwofishECB(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.Int32 originalLength = data.Length;
         System.Int32 paddedLength = AlignToBlockSize(originalLength, TwofishBlockSize);
@@ -275,7 +287,8 @@ public static class Ciphers
         }
     }
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptTwofishCBC(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptTwofishCBC(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.Int32 originalLength = data.Length;
         System.Int32 paddedLength = AlignToBlockSize(originalLength, TwofishBlockSize);
@@ -308,7 +321,8 @@ public static class Ciphers
         }
     }
 
-    private static System.ReadOnlyMemory<System.Byte> EncryptXTEA(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> EncryptXTEA(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.Int32 originalLength = data.Length;
         System.Int32 bufferSize = AlignToBlockSize(originalLength, XteaBlockSize);
@@ -341,7 +355,8 @@ public static class Ciphers
 
     #region Decryption Methods
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptChaCha20Poly1305(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptChaCha20Poly1305(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.ReadOnlySpan<System.Byte> input = data.Span;
         const System.Int32 minSize = ChaCha20NonceSize + ChaCha20TagSize;
@@ -362,7 +377,8 @@ public static class Ciphers
             : (System.ReadOnlyMemory<System.Byte>)plaintext;
     }
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptSalsa20(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptSalsa20(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         const System.UInt64 counter = 0;
         System.Span<System.Byte> nonce = new System.Byte[Salsa20NonceSize];
@@ -372,7 +388,8 @@ public static class Ciphers
         return plaintext;
     }
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptSpeck(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptSpeck(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         ValidateDataWithLengthPrefix(data, SpeckBlockSize);
 
@@ -403,7 +420,8 @@ public static class Ciphers
         }
     }
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptTwofishECB(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptTwofishECB(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         ValidateDataWithLengthPrefix(data, TwofishBlockSize);
 
@@ -416,7 +434,8 @@ public static class Ciphers
         return System.MemoryExtensions.AsSpan(decrypted, 0, originalLength).ToArray();
     }
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptTwofishCBC(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptTwofishCBC(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         const System.Int32 headerSize = LengthPrefixSize + TwofishBlockSize;
 
@@ -445,7 +464,8 @@ public static class Ciphers
             : (System.ReadOnlyMemory<System.Byte>)System.MemoryExtensions.AsSpan(decrypted, 0, originalLength).ToArray();
     }
 
-    private static System.ReadOnlyMemory<System.Byte> DecryptXTEA(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
+    private static System.ReadOnlyMemory<System.Byte> DecryptXTEA(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         ValidateDataWithLengthPrefix(data);
 
@@ -511,7 +531,8 @@ public static class Ciphers
         }
     }
 
-    private static void EncryptBlocks(System.Span<System.Byte> data, System.ReadOnlySpan<System.Byte> key, System.Int32 blockSize,
+    private static void EncryptBlocks(
+        System.Span<System.Byte> data, System.ReadOnlySpan<System.Byte> key, System.Int32 blockSize,
         System.Action<System.Span<System.Byte>, System.ReadOnlySpan<System.Byte>, System.Span<System.Byte>> encryptBlock)
     {
         for (System.Int32 i = 0; i < data.Length / blockSize; i++)
@@ -521,7 +542,8 @@ public static class Ciphers
         }
     }
 
-    private static void DecryptBlocks(System.Span<System.Byte> data, System.ReadOnlySpan<System.Byte> key, System.Int32 blockSize,
+    private static void DecryptBlocks(
+        System.Span<System.Byte> data, System.ReadOnlySpan<System.Byte> key, System.Int32 blockSize,
         System.Action<System.Span<System.Byte>, System.ReadOnlySpan<System.Byte>, System.Span<System.Byte>> decryptBlock)
     {
         for (System.Int32 i = 0; i < data.Length / blockSize; i++)
