@@ -639,7 +639,7 @@ internal sealed class IniConfig
                     throw;
                 }
 
-                // Add exponential backoff delay
+                // Push exponential backoff delay
                 Thread.Sleep(100 * (Int32)Math.Pow(2, retryCount - 1));
             }
         }

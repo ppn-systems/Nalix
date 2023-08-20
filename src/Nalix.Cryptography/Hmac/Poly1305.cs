@@ -222,7 +222,7 @@ public sealed class Poly1305 : System.IDisposable
             // Append padding byte (0x01) after the message block
             block[blockSize] = 0x01;
 
-            // Add this block to the accumulator
+            // Push this block to the accumulator
             AddBlock(accumulator, block[..(blockSize + 1)], blockSize < 16);
 
             offset += blockSize;
@@ -280,7 +280,7 @@ public sealed class Poly1305 : System.IDisposable
         }
         n[4] = (System.UInt32)(isFinalBlock && block.Length <= 16 ? 0 : block[16]);
 
-        // Add the message block to the accumulator
+        // Push the message block to the accumulator
         Add(accumulator, n);
 
         // Multiply by r
@@ -459,7 +459,7 @@ public sealed class Poly1305 : System.IDisposable
         // Ensure the result is fully reduced modulo 2^130 - 5
         Modulo(result);
 
-        // Add s
+        // Push s
         System.Span<System.UInt32> finalResult = stackalloc System.UInt32[4];
         System.UInt64 carry = 0;
         for (System.Byte i = 0; i < 4; i++)
