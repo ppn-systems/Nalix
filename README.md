@@ -51,7 +51,6 @@ Nalix is a real-time server solution designed for efficient communication and da
 | **Nalix.Cryptography**    | Secure cryptographic functions         | `dotnet add package Nalix.Cryptography`    |
 | **Nalix.Logging**         | Logging utilities for Nalix            | `dotnet add package Nalix.Logging`         |
 | **Nalix.Network**         | Low-level networking functionality     | `dotnet add package Nalix.Network`         |
-| **Nalix.Network.Package** | Custom packet handling for Nalix       | `dotnet add package Nalix.Network.Package` |
 | **Nalix.Shared**          | Shared models and definitions          | `dotnet add package Nalix.Shared`          |
 
 ## 🛠️ Contributing
