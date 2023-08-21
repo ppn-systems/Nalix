@@ -24,7 +24,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     #region Fields
 
-    internal static readonly SocketSettings Config;
+    internal static readonly SocketOptions Config;
 
     private readonly ILogger _logger;
     private readonly System.UInt16 _port;
@@ -72,7 +72,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     #region Constructors
 
-    static TcpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketSettings>();
+    static TcpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketOptions>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
