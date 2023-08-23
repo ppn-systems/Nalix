@@ -10,7 +10,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// Initializes a new instance of the <see cref="PacketOpcodeAttribute"/> method.
 /// </remarks>
 /// <param name="opcode">The unique identifier for the packet associated with the method.</param>
-[System.AttributeUsage(System.AttributeTargets.Method)]
+[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public class PacketOpcodeAttribute(System.UInt16 opcode) : System.Attribute
 {
     /// <summary>
