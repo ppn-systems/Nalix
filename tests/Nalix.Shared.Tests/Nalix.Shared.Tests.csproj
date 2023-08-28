@@ -13,10 +13,17 @@
     </PackageReference>
   </ItemGroup>
 
+	<ItemGroup>
+		<Reference Include="Nalix.Common">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Shared">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Shared.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
   <ItemGroup>
-    <Reference Include="Nalix.Shared">
-      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Shared.dll</HintPath>
-    </Reference>
+    <Folder Include="Packets\" />
   </ItemGroup>
 
 </Project>
