@@ -42,10 +42,10 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
                 context.SetPacket(current);
             }
         }
-        catch (System.Exception ex)
+        catch (System.Exception)
         {
             _ = await context.Connection.Tcp.SendAsync(
-                TPacket.Create(0, "Packet transform failed: " + ex.Message));
+                TPacket.Create(0, "An error occurred while processing your request."));
 
             return;
         }
