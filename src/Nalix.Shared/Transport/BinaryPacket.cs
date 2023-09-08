@@ -6,7 +6,7 @@ using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Network.Protocols.Messages;
+namespace Nalix.Shared.Transport;
 
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
