@@ -2,7 +2,7 @@
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
-using Nalix.Network.Messages;
+using Nalix.Network.Protocols.Messages;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
@@ -47,7 +47,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
     {
         if (!this._limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
         {
-            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            LiteralPacket text = ObjectPoolManager.Instance.Get<LiteralPacket>();
             try
             {
                 text.Initialize("You have been rate limited.");
@@ -57,7 +57,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return<TextPacket>(text);
+                ObjectPoolManager.Instance.Return<LiteralPacket>(text);
             }
         }
 
