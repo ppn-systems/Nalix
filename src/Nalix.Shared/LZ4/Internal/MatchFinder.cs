@@ -37,7 +37,7 @@ internal static unsafe class MatchFinder
         /// Determines if the match is valid.
         /// A match is considered valid if its length meets the minimum match length.
         /// </summary>
-        public System.Boolean Found => Length >= LZ4Constants.MinMatchLength;
+        public System.Boolean Found => Length >= LZ4CompressionConstants.MinMatchLength;
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ internal static unsafe class MatchFinder
         System.Int32 currentInputOffset)
     {
         // Ensure there are enough bytes to find a match
-        if (currentInputPtr + LZ4Constants.MinMatchLength > inputLimit)
+        if (currentInputPtr + LZ4CompressionConstants.MinMatchLength > inputLimit)
         {
             return default; // No match possible
         }
@@ -87,17 +87,17 @@ internal static unsafe class MatchFinder
         }
 
         // Calculate the length of the match
-        System.Int32 matchLength = LZ4Constants.MinMatchLength + MemOps.CountEqualBytes(
-            matchCandidatePtr + LZ4Constants.MinMatchLength,
-            currentInputPtr + LZ4Constants.MinMatchLength,
-            (System.Int32)(inputLimit - (currentInputPtr + LZ4Constants.MinMatchLength)) // Ensure bounds
+        System.Int32 matchLength = LZ4CompressionConstants.MinMatchLength + MemOps.CountEqualBytes(
+            matchCandidatePtr + LZ4CompressionConstants.MinMatchLength,
+            currentInputPtr + LZ4CompressionConstants.MinMatchLength,
+            (System.Int32)(inputLimit - (currentInputPtr + LZ4CompressionConstants.MinMatchLength)) // Ensure bounds
         );
 
         // Calculate the offset of the match
         System.Int32 offset = (System.Int32)(currentInputPtr - matchCandidatePtr);
 
         // Ensure the offset is within the valid range
-        System.Diagnostics.Debug.Assert(offset is > 0 and <= LZ4Constants.MaxOffset);
+        System.Diagnostics.Debug.Assert(offset is > 0 and <= LZ4CompressionConstants.MaxOffset);
 
         return new Match(offset, matchLength);
     }

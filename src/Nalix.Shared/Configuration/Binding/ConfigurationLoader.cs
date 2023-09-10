@@ -1,6 +1,5 @@
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration.Internal;
-using Nalix.Shared.Configuration.Metadata;
 
 namespace Nalix.Shared.Configuration.Binding;
 

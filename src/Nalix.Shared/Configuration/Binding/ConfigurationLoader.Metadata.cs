@@ -1,6 +1,5 @@
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Internal;
-using Nalix.Shared.Configuration.Metadata;
 
 namespace Nalix.Shared.Configuration.Binding;
 
