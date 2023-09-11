@@ -29,7 +29,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     private readonly ILogger? _logger;
     private readonly Int32 _totalBuffers;
     private readonly Boolean _enableTrimming;
-    private readonly BufferManager _poolManager = new();
+    private readonly BufferPoolCollection _poolManager = new();
     private readonly (Int32 BufferSize, Double Allocation)[] _bufferAllocations;
     private readonly ConcurrentDictionary<Int32, Int32> _suitablePoolSizeCache = new();
 
