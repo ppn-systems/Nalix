@@ -9,7 +9,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
 /// </remarks>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public static unsafe class MemOps
+internal static unsafe class MemOps
 {
     /// <summary>
     /// Reads an unaligned value from a memory location.
