@@ -298,7 +298,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferPoolSnapshot poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
         Double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         Int32 targetBuffers = (Int32)(targetAllocation * _totalBuffers);
@@ -352,7 +352,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferPoolSnapshot poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
         // 25% threshold for adaptive resizing
         Int32 threshold = Math.Max(1, poolInfo.TotalBuffers >> 2);
