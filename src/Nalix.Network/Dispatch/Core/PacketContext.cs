@@ -28,7 +28,10 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get; private set;
+        get;
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private set;
     } = default!;
 
     /// <summary>
@@ -38,7 +41,10 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get; private set;
+        get;
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private set;
     } = default!;
 
     /// <summary>
@@ -80,7 +86,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     #region Methods
 
     /// <summary>
-    /// Initialize context với new values (dùng khi rent từ pool).
+    /// Initialize context với new values.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -93,7 +99,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     }
 
     /// <summary>
-    /// Reset context state để có thể return về pool.
+    /// Reset context state to be able to return to pool.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -140,6 +146,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Reset context.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         if (this._isInitialized)
@@ -151,6 +159,8 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Dispose context.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (this._isInitialized)
