@@ -38,14 +38,24 @@ internal sealed class TransportCache : System.IDisposable
     /// <summary>
     /// Gets the cache that stores recently sent (outgoing) packets.
     /// </summary>
-    public readonly BinaryCache Outgoing = new(Config.Outgoing);
+    public readonly BinaryCache Outgoing;
 
     /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
-    public readonly FifoCache<System.ReadOnlyMemory<System.Byte>> Incoming = new(Config.Incoming);
+    public readonly FifoCache<System.ReadOnlyMemory<System.Byte>> Incoming;
 
     #endregion Properties
+
+    #region Constructors
+
+    public TransportCache()
+    {
+        this.Outgoing = new(Config.Outgoing);
+        this.Incoming = new(Config.Incoming);
+    }
+
+    #endregion Constructors
 
     #region Public Methods
 

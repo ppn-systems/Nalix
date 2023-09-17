@@ -8,10 +8,16 @@ namespace Nalix.Shared.Serialization.Buffers;
 /// </summary>
 public unsafe struct DataReader : System.IDisposable
 {
+    #region Fields
+
     private System.Byte* _ptr;
     private System.Int32 _length;
     private System.Boolean _pinned;
     private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets the number of bytes that have been consumed from the buffer.
@@ -22,6 +28,10 @@ public unsafe struct DataReader : System.IDisposable
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
     public readonly System.Int32 BytesRemaining => _length - BytesRead;
+
+    #endregion Properties
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of <see cref="DataReader"/> for a managed byte array.
@@ -40,8 +50,6 @@ public unsafe struct DataReader : System.IDisposable
         _length = buffer.Length;
         BytesRead = 0;
         _pinned = true;
-
-        this.Advance(0x02);
     }
 
     /// <summary>
@@ -57,8 +65,6 @@ public unsafe struct DataReader : System.IDisposable
         BytesRead = 0;
         _pin = default;
         _pinned = false;
-
-        this.Advance(0x02);
     }
 
     /// <summary>
@@ -77,8 +83,6 @@ public unsafe struct DataReader : System.IDisposable
         _length = temp.Length;
         _pinned = true;
         BytesRead = 0;
-
-        this.Advance(0x02);
     }
 
     /// <summary>
@@ -110,9 +114,11 @@ public unsafe struct DataReader : System.IDisposable
             _pinned = true;
         }
         BytesRead = 0;
-
-        this.Advance(0x02);
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Retrieves a read-only span of bytes from the current position in the buffer.
@@ -184,4 +190,6 @@ public unsafe struct DataReader : System.IDisposable
         BytesRead = 0;
         _pinned = false;
     }
+
+    #endregion APIs
 }
