@@ -3,42 +3,38 @@ using Nalix.Common.Logging;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Buffers;
-using System;
-using System.Collections.Concurrent;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Shared.Memory.Pooling;
 
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation and deallocation.
 /// </summary>
-public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBufferPool, IDisposable
+public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBufferPool, System.IDisposable
 {
     #region Constants
 
-    private const Int32 MinimumIncrease = 4;
-    private const Int32 MaxBufferIncreaseLimit = 1024;
+    private const System.Int32 MinimumIncrease = 4;
+    private const System.Int32 MaxBufferIncreaseLimit = 1024;
 
     #endregion Constants
 
     #region Fields
 
-    private readonly ILogger? _logger;
-    private readonly Int32 _totalBuffers;
-    private readonly Boolean _enableTrimming;
-    private readonly BufferPoolCollection _poolManager = new();
-    private readonly (Int32 BufferSize, Double Allocation)[] _bufferAllocations;
-    private readonly ConcurrentDictionary<Int32, Int32> _suitablePoolSizeCache = new();
-
     // Caches allocation patterns for better performance
-    private static readonly ConcurrentDictionary<String, (Int32, Double)[]> _allocationPatternCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.String, (System.Int32, System.Double)[]> _allocationPatternCache;
 
-    private Boolean _isInitialized;
-    private Int32 _trimCycleCount;
-    private Timer? _trimTimer;
+    private readonly ILogger? _logger;
+    private readonly System.Int32 _totalBuffers;
+    private readonly System.Boolean _enableTrimming;
+    private readonly BufferPoolCollection _poolManager = new();
+    private readonly (System.Int32 BufferSize, System.Double Allocation)[] _bufferAllocations;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Int32> _suitablePoolSizeCache;
+
+    private System.Threading.Timer? _trimTimer;
+    private System.Int32 _trimCycleCount;
+    private System.Boolean _isInitialized;
 
     #endregion Fields
 
@@ -47,16 +43,18 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Gets the largest buffer size from the buffer allocations list.
     /// </summary>
-    public Int32 MaxBufferSize { get; }
+    public System.Int32 MaxBufferSize { get; }
 
     /// <summary>
     /// Gets the smallest buffer size from the buffer allocations list.
     /// </summary>
-    public Int32 MinBufferSize { get; }
+    public System.Int32 MinBufferSize { get; }
 
     #endregion Properties
 
     #region Constructors
+
+    static BufferPoolManager() => _allocationPatternCache = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with improved performance.
@@ -64,6 +62,8 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
+
+        _suitablePoolSizeCache = new();
 
         _logger = logger;
         _totalBuffers = config.TotalBuffers;
@@ -84,7 +84,9 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
         // Optional memory trimming timer
         if (_enableTrimming)
         {
-            _trimTimer = new Timer(TrimExcessBuffers, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
+            _trimTimer = new System.Threading.Timer(TrimExcessBuffers, null,
+                             System.TimeSpan.FromMinutes(1),
+                             System.TimeSpan.FromMinutes(5));
         }
     }
 
@@ -95,11 +97,12 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Periodically trims excess buffers to reduce memory footprint
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TrimExcessBuffers(Object? state)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void TrimExcessBuffers(System.Object? state)
     {
         // Only run deep trimming every 6 cycles (30 minutes with default timer)
-        Boolean deepTrim = Interlocked.Increment(ref _trimCycleCount) % 6 == 0;
+        System.Boolean deepTrim = System.Threading.Interlocked.Increment(ref _trimCycleCount) % 6 == 0;
 
         _logger?.Info($"Running automatic buffer trimming (Deep trim: {deepTrim})");
 
@@ -109,17 +112,18 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Allocates buffers based on the configuration settings.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AllocateBuffers()
     {
         if (_isInitialized)
         {
-            throw new InvalidOperationException("Buffers already allocated.");
+            throw new System.InvalidOperationException("Buffers already allocated.");
         }
 
         foreach (var (bufferSize, allocation) in _bufferAllocations)
         {
-            Int32 capacity = Math.Max(1, (Int32)(_totalBuffers * allocation));
+            System.Int32 capacity = System.Math.Max(1, (System.Int32)(_totalBuffers * allocation));
             _poolManager.CreatePool(bufferSize, capacity);
         }
 
@@ -129,8 +133,9 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Rents a buffer of at least the requested size with optimized caching.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] Rent(Int32 size = 256)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] Rent(System.Int32 size = 256)
     {
         // Fast path for exact matches to common sizes
         if (size is 256 or 512 or 1024 or 2048 or 4096)
@@ -139,14 +144,14 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
         }
 
         // Use size cache for frequent sizes
-        if (_suitablePoolSizeCache.TryGetValue(size, out Int32 cachedPoolSize))
+        if (_suitablePoolSizeCache.TryGetValue(size, out System.Int32 cachedPoolSize))
         {
             return _poolManager.RentBuffer(cachedPoolSize);
         }
 
         try
         {
-            Byte[] buffer = _poolManager.RentBuffer(size);
+            System.Byte[] buffer = _poolManager.RentBuffer(size);
 
             // Update cache for this size if it's within reasonable limits
             if (size > 64 && size < 1_000_000 && _suitablePoolSizeCache.Count < 1000)
@@ -156,7 +161,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
 
             return buffer;
         }
-        catch (ArgumentException ex)
+        catch (System.ArgumentException ex)
         {
             _logger?.Error($"Failed to rent buffer of size {size}: {ex.Message}");
             throw;
@@ -166,8 +171,9 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Returns the buffer to the appropriate pool with safety checks.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(Byte[]? buffer)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Return(System.Byte[]? buffer)
     {
         if (buffer == null)
         {
@@ -178,7 +184,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
         {
             _poolManager.ReturnBuffer(buffer);
         }
-        catch (ArgumentException ex)
+        catch (System.ArgumentException ex)
         {
             // Log but don't throw to avoid crashing application
             _logger?.Warn($"Failed to return buffer of size {buffer.Length}: {ex.Message}");
@@ -188,7 +194,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
-    public Double GetAllocationForSize(Int32 size)
+    public System.Double GetAllocationForSize(System.Int32 size)
     {
         // Optimize common cases with direct comparison
         if (size > MaxBufferSize)
@@ -202,13 +208,13 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
         }
 
         // Binary search implementation for better performance with many allocations
-        Int32 left = 0;
-        Int32 right = _bufferAllocations.Length - 1;
+        System.Int32 left = 0;
+        System.Int32 right = _bufferAllocations.Length - 1;
 
         while (left <= right)
         {
-            Int32 mid = left + ((right - left) / 2);
-            Int32 midSize = _bufferAllocations[mid].BufferSize;
+            System.Int32 mid = left + ((right - left) / 2);
+            System.Int32 midSize = _bufferAllocations[mid].BufferSize;
 
             if (midSize == size)
             {
@@ -238,12 +244,13 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (Int32, Double)[] ParseBufferAllocations(String bufferAllocationsString)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static (System.Int32, System.Double)[] ParseBufferAllocations(System.String bufferAllocationsString)
     {
-        if (String.IsNullOrWhiteSpace(bufferAllocationsString))
+        if (System.String.IsNullOrWhiteSpace(bufferAllocationsString))
         {
-            throw new ArgumentException(
+            throw new System.ArgumentException(
                 "The input string must not be blank or contain only white spaces.",
                 nameof(bufferAllocationsString));
         }
@@ -254,19 +261,19 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
             try
             {
                 var allocations = key
-                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Split(';', System.StringSplitOptions.RemoveEmptyEntries)
                     .Select(pair =>
                     {
-                        String[] parts = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
                         return parts.Length != 2
-                            ? throw new FormatException(
+                            ? throw new System.FormatException(
                                 $"Incorrectly formatted pair: '{pair}'. " +
                                 $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').")
-                            : !Int32.TryParse(parts[0].Trim(), out Int32 allocationSize) || allocationSize <= 0
-                            ? throw new ArgumentOutOfRangeException(
+                            : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
+                            ? throw new System.ArgumentOutOfRangeException(
                                 nameof(bufferAllocationsString), "Buffers allocation size must be greater than zero.")
-                            : !Double.TryParse(parts[1].Trim(), out Double ratio) || ratio <= 0 || ratio > 1
-                            ? throw new ArgumentOutOfRangeException(
+                            : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
+                            ? throw new System.ArgumentOutOfRangeException(
                                 nameof(bufferAllocationsString), "Ratio must be between 0 and 1.")
                             : (allocationSize, ratio);
                     })
@@ -274,17 +281,18 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
                     .ToArray();
 
                 // Validate total allocation doesn't exceed 1.0
-                Double totalAllocation = allocations.Sum(a => a.ratio);
+                System.Double totalAllocation = allocations.Sum(a => a.ratio);
                 return totalAllocation > 1.1
-                    ? throw new ArgumentException(
+                    ? throw new System.ArgumentException(
                         $"Total allocation ratio ({totalAllocation:F2}) exceeds 1.0. " +
                         "The sum of all allocations should be at most 1.0.")
-                    : ((Int32, Double)[])allocations;
+                    : ((System.Int32, System.Double)[])allocations;
             }
-            catch (Exception ex) when (ex is FormatException or ArgumentException or
-                                     OverflowException or ArgumentOutOfRangeException)
+            catch (System.Exception ex) when (ex is
+                System.FormatException or System.ArgumentException or
+                System.OverflowException or System.ArgumentOutOfRangeException)
             {
-                throw new ArgumentException(
+                throw new System.ArgumentException(
                     "The input string is malformed or contains invalid values. " +
                     $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60'). Error: {ex.Message}");
             }
@@ -295,30 +303,31 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// Shrinks the buffer pool size using an optimized algorithm.
     /// </summary>
     /// <param name="pool">The buffer pool to shrink.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
-        Double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
-        Int32 targetBuffers = (Int32)(targetAllocation * _totalBuffers);
+        System.Double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
+        System.Int32 targetBuffers = (System.Int32)(targetAllocation * _totalBuffers);
 
         // At least 25% of original size to avoid excessive shrinking
-        Int32 minimumBuffers = Math.Max(1, poolInfo.TotalBuffers >> 2);
+        System.Int32 minimumBuffers = System.Math.Max(1, poolInfo.TotalBuffers >> 2);
 
-        Int32 excessBuffers = poolInfo.FreeBuffers - targetBuffers;
+        System.Int32 excessBuffers = poolInfo.FreeBuffers - targetBuffers;
 
         // Push safety margin based on pool size to avoid frequent resizing
         // Square root scaling for safety margin
-        Int32 safetyMargin = (Int32)Math.Min(20, Math.Sqrt(minimumBuffers));
+        System.Int32 safetyMargin = (System.Int32)System.Math.Min(20, System.Math.Sqrt(minimumBuffers));
 
-        Int32 buffersToShrink = Math.Clamp(excessBuffers - safetyMargin, 0, 20);
+        System.Int32 buffersToShrink = System.Math.Clamp(excessBuffers - safetyMargin, 0, 20);
 
         if (buffersToShrink > 0)
         {
             // Use lightweight synchronization for better performance
-            var lockTaken = false;
-            var spinLock = new SpinLock(false);
+            System.Boolean lockTaken = false;
+            System.Threading.SpinLock spinLock = new(false);
 
             try
             {
@@ -349,37 +358,38 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// Increases the buffer pool size using an optimized algorithm.
     /// </summary>
     /// <param name="pool">The buffer pool to increase.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
         // 25% threshold for adaptive resizing
-        Int32 threshold = Math.Max(1, poolInfo.TotalBuffers >> 2);
+        System.Int32 threshold = System.Math.Max(1, poolInfo.TotalBuffers >> 2);
 
         if (poolInfo.FreeBuffers <= threshold)
         {
             // Calculate optimal increase amount using power-of-two rounding
             // This helps with memory alignment and predictable growth patterns
-            Int32 baseIncrease = Math.Max(
-                MinimumIncrease,
-                (Int32)BitOperations.RoundUpToPowerOf2((UInt32)Math.Max(1, poolInfo.TotalBuffers >> 2))
+            System.Int32 baseIncrease = System.Math.Max(MinimumIncrease, (System.Int32)System.Numerics.BitOperations
+                                                   .RoundUpToPowerOf2((System.UInt32)System.Math
+                                                   .Max(1, poolInfo.TotalBuffers >> 2))
             );
 
             // Apply pool-specific scaling based on miss rate
-            Double missRatio = poolInfo.Misses / (Double)Math.Max(1, poolInfo.TotalBuffers);
-            Int32 scaledIncrease = missRatio > 0.5
+            System.Double missRatio = poolInfo.Misses / (System.Double)System.Math.Max(1, poolInfo.TotalBuffers);
+            System.Int32 scaledIncrease = missRatio > 0.5
                 ? baseIncrease * 2  // Double growth for high-demand pools
                 : baseIncrease;
 
             // Limit the increase to avoid excessive memory usage
-            Int32 maxIncrease = Math.Min(
+            System.Int32 maxIncrease = System.Math.Min(
                 scaledIncrease,
                 MaxBufferIncreaseLimit
             );
 
-            var lockTaken = false;
-            var spinLock = new SpinLock(false);
+            System.Boolean lockTaken = false;
+            System.Threading.SpinLock spinLock = new(false);
 
             try
             {
