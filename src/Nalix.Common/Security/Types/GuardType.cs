@@ -1,7 +1,7 @@
 ﻿namespace Nalix.Common.Security.Types;
 
 /// <summary>
-/// Defines the types of security guards that can be applied to protect resources or operations.
+/// Specifies the types of security guards that can be applied to protect resources or operations.
 /// </summary>
 public enum GuardType : System.Byte
 {
@@ -11,27 +11,27 @@ public enum GuardType : System.Byte
     None = 0x00,
 
     /// <summary>
-    /// Requires the user to be authenticated.
+    /// Access requires the user to be authenticated.
     /// </summary>
     Authenticated = 0xA7,
 
     /// <summary>
-    /// Requires a valid session to be present.
+    /// Access requires a valid session to be present.
     /// </summary>
     SessionValid = 0x1C,
 
     /// <summary>
-    /// Enforces rate limiting to prevent abuse.
+    /// Enforces rate limiting to prevent excessive or abusive requests.
     /// </summary>
     RateLimited = 0xF3,
 
     /// <summary>
-    /// Requires the request to originate from a trusted IP address.
+    /// Access requires the request to originate from a trusted IP address.
     /// </summary>
     IpTrusted = 0x8B,
 
     /// <summary>
-    /// Prevents replay attacks by ensuring requests are unique.
+    /// Prevents replay attacks by ensuring each request is unique.
     /// </summary>
     NoReplay = 0xD4,
 
@@ -41,17 +41,17 @@ public enum GuardType : System.Byte
     PermissionRequired = 0x2E,
 
     /// <summary>
-    /// Verifies the integrity of the payload through a valid signature.
+    /// Verifies payload integrity through a valid cryptographic signature.
     /// </summary>
     PayloadSignatureVerified = 0x9A,
 
     /// <summary>
-    /// Requires a completed handshake process before access is granted.
+    /// Access requires a completed handshake process.
     /// </summary>
     HandshakeComplete = 0x65,
 
     /// <summary>
-    /// Restricts access to only encrypted communication channels.
+    /// Restricts access to encrypted communication channels only.
     /// </summary>
     EncryptedChannelOnly = 0xC1
 }

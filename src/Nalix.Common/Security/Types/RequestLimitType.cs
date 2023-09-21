@@ -1,28 +1,28 @@
 namespace Nalix.Common.Security.Types;
 
 /// <summary>
-/// Represents different levels of request limits that can be applied to a firewall configuration.
-/// These levels define thresholds for the TransportProtocol of requests allowed.
+/// Defines request rate limit levels for firewall or throttling configurations.
+/// Each level sets a threshold for the number of requests allowed.
 /// </summary>
 public enum RequestLimitType : System.Byte
 {
     /// <summary>
-    /// Represents a low request limit, typically allowing only a small TransportProtocol of requests.
+    /// Low request limit — allows only a small number of requests.
     /// </summary>
     Low = 1,
 
     /// <summary>
-    /// Represents a medium request limit, allowing a moderate TransportProtocol of requests.
+    /// Medium request limit — allows a moderate number of requests.
     /// </summary>
     Medium = 2,
 
     /// <summary>
-    /// Represents a high request limit, allowing a large TransportProtocol of requests.
+    /// High request limit — allows a large number of requests.
     /// </summary>
     High = 3,
 
     /// <summary>
-    /// Represents an unlimited request limit, with no restrictions on the TransportProtocol of requests.
+    /// Login-specific request limit — applies rate limiting rules for login attempts.
     /// </summary>
     Login = 4
 }

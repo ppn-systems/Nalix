@@ -1,50 +1,62 @@
 namespace Nalix.Common.Packets.Enums;
 
 /// <summary>
-/// IPacket flags indicating different states of a packet.
+/// Defines bitwise flags that describe the state or properties of a network packet.
 /// </summary>
+/// <remarks>
+/// This enumeration is marked with <see cref="System.FlagsAttribute"/> so that multiple flags can be combined using a bitwise OR.
+/// </remarks>
 [System.Flags]
 public enum PacketFlags : System.Byte
 {
     /// <summary>
-    /// No flags set for the packet.
+    /// No flags are set.
+    /// The packet is uncompressed, unencrypted, and not fragmented.
+    /// Typically used for simple, default, or test packets.
     /// </summary>
-    None = 0x00,                    // Không có cờ nào
+    None = 0x00,
 
     /// <summary>
-    /// Packet is compressed.
+    /// The packet payload has been compressed to reduce its size.
+    /// Should be decompressed on the receiving side before processing.
     /// </summary>
-    Compressed = 0x02,            // Gói tin đã được nén
+    Compressed = 0x02,
 
     /// <summary>
-    /// Packet is encrypted.
+    /// The packet payload has been encrypted for secure transmission.
+    /// Should be decrypted with the correct key on the receiving side.
     /// </summary>
-    Encrypted = 0x04,             // Gói tin đã được mã hóa
+    Encrypted = 0x04,
 
     /// <summary>
-    /// Packet is fragmented.
+    /// The packet is a fragment of a larger message that exceeded the maximum allowed size.
+    /// The receiving side should reassemble fragments in the correct order.
     /// </summary>
-    Fragmented = 0x08,            // Gói tin đã bị phân mảnh
+    Fragmented = 0x08,
 
     /// <summary>
-    /// Packet uses TCP.
+    /// The packet is sent over a reliable transport protocol (typically TCP).
+    /// Guarantees delivery and ordering without the need for manual retries.
     /// </summary>
     Reliable = 0x10,
 
     /// <summary>
-    /// Packet uses UDP.
+    /// The packet is sent over an unreliable transport protocol (typically UDP).
+    /// Best suited for real-time data where occasional loss is acceptable.
     /// </summary>
     Unreliable = 0x20,
 
     /// <summary>
-    /// Packet has been acknowledged by receiver.
+    /// The packet has been acknowledged by the receiver.
+    /// Often used to stop retransmissions or mark successful delivery.
     /// </summary>
     Acknowledged = 0x40,
 
     /// <summary>
-    /// Packet is a system-level message (e.g. ping, heartbeat).
+    /// The packet is a system-level message that does not contain user data.
+    /// Examples include ping, heartbeat, handshake, or system error notifications.
     /// </summary>
-    System = 0x80,
+    System = 0x80
 
     // -----------------------------
     // Ghi chú sử dụng cho PacketFlags
