@@ -15,8 +15,7 @@ namespace Nalix.Network.Dispatch.ReturnTypes;
 /// The packet type used for handling communication. Must implement
 /// IPacket, IPacketTransformer, IPacketTransformer, and IPacketTransformer.
 /// </typeparam>
-internal static class ReturnTypeHandlerFactory<TPacket>
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Cached handlers để tránh recreation.

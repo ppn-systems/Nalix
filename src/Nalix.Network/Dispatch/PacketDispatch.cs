@@ -1,5 +1,6 @@
-using Nalix.Common.Connection;
+﻿using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
@@ -11,15 +12,14 @@ namespace Nalix.Network.Dispatch;
 /// This implementation uses reflection to map raw command IDs to controller methods.
 /// </summary>
 /// <remarks>
-/// The <see cref="PacketDispatch{TPacket}"/> processes incoming packets and invokes corresponding handlers
+/// The <see cref="PacketDispatch"/> processes incoming packets and invokes corresponding handlers
 /// based on the registered command IDs. It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
 /// <param name="options">
 /// A delegate used to configure <see cref="PacketDispatchOptions{TPacket}"/> before processing packets.
 /// </param>
-public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<TPacket>> options)
-    : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket
-    : IPacket, IPacketTransformer<TPacket>
+public sealed class PacketDispatch(System.Action<PacketDispatchOptions<IPacket>> options)
+    : PacketDispatchCore<IPacket>(options), IPacketDispatch<IPacket>
 {
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -47,7 +47,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
         {
             base.Logger?.Warn(
                 "[{0}] Null ReadOnlyMemory<byte> received from {1}. Packet dropped.",
-                nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
+                nameof(PacketDispatch), connection.RemoteEndPoint);
 
             return;
         }
@@ -68,16 +68,25 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
         {
             base.Logger?.Error(
                 "[{0}] Empty ReadOnlySpan<byte> received from {1}. Packet dropped.",
-                nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
+                nameof(PacketDispatch), connection.RemoteEndPoint);
             return;
         }
 
-        this.HandlePacketAsync(TPacket.Deserialize(raw), connection);
+        System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? deserializer = PacketRegistry.ResolvePacketDeserializer(raw);
+
+        if (deserializer == null)
+        {
+            base.Logger?.Error("[{0}] No deserializer found for the packet from {1}. Packet dropped.",
+                                nameof(PacketDispatch), connection.RemoteEndPoint);
+            return;
+        }
+
+        this.HandlePacketAsync(deserializer(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(TPacket packet, IConnection connection)
+    public void HandlePacketAsync(IPacket packet, IConnection connection)
         => base.ExecutePacketHandlerAsync(packet, connection).Await();
 }
