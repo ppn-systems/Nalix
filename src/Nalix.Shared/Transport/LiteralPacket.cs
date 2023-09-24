@@ -1,4 +1,5 @@
-﻿using Nalix.Common.Connection.Protocols;
+﻿using Nalix.Common.Attributes;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
@@ -15,6 +16,7 @@ namespace Nalix.Shared.Transport;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
+[MagicNumber(MagicNumbers.LiteralPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
 {
@@ -25,7 +27,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
 
     /// <summary>Gets the magic number used to identify the packet format.</summary>
     [SerializeOrder(0)]
-    public static System.UInt32 MagicNumber { get; set; }
+    public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>Gets the operation code (OpCode) of this packet.</summary>
     [SerializeOrder(4)]
@@ -48,8 +50,6 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     [SerializeDynamicSize(1024)]
     public System.String Content { get; set; }
 
-    static LiteralPacket() => MagicNumber = (System.UInt32)PacketMagicNumbers.LiteralPacket;
-
     /// <summary>Initializes a new <see cref="LiteralPacket"/> with empty content.</summary>
     public LiteralPacket()
     {
@@ -58,6 +58,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
+        MagicNumber = (System.UInt32)MagicNumbers.BinaryPacket;
     }
 
     /// <summary>Initializes the packet with the specified string content.</summary>
