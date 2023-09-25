@@ -11,14 +11,14 @@ using Nalix.Shared.LZ4.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Transport;
+namespace Nalix.Shared.Messaging;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
 [MagicNumber(MagicNumbers.LiteralPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
+public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
 {
     /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
     [SerializeIgnore]
@@ -50,8 +50,8 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     [SerializeDynamicSize(1024)]
     public System.String Content { get; set; }
 
-    /// <summary>Initializes a new <see cref="LiteralPacket"/> with empty content.</summary>
-    public LiteralPacket()
+    /// <summary>Initializes a new <see cref="TextPacket"/> with empty content.</summary>
+    public TextPacket()
     {
         Flags = PacketFlags.None;
         Content = System.String.Empty;
@@ -82,17 +82,17 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
-    /// Deserializes a <see cref="LiteralPacket"/> from the specified buffer.
+    /// Deserializes a <see cref="TextPacket"/> from the specified buffer.
     /// </summary>
     /// <remarks>
     /// <b>Internal infrastructure API.</b> Do not call directly—use the dispatcher/serializer.
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="LiteralPacket"/> instance.</returns>
-    public static LiteralPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    /// <returns>A pooled <see cref="TextPacket"/> instance.</returns>
+    public static TextPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
-        LiteralPacket packet = ObjectPoolManager.Instance.Get<LiteralPacket>();
-        System.Int32 bytesRead = LiteSerializer.Deserialize<LiteralPacket>(buffer, ref packet);
+        TextPacket packet = ObjectPoolManager.Instance.Get<TextPacket>();
+        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
             ? throw new System.InvalidOperationException(
@@ -106,7 +106,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static LiteralPacket Encrypt(LiteralPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static TextPacket Encrypt(TextPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
     /// <summary>
@@ -115,7 +115,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static LiteralPacket Decrypt(LiteralPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static TextPacket Decrypt(TextPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
     /// <summary>
@@ -123,7 +123,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static LiteralPacket Compress(LiteralPacket packet)
+    public static TextPacket Compress(TextPacket packet)
     {
         if (packet?.Content == null)
         {
@@ -141,7 +141,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static LiteralPacket Decompress(LiteralPacket packet)
+    public static TextPacket Decompress(TextPacket packet)
     {
         if (packet?.Content == null)
         {
@@ -165,6 +165,6 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"LiteralPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        => $"TextPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
            $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

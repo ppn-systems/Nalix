@@ -16,23 +16,23 @@ public enum SerializeOrderPosition : System.Byte
     /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes second in the serialized data.
     /// </summary>
-    OpCode = 1,
+    OpCode = 4,
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
     /// This field comes third in the serialized data.
     /// </summary>
-    Flags = 2,
+    Flags = 6,
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
     /// This field comes fourth in the serialized data.
     /// </summary>
-    Priority = 3,
+    Priority = 7,
 
     /// <summary>
     /// Represents the transport protocol field, indicating the transport protocol (e.g., TCP or UDP) used.
     /// This field comes fifth in the serialized data.
     /// </summary>
-    Transport = 4
+    Transport = 8
 }
