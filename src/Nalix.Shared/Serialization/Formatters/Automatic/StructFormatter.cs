@@ -26,11 +26,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     private readonly ILogger? _logger = null;
 
     /// <summary>
-    /// Activity tracking source for tracing serialization operations.
-    /// </summary>
-    private static readonly System.Diagnostics.ActivitySource _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
-
-    /// <summary>
     /// Indicates whether the formatter has been disposed.
     /// </summary>
     private System.Boolean _disposed;
@@ -78,8 +73,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
-        using var activity = _activitySource.StartActivity($"Serialize.{typeof(T).Name}");
-
         try
         {
             for (System.Int32 i = 0; i < _accessors.Length; i++)
@@ -106,8 +99,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     public T Deserialize(ref DataReader reader)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
-
-        using var activity = _activitySource.StartActivity($"Deserialize.{typeof(T).Name}");
 
         try
         {
@@ -176,7 +167,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
             return;
         }
 
-        _activitySource.Dispose();
         _disposed = true;
     }
 

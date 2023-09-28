@@ -26,11 +26,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     private readonly FieldAccessor<T>[] _accessors;
 
     /// <summary>
-    /// Activity tracking source for tracing serialization operations.
-    /// </summary>
-    private static readonly System.Diagnostics.ActivitySource _activitySource;
-
-    /// <summary>
     /// Indicates whether the formatter has been disposed.
     /// </summary>
     private System.Boolean _disposed;
@@ -38,8 +33,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     #endregion Core Fields
 
     #region Constructors
-
-    static ObjectFormatter() => _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
 
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
@@ -78,10 +71,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        System.ArgumentNullException.ThrowIfNull(value);
         System.ObjectDisposedException.ThrowIf(_disposed, this);
-
-        using var activity = _activitySource.StartActivity($"Serialize.{typeof(T).Name}");
 
         try
         {
@@ -110,11 +100,9 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
-        using var activity = _activitySource.StartActivity($"Deserialize.{typeof(T).Name}");
-
         try
         {
-            var obj = System.Activator.CreateInstance<T>();
+            T obj = new();
 
             for (System.Int32 i = 0; i < _accessors.Length; i++)
             {
@@ -181,7 +169,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
             return;
         }
 
-        _activitySource.Dispose();
         _disposed = true;
     }
 
