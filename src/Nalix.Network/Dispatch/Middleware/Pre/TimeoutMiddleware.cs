@@ -6,7 +6,7 @@ using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
 
-namespace Nalix.Network.Dispatch.Middleware.PreDispatch;
+namespace Nalix.Network.Dispatch.Middleware.Pre;
 
 /// <summary>
 /// Middleware that enforces a timeout for packet processing. If the next middleware or handler does not complete within the specified timeout,
