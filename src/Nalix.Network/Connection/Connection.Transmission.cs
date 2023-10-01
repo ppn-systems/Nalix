@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Caching;
 using Nalix.Common.Connection;
+using Nalix.Common.Logging;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Connection;
 
@@ -159,7 +161,8 @@ public sealed partial class Connection : IConnection
         {
             if (packet is null)
             {
-                this._outer._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
                 return false;
             }
 
@@ -177,7 +180,8 @@ public sealed partial class Connection : IConnection
                 return true;
             }
 
-            this._outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[{nameof(Connection)}] Failed to send message.");
             return false;
         }
 
@@ -206,7 +210,8 @@ public sealed partial class Connection : IConnection
                 return true;
             }
 
-            this._outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
             return false;
         }
 

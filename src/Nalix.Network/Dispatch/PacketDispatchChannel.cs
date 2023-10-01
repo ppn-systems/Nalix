@@ -30,7 +30,7 @@ namespace Nalix.Network.Dispatch;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
-public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>
+public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable
 {
     #region Fields
 
@@ -170,24 +170,20 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
         if (deserializer == null)
         {
             base.Logger?.Error("[{0}] No deserializer found for the packet from {1}. Packet dropped.",
-                                nameof(PacketDispatch), connection.RemoteEndPoint);
+                                nameof(PacketDispatchChannel), connection.RemoteEndPoint);
             return;
         }
 
-        this.HandlePacketAsync(deserializer(raw), connection);
+        this.HandlePacket(deserializer(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(IPacket packet, IConnection connection)
+    public void HandlePacket(IPacket packet, IConnection connection)
     {
         this._dispatch.Push(packet, connection);
-
-        if (_dispatch.TotalPackets > 0)
-        {
-            _ = _semaphore.Release();
-        }
+        _ = _semaphore.Release();
     }
 
     #endregion Public Methods
