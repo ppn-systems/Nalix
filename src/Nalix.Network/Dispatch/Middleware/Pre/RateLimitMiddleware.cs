@@ -16,17 +16,13 @@ namespace Nalix.Network.Dispatch.Middleware.Pre;
 /// If a connection exceeds the allowed request rate, a rate limit response is sent
 /// and further processing is halted.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The packet type, which must implement both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
-/// </typeparam>
 [PacketMiddleware(MiddlewareStage.PreDispatch, order: 0, name: "RateLimit")]
-public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly RequestLimiter _limiter;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RateLimitMiddleware{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
     /// using rate limit options retrieved from the global configuration store.
     /// </summary>
     public RateLimitMiddleware()
@@ -44,7 +40,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
     /// <param name="next">A delegate representing the next middleware to be executed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
-        PacketContext<TPacket> context,
+        PacketContext<IPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
         if (!this._limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
