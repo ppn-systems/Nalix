@@ -193,8 +193,6 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task RunDispatchLoopAsync()
     {
         try

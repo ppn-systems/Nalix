@@ -60,8 +60,6 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// </summary>
     /// <param name="context">The packet context containing the request and metadata.</param>
     /// <returns>A task that completes with the handler’s result.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context)
         => this.CompiledInvoker(this.ControllerInstance, context);
 
