@@ -66,14 +66,7 @@ internal sealed class TransportCache : System.IDisposable
     /// <param name="data">The packet data to cache.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void PushOutgoing(System.ReadOnlyMemory<System.Byte> data)
-    {
-        System.Span<System.Byte> key = stackalloc System.Byte[8];
-        data.Span[0..4].CopyTo(key);
-        data.Span[^4..].CopyTo(key[4..]);
-
-        this.Outgoing.Add(key.ToArray(), data);
-    }
+    public void PushOutgoing(System.ReadOnlyMemory<System.Byte> data) => this.Outgoing.Add(HashToUInt64(data.Span), data);
 
     /// <summary>
     /// Adds a received packet to the incoming cache and triggers the <see cref="PacketCached"/> event.
@@ -103,4 +96,64 @@ internal sealed class TransportCache : System.IDisposable
     }
 
     #endregion Public Methods
+
+    #region Private Methods
+
+    internal static unsafe System.UInt64 HashToUInt64(System.ReadOnlySpan<System.Byte> data)
+    {
+        const System.Int32 r = 47;
+        const System.UInt64 s = 0xc70f6907UL;
+        const System.UInt64 m = 0xc6a4a7935bd1e995UL;
+
+        System.UInt64 h = s ^ ((System.UInt64)data.Length * m);
+
+        fixed (System.Byte* pBase = data)
+        {
+            System.Byte* p = pBase;
+            System.Int32 len = data.Length;
+
+            // body
+            while (len >= 8)
+            {
+                // unaligned read
+                System.UInt64 k = *(System.UInt64*)p;
+                if (!System.BitConverter.IsLittleEndian)
+                {
+                    k = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(k);
+                }
+
+                k *= m;
+                k ^= k >> r;
+                k *= m;
+
+                h ^= k;
+                h *= m;
+
+                p += 8;
+                len -= 8;
+            }
+
+            // tail (0..7 bytes), pack little-endian without alloc
+            if (len > 0)
+            {
+                System.UInt64 k = 0;
+                for (System.Int32 i = 0; i < len; i++)
+                {
+                    k |= ((System.UInt64)p[i]) << (8 * i);
+                }
+
+                h ^= k;
+                h *= m;
+            }
+        }
+
+        // finalization
+        h ^= h >> r;
+        h *= m;
+        h ^= h >> r;
+
+        return h;
+    }
+
+    #endregion Private Methods
 }

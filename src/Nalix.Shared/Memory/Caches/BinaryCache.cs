@@ -8,6 +8,6 @@ namespace Nalix.Shared.Memory.Caches;
 /// </remarks>
 /// <param name="capacity">The maximum TransportProtocol of elements the cache can hold.</param>
 public sealed class BinaryCache(System.Int32 capacity)
-    : LruCache<System.Byte[], System.ReadOnlyMemory<System.Byte>>(capacity)
+    : LruCache<System.UInt64, System.ReadOnlyMemory<System.Byte>>(capacity)
 {
 }
