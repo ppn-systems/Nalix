@@ -1,8 +1,11 @@
-﻿namespace Nalix.Network.Listeners.Udp;
+﻿using Nalix.Common.Logging;
+using Nalix.Shared.Injection;
+
+namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    private void InitializeUdpClient()
+    private void Initialize()
     {
         _udpClient = new System.Net.Sockets.UdpClient(Config.Port)
         {
@@ -10,7 +13,7 @@ public abstract partial class UdpListenerBase
         };
 
         ConfigureHighPerformanceSocket(_udpClient.Client);
-        this._logger.Debug("[UDP] UDP client bound to port {0}", Config.Port);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("[UDP] UDP client bound to port {0}", Config.Port);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

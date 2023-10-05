@@ -15,7 +15,7 @@ internal class TransportStream : System.IDisposable
 {
     #region Fields
 
-    private readonly IBufferPool _pool;
+    private readonly IBufferPoolManager _pool;
     private readonly TransportCache _cache;
     private readonly System.Net.Sockets.Socket _socket;
 
@@ -53,7 +53,7 @@ internal class TransportStream : System.IDisposable
     /// </summary>
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
-    public TransportStream(System.Net.Sockets.Socket socket, IBufferPool bufferPool)
+    public TransportStream(System.Net.Sockets.Socket socket, IBufferPoolManager bufferPool)
     {
         this._pool = bufferPool;
         this._buffer = this._pool.Rent();

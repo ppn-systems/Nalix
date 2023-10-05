@@ -1,7 +1,9 @@
 ﻿using Nalix.Common.Connection;
+using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Network.Connection;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -35,7 +37,9 @@ public abstract partial class UdpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                this._logger.Error("[UDP] Receive error on {0}: {1}", Config.Port, ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[UDP] Receive error on {0}: {1}", Config.Port, ex.Message);
+
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -45,7 +49,8 @@ public abstract partial class UdpListenerBase
     {
         if (!this.IsAuthenticated(result))
         {
-            this._logger.Warn($"[UDP] Unauthenticated packet from {result.RemoteEndPoint}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[UDP] Unauthenticated packet from {result.RemoteEndPoint}");
             return;
         }
 
