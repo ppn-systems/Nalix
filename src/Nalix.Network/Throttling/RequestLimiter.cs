@@ -107,7 +107,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Synchronous version - for backward compatibility
     /// </summary>
-    public System.Boolean CheckLimit([System.Diagnostics.CodeAnalysis.NotNull] System.String endPoint) => this.CheckLimitAsync(endPoint).AsTask().GetAwaiter().GetResult();
+    public System.Boolean CheckLimit([System.Diagnostics.CodeAnalysis.NotNull] System.String endPoint)
+        => this.CheckLimitAsync(endPoint).AsTask().GetAwaiter().GetResult();
 
     /// <summary>
     /// Asynchronously checks the number of requests from an IP address and determines whether further requests are allowed.
@@ -131,7 +132,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
         // Fast path - synchronous check
         System.Int64 current = System.Diagnostics.Stopwatch.GetTimestamp();
-        var data = this._ipData.AddOrUpdate(
+        RequestLimiterInfo data = this._ipData.AddOrUpdate(
             endPoint,
             _ => new RequestLimiterInfo(current),
             (_, existing) => existing.Process(current, this._config.MaxAllowedRequests, this._timeWindowTicks, this._lockoutDurationTicks)
@@ -157,8 +158,11 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
-        var results = new System.Collections.Generic.Dictionary<System.String, System.Boolean>();
-        var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>>>();
+        System.Collections.Generic.Dictionary<System.String, System.Boolean> results;
+        System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>>> tasks;
+
+        tasks = [];
+        results = [];
 
         foreach (var endPoint in endPoints)
         {
@@ -166,9 +170,11 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             tasks.Add(task);
         }
 
-        var completedTasks = await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+        System.Collections.Generic.KeyValuePair<System.String, System.Boolean>[] completedTasks =
+            await System.Threading.Tasks.Task.WhenAll(tasks)
+                                             .ConfigureAwait(false);
 
-        foreach (var result in completedTasks)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, System.Boolean> result in completedTasks)
         {
             results[result.Key] = result.Value;
         }
@@ -179,7 +185,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Gets current statistics asynchronously
     /// </summary>
-    public async System.Threading.Tasks.Task<RequestLimiterStatistics> GetStatisticsAsync(System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task<RequestLimiterStatistics> GetStatisticsAsync(
+        System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
@@ -215,7 +222,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Manually triggers cleanup operation
     /// </summary>
-    public async System.Threading.Tasks.Task TriggerManualCleanupAsync(System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task TriggerManualCleanupAsync(
+        System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
@@ -229,7 +237,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Processes a single endpoint asynchronously
     /// </summary>
-    private async System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>> ProcessSingleEndPointAsync(
+    private async System.Threading.Tasks.Task<
+        System.Collections.Generic.KeyValuePair<System.String, System.Boolean>> ProcessSingleEndPointAsync(
         System.String endPoint,
         System.Threading.CancellationToken cancellationToken)
     {
@@ -261,14 +270,16 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Error("Failed to trigger async cleanup: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("Failed to trigger async cleanup: {0}", ex.Message);
         }
     }
 
     /// <summary>
     /// Timer callback for triggering async cleanup
     /// </summary>
-    private async void TriggerCleanupAsync() => await this.TriggerCleanupAsync(this._cancellationTokenSource.Token);
+    private async void TriggerCleanupAsync()
+        => await this.TriggerCleanupAsync(this._cancellationTokenSource.Token);
 
     /// <summary>
     /// Background task for processing cleanup requests
@@ -287,7 +298,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?.Error("Async cleanup failed: {0}", ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("Async cleanup failed: {0}", ex.Message);
             }
         }
     }
@@ -455,7 +467,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
         catch (System.TimeoutException)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn("Cleanup task did not complete within timeout");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("Cleanup task did not complete within timeout");
         }
 
         // Dispose resources
@@ -463,7 +476,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         this._cancellationTokenSource.Dispose();
         this._ipData.Clear();
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("RequestLimiter disposed asynchronously");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("RequestLimiter disposed asynchronously");
     }
 
     #endregion IDisposable & IAsyncDisposable
