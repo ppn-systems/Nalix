@@ -13,6 +13,10 @@ public static class TaskExtensions
     /// </summary>
     /// <param name="this">The <see cref="System.Threading.Tasks.Task"/> on which this method is called.</param>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Await(this System.Threading.Tasks.Task @this)
     {
         System.ArgumentNullException.ThrowIfNull(@this);
@@ -30,6 +34,10 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="System.Threading.Tasks.Task{TResult}"/> on which this method is called.</param>
     /// <returns>The result of <paramref name="this"/>.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static TResult Await<TResult>(this System.Threading.Tasks.Task<TResult> @this)
     {
         System.ArgumentNullException.ThrowIfNull(@this);
@@ -48,6 +56,10 @@ public static class TaskExtensions
     /// This parameter has the same effect as calling the <see cref="System.Threading.Tasks.Task.ConfigureAwait(System.Boolean)"/>
     /// method.</param>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Await(
         this System.Threading.Tasks.Task @this,
         System.Boolean continueOnCapturedContext)
@@ -73,6 +85,10 @@ public static class TaskExtensions
     /// <returns>
     /// The result of the task if it completes within the timeout; otherwise, <c>default</c>.
     /// </returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static async System.Threading.Tasks.Task<T?> WithTimeout<T>(
         this System.Threading.Tasks.Task<T> @this,
         System.Int32 msTimeout)

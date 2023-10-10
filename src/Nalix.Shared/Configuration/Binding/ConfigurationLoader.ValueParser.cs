@@ -7,8 +7,11 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Object? GetConfigValue(
         IniConfig configFile,
         System.String section, PropertyMetadata property)
@@ -36,8 +39,11 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Handles empty configuration values by writing defaults to the file.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
         IniConfig configFile,
         System.String section, PropertyMetadata property)
@@ -52,8 +58,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets a default value string for the specified type code.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String GetDefaultValueString(System.TypeCode typeCode)
         => typeCode switch
         {

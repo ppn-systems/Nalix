@@ -40,7 +40,8 @@ public abstract partial class UdpListenerBase
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error("[UDP] Receive error on {0}: {1}", Config.Port, ex.Message);
 
-                await System.Threading.Tasks.Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(50, cancellationToken)
+                                                 .ConfigureAwait(false);
             }
         }
     }

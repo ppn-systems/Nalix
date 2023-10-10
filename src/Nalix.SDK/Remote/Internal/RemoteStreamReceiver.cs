@@ -29,6 +29,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while reading from the stream.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public TPacket Receive()
     {
         if (!_stream.CanRead)
@@ -115,6 +116,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
     /// <exception cref="System.OperationCanceledException">Thrown when the operation is canceled via <paramref name="cancellationToken"/>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
@@ -206,6 +208,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public unsafe TPacket ReceiveUnsafe()
     {
         // Direct stackalloc without bounds checking
