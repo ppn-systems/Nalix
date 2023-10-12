@@ -18,6 +18,8 @@ namespace Nalix.Shared.Messaging;
 /// </summary>
 [MagicNumber(MagicNumbers.BinaryPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("BinaryPacket OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
 {
     /// <inheritdoc/>
@@ -103,12 +105,18 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// <summary>
     /// Serializes the packet to a newly allocated byte array.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <summary>
     /// Serializes the packet into the provided destination buffer.
     /// </summary>
     /// <param name="buffer">The destination buffer. Must be large enough.</param>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
