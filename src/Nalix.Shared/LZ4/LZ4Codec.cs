@@ -7,6 +7,7 @@ namespace Nalix.Shared.LZ4;
 /// Provides high-performance methods for compressing and decompressing data using the Nalix LZ4 algorithm.
 /// This class is static-like and designed for zero-allocation workflows.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class LZ4Codec
 {
     /// <summary>
@@ -15,6 +16,7 @@ public static class LZ4Codec
     /// <param name="input">The input data to compress.</param>
     /// <param name="output">The output buffer to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if compression fails.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
@@ -26,6 +28,7 @@ public static class LZ4Codec
     /// <param name="input">The input byte array to compress.</param>
     /// <param name="output">The output byte array to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output array, or -1 if compression fails.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Encode(System.Byte[] input, System.Byte[] output)
@@ -36,6 +39,7 @@ public static class LZ4Codec
     /// </summary>
     /// <param name="input">The input byte array to compress.</param>
     /// <returns>The number of bytes written to the output array.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public static System.Byte[] Encode(System.ReadOnlySpan<System.Byte> input)
     {
         System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
@@ -51,6 +55,7 @@ public static class LZ4Codec
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="output">The output buffer to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decode(
@@ -64,6 +69,7 @@ public static class LZ4Codec
     /// <param name="input">The compressed input byte array, including header information.</param>
     /// <param name="output">The output byte array to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output array, or -1 if decompression fails.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decode(System.Byte[] input, System.Byte[] output)
@@ -76,6 +82,7 @@ public static class LZ4Codec
     /// <param name="output">The output byte array containing the decompressed data, or null if decompression fails.</param>
     /// <param name="bytesWritten">The number of bytes actually written to the output array.</param>
     /// <returns>True if decompression succeeds; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Decode(
