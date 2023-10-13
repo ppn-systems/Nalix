@@ -16,6 +16,8 @@ namespace Nalix.Shared.Messaging;
 /// </summary>
 [MagicNumber(MagicNumbers.BinaryPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("BinaryPacket<T> OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class BinaryPacket<T> : IPacket, IPacketTransformer<BinaryPacket<T>>
     where T : IFixedSizeSerializable
 {

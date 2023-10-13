@@ -5,6 +5,7 @@ namespace Nalix.Shared.Memory.Caches;
 /// </summary>
 /// <typeparam name="TKey">The type of the cache key.</typeparam>
 /// <typeparam name="TValue">The type of the cache value.</typeparam>
+[System.Diagnostics.DebuggerDisplay("Count={Count}, Capacity={Capacity}, Hits={Hits}, Misses={Misses}")]
 public class LruCache<TKey, TValue> : System.IDisposable where TKey : notnull
 {
     #region Nested Types
