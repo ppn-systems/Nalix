@@ -8,6 +8,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// where T is a reference type.
 /// </summary>
 /// <typeparam name="T">The reference type of list elements.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Generic.List<T>> where T : class
 {
     private static readonly IFormatter<T> _elementFormatter = FormatterProvider.Get<T>();

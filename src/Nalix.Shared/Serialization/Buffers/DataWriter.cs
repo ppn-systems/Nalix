@@ -4,6 +4,7 @@
 /// Represents a mutable buffer segment that can expand dynamically, optionally renting from the ArrayPool.
 /// Designed for high-performance serialization scenarios.
 /// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Auto)]
 public struct DataWriter
@@ -96,6 +97,7 @@ public struct DataWriter
     /// Advances the write cursor by the specified count.
     /// </summary>
     /// <param name="count">The number of bytes written.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
@@ -112,6 +114,8 @@ public struct DataWriter
     /// Retrieves a reference to the first byte in the free buffer space.
     /// </summary>
     /// <returns>A reference to the first byte in the free buffer.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.CodeAnalysis.UnscopedRef]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly ref System.Byte GetFreeBufferReference()
@@ -122,6 +126,7 @@ public struct DataWriter
     /// </summary>
     /// <param name="minimumSize">The minimum number of bytes required.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if minimumSize is not positive.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Expand(System.Int32 minimumSize)
@@ -160,6 +165,7 @@ public struct DataWriter
     /// <summary>
     /// Retrieves a reference to the first byte in the free buffer space with the specified size hint.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly unsafe System.Byte[] ToArray()
@@ -182,6 +188,7 @@ public struct DataWriter
     /// <summary>
     /// Clears the buffer and returns it to the ArrayPool if rented.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()

@@ -9,6 +9,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// where T is an enum type.
 /// </summary>
 /// <typeparam name="T">The enum type.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {

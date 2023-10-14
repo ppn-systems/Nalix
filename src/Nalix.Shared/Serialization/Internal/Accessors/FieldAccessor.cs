@@ -15,6 +15,7 @@ internal abstract class FieldAccessor<T>
     /// </summary>
     /// <param name="writer">Binary writer cho serialization.</param>
     /// <param name="obj">Object chứa field cần serialize.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     public abstract void Serialize(ref DataWriter writer, T obj);
 
     /// <summary>
@@ -22,6 +23,7 @@ internal abstract class FieldAccessor<T>
     /// </summary>
     /// <param name="reader">Binary reader chứa serialized data.</param>
     /// <param name="obj">Object để populate data.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     public abstract void Deserialize(ref DataReader reader, T obj);
 
     /// <summary>
@@ -31,6 +33,7 @@ internal abstract class FieldAccessor<T>
     /// <param name="schema">Field schema từ FieldCache.</param>
     /// <param name="index">Field index cho fast access.</param>
     /// <returns>Optimized field accessor instance.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
@@ -58,6 +61,7 @@ internal abstract class FieldAccessor<T>
     /// Generic helper method tạo FieldAccessorImpl.
     /// Private để enforce factory pattern usage.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static FieldAccessorImpl<T, TField> CreateTyped<TField>(System.Int32 index) => new(index);
