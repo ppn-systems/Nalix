@@ -7,6 +7,7 @@ namespace Nalix.Framework.Randomization;
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
 /// The generator has a period of approximately 2^63 and provides good statistical properties.
 /// </remarks>
+[System.Diagnostics.DebuggerStepThrough]
 public abstract class MwcRandom
 {
     // Performance for the MWC algorithm
@@ -174,6 +175,7 @@ public abstract class MwcRandom
     /// <param name="buffer">The buffer to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     protected void NextBytes(System.Span<System.Byte> buffer)
     {
         System.Int32 i = 0;

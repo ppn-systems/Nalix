@@ -8,6 +8,7 @@ namespace Nalix.Shared.Serialization;
 /// <summary>
 /// Provides serialization and deserialization methods for objects.
 /// </summary>
+[System.Diagnostics.DebuggerStepThrough]
 public static class LiteSerializer
 {
     #region Constants
@@ -38,8 +39,6 @@ public static class LiteSerializer
     public static System.Byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
-        // System.ArgumentNullException.ThrowIfNull(value, nameof(value));
-
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             System.Byte[] array = System.GC.AllocateUninitializedArray<System.Byte>(TypeMetadata.SizeOf<T>());
@@ -49,28 +48,9 @@ public static class LiteSerializer
             return array;
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
-        if (kind is TypeKind.None)
-        {
-            DataWriter writer = (size > 512) ? new(size) : new(512);
-
-            try
-            {
-                formatter.Serialize(ref writer, value);
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
-
-                return writer.ToArray();
-            }
-            finally
-            {
-                writer.Dispose();
-            }
-        }
-        else if (kind is TypeKind.UnmanagedSZArray)
+        if (kind is TypeKind.UnmanagedSZArray)
         {
             if (value is null)
             {
@@ -95,6 +75,25 @@ public static class LiteSerializer
 
             return buffer;
         }
+        else if (kind is TypeKind.None)
+        {
+            DataWriter writer = (size > 512) ? new(size) : new(512);
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
+
+                return writer.ToArray();
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
         else if (kind is TypeKind.FixedSizeSerializable)
         {
             System.Diagnostics.Debug.WriteLine(
@@ -104,6 +103,7 @@ public static class LiteSerializer
                 ? System.GC.AllocateUninitializedArray<System.Byte>(size)
                 : new System.Byte[512]; // small fallback
 
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
             DataWriter writer = new(buffer);
 
             try
