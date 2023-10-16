@@ -37,6 +37,7 @@ public readonly partial struct Identifier
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(IIdentifier? other)
@@ -49,6 +50,7 @@ public readonly partial struct Identifier
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(Identifier other)
@@ -67,6 +69,7 @@ public readonly partial struct Identifier
     /// <c>true</c> if the object is a <see cref="Identifier"/> and is equal to this instance;
     /// otherwise, <c>false</c>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     public override System.Boolean Equals(System.Object? obj)
         => obj is Identifier other && Equals(other);
 
@@ -78,6 +81,7 @@ public readonly partial struct Identifier
     /// The hash code is computed efficiently using all components of the identifier
     /// and is suitable for use in hash-based collections like <see cref="System.Collections.Generic.Dictionary{TKey,TValue}"/>.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Int32 GetHashCode()
@@ -99,6 +103,7 @@ public readonly partial struct Identifier
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator ==(Identifier left, Identifier right) => left.Equals(right);
@@ -111,6 +116,7 @@ public readonly partial struct Identifier
     /// <returns>
     /// <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator !=(Identifier left, Identifier right) => !left.Equals(right);
@@ -133,6 +139,8 @@ public readonly partial struct Identifier
     /// </summary>
     /// <param name="value">The value to encode.</param>
     /// <returns>A Base36 encoded string.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.String EncodeToBase36(System.UInt64 value)
     {
         if (value == 0)

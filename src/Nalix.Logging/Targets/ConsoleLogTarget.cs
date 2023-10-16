@@ -8,6 +8,10 @@ namespace Nalix.Logging.Targets;
 /// The ConsoleLogTarget class provides the ability to output log messages to the console,
 /// with colors corresponding to the log severity levels.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("ConsoleTarget Colors={_options?.EnableColors}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class ConsoleLogTarget : ILoggerTarget
 {
     #region Fields
@@ -52,6 +56,9 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// Outputs the log message to the console.
     /// </summary>
     /// <param name="logMessage">The log message to be outputted.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Publish(LogEntry logMessage)
     {
         if (_options?.UseStandardError == true)
