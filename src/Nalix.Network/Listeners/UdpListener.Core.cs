@@ -62,6 +62,8 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static UdpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
 
 
@@ -70,6 +72,7 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     protected UdpListenerBase(System.UInt16 port, IProtocol protocol)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
@@ -89,6 +92,7 @@ public abstract partial class UdpListenerBase
     /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port, protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     protected UdpListenerBase(IProtocol protocol)
         : this(Config.Port, protocol)
     {
@@ -99,6 +103,7 @@ public abstract partial class UdpListenerBase
     #region IDisposable
 
     /// <inheritdoc/>
+    [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {
         this.Dispose(true);
@@ -106,6 +111,7 @@ public abstract partial class UdpListenerBase
     }
 
     /// <inheritdoc/>
+    [System.Diagnostics.DebuggerStepThrough]
     protected virtual void Dispose(System.Boolean disposing)
     {
         if (this._isDisposed)
