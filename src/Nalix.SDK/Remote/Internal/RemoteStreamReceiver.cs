@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
 
@@ -14,6 +16,7 @@ namespace Nalix.SDK.Remote.Internal;
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
+[System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
 public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {

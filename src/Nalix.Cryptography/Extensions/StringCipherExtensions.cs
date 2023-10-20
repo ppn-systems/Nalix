@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Security.Cryptography;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Security.Cryptography;
 
 namespace Nalix.Cryptography.Extensions;
 

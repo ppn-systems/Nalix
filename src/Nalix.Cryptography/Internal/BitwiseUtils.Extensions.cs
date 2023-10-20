@@ -1,4 +1,6 @@
-﻿namespace Nalix.Cryptography.Internal;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Cryptography.Internal;
 
 internal static partial class BitwiseUtils
 {

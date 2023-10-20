@@ -1,4 +1,6 @@
-﻿namespace Nalix.Shared.Serialization.Buffers;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Shared.Serialization.Buffers;
 
 /// <summary>
 /// Represents a mutable buffer segment that can expand dynamically, optionally renting from the ArrayPool.

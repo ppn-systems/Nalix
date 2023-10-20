@@ -1,4 +1,6 @@
-﻿namespace Nalix.Cryptography.Checksums;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// Provides a highly optimized XOR checksum implementation using unsafe memory operations.

@@ -1,4 +1,6 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Interfaces;
 
 namespace Nalix.Network.Dispatch.Middleware.Core;
@@ -14,7 +16,7 @@ public class PacketMiddlewarePipeline<TPacket>
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _post = [];
 
     /// <summary>
-    /// Adds a middleware component to the pipeline.
+    /// Adds a middleware component to be executed before the main handler.
     /// </summary>
     /// <param name="middleware">The middleware to be added.</param>
     /// <returns>The current pipeline instance for chaining.</returns>
@@ -25,7 +27,7 @@ public class PacketMiddlewarePipeline<TPacket>
     }
 
     /// <summary>
-    /// Adds a middleware component to the pipeline.
+    /// Adds a middleware component to be executed after the main handler.
     /// </summary>
     /// <param name="middleware">The middleware to be added.</param>
     /// <returns>The current pipeline instance for chaining.</returns>

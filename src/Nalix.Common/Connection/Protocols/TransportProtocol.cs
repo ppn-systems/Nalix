@@ -1,4 +1,6 @@
-﻿namespace Nalix.Common.Connection.Protocols;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Common.Connection.Protocols;
 
 /// <summary>
 /// Specifies the transport protocol used by the network packet.

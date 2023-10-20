@@ -1,4 +1,6 @@
-﻿namespace Nalix.Cryptography.Internal;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Cryptography.Internal;
 
 // Just a note:
 // I tried to keep this library as close as I can to Golang one. Even I tired to implement some

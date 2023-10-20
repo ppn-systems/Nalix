@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Logging;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
@@ -15,7 +17,8 @@ namespace Nalix.Network.Dispatch.Analyzers;
 internal sealed class PacketAnalyzer<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
-    where TController : class where TPacket : IPacket
+    where TController : class
+    where TPacket : IPacket
 {
     #region Fields
 
@@ -52,13 +55,13 @@ internal sealed class PacketAnalyzer<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[PacketAnalyzer] Scanning controller: {controllerType.FullName}");
+            .Info($"[PacketAnalyzer] Scanning controller: {controllerType.FullName}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[PacketAnalyzer] Found {compiledMethods.Count} method(s) with [PacketOpcode]");
+            .Debug($"[PacketAnalyzer] Found {compiledMethods.Count} method(s) with [PacketOpcode]");
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -80,7 +83,7 @@ internal sealed class PacketAnalyzer<
                 compiledMethod.CompiledInvoker);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[PacketAnalyzer] Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
+                .Trace($"[PacketAnalyzer] Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
         }
 
         return descriptors;
@@ -103,8 +106,7 @@ internal sealed class PacketAnalyzer<
         var methodInfos = System.Linq.Enumerable.ToArray(
             System.Linq.Enumerable.Where(
                 controllerType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
-                m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null
-            ));
+                m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null));
 
         if (methodInfos.Length == 0)
         {
@@ -129,8 +131,7 @@ internal sealed class PacketAnalyzer<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[PacketAnalyzer] Duplicate OpCode {opcodeAttr.OpCode} " +
-                                                   $"in {method.DeclaringType?.Name ?? "Unknown"}");
+                        .Error($"[PacketAnalyzer] Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "Unknown"}");
 
                     throw new System.InvalidOperationException(
                         $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
@@ -154,11 +155,6 @@ internal sealed class PacketAnalyzer<
     /// <returns>A compiled handler delegate.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
-        "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
-        "The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
     private static CompiledHandler<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -177,19 +173,17 @@ internal sealed class PacketAnalyzer<
         var methodCall = System.Linq.Expressions.Expression.Call(
             castedInstance, method, packetProperty, connectionProperty);
 
-        // Wrap result appropriately
         System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
             ? System.Linq.Expressions.Expression.Block(
                 methodCall,
-                System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
-            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(global::System.Object));
+                System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)))
+            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(System.Object));
 
         var lambda = System.Linq.Expressions.Expression.Lambda<
             System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
             body, instanceParam, contextParam);
 
         var compiledDelegate = lambda.Compile();
-
         var asyncDelegate = CreateAsyncWrapper(compiledDelegate, method.ReturnType);
 
         return new CompiledHandler<TPacket>(method, method.ReturnType, asyncDelegate);
@@ -273,7 +267,7 @@ internal sealed class PacketAnalyzer<
     }
 
     /// <summary>
-    /// Gets the 'Result' property info from a Task/ValueTask generic return type.
+    /// Gets the <c>Result</c> property info from a Task/ValueTask generic return type.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

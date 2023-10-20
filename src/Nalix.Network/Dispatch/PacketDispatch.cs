@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Connection;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Core;
@@ -18,6 +20,7 @@ namespace Nalix.Network.Dispatch;
 /// <param name="options">
 /// A delegate used to configure <see cref="PacketDispatchOptions{TPacket}"/> before processing packets.
 /// </param>
+[System.Diagnostics.DebuggerDisplay("PacketDispatch: Logger={Logger != null}")]
 public sealed class PacketDispatch(System.Action<PacketDispatchOptions<IPacket>> options)
     : PacketDispatchCore<IPacket>(options), IPacketDispatch<IPacket>
 {
@@ -86,7 +89,8 @@ public sealed class PacketDispatch(System.Action<PacketDispatchOptions<IPacket>>
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IPacket packet, IConnection connection)
         => base.ExecutePacketHandlerAsync(packet, connection).Await();
 }

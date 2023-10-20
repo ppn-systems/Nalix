@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Packets.Enums;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Core;

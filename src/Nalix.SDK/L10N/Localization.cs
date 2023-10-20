@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 namespace Nalix.SDK.L10N;
 
 /// <summary>
@@ -9,6 +11,7 @@ namespace Nalix.SDK.L10N;
 /// The <see cref="Localization"/> class allows retrieving translations for singular
 /// and plural forms, with or without contextual information.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("Localizer Loaded={Localizer != null}")]
 public static class Localization
 {
     #region Fields
@@ -26,6 +29,8 @@ public static class Localization
     /// <remarks>
     /// This method is intended for internal use and should not be called directly.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void SetLocalizer(Localizer localizer)
         => Localizer = localizer;
 
@@ -41,6 +46,8 @@ public static class Localization
     /// string translated = Localization.Get("hello");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String Get(System.String id)
         => Localizer.Get(id);
 
@@ -57,6 +64,8 @@ public static class Localization
     /// string translated = Localization.GetParticular("menu", "File");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String GetParticular(System.String context, System.String id)
         => Localizer.GetParticular(context, id);
 
@@ -75,6 +84,8 @@ public static class Localization
     /// string translated = Localization.GetPlural("apple", "apples", 5);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
         => Localizer.GetPlural(id, idPlural, n);
 
@@ -94,6 +105,8 @@ public static class Localization
     /// string translated = Localization.GetParticularPlural("inventory", "item", "items", 3);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String GetParticularPlural(System.String context, System.String id, System.String idPlural, System.Int32 n)
         => Localizer.GetParticularPlural(context, id, idPlural, n);
 

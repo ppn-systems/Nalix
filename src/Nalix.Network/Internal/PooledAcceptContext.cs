@@ -7,6 +7,7 @@ namespace Nalix.Network.Internal;
 /// Represents a pooled context for accepting TCP socket connections asynchronously.
 /// Wraps a reusable <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> with built-in pooling logic.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("Args={Args}")]
 internal sealed class PooledAcceptContext : IPoolable
 {
     /// <summary>
@@ -14,8 +15,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <see cref="System.Threading.Tasks.TaskCompletionSource{Socket}"/> 
     /// stored in <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/>.
     /// </summary>
-    private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs>
-        AsyncAcceptCompleted = static (s, e) =>
+    private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
         System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
             (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
@@ -37,6 +37,12 @@ internal sealed class PooledAcceptContext : IPoolable
     public PooledAcceptContext()
     {
         this.Args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+
+        if (this.Args == null)
+        {
+            throw new System.InvalidOperationException("Failed to acquire a pooled SocketAsyncEventArgs instance.");
+        }
+
         this.Args.Completed += AsyncAcceptCompleted;
     }
 
@@ -48,8 +54,16 @@ internal sealed class PooledAcceptContext : IPoolable
     /// A <see cref="System.Threading.Tasks.ValueTask{Socket}"/> that completes with 
     /// the accepted <see cref="System.Net.Sockets.Socket"/>, or throws an exception on error.
     /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(Args))]
     public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> PrepareAsync()
     {
+        if (this.Args == null)
+        {
+            throw new System.InvalidOperationException("SocketAsyncEventArgs instance is not initialized.");
+        }
+
         System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -63,9 +77,14 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Clears <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/> 
     /// and <see cref="System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket"/>.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
-        this.Args.UserToken = null;
-        this.Args.AcceptSocket = null;
+        if (this.Args != null)
+        {
+            this.Args.UserToken = null;
+            this.Args.AcceptSocket = null;
+        }
     }
 }

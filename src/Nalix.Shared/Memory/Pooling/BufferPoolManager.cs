@@ -1,5 +1,8 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Buffers;
 using System.Linq;
 
@@ -23,7 +26,6 @@ public sealed class BufferPoolManager : System.IDisposable
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.String, (System.Int32, System.Double)[]> _allocationPatternCache;
 
-    private readonly ILogger? _logger;
     private readonly System.Int32 _totalBuffers;
     private readonly System.Boolean _enableTrimming;
     private readonly BufferPoolCollection _poolManager = new();
@@ -101,7 +103,8 @@ public sealed class BufferPoolManager : System.IDisposable
         // Only run deep trimming every 6 cycles (30 minutes with default timer)
         System.Boolean deepTrim = System.Threading.Interlocked.Increment(ref _trimCycleCount) % 6 == 0;
 
-        _logger?.Info($"Running automatic buffer trimming (Deep trim: {deepTrim})");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"Running automatic buffer trimming (Deep trim: {deepTrim})");
 
         // TODO: Implement trimming logic based on buffer pool statistics
     }
@@ -160,7 +163,8 @@ public sealed class BufferPoolManager : System.IDisposable
         }
         catch (System.ArgumentException ex)
         {
-            _logger?.Error($"Failed to rent buffer of size {size}: {ex.Message}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"Failed to rent buffer of size {size}: {ex.Message}");
             throw;
         }
     }
@@ -184,7 +188,8 @@ public sealed class BufferPoolManager : System.IDisposable
         catch (System.ArgumentException ex)
         {
             // Log but don't throw to avoid crashing application
-            _logger?.Warn($"Failed to return buffer of size {buffer.Length}: {ex.Message}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"Failed to return buffer of size {buffer.Length}: {ex.Message}");
         }
     }
 
@@ -335,10 +340,10 @@ public sealed class BufferPoolManager : System.IDisposable
                 {
                     pool.DecreaseCapacity(buffersToShrink);
 
-                    _logger?.Info(
-                        $"Optimized buffer pool for size {poolInfo.BufferSize}, " +
-                        $"reduced by {buffersToShrink}, " +
-                        $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"Optimized buffer pool for size {poolInfo.BufferSize}, " +
+                                                  $"reduced by {buffersToShrink}, " +
+                                                  $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
                 }
             }
             finally
@@ -397,11 +402,11 @@ public sealed class BufferPoolManager : System.IDisposable
                 {
                     pool.IncreaseCapacity(maxIncrease);
 
-                    _logger?.Info(
-                        $"Optimized buffer pool for size {poolInfo.BufferSize}, " +
-                        $"added {maxIncrease} buffers, " +
-                        $"new capacity: {poolInfo.TotalBuffers + maxIncrease}, " +
-                        $"miss ratio: {missRatio:F2}.");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"Optimized buffer pool for size {poolInfo.BufferSize}, " +
+                                                  $"added {maxIncrease} buffers, " +
+                                                  $"new capacity: {poolInfo.TotalBuffers + maxIncrease}, " +
+                                                  $"miss ratio: {missRatio:F2}.");
                 }
             }
             finally
