@@ -126,6 +126,9 @@ public abstract partial class ConfigurationLoader
         // Get the section name from cache
         System.String section = GetSectionName(type);
 
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[ConfigurationLoader] Initializing {type.Name} from section [{section}]");
+
         // Process each bindable property
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
@@ -138,6 +141,9 @@ public abstract partial class ConfigurationLoader
                 if (value == null ||
                    (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
                 {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[ConfigurationLoader] Missing value for {section}:{propertyInfo.Name}, using default.");
+
                     this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }
@@ -148,7 +154,7 @@ public abstract partial class ConfigurationLoader
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"Error setting value for {propertyInfo.Name}: {ex.Message}");
+                                        .Warn($"[ConfigurationLoader] Error setting value for {section}:{propertyInfo.Name} - {ex.Message}");
             }
         }
 
