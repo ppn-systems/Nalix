@@ -3,7 +3,7 @@
 
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Core.Context;
 
 namespace Nalix.Network.Dispatch.Inspection;
 
