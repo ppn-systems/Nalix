@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Framework.Time;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;

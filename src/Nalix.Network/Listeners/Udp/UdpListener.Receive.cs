@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Logging;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
