@@ -88,16 +88,12 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
             => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken);
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -192,16 +188,12 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
             => await this.SendAsync(packet.Serialize(), cancellationToken);
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
