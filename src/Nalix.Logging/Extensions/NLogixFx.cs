@@ -35,7 +35,7 @@ public static partial class NLogixFx
     static NLogixFx()
     {
         MinimumLevel = LogLevel.Trace;
-        Publisher = new NLogDistributor();
+        Publisher = new LogDistributor();
 
         FileLogOptions fileLoggerOpts = new()
         {
