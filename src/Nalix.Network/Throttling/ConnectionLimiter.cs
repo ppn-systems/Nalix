@@ -234,8 +234,6 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Gets connection statistics for all tracked IP addresses.
     /// </summary>
     /// <returns>Dictionary of IP addresses and their statistics.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Dictionary<
         System.Net.IPAddress, (System.Int32 Current, System.Int32 Total)> GetAllConnections()
     {
@@ -280,8 +278,6 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <remarks>
     /// This method is intended for use during system maintenance or after error recovery.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetAllCounters()
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, this);
