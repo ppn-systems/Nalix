@@ -14,20 +14,20 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// Implements SOLID principles with Domain-Driven Design patterns.
 /// </summary>
 /// <typeparam name="T">The type to serialize.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
-public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where T : struct
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+public sealed class StructFormatter<T> : IFormatter<T> where T : struct
 {
     #region Core Fields
+
+    private static System.String DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Array of cached field accessors for optimized serialization performance.
     /// </summary>
     private readonly FieldAccessor<T>[] _accessors;
-
-    /// <summary>
-    /// Indicates whether the formatter has been disposed.
-    /// </summary>
-    private System.Boolean _disposed;
 
     #endregion Core Fields
 
@@ -70,11 +70,10 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     /// Thrown if serialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, this);
-
         for (System.Int32 i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Serialize(ref writer, value);
@@ -90,11 +89,10 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     /// Thrown if deserialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T Deserialize(ref DataReader reader)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, this);
-
         T obj = System.Activator.CreateInstance<T>();
 
         for (System.Int32 i = 0; i < _accessors.Length; i++)
@@ -134,21 +132,4 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     }
 
     #endregion Private Implementation
-
-    #region Disposal
-
-    /// <summary>
-    /// Disposes of the formatter, releasing any allocated resources.
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-    }
-
-    #endregion Disposal
 }

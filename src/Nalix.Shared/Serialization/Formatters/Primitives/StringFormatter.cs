@@ -6,11 +6,15 @@ using Nalix.Shared.Serialization.Buffers;
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// Cung cấp serialize/deserialize cho kiểu string với hiệu năng cao (dùng unsafe, length dạng ushort).
+/// Provides serialization and deserialization functionality for <see cref="System.String"/> values using UTF-8 encoding.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class StringFormatter : IFormatter<System.String>
 {
+    private static System.String DebuggerDisplay => $"StringFormatter<System.String>";
     private static readonly System.Text.Encoding Utf8 = System.Text.Encoding.UTF8;
 
     /// <summary>
@@ -19,7 +23,8 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe void Serialize(ref DataWriter writer, System.String value)
     {
         if (value == null)
@@ -77,7 +82,8 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// Thrown if the string length exceeds the maximum allowed limit.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe System.String Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
