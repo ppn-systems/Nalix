@@ -6,9 +6,13 @@ namespace Nalix.Framework.Randomization;
 /// High-performance cryptographically strong random TransportProtocol generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
+[System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public static class SecureRandom
 {
     #region Fields
+
+    private static System.String DebuggerDisplay => "SecureRandom(custom, NOT CSPRNG)";
 
     // State for the Xoshiro256++ algorithm - 256 bits total
     private static readonly System.UInt64[] State;
@@ -48,8 +52,6 @@ public static class SecureRandom
     /// <param name="length">The key length in bytes (e.g., 32 for AES-256).</param>
     /// <returns>A securely generated key of the specified length.</returns>
     /// <exception cref="System.ArgumentException">Thrown if length is not positive or not a multiple of 8.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] CreateKey(System.Int32 length = 32)
     {
         if (length <= 0)
@@ -73,8 +75,6 @@ public static class SecureRandom
     /// </summary>
     /// <param name="output">The span to fill with random key bytes. Length must be a multiple of 8.</param>
     /// <exception cref="System.ArgumentException">Thrown if the length of <paramref name="output"/> is not a multiple of 8.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void CreateKey(System.Span<System.Byte> output)
     {
         if (output.Length % 8 != 0)
@@ -89,8 +89,6 @@ public static class SecureRandom
     /// Generates a secure 12-byte nonce (96 bits) suitable for most authenticated encryption schemes.
     /// </summary>
     /// <returns>A cryptographically secure nonce.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] CreateNonce(System.Int32 length = 12)
     {
         if (length <= 0)
@@ -130,7 +128,7 @@ public static class SecureRandom
     /// <returns>The key as a byte array.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe System.Byte[] ConvertWordsToKey(System.ReadOnlySpan<System.UInt32> keyWords)
+    public static unsafe System.Byte[] ConvertToKey(System.ReadOnlySpan<System.UInt32> keyWords)
     {
         System.Byte[] keyBytes = new System.Byte[keyWords.Length * sizeof(System.UInt32)];
 
@@ -141,38 +139,6 @@ public static class SecureRandom
         }
 
         return keyBytes;
-    }
-
-    /// <summary>
-    /// Converts a byte array key to a uint array key.
-    /// </summary>
-    /// <param name="keyBytes">The key as bytes (length must be a multiple of 4).</param>
-    /// <returns>The key as an array of uint values.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe System.UInt32[] ConvertKeyToWords(System.ReadOnlySpan<System.Byte> keyBytes)
-    {
-        if (keyBytes.Length % sizeof(System.UInt32) != 0)
-        {
-            throw new System.ArgumentException("Key length must be a multiple of 4 bytes.", nameof(keyBytes));
-        }
-
-        System.Int32 keySizeInWords = keyBytes.Length / sizeof(System.UInt32);
-        System.UInt32[] keyWords = new System.UInt32[keySizeInWords];
-
-        fixed (System.Byte* bytesPtr = keyBytes)
-        fixed (System.UInt32* wordsPtr = keyWords)
-        {
-            System.UInt32* sourcePtr = (System.UInt32*)bytesPtr;
-            System.UInt32* destPtr = wordsPtr;
-
-            for (System.Int32 i = 0; i < keySizeInWords; i++)
-            {
-                destPtr[i] = sourcePtr[i];
-            }
-        }
-
-        return keyWords;
     }
 
     /// <summary>
