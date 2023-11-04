@@ -3,7 +3,10 @@
 namespace Nalix.Common.Attributes;
 
 /// <summary>
-/// Enum representing the magic numbers used to identify different packet types.
+/// Defines unique magic numbers used to identify specific packet types
+/// in the networking and serialization system.  
+/// Magic numbers are written in the packet header to quickly determine  
+/// how the payload should be interpreted.
 /// </summary>
 public enum MagicNumbers : System.UInt32
 {
@@ -13,14 +16,37 @@ public enum MagicNumbers : System.UInt32
     Unknown = 0x00000000,
 
     /// <summary>
-    /// Magic number for BinaryPacket type.
-    /// This number is used to identify packets of type BinaryPacket.
+    /// Binary data packet with a maximum payload size of 128 bytes.
     /// </summary>
-    BinaryPacket = 0x12345678,
+    Binary128,
 
     /// <summary>
-    /// Magic number for LiteralPacket type.
-    /// This number is used to identify packets of type LiteralPacket.
+    /// Binary data packet with a maximum payload size of 256 bytes.
     /// </summary>
-    LiteralPacket = 0x87654321
+    Binary256,
+
+    /// <summary>
+    /// Binary data packet with a maximum payload size of 512 bytes.
+    /// </summary>
+    Binary512,
+
+    /// <summary>
+    /// Binary data packet with a maximum payload size of 1024 bytes.
+    /// </summary>
+    Binary1024,
+
+    /// <summary>
+    /// UTF-8 text packet with a maximum payload size of 256 bytes.
+    /// </summary>
+    Text256,
+
+    /// <summary>
+    /// UTF-8 text packet with a maximum payload size of 512 bytes.
+    /// </summary>
+    Text512,
+
+    /// <summary>
+    /// UTF-8 text packet with a maximum payload size of 1024 bytes.
+    /// </summary>
+    Text1024
 }
