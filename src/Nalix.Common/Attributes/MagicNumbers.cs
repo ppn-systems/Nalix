@@ -16,6 +16,11 @@ public enum MagicNumbers : System.UInt32
     Unknown = 0x00000000,
 
     /// <summary>
+    /// Represents the handshake process used to establish a connection or agreement between two parties.
+    /// </summary>
+    Handshake,
+
+    /// <summary>
     /// Binary data packet with a maximum payload size of 128 bytes.
     /// </summary>
     Binary128,
