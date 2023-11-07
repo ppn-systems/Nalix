@@ -20,8 +20,8 @@ namespace Nalix.Shared.Messaging.Control;
 [MagicNumber(MagicNumbers.Control)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Handshake : IPacket, IPacketTransformer<Handshake>
+[System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public sealed class Handshake : IPacket, IPacketTransformer<Handshake>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 32;
@@ -39,38 +39,38 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(0)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(7)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(8)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(9)]
     [SerializeDynamicSize(DynamicSize)]
+    [SerializeOrder(PacketHeaderOffset.End)]
     public System.Byte[] Data { get; set; }
 
     /// <summary>

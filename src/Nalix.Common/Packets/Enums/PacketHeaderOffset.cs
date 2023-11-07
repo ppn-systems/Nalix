@@ -44,4 +44,10 @@ public enum PacketHeaderOffset : System.Byte
     /// </summary>
     [DataType(typeof(System.Byte))]
     Transport = Priority + sizeof(System.Byte),
+
+    /// <summary>
+    /// Represents the end offset of the packet header fields in the serialized data.
+    /// This value is equal to the offset of the last field and can be used to determine the total header size.
+    /// </summary>
+    End = Transport + +sizeof(System.Byte)
 }
