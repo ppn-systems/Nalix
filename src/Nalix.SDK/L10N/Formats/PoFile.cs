@@ -166,7 +166,7 @@ public partial class PoFile
     /// <summary>
     /// Retrieves a translation with context.
     /// </summary>
-    /// <param name="context">Context to distinguish similar translations.</param>
+    /// <param name="context">Options to distinguish similar translations.</param>
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if found, otherwise returns the original text.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -180,7 +180,7 @@ public partial class PoFile
     /// <summary>
     /// Retrieves a pluralized translation with context.
     /// </summary>
-    /// <param name="context">Context to distinguish similar translations.</param>
+    /// <param name="context">Options to distinguish similar translations.</param>
     /// <param name="id">Singular form of the string.</param>
     /// <param name="idPlural">Plural form of the string.</param>
     /// <param name="n">The TransportProtocol to determine the plural form.</param>
