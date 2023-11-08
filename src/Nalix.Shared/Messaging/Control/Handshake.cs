@@ -21,7 +21,7 @@ namespace Nalix.Shared.Messaging.Control;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Handshake : IPacket, IPacketTransformer<Handshake>
+public class Handshake : IPacket, IPacketTransformer<Handshake>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 32;
