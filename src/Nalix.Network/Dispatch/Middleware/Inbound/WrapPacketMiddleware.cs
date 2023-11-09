@@ -1,12 +1,14 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
 using static Nalix.Network.Dispatch.Inspection.PacketRegistry;
@@ -24,30 +26,58 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
+        IPacket current = context.Packet;
+
+        System.Boolean needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
+        System.Boolean needCompress = ShouldCompress(context);
+
+        if (!needEncrypt && !needCompress)
+        {
+            await next();
+            return;
+        }
+
         try
         {
-            IPacket current = context.Packet;
-
             if (TryResolveTransformer(current.GetType(), out PacketTransformerDelegates? t) && t is not null)
             {
-                if (ShouldCompress(context))
+                if (needCompress)
                 {
                     current = t.Compress(current);
                 }
 
-                if (context.Attributes.Encryption?.IsEncrypted ?? false)
+                if (needEncrypt)
                 {
                     current = t.Encrypt(
                         current,
                         context.Connection.EncryptionKey,
                         context.Connection.Encryption);
                 }
+
+                if (!ReferenceEquals(current, context.Packet))
+                {
+                    context.SetPacket(current);
+                }
+            }
+            else
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"No transformer found for packet type {current.GetType().Name}.");
+
+                Text256 text = ObjectPoolManager.Instance.Get<Text256>();
+                try
+                {
+                    text.Initialize("Unsupported packet type for encryption/compression.");
+                    _ = await context.Connection.Tcp.SendAsync(text.Serialize());
+
+                    return;
+                }
+                finally
+                {
+                    ObjectPoolManager.Instance.Return<Text256>(text);
+                }
             }
 
-            if (!ReferenceEquals(current, context.Packet))
-            {
-                context.SetPacket(current);
-            }
         }
         catch (System.Exception)
         {
@@ -61,7 +91,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return(text);
+                ObjectPoolManager.Instance.Return<Text256>(text);
             }
         }
 
