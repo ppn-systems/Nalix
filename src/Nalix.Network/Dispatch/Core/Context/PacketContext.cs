@@ -3,6 +3,7 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Network.Dispatch.Core.Metadata;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Core.Context;
@@ -85,8 +86,11 @@ public sealed class PacketContext<TPacket> : IPoolable
     static PacketContext()
     {
         // Register pool for PacketContext<TPacket>
-        _ = ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(64);
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PacketContext<TPacket>>(1024);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PacketContext<TPacket>>(64);
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PacketContext<TPacket>>(1024);
     }
 
 
@@ -229,7 +233,8 @@ public sealed class PacketContext<TPacket> : IPoolable
             return;
         }
 
-        ObjectPoolManager.Instance.Return(this);
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                .Return(this);
     }
 
     #endregion IDisposable
