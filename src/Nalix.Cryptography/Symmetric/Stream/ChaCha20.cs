@@ -2,44 +2,40 @@
 
 using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Cryptography.Primitives;
-using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Threading.Tasks;
 
 namespace Nalix.Cryptography.Symmetric.Stream;
 
 /// <summary>
 /// Class for ChaCha20 encryption / decryption
 /// </summary>
-public sealed class ChaCha20 : IDisposable
+public sealed class ChaCha20 : System.IDisposable
 {
     #region Constants
 
     /// <summary>
     /// Only allowed key length in bytes.
     /// </summary>
-    public const Int32 KeySize = 32;
+    public const System.Byte KeySize = 32;
 
     /// <summary>
     /// The size of a nonce in bytes.
     /// </summary>
-    public const Int32 NonceSize = 12;
+    public const System.Byte NonceSize = 12;
 
     /// <summary>
     /// The size of a block in bytes.
     /// </summary>
-    public const Int32 BlockSize = 64;
+    public const System.Byte BlockSize = 64;
 
     /// <summary>
     /// The length of the key in bytes.
     /// </summary>
-    public const Int32 StateLength = 16;
+    public const System.Byte StateLength = 16;
 
     /// <summary>
     /// 2^30 bytes per nonce
     /// </summary>
-    private const Int32 MaxBytesPerNonce = 1 << 30;
+    private const System.Int32 MaxBytesPerNonce = 1 << 30;
 
     #endregion Constants
 
@@ -48,18 +44,18 @@ public sealed class ChaCha20 : IDisposable
     /// <summary>
     /// Determines if the objects in this class have been disposed of. Set to true by the Dispose() method.
     /// </summary>
-    private Boolean _isDisposed;
+    private System.Boolean _isDisposed;
 
     /// <summary>
     /// The ChaCha20 state (aka "context"). Read-Only.
     /// </summary>
-    private UInt32[] State { get; } = new UInt32[StateLength];
+    private System.UInt32[] State { get; } = new System.UInt32[StateLength];
 
     // These are the same constants defined in the reference implementation.
     // http://cr.yp.to/streamciphers/timings/estreambench/submissions/salsa20/chacha8/ref/chacha.c
-    private static readonly Byte[] Sigma = "expand 32-byte k"u8.ToArray();
+    private static readonly System.Byte[] Sigma = "expand 32-byte k"u8.ToArray();
 
-    private static readonly Byte[] Tau = "expand 16-byte k"u8.ToArray();
+    private static readonly System.Byte[] Tau = "expand 16-byte k"u8.ToArray();
 
     #endregion Fields
 
@@ -80,7 +76,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="counter">
     /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
     /// </param>
-    public ChaCha20(Byte[] key, Byte[] nonce, UInt32 counter)
+    public ChaCha20(System.Byte[] key, System.Byte[] nonce, System.UInt32 counter)
     {
         this.KeySetup(key);
         this.IvSetup(nonce, counter);
@@ -95,7 +91,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="key">A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers</param>
     /// <param name="nonce">A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers</param>
     /// <param name="counter">A 4-byte (32-bit) block counter, treated as a 32-bit little-endian unsigned integer</param>
-    public ChaCha20(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt32 counter)
+    public ChaCha20(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
     {
         this.KeySetup(key.ToArray());
         this.IvSetup(nonce.ToArray(), counter);
@@ -113,20 +109,25 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EncryptBytes(Byte[] output, Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void EncryptBytes(
+        System.Byte[] output, System.Byte[] input,
+        System.Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
         {
-            throw new ArgumentOutOfRangeException(nameof(output), $"Output byte array should be able to take at least {numBytes}");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(output), $"Output byte array should be able to take at least {numBytes}");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -144,10 +145,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncryptStream(
         System.IO.Stream output, System.IO.Stream input,
-        Int32 howManyBytesToProcessAtTime = 1024,
+        System.Int32 howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -165,11 +167,10 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async Task EncryptStreamAsync(
+    public async System.Threading.Tasks.Task EncryptStreamAsync(
         System.IO.Stream output,
         System.IO.Stream input,
-        Int32 howManyBytesToProcessAtTime = 1024,
+        System.Int32 howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -187,11 +188,12 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="output">Output byte array, must have enough bytes</param>
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EncryptBytes(Byte[] output, Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void EncryptBytes(System.Byte[] output, System.Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -209,14 +211,17 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] EncryptBytes(Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] EncryptBytes(
+        System.Byte[] input, System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(
+            throw new System.ArgumentOutOfRangeException(
                 nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
@@ -225,7 +230,7 @@ public sealed class ChaCha20 : IDisposable
             simdMode = DetectSimdMode();
         }
 
-        Byte[] returnArray = new Byte[numBytes];
+        System.Byte[] returnArray = new System.Byte[numBytes];
         this.WorkBytes(returnArray, input, numBytes, simdMode);
         return returnArray;
     }
@@ -237,17 +242,20 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] EncryptBytes(Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] EncryptBytes(
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
             simdMode = DetectSimdMode();
         }
 
-        Byte[] returnArray = new Byte[input.Length];
+        System.Byte[] returnArray = new System.Byte[input.Length];
         this.WorkBytes(returnArray, input, input.Length, simdMode);
         return returnArray;
     }
@@ -259,18 +267,19 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input string</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] EncryptString(String input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] EncryptString(System.String input, SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
             simdMode = DetectSimdMode();
         }
 
-        Byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(input);
-        Byte[] returnArray = new Byte[utf8Bytes.Length];
+        System.Byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(input);
+        System.Byte[] returnArray = new System.Byte[utf8Bytes.Length];
 
         this.WorkBytes(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
         return returnArray;
@@ -288,20 +297,25 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">TransportProtocol of bytes to decrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecryptBytes(Byte[] output, Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void DecryptBytes(
+        System.Byte[] output, System.Byte[] input,
+        System.Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
         {
-            throw new ArgumentOutOfRangeException(nameof(output), $"Output byte array should be able to take at least {numBytes}");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(output), $"Output byte array should be able to take at least {numBytes}");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -319,11 +333,12 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void DecryptStream(
         System.IO.Stream output,
         System.IO.Stream input,
-        Int32 howManyBytesToProcessAtTime = 1024,
+        System.Int32 howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -341,11 +356,10 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async Task DecryptStreamAsync(
+    public async System.Threading.Tasks.Task DecryptStreamAsync(
         System.IO.Stream output,
         System.IO.Stream input,
-        Int32 howManyBytesToProcessAtTime = 1024,
+        System.Int32 howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -363,11 +377,14 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="output">Output byte array, must have enough bytes</param>
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecryptBytes(Byte[] output, Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void DecryptBytes(
+        System.Byte[] output, System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -385,14 +402,17 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains decrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] DecryptBytes(Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] DecryptBytes(
+        System.Byte[] input, System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes),
+            throw new System.ArgumentOutOfRangeException(nameof(numBytes),
                 "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
@@ -401,7 +421,7 @@ public sealed class ChaCha20 : IDisposable
             simdMode = DetectSimdMode();
         }
 
-        Byte[] returnArray = new Byte[numBytes];
+        System.Byte[] returnArray = new System.Byte[numBytes];
         WorkBytes(returnArray, input, numBytes, simdMode);
         return returnArray;
     }
@@ -413,17 +433,20 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains decrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] DecryptBytes(Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] DecryptBytes(
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
             simdMode = DetectSimdMode();
         }
 
-        Byte[] returnArray = new Byte[input.Length];
+        System.Byte[] returnArray = new System.Byte[input.Length];
         WorkBytes(returnArray, input, input.Length, simdMode);
         return returnArray;
     }
@@ -435,17 +458,20 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public String DecryptUtf8ByteArray(Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.String DecryptUtf8ByteArray(
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
-        ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(input);
 
         if (simdMode == SimdMode.AutoDetect)
         {
             simdMode = DetectSimdMode();
         }
 
-        Byte[] tempArray = new Byte[input.Length];
+        System.Byte[] tempArray = new System.Byte[input.Length];
 
         WorkBytes(tempArray, input, input.Length, simdMode);
         return System.Text.Encoding.UTF8.GetString(tempArray);
@@ -461,12 +487,13 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="key">
     /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
     /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void KeySetup(Byte[] key)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void KeySetup(System.Byte[] key)
     {
         if (key.Length != KeySize)
         {
-            throw new ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
+            throw new System.ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
         State[0] = 0x61707865; // Constant ("expand 32-byte k")
@@ -474,7 +501,7 @@ public sealed class ChaCha20 : IDisposable
         State[2] = 0x79622d32;
         State[3] = 0x6b206574;
 
-        for (Int32 i = 0; i < 8; i++)
+        for (System.Int32 i = 0; i < 8; i++)
         {
             State[4 + i] = BitwiseUtils.U8To32Little(key, i * 4);
         }
@@ -489,35 +516,37 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="counter">
     /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
     /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IvSetup(Byte[] nonce, UInt32 counter)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void IvSetup(System.Byte[] nonce, System.UInt32 counter)
     {
         if (nonce.Length != NonceSize)
         {
             Dispose();
-            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
+            throw new System.ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
         }
 
         State[12] = counter;
 
-        for (Int32 i = 0; i < 3; i++)
+        for (System.Int32 i = 0; i < 3; i++)
         {
             State[13 + i] = BitwiseUtils.U8To32Little(nonce, i * 4);
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static SimdMode DetectSimdMode()
     {
-        if (Vector512.IsHardwareAccelerated)
+        if (System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated)
         {
             return SimdMode.V512;
         }
-        else if (Vector256.IsHardwareAccelerated)
+        else if (System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated)
         {
             return SimdMode.V256;
         }
-        else if (Vector128.IsHardwareAccelerated)
+        else if (System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated)
         {
             return SimdMode.V128;
         }
@@ -525,15 +554,16 @@ public sealed class ChaCha20 : IDisposable
         return SimdMode.None;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void WorkStreams(
         System.IO.Stream output, System.IO.Stream input,
-        SimdMode simdMode, Int32 howManyBytesToProcessAtTime = 1024)
+        SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
     {
-        Int32 readBytes;
+        System.Int32 readBytes;
 
-        Byte[] inputBuffer = new Byte[howManyBytesToProcessAtTime];
-        Byte[] outputBuffer = new Byte[howManyBytesToProcessAtTime];
+        System.Byte[] inputBuffer = new System.Byte[howManyBytesToProcessAtTime];
+        System.Byte[] outputBuffer = new System.Byte[howManyBytesToProcessAtTime];
 
         while ((readBytes = input.Read(inputBuffer, 0, howManyBytesToProcessAtTime)) > 0)
         {
@@ -545,14 +575,14 @@ public sealed class ChaCha20 : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async Task WorkStreamsAsync(
+    private async System.Threading.Tasks.Task WorkStreamsAsync(
         System.IO.Stream output, System.IO.Stream input,
-        SimdMode simdMode, Int32 howManyBytesToProcessAtTime = 1024)
+        SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
     {
-        Byte[] readBytesBuffer = new Byte[howManyBytesToProcessAtTime];
-        Byte[] writeBytesBuffer = new Byte[howManyBytesToProcessAtTime];
-        Int32 howManyBytesWereRead = await input.ReadAsync(readBytesBuffer.AsMemory(0, howManyBytesToProcessAtTime));
+        System.Byte[] readBytesBuffer = new System.Byte[howManyBytesToProcessAtTime];
+        System.Byte[] writeBytesBuffer = new System.Byte[howManyBytesToProcessAtTime];
+        System.Int32 howManyBytesWereRead = await input.ReadAsync(System.MemoryExtensions
+                                                       .AsMemory(readBytesBuffer, 0, howManyBytesToProcessAtTime));
 
         while (howManyBytesWereRead > 0)
         {
@@ -560,10 +590,12 @@ public sealed class ChaCha20 : IDisposable
             WorkBytes(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
 
             // WriteInt16
-            await output.WriteAsync(writeBytesBuffer.AsMemory(0, howManyBytesWereRead));
+            await output.WriteAsync(System.MemoryExtensions
+                        .AsMemory(writeBytesBuffer, 0, howManyBytesWereRead));
 
             // Read more
-            howManyBytesWereRead = await input.ReadAsync(readBytesBuffer.AsMemory(0, howManyBytesToProcessAtTime));
+            howManyBytesWereRead = await input.ReadAsync(System.MemoryExtensions
+                                              .AsMemory(readBytesBuffer, 0, howManyBytesToProcessAtTime));
         }
     }
 
@@ -574,79 +606,82 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">How many bytes to process</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WorkBytes(Byte[] output, Byte[] input, Int32 numBytes, SimdMode simdMode)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void WorkBytes(
+        System.Byte[] output, System.Byte[] input,
+        System.Int32 numBytes, SimdMode simdMode)
     {
         if (_isDisposed)
         {
-            throw new ObjectDisposedException("state", "The ChaCha state has been disposed");
+            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
         }
 
-        UInt32[] x = new UInt32[StateLength];    // Working buffer
-        Byte[] tmp = new Byte[BlockSize];  // Temporary buffer
-        Int32 offset = 0;
+        System.UInt32[] x = new System.UInt32[StateLength];    // Working buffer
+        System.Byte[] tmp = new System.Byte[BlockSize];  // Temporary buffer
+        System.Int32 offset = 0;
 
-        Int32 howManyFullLoops = numBytes / BlockSize;
-        Int32 tailByteCount = numBytes - (howManyFullLoops * BlockSize);
+        System.Int32 howManyFullLoops = numBytes / BlockSize;
+        System.Int32 tailByteCount = numBytes - (howManyFullLoops * BlockSize);
 
-        for (Int32 loop = 0; loop < howManyFullLoops; loop++)
+        for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
         {
             UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
 
             if (simdMode == SimdMode.V512)
             {
                 // 1 x 64 bytes
-                Vector512<Byte> inputV = Vector512.Create(input, offset);
-                Vector512<Byte> tmpV = Vector512.Create(tmp, 0);
-                Vector512<Byte> outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset);
+                System.Runtime.Intrinsics.Vector512<System.Byte> inputV = System.Runtime.Intrinsics.Vector512.Create(input, offset);
+                System.Runtime.Intrinsics.Vector512<System.Byte> tmpV = System.Runtime.Intrinsics.Vector512.Create(tmp, 0);
+                System.Runtime.Intrinsics.Vector512<System.Byte> outputV = inputV ^ tmpV;
+                System.Runtime.Intrinsics.Vector512.CopyTo(outputV, output, offset);
             }
             else if (simdMode == SimdMode.V256)
             {
                 // 2 x 32 bytes
-                Vector256<Byte> inputV = Vector256.Create(input, offset);
-                Vector256<Byte> tmpV = Vector256.Create(tmp, 0);
-                Vector256<Byte> outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset);
+                System.Runtime.Intrinsics.Vector256<System.Byte> inputV = System.Runtime.Intrinsics.Vector256.Create(input, offset);
+                System.Runtime.Intrinsics.Vector256<System.Byte> tmpV = System.Runtime.Intrinsics.Vector256.Create(tmp, 0);
+                System.Runtime.Intrinsics.Vector256<System.Byte> outputV = inputV ^ tmpV;
+                System.Runtime.Intrinsics.Vector256.CopyTo(outputV, output, offset);
 
-                inputV = Vector256.Create(input, offset + 32);
-                tmpV = Vector256.Create(tmp, 32);
+                inputV = System.Runtime.Intrinsics.Vector256.Create(input, offset + 32);
+                tmpV = System.Runtime.Intrinsics.Vector256.Create(tmp, 32);
                 outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset + 32);
+                System.Runtime.Intrinsics.Vector256.CopyTo(outputV, output, offset + 32);
             }
             else if (simdMode == SimdMode.V128)
             {
                 // 4 x 16 bytes
-                Vector128<Byte> inputV = Vector128.Create(input, offset);
-                Vector128<Byte> tmpV = Vector128.Create(tmp, 0);
-                Vector128<Byte> outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset);
+                System.Runtime.Intrinsics.Vector128<System.Byte> inputV = System.Runtime.Intrinsics.Vector128.Create(input, offset);
+                System.Runtime.Intrinsics.Vector128<System.Byte> tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 0);
+                System.Runtime.Intrinsics.Vector128<System.Byte> outputV = inputV ^ tmpV;
+                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, output, offset);
 
-                inputV = Vector128.Create(input, offset + 16);
-                tmpV = Vector128.Create(tmp, 16);
+                inputV = System.Runtime.Intrinsics.Vector128.Create(input, offset + 16);
+                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 16);
                 outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset + 16);
+                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, output, offset + 16);
 
-                inputV = Vector128.Create(input, offset + 32);
-                tmpV = Vector128.Create(tmp, 32);
+                inputV = System.Runtime.Intrinsics.Vector128.Create(input, offset + 32);
+                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 32);
                 outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset + 32);
+                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, output, offset + 32);
 
-                inputV = Vector128.Create(input, offset + 48);
-                tmpV = Vector128.Create(tmp, 48);
+                inputV = System.Runtime.Intrinsics.Vector128.Create(input, offset + 48);
+                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 48);
                 outputV = inputV ^ tmpV;
-                outputV.CopyTo(output, offset + 48);
+                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, output, offset + 48);
             }
             else
             {
-                for (Int32 i = 0; i < BlockSize; i += 4)
+                for (System.Int32 i = 0; i < BlockSize; i += 4)
                 {
                     // Small unroll
-                    Int32 start = i + offset;
-                    output[start] = (Byte)(input[start] ^ tmp[i]);
-                    output[start + 1] = (Byte)(input[start + 1] ^ tmp[i + 1]);
-                    output[start + 2] = (Byte)(input[start + 2] ^ tmp[i + 2]);
-                    output[start + 3] = (Byte)(input[start + 3] ^ tmp[i + 3]);
+                    System.Int32 start = i + offset;
+                    output[start] = (System.Byte)(input[start] ^ tmp[i]);
+                    output[start + 1] = (System.Byte)(input[start + 1] ^ tmp[i + 1]);
+                    output[start + 2] = (System.Byte)(input[start + 2] ^ tmp[i + 2]);
+                    output[start + 3] = (System.Byte)(input[start + 3] ^ tmp[i + 3]);
                 }
             }
 
@@ -658,21 +693,22 @@ public sealed class ChaCha20 : IDisposable
         {
             UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
 
-            for (Int32 i = 0; i < tailByteCount; i++)
+            for (System.Int32 i = 0; i < tailByteCount; i++)
             {
-                output[i + offset] = (Byte)(input[i + offset] ^ tmp[i]);
+                output[i + offset] = (System.Byte)(input[i + offset] ^ tmp[i]);
             }
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void UpdateStateAndGenerateTemporaryBuffer(
-        UInt32[] stateToModify, UInt32[] workingBuffer, Byte[] temporaryBuffer)
+        System.UInt32[] stateToModify, System.UInt32[] workingBuffer, System.Byte[] temporaryBuffer)
     {
         // Copy state to working buffer
-        Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, StateLength * sizeof(UInt32));
+        System.Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, StateLength * sizeof(System.UInt32));
 
-        for (Int32 i = 0; i < 10; i++) // 20 rounds (10 double rounds)
+        for (System.Int32 i = 0; i < 10; i++) // 20 rounds (10 double rounds)
         {
             QuarterRound(workingBuffer, 0, 4, 8, 12);
             QuarterRound(workingBuffer, 1, 5, 9, 13);
@@ -685,7 +721,7 @@ public sealed class ChaCha20 : IDisposable
             QuarterRound(workingBuffer, 3, 4, 9, 14);
         }
 
-        for (Int32 i = 0; i < StateLength; i++)
+        for (System.Int32 i = 0; i < StateLength; i++)
         {
             BitwiseUtils.ToBytes(temporaryBuffer, BitwiseUtils.Add(workingBuffer[i], stateToModify[i]), 4 * i);
         }
@@ -710,8 +746,10 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="b">Index of the second TransportProtocol</param>
     /// <param name="c">Index of the third TransportProtocol</param>
     /// <param name="d">Index of the fourth TransportProtocol</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void QuarterRound(UInt32[] x, UInt32 a, UInt32 b, UInt32 c, UInt32 d)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void QuarterRound(
+        System.UInt32[] x, System.UInt32 a, System.UInt32 b, System.UInt32 c, System.UInt32 d)
     {
         x[a] = BitwiseUtils.Add(x[a], x[b]);
         x[d] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[d], x[a]), 16);
@@ -733,20 +771,20 @@ public sealed class ChaCha20 : IDisposable
     /// <summary>
     /// Clear and dispose of the internal state. The finalizer is only called if Dispose() was never called on this cipher.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     ~ChaCha20() => Dispose(false);
 
     /// <summary>
     /// Clear and dispose of the internal state. Also request the GC not to call the finalizer, because all cleanup has been taken care of.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         Dispose(true);
         /*
-			* The Garbage Collector does not need to invoke the finalizer because Dispose(bool) has already done all the cleanup needed.
-			*/
-        GC.SuppressFinalize(this);
+		* The Garbage Collector does not need to invoke the finalizer because Dispose(bool) has already done all the cleanup needed.
+		*/
+        System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -755,8 +793,8 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="disposing">
     /// Should be true if called by Dispose(); false if called by the finalizer
     /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Dispose(Boolean disposing)
+    [System.Diagnostics.DebuggerNonUserCode]
+    private void Dispose(System.Boolean disposing)
     {
         if (!_isDisposed)
         {
@@ -766,7 +804,7 @@ public sealed class ChaCha20 : IDisposable
             }
 
             /* Cleanup any unmanaged objects here */
-            Array.Clear(State, 0, StateLength);
+            System.Array.Clear(State, 0, StateLength);
         }
 
         _isDisposed = true;
