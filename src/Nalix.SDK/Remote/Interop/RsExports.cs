@@ -50,7 +50,7 @@ public static class RsExports
         [System.Runtime.InteropServices.In] System.IntPtr ipUtf8, System.Int32 port)
     {
         System.String ip = System.Runtime.InteropServices.Marshal.PtrToStringUTF8(ipUtf8)!;
-        var cli = new RsClient(ip, port);
+        RsClient cli = new(ip, port);
         System.Int64 h = System.Threading.Interlocked.Increment(ref _next);
         _map[h] = cli;
         return h;
@@ -63,7 +63,7 @@ public static class RsExports
     [System.Runtime.InteropServices.UnmanagedCallersOnly(EntryPoint = "rs_free")]
     public static void Free(System.Int64 h)
     {
-        if (_map.TryRemove(h, out var c))
+        if (_map.TryRemove(h, out RsClient c))
         {
             c.Dispose();
         }
@@ -102,7 +102,7 @@ public static class RsExports
     [System.Runtime.InteropServices.UnmanagedCallersOnly(EntryPoint = "rs_conna")]
     public static System.Int32 Conna(System.Int64 h, System.Int32 timeoutMs)
     {
-        if (!_map.TryGetValue(h, out var c))
+        if (!_map.TryGetValue(h, out RsClient c))
         {
             return -1;
         }
@@ -120,7 +120,7 @@ public static class RsExports
         CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvCdecl) })]
     public static void Disc(System.Int64 h)
     {
-        if (_map.TryGetValue(h, out var c))
+        if (_map.TryGetValue(h, out RsClient c))
         {
             c.Disc();
         }
@@ -173,12 +173,12 @@ public static class RsExports
         {
             unsafe
             {
-                var span = new System.ReadOnlySpan<System.Byte>((void*)data, len);
-                var arr = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len);
+                System.ReadOnlySpan<System.Byte> span = new((void*)data, len);
+                System.Byte[] arr = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len);
                 try
                 {
                     span.CopyTo(arr);
-                    var mem = new System.ReadOnlyMemory<System.Byte>(arr, 0, len);
+                    System.ReadOnlyMemory<System.Byte> mem = new(arr, 0, len);
                     _ = c.Send(mem).GetAwaiter().GetResult();
                 }
                 finally { System.Buffers.ArrayPool<System.Byte>.Shared.Return(arr); }
@@ -250,14 +250,14 @@ public static class RsExports
         [System.Runtime.InteropServices.In] System.IntPtr fnPtr,
         [System.Runtime.InteropServices.In] System.IntPtr user)
     {
-        if (!_map.TryGetValue(h, out var c))
+        if (!_map.TryGetValue(h, out RsClient c))
         {
             return -1;
         }
 
         try
         {
-            var del = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<RsClient.rs_cb>(fnPtr);
+            RsClient.rs_cb del = System.Runtime.InteropServices.Marshal.GetDelegateForFunctionPointer<RsClient.rs_cb>(fnPtr);
             c.SetCb(del, user);
             return 0;
         }
