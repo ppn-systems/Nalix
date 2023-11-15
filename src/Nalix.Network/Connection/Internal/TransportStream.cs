@@ -16,15 +16,24 @@ namespace Nalix.Network.Connection.Internal;
 /// Initializes a new instance of the <see cref="TransportStream"/> class.
 /// </remarks>
 /// <param name="socket">The socket.</param>
-internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDisposable
+/// <param name="cts">The cancellation token source.</param>
+internal class TransportStream(
+    System.Net.Sockets.Socket socket, System.Threading.CancellationTokenSource cts) : System.IDisposable
 {
     #region Fields
 
     private readonly TransportCache _cache = new();
     private readonly System.Net.Sockets.Socket _socket = socket;
+    private readonly System.Threading.CancellationTokenSource _cts = cts;
 
     private System.Boolean _disposed;
-    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
+    private volatile System.Boolean _keepReading;
+    private System.Threading.CancellationToken _rxToken;                    // cached linked token
+    private System.Threading.CancellationTokenSource? _rxCts;               // linked CTS reused for the whole loop
+    private System.Threading.CancellationToken _lastExternalToken;          // remember last external to avoid relinking
+    private System.Threading.CancellationTokenRegistration? _rxShutdownReg; // socket shutdown registration on cancel
+    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                            .Rent(256);
 
     #endregion Fields
 
@@ -33,7 +42,7 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// <summary>
     /// Event triggered when the connection is disconnected.
     /// </summary>
-    public System.Action? Disconnected;
+    public event System.Action? Disconnected;
 
     /// <summary>
     /// Gets the last ping time in milliseconds.
@@ -70,6 +79,17 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
             return;
         }
 
+        _keepReading = true;
+
+        // Reuse last external token if caller passes default but we had one before
+        if (!cancellationToken.CanBeCanceled && _lastExternalToken.CanBeCanceled)
+        {
+            cancellationToken = _lastExternalToken;
+        }
+
+        // Link only if needed; otherwise reuse existing _rxToken
+        this.EnsureLinkedToken(cancellationToken);
+
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -80,42 +100,83 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
 
             args.Completed += (sender, args) =>
             {
+                // Capture first, then dispose
+                var se = args.SocketError;
+                var bt = args.BytesTransferred;
+                args.Dispose();
+
                 // Convert the result to Task to keep the API intact
-                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
-                tcs.SetResult(args.BytesTransferred);
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new(
+                    System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+                if (se == System.Net.Sockets.SocketError.Success)
+                {
+                    tcs.SetResult(bt);
+                }
+                else
+                {
+                    tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)se));
+                }
 
                 System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
                 _ = System.Threading.Tasks.Task.Run(async () =>
                 {
                     try
                     {
-                        await this.OnReceiveCompleted(receiveTask, cancellationToken);
+                        await this.OnReceiveCompleted(receiveTask, _rxToken)
+                                  .ConfigureAwait(false);
                     }
+                    catch (System.OperationCanceledException) { }
+                    catch (System.ObjectDisposedException) { }
                     catch (System.Net.Sockets.SocketException ex) when
-                        (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
+                        (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
+                         System.Net.Sockets.SocketError.OperationAborted)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug("[{0}] _udpListener reset", nameof(TransportStream));
-                        this.Disconnected?.Invoke();
+                        this.OnDisconnected();
                     }
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
                     }
-                }, cancellationToken);
+                }, _rxToken);
             };
 
             if (!this._socket.ReceiveAsync(args))
             {
-                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
-                tcs.SetResult(args.BytesTransferred);
+                var se = args.SocketError;
+                var bt = args.BytesTransferred;
+                args.Dispose();
+
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new(
+                    System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+                if (se == System.Net.Sockets.SocketError.Success)
+                {
+                    tcs.SetResult(bt);
+                }
+                else
+                {
+                    tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)se));
+                }
 
                 System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
                 _ = System.Threading.Tasks.Task.Run(async () =>
                 {
-                    await this.OnReceiveCompleted(receiveTask, cancellationToken);
-                }, cancellationToken);
+                    try
+                    {
+                        await this.OnReceiveCompleted(receiveTask, _rxToken)
+                                  .ConfigureAwait(false);
+                    }
+                    catch (System.OperationCanceledException) { }
+                    catch (System.ObjectDisposedException) { }
+                    catch (System.Net.Sockets.SocketException ex) when
+                        (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
+                                               System.Net.Sockets.SocketError.OperationAborted)
+                    {
+                        this.OnDisconnected();
+                    }
+                }, _rxToken);
             }
         }
         catch (System.Exception ex)
@@ -194,7 +255,10 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
             _ = _socket.Send(buffer, 0, totalLength, System.Net.Sockets.SocketFlags.None);
 
             // Note: _cache only supports ReadOnlyMemory<byte>, so convert
-            this._cache.PushOutgoing(System.MemoryExtensions.AsMemory(buffer, 2, totalLength));
+            this._cache.PushOutgoing(System.MemoryExtensions
+                       .AsMemory(buffer, 2, totalLength - 2)
+                       .ToArray());
+
             return true;
         }
         catch (System.Exception ex)
@@ -244,7 +308,9 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                                     .Debug("[{0}] Sending data async", nameof(TransportStream));
 
             _ = await this._socket.SendAsync(System.MemoryExtensions
-                                  .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken);
+                                  .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken)
+                                  .ConfigureAwait(false);
+
             this._cache.PushOutgoing(data);
 
             return true;
@@ -296,7 +362,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                                 .Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
     }
 
-
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached.
     /// </summary>
@@ -321,10 +386,14 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// Handles the completion of data reception.
     /// </summary>
     /// <param name="task">The task representing the read operation.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="_">The cancellation token.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private async System.Threading.Tasks.Task OnReceiveCompleted(
         System.Threading.Tasks.Task<System.Int32> task,
-        System.Threading.CancellationToken cancellationToken)
+        System.Threading.CancellationToken _)
     {
         if (task.IsCanceled || this._disposed)
         {
@@ -339,41 +408,92 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TransportStream)}] Clients closed");
 
-                this.Disconnected?.Invoke();
+                this.OnDisconnected();
                 return;
             }
 
+            // Ensure full 2-byte header
             if (totalBytesRead < 2)
             {
-                return;
+                while (totalBytesRead < 2)
+                {
+                    System.Int32 bytesRead;
+                    var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Int32>(
+                        System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+                    var saea = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                       .Get<PooledSocketAsyncContext>();
+                    try
+                    {
+                        saea.SetBuffer(this._buffer, totalBytesRead, 2 - totalBytesRead);
+                        saea.UserToken = tcs;
+
+                        if (!this._socket.ReceiveAsync(saea))
+                        {
+                            if (saea.SocketError == System.Net.Sockets.SocketError.Success)
+                            {
+                                tcs.SetResult(saea.BytesTransferred);
+                            }
+                            else
+                            {
+                                tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)saea.SocketError));
+                            }
+                        }
+
+                        bytesRead = await tcs.Task;
+                    }
+                    finally
+                    {
+                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                .Return(saea);
+                    }
+
+                    if (bytesRead == 0)
+                    {
+                        this.OnDisconnected();
+                        return;
+                    }
+
+                    totalBytesRead += bytesRead;
+                }
             }
 
-            System.Int32 offset = 0;
-            System.UInt16 size = System.BitConverter.ToUInt16(this._buffer, offset);
-            offset += sizeof(System.UInt16);
+            // Read size (includes the 2-byte header)
+            System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(this._buffer);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
+                                    .Debug($"[{nameof(TransportStream)}] Packet size: {size} bytes.");
+
+            if (size < 2)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(TransportStream)}] Invalid packet size: {size} (must be >= 2).");
+                return;
+            }
 
             if (size > InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[{0}] Size {1} exceeds max {2} ", nameof(TransportStream), size,
-                                        InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize);
+                                        .Error($"[{nameof(TransportStream)}] Size {size} exceeds max " +
+                                               $"{InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize} bytes.");
 
                 return;
             }
 
+            // If need a bigger buffer
             if (size > _buffer.Length)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("[{0}] Renting larger buffer", nameof(TransportStream));
+                                        .Debug($"[{nameof(TransportStream)}] Renting larger buffer");
 
                 InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                         .Return(_buffer);
 
-                _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(size);
+                _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                  .Rent(size);
+
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(_buffer, size);
             }
 
+            // Read remaining bytes until we reach 'size'
             while (totalBytesRead < size)
             {
                 System.Int32 bytesRead;
@@ -411,7 +531,7 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Debug($"[{nameof(TransportStream)}] Clients closed during read");
 
-                    this.Disconnected?.Invoke();
+                    this.OnDisconnected();
                     return;
                 }
 
@@ -421,25 +541,31 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
             if (totalBytesRead == size)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("[{0}] Packet received", nameof(TransportStream));
+                                        .Debug($"[{nameof(TransportStream)}] Packet received");
 
-                this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+                this._cache.LastPingTime = Clock.UnixMillisecondsNow();
 
                 this._cache.PushIncoming(System.MemoryExtensions
-                           .AsMemory(this._buffer, 2, totalBytesRead));
+                           .AsMemory(this._buffer, 2, size - 2));
             }
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[{0}] Incomplete packet", nameof(TransportStream));
+                                        .Error($"[{nameof(TransportStream)}] Incomplete packet: read {totalBytesRead}/{size} bytes.");
             }
         }
         catch (System.Net.Sockets.SocketException ex) when
-              (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
+              (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
+                                     System.Net.Sockets.SocketError.OperationAborted)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] _udpListener reset", nameof(TransportStream));
-            this.Disconnected?.Invoke();
+                                    .Debug($"[{nameof(TransportStream)}] connection reset/aborted");
+
+            this.OnDisconnected();
+        }
+        catch (System.ObjectDisposedException)
+        {
+            _keepReading = false;
         }
         catch (System.Exception ex)
         {
@@ -448,7 +574,12 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
         }
         finally
         {
-            this.BeginReceive(cancellationToken);
+            // Only continue when still valid
+            if (_keepReading && !_disposed && !(_rxCts?.IsCancellationRequested ?? false))
+            {
+                // Preserve external token link
+                this.BeginReceive(_lastExternalToken);
+            }
         }
     }
 
@@ -458,26 +589,41 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
     private void Dispose(System.Boolean disposing)
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
 
         if (disposing)
         {
-            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(this._buffer);
+            // stop loop & cancel token first
+            _keepReading = false;
+            try
+            {
+                _rxCts?.Cancel();
+            }
+            catch { }
 
             try
             {
                 this._socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
             }
-            catch (System.Exception ex)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("[{0}] Error shutting down socket: {1}", nameof(TransportStream), ex.Message);
-            }
+            catch { /* ignore */ }
 
-            this._socket.Close();
+            try
+            {
+                this._socket.Close();
+            }
+            catch { /* ignore */ }
+
+            _rxShutdownReg?.Dispose();
+            _rxCts?.Dispose();
+            _rxShutdownReg = null;
+            _rxCts = null;
+
+            // now it’s safe to return pooled buffer
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(this._buffer);
 
             this._cache.Dispose();
             this._socket.Dispose();
@@ -487,6 +633,59 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug("TransportStream disposed");
     }
+
+    // Ensure linked token once; recreate only when necessary
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void EnsureLinkedToken(System.Threading.CancellationToken externalToken)
+    {
+        // Recreate if: none, already canceled, or external token changed
+        if (_rxCts is null
+            || _rxCts.IsCancellationRequested
+            || !_lastExternalToken.Equals(externalToken))
+        {
+            _rxShutdownReg?.Dispose();
+            _rxCts?.Dispose();
+
+            _rxCts = externalToken.CanBeCanceled
+                ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, externalToken)
+                : System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+
+            _rxToken = _rxCts.Token;
+            _lastExternalToken = externalToken;
+
+            // Wake ReceiveAsync on cancel
+            _rxShutdownReg = _rxToken.Register(() =>
+            {
+                try { _socket.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
+                try { _socket.Close(); } catch { }
+            });
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void OnDisconnected()
+    {
+        // Stop the receive loop exactly once
+        if (_keepReading)
+        {
+            _keepReading = false;
+            try { _rxCts?.Cancel(); } catch { /* ignore */ }
+        }
+
+        // Notify subscribers (outside world)
+        try
+        {
+            Disconnected?.Invoke();
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Error("[{0}] Disconnected handler error: {1}", nameof(TransportStream), ex.Message);
+        }
+    }
+
 
     #endregion Private Methods
 
