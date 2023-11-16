@@ -16,8 +16,8 @@
 		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
 
-		<Version>3.4.0</Version>
-		<PackageVersion>3.4.0</PackageVersion>
+		<Version>3.7.0</Version>
+		<PackageVersion>3.7.0</PackageVersion>
 
 		<Description>
 A high-performance, configurable TCP remote client for integrating with Nalix-based systems. Provides reliable communication, automatic packet handling, and simple async connection support.
