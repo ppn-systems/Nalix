@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Interfaces;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
@@ -20,14 +21,12 @@ namespace Nalix.SDK.Remote.Core;
 public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TPacket>
-    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>
+    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>, IAsyncActivatable
 {
     #region Fields
 
     private readonly System.Net.IPEndPoint _remoteEndPoint;
     private readonly System.Net.Sockets.UdpClient _udpClient;
-
-    private System.Threading.CancellationTokenSource _cts;
 
     #endregion Fields
 
@@ -67,53 +66,11 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     }
 
     /// <summary>
-    /// Starts the receiving loop asynchronously.
-    /// </summary>
-    /// <param name="externalToken">An optional external cancellation token to allow controlled shutdown.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_cts))]
-    public void StartReceiving(System.Threading.CancellationToken externalToken = default)
-    {
-        if (this.IsReceiving)
-        {
-            return;
-        }
-
-        _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(externalToken);
-        _ = ReceiveLoopAsync(_cts.Token);
-
-        this.IsReceiving = true;
-    }
-
-    /// <summary>
-    /// Stops the UDP client, cancels receiving operations, and disposes internal resources.
-    /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    public void StopReceiving()
-    {
-        _cts?.Cancel();
-        _udpClient?.Dispose();
-
-        this.IsReceiving = false;
-    }
-
-    /// <summary>
-    /// Sends a serialized packet asynchronously to the configured remote endpoint.
-    /// </summary>
-    /// <param name="packet">The packet to send.</param>
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    public async System.Threading.Tasks.Task SendAsync(TPacket packet)
-    {
-        System.Memory<System.Byte> memory = packet.Serialize();
-        _ = await _udpClient.SendAsync(memory.ToArray(), memory.Length, _remoteEndPoint);
-    }
-
-    /// <summary>
     /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="PacketReceived"/> event.
     /// </summary>
     /// <param name="token">The cancellation token used to stop the loop.</param>
     [System.Runtime.CompilerServices.SkipLocalsInit]
-    private async System.Threading.Tasks.Task ReceiveLoopAsync(
+    public async System.Threading.Tasks.Task ActivateAsync(
         System.Threading.CancellationToken token)
     {
         while (!token.IsCancellationRequested)
@@ -137,12 +94,38 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     }
 
     /// <summary>
+    /// Stops the UDP client, cancels receiving operations, and disposes internal resources.
+    /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    public async System.Threading.Tasks.Task DeactivateAsync()
+    {
+        _udpClient?.Dispose();
+
+        this.IsReceiving = false;
+
+        await System.Threading.Tasks.Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends a serialized packet asynchronously to the configured remote endpoint.
+    /// </summary>
+    /// <param name="packet">The packet to send.</param>
+    [System.Runtime.CompilerServices.SkipLocalsInit]
+    public async System.Threading.Tasks.Task SendAsync(TPacket packet)
+    {
+        System.Memory<System.Byte> memory = packet.Serialize();
+        _ = await _udpClient.SendAsync(memory.ToArray(), memory.Length, _remoteEndPoint);
+    }
+
+    /// <summary>
     /// Disposes the client and releases all held resources.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public new void Dispose()
+    protected override void Dispose(System.Boolean disposeManaged)
     {
-        this.StopReceiving();
-        System.GC.SuppressFinalize(this);
+        if (disposeManaged)
+        {
+            _ = this.DeactivateAsync();
+        }
     }
 }
