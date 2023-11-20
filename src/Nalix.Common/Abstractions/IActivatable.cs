@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Interfaces;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines a standard contract for components that can be

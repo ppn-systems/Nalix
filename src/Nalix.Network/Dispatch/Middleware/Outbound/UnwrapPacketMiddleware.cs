@@ -1,7 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Models;
+using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
@@ -9,7 +12,6 @@ using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
-using static Nalix.Network.Dispatch.Inspection.PacketRegistry;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -37,7 +39,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         try
         {
-            if (TryResolveTransformer(current.GetType(), out PacketTransformerDelegates? t) && t is not null)
+            PacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>();
+            if (catalog is null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[UnwrapPacketMiddleware] Missing PacketCatalog.");
+                return;
+            }
+
+            if (catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
                 if (needDecrypt)
                 {

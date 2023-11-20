@@ -2,7 +2,7 @@
 
 using Nalix.Common.Security.Cryptography.Enums;
 
-namespace Nalix.Common.Packets.Interfaces;
+namespace Nalix.Common.Packets.Abstractions;
 
 /// <summary>
 /// Defines the static transformation contract for a packet type, including
