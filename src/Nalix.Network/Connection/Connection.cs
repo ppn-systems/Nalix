@@ -62,7 +62,7 @@ public sealed partial class Connection : IConnection
         this.Tcp = new TcpTransport(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this.RemoteEndPoint.ToString());
+                                .Debug($"[{nameof(Connection)}] Connection created for {this.RemoteEndPoint}");
     }
 
     #endregion Constructor
@@ -169,7 +169,7 @@ public sealed partial class Connection : IConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
+                                    .Error($"[{nameof(Connection)}] Close error: {ex.Message}");
         }
     }
 
@@ -208,7 +208,7 @@ public sealed partial class Connection : IConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
+                                    .Error($"[{nameof(Connection)}] Dispose error: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
