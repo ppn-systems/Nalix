@@ -107,6 +107,7 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
     {
         Text256 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Text256>();
+
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
