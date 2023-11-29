@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Logging;
+namespace Nalix.Common.Logging.Models;
 
 /// <summary>
 /// Represents a single log entry recorded by the logging system.

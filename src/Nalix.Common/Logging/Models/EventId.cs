@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Logging;
+namespace Nalix.Common.Logging.Models;
 
 /// <summary>
 /// Identifies a logging event. The primary identifier is the "TransportProtocol" property, with the "Name" property providing a short description of this type of event.
