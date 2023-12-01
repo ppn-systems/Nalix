@@ -3,14 +3,16 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Network.Dispatch.Abstractions;
 using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Channel;
-using Nalix.Network.Dispatch.Core.Engine;
-using Nalix.Network.Dispatch.Core.Interfaces;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
 
-namespace Nalix.Network.Dispatch;
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+
+namespace Nalix.Network.Dispatch.Internal;
 
 /// <summary>
 /// Represents an ultra-high performance raw dispatcher designed for asynchronous, queue-based processing
@@ -37,7 +39,7 @@ namespace Nalix.Network.Dispatch;
 /// </code>
 /// </example>
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
-public sealed class PacketDispatchChannel
+internal sealed class PacketDispatchChannel
     : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
 {
     #region Fields

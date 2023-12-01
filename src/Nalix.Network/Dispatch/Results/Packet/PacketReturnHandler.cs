@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Network.Dispatch.Core.Context;
 
 namespace Nalix.Network.Dispatch.Results.Packet;
 

@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Middleware.Core.Enums;
+using Nalix.Network.Dispatch.Enums;
 
-namespace Nalix.Network.Dispatch.Middleware.Core.Attributes;
+namespace Nalix.Network.Dispatch.Attributes;
 
 /// <summary>
 /// Attribute to mark a class as a packet middleware and specify its stage, order, and optional name.
