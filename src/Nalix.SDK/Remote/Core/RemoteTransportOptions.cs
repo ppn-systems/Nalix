@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Security.Cryptography.Enums;
+using Nalix.Common.Security.Enums;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.SDK.Remote.Core;

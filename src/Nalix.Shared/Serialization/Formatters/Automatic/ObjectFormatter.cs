@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Exceptions;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Accessors;
