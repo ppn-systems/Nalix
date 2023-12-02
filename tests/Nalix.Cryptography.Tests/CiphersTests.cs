@@ -1,7 +1,5 @@
 using Nalix.Common.Exceptions;
-using Nalix.Common.Security.Cryptography;
-using Nalix.Common.Security.Cryptography.Enums;
-using Nalix.Cryptography;
+using Nalix.Common.Security.Enums;
 using System;
 using System.Text;
 using Xunit;
@@ -11,9 +9,9 @@ namespace Nalix.Cryptography.Tests;
 public class CiphersTests
 {
     // Test data (Dữ liệu test)
-    private readonly byte[] _validKey = new byte[32]; // Key 32 bytes
+    private readonly Byte[] _validKey = new Byte[32]; // Key 32 bytes
 
-    private readonly Memory<byte> _validData; // Dữ liệu hợp lệ
+    private readonly Memory<Byte> _validData; // Dữ liệu hợp lệ
 
     public CiphersTests()
     {
@@ -76,7 +74,7 @@ public class CiphersTests
     public void Encrypt_EmptyData_ShouldThrowArgumentException()
     {
         // Arrange
-        Memory<byte> emptyData = Array.Empty<byte>();
+        Memory<Byte> emptyData = Array.Empty<Byte>();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -89,7 +87,7 @@ public class CiphersTests
     public void TryEncrypt_ValidInputs_ShouldReturnTrue()
     {
         // Act
-        bool success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted, SymmetricAlgorithmType.XTEA);
+        Boolean success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.True(success);
@@ -103,7 +101,7 @@ public class CiphersTests
         var encrypted = Ciphers.Encrypt(_validData, _validKey, SymmetricAlgorithmType.XTEA);
 
         // Act
-        bool success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted, SymmetricAlgorithmType.XTEA);
+        Boolean success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.True(success);
@@ -114,7 +112,7 @@ public class CiphersTests
     public void TryEncrypt_InvalidInputs_ShouldReturnFalse()
     {
         // Act
-        bool success = Ciphers.TryEncrypt(_validData, null!, out var encrypted, SymmetricAlgorithmType.XTEA);
+        Boolean success = Ciphers.TryEncrypt(_validData, null!, out var encrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.False(success);
