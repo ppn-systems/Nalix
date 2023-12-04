@@ -4,9 +4,6 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Abstractions;
 using Nalix.Network.Dispatch.Attributes;
 using Nalix.Network.Dispatch.Enums;
-using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -28,19 +25,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<Text256>();
-            try
-            {
-                text.Initialize("Permission denied. You are not authorized to perform this action.");
-                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-                return;
-            }
-            finally
-            {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(text);
-            }
+            _ = await context.Connection.Tcp.SendAsync("Permission denied. You are not authorized to perform this action.")
+                                            .ConfigureAwait(false);
         }
 
         await next();

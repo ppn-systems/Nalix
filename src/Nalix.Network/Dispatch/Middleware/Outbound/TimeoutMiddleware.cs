@@ -4,9 +4,6 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Abstractions;
 using Nalix.Network.Dispatch.Attributes;
 using Nalix.Network.Dispatch.Enums;
-using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -30,29 +27,18 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             using System.Threading.CancellationTokenSource cts = new();
             System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, cts.Token);
 
-            System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay);
+            System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay)
+                                                                                     .ConfigureAwait(false);
 
             if (completed == delay)
             {
-                Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                       .Get<Text256>();
-                try
-                {
-                    text.Initialize($"Request timeout ({timeout}ms).");
-                    _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-                    return;
-                }
-                finally
-                {
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return(text);
-                }
+                _ = await context.Connection.Tcp.SendAsync($"Request timeout ({timeout}ms).")
+                                                .ConfigureAwait(false);
             }
             else
             {
                 cts.Cancel();
-                await execution;
+                await execution.ConfigureAwait(false);
             }
         }
         else

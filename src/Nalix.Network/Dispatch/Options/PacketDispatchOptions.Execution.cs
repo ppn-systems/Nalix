@@ -2,9 +2,6 @@
 
 using Nalix.Network.Dispatch.Delegates;
 using Nalix.Network.Dispatch.Results;
-using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -12,13 +9,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
 {
     #region Private Methods
 
-    private async System.Threading.Tasks.ValueTask ExecuteHandler(
+    private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
         if (this._pipeline is not null)
         {
-            await this._pipeline.ExecuteAsync(context, Terminal).ConfigureAwait(false);
+            await this._pipeline.ExecuteAsync(context, Terminal)
+                                .ConfigureAwait(false);
         }
         else
         {
@@ -30,20 +28,23 @@ public sealed partial class PacketDispatchOptions<TPacket>
             try
             {
                 // Execute the handler and await the ValueTask once
-                System.Object? result = await descriptor.ExecuteAsync(context);
+                System.Object? result = await descriptor.ExecuteAsync(context)
+                                                        .ConfigureAwait(false);
 
                 // Handle the result
                 IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
-                await returnHandler.HandleAsync(result, context);
+                await returnHandler.HandleAsync(result, context)
+                                   .ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {
-                await this.HandleExecutionException(descriptor, context, ex);
+                await this.HandleExecutionExceptionAsync(descriptor, context, ex)
+                          .ConfigureAwait(false);
             }
         }
     }
 
-    private async System.Threading.Tasks.ValueTask HandleExecutionException(
+    private async System.Threading.Tasks.ValueTask HandleExecutionExceptionAsync(
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context,
         System.Exception exception)
@@ -53,20 +54,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                               .Get<Text256>();
-        try
-        {
-            text.Initialize("Internal server error");
-            _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-            return;
-        }
-        finally
-        {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<Text256>(text);
-        }
+        _ = await context.Connection.Tcp.SendAsync("Internal server error")
+                                    .ConfigureAwait(false);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
