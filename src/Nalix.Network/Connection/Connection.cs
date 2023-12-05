@@ -6,7 +6,7 @@ using Nalix.Common.Security.Abstractions;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
-using Nalix.Network.Connection.Internal;
+using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
