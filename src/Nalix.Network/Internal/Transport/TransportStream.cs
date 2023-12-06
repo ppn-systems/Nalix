@@ -28,6 +28,7 @@ internal class TransportStream(
 
     private System.Boolean _disposed;
     private volatile System.Boolean _keepReading;
+    private System.Threading.Tasks.Task? _rxLoopTask;
     private System.Threading.CancellationToken _rxToken;                    // cached linked token
     private System.Threading.CancellationTokenSource? _rxCts;               // linked CTS reused for the whole loop
     private System.Threading.CancellationToken _lastExternalToken;          // remember last external to avoid relinking

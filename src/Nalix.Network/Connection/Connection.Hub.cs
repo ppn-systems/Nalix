@@ -297,23 +297,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         for (System.Int32 i = 0; i < filteredConnections.Count; i++)
         {
             IConnection connection = filteredConnections[i];
-            tasks[i] = System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    await sendFunc(connection, message).ConfigureAwait(false);
-                }
-                catch (System.Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(ConnectionHub)}] Filtered broadcast error for {connection.Id}: {ex.Message}");
-                }
-            }, cancellationToken);
+            tasks[i] = sendFunc(connection, message);
         }
 
         try
         {
-            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.WhenAll(tasks)
+                                             .ConfigureAwait(false);
         }
         catch (System.OperationCanceledException)
         {

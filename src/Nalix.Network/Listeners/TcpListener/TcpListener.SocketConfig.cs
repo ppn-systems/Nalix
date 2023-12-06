@@ -74,7 +74,7 @@ public abstract partial class TcpListenerBase
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
             // No need for LingerState if not close soon
-            LingerState = new System.Net.Sockets.LingerOption(true, SocketOptions.False)
+            LingerState = new System.Net.Sockets.LingerOption(false, SocketOptions.False)
         };
 
         // Increase the queue size on the socket listener.
