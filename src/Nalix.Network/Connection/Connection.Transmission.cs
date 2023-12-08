@@ -158,7 +158,7 @@ public sealed partial class Connection : IConnection
             if (packet is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                                        .Warn($"[{nameof(Connection)}] Packet is null. Cannot send message.");
                 return false;
             }
 
