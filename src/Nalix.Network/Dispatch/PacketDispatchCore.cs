@@ -107,8 +107,9 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
         if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler))
         {
+#if DEBUG
             this.Logger?.Debug($"[DispatchCore] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");
-
+#endif
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
