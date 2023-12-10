@@ -7,8 +7,8 @@
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 
-		<Version>3.8.0</Version>
-		<PackageVersion>3.8.0</PackageVersion>
+		<Version>4.0.0</Version>
+		<PackageVersion>4.0.0</PackageVersion>
 
 		<Description>
 Nalix.Logging is a flexible and high-performance logging library for .NET. It provides core logging infrastructure, customizable formatters, multiple logging targets, and internal utilities for efficient log processing. Designed for developers who need structured and extensible logging capabilities in high-performance applications.
