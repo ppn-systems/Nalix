@@ -2,6 +2,7 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;

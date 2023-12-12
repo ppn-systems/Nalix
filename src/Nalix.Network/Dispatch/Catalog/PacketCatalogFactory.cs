@@ -205,48 +205,46 @@ public sealed class PacketCatalogFactory
         // 2) CreateCatalog maps
         foreach (System.Type type in candidates)
         {
-            MagicNumberAttribute? magicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type);
+            var magicAttr = System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<MagicNumberAttribute>(type);
+
             if (magicAttr is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] " +
-                                               $"Type has no MagicNumberAttribute, skipping: {type.FullName}");
-                continue; // only types with magic number are packets
-            }
-
-            // Find IPacketTransformer<TPacket>
-            System.Type? transformerIface = System.Linq.Enumerable.FirstOrDefault(type.GetInterfaces(),
-                i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
-
-            if (transformerIface is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] Packet type has MagicNumber but no IPacketTransformer<>: " +
-                                               $"{type.FullName}, magic=0x{magicAttr.MagicNumber:X8}");
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] Type has no MagicNumberAttribute, skipping: {type.FullName}");
                 continue;
             }
 
-            System.Type closed = typeof(IPacketTransformer<>).MakeGenericType(type);
+            // NEW: detect pipeline-managed transform
+            System.Boolean pipelineManaged = System.Reflection.CustomAttributeExtensions
+                .IsDefined(type, typeof(PipelineManagedTransformAttribute), inherit: false);
 
-            // CreateCatalog deserializer
-            System.Reflection.MethodInfo? deserialize = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Deserialize));
+            // Find IPacketTransformer<TPacket> (if any)
+            System.Type? transformerIface = System.Linq.Enumerable.FirstOrDefault(
+                type.GetInterfaces(),
+                i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
+
+            var closed = (transformerIface is not null)
+                ? typeof(IPacketTransformer<>).MakeGenericType(type)
+                : null;
+
+            // Always try to register deserializer if present
+            System.Reflection.MethodInfo? deserialize = closed?.PublicStatic(nameof(IPacketTransformer<IPacket>.Deserialize));
             if (deserialize != null)
             {
                 if (deserializers.ContainsKey(magicAttr.MagicNumber))
                 {
-                    if (InstanceManager.Instance.GetExistingInstance<ILogger>() != null)
+                    if (InstanceManager.Instance.GetExistingInstance<ILogger>() is not null)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()!
-                                                .Error($"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber found: " +
-                                                       $"0x{magicAttr.MagicNumber:X8} on {type.FullName}");
-
-                        continue; // Skip this type, already registered
+                                                .Error($"[{nameof(PacketCatalogFactory)}] " +
+                                                       $"Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                        continue;
                     }
                     else
                     {
                         throw new System.InvalidOperationException(
-                            $"[{nameof(PacketCatalogFactory)}] " +
-                            $"Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                            $"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
                     }
                 }
 
@@ -254,41 +252,37 @@ public sealed class PacketCatalogFactory
                 deserializers[magicAttr.MagicNumber] = del;
             }
 
-            // CreateCatalog transformer
-            System.Reflection.MethodInfo? encrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Encrypt));
-            System.Reflection.MethodInfo? decrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decrypt));
-            System.Reflection.MethodInfo? compress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Compress));
-            System.Reflection.MethodInfo? decompress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decompress));
-
-            if (compress == null)
+            // NEW: if pipeline-managed, skip transformer binding entirely
+            if (pipelineManaged)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
-                                              $"(Compress), skipping transformers.");
+                                        .Debug($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"Pipeline-managed transform: skipping transformer binding for {type.FullName}");
                 continue;
             }
 
-            if (decompress == null)
+            // Otherwise, bind transformer methods as before
+            if (closed is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
-                                              $"(Decompress), skipping transformers.");
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"Packet type has MagicNumber but no IPacketTransformer<>: " +
+                                               $"{type.FullName}, magic=0x{magicAttr.MagicNumber:X8}");
                 continue;
             }
 
-            if (encrypt == null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
-                                              $"(Encrypt), skipping transformers.");
-                continue;
-            }
+            var encrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Encrypt));
+            var decrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decrypt));
+            var compress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Compress));
+            var decompress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decompress));
 
-            if (decrypt == null)
+            // Enforce availability when not pipeline-managed
+            if (compress == null || decompress == null || encrypt == null || decrypt == null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
-                                              $"(Decrypt), skipping transformers.");
+                                        .Warn($"[{nameof(PacketCatalogFactory)}] " +
+                                              $"Missing transformer methods for {type.FullName}. " +
+                                              $"Skipping transformers.");
                 continue;
             }
 
@@ -300,8 +294,8 @@ public sealed class PacketCatalogFactory
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketCatalogFactory)}] " +
-                                      $"Built: {deserializers.Count} packets, {transformers.Count} transformers.");
+                        .Info($"[{nameof(PacketCatalogFactory)}] " +
+                              $"Built: {deserializers.Count} packets, {transformers.Count} transformers.");
 
         return new PacketCatalog(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),

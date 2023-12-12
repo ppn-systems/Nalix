@@ -1,62 +1,70 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Attributes;
+namespace Nalix.Common.Enums;
 
 /// <summary>
-/// Defines unique magic numbers used to identify specific packet types
-/// in the networking and serialization system.  
-/// Magic numbers are written in the packet header to quickly determine  
-/// how the payload should be interpreted.
+/// Defines reserved <c>MagicNumber</c> values used internally by the framework
+/// for core packet types (handshake, control, text, and binary).  
+/// <para>
+/// <b>Important:</b> The range <c>0x0000_A000</c> – <c>0x0000_AFFF</c> is
+/// reserved for system/default packets.  
+/// Do not assign custom packets within this range to avoid collisions.
+/// </para>
+/// <para>
+/// Custom packet types should use a different range,
+/// e.g., <c>0x0100_0000</c> and above for application-level protocols.
+/// </para>
 /// </summary>
 public enum MagicNumbers : System.UInt32
 {
     /// <summary>
     /// No magic number assigned.
     /// </summary>
-    Unknown = 0x00000000,
+    Unknown = 0x0000_A000,
 
     /// <summary>
-    /// Represents the handshake process used to establish a connection or agreement between two parties.
+    /// Represents the handshake process used to establish a connection or
+    /// agreement between two parties.
     /// </summary>
-    Handshake = 0x0000A001,
+    Handshake = 0x0000_A001,
 
     /// <summary>
     /// Control packet used for signaling or managing protocol state.
     /// </summary>
-    Control = 0x0000A009,
+    Control = 0x0000_A002,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 128 bytes.
     /// </summary>
-    Binary128 = 0x0000A002,
+    Binary128 = 0x0000_A003,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 256 bytes.
     /// </summary>
-    Binary256 = 0x0000A003,
+    Binary256 = 0x0000_A004,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 512 bytes.
     /// </summary>
-    Binary512 = 0x0000A004,
+    Binary512 = 0x0000_A005,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 1024 bytes.
     /// </summary>
-    Binary1024 = 0x0000A005,
+    Binary1024 = 0x0000_A006,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 256 bytes.
     /// </summary>
-    Text256 = 0x0000A006,
+    Text256 = 0x0000_A007,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 512 bytes.
     /// </summary>
-    Text512 = 0x0000A007,
+    Text512 = 0x0000_A008,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 1024 bytes.
     /// </summary>
-    Text1024 = 0x0000A008
+    Text1024 = 0x0000_A009
 }
