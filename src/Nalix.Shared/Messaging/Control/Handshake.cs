@@ -40,7 +40,7 @@ public class Handshake : FrameBase, IPacketTransformer<Handshake>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.End)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion)]
     public System.Byte[] Data { get; set; }
 
     /// <summary>
