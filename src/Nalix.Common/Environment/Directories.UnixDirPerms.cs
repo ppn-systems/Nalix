@@ -327,14 +327,9 @@ public static partial class Directories
     }
 
     // P/Invoke libc chmod (fallback for Unix)
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Runtime.InteropServices.LibraryImport(
-        "libc",
-        EntryPoint = "chmod",
-        SetLastError = true,
-        StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf8)]
-    [System.CodeDom.Compiler.GeneratedCode("Microsoft.Interop.LibraryImportGenerator", "9.0.12.36511")]
     private static unsafe System.Int32 Chmod([System.Diagnostics.CodeAnalysis.DisallowNull] System.String pathname, System.UInt32 mode)
     {
         System.Byte* __pathname_native = default;
