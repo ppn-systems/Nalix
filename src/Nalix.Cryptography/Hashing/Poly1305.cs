@@ -55,6 +55,26 @@ public sealed class Poly1305 : System.IDisposable
     /// </summary>
     private System.Boolean _disposed;
 
+    /// <summary>
+    /// Internal accumulator for incremental API (h[0..4]).
+    /// </summary>
+    private readonly System.UInt32[] _acc = new System.UInt32[5];
+
+    /// <summary>
+    /// Pending partial block buffer (up to 16 bytes).
+    /// </summary>
+    private readonly System.Byte[] _pending = new System.Byte[16];
+
+    /// <summary>
+    /// Current length (0..16) of the pending partial block.
+    /// </summary>
+    private System.Int32 _pendingLen;
+
+    /// <summary>
+    /// Whether FinalizeTag(...) has been called.
+    /// </summary>
+    private System.Boolean _finalized;
+
     #endregion Fields
 
     #region Constructors
@@ -233,6 +253,144 @@ public sealed class Poly1305 : System.IDisposable
 
         // Finalize the tag
         FinalizeTag(accumulator, destination);
+    }
+
+    /// <summary>
+    /// Incrementally absorb message data. 
+    /// You may call Update multiple times before calling <see cref="FinalizeTag(System.Span{System.Byte})"/>.
+    /// </summary>
+    /// <param name="data">Next chunk of the message.</param>
+    /// <exception cref="System.ObjectDisposedException">If the instance is disposed.</exception>
+    /// <exception cref="System.InvalidOperationException">If called after FinalizeTag.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    public void Update(System.ReadOnlySpan<System.Byte> data)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, $"This {nameof(Poly1305)} instance has been disposed.");
+        if (_finalized)
+        {
+            throw new System.InvalidOperationException("Poly1305 has already been finalized.");
+        }
+
+        // If there is pending data, try to fill to 16 bytes first.
+        if (_pendingLen > 0)
+        {
+            System.Int32 need = 16 - _pendingLen;
+            System.Int32 take = data.Length < need ? data.Length : need;
+            if (take > 0)
+            {
+                data[..take].CopyTo(System.MemoryExtensions.AsSpan(_pending, _pendingLen));
+                _pendingLen += take;
+                data = data[take..];
+            }
+
+            if (_pendingLen == 16)
+            {
+                // Process a full 16-byte block as 17 bytes with trailing 0x01 (n[4] = 1).
+                System.Span<System.Byte> block17 = stackalloc System.Byte[17];
+                System.MemoryExtensions.AsSpan(_pending).CopyTo(block17);
+                block17[16] = 0x01;
+
+                // Full block => isFinalBlock = false (there IS the 17th byte)
+                AddBlock(_acc, block17, isFinalBlock: false);
+
+                // Reduce after each block (keeps values bounded)
+                // Multiply() already followed by Modulo() inside AddBlock path, so nothing extra here.
+
+                _pendingLen = 0;
+            }
+        }
+
+        // Now data length is multiple of 16 possibly; process as many full blocks as possible
+        while (data.Length >= 16)
+        {
+            // Take exactly 16 -> treat as 17-byte with block[16] = 0x01
+            System.Span<System.Byte> block17 = stackalloc System.Byte[17];
+            data[..16].CopyTo(block17);
+            block17[16] = 0x01;
+
+            AddBlock(_acc, block17, isFinalBlock: false);
+            data = data[16..];
+        }
+
+        // Stash the tail (<16) into pending
+        if (!data.IsEmpty)
+        {
+            data.CopyTo(System.MemoryExtensions.AsSpan(_pending, _pendingLen));
+            _pendingLen += data.Length;
+        }
+    }
+
+    /// <summary>
+    /// Finalizes the MAC computation and writes the 16-byte tag into <paramref name="tag16"/>.
+    /// After finalization, the instance rejects further <see cref="Update"/> calls.
+    /// </summary>
+    /// <param name="tag16">Destination span for the 16-byte tag.</param>
+    /// <exception cref="System.ObjectDisposedException">If the instance is disposed.</exception>
+    /// <exception cref="System.ArgumentException">If <paramref name="tag16"/> is shorter than 16 bytes.</exception>
+    /// <exception cref="System.InvalidOperationException">If already finalized.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void FinalizeTag(System.Span<System.Byte> tag16)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, $"This {nameof(Poly1305)} instance has been disposed.");
+        if (tag16.Length < TagSize)
+        {
+            throw new System.ArgumentException($"Tag buffer must be {TagSize} bytes.", nameof(tag16));
+        }
+
+        if (_finalized)
+        {
+            throw new System.InvalidOperationException("Poly1305 has already been finalized.");
+        }
+
+        // If there is a remaining partial block (<16), we pad with 0x01 **inside** the 16 bytes (no 17th byte),
+        // i.e., block length = partialLen + 1 <= 16, and isFinalBlock = true.
+        if (_pendingLen > 0)
+        {
+            System.Span<System.Byte> block = stackalloc System.Byte[17]; // we will pass length = (_pendingLen + 1) (<=16)
+            block.Clear();
+            System.MemoryExtensions.AsSpan(_pending, 0, _pendingLen).CopyTo(block);
+            block[_pendingLen] = 0x01;
+
+            // Final block (<16+1), isFinalBlock = true, so AddBlock will set n[4] = 0.
+            AddBlock(_acc, block[..(_pendingLen + 1)], isFinalBlock: true);
+            System.MemoryExtensions.AsSpan(_pending).Clear();
+            _pendingLen = 0;
+        }
+
+        // Produce the tag = (acc mod p) + s (little-endian 16 bytes)
+        FinalizeTag(_acc, tag16);
+
+        // Wipe and lock
+        _finalized = true;
+
+        // Clear sensitive state
+        System.MemoryExtensions.AsSpan(_acc).Clear();
+    }
+
+    //
+    // Optional helpers (convenience overloads).
+    //
+
+    /// <summary>
+    /// Computes tag for the data fed via <see cref="Update"/> and returns a new 16-byte array.
+    /// </summary>
+    public System.Byte[] FinalizeTag()
+    {
+        System.Byte[] tag = new System.Byte[TagSize];
+        FinalizeTag(tag);
+        return tag;
+    }
+
+    /// <summary>
+    /// One-shot helper compatible with incremental: Update(data); FinalizeTag(tag16);
+    /// (Đã có Compute/ComputeTag one-shot ở trên, hàm này chỉ để thuận tiện khi code đã gọi Update trước đó.)
+    /// </summary>
+    public void ComputeTagIncremental(System.ReadOnlySpan<System.Byte> message, System.Span<System.Byte> destination)
+    {
+        Update(message);
+        FinalizeTag(destination);
     }
 
     #endregion Public Methods
