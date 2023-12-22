@@ -5,6 +5,8 @@ namespace Nalix.Framework.Checksums;
 /// <summary>
 /// Provides high-performance methods for calculating CRC-16 checksums using the MODBUS polynomial (0x8005).
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Crc16
 {
     #region Const
