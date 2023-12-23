@@ -6,6 +6,8 @@ namespace Nalix.Framework.Time;
 /// Handles precise time for the system with high accuracy, supporting various time-related operations
 /// required for real-time communication and distributed systems.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Clock
 {
     #region Constants and Fields
