@@ -79,7 +79,7 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
-    public static Binary1024 Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Binary1024 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Binary1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                     .Get<Binary1024>();
