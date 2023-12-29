@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch;
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type that implements both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
+/// The packet type that implements both <see cref="IPacket"/>.
 /// </typeparam>
 public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
 {

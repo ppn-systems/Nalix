@@ -6,7 +6,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Injection;
@@ -20,11 +19,11 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(MagicNumbers.Control)]
+[MagicNumber(MagicNumbers.Handshake)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Handshake : FrameBase, IPacketTransformer<Handshake>
+public class Handshake : FrameBase, IPacketDeserializer<Handshake>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 32;
@@ -53,7 +52,7 @@ public class Handshake : FrameBase, IPacketTransformer<Handshake>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Control;
+        MagicNumber = (System.UInt32)MagicNumbers.Handshake;
     }
 
     /// <summary>
@@ -74,10 +73,10 @@ public class Handshake : FrameBase, IPacketTransformer<Handshake>
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Binary128"/> from the specified buffer.
+    /// Deserializes a <see cref="Handshake"/> from the specified buffer.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
+    /// <returns>A pooled <see cref="Handshake"/> instance.</returns>
     public static Handshake Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Handshake packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -90,42 +89,6 @@ public class Handshake : FrameBase, IPacketTransformer<Handshake>
                 "Failed to deserialize packet: No bytes were read.")
             : packet;
     }
-
-    /// <summary>
-    /// Encrypts the packet content.
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Handshake Encrypt(Handshake packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <summary>
-    /// Decrypts the packet content.
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Decrypt(Handshake packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <summary>
-    /// Compresses <see cref="Data"/> using LZ4 (raw bytes, no Base64).
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Compress(Handshake packet)
-        => throw new System.NotImplementedException();
-
-    /// <summary>
-    /// Decompresses <see cref="Data"/> previously compressed with LZ4.
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Decompress(Handshake packet)
-        => throw new System.NotImplementedException();
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
