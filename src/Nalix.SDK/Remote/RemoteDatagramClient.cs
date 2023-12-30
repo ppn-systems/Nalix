@@ -17,7 +17,7 @@ namespace Nalix.SDK.Remote;
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, IsReceiving={IsReceiving}")]
-public class RemoteDatagramClient
+public sealed class RemoteDatagramClient
     : SingletonBase<RemoteDatagramClient>, System.IDisposable, IAsyncActivatable
 {
     #region Fields

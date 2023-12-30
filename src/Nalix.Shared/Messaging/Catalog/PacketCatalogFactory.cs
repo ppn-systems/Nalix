@@ -44,6 +44,7 @@ namespace Nalix.Shared.Messaging.Catalog;
 /// <c>DynamicDependency</c> or <c>DynamicallyAccessedMembers</c> as appropriate.
 /// </para>
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}")]
 public sealed class PacketCatalogFactory
 {
     #region Static: Defaults & Utilities
@@ -185,26 +186,36 @@ public sealed class PacketCatalogFactory
         /// <summary>
         /// Facade for <see cref="PacketDeserializer"/>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket DoDeserialize(System.ReadOnlySpan<System.Byte> raw) => Deserialize(raw);
 
         /// <summary>
         /// Facade for <see cref="PacketTransformer.Compress"/>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket DoCompress(IPacket p) => Compress((TPacket)p);
 
         /// <summary>
         /// Facade for <see cref="PacketTransformer.Decompress"/>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket DoDecompress(IPacket p) => Decompress((TPacket)p);
 
         /// <summary>
         /// Facade for <see cref="PacketTransformer.Encrypt"/>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket DoEncrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Encrypt((TPacket)p, key, alg);
 
         /// <summary>
         /// Facade for <see cref="PacketTransformer.Decrypt"/>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket DoDecrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Decrypt((TPacket)p, key, alg);
     }
 
@@ -277,6 +288,9 @@ public sealed class PacketCatalogFactory
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when duplicate magic numbers are detected.
     /// </exception>
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
+        "Uses reflection and function pointers to bind static members. " +
+        "Mark packet types' static methods with DynamicDependency or keep them rooted for trimming/AOT.")]
     public PacketCatalog CreateCatalog()
     {
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
