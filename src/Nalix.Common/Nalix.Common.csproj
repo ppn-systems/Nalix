@@ -6,6 +6,7 @@
 		<OutputType>Library</OutputType>
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
 		<Version>4.2.3</Version>
@@ -26,9 +27,6 @@ Nalix.Common is a foundational .NET library that provides essential utilities fo
 			• System utilities for low-level operations.
 			• Repository and connection management for structured data handling.
         </PackageReleaseNotes>
-
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	
     </PropertyGroup>
 
     <Import Project="..\Nalix.Build.props" />
