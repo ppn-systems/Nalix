@@ -6,7 +6,6 @@ using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Dispatch;
 
@@ -18,7 +17,7 @@ namespace Nalix.Network.Dispatch;
 [System.Diagnostics.DebuggerDisplay("PacketDispatch: Logger={Logger != null}")]
 public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>
 {
-    private readonly PacketCatalog _catalog;
+    private readonly IPacketCatalog _catalog;
 
     /// <summary>
     /// The <see cref="PacketDispatch"/> processes incoming packets and invokes corresponding handlers
@@ -30,10 +29,10 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketDispatch(System.Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
-        _catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>()
+        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
-                       $"[{nameof(PacketDispatch)}] PacketCatalog not registered in InstanceManager. " +
-                       $"Make sure to build and register PacketCatalog before starting dispatcher.");
+                       $"[{nameof(PacketDispatch)}] IPacketCatalog not registered in InstanceManager. " +
+                       $"Make sure to build and register IPacketCatalog before starting dispatcher.");
     }
 
     /// <inheritdoc />
