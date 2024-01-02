@@ -10,55 +10,55 @@ public enum ControlType : System.Byte
     /// <summary>
     /// Represents a null or uninitialized control message.
     /// </summary>
-    Null = 0x00,
+    NONE = 0x00,
 
     /// <summary>
     /// Represents a ping message used to check the connection status.
     /// </summary>
-    Ping = 0x01,
+    PING = 0x01,
 
     /// <summary>
     /// Represents a pong message sent in response to a ping.
     /// </summary>
-    Pong = 0x02,
+    PONG = 0x02,
 
     /// <summary>
     /// Represents an acknowledgment message confirming receipt of a message.
     /// </summary>
-    Ack = 0x03,
+    ACK = 0x03,
 
     /// <summary>
     /// Represents a disconnect message indicating the termination of a connection.
     /// </summary>
-    Disconnect = 0x04,
+    DISCONNECT = 0x04,
 
     /// <summary>
     /// Represents an error message indicating a problem or failure in the connection.
     /// </summary>
-    Error = 0x05,
+    ERROR = 0x05,
 
     /// <summary>
     /// Represents a handshake message used to initiate or negotiate a connection.
     /// </summary>
-    Handshake = 0x06,
+    HANDSHAKE = 0x06,
 
     /// <summary>
     /// Represents a heartbeat message used to maintain an active connection.
     /// </summary>
-    Heartbeat = 0x07,
+    HEARTBEAT = 0x07,
 
     /// <summary>
     /// Represents a negative acknowledgment message indicating that a message was not received or processed successfully.
     /// </summary>
-    Nack = 0x08,
+    NACK = 0x08,
 
     /// <summary>
     /// Represents a resume message used to continue a previously interrupted connection or session.
     /// </summary>
-    Resume = 0x09,
+    RESUME = 0x09,
 
     /// <summary>
     /// Represents a shutdown message indicating a request to gracefully terminate the connection or service.
     /// </summary>
-    Shutdown = 0x0A
+    SHUTDOWN = 0x0A
 }

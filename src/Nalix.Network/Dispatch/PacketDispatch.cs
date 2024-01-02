@@ -44,7 +44,7 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
         {
             Logger?.Warn(
                 $"[{nameof(PacketDispatch)}] " +
-                $"Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+                $"NONE System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
@@ -61,7 +61,7 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
         if (raw == null)
         {
             Logger?.Warn(
-                $"[{nameof(PacketDispatch)}] Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
+                $"[{nameof(PacketDispatch)}] NONE ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
 
             return;
         }

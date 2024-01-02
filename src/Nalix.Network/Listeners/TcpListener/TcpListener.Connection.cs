@@ -366,7 +366,7 @@ public abstract partial class TcpListenerBase
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TcpListenerBase)}] Error closing socket: {ex.Message}");
+                                    .Debug($"[{nameof(TcpListenerBase)}] ERROR closing socket: {ex.Message}");
         }
     }
 }

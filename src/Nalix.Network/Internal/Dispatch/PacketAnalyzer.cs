@@ -195,7 +195,7 @@ internal sealed class PacketAnalyzer<
                 $"(packet, connection). Found: {parms.Length}.");
         }
 
-        var pktArgType = parms[0].ParameterType;   // ex: Handshake
+        var pktArgType = parms[0].ParameterType;   // ex: HANDSHAKE
         var connArgType = parms[1].ParameterType;   // ex: IConnection hay Connection
 
         if (!typeof(IPacket).IsAssignableFrom(pktArgType))
