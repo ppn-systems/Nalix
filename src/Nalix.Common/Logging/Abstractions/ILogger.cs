@@ -18,7 +18,7 @@ namespace Nalix.Common.Logging.Abstractions;
 /// ILogger logger = ...;
 /// logger.Info("Server started.");
 /// logger.Warn("Cache miss for key: {0}", key);
-/// logger.Error(new InvalidOperationException("Invalid state"));
+/// logger.ERROR(new InvalidOperationException("Invalid state"));
 ///
 /// // With EventId correlation
 /// EventId startup = new EventId(1001, "Startup");
@@ -160,7 +160,7 @@ public interface ILogger
     void Warn(System.String message, EventId? eventId = null);
 
     // =========================
-    // Error
+    // ERROR
     // =========================
 
     /// <summary>

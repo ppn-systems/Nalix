@@ -82,7 +82,7 @@ public abstract class LogEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected System.Boolean IsEnabled(LogLevel level) => level >= _minLevel;
+    public System.Boolean IsEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -139,7 +139,7 @@ public abstract class LogEngine : System.IDisposable
     /// Releases managed and unmanaged resources used by the logging engine.
     /// </summary>
     /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
-    protected virtual void Dispose(System.Boolean disposing)
+    public virtual void Dispose(System.Boolean disposing)
     {
         // Thread-safe disposal check using Interlocked
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)

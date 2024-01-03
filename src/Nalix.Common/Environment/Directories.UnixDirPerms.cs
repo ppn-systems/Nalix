@@ -73,7 +73,7 @@ public static partial class Directories
         catch (System.Exception ex)
         {
             System.String msg =
-                "Failed to create directory: " + path + ". Error: " + ex.Message +
+                "Failed to create directory: " + path + ". ERROR: " + ex.Message +
                 " (Caller: " + callerMemberName + " at " + nameof(Directories) + ":" + callerLineNumber + ")";
             throw new System.IO.IOException(msg, ex);
         }

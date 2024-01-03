@@ -173,7 +173,7 @@ public sealed class LogOptions : System.IDisposable
         catch (System.Exception ex)
         {
             // Log any disposal errors to debug output
-            System.Diagnostics.Debug.WriteLine($"Error disposing LogOptions: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ERROR disposing LogOptions: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
