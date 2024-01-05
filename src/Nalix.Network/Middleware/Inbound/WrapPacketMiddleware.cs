@@ -8,6 +8,7 @@ using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Catalog;
@@ -43,61 +44,96 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(WrapPacketMiddleware)}] Missing PacketCatalog.");
+
+                await context.Connection.SendAsync(
+                      controlType: ControlType.FAIL,
+                      reason: ReasonCode.CANCELLED,
+                      action: SuggestedAction.NONE,
+                      flags: ControlFlags.NONE,
+                      arg0: context.Attributes.OpCode.OpCode,
+                      arg1: (System.UInt32)current.Flags,
+                      arg2: 0).ConfigureAwait(false);
+
                 return;
             }
 
-            if (catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
-            {
-                if (needCompress)
-                {
-                    if (!t.HasCompress)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[{nameof(WrapPacketMiddleware)}] " +
-                                                       $"No compression delegate found for packet type {current.GetType().Name}.");
-
-                        _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for compression.")
-                                                        .ConfigureAwait(false);
-                        return;
-                    }
-                    current = t.Compress(current);
-                }
-
-                if (needEncrypt)
-                {
-                    if (!t.HasEncrypt)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[{nameof(WrapPacketMiddleware)}] " +
-                                                       $"No encryption delegate found for packet type {current.GetType().Name}.");
-
-                        _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for encryption.")
-                                                        .ConfigureAwait(false);
-                        return;
-                    }
-                    current = t.Encrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
-                }
-
-                if (!ReferenceEquals(current, context.Packet))
-                {
-                    context.SetPacket(current);
-                }
-            }
-            else
+            if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(WrapPacketMiddleware)}] " +
                                                $"No transformer found for packet type {current.GetType().Name}.");
 
-                _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for encryption/compression.")
-                                                .ConfigureAwait(false);
+                await context.Connection.SendAsync(
+                      controlType: ControlType.FAIL,
+                      reason: ReasonCode.UNSUPPORTED_PACKET,
+                      action: SuggestedAction.NONE,
+                      flags: ControlFlags.NONE,
+                      arg0: context.Attributes.OpCode.OpCode,
+                      arg1: (System.UInt32)current.Flags,
+                      arg2: 0).ConfigureAwait(false);
+
+                return;
             }
 
+            if (needCompress)
+            {
+                if (!t.HasCompress)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(WrapPacketMiddleware)}] " +
+                                                   $"No compression delegate found for packet type {current.GetType().Name}.");
+
+                    await context.Connection.SendAsync(
+                          controlType: ControlType.FAIL,
+                          reason: ReasonCode.COMPRESSION_UNSUPPORTED,
+                          action: SuggestedAction.NONE,
+                          flags: ControlFlags.NONE,
+                          arg0: context.Attributes.OpCode.OpCode,
+                          arg1: (System.UInt32)current.Flags,
+                          arg2: 0).ConfigureAwait(false);
+
+                    return;
+                }
+                current = t.Compress(current);
+            }
+
+            if (needEncrypt)
+            {
+                if (!t.HasEncrypt)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(WrapPacketMiddleware)}] " +
+                                                   $"No encryption delegate found for packet type {current.GetType().Name}.");
+
+                    await context.Connection.SendAsync(
+                          controlType: ControlType.FAIL,
+                          reason: ReasonCode.CRYPTO_UNSUPPORTED,
+                          action: SuggestedAction.NONE,
+                          flags: ControlFlags.NONE,
+                          arg0: context.Attributes.OpCode.OpCode,
+                          arg1: (System.UInt32)current.Flags,
+                          arg2: 0).ConfigureAwait(false);
+
+                    return;
+                }
+                current = t.Encrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
+            }
+
+            if (!ReferenceEquals(current, context.Packet))
+            {
+                context.SetPacket(current);
+            }
         }
         catch (System.Exception)
         {
-            _ = await context.Connection.Tcp.SendAsync("An error occurred while processing your request.")
-                                            .ConfigureAwait(false);
+            await context.Connection.SendAsync(
+                  controlType: ControlType.FAIL,
+                  reason: ReasonCode.TRANSFORM_FAILED,
+                  action: SuggestedAction.RETRY,
+                  flags: ControlFlags.IS_TRANSIENT,
+                  arg0: context.Attributes.OpCode.OpCode,
+                  arg1: (System.UInt32)current.Flags,
+                  arg2: 0).ConfigureAwait(false);
         }
 
         await next();
