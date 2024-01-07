@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
@@ -173,9 +174,16 @@ public static class FormatterProvider
         // ============================================================
         if (targetType.IsClass && targetType != typeof(System.String))
         {
-            System.Type formatterType = typeof(NullableObjectFormatter<>).MakeGenericType(targetType);
-
-            formatter = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+            // Skip null marker for packable classes (explicit serialization)
+            if (System.Attribute.IsDefined(targetType, typeof(SerializePackableAttribute)))
+            {
+                formatter = GetComplex<T>(); // will use ObjectFormatter<T>
+            }
+            else
+            {
+                System.Type formatterType = typeof(NullableObjectFormatter<>).MakeGenericType(targetType);
+                formatter = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+            }
             FormatterCache<T>.Formatter ??= formatter;
             return FormatterCache<T>.Formatter!;
         }

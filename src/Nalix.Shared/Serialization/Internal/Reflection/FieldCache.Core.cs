@@ -2,6 +2,7 @@
 
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Shared.Messaging.Binary;
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
@@ -28,6 +29,26 @@ internal static partial class FieldCache<T>
         _metadata = DiscoverFields<T>();
         _fieldIndex = BuildFieldIndex();
         EnsureExplicitLayoutIsValid();
+
+#if DEBUG
+        System.Diagnostics.Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] Layout={_layout}, Fields={_metadata.Length}");
+        foreach (var f in _metadata)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"  Order={f.Order}, Name={f.Name}, Type={f.FieldType}, IsValueType={f.IsValueType}");
+        }
+
+        var original = new Binary128
+        {
+            OpCode = 127,
+            Data = new System.Byte[] { 0, 255, 128 }
+        };
+
+        System.Diagnostics.Debug.WriteLine(
+            $"MagicNumber backing: {FieldCache<Binary128>.GetField("<MagicNumber>k__BackingField").FieldInfo.GetValue(original)}");
+        System.Diagnostics.Debug.WriteLine(
+            $"OpCode backing: {FieldCache<Binary128>.GetField("<OpCode>k__BackingField").FieldInfo.GetValue(original)}");
+#endif
     }
 
     #endregion Static Constructor
@@ -40,12 +61,19 @@ internal static partial class FieldCache<T>
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
     {
         System.Type type = typeof(TField);
-        System.Reflection.FieldInfo[] fields = type.GetFields(
+
+        System.Collections.Generic.List<System.Reflection.FieldInfo> fields = [];
+        while (type != null && type != typeof(System.Object))
+        {
+            fields.AddRange(type.GetFields(
             System.Reflection.BindingFlags.Public |
             System.Reflection.BindingFlags.NonPublic |
-            System.Reflection.BindingFlags.Instance);
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.DeclaredOnly));
+            type = type.BaseType!;
+        }
 
-        System.Collections.Generic.List<FieldSchema> includedFields = new(fields.Length);
+        System.Collections.Generic.List<FieldSchema> includedFields = new(fields.Count);
         System.Int32 sequentialOrder = 0;
 
         foreach (System.Reflection.FieldInfo field in fields)
@@ -115,9 +143,12 @@ internal static partial class FieldCache<T>
     {
         System.Reflection.PropertyInfo? property =
             System.Linq.Enumerable.FirstOrDefault(
-                typeof(T).GetProperties(),
-                p => p.Name.Equals(field.Name, System.StringComparison.Ordinal) ||
-                     IsBackingFieldFor(field, p));
+                field.DeclaringType?.GetProperties(
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Instance) ?? [],
+                    p => p.Name.Equals(field.Name, System.StringComparison.Ordinal) ||
+                    IsBackingFieldFor(field, p));
 
         if (property is not null)
         {

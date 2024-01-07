@@ -47,8 +47,8 @@ public sealed class ConnectionLimiterTests : IDisposable
         Assert.Equal(2, CurrentConnections);
 
         Assert.True(_limiter.ConnectionClosed(ip));
-        var infoAfter = _limiter.GetConnectionInfo(ip);
-        Assert.Equal(1, infoAfter.CurrentConnections);
+        var (Current, _, _) = _limiter.GetConnectionInfo(ip);
+        Assert.Equal(1, Current);
     }
 
     public void Dispose() => _limiter.Dispose();
