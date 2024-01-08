@@ -237,8 +237,6 @@ internal class TransportStream(
                     return false;
                 }
 
-                // Note: _cache only supports ReadOnlyMemory<byte>, so convert
-                this._cache.PushOutgoing(data.ToArray());
                 return true;
             }
             catch (System.Exception ex)
@@ -267,11 +265,6 @@ internal class TransportStream(
 
             _ = _socket.Send(buffer, 0, totalLength, System.Net.Sockets.SocketFlags.None);
 
-            // Note: _cache only supports ReadOnlyMemory<byte>, so convert
-            this._cache.PushOutgoing(System.MemoryExtensions
-                       .AsMemory(buffer, 2, totalLength - 2)
-                       .ToArray());
-
             return true;
         }
         catch (System.Exception ex)
@@ -297,17 +290,19 @@ internal class TransportStream(
         System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
+        const System.Int32 PrefixSize = sizeof(System.UInt16);
+
         if (data.IsEmpty)
         {
             return false;
         }
 
-        if (data.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        if (data.Length > System.UInt16.MaxValue - PrefixSize)
         {
             throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
         }
 
-        System.UInt16 totalLength = (System.UInt16)(data.Length + sizeof(System.UInt16));
+        System.UInt16 totalLength = (System.UInt16)(data.Length + PrefixSize);
         System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                                        .Rent(totalLength);
 
@@ -317,18 +312,30 @@ internal class TransportStream(
                                                   .AsSpan(buffer), totalLength);
 
             data.Span.CopyTo(System.MemoryExtensions
-                     .AsSpan(buffer, sizeof(System.UInt16)));
+                     .AsSpan(buffer, PrefixSize));
 
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] Sending data async");
 #endif
 
-            _ = await this._socket.SendAsync(System.MemoryExtensions
-                                  .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken)
-                                  .ConfigureAwait(false);
+            System.Int32 sent = 0;
+            while (sent < totalLength)
+            {
+                System.Int32 n = await _socket.SendAsync(System.MemoryExtensions
+                                     .AsMemory(buffer, sent, totalLength - sent), System.Net.Sockets.SocketFlags.None, cancellationToken)
+                                     .ConfigureAwait(false);
 
-            this._cache.PushOutgoing(data);
+                if (n == 0)
+                {
+                    // peer closed / connection issue
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[{nameof(TransportStream)}] Socket sent 0 bytes (peer closed?)");
+                    return false;
+                }
+
+                sent += n;
+            }
 
             return true;
         }
@@ -731,5 +738,5 @@ internal class TransportStream(
     public override System.String ToString()
         => $"TransportStream (Clients = {this._socket.RemoteEndPoint}, " +
            $"Disposed = {this._disposed}, UpTime = {this.UpTime}ms, LastPing = {this.LastPingTime}ms)" +
-           $"IncomingCount = {this._cache.Incoming.Count}, OutgoingCount = {this._cache.Outgoing.Count} }}";
+           $"IncomingCount = {this._cache.Incoming.Count} }}";
 }
