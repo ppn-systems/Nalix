@@ -26,9 +26,6 @@ public sealed class PacketContext<TPacket> : IPoolable
     private PacketContextState _state;
     private System.Boolean _isInitialized;
 
-    // Context state
-    private readonly System.Collections.Generic.Dictionary<System.String, System.Object> _properties = [];
-
     #endregion Fields
 
     #region Properties
@@ -68,11 +65,6 @@ public sealed class PacketContext<TPacket> : IPoolable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get; private set;
     }
-
-    /// <summary>
-    /// Gets the dictionary used to share data between middleware components.
-    /// </summary>
-    public System.Collections.Generic.IDictionary<System.String, System.Object> Properties => this._properties;
 
     #endregion Properties
 
@@ -144,7 +136,6 @@ public sealed class PacketContext<TPacket> : IPoolable
         this.Connection = default!;
         this.Attributes = default;
         this._isInitialized = false;
-        this._properties.Clear();
     }
 
     /// <summary>
@@ -155,43 +146,6 @@ public sealed class PacketContext<TPacket> : IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void SetPacket(TPacket packet) => this.Packet = packet;
-
-    /// <summary>
-    /// Sets a property value in the context's property dictionary.
-    /// </summary>
-    /// <typeparam name="T">The type of the property value.</typeparam>
-    /// <param name="key">The key of the property.</param>
-    /// <param name="value">The value to set.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="key"/> or <paramref name="value"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void SetProperty<T>(System.String key, T value) where T : notnull => this._properties[key] = value;
-
-    /// <summary>
-    /// Retrieves a reference type property value from the context's property dictionary.
-    /// </summary>
-    /// <typeparam name="T">The type of the property value.</typeparam>
-    /// <param name="key">The key of the property.</param>
-    /// <returns>The property value if found and of type <typeparamref name="T"/>; otherwise, <c>null</c>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public T? GetProperty<T>(System.String key) where T : class
-        => this._properties.TryGetValue(key, out var value) ? value as T : null;
-
-    /// <summary>
-    /// Retrieves a value type property from the context's property dictionary.
-    /// </summary>
-    /// <typeparam name="T">The type of the property value.</typeparam>
-    /// <param name="key">The key of the property.</param>
-    /// <param name="defaultValue">The default value to return if the key is not found or the value is not of type <typeparamref name="T"/>.</param>
-    /// <returns>The property value if found and of type <typeparamref name="T"/>; otherwise, <paramref name="defaultValue"/>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
-        => this._properties.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
 
     #endregion Methods
 
