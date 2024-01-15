@@ -13,7 +13,7 @@ public enum IdentifierType : System.Byte
     #region Core System
 
     /// <summary>
-    /// Unknown or generic purpose.
+    /// UNKNOWN or generic purpose.
     /// </summary>
     Unknown = 0,
 

@@ -20,56 +20,56 @@ public enum FrameMagic : System.UInt32
     /// <summary>
     /// No magic number assigned.
     /// </summary>
-    Unknown = 0x0000_A000,
+    UNKNOWN = 0x0000_A000,
 
     /// <summary>
     /// Represents the handshake process used to establish a connection or
     /// agreement between two parties.
     /// </summary>
-    Handshake = 0x0000_A001,
+    HANDSHAKE = 0x0000_A001,
 
     /// <summary>
-    /// Control packet used for signaling or managing protocol state.
+    /// CONTROL packet used for signaling or managing protocol state.
     /// </summary>
-    Control = 0x0000_A002,
+    CONTROL = 0x0000_A002,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 128 bytes.
     /// </summary>
-    Binary128 = 0x0000_A003,
+    BINARY128 = 0x0000_A003,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 256 bytes.
     /// </summary>
-    Binary256 = 0x0000_A004,
+    BINARY256 = 0x0000_A004,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 512 bytes.
     /// </summary>
-    Binary512 = 0x0000_A005,
+    BINARY512 = 0x0000_A005,
 
     /// <summary>
     /// Binary data packet with a maximum payload size of 1024 bytes.
     /// </summary>
-    Binary1024 = 0x0000_A006,
+    BINARY1024 = 0x0000_A006,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 256 bytes.
     /// </summary>
-    Text256 = 0x0000_A007,
+    TEXT256 = 0x0000_A007,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 512 bytes.
     /// </summary>
-    Text512 = 0x0000_A008,
+    TEXT512 = 0x0000_A008,
 
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 1024 bytes.
     /// </summary>
-    Text1024 = 0x0000_A009,
+    TEXT1024 = 0x0000_A009,
 
     /// <summary>
-    /// Directive packet used for sending commands or instructions.
+    /// DIRECTIVE packet used for sending commands or instructions.
     /// </summary>
-    Directive = 0x0000_A00A
+    DIRECTIVE = 0x0000_A00A
 }

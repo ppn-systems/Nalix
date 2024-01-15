@@ -19,10 +19,10 @@ namespace Nalix.Shared.Messaging.Binary;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagic.Binary512)]
+[MagicNumber(FrameMagic.BINARY512)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("BINARY512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Binary512 : FrameBase, IPacketDeserializer<Binary512>, IPacketCompressor<Binary512>
 {
     /// <inheritdoc/>
@@ -52,7 +52,7 @@ public class Binary512 : FrameBase, IPacketDeserializer<Binary512>, IPacketCompr
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Binary512;
+        MagicNumber = (System.UInt32)FrameMagic.BINARY512;
     }
 
     /// <summary>
@@ -162,6 +162,6 @@ public class Binary512 : FrameBase, IPacketDeserializer<Binary512>, IPacketCompr
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Binary512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"BINARY512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
         $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }

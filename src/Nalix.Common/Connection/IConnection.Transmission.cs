@@ -7,7 +7,7 @@ namespace Nalix.Common.Connection;
 public partial interface IConnection
 {
     /// <summary>
-    /// Gets the Transmission Control TransportProtocol (TCP) transmission interface
+    /// Gets the Transmission CONTROL TransportProtocol (TCP) transmission interface
     /// </summary>
     ITcp Tcp { get; }
 
@@ -62,7 +62,7 @@ public partial interface IConnection
     }
 
     /// <summary>
-    /// Represents the Transmission Control TransportProtocol (TCP) transmission interface
+    /// Represents the Transmission CONTROL TransportProtocol (TCP) transmission interface
     /// for a network connection.
     /// </summary>
     /// <remarks>

@@ -15,7 +15,7 @@ namespace Nalix.Network.Dispatch.Results.Primitives;
 /// <remarks>
 /// - Chooses the minimal packet size to avoid memory waste.
 /// - Splits on Unicode rune boundaries (no broken multi-byte characters).
-/// - Works with any registered packet types (e.g., Text256, Text512, Text1024).
+/// - Works with any registered packet types (e.g., TEXT256, TEXT512, TEXT1024).
 /// </remarks>
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
