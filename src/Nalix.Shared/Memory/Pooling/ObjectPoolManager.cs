@@ -39,17 +39,17 @@ public sealed class ObjectPoolManager
     }
 
     /// <summary>
-    /// Gets the total TransportProtocol of pools currently managed.
+    /// Gets the total ProtocolType of pools currently managed.
     /// </summary>
     public System.Int32 PoolCount => _poolDict.Count;
 
     /// <summary>
-    /// Gets the total TransportProtocol of get operations performed.
+    /// Gets the total ProtocolType of get operations performed.
     /// </summary>
     public System.Int64 TotalGetOperations => System.Threading.Interlocked.Read(ref _totalGetOperations);
 
     /// <summary>
-    /// Gets the total TransportProtocol of return operations performed.
+    /// Gets the total ProtocolType of return operations performed.
     /// </summary>
     public System.Int64 TotalReturnOperations => System.Threading.Interlocked.Read(ref _totalReturnOperations);
 
@@ -122,8 +122,8 @@ public sealed class ObjectPoolManager
     /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
     /// </summary>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
-    /// <param name="count">The TransportProtocol of instances to preallocate.</param>
-    /// <returns>The TransportProtocol of instances successfully preallocated.</returns>
+    /// <param name="count">The ProtocolType of instances to preallocate.</param>
+    /// <returns>The ProtocolType of instances successfully preallocated.</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when count is less than or equal to zero.</exception>
     public System.Int32 Prealloc<T>(System.Int32 count) where T : IPoolable, new()
     {
@@ -184,7 +184,7 @@ public sealed class ObjectPoolManager
     /// Clears all objects from a specific type's pool.
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
-    /// <returns>The TransportProtocol of objects removed.</returns>
+    /// <returns>The ProtocolType of objects removed.</returns>
     public System.Int32 ClearPool<T>() where T : IPoolable
     {
         System.Type type = typeof(T);
@@ -194,7 +194,7 @@ public sealed class ObjectPoolManager
     /// <summary>
     /// Clears all objects from all pools.
     /// </summary>
-    /// <returns>The total TransportProtocol of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     public System.Int32 ClearAllPools()
     {
         System.Int32 totalRemoved = 0;
@@ -211,7 +211,7 @@ public sealed class ObjectPoolManager
     /// Trims all pools to their target sizes.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The total TransportProtocol of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     public System.Int32 TrimAllPools(System.Int32 percentage = 50)
     {
         System.Int32 totalRemoved = 0;

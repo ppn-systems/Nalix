@@ -132,7 +132,7 @@ public partial class PoFile
     }
 
     /// <summary>
-    /// Gets the translated string for a given TransportProtocol.
+    /// Gets the translated string for a given ProtocolType.
     /// </summary>
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if available, otherwise returns the original text.</returns>
@@ -142,11 +142,11 @@ public partial class PoFile
         => _translations.TryGetValue(id, out System.String value) ? value : id;
 
     /// <summary>
-    /// Gets the pluralized translation for a given TransportProtocol.
+    /// Gets the pluralized translation for a given ProtocolType.
     /// </summary>
     /// <param name="id">Singular form of the string.</param>
     /// <param name="idPlural">Plural form of the string.</param>
-    /// <param name="n">The TransportProtocol to determine the plural form.</param>
+    /// <param name="n">The ProtocolType to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -183,7 +183,7 @@ public partial class PoFile
     /// <param name="context">Options to distinguish similar translations.</param>
     /// <param name="id">Singular form of the string.</param>
     /// <param name="idPlural">Plural form of the string.</param>
-    /// <param name="n">The TransportProtocol to determine the plural form.</param>
+    /// <param name="n">The ProtocolType to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

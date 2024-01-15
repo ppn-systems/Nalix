@@ -41,7 +41,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
-    /// <returns>The TransportProtocol of objects removed.</returns>
+    /// <returns>The ProtocolType of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public System.Int32 Clear() => _parentPool.ClearType<T>();
 
@@ -55,14 +55,14 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
-    /// <param name="count">The TransportProtocol of objects to preallocate.</param>
-    /// <returns>The TransportProtocol of objects successfully preallocated.</returns>
+    /// <param name="count">The ProtocolType of objects to preallocate.</param>
+    /// <returns>The ProtocolType of objects successfully preallocated.</returns>
     public System.Int32 Prealloc(System.Int32 count) => _parentPool.Prealloc<T>(count);
 
     /// <summary>
     /// Gets multiple objects from the pool.
     /// </summary>
-    /// <param name="count">The TransportProtocol of objects to get.</param>
+    /// <param name="count">The ProtocolType of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     public List<T> GetMultiple(System.Int32 count) => _parentPool.GetMultiple<T>(count);
 
@@ -76,7 +76,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
-    /// <returns>The TransportProtocol of objects successfully returned to the pool.</returns>
+    /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
     public System.Int32 ReturnMultiple(IEnumerable<T> objects) => _parentPool.ReturnMultiple(objects);
 
     /// <summary>

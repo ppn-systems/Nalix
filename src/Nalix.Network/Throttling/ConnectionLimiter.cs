@@ -413,7 +413,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     internal readonly record struct ConnectionLimitInfo
     {
         /// <summary>
-        /// The current TransportProtocol of active connections.
+        /// The current ProtocolType of active connections.
         /// </summary>
         public readonly System.Int32 CurrentConnections { get; init; }
 
@@ -423,7 +423,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         public readonly System.DateTime LastConnectionTime { get; init; }
 
         /// <summary>
-        /// The total TransportProtocol of connections made today.
+        /// The total ProtocolType of connections made today.
         /// </summary>
         public readonly System.Int32 TotalConnectionsToday { get; init; }
 

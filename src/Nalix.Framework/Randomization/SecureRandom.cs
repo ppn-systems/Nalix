@@ -3,7 +3,7 @@
 namespace Nalix.Framework.Randomization;
 
 /// <summary>
-/// High-performance cryptographically strong random TransportProtocol generator
+/// High-performance cryptographically strong random ProtocolType generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 [System.Diagnostics.DebuggerStepThrough]
@@ -178,7 +178,7 @@ public static class SecureRandom
     /// <summary>
     /// Generates a random byte array of the specified length.
     /// </summary>
-    /// <param name="length">The TransportProtocol of random bytes to generate.</param>
+    /// <param name="length">The ProtocolType of random bytes to generate.</param>
     /// <returns>A byte array filled with random data.</returns>
     /// <exception cref="System.ArgumentException">Thrown if length is negative.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -318,7 +318,7 @@ public static class SecureRandom
     }
 
     /// <summary>
-    /// Reseeds the random TransportProtocol generator with additional entropy.
+    /// Reseeds the random ProtocolType generator with additional entropy.
     /// </summary>
     public static void Reseed()
     {
@@ -343,7 +343,7 @@ public static class SecureRandom
         => (value << shift) | (value >> (64 - shift));
 
     /// <summary>
-    /// Ensures the random TransportProtocol generator is properly seeded with high-entropy sources.
+    /// Ensures the random ProtocolType generator is properly seeded with high-entropy sources.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -403,7 +403,7 @@ public static class SecureRandom
     }
 
     /// <summary>
-    /// Initialize the state of the random TransportProtocol generator.
+    /// Initialize the state of the random ProtocolType generator.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -501,7 +501,7 @@ public static class SecureRandom
     }
 
     /// <summary>
-    /// Core Xoshiro256++ random TransportProtocol generation algorithm.
+    /// Core Xoshiro256++ random ProtocolType generation algorithm.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

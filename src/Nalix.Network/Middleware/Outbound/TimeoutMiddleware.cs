@@ -43,8 +43,8 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                     ControlType.TIMEOUT,
-                    ReasonCode.TIMEOUT,
-                    SuggestedAction.RETRY,
+                    ProtocolCode.TIMEOUT,
+                    ProtocolAction.RETRY,
                     sequenceId: sequenceId,
                     flags: ControlFlags.IS_TRANSIENT,
                     // encode as steps of 100ms

@@ -15,7 +15,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     private readonly System.Boolean _colors = colors;
 
     /// <summary>
-    /// Format a log message with timestamp, log level, event TransportProtocol, message and exception.
+    /// Format a log message with timestamp, log level, event ProtocolType, message and exception.
     /// </summary>
     /// <param name="logMsg">The log message to format.</param>
     /// <returns>The log format string.</returns>
@@ -37,7 +37,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// </summary>
     /// <param name="timeStamp">Time of log creation.</param>
     /// <param name="logLevel">Log level.</param>
-    /// <param name="eventId">Event TransportProtocol.</param>
+    /// <param name="eventId">Event ProtocolType.</param>
     /// <param name="message">Log message.</param>
     /// <param name="exception">The exception included (if any).</param>
     /// <returns>Log format string.</returns>

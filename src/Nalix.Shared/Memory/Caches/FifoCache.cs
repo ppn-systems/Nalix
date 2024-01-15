@@ -33,22 +33,22 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     public System.Int32 Capacity { get; }
 
     /// <summary>
-    /// Gets the TransportProtocol of elements currently stored in the cache.
+    /// Gets the ProtocolType of elements currently stored in the cache.
     /// </summary>
     public System.Int32 Count => System.Threading.Volatile.Read(ref _currentSize);
 
     /// <summary>
-    /// Gets the TransportProtocol of items added to the cache.
+    /// Gets the ProtocolType of items added to the cache.
     /// </summary>
     public System.Int64 Additions => System.Threading.Interlocked.Read(ref _additions);
 
     /// <summary>
-    /// Gets the TransportProtocol of items removed from the cache.
+    /// Gets the ProtocolType of items removed from the cache.
     /// </summary>
     public System.Int64 Removals => System.Threading.Interlocked.Read(ref _removals);
 
     /// <summary>
-    /// Gets the TransportProtocol of trim operations performed on the cache.
+    /// Gets the ProtocolType of trim operations performed on the cache.
     /// </summary>
     public System.Int64 TrimOperations => System.Threading.Interlocked.Read(ref _trimOperations);
 
@@ -74,7 +74,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <summary>
     /// Initializes a new instance of the <see cref="FifoCache{T}"/> class with the specified capacity.
     /// </summary>
-    /// <param name="capacity">The maximum TransportProtocol of elements the cache can hold.</param>
+    /// <param name="capacity">The maximum ProtocolType of elements the cache can hold.</param>
     /// <exception cref="System.ArgumentException">Thrown when the capacity is less than or equal to zero.</exception>
     public FifoCache(System.Int32 capacity)
     {
@@ -199,7 +199,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <summary>
     /// Attempts to retrieve multiple elements from the cache in a batch operation.
     /// </summary>
-    /// <param name="count">The TransportProtocol of elements to retrieve.</param>
+    /// <param name="count">The ProtocolType of elements to retrieve.</param>
     /// <returns>A list containing the retrieved elements.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the count is less than or equal to zero.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
