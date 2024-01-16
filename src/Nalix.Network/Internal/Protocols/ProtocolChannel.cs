@@ -4,6 +4,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
@@ -12,22 +13,22 @@ using Nalix.Shared.Memory.Pooling;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Transport;
+namespace Nalix.Network.Internal.Protocols;
 
 /// <summary>
 /// Manages the socket connection and handles sending/receiving data with caching and logging.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="TransportStream"/> class.
+/// Initializes a new instance of the <see cref="ProtocolChannel"/> class.
 /// </remarks>
 /// <param name="socket">The socket.</param>
 /// <param name="cts">The cancellation token source.</param>
-internal class TransportStream(
+internal class ProtocolChannel(
     System.Net.Sockets.Socket socket, System.Threading.CancellationTokenSource cts) : System.IDisposable
 {
     #region Fields
 
-    private readonly TransportCache _cache = new();
+    private readonly ProtocolSessionCache _cache = new();
     private readonly System.Net.Sockets.Socket _socket = socket;
     private readonly System.Threading.CancellationTokenSource _cts = cts;
 
@@ -63,7 +64,7 @@ internal class TransportStream(
 
     #region Constructor
 
-    static TransportStream() =>
+    static ProtocolChannel() =>
         InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
         .SetMaxCapacity<PooledSocketAsyncContext>(1024);
 
@@ -81,7 +82,7 @@ internal class TransportStream(
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] BeginReceive called on disposed");
+                                    .Debug($"[{nameof(ProtocolChannel)}] BeginReceive called on disposed");
 #endif
             return;
         }
@@ -101,7 +102,7 @@ internal class TransportStream(
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] Starting asynchronous read operation");
+                                    .Debug($"[{nameof(ProtocolChannel)}] Starting asynchronous read operation");
 #endif
 
             System.Net.Sockets.SocketAsyncEventArgs args = new();
@@ -146,7 +147,7 @@ internal class TransportStream(
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[{nameof(TransportStream)}] BeginReceive error: {ex.Message}");
+                                                .Error($"[{nameof(ProtocolChannel)}] BeginReceive error: {ex.Message}");
                     }
                 }, _rxToken);
             };
@@ -191,7 +192,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TransportStream)}] BeginReceive error: {ex.Message}");
+                                    .Error($"[{nameof(ProtocolChannel)}] BeginReceive error: {ex.Message}");
         }
     }
 
@@ -222,7 +223,7 @@ internal class TransportStream(
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TransportStream)}] Sending data (stackalloc)");
+                                        .Debug($"[{nameof(ProtocolChannel)}] Sending data (stackalloc)");
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
@@ -233,7 +234,7 @@ internal class TransportStream(
                 if (sent != bufferS.Length)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(TransportStream)}] Partial send: {sent}/{bufferS.Length}");
+                                            .Error($"[{nameof(ProtocolChannel)}] Partial send: {sent}/{bufferS.Length}");
                     return false;
                 }
 
@@ -242,7 +243,7 @@ internal class TransportStream(
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TransportStream)}] Send error (stackalloc): {ex}");
+                                        .Error($"[{nameof(ProtocolChannel)}] Send error (stackalloc): {ex}");
                 return false;
             }
         }
@@ -254,7 +255,7 @@ internal class TransportStream(
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] Sending data (pooled)");
+                                    .Debug($"[{nameof(ProtocolChannel)}] Sending data (pooled)");
 #endif
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
@@ -270,7 +271,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TransportStream)}] Send error (pooled): {ex}");
+                                    .Error($"[{nameof(ProtocolChannel)}] Send error (pooled): {ex}");
             return false;
         }
         finally
@@ -316,7 +317,7 @@ internal class TransportStream(
 
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] Sending data async");
+                                    .Debug($"[{nameof(ProtocolChannel)}] Sending data async");
 #endif
 
             System.Int32 sent = 0;
@@ -330,7 +331,7 @@ internal class TransportStream(
                 {
                     // peer closed / connection issue
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(TransportStream)}] Socket sent 0 bytes (peer closed?)");
+                                            .Warn($"[{nameof(ProtocolChannel)}] Socket sent 0 bytes (peer closed?)");
                     return false;
                 }
 
@@ -342,7 +343,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TransportStream)}] SendAsync error: {ex.Message}");
+                                    .Error($"[{nameof(ProtocolChannel)}] SendAsync error: {ex.Message}");
             return false;
         }
         finally
@@ -385,7 +386,7 @@ internal class TransportStream(
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
+                                .Debug($"[{nameof(ProtocolChannel)}] Injected {data.Length} bytes into incoming cache.");
 #endif
     }
 
@@ -434,7 +435,7 @@ internal class TransportStream(
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TransportStream)}] Clients closed");
+                                        .Debug($"[{nameof(ProtocolChannel)}] Clients closed");
 #endif
                 this.OnDisconnected();
                 return;
@@ -489,19 +490,19 @@ internal class TransportStream(
             System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(this._buffer);
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] Packet size: {size} bytes.");
+                                    .Debug($"[{nameof(ProtocolChannel)}] Packet size: {size} bytes.");
 #endif
             if (size < 2)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TransportStream)}] Invalid packet size: {size} (must be >= 2).");
+                                        .Error($"[{nameof(ProtocolChannel)}] Invalid packet size: {size} (must be >= 2).");
                 return;
             }
 
             if (size > InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TransportStream)}] Size {size} exceeds max " +
+                                        .Error($"[{nameof(ProtocolChannel)}] Size {size} exceeds max " +
                                                $"{InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize} bytes.");
 
                 return;
@@ -512,7 +513,7 @@ internal class TransportStream(
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TransportStream)}] Renting larger buffer");
+                                        .Debug($"[{nameof(ProtocolChannel)}] Renting larger buffer");
 #endif
                 InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                         .Return(_buffer);
@@ -560,7 +561,7 @@ internal class TransportStream(
                 {
 #if DEBUG
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[{nameof(TransportStream)}] Clients closed during read");
+                                            .Debug($"[{nameof(ProtocolChannel)}] Clients closed during read");
 #endif
                     this.OnDisconnected();
                     return;
@@ -573,7 +574,7 @@ internal class TransportStream(
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TransportStream)}] Packet received");
+                                        .Debug($"[{nameof(ProtocolChannel)}] Packet received");
 #endif
                 this._cache.LastPingTime = Clock.UnixMillisecondsNow();
 
@@ -583,7 +584,7 @@ internal class TransportStream(
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TransportStream)}] Incomplete packet: read {totalBytesRead}/{size} bytes.");
+                                        .Error($"[{nameof(ProtocolChannel)}] Incomplete packet: read {totalBytesRead}/{size} bytes.");
             }
         }
         catch (System.Net.Sockets.SocketException ex) when
@@ -592,7 +593,7 @@ internal class TransportStream(
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TransportStream)}] connection reset/aborted");
+                                    .Debug($"[{nameof(ProtocolChannel)}] connection reset/aborted");
 #endif
             this.OnDisconnected();
         }
@@ -665,7 +666,7 @@ internal class TransportStream(
         this._disposed = true;
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TransportStream)}] disposed");
+                                .Debug($"[{nameof(ProtocolChannel)}] disposed");
 #endif
     }
 
@@ -717,7 +718,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(TransportStream)}] Disconnected handler error: {ex.Message}");
+                .Error($"[{nameof(ProtocolChannel)}] Disconnected handler error: {ex.Message}");
         }
     }
 
@@ -725,7 +726,7 @@ internal class TransportStream(
     #endregion Private Methods
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="TransportStream"/> instance.
+    /// Disposes the resources used by the <see cref="ProtocolChannel"/> instance.
     /// </summary>
     public void Dispose()
     {
@@ -736,7 +737,7 @@ internal class TransportStream(
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString()
-        => $"TransportStream (Clients = {this._socket.RemoteEndPoint}, " +
+        => $"ProtocolChannel (Clients = {this._socket.RemoteEndPoint}, " +
            $"Disposed = {this._disposed}, UpTime = {this.UpTime}ms, LastPing = {this.LastPingTime}ms)" +
-           $"IncomingCount = {this._cache.Incoming.Count} }}";
+           $"IncomingCount = {this._cache.Incoming.Count}";
 }
