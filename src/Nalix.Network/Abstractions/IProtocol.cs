@@ -20,13 +20,6 @@ public interface IProtocol : System.IDisposable
     System.Boolean KeepConnectionOpen { get; }
 
     /// <summary>
-    /// Processes a message received on the connection.
-    /// This method must be implemented by derived classes to handle specific message processing.
-    /// </summary>
-    /// <param name="bytes">The message data.</param>
-    abstract void ProcessMessage(System.ReadOnlySpan<System.Byte> bytes);
-
-    /// <summary>
     /// Processes an incoming message from the connection.
     /// This method should implement the protocol-specific logic for handling messages.
     /// </summary>

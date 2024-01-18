@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
@@ -141,42 +142,10 @@ public sealed class PacketDispatchChannel
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(System.Byte[]? raw, IConnection connection)
-    {
-        if (raw == null)
-        {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] NONE byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
-            return;
-        }
-
-        this.HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
-    }
-
-    /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(System.ReadOnlyMemory<System.Byte>? raw, IConnection connection)
-    {
-        if (raw == null)
-        {
-            Logger?.Warn(
-                $"[{nameof(PacketDispatchChannel)}] " +
-                $"NONE ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
-            return;
-        }
-
-        this.HandlePacket(raw.Value.Span, connection);
-    }
-
-    /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(in System.ReadOnlySpan<System.Byte> raw, IConnection connection)
+    public void HandlePacket(IBufferLease? raw, IConnection connection)
     {
         // 1) Fast-fail: empty payload
-        if (raw.IsEmpty)
+        if (raw == null)
         {
             Logger?.Warn(
                 $"[{nameof(PacketDispatchChannel)}] Empty payload from {connection.RemoteEndPoint}. Dropped.");
@@ -185,13 +154,13 @@ public sealed class PacketDispatchChannel
 
         // 2) Capture basic context once
         System.Int32 len = raw.Length;
-        System.UInt32 magic = len >= 4 ? raw.ReadMagicNumberLE() : 0u;
+        System.UInt32 magic = len >= 4 ? raw.Memory.Span.ReadMagicNumberLE() : 0u;
 
         // 3) Try deserialize
-        if (!_catalog.TryDeserialize(raw, out IPacket? packet) || packet is null)
+        if (!_catalog.TryDeserialize(raw.Span, out IPacket? packet) || packet is null)
         {
             // Log only a small head preview to avoid leaking large/secret data
-            System.String head = System.Convert.ToHexString(raw[..System.Math.Min(16, len)]);
+            System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
             Logger?.Warn(
                 $"[{nameof(PacketDispatchChannel)}] " +
                 $"NONE packet. Remote={connection.RemoteEndPoint}, Len={len}, Magic=0x{magic:X8}, Head={head}. Dropped.");
