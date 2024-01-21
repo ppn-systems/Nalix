@@ -33,7 +33,6 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     public override System.UInt16 Length =>
         (System.UInt16)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
 
-
     /// <summary>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
