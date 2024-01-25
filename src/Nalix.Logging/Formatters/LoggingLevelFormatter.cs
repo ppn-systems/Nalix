@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Models;
 
@@ -35,60 +35,30 @@ internal static class LoggingLevelFormatter
         'N', 'O', 'N', 'E', '\0'  // LogLevel.NONE        (7)
     ];
 
-    // Pre-computed strings for each log level to avoid repeated allocations
-    private static readonly System.String[] CachedLogLevels = new System.String[MaxLogLevels];
-
-    // Format masks for various output types
-    private static readonly System.Byte[] LevelSeverity =
-    [
-        0, // Meta (0)
-        1, // Trace (1)
-        2, // Debug (2)
-        3, // Information (3)
-        4, // Warning (4)
-        5, // ERROR (5)
-        6, // Critical (6)
-        7  // NONE (7)
-    ];
-
-    /// <summary>
-    /// Static constructor to initialize the cached strings.
-    /// </summary>
-    static LoggingLevelFormatter()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static System.Int32 MapIndex(LogLevel level) => level switch
     {
-        // Initialize cached strings - do this once to avoid repeated allocations
-        System.Span<System.Char> buffer = stackalloc System.Char[LogLevelLength];
-        for (var i = 0; i < MaxLogLevels; i++)
-        {
-            // Extract the characters for this log level
-            LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength).CopyTo(buffer);
+        LogLevel.Meta => 0,
+        LogLevel.Trace => 1,
+        LogLevel.Debug => 2,
+        LogLevel.Information => 3,
+        LogLevel.Warning => 4,
+        LogLevel.Error => 5,
+        LogLevel.Critical => 6,
+        LogLevel.None => 7,
+        _ => -1
+    };
 
-            // Create and cache the string
-            CachedLogLevels[i] = new System.String(buffer);
-        }
-    }
-
-    /// <summary>
-    /// Gets a character span representation of the log level without allocating a string.
-    /// </summary>
-    /// <param name="logLevel">The logging level.</param>
-    /// <returns>A character span representing the log level.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static System.ReadOnlySpan<System.Char> GetShortLogLevel(LogLevel logLevel)
     {
-        // Bounds checking with bitwise operation for performance
-        if (!((System.Byte)logLevel < MaxLogLevels))
-        {
-            // Fall back to the string representation for unknown levels
-            return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
-        }
-
-        // Get the pre-computed span for this log level
-        return LogLevelChars.Slice(
-            (System.Byte)logLevel * LogLevelPaddedLength,
-            LogLevelLength
-        );
+        System.Int32 idx = MapIndex(logLevel);
+        return (System.UInt32)idx >= MaxLogLevels
+            ? System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant())
+            : LogLevelChars.Slice(idx * LogLevelPaddedLength, LogLevelLength);
     }
 }
