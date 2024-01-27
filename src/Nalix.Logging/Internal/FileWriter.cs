@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
 namespace Nalix.Logging.Internal;
@@ -37,9 +38,6 @@ internal sealed class FileWriter : System.IDisposable
     internal FileWriter(FileLoggerProvider provider)
     {
         _provider = provider ?? throw new System.ArgumentNullException(nameof(provider));
-
-        // Create the directory if it doesn't exist
-        EnsureDirectoryExists();
 
         // Open or create the initial log file
         OpenFile(provider.Append);
@@ -196,42 +194,6 @@ internal sealed class FileWriter : System.IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Ensures the log directory exists.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void EnsureDirectoryExists()
-    {
-        try
-        {
-            System.String directory = _provider.Options.LogDirectory;
-            if (!System.IO.Directory.Exists(directory))
-            {
-                _ = System.IO.Directory.CreateDirectory(directory);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"ERROR creating log directory: {ex.Message}");
-
-            // Try to use a fallback directory in case of permission issues
-            try
-            {
-                System.String tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "assets", "logs");
-                _ = System.IO.Directory.CreateDirectory(tempPath);
-                _provider.Options.LogDirectory = tempPath;
-            }
-            catch
-            {
-                // Last resort - use current directory
-                _provider.Options.LogDirectory = ".";
-            }
-        }
-    }
-
-    /// <summary>
     /// Generates a unique log file name.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -266,8 +228,7 @@ internal sealed class FileWriter : System.IDisposable
             fileName = $"{fileNameWithoutExt}_{now:yyyy-MM-dd}_{_fileCounter++}{extension}";
         }
 
-        System.String logDirectory = _provider.Options.LogDirectory;
-        System.String fullPath = System.IO.Path.Combine(logDirectory, fileName);
+        System.String fullPath = System.IO.Path.Combine(Directories.LogsDirectory, fileName);
 
         // Ensure file name uniqueness by adding counter if file exists
         System.Int32 uniqueCounter = 0;
@@ -279,12 +240,12 @@ internal sealed class FileWriter : System.IDisposable
                 $"{_fileCounter}_" +
                 $"{uniqueCounter}{extension}";
 
-            fullPath = System.IO.Path.Combine(logDirectory, uniqueName);
+            fullPath = System.IO.Path.Combine(Directories.LogsDirectory, uniqueName);
 
             // Safety check to avoid infinite loop
             if (uniqueCounter > 9999)
             {
-                fullPath = System.IO.Path.Combine(logDirectory,
+                fullPath = System.IO.Path.Combine(Directories.LogsDirectory,
                     $"{fileNameWithoutExt}_" +
                     $"{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_" +
                     $"{System.Guid.NewGuid().ToString()[..8]}{extension}");
@@ -321,7 +282,7 @@ internal sealed class FileWriter : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void CreateLogFileStream(System.Boolean append)
     {
-        System.String logFilePath = System.IO.Path.Combine(_provider.Options.LogDirectory, _provider.Options.LogFileName);
+        System.String logFilePath = System.IO.Path.Combine(Directories.LogsDirectory, _provider.Options.LogFileName);
 
         try
         {
