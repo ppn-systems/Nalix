@@ -1,7 +1,8 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -12,29 +13,40 @@ namespace Nalix.Logging.Internal;
 
 /// <summary>
 /// File writer used by <see cref="ChannelFileLoggerProvider"/>.
-/// Minimizes lock scope and batches writes.
+/// Daily rolling with index and multi-process safe file sharing.
+/// Never throws on IO; reports via HandleFileError and drops gracefully.
 /// </summary>
-[DebuggerDisplay("File={_provider.Options.LogFileName,nq}, Size={_currentFileSize}")]
-internal sealed class ChannelFileWriter : System.IDisposable
+[DebuggerDisplay("File={_currentPath,nq}, Size={_writtenBytesForCurrentFile}")]
+internal sealed class ChannelFileWriter : IDisposable
 {
-    private const System.Int32 WriteBufferSize = 8 * 1024;
+    private const Int32 WriteBufferSize = 64 * 1024;
 
     private readonly ChannelFileLoggerProvider _provider;
     private readonly Lock _fileLock = new();
 
-    private System.Boolean _disposed;
-    private System.Int64 _currentFileSize;
+    private Boolean _disposed;
     private FileStream? _stream;
     private StreamWriter? _writer;
 
+    private DateTime _currentDayLocal = DateTime.MinValue;
+    private Int32 _currentIndex = 0;
+    private Int64 _writtenBytesForCurrentFile = 0;
+    private String? _currentPath;
+
     public ChannelFileWriter(ChannelFileLoggerProvider provider)
     {
-        _provider = provider ?? throw new System.ArgumentNullException(nameof(provider));
-        OpenFile(_provider.Options.Append);
+        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        // Initialize day/index and select file without throwing
+        lock (_fileLock)
+        {
+            _currentDayLocal = DateTime.Now.Date;
+            _currentIndex = 0; // CreateOrAdvanceStream will start at 1
+            CreateOrAdvanceStream();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal void WriteBatch(System.Collections.Generic.List<System.String> messages)
+    internal void WriteBatch(System.Collections.Generic.List<String> messages)
     {
         if (messages.Count == 0)
         {
@@ -43,40 +55,53 @@ internal sealed class ChannelFileWriter : System.IDisposable
 
         lock (_fileLock)
         {
-            if (_writer is null || _stream is null)
+            try
             {
-                OpenFile(_provider.Options.Append);
+                EnsureStreamReady_NoLock();
+
                 if (_writer is null || _stream is null)
                 {
-                    return;
-                }
-            }
-
-            // Write each message; rely on StreamWriter internal buffer.
-            foreach (var msg in messages)
-            {
-                if (System.String.IsNullOrEmpty(msg))
-                {
-                    continue;
+                    return; // drop silently
                 }
 
-                // approximate size (UTF-16 char count * 2) + newline
-                var size = (msg.Length * sizeof(System.Char)) + (System.Environment.NewLine.Length * sizeof(System.Char));
-                if (_currentFileSize + size > _provider.Options.MaxFileSizeBytes)
+                // UTF-8 encoder (no BOM) used for actual byte accounting
+                var enc = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+                var newlineBytes = enc.GetByteCount(Environment.NewLine);
+
+                foreach (var msg in messages)
                 {
-                    CreateNewLogFile_NoLock();
-                    if (_writer is null || _stream is null)
+                    if (String.IsNullOrEmpty(msg))
                     {
-                        return;
+                        continue;
                     }
+
+                    var bytes = enc.GetByteCount(msg) + newlineBytes;
+
+                    // roll if will exceed size
+                    if (_writtenBytesForCurrentFile + bytes > _provider.Options.MaxFileSizeBytes)
+                    {
+                        SafeClose_NoLock();
+                        _currentIndex++;
+                        CreateOrAdvanceStream();
+                        if (_writer is null || _stream is null)
+                        {
+                            return; // drop rest silently
+                        }
+                    }
+
+                    _writer.WriteLine(msg);
+                    _writtenBytesForCurrentFile += bytes;
                 }
 
-                _writer.WriteLine(msg);
-                _currentFileSize += size;
+                // Flush once per batch; writer buffer keeps syscalls low
+                _writer.Flush();
             }
-
-            // Flush once per batch
-            _writer.Flush();
+            catch (Exception ex)
+            {
+                _provider.Options.HandleFileError?.Invoke(new FileError(ex, _currentPath ?? "<unknown>"));
+                // try to recover next batch
+                try { SafeClose_NoLock(); } catch { /* ignore */ }
+            }
         }
     }
 
@@ -85,7 +110,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
     {
         lock (_fileLock)
         {
-            _writer?.Flush();
+            try { _writer?.Flush(); } catch { /* ignore */ }
         }
     }
 
@@ -97,142 +122,161 @@ internal sealed class ChannelFileWriter : System.IDisposable
         }
 
         _disposed = true;
-        Close_NoLock();
+        lock (_fileLock)
+        {
+            SafeClose_NoLock();
+        }
     }
 
     #region Private helpers
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void OpenFile(System.Boolean append)
+    // Ensure stream is open for the correct day and size; do not throw.
+    private void EnsureStreamReady_NoLock()
     {
-        lock (_fileLock)
+        var now = DateTime.Now;
+        var day = now.Date;
+
+        if (day != _currentDayLocal)
         {
-            CreateLogFileStream_NoLock(append);
+            // new day: reset and start at _1
+            SafeClose_NoLock();
+            _currentDayLocal = day;
+            _currentIndex = 0;
+            _writtenBytesForCurrentFile = 0;
+            CreateOrAdvanceStream();
+            return;
+        }
+
+        if (_stream is null || _writer is null)
+        {
+            CreateOrAdvanceStream();
+            return;
+        }
+
+        if (_writtenBytesForCurrentFile >= _provider.Options.MaxFileSizeBytes)
+        {
+            SafeClose_NoLock();
+            _currentIndex++;
+            CreateOrAdvanceStream();
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void CreateLogFileStream_NoLock(System.Boolean append)
+    // Pick or create a file for the current day, probing indices, never throwing.
+    private void CreateOrAdvanceStream()
     {
-        var path = Path.Combine(Directories.LogsDirectory, _provider.Options.LogFileName);
-
         try
         {
-            var exists = File.Exists(path);
-            _currentFileSize = exists ? new FileInfo(path).Length : 0;
+            _ = Directory.CreateDirectory(Directories.LogsDirectory);
+        }
+        catch (Exception ex)
+        {
+            _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
+            SafeClose_NoLock();
+            return;
+        }
 
-            if (exists && _currentFileSize > 0 && _currentFileSize >= _provider.Options.MaxFileSizeBytes)
+        const Int32 MaxProbe = 10000;
+        for (Int32 probe = 0; probe < MaxProbe; probe++)
+        {
+            if (_currentIndex <= 0)
             {
-                CreateNewLogFile_NoLock();
+                _currentIndex = 1;
+            }
+
+            var fileName = _provider.Options.BuildFileName(_currentDayLocal, _currentIndex);
+            var fullPath = Path.Combine(Directories.LogsDirectory, fileName);
+
+            try
+            {
+                var info = new FileInfo(fullPath);
+                // If file exists and already beyond size, skip to next index
+                if (info.Exists && info.Length >= _provider.Options.MaxFileSizeBytes)
+                {
+                    _currentIndex++;
+                    continue;
+                }
+
+                // Try append with cooperative share for multi-process
+                _stream = new FileStream(
+                    fullPath,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    WriteBufferSize,
+                    FileOptions.WriteThrough);
+
+                _writer = new StreamWriter(_stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+                {
+                    AutoFlush = false
+                };
+
+                _currentPath = fullPath;
+                _writtenBytesForCurrentFile = info.Exists ? info.Length : 0;
+
+                // Write header only if new file (length == 0)
+                if (!info.Exists || info.Length == 0)
+                {
+                    WriteFileHeader_NoLock();
+                }
+
+                return; // success
+            }
+            catch (Exception ex)
+            {
+                _provider.Options.HandleFileError?.Invoke(new FileError(ex, fullPath));
+                SafeClose_NoLock();
+                _currentIndex++;
+                continue;
+            }
+        }
+
+        // Give up for now; drop logs until next attempt
+        _provider.Options.HandleFileError?.Invoke(new FileError(
+            new IOException("Exceeded max probes while selecting log file index."),
+            Directories.LogsDirectory));
+        SafeClose_NoLock();
+    }
+
+    private void WriteFileHeader_NoLock()
+    {
+        try
+        {
+            if (_writer is null)
+            {
                 return;
             }
 
-            _stream = new FileStream(
-                path,
-                append ? FileMode.Append : FileMode.Create,
-                FileAccess.Write,
-                FileShare.Read,
-                WriteBufferSize,
-                FileOptions.WriteThrough);
+            var sb = new StringBuilder(256);
+            _ = sb.AppendLine("-----------------------------------------------------");
+            _ = sb.AppendLine($"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+            _ = sb.AppendLine($"User: {Environment.UserName}");
+            _ = sb.AppendLine($"Machine: {Environment.MachineName}");
+            _ = sb.AppendLine($"OS: {Environment.OSVersion}");
+            _ = sb.AppendLine("-----------------------------------------------------");
+            var txt = sb.ToString();
 
-            _writer = new StreamWriter(_stream, Encoding.UTF8, WriteBufferSize)
-            {
-                AutoFlush = false
-            };
+            _writer.WriteLine(txt);
+            _writer.Flush();
 
-            if (!append || _currentFileSize == 0)
-            {
-                var sb = new StringBuilder(256);
-                _ = sb.AppendLine("-----------------------------------------------------");
-                _ = sb.AppendLine($"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-                _ = sb.AppendLine($"User: {System.Environment.UserName}");
-                _ = sb.AppendLine($"Machine: {System.Environment.MachineName}");
-                _ = sb.AppendLine($"OS: {System.Environment.OSVersion}");
-                _ = sb.AppendLine("-----------------------------------------------------");
-                _writer.WriteLine(sb.ToString());
-                _writer.Flush();
-                _currentFileSize = _stream.Length;
-            }
+            // Count UTF-8 header bytes correctly
+            var enc = new UTF8Encoding(false);
+            _writtenBytesForCurrentFile += enc.GetByteCount(txt) + enc.GetByteCount(Environment.NewLine);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            _provider.Options.HandleFileError?.Invoke(new FileError(ex, path));
-
-            _writer?.Dispose();
-            _stream?.Dispose();
-            _writer = null;
-            _stream = null;
-            throw;
+            _provider.Options.HandleFileError?.Invoke(new FileError(ex, _currentPath ?? "<unknown>"));
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void CreateNewLogFile_NoLock()
+    private void SafeClose_NoLock()
     {
-        Close_NoLock();
-        _provider.Options.LogFileName = GenerateUniqueLogFileName_NoLock();
-        CreateLogFileStream_NoLock(append: false);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private System.String GenerateUniqueLogFileName_NoLock()
-    {
-        System.String baseName = _provider.Options.LogFileName;
-        System.String ext = Path.GetExtension(baseName);
-        System.String noext = Path.GetFileNameWithoutExtension(baseName);
-
-        System.String file = baseName;
-
-        if (_provider.Options.FormatLogFileName != null)
-        {
-            try { file = _provider.Options.FormatLogFileName(baseName); }
-            catch (System.Exception ex) { Debug.WriteLine($"File name formatter error: {ex.Message}"); }
-        }
-        else if (_provider.Options.IncludeDateInFileName)
-        {
-            var now = System.DateTime.Now;
-            file = $"{noext}_{now:yyyy-MM-dd}_{System.Environment.TickCount & 0xFFFF}{ext}";
-        }
-
-        System.String full = Path.Combine(Directories.LogsDirectory, file);
-        System.Int32 unique = 0;
-        while (File.Exists(full) && unique < 10000)
-        {
-            unique++;
-            System.String candidate = $"{noext}_{System.DateTime.Now:yyyy-MM-dd}_{unique}{ext}";
-            full = Path.Combine(Directories.LogsDirectory, candidate);
-        }
-        if (unique >= 10000)
-        {
-            full = Path.Combine(
-                Directories.LogsDirectory,
-                $"{noext}_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_{System.Guid.NewGuid().ToString()[..8]}{ext}");
-        }
-        return Path.GetFileName(full);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void Close_NoLock()
-    {
-        lock (_fileLock)
-        {
-            try
-            {
-                _writer?.Flush();
-                _writer?.Dispose();
-                _stream?.Dispose();
-            }
-            catch (System.Exception ex)
-            {
-                Debug.WriteLine($"Close file failed: {ex.Message}");
-            }
-            finally
-            {
-                _writer = null;
-                _stream = null;
-                _currentFileSize = 0;
-            }
-        }
+        try { _writer?.Flush(); } catch { /* ignore */ }
+        try { _writer?.Dispose(); } catch { /* ignore */ }
+        try { _stream?.Dispose(); } catch { /* ignore */ }
+        _writer = null;
+        _stream = null;
+        _currentPath = null;
+        _writtenBytesForCurrentFile = 0;
     }
 
     #endregion
