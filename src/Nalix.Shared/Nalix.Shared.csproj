@@ -9,10 +9,10 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>4.5.5</Version>
-		<FileVersion>4.5.5.0</FileVersion>
-		<PackageVersion>4.5.5</PackageVersion>
-		<InformationalVersion>4.5.5+$(SourceRevisionId)</InformationalVersion>
+		<Version>4.6.1</Version>
+		<FileVersion>4.6.1.0</FileVersion>
+		<PackageVersion>4.6.1</PackageVersion>
+		<InformationalVersion>4.6.1+$(SourceRevisionId)</InformationalVersion>
 
         <Description>
 Nalix.Shared is a .NET library that provides shared utilities and configurations across Notio components. It includes dependency injection, localization (L10N), memory management, time utilities, and configuration handling to ensure consistency and reusability across multiple projects.
