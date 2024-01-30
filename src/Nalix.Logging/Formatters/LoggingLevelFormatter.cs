@@ -40,9 +40,14 @@ internal static class LoggingLevelFormatter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static System.ReadOnlySpan<System.Char> GetShortLogLevel(LogLevel logLevel)
     {
-        System.Int32 idx = (System.Int32)logLevel;
-        return (System.UInt32)idx >= MaxLogLevels
-            ? System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant())
-            : LogLevelChars.Slice(idx * LogLevelPaddedLength, LogLevelLength);
+        // Bounds checking with bitwise operation for performance
+        if (!((System.Byte)logLevel < MaxLogLevels))
+        {
+            // Fall back to the string representation for unknown levels
+            return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
+        }
+
+        // Get the pre-computed span for this log level
+        return LogLevelChars.Slice((System.Byte)logLevel * LogLevelPaddedLength, LogLevelLength);
     }
 }

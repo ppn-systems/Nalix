@@ -34,7 +34,7 @@ internal static class ColorAnsi
     public const System.String LightMagenta = "\u001b[38;5;213m"; // Light magenta text
 
     // Cache of color codes by log level to avoid repeated switch statements
-    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.None + 1];
+    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.Critical + 1];
 
     /// <summary>
     /// Static constructor to initialize the color cache
