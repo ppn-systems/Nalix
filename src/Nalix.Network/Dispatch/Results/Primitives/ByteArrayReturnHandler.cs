@@ -23,7 +23,7 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
             return;
         }
 
-        _ = await context.Connection.Tcp.SendAsync(data)
+        _ = await context.Connection.TCP.SendAsync(data)
                                         .ConfigureAwait(false);
     }
 }

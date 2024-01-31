@@ -37,5 +37,5 @@ public interface IBufferLease : System.IDisposable
     /// <summary>
     /// Attempts to detach the underlying array, transferring ownership to the caller.
     /// </summary>
-    System.Boolean TryDetach(out System.Byte[] buffer, out System.Int32 length);
+    System.Boolean TryDetach(out System.Byte[] buffer, out System.Int32 start, out System.Int32 length);
 }

@@ -15,7 +15,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    IIdentifier Id { get; }
+    IIdentifier ID { get; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.
