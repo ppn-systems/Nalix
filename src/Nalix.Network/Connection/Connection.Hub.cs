@@ -312,7 +312,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     /// <param name="message">The message to broadcast.</param>
     /// <param name="sendFunc">The function to send the message to a connection.</param>
     /// <param name="predicate">The predicate to filter connections.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <param name="_">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
@@ -320,7 +320,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
         System.Func<IConnection, System.Boolean> predicate,
-        System.Threading.CancellationToken cancellationToken = default)
+        System.Threading.CancellationToken _ = default)
         where T : class
     {
         if (message is null || sendFunc is null || predicate is null || this._disposed)
