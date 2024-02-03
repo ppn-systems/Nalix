@@ -176,7 +176,7 @@ public sealed partial class Connection : IConnection
                 return;
             }
 
-            this._onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            this.RaiseClosedOnce(this, new ConnectionEventArgs(this));
         }
         catch (System.Exception ex)
         {

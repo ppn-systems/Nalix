@@ -1,6 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Time;
 using Nalix.Network.Connection;
@@ -104,20 +103,20 @@ public abstract partial class TcpListenerBase
                 _ = this._lock.Release();
             }
         }
-        catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] on {Config.Port} stopped by cancellation");
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            throw new InternalErrorException(
-                $"[{nameof(TcpListenerBase)}] Could not start {this._protocol} on port {Config.Port}", ex);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(TcpListenerBase)}] Could not start {this._protocol} on port {Config.Port}", ex);
         }
         catch (System.Exception ex)
         {
-            throw new InternalErrorException(
-                $"[{nameof(TcpListenerBase)}] Critical error in listener on port {Config.Port}", ex);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(TcpListenerBase)}]  Critical error in listener on port {Config.Port}", ex);
         }
         finally
         {
