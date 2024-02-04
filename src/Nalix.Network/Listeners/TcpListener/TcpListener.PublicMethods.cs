@@ -39,8 +39,7 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        if (this._listener == null ||
-            !this._listener.IsBound ||
+        if (this._listener == null || !this._listener.IsBound ||
             this._listener.SafeHandle.IsInvalid)
         {
             this.Initialize();
