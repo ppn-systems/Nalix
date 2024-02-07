@@ -8,14 +8,14 @@ namespace Nalix.SDK.Remote.Internal;
 /// Handles sending packets and raw bytes over a network stream.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="RemoteStreamSender{TPacket}"/> class with the specified network stream.
+/// Initializes a new instance of the <see cref="StreamSender{TPacket}"/> class with the specified network stream.
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Writable={_stream?.CanWrite}, Stream={_stream}")]
-internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
+internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
