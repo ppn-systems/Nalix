@@ -119,6 +119,34 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     }
 
     /// <summary>
+    /// Initialize all fields without allocations. Keep semantics stable across versions.
+    /// </summary>
+    public void Initialize(
+        System.UInt16 opCode,
+        ControlType type,
+        ProtocolCode reason,
+        ProtocolAction action,
+        System.UInt32 sequenceId,
+        ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0,
+        System.UInt32 arg1 = 0,
+        System.UInt16 arg2 = 0)
+    {
+        Arg0 = arg0;
+        Arg1 = arg1;
+        Arg2 = arg2;
+        Type = type;
+        Reason = reason;
+        Action = action;
+        Control = flags;
+        OpCode = opCode;
+        SequenceId = sequenceId;
+
+        Priority = PacketPriority.Urgent;
+        Transport = ProtocolType.TCP;
+    }
+
+    /// <summary>
     /// Deserialize from the given buffer using the common serializer.
     /// </summary>
     public static Directive Deserialize(System.ReadOnlySpan<System.Byte> buffer)
