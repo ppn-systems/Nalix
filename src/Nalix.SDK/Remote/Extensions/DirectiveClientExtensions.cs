@@ -22,6 +22,8 @@ namespace Nalix.SDK.Remote.Extensions;
 /// <seealso cref="ReliableClient"/>
 public static class DirectiveClientExtensions
 {
+    private static readonly ILogger Log = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Optional callbacks for specific directive types.
     /// If a callback returns <c>true</c> (for <see cref="OnRedirectAsync"/>),
@@ -117,8 +119,6 @@ public static class DirectiveClientExtensions
             return false;
         }
 
-        var log = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
         switch (d.Type)
         {
             case ControlType.THROTTLE:
@@ -139,7 +139,7 @@ public static class DirectiveClientExtensions
                     state.ThrottleUntilMonoTicks = nowTicks + delayTicks;
 
                     callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
-                    log?.Info("DIRECTIVE THROTTLE: {0} ms (Seq={1})", delayMs, d.SequenceId);
+                    Log?.Info("DIRECTIVE THROTTLE: {0} ms (Seq={1})", delayMs, d.SequenceId);
                     return true;
                 }
 
@@ -162,7 +162,7 @@ public static class DirectiveClientExtensions
                         // Fallback: keep host, only update port if provided
                         if (d.Arg2 == 0)
                         {
-                            log?.Warn("DIRECTIVE REDIRECT ignored (no resolver, no port). Seq={0}", d.SequenceId);
+                            Log?.Warn("DIRECTIVE REDIRECT ignored (no resolver, no port). Seq={0}", d.SequenceId);
                             return true;
                         }
                         ep = (client.Options.Address, d.Arg2);
@@ -173,7 +173,7 @@ public static class DirectiveClientExtensions
                     client.Options.Address = ep.Value.host;
                     client.Options.Port = ep.Value.port;
 
-                    log?.Info("DIRECTIVE REDIRECT → {0}:{1} (Seq={2})", ep.Value.host, ep.Value.port, d.SequenceId);
+                    Log?.Info("DIRECTIVE REDIRECT → {0}:{1} (Seq={2})", ep.Value.host, ep.Value.port, d.SequenceId);
                     await client.ConnectAsync(cancellationToken: ct).ConfigureAwait(false);
                     return true;
                 }
@@ -182,19 +182,19 @@ public static class DirectiveClientExtensions
                 {
                     // Typically indicates request failed; SequenceId correlates to the original request.
                     callbacks?.OnNack?.Invoke(d);
-                    log?.Warn("DIRECTIVE NACK: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
+                    Log?.Warn("DIRECTIVE NACK: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
                     return true;
                 }
 
             case ControlType.NOTICE:
                 {
                     callbacks?.OnNotice?.Invoke(d);
-                    log?.Info("DIRECTIVE NOTICE: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
+                    Log?.Info("DIRECTIVE NOTICE: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
                     return true;
                 }
 
             default:
-                log?.Debug("DIRECTIVE (unhandled type {0}) Seq={1}", d.Type, d.SequenceId);
+                Log?.Debug("DIRECTIVE (unhandled type {0}) Seq={1}", d.Type, d.SequenceId);
                 return true;
         }
     }
@@ -257,8 +257,7 @@ public static class DirectiveClientExtensions
 
         if (client.IsThrottled(out var wait))
         {
-            var log = InstanceManager.Instance.GetExistingInstance<ILogger>();
-            log?.Debug("SendWithThrottle: waiting {0} ms", (System.Int32)wait.TotalMilliseconds);
+            Log?.Debug("SendWithThrottle: waiting {0} ms", (System.Int32)wait.TotalMilliseconds);
             if (wait > System.TimeSpan.Zero)
             {
                 await System.Threading.Tasks.Task.Delay(wait, ct).ConfigureAwait(false);

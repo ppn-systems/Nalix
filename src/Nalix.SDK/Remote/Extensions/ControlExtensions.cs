@@ -243,7 +243,6 @@ public static class ControlExtensions
         return client.SendAsync(b.Build(), ct);
     }
 
-
     /// <summary>
     /// Builds and sends a DISCONNECT control (TCP by default).
     /// </summary>
