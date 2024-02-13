@@ -39,7 +39,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     private System.Threading.CancellationToken _cancellationToken;
 
     private volatile System.Boolean _isDisposed = false;
-    private volatile System.Boolean _isRunning = false;
+    private System.Int32 _state = (System.Int32)ListenerState.Stopped;
 
     #endregion Fields
 
@@ -48,7 +48,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public System.Boolean IsListening => this._isRunning;
+    private ListenerState State => (ListenerState)System.Threading.Volatile.Read(ref _state);
 
     /// <summary>
     /// Enables or disables the update loop for the listener.
@@ -65,7 +65,9 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (this._isRunning)
+            if (System.Threading.Interlocked.CompareExchange(ref _state,
+               (System.Int32)ListenerState.Starting,
+               (System.Int32)ListenerState.Stopped) != (System.Int32)ListenerState.Stopped)
             {
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
@@ -75,6 +77,18 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     }
 
     #endregion Properties
+
+    #region Class
+
+    private enum ListenerState : System.Int32
+    {
+        Stopped = 0,
+        Starting = 1,
+        Running = 2,
+        Stopping = 3
+    }
+
+    #endregion Class
 
     #region Constructors
 
