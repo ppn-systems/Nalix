@@ -65,9 +65,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (System.Threading.Interlocked.CompareExchange(ref _state,
-               (System.Int32)ListenerState.Starting,
-               (System.Int32)ListenerState.Stopped) != (System.Int32)ListenerState.Stopped)
+            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.Stopped)
             {
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
