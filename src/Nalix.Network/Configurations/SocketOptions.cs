@@ -92,7 +92,7 @@ public sealed class SocketOptions : ConfigurationLoader
     /// Gets or sets whether the socket can reuse an address already in the TIME_WAIT state.
     /// Standard is false.
     /// </summary>
-    public System.Boolean ReuseAddress { get; set; } = false;
+    public System.Boolean ReuseAddress { get; set; } = true;
 
 
     /// <summary>
@@ -108,8 +108,8 @@ public sealed class SocketOptions : ConfigurationLoader
     /// <c>true</c> if the application is running on Windows; otherwise, <c>false</c>.
     /// </value>
     [ConfiguredIgnore]
-    public System.Boolean IsWindows { get; set; } = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform
-        (System.Runtime.InteropServices.OSPlatform.Windows);
+    public System.Boolean IsWindows { get; set; } =
+        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
     #endregion Properties
 }
