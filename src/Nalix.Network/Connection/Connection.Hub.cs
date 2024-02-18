@@ -84,13 +84,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] Connection registered: {connection.ID} (Total: {this._connectionCount})");
+                                    .Debug($"[{nameof(ConnectionHub)}] register id={connection.ID} total={this._connectionCount}");
 
             return true;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(ConnectionHub)}] Connection already exists: {connection.ID}");
+                                .Warn($"[{nameof(ConnectionHub)}] register-dup id={connection.ID}");
         return false;
     }
 
@@ -122,13 +122,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] Connection unregistered: {id} (Total: {this._connectionCount})");
+                                    .Debug($"[{nameof(ConnectionHub)}] unregister id={id} total={this._connectionCount}");
 
             return true;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(ConnectionHub)}] Failed to unregister connection: {id}");
+                                .Warn($"[{nameof(ConnectionHub)}] unregister-miss id={id}");
         return false;
     }
 
@@ -162,7 +162,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         this._usernameToId[username] = id;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ConnectionHub)}] Username associated: {username} -> {id}");
+                                .Debug($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
     }
 
     /// <inheritdoc />
@@ -273,7 +273,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         if (connections is null || connections.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] No connections to broadcast to");
+                                    .Debug($"[{nameof(ConnectionHub)}] broadcast-skip total=0");
             return;
         }
 
@@ -301,7 +301,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] Broadcast cancelled");
+                                    .Debug($"[{nameof(ConnectionHub)}] broadcast-cancel");
         }
     }
 
@@ -357,7 +357,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] Filtered broadcast cancelled");
+                                    .Debug($"[{nameof(ConnectionHub)}] broadcast-cancel");
         }
     }
 
@@ -383,7 +383,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionHub)}] ERROR disconnecting {connection.ID}: {ex.Message}");
+                                        .Error($"[{nameof(ConnectionHub)}] disconnect-error id={connection.ID} msg={ex.Message}");
             }
         });
 
@@ -394,7 +394,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         _ = System.Threading.Interlocked.Exchange(ref this._connectionCount, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] All {connections.Count} connections disconnected");
+                                .Info($"[{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
     }
 
     /// <summary>
@@ -425,7 +425,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         }
 
         this._disposed = true;
-        this.CloseAllConnections("Server shutting down");
+        this.CloseAllConnections("disposed");
 
         // Unsubscribe from all events
         foreach (IConnection connection in this._connections.Values)
@@ -434,7 +434,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(ConnectionHub)}] Disposed");
+                                .Warn($"[{nameof(ConnectionHub)}] disposed");
     }
 
     #endregion APIs
