@@ -41,7 +41,27 @@ public sealed partial class Connection : IConnection
         /// </summary>
         /// <param name="outer"></param>
         /// <exception cref="System.InvalidOperationException"></exception>
-        public void Initialize(IConnection outer) => this._endPoint = outer.RemoteEndPoint;
+        public void Initialize(IConnection outer)
+        {
+            _endPoint = outer.RemoteEndPoint
+                ?? throw new System.InvalidOperationException("RemoteEndPoint is null");
+
+            if (_socket.AddressFamily != ((System.Net.IPEndPoint)_endPoint).AddressFamily)
+            {
+                _socket.Dispose();
+                var af = ((System.Net.IPEndPoint)_endPoint).AddressFamily;
+                _socket = new System.Net.Sockets.Socket(af, System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+
+                if (af == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                {
+                    try
+                    {
+                        _socket.DualMode = true;
+                    }
+                    catch { /* ignore if not supported */ }
+                }
+            }
+        }
 
         #endregion Constructor
 
@@ -57,31 +77,13 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
-            if (message.IsEmpty)
+            if (message.IsEmpty || _endPoint is null)
             {
                 return false;
             }
 
-            if (this._endPoint is null)
-            {
-                return false;
-            }
-
-            System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(message.Length);
-            message.CopyTo(rented);
-
-            try
-            {
-                System.Int32 sent = _socket.SendTo(
-                    rented, 0, message.Length,
-                    System.Net.Sockets.SocketFlags.None, _endPoint);
-
-                return sent == message.Length;
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
-            }
+            System.Int32 sent = _socket.SendTo(message, System.Net.Sockets.SocketFlags.None, _endPoint);
+            return sent == message.Length;
         }
 
         #endregion Synchronous Methods
@@ -158,7 +160,7 @@ public sealed partial class Connection : IConnection
             if (packet is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                                        .Warn($"[{nameof(Connection)}] send-null-packet");
                 return false;
             }
 
@@ -177,7 +179,7 @@ public sealed partial class Connection : IConnection
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(Connection)}] Failed to send message.");
+                                    .Warn($"[{nameof(Connection)}] send-failed");
             return false;
         }
 
@@ -251,7 +253,7 @@ public sealed partial class Connection : IConnection
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
+                                    .Warn($"[{nameof(Connection)}] send-async-failed");
             return false;
         }
 
