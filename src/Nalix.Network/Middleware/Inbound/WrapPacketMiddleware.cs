@@ -49,7 +49,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(WrapPacketMiddleware)}] Missing PacketCatalog.");
+                                        .Fatal($"[{nameof(WrapPacketMiddleware)}] missing-catalog");
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
@@ -67,8 +67,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(WrapPacketMiddleware)}] " +
-                                               $"No transformer found for packet type {current.GetType().Name}.");
+                                        .Error($"[{nameof(WrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
@@ -88,8 +87,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasCompress)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(WrapPacketMiddleware)}] " +
-                                                   $"No compression delegate found for packet type {current.GetType().Name}.");
+                                            .Error($"[{nameof(WrapPacketMiddleware)}] no-compress type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
@@ -111,8 +109,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasEncrypt)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(WrapPacketMiddleware)}] " +
-                                                   $"No encryption delegate found for packet type {current.GetType().Name}.");
+                                            .Error($"[{nameof(WrapPacketMiddleware)}] no-encrypt type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
