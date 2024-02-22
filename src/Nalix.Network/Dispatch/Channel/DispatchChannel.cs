@@ -54,7 +54,7 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
     {
         if (packet is null)
         {
-            _logger?.Error("Failed to enqueue packet because the packet is null.");
+            _logger?.Error($"[{nameof(DispatchChannel<TPacket>)}] push-null-packet");
             throw new System.ArgumentNullException(nameof(packet));
         }
 
@@ -72,7 +72,7 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
         System.Threading.Interlocked.Increment(ref _totalPackets);
 
 #if DEBUG
-        _logger?.Trace("Packet enqueued successfully. Packet: {0}, Connection: {1}", packet, connection);
+        _logger?.Trace($"[{nameof(DispatchChannel<TPacket>)}] enqueued packet={packet.GetType().Name} conn={connection}");
 #endif
     }
 
