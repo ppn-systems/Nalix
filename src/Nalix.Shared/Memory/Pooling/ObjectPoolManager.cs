@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Caching;
+using Nalix.Common.Logging.Abstractions;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;
 
@@ -133,6 +135,10 @@ public sealed class ObjectPoolManager
         }
 
         ObjectPool pool = GetOrCreatePool<T>();
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).FullName} count={count}");
+
         return pool.Prealloc<T>(count);
     }
 
@@ -158,6 +164,11 @@ public sealed class ObjectPoolManager
         // Create a new pool with the specified capacity
         pool = new ObjectPool(maxCapacity);
         _poolDict[type] = pool;
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Info($"[{nameof(ObjectPoolManager)}] " +
+                              $"set-max type={typeof(T).FullName} cap={maxCapacity}");
+
         return true;
     }
 
@@ -229,6 +240,15 @@ public sealed class ObjectPoolManager
     /// </summary>
     public void ResetStatistics()
     {
+        // Capture snapshot before reset
+        System.Int64 gets = System.Threading.Interlocked.Read(ref _totalGetOperations);
+        System.Int64 returns = System.Threading.Interlocked.Read(ref _totalReturnOperations);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(ObjectPoolManager)}] " +
+                                      $"stats-before-reset gets={gets} returns={returns} " +
+                                      $"uptime={Uptime.TotalSeconds:F0}s pools={PoolCount}");
+
         _ = System.Threading.Interlocked.Exchange(ref _totalGetOperations, 0);
         _ = System.Threading.Interlocked.Exchange(ref _totalReturnOperations, 0);
         _startTime = System.DateTime.UtcNow;
@@ -238,6 +258,9 @@ public sealed class ObjectPoolManager
         {
             pool.ResetStatistics();
         }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Meta($"[{nameof(ObjectPoolManager)}] stats-reset-complete");
     }
 
     /// <summary>
@@ -266,10 +289,10 @@ public sealed class ObjectPoolManager
                     // Expected when cancellation is requested
                     break;
                 }
-                catch (System.Exception)
+                catch (System.Exception ex)
                 {
-                    // Log or handle other exceptions
-                    // Continue the loop to maintain the trimming schedule
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(ObjectPoolManager)}] trim-task-error", ex);
                 }
             }
         }, cancellationToken);
@@ -361,6 +384,10 @@ public sealed class ObjectPoolManager
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {
         System.Type type = typeof(T);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(ObjectPoolManager)}] create-pool type={type.FullName} max={_defaultMaxPoolSize}");
+
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
 
