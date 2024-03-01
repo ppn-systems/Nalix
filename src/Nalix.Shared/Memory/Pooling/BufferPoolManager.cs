@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection;
@@ -11,7 +12,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation/deallocation and optional trimming.
 /// </summary>
-public sealed class BufferPoolManager : System.IDisposable
+public sealed class BufferPoolManager : System.IDisposable, IReportable
 {
     #region Fields & Constants
 
@@ -246,6 +247,51 @@ public sealed class BufferPoolManager : System.IDisposable
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
                                                 : _bufferAllocations.Last().Allocation;
     }
+
+    /// <summary>
+    /// Generates a report on the current state of the buffer pools.
+    /// </summary>
+    /// <returns>A string containing the report.</returns>
+    public System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new();
+
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
+        _ = sb.AppendLine($"Initialized: {_isInitialized}");
+        _ = sb.AppendLine($"Total Buffers (Configured): {_totalBuffers}");
+        _ = sb.AppendLine($"Pools: {_bufferAllocations.Length}");
+        _ = sb.AppendLine($"Min Buffer Size: {MinBufferSize}");
+        _ = sb.AppendLine($"Max Buffer Size: {MaxBufferSize}");
+        _ = sb.AppendLine($"Enable Trimming: {_enableTrimming}");
+        _ = sb.AppendLine($"Enable Analytics: {_enableAnalytics}");
+        _ = sb.AppendLine($"Enable SecureClear: {_secureClear}");
+        _ = sb.AppendLine($"Fallback to ArrayPool: {_fallbackToArrayPool}");
+        _ = sb.AppendLine($"Trim Interval (min): {_trimIntervalMinutes}");
+        _ = sb.AppendLine($"Deep Trim Interval (min): {_deepTrimIntervalMinutes}");
+        _ = sb.AppendLine($"Trim Cycles Run: {_trimCycleCount}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Pool Details:");
+        _ = sb.AppendLine("--------------------------------------------------------------------");
+        _ = sb.AppendLine("Size     | Total Buffers | Free Buffers | In Use | Usage % | MissRate");
+        _ = sb.AppendLine("--------------------------------------------------------------------");
+
+        foreach (var pool in _poolManager.GetAllPools().OrderBy(p => p.GetPoolInfoRef().BufferSize))
+        {
+            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+
+            System.Int32 inUse = info.TotalBuffers - info.FreeBuffers;
+            System.Double usage = info.GetUsageRatio() * 100.0;
+            System.Double miss = info.GetMissRate() * 100.0;
+
+            _ = sb.AppendLine($"{info.BufferSize,8} | {info.TotalBuffers,13} | {info.FreeBuffers,12} | {inUse,6} | {usage,7:F2}% | {miss,7:F2}%");
+        }
+
+        _ = sb.AppendLine("--------------------------------------------------------------------");
+
+        return sb.ToString();
+    }
+
 
     #endregion Public API
 
