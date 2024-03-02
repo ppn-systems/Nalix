@@ -5,7 +5,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Network.Internal.Dispatch;
+using Nalix.Network.Internal.Analyzer;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
