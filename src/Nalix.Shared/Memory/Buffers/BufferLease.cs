@@ -86,13 +86,13 @@ public sealed class BufferLease : IBufferLease
     /// Writable span over the valid payload slice.
     /// </summary>
     public System.Span<System.Byte> Span
-        => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Length);
+        => _buffer is null ? [] : new System.Span<System.Byte>(_buffer, _start, Length);
 
     /// <summary>
     /// Writable span over the full owned slice (capacity).
     /// </summary>
     public System.Span<System.Byte> SpanFull
-        => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Capacity);
+        => _buffer is null ? [] : new System.Span<System.Byte>(_buffer, _start, Capacity);
 
     #endregion Properties
 
@@ -110,10 +110,7 @@ public sealed class BufferLease : IBufferLease
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Retain()
     {
-        if (_buffer is null)
-        {
-            throw new System.ObjectDisposedException(nameof(BufferLease));
-        }
+        System.ObjectDisposedException.ThrowIf(_buffer is null, nameof(BufferLease));
 
         _ = System.Threading.Interlocked.Increment(ref _refCount);
     }
