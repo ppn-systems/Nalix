@@ -1,8 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
+
 namespace Nalix.Network.Protocols;
 
-public abstract partial class Protocol
+public abstract partial class Protocol : IReportable
 {
     #region Fields
 
@@ -47,19 +49,22 @@ public abstract partial class Protocol
     }
 
     /// <summary>
-    /// Captures a diagnostic snapshot of the current protocol state,
-    /// including connection acceptance status and message statistics.
+    /// Generates a diagnostic report on the current state of the protocol.
+    /// Includes metrics like connection status, message count, and error count.
     /// </summary>
-    /// <returns>
-    /// A <see cref="ProtocolStats"/> containing metrics like
-    /// total messages processed and total errors encountered.
-    /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual ProtocolStats GetProtocolStats() => new()
+    /// <returns>A formatted string containing the protocol status report.</returns>
+    public virtual System.String GenerateReport()
     {
-        IsListening = this.IsAccepting,
-        TotalErrors = System.Threading.Interlocked.Read(ref this._totalErrors),
-        TotalMessages = System.Threading.Interlocked.Read(ref this._totalMessages)
-    };
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
+        _ = sb.AppendLine("--------------------------------------");
+        _ = sb.AppendLine($"Is Accepting: {IsAccepting}");
+        _ = sb.AppendLine($"Keep Connection Open: {KeepConnectionOpen}");
+        _ = sb.AppendLine($"Total Messages: {TotalMessages}");
+        _ = sb.AppendLine($"Total Errors: {TotalErrors}");
+        _ = sb.AppendLine("--------------------------------------");
+        _ = sb.AppendLine();
+
+        return sb.ToString();
+    }
 }

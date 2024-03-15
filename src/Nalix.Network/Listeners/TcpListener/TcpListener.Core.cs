@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
@@ -12,7 +13,7 @@ using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
 
-public abstract partial class TcpListenerBase : IListener, System.IDisposable
+public abstract partial class TcpListenerBase : IListener, System.IDisposable, IReportable
 {
     #region Constants
 
