@@ -7,6 +7,11 @@ using Nalix.Framework.Time;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Buffers;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
@@ -336,16 +341,6 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 _buffer = BufferLease.Pool.Rent(256); // prepare for next read
             }
-        }
-        catch (System.OperationCanceledException)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Meta($"[{nameof(FramedSocketChannel)}] receive-loop cancelled");
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(FramedSocketChannel)}] receive-loop error ex={ex.Message}");
         }
         finally
         {
