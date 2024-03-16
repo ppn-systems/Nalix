@@ -13,7 +13,7 @@ using Nalix.Shared.Injection;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Analyzer;
+namespace Nalix.Network.Internal.Compilation;
 
 /// <summary>
 /// High-performance controller scanner with caching and zero-allocation lookups.
@@ -21,7 +21,7 @@ namespace Nalix.Network.Internal.Analyzer;
 /// </summary>
 /// <typeparam name="TController">The controller type to scan.</typeparam>
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
-internal sealed class PacketAnalyzer<
+internal sealed class PacketHandlerCompiler<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
     where TController : class
@@ -62,14 +62,14 @@ internal sealed class PacketAnalyzer<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                .Info($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
                                       $"scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
                                        $"found count={compiledMethods.Count}");
 
         // Create the controller instance
@@ -77,7 +77,7 @@ internal sealed class PacketAnalyzer<
 
         // CreateCatalog delegate descriptors
         PacketHandler<TPacket>[] descriptors = new PacketHandler<TPacket>[compiledMethods.Count];
-        System.Int16 index = 0;
+        System.Int32 index = 0;
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
@@ -90,11 +90,17 @@ internal sealed class PacketAnalyzer<
                 compiledMethod.MethodInfo,
                 compiledMethod.ReturnType,
                 compiledMethod.CompiledInvoker);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                           $"reg opcode={opCode} method={compiledMethod.MethodInfo.Name}");
         }
+
+        System.String firstOps = System.String.Join(",", System.Linq.Enumerable
+                                              .Select(System.Linq.Enumerable
+                                              .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                       $"found count={compiledMethods.Count} " +
+                                       $"controller={controllerType.FullName} " +
+                                       $"ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : System.String.Empty)}]");
 
         return descriptors;
     }
@@ -125,12 +131,12 @@ internal sealed class PacketAnalyzer<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                    .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
                                           $"no-method controller={controllerType.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
                                        $"compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
@@ -145,9 +151,8 @@ internal sealed class PacketAnalyzer<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                                   $"dup-opcode opcode={opcodeAttr.OpCode} " +
-                                                   $"controller={method.DeclaringType?.Name ?? "NONE"}");
+                                            .Warn($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] dup-opcode " +
+                                                  $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
                 }
@@ -158,14 +163,15 @@ internal sealed class PacketAnalyzer<
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                                   $"compiled opcode={opcodeAttr.OpCode} method={method.Name}");
+                                            .Trace($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] compiled " +
+                                                   $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
+                    System.String ctx = Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                                   $"failed-compile opcode={opcodeAttr.OpCode} method={method.Name}", ex);
+                                            .Error($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                                   $"failed-compile {ctx} ex={ex.GetType().Name}", ex);
                 }
             }
 
@@ -245,60 +251,92 @@ internal sealed class PacketAnalyzer<
     /// Creates an async-compatible wrapper for a compiled delegate,
     /// handling Task, ValueTask, and their generic variants.
     /// </summary>
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>>
-        CreateAsyncWrapper(
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> CreateAsyncWrapper(
         System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type returnType)
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
+        System.Type returnType)
     {
-        return returnType == typeof(System.Threading.Tasks.Task)
-            ? (async (instance, context) =>
+        if (returnType == typeof(System.Threading.Tasks.Task))
+        {
+            return async (instance, context) =>
             {
-                System.Object? result = syncDelegate(instance, context);
-                if (result is System.Threading.Tasks.Task task)
+                if (syncDelegate(instance, context) is System.Threading.Tasks.Task t)
                 {
-                    await task;
+                    await t.ConfigureAwait(false);
                     return null;
                 }
-                return result;
-            })
-            : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>)
-            ? (async (instance, context) =>
+                return null;
+            };
+        }
+
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
+        {
+            // Cache Result getter at compile-time for this returnType
+            var resultProp = returnType.GetProperty("Result")!;
+            return async (instance, context) =>
             {
-                System.Object? result = syncDelegate(instance, context);
-                if (result is System.Threading.Tasks.Task task)
+                var r = syncDelegate(instance, context);
+                if (r is System.Threading.Tasks.Task t)
                 {
-                    await task;
-                    var resultProperty = GetResultProperty(returnType);
-                    return resultProperty?.GetValue(task);
+                    await t.ConfigureAwait(false);
+                    return resultProp.GetValue(t);
                 }
-                return result;
-            })
-            : returnType == typeof(System.Threading.Tasks.ValueTask)
-            ? (async (instance, context) =>
+                return r;
+            };
+        }
+
+        if (returnType == typeof(System.Threading.Tasks.ValueTask))
+        {
+            // Call .GetAwaiter().GetResult() without allocations
+            var getAwaiter = typeof(System.Threading.Tasks.ValueTask)
+                .GetMethod("GetAwaiter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)!;
+
+            var awaiterIsCompleted = getAwaiter.ReturnType.GetProperty("IsCompleted")!;
+            var awaiterGetResult = getAwaiter.ReturnType.GetMethod("GetResult")!;
+
+            return async (instance, context) =>
             {
-                System.Object? result = syncDelegate(instance, context);
-                if (result is System.Threading.Tasks.ValueTask valueTask)
+                var r = syncDelegate(instance, context);
+                if (r is System.Threading.Tasks.ValueTask vt)
                 {
-                    await valueTask;
+                    // prefer await: lets the compiler pick optimal path
+                    await vt.ConfigureAwait(false);
                     return null;
                 }
-                return result;
-            })
-            : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>)
-            ? (async (instance, context) =>
+                return null;
+            };
+        }
+
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>))
+        {
+            // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
+            var vtResultProp = returnType.GetProperty("Result"); // exists but only valid if completed
+            var asTaskMethod = returnType.GetMethod("AsTask", System.Type.EmptyTypes)!; // ValueTask<T>.AsTask()
+
+            return async (instance, context) =>
             {
-                System.Object? r = syncDelegate(instance, context);
+                var r = syncDelegate(instance, context);
                 if (r is null)
                 {
                     return null;
                 }
 
-                System.Object? awaited = await (dynamic)r;
-                return (global::System.Object?)awaited;
-            })
-            : ((instance, context) => System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context)));
+                // call AsTask() via reflection once per wrapper
+                var taskObj = asTaskMethod.Invoke(r, null)!; // Task<T>
+                var task = (System.Threading.Tasks.Task)taskObj;
+                await task.ConfigureAwait(false);
+
+                // read Task<T>.Result once completed
+                var taskResultProp = taskObj.GetType().GetProperty("Result")!;
+                return taskResultProp.GetValue(taskObj);
+            };
+        }
+
+        return (instance, context) =>
+            System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context));
     }
+
 
     /// <summary>
     /// Retrieves all cached metadata attributes associated with a handler method.
@@ -317,13 +355,20 @@ internal sealed class PacketAnalyzer<
         ));
     }
 
-    /// <summary>
-    /// Gets the <c>Result</c> property info from a Task/ValueTask generic return type.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Reflection.PropertyInfo? GetResultProperty(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
-        System.Type type) => type.GetProperty("Result");
+    private static System.String Ctx(
+        System.String controller,
+        System.UInt16 opcode,
+        System.Reflection.MethodInfo? method = null,
+        System.Type? returnType = null)
+    {
+        // opcode in hex cho dễ trace với wire logs
+        var op = $"opcode=0x{opcode:X4}";
+        var ctrl = $"controller={controller}";
+        var m = method is null ? "" : $" method={method.Name}";
+        var sig = method is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
+                                                              .Select(method
+                                                              .GetParameters(), p => p.ParameterType.Name))})->{returnType?.Name ?? "void"}";
+
+        return $"{op} {ctrl}{m}{sig}";
+    }
 }
