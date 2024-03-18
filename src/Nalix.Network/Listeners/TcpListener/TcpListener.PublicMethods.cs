@@ -79,17 +79,13 @@ public abstract partial class TcpListenerBase
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] start protocol={_protocol} port={_port}");
 
-            if (Config.TimeoutOnConnect)
+            if (Config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Activate();
             }
 
-            var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task>(1 + Config.MaxParallel)
-            {
-                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                                        .StartTickLoopAsync(linkedToken)
-            };
+            System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = new(Config.MaxParallel);
 
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
@@ -150,9 +146,6 @@ public abstract partial class TcpListenerBase
 
                     await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None)
                                                      .ConfigureAwait(false);
-
-                    InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                                            .StopTicking();
                 }
             }
             catch (System.Exception ex)
@@ -212,7 +205,7 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        if (Config.TimeoutOnConnect)
+        if (Config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                     .Deactivate();
@@ -269,7 +262,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"TimeoutOnConnect    : {Config.TimeoutOnConnect}");
+        _ = sb.AppendLine($"EnableTimeout    : {Config.EnableTimeout}");
         _ = sb.AppendLine($"MaxParallelAccepts  : {Config.MaxParallel}");
         _ = sb.AppendLine($"BufferSize          : {Config.BufferSize}");
         _ = sb.AppendLine($"KeepAlive           : {Config.KeepAlive}");
@@ -288,7 +281,7 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.ConnectionCount}");
-        _ = sb.AppendLine($"LimiterEnabled      : {_connectionLimiter != null}");
+        _ = sb.AppendLine($"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
         System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);

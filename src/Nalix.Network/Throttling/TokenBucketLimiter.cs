@@ -14,7 +14,7 @@ namespace Nalix.Network.Throttling;
 /// using Stopwatch ticks for time arithmetic and fixed-point token precision.
 /// Provides precise Retry-After and Credit for client backoff and flow control.
 /// </summary>
-public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable, IReportable
+public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDisposable, IReportable
 {
     #region Public Types
 
@@ -100,9 +100,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     #region Constructors
 
     /// <summary>
-    /// Creates a new RequestLimiter with provided options.
+    /// Creates a new TokenBucketLimiter with provided options.
     /// </summary>
-    public RequestLimiter(TokenBucketOptions? options = null)
+    public TokenBucketLimiter(TokenBucketOptions? options = null)
     {
         _opt = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
         ValidateOptions(_opt);
@@ -119,16 +119,21 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
         _cleanupTimer = new System.Threading.Timer(static s =>
         {
-            ((RequestLimiter)s!).Cleanup();
+            ((TokenBucketLimiter)s!).Cleanup();
         }, this, System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds), System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(RequestLimiter)}] init cap={_opt.CapacityTokens} " +
+                                .Debug($"[{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
                                        $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
                                        $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
                                        $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
 
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TokenBucketLimiter"/> class with default options.
+    /// </summary>
+    public TokenBucketLimiter() : this(null) { }
 
     #endregion Constructors
 
@@ -140,11 +145,11 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public LimitDecision Check(System.String endPoint)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
         if (System.String.IsNullOrWhiteSpace(endPoint))
         {
-            throw new InternalErrorException($"[{nameof(RequestLimiter)}] EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException($"[{nameof(TokenBucketLimiter)}] EndPoint cannot be null or whitespace", nameof(endPoint));
         }
 
         System.Boolean isNew = false;
@@ -166,7 +171,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         if (isNew)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(RequestLimiter)}] new-endpoint ep={EpKey(endPoint)}");
+                                    .Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={EpKey(endPoint)}");
         }
 
         lock (state.Gate)
@@ -178,7 +183,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             {
                 var retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(RequestLimiter)}] hard-blocked ep={EpKey(endPoint)} retry_ms={retryMsHard}");
+                                        .Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={EpKey(endPoint)} retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -200,7 +205,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
                 if (credit <= 1)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(RequestLimiter)}] allow ep={EpKey(endPoint)} credit={credit}");
+                                            .Trace($"[{nameof(TokenBucketLimiter)}] allow ep={EpKey(endPoint)} credit={credit}");
                 }
                 return new LimitDecision { Allowed = true, RetryAfterMs = 0, Credit = credit, Reason = RateLimitReason.None };
             }
@@ -441,7 +446,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
         // Build report
         System.Text.StringBuilder sb = new();
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] RequestLimiter Status:");
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
         _ = sb.AppendLine($"CapacityTokens      : {_opt.CapacityTokens}");
         _ = sb.AppendLine($"RefillPerSecond     : {_opt.RefillTokensPerSecond}");
         _ = sb.AppendLine($"TokenScale          : {_opt.TokenScale}");
@@ -554,13 +559,13 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(RequestLimiter)}] Cleanup visited={visited} removed={removed}");
+                                        .Debug($"[{nameof(TokenBucketLimiter)}] Cleanup visited={visited} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(RequestLimiter)}] cleanup-error msg={ex.Message}");
+                                    .Error($"[{nameof(TokenBucketLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -584,7 +589,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         await System.Threading.Tasks.Task.Yield();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(RequestLimiter)}] disposed");
+                                .Debug($"[{nameof(TokenBucketLimiter)}] disposed");
     }
 
     #endregion IDisposable & IAsyncDisposable
