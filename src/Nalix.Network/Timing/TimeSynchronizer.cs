@@ -2,8 +2,8 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
-using Nalix.Shared.Injection;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Timing;

@@ -3,9 +3,9 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Throttling;
 

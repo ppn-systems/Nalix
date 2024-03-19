@@ -2,7 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 
 namespace Nalix.SDK.Remote.Extensions;
 

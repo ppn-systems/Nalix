@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
-using Nalix.Shared.Injection.DI;
+using Nalix.Framework.Injection.DI;
 
-namespace Nalix.Shared.Injection;
+namespace Nalix.Framework.Injection;
 
 /// <summary>
 /// High-performance manager that maintains single instances of different types,
