@@ -1,7 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Connection;
 using Nalix.Network.Timing;
@@ -22,7 +26,7 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    public async System.Threading.Tasks.Task ActivateAsync(System.Threading.CancellationToken cancellationToken = default)
+    public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
@@ -34,12 +38,9 @@ public abstract partial class TcpListenerBase
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TcpListenerBase)}] activate-request port={_port}");
 
-        // Acquire lifecycle lock WITHOUT external token
-        await _lock.WaitAsync(System.Threading.CancellationToken.None).ConfigureAwait(false);
+        _lock.Wait(System.Threading.CancellationToken.None);
 
-        System.Boolean started = false;
         System.Threading.CancellationToken linkedToken = default;
-        System.Threading.CancellationTokenRegistration registration = default;
 
         try
         {
@@ -57,24 +58,24 @@ public abstract partial class TcpListenerBase
             _cancellationToken = _cts.Token;
             linkedToken = _cts.Token;
 
-            registration = linkedToken.Register(() =>
-            {
-                try { _listener?.Close(); } catch { }
-            });
+            _ = linkedToken.Register(() => { try { _listener?.Close(); } catch { } });
+            _ = linkedToken.Register(static s => ((TcpListenerBase)s!).ScheduleStop(), this);
 
             System.Boolean needInit;
             try
             {
                 needInit = _listener is null || !_listener.IsBound || _listener.SafeHandle.IsInvalid;
             }
-            catch { needInit = true; }
+            catch
+            {
+                needInit = true;
+            }
             if (needInit)
             {
                 Initialize();
             }
 
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Running);
-            started = true;
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] start protocol={_protocol} port={_port}");
@@ -87,29 +88,27 @@ public abstract partial class TcpListenerBase
 
             System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = new(Config.MaxParallel);
 
+            _acceptWorkerIds.Clear();
+
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
-                var accept = AcceptConnectionsAsync(linkedToken);
-
-                _ = accept.ContinueWith(t =>
+                IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                    name: $"tcp.accept.{_port}.{i}",
+                    group: this.GroupName,
+                    work: async (ctx, ct) =>
                     {
-                        if (t.IsFaulted && !linkedToken.IsCancellationRequested)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Error($"[{nameof(TcpListenerBase)}] " +
-                                                           $"accept-task-failed msg={t.Exception?.GetBaseException().Message}");
-                        }
+                        await AcceptConnectionsAsync(ct).ConfigureAwait(false);
                     },
-                    System.Threading.CancellationToken.None,
-                    System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted |
-                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
-                    System.Threading.Tasks.TaskScheduler.Default
-                );
+                    options: new WorkerOptions
+                    {
+                        CancellationToken = linkedToken,
+                        Retention = System.TimeSpan.FromSeconds(30),
+                        IdType = IdentifierType.System,
+                        Tag = "listener"
+                    });
 
-                tasks.Add(accept);
+                _acceptWorkerIds.Add(h.Id);
             }
-
-            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException)
         {
@@ -126,62 +125,13 @@ public abstract partial class TcpListenerBase
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[{nameof(TcpListenerBase)}] critical-error port={_port}", ex);
         }
-        finally
-        {
-            try
-            {
-                if (started)
-                {
-                    try
-                    {
-                        _cts?.Cancel();
-                    }
-                    catch { }
-                    try
-                    {
-                        _listener?.Close();
-                    }
-                    catch { }
-                    _listener = null;
-
-                    await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None)
-                                                     .ConfigureAwait(false);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TcpListenerBase)}] shutdown-error port={_port} ex={ex.Message}");
-            }
-            finally
-            {
-                try
-                {
-                    registration.Dispose();
-                }
-                catch { }
-                try
-                {
-                    _cts?.Dispose();
-                }
-                catch { }
-                _cts = null;
-
-                if (started)
-                {
-                    _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
-                }
-
-                _ = _lock.Release();
-            }
-        }
     }
 
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public async System.Threading.Tasks.Task DeactivateAsync(System.Threading.CancellationToken cancellationToken = default)
+    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
@@ -235,8 +185,6 @@ public abstract partial class TcpListenerBase
             _cts = null;
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
         }
-
-        await System.Threading.Tasks.Task.CompletedTask;
     }
 
     /// <summary>
