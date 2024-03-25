@@ -7,6 +7,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connection;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
@@ -45,11 +46,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
     #endregion Fields
 
     #region Properties
-
-    /// <summary>
-    /// Name of the listener instance.
-    /// </summary>
-    public readonly System.String GroupName;
 
     /// <summary>
     /// Gets the current state of the listener.
@@ -140,8 +136,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
         _acceptWorkerIds = new(Config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
-        this.GroupName = $"net/accept/{_port}";
-
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -190,25 +184,27 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
 
                 try
                 {
-                    _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?.CancelGroup(self.GroupName));
+                    _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
+                                                .CancelGroup(TaskNames.Groups.TcpAccept(self._port));
                 }
                 catch { }
 
                 try
                 {
-                    InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.CloseAllConnections();
+                    InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
+                                            .CloseAllConnections();
                 }
                 catch { }
 
                 _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.Stopped);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
+                                        .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
             }
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Error($"[{nameof(TcpListenerBase)}] stop-error port={self._port} ex={ex.Message}");
+                                        .Error($"[{nameof(TcpListenerBase)}] stop-error port={self._port} ex={ex.Message}");
             }
             finally
             {
