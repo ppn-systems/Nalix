@@ -81,34 +81,66 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
     /// Adjust mappings to match your enum set.
     /// </summary>
-    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags) ClassifyException(System.Exception ex)
+    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags)
+        ClassifyException(System.Exception ex)
     {
-        // Timeouts / cancellations -> transient, client can retry
+        // 1) Cancellation/Timeout => transient
         if (ex is System.OperationCanceledException or System.TimeoutException)
         {
             return (ProtocolCode.TIMEOUT, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
-        // Validation / bad input -> client should fix
-        if (ex is System.ArgumentException || ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
+        // 2) Validation/Bad input
+        if (ex is System.ArgumentException or System.FormatException ||
+            ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
         {
             return (ProtocolCode.REQUEST_INVALID, ProtocolAction.FIX_AND_RETRY, ControlFlags.NONE);
         }
 
-        // Unsupported features at runtime
-        if (ex is System.NotSupportedException)
+        // 3) Unauthorized / security
+        if (ex is System.UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return (ProtocolCode.ACCOUNT_LOCKED, ProtocolAction.NONE, ControlFlags.NONE);
+        }
+
+        // 4) Unsupported / not implemented
+        if (ex is System.NotSupportedException or System.NotImplementedException)
         {
             return (ProtocolCode.OPERATION_UNSUPPORTED, ProtocolAction.NONE, ControlFlags.NONE);
         }
 
-        // I/O / network glitches -> transient
-        if (ex is System.IO.IOException or System.Net.Sockets.SocketException)
+        // 5) I/O / socket => phần lớn transient
+        if (ex is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException se1)
+        {
+            return ClassifySocket(se1);
+        }
+
+        if (ex is System.Net.Sockets.SocketException se)
+        {
+            return ClassifySocket(se);
+        }
+
+        // 6) ObjectDisposed trong giai đoạn teardown/shutdown: coi như transient nhẹ
+        if (ex is System.ObjectDisposedException)
         {
             return (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
-        // Default: internal error (could be non-transient)
+        // 7) Mặc định
         return (ProtocolCode.INTERNAL_ERROR, ProtocolAction.NONE, ControlFlags.NONE);
+
+        static (ProtocolCode, ProtocolAction, ControlFlags) ClassifySocket(System.Net.Sockets.SocketException se)
+        {
+            return se.SocketErrorCode switch
+            {
+                // thường do peer reset/close hay mạng chập chờn
+                System.Net.Sockets.SocketError.ConnectionReset or System.Net.Sockets.SocketError.ConnectionAborted or System.Net.Sockets.SocketError.TimedOut or System.Net.Sockets.SocketError.HostDown or System.Net.Sockets.SocketError.HostUnreachable or System.Net.Sockets.SocketError.NetworkDown or System.Net.Sockets.SocketError.NetworkUnreachable => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                // local cancellation / interrupted
+                System.Net.Sockets.SocketError.Interrupted or System.Net.Sockets.SocketError.OperationAborted => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                // default
+                _ => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.NONE),
+            };
+        }
     }
 
     #endregion Private Methods
