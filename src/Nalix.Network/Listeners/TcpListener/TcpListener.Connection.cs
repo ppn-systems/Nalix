@@ -134,9 +134,11 @@ public abstract partial class TcpListenerBase
                     {
                         Retention = System.TimeSpan.Zero,
                         IdType = IdentifierType.System,
-                        Tag = "conn"
+                        Tag = nameof(IConnection)
                     }
                 );
+
+                return;
             }
             catch (NonFatalRejectedException)
             {
