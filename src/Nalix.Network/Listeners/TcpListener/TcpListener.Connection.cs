@@ -123,8 +123,8 @@ public abstract partial class TcpListenerBase
                     .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: TaskNames.Workers.TcpProcess(_port, connection.ID),
-                    group: TaskNames.Groups.TcpProcess(_port),
+                    name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                    group: NetNames.TcpProcessGroup(_port),
                     work: async (ctx, workerCt) =>
                     {
                         ProcessConnection(connection);
@@ -362,8 +362,8 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                        name: TaskNames.Workers.TcpProcess(_port, connection.ID),
-                        group: TaskNames.Groups.TcpProcess(_port),
+                        name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                        group: NetNames.TcpProcessGroup(_port),
                         work: async (ctx, workerCt) =>
                         {
                             ProcessConnection(connection);

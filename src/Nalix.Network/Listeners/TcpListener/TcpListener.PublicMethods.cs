@@ -92,8 +92,8 @@ public abstract partial class TcpListenerBase
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: TaskNames.Workers.TcpAccept(_port, i),
-                    group: TaskNames.Groups.TcpAccept(_port),
+                    name: NetNames.TcpAcceptWorker(_port, i),
+                    group: NetNames.TcpGroup(_port),
                     work: async (ctx, ct) =>
                     {
                         await AcceptConnectionsAsync(ct).ConfigureAwait(false);
@@ -182,10 +182,10 @@ public abstract partial class TcpListenerBase
             _listener = null;
 
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelGroup(TaskNames.Groups.TcpAccept(_port));
+                                        .CancelGroup(NetNames.TcpGroup(_port));
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup(TaskNames.Groups.TcpProcess(_port)));
+                                         .CancelGroup(NetNames.TcpProcessGroup(_port)));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();

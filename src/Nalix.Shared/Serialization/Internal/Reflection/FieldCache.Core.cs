@@ -35,7 +35,7 @@ internal static partial class FieldCache<T>
         foreach (var f in _metadata)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"  Order={f.Order}, Name={f.Name}, Type={f.FieldType}, IsValueType={f.IsValueType}");
+                $"  Order={f.Order}, Naming={f.Name}, Type={f.FieldType}, IsValueType={f.IsValueType}");
         }
 
         var original = new Binary128

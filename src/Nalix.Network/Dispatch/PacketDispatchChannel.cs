@@ -8,6 +8,7 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Name;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
@@ -101,14 +102,14 @@ public sealed class PacketDispatchChannel
         Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: TaskNames.Workers.PacketDispatch,
-            group: TaskNames.Groups.Dispatch,
+            name: NetNames.PacketDispatchGroup,
+            group: NetNames.PacketDispatchWorker,
             work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
                 Retention = System.TimeSpan.Zero,
-                Tag = "dispatch"
+                Tag = TaskNames.Tags.Dispatch
             });
     }
 
