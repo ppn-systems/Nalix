@@ -110,6 +110,7 @@ public static class TaskNames
             System.String token = ms % 1 == 0
                 ? ((System.Int64)ms).ToString(CultureInfo.InvariantCulture) + "ms"
                 : ms.ToString("0.###", CultureInfo.InvariantCulture) + "ms";
+
             return $"{Safe(prefix)}.{token}";
         }
     }
