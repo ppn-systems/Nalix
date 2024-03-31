@@ -3,7 +3,6 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Randomization;
-using System.Linq;
 
 namespace Nalix.Framework.Tasks;
 
@@ -245,9 +244,21 @@ public partial class TaskManager
         {
             _ = _workers.TryRemove(st.Id, out _);
             try { st.Cts.Dispose(); } catch { }
-            if (!_workers.Values.Any(w => System.String.Equals(w.Group, st.Group, System.StringComparison.Ordinal)))
+
+            bool hasSameGroup = false;
+            foreach (var kv in _workers)
             {
-                if (_groupGates.TryRemove(st.Group, out var g))
+                WorkerState other = kv.Value;
+                if (System.String.Equals(other.Group, st.Group, System.StringComparison.Ordinal))
+                {
+                    hasSameGroup = true;
+                    break;
+                }
+            }
+
+            if (!hasSameGroup)
+            {
+                if (_groupGates.TryRemove(st.Group, out Gate? g))
                 {
                     try { g.SemaphoreSlim.Dispose(); } catch { }
                 }

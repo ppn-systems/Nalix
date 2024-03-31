@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Framework.Tasks.Name;
 
@@ -15,6 +15,9 @@ namespace Nalix.Framework.Tasks.Name;
 /// This is a general-purpose library. Specific domains (TCP, limiter, etc.)
 /// should build on top of these helpers rather than hardcoding names here.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public static class TaskNames
 {
     /// <summary>
@@ -62,6 +65,8 @@ public static class TaskNames
         /// <summary>
         /// Build a generic group path from parts, e.g. <c>Build("net","tcp","5720") = "net/tcp/5720"</c>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String Build(params System.String[] parts)
         {
             if (parts == null || parts.Length == 0)
@@ -86,6 +91,8 @@ public static class TaskNames
         /// <summary>
         /// Build a generic worker id, e.g. <c>Build("tcp","accept","5720","0") = "tcp.accept.5720.0"</c>.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String Build(params System.String[] parts)
         {
             if (parts == null || parts.Length == 0)
@@ -104,12 +111,14 @@ public static class TaskNames
         /// <summary>
         /// Build a worker id with a time-based component, e.g. "timesync.10ms".
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String WithPeriod(System.String prefix, System.TimeSpan period)
         {
             System.Double ms = period.TotalMilliseconds;
             System.String token = ms % 1 == 0
-                ? ((System.Int64)ms).ToString(CultureInfo.InvariantCulture) + "ms"
-                : ms.ToString("0.###", CultureInfo.InvariantCulture) + "ms";
+                ? ((System.Int64)ms).ToString(System.Globalization.CultureInfo.InvariantCulture) + "ms"
+                : ms.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "ms";
 
             return $"{Safe(prefix)}.{token}";
         }
@@ -123,6 +132,8 @@ public static class TaskNames
         /// <summary>
         /// Build a recurring job id with a hex instance key, e.g. "cleanup.00BC614E".
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String WithKey(System.String prefix, System.Int32 instanceKey)
             => $"{Safe(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }
@@ -131,6 +142,9 @@ public static class TaskNames
     /// Sanitizes an arbitrary string into a safe token for task names.
     /// Allows letters, digits, '-', '_', '.', replaces others with '_'.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public static System.String Safe(System.String s)
     {
         if (System.String.IsNullOrEmpty(s))
