@@ -33,12 +33,12 @@ public interface IWorkerContext
     /// <summary>
     /// Sends a heartbeat signal to indicate the worker is still active.
     /// </summary>
-    void Heartbeat();
+    void Beat();
 
     /// <summary>
     /// Adds progress to the worker, with an optional note describing the update.
     /// </summary>
     /// <param name="delta">The amount of progress to add.</param>
     /// <param name="note">An optional note describing the progress update.</param>
-    void AddProgress(System.Int64 delta, System.String note = null);
+    void Advance(System.Int64 delta, System.String note = null);
 }
