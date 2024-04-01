@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Logging.Engine;
 using Nalix.Logging.Sinks.Console;
 using Nalix.Logging.Sinks.File;
 
@@ -22,13 +21,14 @@ public sealed partial class NLogix
         /// The lazy-loaded singleton instance of the <see cref="NLogix"/> logger.
         /// The logger is configured during initialization with default targets.
         /// </summary>
-        private static readonly System.Lazy<NLogix> _instance = new(() =>
-            new NLogix(delegate (LogOptions cfg)
+        private static readonly System.Lazy<NLogix> _instance = new(static () =>
+            new NLogix(cfg =>
             {
                 // Configure default logging outputs
                 _ = cfg.AddTarget(new ConsoleLogTarget())
                        .AddTarget(new ChannelFileLogTarget());
-            }));
+            })
+        );
 
         /// <summary>
         /// Gets the global singleton instance of the <see cref="NLogix"/> logger.
