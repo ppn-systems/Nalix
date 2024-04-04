@@ -337,7 +337,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
 
             return !_finalized
                 ? throw new System.InvalidOperationException(
-                    "The hash has not been completed. Call TransformFinalBlock before accessing the Hashing.")
+                    "Hash is not available yet. Call FinalizeHash() (or TransformFinalBlock) before accessing Hash.")
                 : (System.Byte[])_finalHash.Clone();
         }
     }
@@ -410,11 +410,9 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
             throw new System.ArgumentOutOfRangeException(nameof(inputOffset));
         }
 
-        System.Byte[] finalBlock = System.GC.AllocateUninitializedArray<System.Byte>(inputCount);
-        System.Buffer.BlockCopy(inputBuffer, inputOffset, finalBlock, 0, inputCount);
+        this.Update(new System.ReadOnlySpan<System.Byte>(inputBuffer, inputOffset, inputCount));
 
-        Update(finalBlock);
-        _finalHash = FinalizeHash();
+        _finalHash = this.FinalizeHash();
     }
 
     #endregion Public Methods
@@ -422,6 +420,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     #region Private Methods
 
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlock(System.ReadOnlySpan<System.Byte> block)

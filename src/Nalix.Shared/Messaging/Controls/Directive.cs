@@ -147,7 +147,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     }
 
     /// <summary>
-    /// Deserialize from the given buffer using the common serializer.
+    /// FromBytes from the given buffer using the common serializer.
     /// </summary>
     public static Directive Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
