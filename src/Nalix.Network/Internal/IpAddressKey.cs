@@ -1,6 +1,4 @@
-﻿
-
-namespace Nalix.Network.Internal;
+﻿namespace Nalix.Network.Internal;
 
 internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
 {
@@ -57,4 +55,28 @@ internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
     public static System.Boolean operator ==(IpAddressKey left, IpAddressKey right) => left.Equals(right);
 
     public static System.Boolean operator !=(IpAddressKey left, IpAddressKey right) => !left.Equals(right);
+
+    public System.String Address
+    {
+        get
+        {
+            if (!_isV6)
+            {
+                // IPv4 stored in low 32 bits
+                System.UInt32 v4 = (System.UInt32)_lo;
+                System.Byte[] bytes = new System.Byte[4];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes, v4);
+                return new System.Net.IPAddress(bytes).ToString();
+            }
+            else
+            {
+                System.Span<System.Byte> buf = stackalloc System.Byte[16];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf, _hi);
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf[8..], _lo);
+                return new System.Net.IPAddress(buf).ToString();
+            }
+        }
+    }
+
+    public override System.String ToString() => Address;
 }

@@ -149,7 +149,7 @@ public abstract partial class TcpListenerBase
                     }
                 );
 
-                return;
+                continue;
             }
             catch (NonFatalRejectedException)
             {
@@ -207,9 +207,6 @@ public abstract partial class TcpListenerBase
 
             if (_listener == null)
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<PooledAcceptContext>(context);
-
                 throw new System.InvalidOperationException($"[{nameof(TcpListenerBase)}] socket is not initialized.");
             }
 

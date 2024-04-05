@@ -121,11 +121,9 @@ internal sealed class PooledAcceptContext : IPoolable
     {
         if (_args != null)
         {
-            _args.Completed -= AsyncAcceptCompleted; // detach to avoid duplicate callbacks on reuse
+            _args.Completed -= AsyncAcceptCompleted;
             _args.UserToken = null;
             _args.AcceptSocket = null;
         }
-        // Keep _args reference; the SAEA instance itself may be reused elsewhere.
-        // If your PooledSocketAsyncEventArgs also clears Buffer/RemoteEndPoint/Context, that is fine.
     }
 }
