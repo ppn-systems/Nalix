@@ -12,30 +12,22 @@ namespace Nalix.Network.Middleware;
 /// <typeparam name="TPacket">The type of packet being processed in the pipeline.</typeparam>
 public class PacketMiddlewarePipeline<TPacket>
 {
-    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _pre = [];
-    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _post = [];
+    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _inbound = [];
+    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outbound = [];
 
     /// <summary>
     /// Adds a middleware component to be executed before the main handler.
     /// </summary>
     /// <param name="middleware">The middleware to be added.</param>
     /// <returns>The current pipeline instance for chaining.</returns>
-    public PacketMiddlewarePipeline<TPacket> UsePre(IPacketMiddleware<TPacket> middleware)
-    {
-        this._pre.Add(middleware);
-        return this;
-    }
+    public void UseInbound(IPacketMiddleware<TPacket> middleware) => _inbound.Add(middleware);
 
     /// <summary>
     /// Adds a middleware component to be executed after the main handler.
     /// </summary>
     /// <param name="middleware">The middleware to be added.</param>
     /// <returns>The current pipeline instance for chaining.</returns>
-    public PacketMiddlewarePipeline<TPacket> UsePost(IPacketMiddleware<TPacket> middleware)
-    {
-        this._post.Add(middleware);
-        return this;
-    }
+    public void UseOutbound(IPacketMiddleware<TPacket> middleware) => _outbound.Add(middleware);
 
     /// <summary>
     /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
@@ -48,10 +40,10 @@ public class PacketMiddlewarePipeline<TPacket>
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> handler)
     {
-        return ExecuteMiddlewareChain(this._pre, context, async () =>
+        return ExecuteMiddlewareChain(this._inbound, context, async () =>
         {
             await handler().ConfigureAwait(false);
-            await ExecuteMiddlewareChain(this._post, context, () => System.Threading.Tasks.Task.CompletedTask).ConfigureAwait(false);
+            await ExecuteMiddlewareChain(this._outbound, context, () => System.Threading.Tasks.Task.CompletedTask).ConfigureAwait(false);
         });
     }
 
