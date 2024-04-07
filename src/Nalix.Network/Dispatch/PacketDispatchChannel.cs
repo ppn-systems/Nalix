@@ -93,8 +93,6 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
-
         System.Threading.CancellationToken linkedToken = cancellationToken.CanBeCanceled
                 ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
                 : _cts.Token;
