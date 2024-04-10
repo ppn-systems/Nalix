@@ -124,10 +124,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode()),
-            interval: System.TimeSpan.FromSeconds(_cleanupIntervalSec),
-            work: ct =>
+            interval: System.TimeSpan.FromSeconds(this._cleanupIntervalSec),
+            work: _ =>
             {
-                Cleanup();
+                this.Cleanup();
                 return System.Threading.Tasks.ValueTask.CompletedTask;
             },
             options: new RecurringOptions
@@ -465,13 +465,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         // Build report
         System.Text.StringBuilder sb = new();
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
-        _ = sb.AppendLine($"CapacityTokens      : {_opt.CapacityTokens}");
-        _ = sb.AppendLine($"RefillPerSecond     : {_opt.RefillTokensPerSecond}");
-        _ = sb.AppendLine($"TokenScale          : {_opt.TokenScale}");
-        _ = sb.AppendLine($"Shards              : {_opt.ShardCount}");
-        _ = sb.AppendLine($"HardLockoutSeconds  : {_opt.HardLockoutSeconds}");
-        _ = sb.AppendLine($"StaleEntrySeconds   : {_opt.StaleEntrySeconds}");
-        _ = sb.AppendLine($"CleanupIntervalSecs : {_opt.CleanupIntervalSeconds}");
+        _ = sb.AppendLine($"CapacityTokens      : {this._opt.CapacityTokens}");
+        _ = sb.AppendLine($"RefillPerSecond     : {this._opt.RefillTokensPerSecond}");
+        _ = sb.AppendLine($"TokenScale          : {this._opt.TokenScale}");
+        _ = sb.AppendLine($"Shards              : {this._opt.ShardCount}");
+        _ = sb.AppendLine($"HardLockoutSeconds  : {this._opt.HardLockoutSeconds}");
+        _ = sb.AppendLine($"StaleEntrySeconds   : {this._opt.StaleEntrySeconds}");
+        _ = sb.AppendLine($"CleanupIntervalSecs : {this._opt.CleanupIntervalSeconds}");
         _ = sb.AppendLine($"TrackedEndpoints    : {totalEndpoints}");
         _ = sb.AppendLine($"HardBlockedCount    : {hardBlockedCount}");
         _ = sb.AppendLine();
@@ -524,7 +524,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
             System.String keyCol = key.Length > 15 ? (key[..15] + "…") : key.PadRight(15);
             _ = sb.AppendLine(
-                $"{keyCol} | {(isBlocked ? "yes" : " no ")}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
+                $"{keyCol} | {(isBlocked ? "yes" : " no ")}   | {credit,6} | {micro,10}/{this._capacityMicro,-10} | {retryMs,12}");
         }
 
         if (shown == 0)
