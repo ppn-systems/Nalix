@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Protocols;
 using Nalix.Framework.Injection;
