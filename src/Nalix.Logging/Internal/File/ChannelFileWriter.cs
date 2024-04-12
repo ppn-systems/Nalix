@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Internal.File;
 
 /// <summary>
 /// File writer used by <see cref="ChannelFileLoggerProvider"/>.
