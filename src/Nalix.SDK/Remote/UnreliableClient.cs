@@ -123,11 +123,5 @@ public sealed class UnreliableClient
     /// Disposes the client and releases all held resources.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    protected override void Dispose(System.Boolean disposeManaged)
-    {
-        if (disposeManaged)
-        {
-            _ = this.DeactivateAsync();
-        }
-    }
+    public async System.Threading.Tasks.ValueTask DisposeAsync() => await this.DeactivateAsync();
 }
