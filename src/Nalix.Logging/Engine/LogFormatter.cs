@@ -2,8 +2,9 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
+using Nalix.Logging.Internal.Formatters;
 
-namespace Nalix.Logging.Formatters;
+namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.

@@ -17,7 +17,7 @@ namespace Nalix.Logging;
 /// </para>
 /// </summary>
 /// <remarks>
-/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogix.Host"/>.
+/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="Host"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]

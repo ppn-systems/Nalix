@@ -2,6 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
+using Nalix.Logging.Options;
 using Nalix.Logging.Sinks.File;
 
 namespace Nalix.Logging.Sinks.BatchFile;

@@ -1,8 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Logging.Sinks.File;
-
-namespace Nalix.Logging.Sinks.BatchFile;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Defines the options for buffered logging.
