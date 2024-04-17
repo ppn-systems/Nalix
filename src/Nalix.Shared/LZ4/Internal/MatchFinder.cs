@@ -3,6 +3,11 @@
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Unsafe;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>

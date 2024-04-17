@@ -1,5 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
 internal static partial class FieldCache<T>
