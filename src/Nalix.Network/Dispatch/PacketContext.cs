@@ -4,7 +4,9 @@ using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Enums;
 using Nalix.Framework.Injection;
+using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Delegates;
+using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch;
@@ -78,12 +80,13 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// </remarks>
     static PacketContext()
     {
-        // Register pool for PacketContext<TPacket>
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PacketContext<TPacket>>(64);
+        PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PacketContext<TPacket>>(1024);
+                                    .Prealloc<PacketContext<TPacket>>(options.PacketContextPreallocate);
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextMaxCapacity);
     }
 
 

@@ -41,7 +41,7 @@ internal static class AsyncCallback
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void InvokeAsync(
+    public static void Invoke(
         System.EventHandler<IConnectEventArgs>? callback,
         System.Object sender, IConnectEventArgs args)
     {

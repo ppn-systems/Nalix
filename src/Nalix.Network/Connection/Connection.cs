@@ -232,7 +232,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.InvokeAsync(_onCloseEvent, e.Connection, e);
+        AsyncCallback.Invoke(_onCloseEvent, e.Connection, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -244,7 +244,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.InvokeAsync(self._onProcessEvent, self, e);
+        AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -256,7 +256,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.InvokeAsync(self._onPostProcessEvent, self, e);
+        AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
     }
 
     #endregion Event Bridges

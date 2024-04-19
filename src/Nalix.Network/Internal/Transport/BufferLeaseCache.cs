@@ -80,7 +80,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
     public void PushIncoming(BufferLease data)
     {
         this.Incoming.Push(data);
-        AsyncCallback.InvokeAsync(_callback, _sender!, _cachedArgs!);
+        AsyncCallback.Invoke(_callback, _sender!, _cachedArgs!);
     }
 
     /// <summary>
