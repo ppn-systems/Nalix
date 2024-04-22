@@ -16,7 +16,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Fields
 
-    private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
+    private readonly MiddlewarePipeline<TPacket> _pipeline;
 
     private readonly System.Collections.Generic.Dictionary<
         System.UInt16, PacketHandler<TPacket>> _handlerCache;
@@ -35,7 +35,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     public PacketDispatchOptions()
     {
         this._handlerCache = [];
-        this._pipeline = new PacketMiddlewarePipeline<TPacket>();
+        this._pipeline = new MiddlewarePipeline<TPacket>();
     }
 
     #endregion Fields
