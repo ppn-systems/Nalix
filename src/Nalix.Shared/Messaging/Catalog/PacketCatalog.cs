@@ -34,11 +34,11 @@ public sealed class PacketCatalog : IPacketCatalog
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketCatalog"/> class using the specified lookup tables.
     /// </summary>
-    /// <param name="deserializers">
-    /// A frozen dictionary that maps magic numbers to <see cref="PacketDeserializer"/> delegates.
-    /// </param>
     /// <param name="transformers">
     /// A frozen dictionary that maps packet <see cref="System.Type"/> objects to <see cref="PacketTransformer"/> delegates.
+    /// </param>
+    /// <param name="deserializers">
+    /// A frozen dictionary that maps magic numbers to <see cref="PacketDeserializer"/> delegates.
     /// </param>
     /// <remarks>
     /// Both dictionaries are assumed to be non-null and already frozen. The constructor does not copy the inputs.
