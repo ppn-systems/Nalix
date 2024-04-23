@@ -23,7 +23,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.Tasks.Task> next)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+        System.Threading.CancellationToken ct)
     {
         IPacket current = context.Packet;
 
@@ -32,7 +33,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         if (!needEncrypt && !needCompress)
         {
-            await next();
+            await next(ct);
             return;
         }
 
@@ -143,7 +144,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                   arg2: 0).ConfigureAwait(false);
         }
 
-        await next();
+        await next(ct);
     }
 
     private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
