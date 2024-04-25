@@ -16,6 +16,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
+        context.SkipOutbound = IsVoidLike(descriptor.ReturnType);
+
         if (this._pipeline is not null)
         {
             await this._pipeline.ExecuteAsync(context, Terminal, System.Threading.CancellationToken.None)
@@ -38,14 +40,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
                                                         .WaitAsync(ct)
                                                         .ConfigureAwait(false);
 
-                ct.ThrowIfCancellationRequested();
-
                 // Handle the result
-                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
-                await returnHandler.HandleAsync(result, context)
-                                   .AsTask()
-                                   .WaitAsync(ct)
-                                   .ConfigureAwait(false);
+                if (!context.SkipOutbound)
+                {
+                    IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+                    await returnHandler.HandleAsync(result, context)
+                                       .AsTask()
+                                       .WaitAsync(ct)
+                                       .ConfigureAwait(false);
+                }
             }
             catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -81,6 +84,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
               sequenceId: sequenceId,
               flags: flags,
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+    }
+
+    private static System.Boolean IsVoidLike(System.Type returnType)
+    {
+        return returnType == typeof(void)
+            || returnType == typeof(System.Threading.Tasks.Task)
+            || returnType == typeof(System.Threading.Tasks.ValueTask);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

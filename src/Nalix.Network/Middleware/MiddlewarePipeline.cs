@@ -14,6 +14,7 @@ public class MiddlewarePipeline<TPacket>
 {
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _inbound = [];
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outbound = [];
+    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outboundAlways = [];
 
     /// <summary>
     /// Adds a middleware component to be executed before the main handler.
@@ -26,6 +27,11 @@ public class MiddlewarePipeline<TPacket>
     public void UseOutbound(IPacketMiddleware<TPacket> middleware) => _outbound.Add(middleware);
 
     /// <summary>
+    /// Adds a middleware component to be executed after the main handler, regardless of outbound skipping.
+    /// </summary>
+    public void UseOutboundAlways(IPacketMiddleware<TPacket> m) => _outboundAlways.Add(m);
+
+    /// <summary>
     /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
     /// Middlewares are invoked in the order they were added, forming a chain of responsibility.
     /// </summary>
@@ -36,20 +42,25 @@ public class MiddlewarePipeline<TPacket>
     {
         // Build inbound chain → handler → outbound chain
         return ExecuteMiddlewareChain(
-            _inbound,
-            context,
+            _inbound, context,
             async (downstreamCt) =>
             {
                 // Call terminal handler
                 await handler(downstreamCt).ConfigureAwait(false);
 
-                // Then run outbound chain (separately) with the same downstream token
                 await ExecuteMiddlewareChain(
-                    _outbound,
-                    context,
-                    _ => System.Threading.Tasks.Task.CompletedTask,
-                    downstreamCt
+                    _outboundAlways, context,
+                    _ => System.Threading.Tasks.Task.CompletedTask, downstreamCt
                 ).ConfigureAwait(false);
+
+                // Then run outbound chain (separately) with the same downstream token
+                if (!context.SkipOutbound)
+                {
+                    await ExecuteMiddlewareChain(
+                        _outbound, context,
+                        _ => System.Threading.Tasks.Task.CompletedTask, downstreamCt
+                    ).ConfigureAwait(false);
+                }
             },
             ct
         );
