@@ -17,6 +17,14 @@ public class MiddlewarePipeline<TPacket>
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outboundAlways = [];
 
     /// <summary>
+    /// Gets a value indicating whether the middleware pipeline contains no middleware components.
+    /// </summary>
+    public System.Boolean IsEmpty =>
+        _inbound.Count == 0 &&
+        _outbound.Count == 0 &&
+        _outboundAlways.Count == 0;
+
+    /// <summary>
     /// Adds a middleware component to be executed before the main handler.
     /// </summary>
     public void UseInbound(IPacketMiddleware<TPacket> middleware) => _inbound.Add(middleware);
