@@ -1,10 +1,14 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Exceptions;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Protocols;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch.Delegates;
 using Nalix.Network.Dispatch.Results;
+using Nalix.Network.Throttling;
+using static Nalix.Network.Throttling.ConcurrencyGate;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -31,6 +35,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         async System.Threading.Tasks.Task Terminal(
               System.Threading.CancellationToken ct = default)
         {
+            Lease lease = default;
+
             try
             {
                 ct.ThrowIfCancellationRequested();
@@ -39,7 +45,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 {
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
-                        reason: ProtocolCode.REQUEST_INVALID,
+                        reason: ProtocolCode.RATE_LIMITED,
                         action: ProtocolAction.RETRY,
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.IS_TRANSIENT,
@@ -48,6 +54,34 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         arg2: 0).ConfigureAwait(false);
 
                     return;
+                }
+
+                System.Boolean acquired = false;
+                PacketConcurrencyLimitAttribute? conc = descriptor.Attributes.ConcurrencyLimit;
+                if (conc is not null)
+                {
+                    if (conc.Queue)
+                    {
+                        lease = await ConcurrencyGate.EnterAsync(descriptor.OpCode, conc, ct)
+                                                     .ConfigureAwait(false);
+                        acquired = true;
+                    }
+                    else
+                    {
+                        acquired = ConcurrencyGate.TryEnter(descriptor.OpCode, conc, out lease);
+
+                        if (!acquired)
+                        {
+                            await context.Connection.SendAsync(
+                                controlType: ControlType.FAIL,
+                                reason: ProtocolCode.RATE_LIMITED,
+                                action: ProtocolAction.RETRY,
+                                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                                flags: ControlFlags.IS_TRANSIENT,
+                                arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+                            return;
+                        }
+                    }
                 }
 
                 // Execute the handler and await the ValueTask once
@@ -66,6 +100,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
                                        .ConfigureAwait(false);
                 }
             }
+            catch (ConcurrencyRejectedException)
+            {
+                await context.Connection.SendAsync(
+                    controlType: ControlType.FAIL,
+                    reason: ProtocolCode.RATE_LIMITED,
+                    action: ProtocolAction.RETRY,
+                    sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                    flags: ControlFlags.IS_TRANSIENT,
+                    arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+            }
             catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
             {
             }
@@ -73,6 +117,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 await this.HandleExecutionExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
+            }
+            finally
+            {
+                lease.Dispose();
             }
         }
     }

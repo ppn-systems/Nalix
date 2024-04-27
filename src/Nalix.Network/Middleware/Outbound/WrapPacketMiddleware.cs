@@ -17,7 +17,7 @@ namespace Nalix.Network.Middleware.Outbound;
 /// <summary>
 /// Middleware that wraps a packet with compression and encryption as needed before dispatch.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Outbound, order: 2, name: "Wrap")]
+[Middleware(MiddlewareStage.Outbound, order: 2, name: "Wrap")]
 public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
