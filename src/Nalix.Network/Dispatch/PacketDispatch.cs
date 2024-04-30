@@ -16,7 +16,7 @@ namespace Nalix.Network.Dispatch;
 /// </summary>
 
 [System.Diagnostics.DebuggerDisplay("PacketDispatch: Logger={Logger != null}")]
-public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>
+public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>
 {
     private readonly IPacketCatalog _catalog;
 
