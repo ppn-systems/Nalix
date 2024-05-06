@@ -123,8 +123,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                     Tag = "bufpool",
                     NonReentrant = true,                           // không chồng lần chạy
                     Jitter = System.TimeSpan.FromSeconds(5),       // lệch nhịp nhẹ tránh đồng pha
-                    RunTimeout = System.TimeSpan.FromSeconds(3),   // bảo hiểm nếu trim lâu
-                    MaxBackoff = System.TimeSpan.FromMinutes(1)    // backoff khi lỗi liên tiếp
+                    ExecutionTimeout = System.TimeSpan.FromSeconds(3),   // bảo hiểm nếu trim lâu
+                    BackoffCap = System.TimeSpan.FromMinutes(1)    // backoff khi lỗi liên tiếp
                 }
             );
         }
