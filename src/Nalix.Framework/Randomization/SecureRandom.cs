@@ -133,9 +133,11 @@ public static class SecureRandom
         System.Byte[] keyBytes = new System.Byte[keyWords.Length * sizeof(System.UInt32)];
 
         fixed (System.Byte* bytesPtr = keyBytes)
-        fixed (System.UInt32* wordsPtr = keyWords)
         {
-            System.Buffer.MemoryCopy(wordsPtr, bytesPtr, keyBytes.Length, keyWords.Length * sizeof(System.UInt32));
+            fixed (System.UInt32* wordsPtr = keyWords)
+            {
+                System.Buffer.MemoryCopy(wordsPtr, bytesPtr, keyBytes.Length, keyWords.Length * sizeof(System.UInt32));
+            }
         }
 
         return keyBytes;
