@@ -2,16 +2,22 @@
 
 namespace Nalix.Framework.Identity;
 
+
 /// <summary>
-/// Thin wrapper over the OS CSPRNG (BCryptGenRandom / getrandom / SecRandomCopyBytes).
-/// No dependency on System.Security.Cryptography.
+/// Provides cryptographically secure random number generation using the operating system's CSPRNG facilities.
 /// </summary>
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-internal static partial class OsRandom
+public static partial class OsRandom
 {
+    #region Fields
+
     // Cached platform dispatcher (obfuscated)
     private static readonly System.Action<System.Span<System.Byte>> _f;
+
+    #endregion Fields
+
+    #region Constructor
 
     static OsRandom()
     {
@@ -36,12 +42,17 @@ internal static partial class OsRandom
         }
     }
 
+    #endregion Constructor
+
+    #region APIs
+
     /// <summary>
-    /// Fills the span with cryptographically secure random bytes using the OS RNG.
+    /// Fills the specified buffer with cryptographically secure random bytes using the operating system's CSPRNG facilities.
     /// </summary>
+    /// <param name="buffer">The buffer to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void Fill(System.Span<System.Byte> buffer)
+    public static void Fill(System.Span<System.Byte> buffer)
     {
         if (buffer.Length == 0)
         {
@@ -50,6 +61,10 @@ internal static partial class OsRandom
 
         _f(buffer);
     }
+
+    #endregion APIs
+
+    #region Private
 
     // -------------------- Windows (CNG) --------------------
 
@@ -153,4 +168,6 @@ internal static partial class OsRandom
             total += r;
         }
     }
+
+    #endregion Private
 }
