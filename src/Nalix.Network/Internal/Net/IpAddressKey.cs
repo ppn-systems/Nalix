@@ -42,6 +42,7 @@ internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
             return new IpAddressKey(hi, lo, true);
         }
     }
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IpAddressKey FromEndPoint(System.Net.IPEndPoint ep) => FromIpAddress(ep.Address);

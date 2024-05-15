@@ -8,6 +8,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
+using Nalix.Network.Internal.Net;
 using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
@@ -59,6 +60,18 @@ public sealed partial class Connection : IConnection
         this.UDP.Initialize(this);
         this.TCP = new TcpTransport(this);
 
+        // Only IPv4/IPv6 are supported here
+        if (this.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
+        {
+            this.IpAddress = IpAddressKey.FromIpAddress(ipEndPoint.Address);
+        }
+        else
+        {
+            // Make the unsupported type explicit for easier debugging
+            throw new System.NotSupportedException(
+                $"Only IPEndPoint is supported. Actual type: {this.RemoteEndPoint.GetType().FullName}.");
+        }
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(Connection)}] created remote={this.RemoteEndPoint} id={this.ID}");
     }
@@ -75,6 +88,9 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc/>
     public IConnection.IUdp UDP { get; }
+
+    /// <inheritdoc />
+    internal IpAddressKey IpAddress { get; }
 
     /// <inheritdoc />
     public System.Net.EndPoint RemoteEndPoint { get; }
