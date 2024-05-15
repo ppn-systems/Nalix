@@ -79,7 +79,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
     private sealed class Shard
     {
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, EndpointState> Map
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<IPAddressKey, EndpointState> Map
             = new();
 
         // No shard-wide lock necessary for map ops; per-key Gate handles mutation.
@@ -163,7 +163,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal LimitDecision Check(IpAddressKey key)
+    internal LimitDecision Check(IPAddressKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
@@ -253,7 +253,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     public LimitDecision Check(System.Net.IPAddress ip)
     {
         System.ArgumentNullException.ThrowIfNull(ip);
-        return Check(IpAddressKey.FromIpAddress(ip));
+        return Check(IPAddressKey.FromIpAddress(ip));
     }
 
     /// <summary>
@@ -289,7 +289,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Shard GetShard(IpAddressKey key)
+    private Shard GetShard(IPAddressKey key)
     {
         // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
         System.Int32 h = key.GetHashCode();
@@ -402,7 +402,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
         var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<IpAddressKey, EndpointState>>(1024);
+            System.Collections.Generic.KeyValuePair<IPAddressKey, EndpointState>>(1024);
 
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         System.Int32 shardCount = _shards.Length;
