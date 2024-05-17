@@ -190,7 +190,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TcpListenerBase)}] stop-error port={self._port} ex={ex.Message}");
+                                        .Error($"[{nameof(TcpListenerBase)}:{nameof(ScheduleStop)}] " +
+                                               $"stop-error port={self._port} ex={ex.Message}");
             }
             finally
             {
@@ -270,7 +271,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}] disposed");
+                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose
