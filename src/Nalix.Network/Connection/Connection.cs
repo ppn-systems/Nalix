@@ -177,7 +177,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}] inject-bytes len={bytes.Length}");
+                                .Debug($"[{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
 #endif
     }
 
@@ -193,7 +193,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}] close request id={this.ID} remote={this.RemoteEndPoint}");
+                                .Debug($"[{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.RemoteEndPoint}");
 #endif
     }
 
@@ -231,7 +231,7 @@ public sealed partial class Connection : IConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(Connection)}] dispose-error msg={ex.Message}");
+                                    .Error($"[{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

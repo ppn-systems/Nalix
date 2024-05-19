@@ -15,7 +15,7 @@ using Nalix.Network.Dispatch.Results.Void;
 namespace Nalix.Network.Dispatch.Results;
 
 /// <summary>
-/// A zero-allocation factory responsible for returning the appropriate 
+/// A zero-allocation factory responsible for returning the appropriate
 /// IReturnHandler{TPacket} instance based on a method's return type.
 /// </summary>
 /// <typeparam name="TPacket">
