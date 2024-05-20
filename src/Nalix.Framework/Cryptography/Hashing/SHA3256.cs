@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Abstractions;
 
 namespace Nalix.Framework.Cryptography.Hashing;
@@ -72,7 +69,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
         if (_finalHash != null)
         {
             System.Array.Clear(_finalHash, 0, _finalHash.Length);
-            _finalHash = null;
+            _finalHash = null!;
         }
     }
 
@@ -215,7 +212,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// <inheritdoc/>
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
 
         // Process the data
         Update(data);
