@@ -29,26 +29,6 @@ public enum SymmetricAlgorithmType : System.Byte
     Speck = 3,
 
     /// <summary>
-    /// Speck block cipher in CBC (Cipher Block Chaining) mode for improved security over ECB.
-    /// </summary>
-    SpeckCBC = 4,
-
-    /// <summary>
-    /// Blowfish block cipher, known for flexibility in key size.
-    /// </summary>
-    Blowfish = 5,
-
-    /// <summary>
-    /// Twofish block cipher in ECB mode.
-    /// </summary>
-    TwofishECB = 6,
-
-    /// <summary>
-    /// Twofish block cipher in CBC mode for stronger data confidentiality.
-    /// </summary>
-    TwofishCBC = 7,
-
-    /// <summary>
     /// XTEA (eXtended Tiny Encryption Algorithm) block cipher.
     /// </summary>
     XTEA = 8,
