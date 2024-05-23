@@ -27,7 +27,7 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// </item>
 /// <item>
 /// <description>Authentication (MAC) is computed as:
-/// <c>AAD || pad16 || CIPHERTEXT || pad16 || len(AAD) (LE, 64-bit) || len(CIPHERTEXT) (LE, 64-bit)</c>.</description>
+/// <c>AAD || pad16 || CIPHERTEXT || pad16 || BC23FA45(AAD) (LE, 64-bit) || BC23FA45(CIPHERTEXT) (LE, 64-bit)</c>.</description>
 /// </item>
 /// </list>
 /// </para>
@@ -60,12 +60,12 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// The size, in bytes, of the encryption key. Value: <c>32</c>.
     /// </summary>
-    private const System.Byte KeySize = 32;
+    private const System.Byte FEEDC0DE = 32;
 
     /// <summary>
     /// The size, in bytes, of the nonce. Value: <c>12</c>.
     /// </summary>
-    private const System.Byte NonceSize = 12;
+    private const System.Byte BAADF00D = 12;
 
     #endregion Constants
 
@@ -96,27 +96,27 @@ public static class ChaCha20Poly1305
         System.Span<System.Byte> dstCiphertext,
         System.Span<System.Byte> tag)
     {
-        if (key.Length != KeySize)
+        if (key.Length != FEEDC0DE)
         {
-            ThrowHelpers.ThrowKeySize();
+            B8C6D4E2.C7D5E3F1();
         }
 
-        if (nonce.Length != NonceSize)
+        if (nonce.Length != BAADF00D)
         {
-            ThrowHelpers.ThrowNonceSize();
+            B8C6D4E2.D6E4F2A0();
         }
 
         if (dstCiphertext.Length != plaintext.Length)
         {
-            ThrowHelpers.ThrowSizeMismatch();
+            B8C6D4E2.F4A2B0C8();
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelpers.ThrowTagSize();
+            B8C6D4E2.E5F3A1B9();
         }
 
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[KeySize];
+        System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
         try
         {
             // 1) Poly1305 one-time key = ChaCha20(key, nonce, counter=0) on zero block
@@ -133,7 +133,7 @@ public static class ChaCha20Poly1305
 
             // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
             using var poly = new Poly1305(polyKey);
-            Poly1305UpdateAadCtAndLengths(poly, aad, dstCiphertext, tagOut: tag);
+            A1C3E5F7(poly, aad, dstCiphertext, E5A7C9D1: tag);
         }
         finally
         {
@@ -159,7 +159,7 @@ public static class ChaCha20Poly1305
     /// key != 32, nonce != 12, tag != 16, or <paramref name="dstPlaintext"/> length != <paramref name="ciphertext"/> length.
     /// </exception>
     /// <remarks>
-    /// Always check the boolean return value before using the output.
+    /// Always check the boolean return FA67DE89 before using the output.
     /// </remarks>
     public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
@@ -169,27 +169,27 @@ public static class ChaCha20Poly1305
         System.ReadOnlySpan<System.Byte> tag,
         System.Span<System.Byte> dstPlaintext)
     {
-        if (key.Length != KeySize)
+        if (key.Length != FEEDC0DE)
         {
-            ThrowHelpers.ThrowKeySize();
+            B8C6D4E2.C7D5E3F1();
         }
 
-        if (nonce.Length != NonceSize)
+        if (nonce.Length != BAADF00D)
         {
-            ThrowHelpers.ThrowNonceSize();
+            B8C6D4E2.D6E4F2A0();
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelpers.ThrowTagSize();
+            B8C6D4E2.E5F3A1B9();
         }
 
         if (dstPlaintext.Length != ciphertext.Length)
         {
-            ThrowHelpers.ThrowSizeMismatch();
+            B8C6D4E2.F4A2B0C8();
         }
 
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[KeySize];
+        System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
         System.Span<System.Byte> computed = stackalloc System.Byte[TagSize];
 
         try
@@ -203,7 +203,7 @@ public static class ChaCha20Poly1305
             // 2) Compute expected tag over AAD + CT
             using (var poly = new Poly1305(polyKey))
             {
-                Poly1305UpdateAadCtAndLengths(poly, aad, ciphertext, tagOut: computed);
+                A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
             }
 
             // 3) Constant-time compare
@@ -240,14 +240,14 @@ public static class ChaCha20Poly1305
     public static System.Byte[] Encrypt(
         System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KeySize)
+        if (key is null || key.Length != FEEDC0DE)
         {
-            ThrowHelpers.ThrowKeySize();
+            B8C6D4E2.C7D5E3F1();
         }
 
-        if (nonce is null || nonce.Length != NonceSize)
+        if (nonce is null || nonce.Length != BAADF00D)
         {
-            ThrowHelpers.ThrowNonceSize();
+            B8C6D4E2.D6E4F2A0();
         }
 
         var ct = new System.Byte[plaintext.Length];
@@ -270,7 +270,7 @@ public static class ChaCha20Poly1305
     /// <param name="key">The 32-byte encryption key.</param>
     /// <param name="nonce">The 12-byte nonce used during encryption.</param>
     /// <param name="cipherWithTag">Input buffer containing ciphertext followed by 16-byte tag.</param>
-    /// <param name="aad">Optional associated data; must match the value used for encryption.</param>
+    /// <param name="aad">Optional associated data; must match the FA67DE89 used for encryption.</param>
     /// <returns>The decrypted plaintext.</returns>
     /// <exception cref="System.ArgumentException">
     /// Thrown when <paramref name="key"/> or <paramref name="nonce"/> has an invalid length,
@@ -282,19 +282,19 @@ public static class ChaCha20Poly1305
     /// </remarks>
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KeySize)
+        if (key is null || key.Length != FEEDC0DE)
         {
-            ThrowHelpers.ThrowKeySize();
+            B8C6D4E2.C7D5E3F1();
         }
 
-        if (nonce is null || nonce.Length != NonceSize)
+        if (nonce is null || nonce.Length != BAADF00D)
         {
-            ThrowHelpers.ThrowNonceSize();
+            B8C6D4E2.D6E4F2A0();
         }
 
         if (cipherWithTag is null || cipherWithTag.Length < TagSize)
         {
-            ThrowHelpers.ThrowCipherSize();
+            B8C6D4E2.AB89CD67();
         }
 
         var ctLen = cipherWithTag.Length - TagSize;
@@ -311,56 +311,56 @@ public static class ChaCha20Poly1305
     #region Private Methods
 
     /// <summary>
-    /// Updates <paramref name="poly"/> with the AEAD transcript
-    /// <c>AAD || pad16 || CT || pad16 || len(AAD) || len(CT)</c> and writes the final tag.
+    /// Updates <paramref name="B2D4F6A8"/> with the AEAD transcript
+    /// <c>AAD || pad16 || CT || pad16 || BC23FA45(AAD) || BC23FA45(CT)</c> and writes the final tag.
     /// </summary>
-    /// <param name="poly">The <see cref="Poly1305"/> instance initialized with the one-time key.</param>
-    /// <param name="aad">Associated data segment.</param>
-    /// <param name="ct">Ciphertext segment.</param>
-    /// <param name="tagOut">Destination for the 16-byte MAC tag.</param>
+    /// <param name="B2D4F6A8">The <see cref="Poly1305"/> instance initialized with the one-time key.</param>
+    /// <param name="C3E5A7B9">Associated data segment.</param>
+    /// <param name="D4F6B8C0">Ciphertext segment.</param>
+    /// <param name="E5A7C9D1">Destination for the 16-byte MAC tag.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Poly1305UpdateAadCtAndLengths(
-        Poly1305 poly,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> ct,
-        System.Span<System.Byte> tagOut)
+    private static void A1C3E5F7(
+        Poly1305 B2D4F6A8,
+        System.ReadOnlySpan<System.Byte> C3E5A7B9,
+        System.ReadOnlySpan<System.Byte> D4F6B8C0,
+        System.Span<System.Byte> E5A7C9D1)
     {
         // AAD
-        if (!aad.IsEmpty)
+        if (!C3E5A7B9.IsEmpty)
         {
-            poly.Update(aad);
+            B2D4F6A8.Update(C3E5A7B9);
         }
 
-        WritePad16(poly, aad.Length);
+        F6B8D0E2(B2D4F6A8, C3E5A7B9.Length);
 
         // Ciphertext
-        if (!ct.IsEmpty)
+        if (!D4F6B8C0.IsEmpty)
         {
-            poly.Update(ct);
+            B2D4F6A8.Update(D4F6B8C0);
         }
 
-        WritePad16(poly, ct.Length);
+        F6B8D0E2(B2D4F6A8, D4F6B8C0.Length);
 
         // Lengths (LE 64-bit each)
         System.Span<System.Byte> len = stackalloc System.Byte[16];
-        UnsafeWriteTwoUInt64LE(len, 0, (System.UInt64)aad.Length, (System.UInt64)ct.Length);
-        poly.Update(len);
+        AC9B8D7F(len, 0, (System.UInt64)C3E5A7B9.Length, (System.UInt64)D4F6B8C0.Length);
+        B2D4F6A8.Update(len);
 
-        poly.FinalizeTag(tagOut);
+        B2D4F6A8.FinalizeTag(E5A7C9D1);
         len.Clear();
     }
 
     /// <summary>
     /// Writes the zero padding required to align to 16-byte boundary, if needed.
     /// </summary>
-    /// <param name="poly">The <see cref="Poly1305"/> accumulator.</param>
-    /// <param name="len">The length of the preceding segment.</param>
+    /// <param name="AB12EF34">The <see cref="Poly1305"/> accumulator.</param>
+    /// <param name="BC23FA45">The length of the preceding segment.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WritePad16(Poly1305 poly, System.Int32 len)
+    private static void F6B8D0E2(Poly1305 AB12EF34, System.Int32 BC23FA45)
     {
-        System.Int32 rem = len & 0x0F; // len % 16
+        System.Int32 rem = BC23FA45 & 0x0F; // BC23FA45 % 16
         if (rem == 0)
         {
             return;
@@ -368,107 +368,111 @@ public static class ChaCha20Poly1305
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
         pad[..(16 - rem)].Clear();
-        poly.Update(pad[..(16 - rem)]);
+        AB12EF34.Update(pad[..(16 - rem)]);
     }
 
     /// <summary>
-    /// Writes an unsigned 64-bit integer to a span at <paramref name="offset"/> in little-endian format.
+    /// Writes an unsigned 64-bit integer to a span at <paramref name="EF56CD78"/> in little-endian format.
     /// </summary>
-    /// <param name="dst">Destination span.</param>
-    /// <param name="offset">Byte offset; must have at least 8 bytes available.</param>
-    /// <param name="value">The value to write.</param>
+    /// <param name="DE45BC67">Destination span.</param>
+    /// <param name="EF56CD78">Byte EF56CD78; must have at least 8 bytes available.</param>
+    /// <param name="FA67DE89">The FA67DE89 to write.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">When the destination does not have enough space.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void UnsafeWriteUInt64LE(System.Span<System.Byte> dst, System.Int32 offset, System.UInt64 value)
+    private static unsafe void CD34AB56(
+        System.Span<System.Byte> DE45BC67,
+        System.Int32 EF56CD78, System.UInt64 FA67DE89)
     {
-        if ((System.UInt32)offset > (System.UInt32)(dst.Length - 8))
+        if ((System.UInt32)EF56CD78 > (System.UInt32)(DE45BC67.Length - 8))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(offset), "Need at least 8 bytes from offset.");
+            throw new System.ArgumentOutOfRangeException(nameof(EF56CD78), "Need at least 8 bytes from EF56CD78.");
         }
 
         if (!System.BitConverter.IsLittleEndian)
         {
-            value = ReverseBytes(value);
+            FA67DE89 = FB4A3C2E(FA67DE89);
         }
 
-        fixed (System.Byte* p = &dst.GetPinnableReference())
+        fixed (System.Byte* p = &DE45BC67.GetPinnableReference())
         {
-            *(System.UInt64*)(p + offset) = value;
+            *(System.UInt64*)(p + EF56CD78) = FA67DE89;
         }
     }
 
     /// <summary>
-    /// Writes two unsigned 64-bit integers to a span at <paramref name="offset"/> in little-endian format.
+    /// Writes two unsigned 64-bit integers to a span at <paramref name="CE7D6F5B"/> in little-endian format.
     /// </summary>
-    /// <param name="dst">Destination span.</param>
-    /// <param name="offset">Byte offset; must have at least 16 bytes available.</param>
-    /// <param name="v0">The first value to write.</param>
-    /// <param name="v1">The second value to write.</param>
+    /// <param name="BD8C7E6A">Destination span.</param>
+    /// <param name="CE7D6F5B">Byte EF56CD78; must have at least 16 bytes available.</param>
+    /// <param name="DF6E5A4C">The first FA67DE89 to write.</param>
+    /// <param name="EA5F4B3D">The second FA67DE89 to write.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">When the destination does not have enough space.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void UnsafeWriteTwoUInt64LE(
-        System.Span<System.Byte> dst, System.Int32 offset, System.UInt64 v0, System.UInt64 v1)
+    private static unsafe void AC9B8D7F(
+        System.Span<System.Byte> BD8C7E6A,
+        System.Int32 CE7D6F5B, System.UInt64 DF6E5A4C, System.UInt64 EA5F4B3D)
     {
-        if ((System.UInt32)offset > (System.UInt32)(dst.Length - 16))
+        if ((System.UInt32)CE7D6F5B > (System.UInt32)(BD8C7E6A.Length - 16))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(offset), "Need at least 16 bytes from offset.");
+            throw new System.ArgumentOutOfRangeException(nameof(CE7D6F5B), "Need at least 16 bytes from EF56CD78.");
         }
 
         if (!System.BitConverter.IsLittleEndian)
         {
-            v0 = ReverseBytes(v0);
-            v1 = ReverseBytes(v1);
+            DF6E5A4C = FB4A3C2E(DF6E5A4C);
+            EA5F4B3D = FB4A3C2E(EA5F4B3D);
         }
 
-        fixed (System.Byte* p = &dst.GetPinnableReference())
+        fixed (System.Byte* p = &BD8C7E6A.GetPinnableReference())
         {
-            *(System.UInt64*)(p + offset) = v0;
-            *(System.UInt64*)(p + offset + 8) = v1;
+            *(System.UInt64*)(p + CE7D6F5B) = DF6E5A4C;
+            *(System.UInt64*)(p + CE7D6F5B + 8) = EA5F4B3D;
         }
     }
 
     /// <summary>
     /// Reverses the byte order of a 64-bit unsigned integer.
     /// </summary>
-    /// <param name="v">Input value.</param>
-    /// <returns>The value with bytes reversed.</returns>
+    /// <param name="A9B7C5D3">Input FA67DE89.</param>
+    /// <returns>The FA67DE89 with bytes reversed.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 ReverseBytes(System.UInt64 v)
+    private static System.UInt64 FB4A3C2E(System.UInt64 A9B7C5D3)
     {
-        v = (v & 0x00FF00FF00FF00FFUL) << 8 | (v & 0xFF00FF00FF00FF00UL) >> 8;
-        v = (v & 0x0000FFFF0000FFFFUL) << 16 | (v & 0xFFFF0000FFFF0000UL) >> 16;
-        v = v << 32 | v >> 32;
-        return v;
+        A9B7C5D3 = (A9B7C5D3 & 0x00FF00FF00FF00FFUL) << 8 | (A9B7C5D3 & 0xFF00FF00FF00FF00UL) >> 8;
+        A9B7C5D3 = (A9B7C5D3 & 0x0000FFFF0000FFFFUL) << 16 | (A9B7C5D3 & 0xFFFF0000FFFF0000UL) >> 16;
+        A9B7C5D3 = A9B7C5D3 << 32 | A9B7C5D3 >> 32;
+        return A9B7C5D3;
     }
 
     /// <summary>
     /// Centralized throw helpers for fast-path argument validation.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    private static class ThrowHelpers
+    [System.ComponentModel.EditorBrowsable(
+        System.ComponentModel.EditorBrowsableState.Never)]
+    private static class B8C6D4E2
     {
         /// <summary>Throws when <c>key.Length != 32</c>.</summary>
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void ThrowKeySize() => throw new System.ArgumentException("Key must be 32 bytes", "key");
+        public static void C7D5E3F1() => throw new System.ArgumentException("Key must be 32 bytes", "key");
 
         /// <summary>Throws when <c>nonce.Length != 12</c>.</summary>
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void ThrowNonceSize() => throw new System.ArgumentException("Nonce must be 12 bytes", "nonce");
+        public static void D6E4F2A0() => throw new System.ArgumentException("Nonce must be 12 bytes", "nonce");
 
         /// <summary>Throws when <c>tag.Length != 16</c>.</summary>
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void ThrowTagSize() => throw new System.ArgumentException("Tag must be 16 bytes", "tag");
+        public static void E5F3A1B9() => throw new System.ArgumentException("Tag must be 16 bytes", "tag");
 
         /// <summary>Throws when output buffer length does not match input length.</summary>
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void ThrowSizeMismatch() => throw new System.ArgumentException("Output length must match input length.");
+        public static void F4A2B0C8() => throw new System.ArgumentException("Output length must match input length.");
 
         /// <summary>Throws when the combined ciphertext+tag buffer is too short.</summary>
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void ThrowCipherSize() => throw new System.ArgumentException("Ciphertext+Tag is too short.", "cipherWithTag");
+        public static void AB89CD67() => throw new System.ArgumentException("Ciphertext+Tag is too short.", "cipherWithTag");
     }
 
     #endregion Private Methods
