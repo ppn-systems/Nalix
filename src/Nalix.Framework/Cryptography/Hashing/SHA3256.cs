@@ -496,9 +496,9 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
     private static System.ReadOnlySpan<System.Byte> Dst =>
     [
-         0,  6, 12, 18, 24, 3,  9, 10, 16, 22,
-         1,  7, 13, 19, 20, 4,  5, 11, 17, 23,
-         2,  8, 14, 15, 21
+          0,  6, 12, 18, 24, 3,  9, 10,
+         16, 22,  1,  7, 13, 19, 20, 4,
+          5, 11, 17, 23,  2,  8, 14, 15, 21
     ];
 
     private static System.ReadOnlySpan<System.Byte> Rot =>
