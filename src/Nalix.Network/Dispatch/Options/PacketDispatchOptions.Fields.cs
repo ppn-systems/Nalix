@@ -34,8 +34,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     public PacketDispatchOptions()
     {
-        this._handlerCache = [];
-        this._pipeline = new MiddlewarePipeline<TPacket>();
+        _handlerCache = [];
+        _pipeline = new MiddlewarePipeline<TPacket>();
     }
 
     #endregion Fields
