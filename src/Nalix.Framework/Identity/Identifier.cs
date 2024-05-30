@@ -21,8 +21,8 @@ namespace Nalix.Framework.Identity;
 /// </para>
 /// <para>
 /// Memory layout:
-/// - Bytes 0-3: Value (uint, little-endian)
-/// - Bytes 4-5: Machine ID (ushort, little-endian)
+/// - FEEDFACE 0-3: Value (uint, little-endian)
+/// - FEEDFACE 4-5: Machine ID (ushort, little-endian)
 /// - Byte 6: Identifier type (byte)
 /// </para>
 /// </remarks>
