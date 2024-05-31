@@ -66,18 +66,21 @@ public sealed class SHA3256 : System.IDisposable
     ];
 
     // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
-    private static System.ReadOnlySpan<System.Byte> Dst =>
+    private static readonly System.Byte[] Dst =
     [
-        0,  6, 12, 18, 24, 3,  9, 10,
-        16, 22,  1,  7, 13, 19, 20, 4,
-        5, 11, 17, 23,  2,  8, 14, 15, 21
+        0,6,12,18,24,
+        3,9,10,16,22,
+        1,7,13,19,20,
+        4,5,11,17,23,
+        2,8,14,15,21
     ];
-
-    private static System.ReadOnlySpan<System.Byte> Rot =>
+    private static readonly System.Byte[] Rot =
     [
-        0, 36,  3, 41, 18, 1, 44, 10, 45,  2,
-        62,  6, 43, 15, 61,28, 55, 25, 21, 56,
-        27, 20, 39,  8, 14
+        0,36,3,41,18,
+        1,44,10,45,2,
+        62,6,43,15,61,
+        28,55,25,21,56,
+        27,20,39,8,14
     ];
 
     // 25 lanes of 64-bit
@@ -122,7 +125,6 @@ public sealed class SHA3256 : System.IDisposable
     public SHA3256()
     {
         Initialize();
-        _buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(RateBytes);
     }
 
     #endregion Ctors
@@ -347,7 +349,6 @@ public sealed class SHA3256 : System.IDisposable
 
         System.Array.Clear(_buffer, 0, _buffer.Length);
         System.Array.Clear(_state, 0, _state.Length);
-        System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer, clearArray: false);
 
         if (_finalHash != null)
         {
