@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+ï»¿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Framework.Cryptography.Symmetric.Stream;
 
@@ -82,19 +82,7 @@ public sealed class Arc4 : System.IDisposable
             return;
         }
 
-        // Process 4 bytes per iteration (byte-wise unrolled), then handle tail.
-        System.Int32 len = buffer.Length;
-        System.Int32 fast = len & ~3; // largest multiple of 4
-
-        if (fast > 0)
-        {
-            C9D8E7F0(buffer[..fast]);
-        }
-
-        if (fast != len)
-        {
-            D1E2F3A4(buffer[fast..]);
-        }
+        D1E2F3A4(buffer);
     }
 
     /// <summary>
@@ -116,24 +104,32 @@ public sealed class Arc4 : System.IDisposable
             throw new System.ArgumentException("Source and destination must have the same length.");
         }
 
+        System.Byte i = _i;
+        System.Byte j = _j;
+        ref System.Byte s0 = ref _s[0];
+
+        System.Int32 k = 0;
         System.Int32 len = source.Length;
-        System.Int32 i = 0;
+        System.Int32 fast = len & ~7; // unroll 8
 
-        // Fast path: 4 bytes per loop (byte-wise)
-        System.Int32 fast = len & ~3;
-
-        for (; i < fast; i += 4)
+        for (; k < fast; k += 8)
         {
-            destination[i + 0] = (System.Byte)(source[i + 0] ^ B4E5F6A7());
-            destination[i + 1] = (System.Byte)(source[i + 1] ^ B4E5F6A7());
-            destination[i + 2] = (System.Byte)(source[i + 2] ^ B4E5F6A7());
-            destination[i + 3] = (System.Byte)(source[i + 3] ^ B4E5F6A7());
+            destination[k + 0] = (System.Byte)(source[k + 0] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 1] = (System.Byte)(source[k + 1] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 2] = (System.Byte)(source[k + 2] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 3] = (System.Byte)(source[k + 3] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 4] = (System.Byte)(source[k + 4] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 5] = (System.Byte)(source[k + 5] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 6] = (System.Byte)(source[k + 6] ^ C0FFEE00(ref s0, ref i, ref j));
+            destination[k + 7] = (System.Byte)(source[k + 7] ^ C0FFEE00(ref s0, ref i, ref j));
+        }
+        for (; k < len; k++)
+        {
+            destination[k] = (System.Byte)(source[k] ^ C0FFEE00(ref s0, ref i, ref j));
         }
 
-        for (; i < len; i++)
-        {
-            destination[i] = (System.Byte)(source[i] ^ B4E5F6A7());
-        }
+        _i = i;
+        _j = j;
     }
 
     /// <summary>
@@ -200,8 +196,8 @@ public sealed class Arc4 : System.IDisposable
     public static System.Byte[] Process(System.Byte[] key, System.ReadOnlySpan<System.Byte> input)
     {
         System.ArgumentNullException.ThrowIfNull(key);
-        using var rc4 = new Arc4(key);
-        var dst = new System.Byte[input.Length];
+        using Arc4 rc4 = new(key);
+        System.Byte[] dst = new System.Byte[input.Length];
         rc4.Process(input, dst);
         return dst;
     }
@@ -220,7 +216,7 @@ public sealed class Arc4 : System.IDisposable
             return;
         }
 
-        using var rc4 = new Arc4(key);
+        using Arc4 rc4 = new(key);
         rc4.Process(buffer);
     }
 
@@ -237,77 +233,8 @@ public sealed class Arc4 : System.IDisposable
         System.Span<System.Byte> destination)
     {
         System.ArgumentNullException.ThrowIfNull(key);
-        using var rc4 = new Arc4(key);
+        using Arc4 rc4 = new(key);
         rc4.Process(source, destination);
-    }
-
-    /// <summary>
-    /// One-shot ARC4 processing for streams (sync).
-    /// Reads from <paramref name="input"/> and writes to <paramref name="output"/> until EOF.
-    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
-    /// </summary>
-    /// <param name="key">Key (5..256 bytes).</param>
-    /// <param name="input">Input stream (readable).</param>
-    /// <param name="output">Output stream (writable).</param>
-    /// <param name="bufferSize">I/O buffer size (default 8192).</param>
-    public static void ProcessStream(
-        System.Byte[] key,
-        System.IO.Stream input,
-        System.IO.Stream output,
-        System.Int32 bufferSize = 8192)
-    {
-        System.ArgumentNullException.ThrowIfNull(key);
-        System.ArgumentNullException.ThrowIfNull(input);
-        System.ArgumentNullException.ThrowIfNull(output);
-        if (bufferSize <= 0)
-        {
-            bufferSize = 8192;
-        }
-
-        using var rc4 = new Arc4(key);
-        var buf = new System.Byte[bufferSize];
-        System.Int32 read;
-        while ((read = input.Read(buf, 0, buf.Length)) > 0)
-        {
-            rc4.Process(System.MemoryExtensions.AsSpan(buf, 0, read));
-            output.Write(buf, 0, read);
-        }
-    }
-
-    /// <summary>
-    /// One-shot ARC4 processing for streams (async).
-    /// Reads from <paramref name="input"/> and writes to <paramref name="output"/> until EOF.
-    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
-    /// </summary>
-    /// <param name="key">Key (5..256 bytes).</param>
-    /// <param name="input">Input stream (readable).</param>
-    /// <param name="output">Output stream (writable).</param>
-    /// <param name="bufferSize">I/O buffer size (default 8192).</param>
-    /// <param name="ct">Cancellation token.</param>
-    public static async System.Threading.Tasks.Task ProcessStreamAsync(
-        System.Byte[] key,
-        System.IO.Stream input,
-        System.IO.Stream output,
-        System.Int32 bufferSize = 8192,
-        System.Threading.CancellationToken ct = default)
-    {
-        System.ArgumentNullException.ThrowIfNull(key);
-        System.ArgumentNullException.ThrowIfNull(input);
-        System.ArgumentNullException.ThrowIfNull(output);
-        if (bufferSize <= 0)
-        {
-            bufferSize = 8192;
-        }
-
-        using var rc4 = new Arc4(key);
-        var buf = new System.Byte[bufferSize];
-
-        System.Int32 read;
-        while ((read = await input.ReadAsync(System.MemoryExtensions.AsMemory(buf, 0, buf.Length), ct)) > 0)
-        {
-            rc4.Process(System.MemoryExtensions.AsSpan(buf, 0, read));
-            await output.WriteAsync(System.MemoryExtensions.AsMemory(buf, 0, read), ct);
-        }
     }
 
     #endregion Static API
@@ -318,21 +245,25 @@ public sealed class Arc4 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void A1B2C3D4(System.ReadOnlySpan<System.Byte> key)
     {
-        // 1) Init S
+        // Init S
         for (System.Int32 k = 0; k < DEADCAFE; k++)
         {
             _s[k] = (System.Byte)k;
         }
 
-        // 2) KSA
+        // Use ref for faster index (no bounds check each time)
+        ref System.Byte s0 = ref _s[0];
         System.Byte j = 0;
         System.Int32 keyLen = key.Length;
         System.Int32 keyIndex = 0;
 
+        // KSA
         for (System.Int32 k = 0; k < DEADCAFE; k++)
         {
-            j += (System.Byte)(_s[k] + key[keyIndex]);
-            (_s[k], _s[j]) = (_s[j], _s[k]);
+            ref System.Byte sk = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, k);
+            j = unchecked((System.Byte)(j + sk + key[keyIndex]));
+            ref System.Byte sj = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, j);
+            (sk, sj) = (sj, sk);
 
             keyIndex++;
             if (keyIndex == keyLen)
@@ -344,53 +275,86 @@ public sealed class Arc4 : System.IDisposable
         _i = 0;
         _j = 0;
 
-        // 3) RC4-drop[n] — burn keystream WITHOUT calling Process()
+        // Drop[n]
         if (CAFEBABE > 0)
         {
+            System.Byte i = 0, jj = 0;
             for (System.Int32 n = 0; n < CAFEBABE; n++)
             {
-                _ = B4E5F6A7();
+                i++;
+                ref System.Byte si = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, i);
+                jj = unchecked((System.Byte)(jj + si));
+                ref System.Byte sj = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, jj);
+                (si, sj) = (sj, si);
+                _ = System.Runtime.CompilerServices.Unsafe.Add(ref s0, unchecked((System.Byte)(si + sj))); // burn a byte
             }
+            _i = i;
+            _j = jj;
         }
 
-        // 4) Mark ready
         _initialized = true;
-    }
-
-    // Generate next keystream byte (PRGA step)
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Byte B4E5F6A7()
-    {
-        _i++;
-        _j += _s[_i];
-        (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-        return _s[(System.Byte)(_s[_i] + _s[_j])];
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void C9D8E7F0(System.Span<System.Byte> buffer)
-    {
-        // Unrolled 4 bytes per iteration (byte-wise to avoid endianness pitfalls)
-        for (System.Int32 k = 0; k < buffer.Length; k += 4)
-        {
-            buffer[k + 0] ^= B4E5F6A7();
-            buffer[k + 1] ^= B4E5F6A7();
-            buffer[k + 2] ^= B4E5F6A7();
-            buffer[k + 3] ^= B4E5F6A7();
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void D1E2F3A4(System.Span<System.Byte> buffer)
     {
-        for (System.Int32 k = 0; k < buffer.Length; k++)
+        // Local copies to keep in registers
+        System.Byte i = _i;
+        System.Byte j = _j;
+
+        // Take a ref to S[0] so we can use Unsafe.Add(ref s0, idx)
+        ref System.Byte s0 = ref _s[0];
+
+        // Unroll by 8 for better throughput
+        System.Int32 k = 0;
+        System.Int32 len = buffer.Length;
+        System.Int32 fast = len & ~7;
+
+        // Hot path: 8 bytes per iteration
+        for (; k < fast; k += 8)
         {
-            buffer[k] ^= B4E5F6A7();
+            buffer[k + 0] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 1] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 2] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 3] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 4] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 5] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 6] ^= C0FFEE00(ref s0, ref i, ref j);
+            buffer[k + 7] ^= C0FFEE00(ref s0, ref i, ref j);
         }
+
+        // Tail
+        for (; k < len; k++)
+        {
+            buffer[k] ^= C0FFEE00(ref s0, ref i, ref j);
+        }
+
+        // Write back once
+        _i = i;
+        _j = j;
+    }
+
+    // Tiny inline helper for PRGA step (no field/array bounds checks)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Byte C0FFEE00(ref System.Byte s0, ref System.Byte i, ref System.Byte j)
+    {
+        // i = i + 1
+        i++;
+
+        // j = j + S[i]
+        ref System.Byte si = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, i);
+        j = unchecked((System.Byte)(j + si));
+
+        // swap(S[i], S[j])
+        ref System.Byte sj = ref System.Runtime.CompilerServices.Unsafe.Add(ref s0, j);
+        (si, sj) = (sj, si);
+
+        // return S[S[i] + S[j]]
+        System.Byte idx = unchecked((System.Byte)(si + sj));
+        return System.Runtime.CompilerServices.Unsafe.Add(ref s0, idx);
     }
 
     #endregion
