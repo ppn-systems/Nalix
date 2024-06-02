@@ -1,8 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Cryptography.Hashing;
-using Nalix.Framework.Cryptography.Primitives;
-using Nalix.Framework.Cryptography.Symmetric.Stream;
+using Nalix.Framework.Cryptography.Symmetric;
 
 namespace Nalix.Framework.Cryptography.Aead;
 
