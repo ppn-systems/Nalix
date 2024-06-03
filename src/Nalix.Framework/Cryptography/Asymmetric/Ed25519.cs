@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Cryptography.Hashing;
+using Nalix.Framework.Cryptography.Primitives;
 
 namespace Nalix.Framework.Cryptography.Asymmetric;
 

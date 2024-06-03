@@ -3,6 +3,7 @@
 using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Cryptography.Aead;
+using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Cryptography.Symmetric;
 using Nalix.Framework.Randomization;
 
@@ -11,7 +12,7 @@ namespace Nalix.Framework.Cryptography;
 /// <summary>
 /// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public static class CipherSuite
+public static class Crypto
 {
     #region Constants
 
