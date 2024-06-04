@@ -202,8 +202,23 @@ public static partial class Directories
         System.String full = System.IO.Path.GetFullPath(System.IO.Path.Join(baseDir, name));
         System.String baseFull = System.IO.Path.GetFullPath(baseDir);
 
-        return !full.StartsWith(baseFull, System.StringComparison.Ordinal)
-            ? throw new System.UnauthorizedAccessException("Path '" + name + "' escapes base directory.") : full;
+        if (!baseFull.EndsWith(System.IO.Path.DirectorySeparatorChar))
+        {
+            baseFull += System.IO.Path.DirectorySeparatorChar;
+        }
+
+        System.String rel = System.IO.Path.GetRelativePath(baseFull, full);
+
+        System.Char sep = System.IO.Path.DirectorySeparatorChar;
+        var comp = System.OperatingSystem.IsWindows() ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
+        if (System.IO.Path.IsPathRooted(rel) ||
+            rel.Equals("..", comp) ||
+            rel.StartsWith(".." + sep, comp))
+        {
+            throw new System.UnauthorizedAccessException($"Path '{name}' escapes base directory.");
+        }
+
+        return full;
     }
 
     [System.ComponentModel.EditorBrowsable(
@@ -216,8 +231,7 @@ public static partial class Directories
     {
         try
         {
-            System.Reflection.MethodInfo m = typeof(System.IO.Directory).GetMethod(
-                "SetUnixFileMode",
+            System.Reflection.MethodInfo m = typeof(System.IO.Directory).GetMethod("SetUnixFileMode",
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
                 null, [typeof(System.String), typeof(System.IO.UnixFileMode)], null);
 
@@ -352,9 +366,11 @@ public static partial class Directories
         {
             __pathname_native__marshaller.Free();
         }
+
         System.Runtime.InteropServices.Marshal.SetLastPInvokeError(__lastError);
         return __retVal;
+
         [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "chmod", ExactSpelling = true)]
-        static extern unsafe System.Int32 __PInvoke(System.Byte* __pathname_native, System.UInt32 __mode_native);
+        static extern System.Int32 __PInvoke(System.Byte* __pathname_native, System.UInt32 __mode_native);
     }
 }
