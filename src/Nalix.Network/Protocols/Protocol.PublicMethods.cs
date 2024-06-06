@@ -43,7 +43,7 @@ public abstract partial class Protocol
         if (!this.IsAccepting)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] reject id={connection.ID} reason=not-accepting");
+                                    .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
 
             return;
         }
@@ -59,14 +59,16 @@ public abstract partial class Protocol
             if (this.ValidateConnection(connection))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(Protocol)}:{OnAccept}] accepted id={connection.ID}");
+                                        .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] " +
+                                               $"accepted id={connection.ID}");
 
                 connection.TCP.BeginReceive(cancellationToken);
                 return;
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] reject id={connection.ID} reason=validation-failed");
+                                    .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] " +
+                                           $"reject id={connection.ID} reason=validation-failed");
 
             // Connection failed validation, close immediately
             connection.Close();
@@ -75,12 +77,14 @@ public abstract partial class Protocol
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] accept-canceled id={connection.ID}");
+                                    .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] " +
+                                           $"accept-canceled id={connection.ID}");
         }
         catch (System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(Protocol)}:{OnAccept}] accept-disposed id={connection.ID}");
+                                    .Warn($"[{nameof(Protocol)}:{nameof(OnAccept)}] " +
+                                          $"accept-disposed id={connection.ID}");
         }
         catch (System.Exception ex)
         {
@@ -89,7 +93,8 @@ public abstract partial class Protocol
             connection.Disconnect();
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(Protocol)}:{OnAccept}] accept-error id={connection.ID}", ex);
+                                    .Debug($"[{nameof(Protocol)}:{nameof(OnAccept)}] " +
+                                           $"accept-error id={connection.ID}", ex);
         }
     }
 
@@ -105,7 +110,7 @@ public abstract partial class Protocol
     public void SetConnectionAcceptance(System.Boolean isEnabled)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(Protocol)}:{SetConnectionAcceptance}] " +
+                                .Info($"[{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] " +
                                       $"accepting={(isEnabled ? "enabled" : "disabled")}");
 
         this._accepting = isEnabled ? 1 : 0;
