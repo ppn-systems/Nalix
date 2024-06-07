@@ -244,10 +244,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     {
         // Take a stable snapshot to minimize contention and keep the report consistent.
         // Copy to a local list once to avoid enumerating the concurrent map multiple times.
-        var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<IPAddressKey, ConnectionLimitInfo>>(_map.Count);
-
-        snapshot.AddRange(_map);
+        System.Collections.Generic.List<
+            System.Collections.Generic.KeyValuePair<IPAddressKey, ConnectionLimitInfo>> snapshot = [.. _map];
 
         // Sort by current connections (desc), then by TotalToday (desc)
         snapshot.Sort(static (a, b) =>
@@ -259,7 +257,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         // Global totals
         System.Int32 totalIps = snapshot.Count;
         System.Int32 totalConcurrent = 0;
-        foreach (var kv in snapshot)
+        foreach (System.Collections.Generic.KeyValuePair<IPAddressKey, ConnectionLimitInfo> kv in snapshot)
         {
             totalConcurrent += kv.Value.CurrentConnections;
         }
