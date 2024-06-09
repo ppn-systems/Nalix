@@ -4,7 +4,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Engine;
 
-namespace Nalix.Logging.Sinks.Console;
+namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// The ConsoleLogTarget class provides the ability to output log messages to the console,
