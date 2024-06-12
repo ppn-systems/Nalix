@@ -212,11 +212,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnectionByUsername(System.String username)
-    {
-        return System.String.IsNullOrWhiteSpace(username)
-            ? null : this._usernameToId.TryGetValue(username, out IIdentifier? id)
-            ? this.GetConnection(id) : null;
-    }
+        => System.String.IsNullOrWhiteSpace(username)
+        ? null : this._usernameToId.TryGetValue(username, out IIdentifier? id)
+        ? this.GetConnection(id) : null;
 
     /// <summary>
     /// Retrieves the username associated with a connection identifier.
@@ -235,7 +233,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns>A read-only collection of active connections.</returns>
     public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
-        System.Int32 count = this._connectionCount;
+        System.Int32 count = _connectionCount;
         if (count == 0)
         {
             return [];
@@ -245,7 +243,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         try
         {
             System.Int32 index = 0;
-            foreach (IConnection connection in this._connections.Values)
+            foreach (IConnection connection in _connections.Values)
             {
                 if (index >= connections.Length)
                 {
@@ -406,10 +404,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         });
 
         // Dispose all dictionaries
-        this._connections.Clear();
-        this._usernames.Clear();
-        this._usernameToId.Clear();
-        _ = System.Threading.Interlocked.Exchange(ref this._connectionCount, 0);
+        _connections.Clear();
+        _usernames.Clear();
+        _usernameToId.Clear();
+        _ = System.Threading.Interlocked.Exchange(ref _connectionCount, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
@@ -480,8 +478,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="args">The event arguments containing the connection.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnClientDisconnected(System.Object? sender, IConnectEventArgs args)
-        => this.UnregisterConnection(args.Connection);
+    private void OnClientDisconnected(System.Object? sender, IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
 
     #endregion Private Methods
 }
