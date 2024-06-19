@@ -1,10 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Attributes;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Protocols;
 using Nalix.Framework.Injection;
@@ -17,7 +15,6 @@ namespace Nalix.Network.Middleware.Outbound;
 /// <summary>
 /// Middleware that wraps a packet with compression and encryption as needed before dispatch.
 /// </summary>
-[Middleware(MiddlewareStage.Outbound, order: 2, name: "Wrap")]
 public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
