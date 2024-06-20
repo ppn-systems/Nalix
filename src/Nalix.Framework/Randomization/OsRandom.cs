@@ -74,9 +74,8 @@ public static partial class OsRandom
     [System.Runtime.InteropServices.LibraryImport("Bcrypt.dll")]
     private static partial int BCryptGenRandom(
         System.IntPtr hAlgorithm,
-        System.Span<byte> pbBuffer,
-        int cbBuffer,
-        uint dwFlags);
+        System.Span<System.Byte> pbBuffer,
+        System.Int32 cbBuffer, System.UInt32 dwFlags);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -92,7 +91,7 @@ public static partial class OsRandom
     // -------------------- Linux: getrandom --------------------
 
     [System.Runtime.InteropServices.LibraryImport("libc", SetLastError = true)]
-    private static partial System.IntPtr getrandom(System.IntPtr buf, System.IntPtr buflen, uint flags);
+    private static partial System.IntPtr getrandom(System.IntPtr buf, System.IntPtr buflen, System.UInt32 flags);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
