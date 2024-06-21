@@ -81,6 +81,7 @@ public static class Singleton
 
         // Dispose cache entry if it exists
         CacheLock.EnterWriteLock();
+
         try
         {
             _ = ResolutionCache.Remove(type);
@@ -119,6 +120,7 @@ public static class Singleton
 
         // Dispose cache entry if it exists
         CacheLock.EnterWriteLock();
+
         try
         {
             _ = ResolutionCache.Remove(interfaceType);
@@ -156,6 +158,7 @@ public static class Singleton
 
         // Fast path: Check resolution cache first
         CacheLock.EnterReadLock();
+
         try
         {
             if (ResolutionCache.TryGetValue(type, out System.Object? cachedInstance))
@@ -175,6 +178,7 @@ public static class Singleton
         if (instance != null)
         {
             CacheLock.EnterWriteLock();
+
             try
             {
                 ResolutionCache.AddOrUpdate(type, instance);
@@ -198,12 +202,7 @@ public static class Singleton
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean IsRegistered<TClass>() where TClass : class
-    {
-        System.Type type = typeof(TClass);
-        return Services.ContainsKey(type) ||
-               TypeMapping.ContainsKey(type) ||
-               Factories.ContainsKey(type);
-    }
+        => Services.ContainsKey(typeof(TClass)) || TypeMapping.ContainsKey(typeof(TClass)) || Factories.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes the registration of a specific type.
@@ -218,6 +217,7 @@ public static class Singleton
 
         // Remove from cache
         CacheLock.EnterWriteLock();
+
         try
         {
             _ = ResolutionCache.Remove(type);
@@ -239,6 +239,7 @@ public static class Singleton
     {
         // Dispose the resolution cache
         CacheLock.EnterWriteLock();
+
         try
         {
             // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
