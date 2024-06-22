@@ -15,14 +15,14 @@ public interface IBufferLease : System.IDisposable
     /// <summary>Gets the capacity of the underlying buffer.</summary>
     System.Int32 Capacity { get; }
 
-    /// <summary>Gets a read-only view of the valid payload.</summary>
-    System.ReadOnlyMemory<System.Byte> Memory { get; }
-
     /// <summary>Gets a writable span covering the valid payload.</summary>
     System.Span<System.Byte> Span { get; }
 
     /// <summary>Gets a writable span covering the entire capacity.</summary>
     System.Span<System.Byte> SpanFull { get; }
+
+    /// <summary>Gets a read-only view of the valid payload.</summary>
+    System.ReadOnlyMemory<System.Byte> Memory { get; }
 
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
