@@ -2,13 +2,13 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Nalix.Network.Internal.Compilation;
+namespace Nalix.Network.Internal.Extensions;
 
 /// <summary>
 /// Provides helper methods to construct open delegate types (Func/Action)
 /// that match a target <see cref="MethodInfo"/> signature.
 /// </summary>
-internal static class MethodInfoDelegateTypeExtensions
+internal static class DelegateExtensions
 {
     /// <summary>
     /// Builds a delegate <see cref="System.Type"/> for a static method, matching its parameter list
