@@ -111,6 +111,5 @@ public static class Xor256
     /// <exception cref="System.ArgumentException">Thrown when <paramref name="data"/> is empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedXor)
-        => Compute(data) == expectedXor;
+    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedXor) => Compute(data) == expectedXor;
 }
