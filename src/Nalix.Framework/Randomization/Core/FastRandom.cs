@@ -5,7 +5,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 
-namespace Nalix.Framework.Randomization;
+namespace Nalix.Framework.Randomization.Core;
 
 /// <summary>
 /// <para>
@@ -136,7 +136,7 @@ public static class FastRandom
         }
 
         // Tail
-        System.Int32 rem = dst.Length - (u64.Length * 8);
+        System.Int32 rem = dst.Length - u64.Length * 8;
         if (rem > 0)
         {
             System.UInt64 x = NextU64(st);
@@ -192,7 +192,7 @@ public static class FastRandom
         // Mix per-thread counter and process tag to mitigate repeats
         System.UInt64 c = ++t_counter;
         r ^= RotateLeft(c, 17);
-        r ^= ReadU64(s_instanceTag, (System.Int32)((c >> 3) & 8)); // alternate 0/8 offsets
+        r ^= ReadU64(s_instanceTag, (System.Int32)(c >> 3 & 8)); // alternate 0/8 offsets
 
         return r;
     }
@@ -299,7 +299,7 @@ public static class FastRandom
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 RotateLeft(System.UInt64 x, System.Int32 k) => (x << k) | (x >> (64 - k));
+    private static System.UInt64 RotateLeft(System.UInt64 x, System.Int32 k) => x << k | x >> 64 - k;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
