@@ -195,13 +195,13 @@ public static class ChaCha20Poly1305
         try
         {
             // 1) Poly1305 key
-            using (var chacha0 = new ChaCha20(key, nonce, 0))
+            using (ChaCha20 chacha0 = new(key, nonce, 0))
             {
                 chacha0.GenerateKeyBlock(polyKey);
             }
 
             // 2) Compute expected tag over AAD + CT
-            using (var poly = new Poly1305(polyKey))
+            using (Poly1305 poly = new(polyKey))
             {
                 A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
             }
@@ -213,7 +213,7 @@ public static class ChaCha20Poly1305
             }
 
             // 4) Decrypt with counter=1+
-            using var chacha1 = new ChaCha20(key, nonce, 1);
+            using ChaCha20 chacha1 = new(key, nonce, 1);
             chacha1.Decrypt(ciphertext, dstPlaintext);
 
             return true;

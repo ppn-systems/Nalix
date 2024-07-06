@@ -50,11 +50,6 @@ public static class CIPHER
             throw new System.ArgumentException("Data cannot be empty. Please provide data to encrypt.", nameof(data));
         }
 
-        if (!System.Enum.IsDefined(algorithm))
-        {
-            throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
-        }
-
         try
         {
             return algorithm switch
@@ -96,11 +91,6 @@ public static class CIPHER
         if (data.IsEmpty)
         {
             throw new System.ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
-        }
-
-        if (!System.Enum.IsDefined(algorithm))
-        {
-            throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
         }
 
         try
@@ -203,7 +193,11 @@ public static class CIPHER
         System.Byte[] result = new System.Byte[Salsa20NonceSize + data.Length];
         nonce.CopyTo(result);
 
-        _ = Salsa20.Encrypt(key, nonce, counter, data.Span, System.MemoryExtensions.AsSpan(result));
+        _ = Salsa20.Encrypt(
+            key, nonce, counter,
+            data.Span,
+            System.MemoryExtensions.AsSpan(result, Salsa20NonceSize, data.Length));
+
         return result;
     }
 
@@ -240,6 +234,7 @@ public static class CIPHER
             System.Buffers.ArrayPool<System.Byte>.Shared.Return(output);
         }
     }
+
     private static System.ReadOnlyMemory<System.Byte> EncryptXTEA(
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
@@ -322,7 +317,7 @@ public static class CIPHER
 
         System.Byte[] plaintext = new System.Byte[ciphertext.Length];
 
-        _ = Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
+        _ = Salsa20.Decrypt(key, nonce, counter, ciphertext, plaintext);
         return plaintext;
     }
 
@@ -381,7 +376,7 @@ public static class CIPHER
             throw new System.ArgumentException("Input data too short to contain length prefix.", nameof(data));
         }
 
-        if (SpeckBlockSize > 1 && (data.Length - LengthPrefixSize) % SpeckBlockSize != 0)
+        if (XteaBlockSize > 1 && (data.Length - LengthPrefixSize) % XteaBlockSize != 0)
         {
             throw new System.ArgumentException("Input data length is not aligned to block size.", nameof(data));
         }
