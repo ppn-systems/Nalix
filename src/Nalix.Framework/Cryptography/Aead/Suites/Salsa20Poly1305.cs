@@ -3,7 +3,7 @@
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Aead;
+namespace Nalix.Framework.Cryptography.Aead.Suites;
 
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of a
@@ -182,7 +182,7 @@ public static class Salsa20Poly1305
     /// </summary>
     public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
-        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
+        if (key is null || key.Length != KEY16 && key.Length != KEY32)
         {
             ThrowHelper.BadKeyLen();
         }
@@ -207,7 +207,7 @@ public static class Salsa20Poly1305
     /// </summary>
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
-        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
+        if (key is null || key.Length != KEY16 && key.Length != KEY32)
         {
             ThrowHelper.BadKeyLen();
         }

@@ -4,7 +4,7 @@ using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Cryptography.Symmetric;
 
-namespace Nalix.Framework.Cryptography.Aead;
+namespace Nalix.Framework.Cryptography.Aead.Suites;
 
 /// <summary>
 /// Speck-CTR + Poly1305 AEAD (detached, Span-first) for Speck 128/256.
@@ -286,7 +286,7 @@ public static class SpeckPoly1305
 
         // 128-bit addition (LE): (n0 + counter, n1 + carry)
         System.UInt64 ctrLow = n0 + counter;
-        System.UInt64 carry = (ctrLow < n0) ? 1UL : 0UL;
+        System.UInt64 carry = ctrLow < n0 ? 1UL : 0UL;
         System.UInt64 ctrHigh = n1 + carry;
 
         // Encrypt counter block with Speck
