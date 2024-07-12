@@ -2,9 +2,9 @@
 
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
-using Nalix.Framework.Cryptography.Symmetric;
+using Nalix.Framework.Cryptography.Symmetric.Suite;
 
-namespace Nalix.Framework.Cryptography.Aead.Suites;
+namespace Nalix.Framework.Cryptography.Aead.Suite;
 
 /// <summary>
 /// Allocation-minimized, Span-first AEAD built from XTEA in CTR mode + Poly1305 MAC.
@@ -219,6 +219,10 @@ public static class XteaPoly1305
 
     #region Internals (CTR keystream, transcript, helpers)
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Int32 PadLen16(System.Int32 length) => 16 - (length & 0x0F) & 0x0F;
+
     /// <summary>Derive 32-byte Poly1305 OTK from counters 0..3 using Xtea.Encrypt.</summary>
     private static void FillPolyKeyCtr(
         System.ReadOnlySpan<System.Byte> key,
@@ -300,7 +304,7 @@ public static class XteaPoly1305
             mac.Update(aad);
         }
 
-        System.Int32 padAad = AeadPadding.PadLen16(aad.Length);
+        System.Int32 padAad = PadLen16(aad.Length);
         if (padAad != 0)
         {
             System.Span<System.Byte> z = stackalloc System.Byte[16];
@@ -312,7 +316,7 @@ public static class XteaPoly1305
             mac.Update(ciphertext);
         }
 
-        System.Int32 padCt = AeadPadding.PadLen16(ciphertext.Length);
+        System.Int32 padCt = PadLen16(ciphertext.Length);
         if (padCt != 0)
         {
             System.Span<System.Byte> z = stackalloc System.Byte[16];
