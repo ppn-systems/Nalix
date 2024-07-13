@@ -463,7 +463,7 @@ public sealed class PacketCatalogFactory
             System.Func<IPacket, IPacket>? compressDel = null;
             System.Func<IPacket, IPacket>? decompressDel = null;
             System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
-            System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? decryptDel = null;
+            System.Func<IPacket, System.Byte[], IPacket>? decryptDel = null;
 
             System.Reflection.MethodInfo doEncryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoEncrypt), FLAGS)!;
             System.Reflection.MethodInfo doDecryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecrypt), FLAGS)!;
@@ -488,8 +488,8 @@ public sealed class PacketCatalogFactory
 
             if (miDecrypt is not null)
             {
-                decryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), doDecryptMi);
+                decryptDel = (System.Func<IPacket, System.Byte[], IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), doDecryptMi);
             }
 
             transformers[type!] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
