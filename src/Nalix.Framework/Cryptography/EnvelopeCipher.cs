@@ -55,7 +55,7 @@ namespace Nalix.Framework.Cryptography;
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public static class CryptoEngine
+public static class EnvelopeCipher
 {
     /// <summary>
     /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>,
@@ -86,10 +86,10 @@ public static class CryptoEngine
     /// <example>
     /// <code>
     /// // AEAD example (ChaCha20-Poly1305)
-    /// var ct = CryptoEngine.Encrypt(key32, data, CipherSuiteType.ChaCha20Poly1305, aad);
+    /// var ct = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.ChaCha20Poly1305, aad);
     ///
     /// // Stream/CTR example (ChaCha20)
-    /// var ct2 = CryptoEngine.Encrypt(key32, data, CipherSuiteType.ChaCha20);
+    /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.ChaCha20);
     /// </code>
     /// </example>
     public static System.Byte[] Encrypt(
@@ -138,7 +138,7 @@ public static class CryptoEngine
     /// </remarks>
     /// <example>
     /// <code>
-    /// if (CryptoEngine.Decrypt(key32, envelope, out var pt, aad))
+    /// if (EnvelopeCipher.Decrypt(key32, envelope, out var pt, aad))
     /// {
     ///     // use pt
     /// }

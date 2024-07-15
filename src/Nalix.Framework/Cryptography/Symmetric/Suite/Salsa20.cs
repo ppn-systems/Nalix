@@ -2,7 +2,7 @@
 
 using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Symmetric;
+namespace Nalix.Framework.Cryptography.Symmetric.Suite;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the Salsa20 stream cipher.
