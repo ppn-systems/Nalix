@@ -44,6 +44,7 @@ public abstract partial class UdpListenerBase
     // Time sync diagnostics
     private System.Int64 _lastSyncUnixMs;
     private System.Int64 _lastDriftMs;
+    private System.Int32 _procSeq = -1;
 
     #endregion Fields
 
