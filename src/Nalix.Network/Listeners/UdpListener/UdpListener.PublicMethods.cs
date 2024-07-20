@@ -65,12 +65,12 @@ public abstract partial class UdpListenerBase : IListener
                 _ = receiveTask.ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
-                   name: NetworkTaskNames.UdpProcessWorker(_port),             // "udp.proc.{port}"
-                   group: NetworkTaskNames.UdpGroup(_port),                    // "net/udp/{port}"
+                   name: NetTaskCatalog.UdpProcessWorker(_port),             // "udp.proc.{port}"
+                   group: NetTaskCatalog.UdpGroup(_port),                    // "net/udp/{port}"
                    work: async (_, ct) => await ReceiveDatagramsAsync(ct),
                    options: new WorkerOptions
                    {
-                       Tag = nameof(NetworkTaskNames.Segments.Udp),
+                       Tag = nameof(NetTaskCatalog.Segments.Udp),
                        CancellationToken = _cancellationToken
                    });
             }
