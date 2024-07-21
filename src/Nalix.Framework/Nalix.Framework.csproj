@@ -9,10 +9,28 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>6.5.0</Version>
-		<FileVersion>6.5.0.0</FileVersion>
-		<PackageVersion>6.5.0</PackageVersion>
-		<InformationalVersion>6.5.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>6.8.0</Version>
+		<FileVersion>6.8.0.0</FileVersion>
+		<PackageVersion>6.8.0</PackageVersion>
+		<InformationalVersion>6.8.0+$(SourceRevisionId)</InformationalVersion>
+
+		<Description>
+Nalix.Framework is a high-performance foundational library that provides core building blocks
+for the Nalix ecosystem — including cryptography, identity, dependency injection,
+randomization, task orchestration, and time management.
+
+Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) principles,
+emphasizing zero-allocation performance, thread safety, and secure coding practices.
+		</Description>
+
+		<PackageReleaseNotes>
+			- Introduced deterministic build and SourceLink support for better CI/CD traceability.
+			- Optimized cryptographic engines with Span-first design and AEAD envelope support.
+			- Added Randomization.Core with Xoshiro-based PRNG (XoshiroFallback) and reseed scheduling.
+			- Improved TaskManager with async-safe cancellation and lightweight scheduling.
+			- Enhanced Identity and Injection subsystems for performance and modularity.
+			- General cleanup, updated documentation, and improved unit test coverage.
+		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
