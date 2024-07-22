@@ -45,17 +45,37 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ## 📦 Available NuGet Packages
 
-| Package ID                |Description                             | Install Command                            |
-|---------------------------|----------------------------------------|--------------------------------------------|
-| **Nalix.Common**          | Common utilities for Nalix             | `dotnet add package Nalix.Common`          |
-| **Nalix.Logging**         | Logging utilities for Nalix            | `dotnet add package Nalix.Logging`         |
-| **Nalix.Network**         | Low-level networking functionality     | `dotnet add package Nalix.Network`         |
-| **Nalix.Shared**          | Shared models and definitions          | `dotnet add package Nalix.Shared`          |
-| **Nalix.Framework**       | Framework for Nalix                    | `dotnet add package Nalix.Framework`       |
+| Package ID         |Description                             | Install Command                            |
+|--------------------|----------------------------------------|--------------------------------------------|
+| **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.| `dotnet add package Nalix.Common`|
+| **Nalix.Framework**| High-level framework providing cryptography, identity, injection, randomization, and task orchestration.| `dotnet add package Nalix.Framework`|
+| **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.| `dotnet add package Nalix.Logging`|
+| **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.| `dotnet add package Nalix.Network`|
+| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization.| `dotnet add package Nalix.Shared`          |
+| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.| `dotnet add package Nalix.SDK`|
+
+## 📦 Installation
+
+You can install Nalix packages individually via NuGet:
+
+```bash
+dotnet add package Nalix.SDK
+dotnet add package Nalix.Common
+dotnet add package Nalix.Shared
+dotnet add package Nalix.Logging
+dotnet add package Nalix.Network
+dotnet add package Nalix.Framework
+```
+
+All Nalix packages target .NET 8 and .NET 9 with full support for C# 13 features.
 
 ## 🛠️ Contributing
 
 When contributing, please follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
+
+## 🛡️ Security
+
+Please review our [Security Policy](SECURITY.md) for supported versions and vulnerability reporting procedures.
 
 ## 📜 License
 

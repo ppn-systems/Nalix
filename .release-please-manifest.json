@@ -1,0 +1,8 @@
+{
+  "src/Nalix.Common": "6.8.0",
+  "src/Nalix.Shared": "6.8.0",
+  "src/Nalix.Framework": "6.8.0",
+  "src/Nalix.Network": "6.8.0",
+  "src/Nalix.Logging": "6.8.0",
+  "src/Nalix.SDK": "6.8.0"
+}
