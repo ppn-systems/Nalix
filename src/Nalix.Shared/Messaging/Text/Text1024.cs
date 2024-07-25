@@ -48,7 +48,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     {
         Flags = PacketFlags.None;
         Content = System.String.Empty;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.TEXT1024;
@@ -138,7 +138,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     {
         this.Flags = PacketFlags.None;
         this.Content = System.String.Empty;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 

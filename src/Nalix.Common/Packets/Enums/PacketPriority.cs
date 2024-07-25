@@ -15,7 +15,7 @@ public enum PacketPriority : System.Byte
     /// Standard priority level for most packets.
     /// No special handling is required.
     /// </summary>
-    Normal = 0x00,
+    None = 0x00,
 
     /// <summary>
     /// Lower-than-normal priority.
@@ -31,7 +31,7 @@ public enum PacketPriority : System.Byte
 
     /// <summary>
     /// Higher-than-normal priority.
-    /// These packets should be processed or transmitted before <see cref="Normal"/> and <see cref="Medium"/> packets.
+    /// These packets should be processed or transmitted before <see cref="None"/> and <see cref="Medium"/> packets.
     /// </summary>
     High = 0x03,
 
