@@ -2,7 +2,7 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Results.Primitives;

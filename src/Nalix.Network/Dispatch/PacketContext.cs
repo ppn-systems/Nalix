@@ -2,7 +2,7 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Enums;
+using Nalix.Common.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Delegates;
