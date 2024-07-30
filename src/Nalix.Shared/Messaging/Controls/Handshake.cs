@@ -6,7 +6,6 @@ using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
-using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Binary;
