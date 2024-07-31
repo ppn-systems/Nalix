@@ -3,19 +3,19 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Sinks;
 
-namespace Nalix.Logging.Engine;
+namespace Nalix.Logging;
 
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
-public abstract class LogEngine : System.IDisposable
+public abstract class NLogixEngine : System.IDisposable
 {
     #region Fields
 
-    private readonly LogOptions _logOptions;
-    private readonly LogDistributor _distributor;
+    private readonly NLogixOptions _logOptions;
+    private readonly NLogixDistributor _distributor;
 
     private LogLevel _minLevel;
     private System.Int32 _isDisposed;
@@ -25,16 +25,16 @@ public abstract class LogEngine : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LogEngine"/> class.
+    /// Initializes a new instance of the <see cref="NLogixEngine"/> class.
     /// </summary>
     /// <param name="configureOptions">
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected LogEngine(System.Action<LogOptions>? configureOptions = null)
+    protected NLogixEngine(System.Action<NLogixOptions>? configureOptions = null)
     {
-        _distributor = new LogDistributor();
-        _logOptions = new LogOptions(_distributor);
+        _distributor = new NLogixDistributor();
+        _logOptions = new NLogixOptions(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)
@@ -70,7 +70,7 @@ public abstract class LogEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void Configure(System.Action<LogOptions> configureOptions)
+    protected void Configure(System.Action<NLogixOptions> configureOptions)
     {
         configureOptions?.Invoke(_logOptions);
 

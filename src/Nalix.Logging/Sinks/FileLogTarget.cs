@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine;
 using Nalix.Logging.Internal.File;
 using Nalix.Logging.Options;
 
@@ -46,7 +45,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="FileLogTarget"/> class with the default formatter and options.
     /// </summary>
     public FileLogTarget()
-        : this(new LogFormatter(false), new FileLogOptions())
+        : this(new NLogixFormatter(false), new FileLogOptions())
     {
     }
 
@@ -55,7 +54,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="options">A delegate to configure <see cref="FileLogOptions"/>.</param>
     public FileLogTarget(FileLogOptions options)
-        : this(new LogFormatter(false), options)
+        : this(new NLogixFormatter(false), options)
     {
     }
 
@@ -64,7 +63,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">A delegate to configure <see cref="FileLogOptions"/>.</param>
     public FileLogTarget(System.Action<FileLogOptions> configureOptions)
-        : this(new LogFormatter(false), ConfigureOptions(configureOptions))
+        : this(new NLogixFormatter(false), ConfigureOptions(configureOptions))
     {
     }
 

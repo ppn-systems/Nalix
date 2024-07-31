@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine;
 
 namespace Nalix.Logging;
 
@@ -17,11 +16,11 @@ namespace Nalix.Logging;
 /// </summary>
 /// <remarks>
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="Host"/>.
-/// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
+/// Logging targets and behavior can be customized during initialization using <see cref="NLogixOptions"/>.
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
-public sealed partial class NLogix : LogEngine, ILogger
+public sealed partial class NLogix : NLogixEngine, ILogger
 {
     #region Constructors
 
@@ -31,7 +30,7 @@ public sealed partial class NLogix : LogEngine, ILogger
     /// <param name="configure">An optional action to configure the logging system.</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public NLogix(System.Action<LogOptions>? configure = null)
+    public NLogix(System.Action<NLogixOptions>? configure = null)
         : base(configure)
     {
     }
