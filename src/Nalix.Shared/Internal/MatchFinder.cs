@@ -8,7 +8,7 @@ using Nalix.Shared.Memory.Unsafe;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.LZ4.Internal;
+namespace Nalix.Shared.Internal;
 
 /// <summary>
 /// Provides functionality for finding matches in input data using a hash table.
@@ -76,7 +76,7 @@ internal static unsafe class MatchFinder
 
         // Read the current 4-byte sequence and compute its hash
         System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
-        System.UInt32 hash = (currentSequence * 2654435761u) >> HashShift;
+        System.UInt32 hash = currentSequence * 2654435761u >> HashShift;
 
         // Retrieve the candidate match offset and update the hash table
         System.Int32 matchCandidateOffset = hashTable[hash];
