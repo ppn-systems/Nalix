@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Memory.Unsafe;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Provides low-level memory operations using unsafe code to perform optimized, high-performance memory manipulation.
@@ -13,7 +13,7 @@ namespace Nalix.Shared.Memory.Unsafe;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public static unsafe class MemOps
+internal static unsafe class MemOps
 {
     /// <summary>
     /// Reads an unaligned value from a memory location.

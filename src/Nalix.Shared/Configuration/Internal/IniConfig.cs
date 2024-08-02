@@ -96,7 +96,7 @@ internal sealed class IniConfig
     /// </summary>
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
-    /// <param name="value">The value to write.</param>    
+    /// <param name="value">The value to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void WriteValue(System.String section, System.String key, System.Object value)
