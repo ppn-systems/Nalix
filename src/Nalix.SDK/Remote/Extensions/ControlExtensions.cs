@@ -82,6 +82,75 @@ public static class ControlExtensions
     }
 
     /// <summary>
+    /// Awaits until a packet of type <typeparamref name="TPkt"/> satisfying the predicate arrives.
+    /// Uses PacketReceived/Disconnected events; no cache popping to avoid reordering.
+    /// </summary>
+    public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
+        this ReliableClient client,
+        System.Func<TPkt, System.Boolean> predicate,
+        System.Int32 timeoutMs,
+        System.Threading.CancellationToken ct = default)
+        where TPkt : class, IPacket
+    {
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(predicate);
+
+        var tcs = new System.Threading.Tasks.TaskCompletionSource<TPkt>(
+            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+        void OnPkt(IPacket p)
+        {
+            if (p is TPkt pp && predicate(pp))
+            {
+                tcs.TrySetResult(pp);
+            }
+        }
+
+        void OnDisc(System.Exception ex)
+        {
+            tcs.TrySetException(ex ?? new System.InvalidOperationException(
+                "Disconnected before a matching packet arrived."));
+        }
+
+        client.PacketReceived += OnPkt;
+        client.Disconnected += OnDisc;
+
+        using var lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        lcts.CancelAfter(timeoutMs);
+        await using var reg = lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
+
+        return await AwaitCoreAsync(client, OnPkt, OnDisc, tcs.Task, ct);
+
+        static async System.Threading.Tasks.Task<TPkt> AwaitCoreAsync(
+            ReliableClient c,
+            System.Action<IPacket> pktHandler,
+            System.Action<System.Exception> discHandler,
+            System.Threading.Tasks.Task<TPkt> task,
+            System.Threading.CancellationToken ct)
+        {
+            try
+            {
+                return await task.ConfigureAwait(false);
+            }
+            catch (System.Threading.Tasks.TaskCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // true timeout (our linked CTS fired)
+                throw new System.TimeoutException($"Timeout waiting for {typeof(TPkt).Name}.");
+            }
+            catch (System.Threading.Tasks.TaskCanceledException) when (ct.IsCancellationRequested)
+            {
+                // propagate user cancel
+                throw new System.OperationCanceledException(ct);
+            }
+            finally
+            {
+                c.PacketReceived -= pktHandler;
+                c.Disconnected -= discHandler;
+            }
+        }
+    }
+
+    /// <summary>
     /// Sends a PING and awaits the matching PONG (same <see cref="Control.SequenceId"/>).
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
@@ -146,7 +215,7 @@ public static class ControlExtensions
         Control pong = await client.AwaitControlAsync(
             predicate: c => c.Type == ControlType.PONG && c.SequenceId == seq,  // PONG match  :contentReference[oaicite:3]{index=3}
             timeoutMs: timeoutMs,
-            ct: lcts.Token).ConfigureAwait(false);
+            ct: lcts.Token);
 
         // Compute RTT (prefer echoed MonoTicks if server echoes send mono; else fallback to local)
         System.Int64 nowMono = Clock.MonoTicksNow();
@@ -185,32 +254,7 @@ public static class ControlExtensions
         this ReliableClient client,
         System.Func<Control, System.Boolean> predicate,
         System.Int32 timeoutMs,
-        System.Threading.CancellationToken ct = default)
-    {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(predicate);
-
-        using var lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        lcts.CancelAfter(timeoutMs);
-
-        try
-        {
-            while (true)
-            {
-                IPacket p = await client.ReceiveAsync(lcts.Token).ConfigureAwait(false);
-                if (p is Control c && predicate(c))
-                {
-                    return c;
-                }
-                // else: ignore and continue
-            }
-        }
-        catch (System.OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            // Canceled by timeout
-            throw new System.TimeoutException("No matching CONTROL was received within the allotted timeout.");
-        }
-    }
+        System.Threading.CancellationToken ct = default) => await client.AwaitPacketAsync<Control>(predicate, timeoutMs, ct);
 
     /// <summary>
     /// Sends a CONTROL frame with a single call using a fluent configuration callback.
