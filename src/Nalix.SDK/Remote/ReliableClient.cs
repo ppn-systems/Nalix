@@ -28,6 +28,8 @@ public sealed class ReliableClient : System.IDisposable
     #region Fields
 
     private readonly System.Threading.SemaphoreSlim _connGate;
+    private readonly System.Threading.CancellationTokenSource _lifectx;
+    private readonly System.Threading.Channels.Channel<IPacket> _sendQueue;
 
     private IIdentifier _workerId;
     private System.Net.Sockets.TcpClient _client;
@@ -100,6 +102,38 @@ public sealed class ReliableClient : System.IDisposable
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Incoming = new FifoCache<IPacket>(Options.IncomingSize);
+
+        // In ConnectAsync(), after stream created:
+        _lifectx = new System.Threading.CancellationTokenSource();
+        _sendQueue = System.Threading.Channels.Channel.CreateBounded<IPacket>(
+            new System.Threading.Channels.BoundedChannelOptions(capacity: Options.OutboundQueueSize > 0 ? Options.OutboundQueueSize : 1024)
+            {
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest, // backpressure
+                SingleReader = true,
+                SingleWriter = false
+            });
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            name: $"tcp-send-{this.Options.Address}:{this.Options.Port}",
+            group: "network",
+            async (_, ct) =>
+            {
+                var token = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, this._lifectx!.Token).Token;
+                while (!token.IsCancellationRequested && this.IsConnected)
+                {
+                    if (!await this._sendQueue.Reader.WaitToReadAsync(token).ConfigureAwait(false))
+                    {
+                        break;
+                    }
+
+                    while (this._sendQueue.Reader.TryRead(out IPacket pkt))
+                    {
+                        await this._outbound!.SendAsync(pkt, token).ConfigureAwait(false);
+                    }
+                }
+            },
+            new WorkerOptions { Tag = "tcp" }
+        );
     }
 
     #endregion Constructor
@@ -155,6 +189,7 @@ public sealed class ReliableClient : System.IDisposable
             await _client.ConnectAsync(Options.Address, Options.Port, cts.Token);
 
             _stream = _client.GetStream();
+
             _outbound = new StreamSender<IPacket>(_stream);
             _inbound = new StreamReceiver<IPacket>(_stream);
 
@@ -185,9 +220,14 @@ public sealed class ReliableClient : System.IDisposable
                                                     .Error($"Network receive loop error: {ex.Message}");
 
                             // Push FIFO (with simple backpressure policy)
-                            if (Options.IncomingSize > 0 && packet != null)
+                            if (packet != null)
                             {
-                                this.Incoming.Push(packet);
+                                if (Options.IncomingSize > 0)
+                                {
+                                    Incoming.Push(packet);
+                                }
+
+                                SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -257,7 +297,7 @@ public sealed class ReliableClient : System.IDisposable
         if (_workerId is not null)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                        .CancelWorker(_workerId);
+                                        .CancelWorker(this._workerId);
         }
 
         DeepClose();
