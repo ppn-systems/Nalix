@@ -12,11 +12,15 @@ public sealed class BufferPoolCollection : System.IDisposable
 {
     #region Fields
 
+    private const System.Int32 CooldownMs = 3_000; // avoid thrash
+    private const System.Double UsageEpsilon = 0.05; // hysteresis
+
     private readonly System.Threading.ReaderWriterLockSlim _keysLock;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferPoolShared> _pools;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Int64> _cooldowns;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferCounters> _adjustmentCounters;
 
-    private readonly System.Boolean _secureClear;
+    private readonly BufferConfig _config;
     private readonly System.Int32 _autoTuneThreshold;
 
     private System.Int32[] _sortedKeys;
@@ -55,15 +59,15 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolCollection"/> class.
     /// </summary>
-    /// <param name="secureClear">Whether buffers should be wiped to zero when returned/disposed.</param>
-    /// <param name="autoTuneThreshold">Trigger threshold (operations) for resize decisions.</param>
-    public BufferPoolCollection(System.Boolean secureClear, System.Int32 autoTuneThreshold)
+    /// <param name="bufferConfig">Whether buffers should be wiped to zero when returned/disposed.</param>
+    public BufferPoolCollection(BufferConfig bufferConfig)
     {
         _sortedKeys = [];
-        _secureClear = secureClear;
-        _autoTuneThreshold = System.Math.Max(10, autoTuneThreshold);
+        _config = bufferConfig;
+        _autoTuneThreshold = System.Math.Max(10, _config.AutoTuneOperationThreshold);
 
         _pools = new();
+        _cooldowns = new();
         _adjustmentCounters = new();
         _keysLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
     }
@@ -78,7 +82,7 @@ public sealed class BufferPoolCollection : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CreatePool(System.Int32 bufferSize, System.Int32 initialCapacity)
     {
-        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _secureClear)))
+        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
         {
             this.UpdateSortedKeys();
         }
@@ -87,7 +91,8 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Returns a snapshot enumeration of all pools. The collection may change over time.
     /// </summary>
-    public System.Collections.Generic.IReadOnlyCollection<BufferPoolShared> GetAllPools() => (System.Collections.Generic.IReadOnlyCollection<BufferPoolShared>)_pools.Values;
+    public System.Collections.Generic.IReadOnlyCollection<BufferPoolShared> GetAllPools()
+        => (System.Collections.Generic.IReadOnlyCollection<BufferPoolShared>)_pools.Values;
 
     /// <summary>
     /// Updates the sorted keys with proper locking.
@@ -113,7 +118,8 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] RentBuffer(System.Int32 size)
     {
         System.Int32 poolSize = FindSuitablePoolSize(size);
@@ -131,7 +137,14 @@ public sealed class BufferPoolCollection : System.IDisposable
 
         if (AdjustCounter(poolSize, isRent: true))
         {
-            EventIncrease?.Invoke(pool);
+            // Pull config thresholds from your BufferConfig holder (inject or pass in ctor)
+            EvaluateResize(
+                pool,
+                expandThreshold: _config.ExpandThresholdPercent,   // or cfg.ExpandThresholdPercent
+                shrinkThreshold: _config.ShrinkThresholdPercent,   // or cfg.ShrinkThresholdPercent
+                minIncrease: _config.MinimumIncrease,          // or cfg.MinimumIncrease
+                maxOneShot: _config.MaxBufferIncreaseLimit         // or cfg.MaxBufferIncreaseLimit
+            );
         }
 
         return buffer;
@@ -157,13 +170,63 @@ public sealed class BufferPoolCollection : System.IDisposable
 
         if (AdjustCounter(buffer.Length, isRent: false))
         {
-            EventShrink?.Invoke(pool);
+            EvaluateResize(
+                pool,
+                expandThreshold: _config.ExpandThresholdPercent,   // or cfg.ExpandThresholdPercent
+                shrinkThreshold: _config.ShrinkThresholdPercent,   // or cfg.ShrinkThresholdPercent
+                minIncrease: _config.MinimumIncrease,          // or cfg.MinimumIncrease
+                maxOneShot: _config.MaxBufferIncreaseLimit         // or cfg.MaxBufferIncreaseLimit
+            );
         }
     }
 
     #endregion Rent/Return
 
     #region Resize Debounce
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void EvaluateResize(
+        BufferPoolShared pool, System.Double expandThreshold,
+        System.Double shrinkThreshold, System.Int32 minIncrease, System.Int32 maxOneShot)
+    {
+        ref readonly BufferPoolState st = ref pool.GetPoolInfoRef(); // cheap snapshot
+        System.Double usage = st.GetUsageRatio(); // 0..1 (1 = hot)
+        System.Double missRate = st.GetMissRate();
+
+        // Do not resize too frequently (per pool)
+        System.Int64 now = System.Environment.TickCount64;
+        System.Int64 last = _cooldowns.GetOrAdd(st.BufferSize, 0);
+        if (now - last < CooldownMs)
+        {
+            return;
+        }
+
+        // Expand when "hot" with safety margin; also consider misses
+        if (usage >= (expandThreshold + UsageEpsilon) || missRate > 0.02)
+        {
+            System.Int32 total = st.TotalBuffers <= 0 ? 1 : st.TotalBuffers;
+            System.Int32 pressure = System.Math.Max(1, (System.Int32)System.Math.Ceiling((usage - expandThreshold) * 8)); // rough proportional
+            System.Int32 step = System.Math.Clamp(pressure * minIncrease, minIncrease, maxOneShot);
+            EventIncrease?.Invoke(pool);
+            pool.IncreaseCapacity(step);
+            _cooldowns[st.BufferSize] = now;
+            return;
+        }
+
+        // Shrink only when really idle and safe (free >= shrink threshold)
+        if (usage <= (shrinkThreshold - UsageEpsilon) && st.CanShrink)
+        {
+            System.Int32 free = st.FreeBuffers;
+            if (free > 0)
+            {
+                System.Int32 step = System.Math.Max(minIncrease, free / 4); // conservative
+                EventShrink?.Invoke(pool);
+                pool.DecreaseCapacity(step);
+                _cooldowns[st.BufferSize] = now;
+            }
+        }
+    }
 
     /// <summary>
     /// Adjusts the rent and return counters and decides whether to fire a resize event.
@@ -254,7 +317,7 @@ public sealed class BufferPoolCollection : System.IDisposable
         _keysLock.EnterWriteLock();
         try
         {
-            _sortedKeys = System.Array.Empty<System.Int32>();
+            _sortedKeys = [];
         }
         finally
         {

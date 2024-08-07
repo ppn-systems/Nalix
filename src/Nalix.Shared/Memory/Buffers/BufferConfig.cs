@@ -176,5 +176,6 @@ public sealed class BufferConfig : ConfigurationLoader
             : value;
     }
 
+
     #endregion Properties
 }
