@@ -90,11 +90,6 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     public System.Int32 BufferSize { get; set; } = 65535;
 
     /// <summary>
-    /// Gets or sets the maximum size of the UDP packet.
-    /// </summary>
-    public System.Int32 MinUdpSize { get; set; } = 32;
-
-    /// <summary>
     /// Gets or sets a value indicating whether the socket should use the Reliable Keep-Alive mechanism.
     /// </summary>
     /// <value>
@@ -113,12 +108,6 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Default is 8.
     /// </summary>
     public System.Int32 MaxGroupConcurrency { get; set; } = 8;
-
-    /// <summary>
-    /// Gets or sets the maximum number of concurrent connections allowed by the socket.
-    /// Default is 1000.
-    /// </summary>
-    public System.Int32 MaxConcurrentConnections { get; set; } = 1000;
 
     /// <summary>
     /// Gets a value indicating whether the current operating system is Windows.
