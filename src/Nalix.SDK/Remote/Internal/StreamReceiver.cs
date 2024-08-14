@@ -1,5 +1,7 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
+using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
 
@@ -16,19 +18,14 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         ?? throw new System.ArgumentNullException(nameof(stream));
 
     private readonly IPacketCatalog _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
-        ?? throw new System.InvalidOperationException(
-            "Packet catalog instance is not registered in the dependency injection container.");
+        ?? throw new System.InvalidOperationException("Packet catalog instance is not registered in the dependency injection container.");
 
     // Reuse the header buffer to avoid tiny allocations on every call.
     private readonly System.Byte[] _header2 = new System.Byte[2];
-
-    // You can expose this from options if you want it configurable.
-    private const System.Int32 DefaultMaxPacketSize = 64 * 1024; // 64 KiB
-    private readonly System.Int32 _maxPacketSize = DefaultMaxPacketSize;
+    private readonly System.Threading.SemaphoreSlim _rxGate = new(1, 1);
 
     /// <summary>
-    /// Asynchronously receives and deserializes a packet frame from the stream.
-    /// Frame format: [uint16 le length (payload only)] + [payload].
+    /// Receives framed packets: [len:2 (little-endian, TOTAL=header+payload)] + [payload].
     /// </summary>
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -36,49 +33,90 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
     public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
-        if (_stream?.CanRead != true)
-        {
-            throw new System.InvalidOperationException("The network stream is not readable.");
-        }
-
-        // 1) Read 2-byte payload length (little-endian)
-        await _stream.ReadExactlyAsync(_header2, cancellationToken)
-                     .ConfigureAwait(false);
-
-        System.UInt16 length = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(_header2);
-
-        // Defensive bounds
-        if (length == 0 || length > _maxPacketSize)
-        {
-            throw new System.InvalidOperationException($"Invalid packet size: {length} bytes.");
-        }
-
-        // 2) Rent buffer for payload
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        await _rxGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Read payload fully
-            await _stream.ReadExactlyAsync(System.MemoryExtensions
-                         .AsMemory(buffer, 0, length), cancellationToken)
-                         .ConfigureAwait(false);
-
-            // 3) Deserialize directly over the rented buffer span (no extra copy)
-            if (_catalog.TryDeserialize(System.MemoryExtensions
-                        .AsSpan(buffer, 0, length), out IPacket packet))
+            // 1) Read 2-byte TOTAL length (little-endian)
+            try
             {
-                return (TPacket)packet;
+                await _stream.ReadExactlyAsync(_header2, cancellationToken).ConfigureAwait(false);
+            }
+            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug("ReceiveAsync cancelled while reading length header.");
+                throw;
             }
 
-            throw new System.InvalidOperationException("Failed to deserialize packet.");
-        }
-        catch (System.IO.EndOfStreamException)
-        {
-            // Surface clean EOF (peer closed while reading) to the caller
-            throw;
+            System.UInt16 total = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(_header2);
+
+            if (total < sizeof(System.UInt16))
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn("Invalid frame total size: {Total}", total);
+                throw new System.InvalidOperationException($"Invalid frame size: {total} (must be >= 2).");
+            }
+
+            System.Int32 payloadLen = total - sizeof(System.UInt16);
+            if (payloadLen is 0 or > PacketConstants.PacketSizeLimit)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn("Payload length out of protocol bounds: {PayloadLen}", payloadLen);
+                throw new System.InvalidOperationException($"Invalid payload size: {payloadLen} bytes.");
+            }
+
+            // 2) Rent payload buffer & read payload fully
+            System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(payloadLen);
+            try
+            {
+                try
+                {
+                    await _stream.ReadExactlyAsync(System.MemoryExtensions
+                                 .AsMemory(buffer, 0, payloadLen), cancellationToken)
+                                 .ConfigureAwait(false);
+                }
+                catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Debug("ReceiveAsync cancelled while reading payload.");
+                    throw;
+                }
+
+                // 3) Deserialize without extra copies
+                if (!_catalog.TryDeserialize(System.MemoryExtensions.AsSpan(buffer, 0, payloadLen), out var pkt))
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"Failed to deserialize packet of length {payloadLen}");
+
+                    throw new System.InvalidOperationException("Failed to deserialize packet.");
+                }
+
+                if (pkt is TPacket matched)
+                {
+                    return matched;
+                }
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"Deserialized packet type {pkt.GetType().Name} does not match expected {typeof(TPacket).Name}");
+
+                throw new System.InvalidOperationException($"Deserialized packet is not of expected type {typeof(TPacket).Name}.");
+            }
+            catch (System.IO.EndOfStreamException)
+            {
+                // Peer closed during read → propagate
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info("Peer closed the stream while receiving.");
+                throw;
+            }
+            finally
+            {
+                System.Array.Clear(buffer, 0, payloadLen);
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
+            }
         }
         finally
         {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
+            _rxGate.Release();
         }
     }
 }
