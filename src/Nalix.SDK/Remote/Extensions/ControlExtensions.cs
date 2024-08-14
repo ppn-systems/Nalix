@@ -292,7 +292,7 @@ public static class ControlExtensions
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.ValueTask SendControlAsync(
+    public static System.Threading.Tasks.Task SendControlAsync(
         this ReliableClient client,
         System.UInt16 opCode,
         ControlType type,
@@ -321,7 +321,7 @@ public static class ControlExtensions
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.ValueTask SendDisconnectAsync(
+    public static System.Threading.Tasks.Task SendDisconnectAsync(
         this ReliableClient client,
         System.UInt16 opCode,
         System.UInt32 seq = 0,
