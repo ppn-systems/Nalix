@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Shared.Memory.Internal;
 
@@ -90,24 +90,27 @@ internal static unsafe class MemOps
         System.Byte* source,
         System.Byte* destination, System.Int32 length)
     {
-        // Unsafe.CopyBlockUnaligned handles overlaps correctly *if* src/dest don't overlap
-        // in a way that would overwrite data needed later *in the same call*.
-        // For LZ decompression (copying from already decompressed buffer), the typical
-        // scenario is `destination > source` and `destination < source + length`.
-        // A simple forward byte-by-byte copy works correctly here.
-        // Higher performance methods exist but require care.
-        if (length <= 0)
+        if (length <= 0 || source == destination)
         {
             return;
         }
 
-        // Simple, safe byte-by-byte copy handles required LZ overlap
-        for (System.Int32 i = 0; i < length; ++i)
+        // Không chồng lấn:   [source .. source+length)  và  [destination .. destination+length) tách rời
+        // Chồng lấn tiến:    destination > source && destination < source + length  => phải copy tiến từng byte
+        // Chồng lấn lùi:     destination < source && source < destination + length  => có thể copy block an toàn (đọc trước ghi sau)
+
+        if (destination < source || destination >= (source + length))
+        {
+            // Non-overlap or backward-overlap -> block copy OK (nhanh)
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, (System.UInt32)length);
+            return;
+        }
+
+        // Forward-overlap: copy từng byte theo chiều tiến để giữ semantics LZ backref
+        for (System.Int32 i = 0; i < length; i++)
         {
             destination[i] = source[i];
         }
-        // Alternatively, for non-overlapping or simple cases, use CopyBlock:
-        // Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
     }
 
     /// <summary>
@@ -135,109 +138,6 @@ internal static unsafe class MemOps
     }
 
     /// <summary>
-    /// Copies memory from a source pointer to a destination span.
-    /// </summary>
-    /// <param name="source">A pointer to the source memory location.</param>
-    /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Copy(
-        System.Byte* source,
-        System.Span<System.Byte> destination)
-    {
-        if (destination.IsEmpty)
-        {
-            return;
-        }
-
-        fixed (System.Byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
-        {
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                pDest, source, (System.UInt32)destination.Length);
-        }
-    }
-
-    /// <summary>
-    /// Compares two memory regions for equality.
-    /// </summary>
-    /// <param name="p1">A pointer to the first memory region.</param>
-    /// <param name="p2">A pointer to the second memory region.</param>
-    /// <param name="length">The number of bytes to compare.</param>
-    /// <returns><c>true</c> if the two memory regions are equal, otherwise <c>false</c>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean SequenceEqual(
-        System.Byte* p1,
-        System.Byte* p2,
-        System.Int32 length)
-    {
-        if (length <= 0)
-        {
-            return true;
-        }
-        // Fallback for very small lengths where ReadUnaligned might be slower setup
-        if (length < sizeof(System.UInt64))
-        {
-            for (System.Int32 i = 0; i < length; ++i)
-            {
-                if (p1[i] != p2[i])
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        System.Int32 n = 0;
-        while (length >= sizeof(System.UInt64))
-        {
-            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + n) !=
-                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + n))
-            {
-                return false;
-            }
-
-            n += sizeof(System.UInt64);
-            length -= sizeof(System.UInt64);
-        }
-        // Check remaining bytes (up to 7)
-        if (length >= sizeof(System.UInt32))
-        {
-            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(p1 + n) !=
-                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(p2 + n))
-            {
-                return false;
-            }
-
-            n += sizeof(System.UInt32);
-            length -= sizeof(System.UInt32);
-        }
-        if (length >= sizeof(System.UInt16))
-        {
-            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(p1 + n) !=
-                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(p2 + n))
-            {
-                return false;
-            }
-
-            n += sizeof(System.UInt16);
-            length -= sizeof(System.UInt16);
-        }
-        if (length > 0) // Remaining byte
-        {
-            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Byte>(p1 + n) !=
-                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Byte>(p2 + n))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// Counts the number of matching bytes between two memory locations.
     /// </summary>
     /// <param name="p1">A pointer to the first memory region.</param>
@@ -253,16 +153,188 @@ internal static unsafe class MemOps
         System.Int32 maxLength)
     {
         System.Int32 count = 0;
+        if (maxLength <= 0)
+        {
+            return 0;
+        }
 
-        // Optimize for common case using 64-bit reads
+        // -------------------- x86: AVX2 32B chunks --------------------
+        if (System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+        {
+            while (count + 32 <= maxLength)
+            {
+                var a = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p1 + count);
+                var b = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p2 + count);
+                var cmp = System.Runtime.Intrinsics.X86.Avx2.CompareEqual(a, b);
+
+                if (System.Runtime.Intrinsics.Vector256.EqualsAll(cmp, System.Runtime.Intrinsics.Vector256<System.Byte>.AllBitsSet))
+                {
+                    count += 32;
+                    continue;
+                }
+
+                // Find first differing byte inside this 32B block
+                System.Int32 mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp); // 1 where bytes differ
+                                                                                       // mask is 32-bit, each bit corresponds to a byte
+                System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                return count + idx;
+            }
+
+            // Fall down to 16B SSE2 lane for the tail (if any)
+            if (count + 16 <= maxLength)
+            {
+                var a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                var b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                var cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+
+                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                {
+                    count += 16;
+                }
+                else
+                {
+                    System.Int32 mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
+                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                    return count + idx;
+                }
+            }
+
+            // 8-byte then scalar
+            if (count + sizeof(System.UInt64) <= maxLength)
+            {
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                {
+                    count += sizeof(System.UInt64);
+                }
+                else
+                {
+                    // find first diff within 8 bytes
+                    System.UInt64 x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count);
+                    System.UInt64 y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count);
+                    System.UInt64 d = x ^ y;
+                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
+                    return count + idx;
+                }
+            }
+
+            while (count < maxLength && p1[count] == p2[count])
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        // -------------------- x86: SSE2 16B chunks --------------------
+        if (System.Runtime.Intrinsics.X86.Sse2.IsSupported)
+        {
+            while (count + 16 <= maxLength)
+            {
+                var a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                var b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                var cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+
+                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                {
+                    count += 16;
+                    continue;
+                }
+
+                System.Int32 mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
+                System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                return count + idx;
+            }
+
+            // 8-byte then scalar
+            if (count + sizeof(System.UInt64) <= maxLength)
+            {
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                {
+                    count += sizeof(System.UInt64);
+                }
+                else
+                {
+                    System.UInt64 x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count);
+                    System.UInt64 y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count);
+                    System.UInt64 d = x ^ y;
+                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
+                    return count + idx;
+                }
+            }
+
+            while (count < maxLength && p1[count] == p2[count])
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        // -------------------- ARM64: AdvSimd 16B chunks --------------------
+        if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported)
+        {
+            while (count + 16 <= maxLength)
+            {
+                var a = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p1 + count);
+                var b = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p2 + count);
+                var cmp = System.Runtime.Intrinsics.Arm.AdvSimd.CompareEqual(a, b); // 0xFF where equal
+
+                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                {
+                    count += 16;
+                    continue;
+                }
+
+                // Fallback: scan within this 16-byte chunk (cheap)
+                for (System.Int32 j = 0; j < 16; j++)
+                {
+                    if (p1[count + j] != p2[count + j])
+                    {
+                        return count + j;
+                    }
+                }
+                count += 16; // (shouldn't reach here)
+            }
+
+            // 8-byte then scalar
+            if (count + sizeof(System.UInt64) <= maxLength)
+            {
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                {
+                    count += sizeof(System.UInt64);
+                }
+                else
+                {
+                    for (System.Int32 j = 0; j < 8; j++)
+                    {
+                        if (p1[count + j] != p2[count + j])
+                        {
+                            return count + j;
+                        }
+                    }
+                    count += 8;
+                }
+            }
+
+            while (count < maxLength && p1[count] == p2[count])
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        // -------------------- Portable fallback --------------------
+        // (Already quite fast when paired with the 64-bit path above)
         while (count + sizeof(System.UInt64) <= maxLength &&
-            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
-            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
+               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
         {
             count += sizeof(System.UInt64);
         }
-
-        // Check remaining bytes (up to 7)
         while (count < maxLength && p1[count] == p2[count])
         {
             count++;
