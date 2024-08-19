@@ -3,7 +3,7 @@
 namespace Nalix.Framework.Cryptography.Hashing;
 
 /// <summary>
-/// Implements SHA3-256 (FIPS 202) using the Keccak-f[1600] permutation.
+/// Implements Keccak-256 (FIPS 202) using the Keccak-f[1600] permutation.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -11,7 +11,7 @@ namespace Nalix.Framework.Cryptography.Hashing;
 /// It supports incremental updates and a one-shot convenience API.
 /// </para>
 /// <para>
-/// Parameters for SHA3-256:
+/// Parameters for Keccak-256:
 /// <list type="bullet">
 /// <item><description>State width: 1600 bits (25 lanes × 64 bits)</description></item>
 /// <item><description>Rate: 1088 bits (136 bytes)</description></item>
@@ -33,9 +33,8 @@ namespace Nalix.Framework.Cryptography.Hashing;
 /// </threadsafety>
 /// <seealso href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf">FIPS 202: SHA-3 Standard</seealso>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Runtime.InteropServices.ComVisible(true)]
 [System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, FEEDFACE={_byteCount}")]
-public sealed class SHA3256 : System.IDisposable
+public sealed class Keccak256 : System.IDisposable
 {
     #region Constants
 
@@ -66,22 +65,8 @@ public sealed class SHA3256 : System.IDisposable
     ];
 
     // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
-    private static readonly System.Byte[] Dst =
-    [
-        0,6,12,18,24,
-        3,9,10,16,22,
-        1,7,13,19,20,
-        4,5,11,17,23,
-        2,8,14,15,21
-    ];
-    private static readonly System.Byte[] Rot =
-    [
-        0,36,3,41,18,
-        1,44,10,45,2,
-        62,6,43,15,61,
-        28,55,25,21,56,
-        27,20,39,8,14
-    ];
+    private static readonly System.Byte[] Dst;
+    private static readonly System.Byte[] Rot;
 
     // 25 lanes of 64-bit
     private readonly System.UInt64[] _state = new System.UInt64[Lanes];
@@ -99,30 +84,40 @@ public sealed class SHA3256 : System.IDisposable
 
     #region Ctors
 
-    static SHA3256()
+    static Keccak256()
     {
-#if DEBUG
-        // Verify Dst against formula: idx = 5*x + y; X = y; Y = (2x + 3y) % 5; dst = 5*X + Y
-        var calc = new System.Byte[25];
-        for (System.Int32 idx = 0; idx < 25; idx++)
+        // Flatten: idx = x + 5*y
+        Dst = new System.Byte[25];
+        Rot = new System.Byte[25];
+
+        // Rho offsets theo Keccak spec (x,y) -> r[x,y]
+        System.Int32[,] R = new System.Int32[5, 5] {
+            {  0, 36,  3, 41, 18 },
+            {  1, 44, 10, 45,  2 },
+            { 62,  6, 43, 15, 61 },
+            { 28, 55, 25, 21, 56 },
+            { 27, 20, 39,  8, 14 }
+        };
+
+        for (System.Int32 x = 0; x < 5; x++)
         {
-            System.Int32 x = idx / 5, y = idx % 5;
-            System.Int32 X = y;
-            System.Int32 Y = ((2 * x) + (3 * y)) % 5;
-            calc[idx] = (System.Byte)((5 * X) + Y);
+            for (System.Int32 y = 0; y < 5; y++)
+            {
+                System.Int32 src = x + (5 * y);                     // flatten src
+                System.Int32 X = y;                                 // π: X = y
+                System.Int32 Y = ((2 * x) + (3 * y)) % 5;           // π: Y = 2x+3y
+                System.Int32 dst = X + (5 * Y);                     // flatten dst
+
+                Dst[src] = (System.Byte)dst;
+                Rot[src] = (System.Byte)R[x, y];
+            }
         }
-        for (System.Int32 i = 0; i < 25; i++)
-        {
-            System.Diagnostics.Debug.Assert(Dst[i] == calc[i], "Dst mapping mismatch at " + i);
-        }
-        // Rot must match the flattened R for Src[i] == i
-#endif
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SHA3256"/> class with a zeroed sponge state.
+    /// Initializes a new instance of the <see cref="Keccak256"/> class with a zeroed sponge state.
     /// </summary>
-    public SHA3256()
+    public Keccak256()
     {
         Initialize();
     }
@@ -140,9 +135,9 @@ public sealed class SHA3256 : System.IDisposable
     [System.Diagnostics.Contracts.Pure]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
-        using SHA3256 sha3 = new();
+        using Keccak256 sha3 = new();
         sha3.Update(data);
-        return sha3.Finalize();
+        return sha3.Finish();
     }
 
     /// <summary>
@@ -160,9 +155,9 @@ public sealed class SHA3256 : System.IDisposable
             throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
         }
 
-        using SHA3256 sha3 = new();
+        using Keccak256 sha3 = new();
         sha3.Update(data);
-        sha3.Finalize(output);
+        sha3.Finish(output);
     }
 
     #endregion Static API
@@ -199,7 +194,7 @@ public sealed class SHA3256 : System.IDisposable
     /// </summary>
     /// <param name="data">The input data to absorb.</param>
     /// <remarks>
-    /// Call <see cref="Finalize()"/> or <see cref="Finalize(System.Span{System.Byte})"/> to complete hashing and retrieve the digest.
+    /// Call <see cref="Finish()"/> or <see cref="Finish(System.Span{System.Byte})"/> to complete hashing and retrieve the digest.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if called after the hash has already been finalized.</exception>
@@ -208,7 +203,7 @@ public sealed class SHA3256 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(System.ReadOnlySpan<System.Byte> data)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
         if (_finalized)
         {
             throw new System.InvalidOperationException("Cannot update after finalization.");
@@ -262,9 +257,9 @@ public sealed class SHA3256 : System.IDisposable
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public System.Byte[] Finalize()
+    public System.Byte[] Finish()
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
         if (_finalized && _finalHash != null)
         {
             return (System.Byte[])_finalHash.Clone();
@@ -287,9 +282,9 @@ public sealed class SHA3256 : System.IDisposable
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public void Finalize(System.Span<System.Byte> output)
+    public void Finish(System.Span<System.Byte> output)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
         if (output.Length < HashSizeBytes)
         {
             throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
@@ -315,18 +310,35 @@ public sealed class SHA3256 : System.IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
     /// <remarks>
-    /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finalize()"/>.
+    /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finish()"/>.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
 
-        this.Update(data);
-        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(HashSizeBytes);
-        this.Finalize(result);
+        using Keccak256 tmp = new();
+        tmp.Update(data);
+        return tmp.Finish();
+    }
 
-        return result;
+    /// <summary>
+    /// Computes a SHA3-256 hash for the specified input and returns a new 32-byte array with the digest.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <param name="output">The destination buffer that will receive the 32-byte digest.</param>
+    /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
+    /// <remarks>
+    /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finish()"/>.
+    /// </remarks>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    public void ComputeHash(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
+
+        using Keccak256 tmp = new();
+        tmp.Update(data);
+        tmp.Finish(output);
     }
 
     #endregion Public API
@@ -419,6 +431,24 @@ public sealed class SHA3256 : System.IDisposable
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
                         }
 
+                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                        KeccakF1600(_state);
+                        return;
+                    }
+
+                    // --- ARM AdvSimd (8 × 16B) + tail ---
+                    if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported)
+                    {
+                        // XOR theo từng Vector128<ulong> (16B) – giống SSE2 path
+                        for (System.Int32 off = 0; off < 128; off += 16)
+                        {
+                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
+                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+                            var vx = System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs);
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
+                        }
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
                         KeccakF1600(_state);
                         return;
@@ -546,42 +576,37 @@ public sealed class SHA3256 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void Pad()
     {
-        System.Span<System.Byte> pad = _buffer; // current rate-sized scratch buffer
+        System.Span<System.Byte> pad = _buffer;
         System.Int32 n = _bufferLen;
 
-        // If the buffer is exactly full, absorb it and start a fresh block.
         if (n == RateBytes)
         {
-            this.AbsorbBlock(pad);
+            AbsorbBlock(pad);
             n = 0;
         }
 
-        // Write domain separator at position n
+        // Zero the tail explicitly to be crystal-clear
+        if (n < RateBytes)
+        {
+            pad[n..].Clear();
+        }
+
         pad[n] = 0x06;
 
-        // Copy the prebuilt tail from n+1 to end (fills zeros and ensures last byte == 0x80)
-        System.Int32 start = n + 1;
-        if (start < RateBytes)
+        if (n == RateBytes - 1)
         {
-            System.MemoryExtensions.AsSpan(DEADBEEF.FEEDFACE, start).CopyTo(pad[start..]);
-
-            // Edge case: when n == RateBytes - 1, the copy above is empty; we still need 0x80 in the last byte.
-            // Or'ing is harmless for other n because pad[^1] is already 0x80 from the copy.
-            pad[RateBytes - 1] |= 0x80;
+            // No room for 0x80 here, absorb and make a full zero block with 0x80 at end
+            AbsorbBlock(pad);
+            pad.Clear();
+            pad[RateBytes - 1] = 0x80;
+            AbsorbBlock(pad);
         }
         else
         {
-            // n == RateBytes - 1: no room for 0x80 in this block; absorb this block (with 0x06 at the end),
-            // then build a fresh full padding block: 0x06 at index 0 and 0x80 at the end.
-            this.AbsorbBlock(pad);
-
-            // Reuse the same trick: write 0x06 at 0 and copy tail from index 1
-            pad[0] = 0x06;
-            System.MemoryExtensions.AsSpan(DEADBEEF.FEEDFACE, 1).CopyTo(pad[1..]);
-            // pad[^1] already 0x80 by the copy.
+            pad[RateBytes - 1] |= 0x80;
+            AbsorbBlock(pad);
         }
 
-        this.AbsorbBlock(pad);
         _bufferLen = 0;
     }
 
@@ -594,22 +619,7 @@ public sealed class SHA3256 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private unsafe void Squeeze(System.Span<System.Byte> output)
     {
-        System.Diagnostics.Debug.Assert(output.Length >= HashSizeBytes);
-
-        if (System.BitConverter.IsLittleEndian)
-        {
-            fixed (System.Byte* pOut = output)
-            {
-                fixed (System.UInt64* pState = _state)
-                {
-                    System.Buffer.MemoryCopy(pState, pOut, HashSizeBytes, HashSizeBytes);
-                }
-            }
-
-            return;
-        }
-
-        // Big-endian: write first 4 lanes as LE to remain deterministic
+        // Always write as little-endian lanes explicitly (portable)
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], _state[0]);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), _state[1]);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(16, 8), _state[2]);
@@ -759,8 +769,8 @@ public sealed class SHA3256 : System.IDisposable
     /// <summary>
     /// Returns the algorithm display name.
     /// </summary>
-    /// <returns>The string <c>SHA3-256</c>.</returns>
-    public override System.String ToString() => "SHA3-256";
+    /// <returns>The string <c>Keccak-256</c>.</returns>
+    public override System.String ToString() => "Keccak-256";
 
     #endregion Overrides
 }
