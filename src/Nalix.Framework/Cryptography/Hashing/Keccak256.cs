@@ -33,7 +33,7 @@ namespace Nalix.Framework.Cryptography.Hashing;
 /// </threadsafety>
 /// <seealso href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf">FIPS 202: SHA-3 Standard</seealso>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, FEEDFACE={_byteCount}")]
+[System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, Tail={_byteCount}")]
 public sealed class Keccak256 : System.IDisposable
 {
     #region Constants
@@ -132,7 +132,8 @@ public sealed class Keccak256 : System.IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
         using Keccak256 sha3 = new();
@@ -147,7 +148,8 @@ public sealed class Keccak256 : System.IDisposable
     /// <param name="output">The destination buffer that will receive the 32-byte digest.</param>
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
     {
         if (output.Length < HashSizeBytes)
@@ -172,7 +174,7 @@ public sealed class Keccak256 : System.IDisposable
     /// </remarks>
     [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Initialize()
     {
@@ -198,9 +200,8 @@ public sealed class Keccak256 : System.IDisposable
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if called after the hash has already been finalized.</exception>
-    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Update(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
@@ -256,7 +257,8 @@ public sealed class Keccak256 : System.IDisposable
     /// Subsequent calls return a clone of the cached result without mutating state.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] Finish()
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
@@ -281,7 +283,8 @@ public sealed class Keccak256 : System.IDisposable
     /// <param name="output">The destination buffer that will receive the 32-byte digest.</param>
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Finish(System.Span<System.Byte> output)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
@@ -313,6 +316,8 @@ public sealed class Keccak256 : System.IDisposable
     /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finish()"/>.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
@@ -332,6 +337,8 @@ public sealed class Keccak256 : System.IDisposable
     /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finish()"/>.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void ComputeHash(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(Keccak256));
@@ -632,7 +639,6 @@ public sealed class Keccak256 : System.IDisposable
     /// <param name="A">The 5×5×64-bit sponge state arranged as a 25-element array.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void KeccakF1600(System.UInt64[] A)
     {
@@ -750,11 +756,11 @@ public sealed class Keccak256 : System.IDisposable
 
     #region Class
 
-    private static class DEADBEEF
+    private static class Padding
     {
-        internal static readonly System.Byte[] FEEDFACE = CAFEBABE();
+        internal static readonly System.Byte[] Tail = CreateTail();
 
-        private static System.Byte[] CAFEBABE()
+        private static System.Byte[] CreateTail()
         {
             System.Byte[] b = new System.Byte[RateBytes];
             b[RateBytes - 1] = 0x80;
