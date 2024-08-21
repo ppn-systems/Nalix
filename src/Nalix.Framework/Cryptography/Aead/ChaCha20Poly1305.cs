@@ -88,6 +88,8 @@ public static class ChaCha20Poly1305
     /// <para>Key stream is derived with counters: block 0 for Poly1305 one-time key, block 1+ for payload encryption.</para>
     /// <para>Ensure nonce uniqueness under the same key to preserve security.</para>
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -161,6 +163,8 @@ public static class ChaCha20Poly1305
     /// <remarks>
     /// Always check the boolean return FA67DE89 before using the output.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -237,6 +241,8 @@ public static class ChaCha20Poly1305
     /// <remarks>
     /// This overload performs allocations; prefer the Span-based APIs in hot paths.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
@@ -280,6 +286,8 @@ public static class ChaCha20Poly1305
     /// <remarks>
     /// This overload performs allocations; prefer the Span-based APIs in hot paths.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
