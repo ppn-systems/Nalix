@@ -25,7 +25,8 @@ namespace Nalix.Framework.Cryptography.Security;
 /// Note: Outputs from this implementation are <b>not interoperable</b> with PBKDF2 using SHA-256 or SHA-512.
 /// </para>
 /// </remarks>
-public sealed class PBKDF2 : System.IDisposable
+[System.Runtime.CompilerServices.SkipLocalsInit]
+internal sealed class PBKDF2 : System.IDisposable
 {
     private readonly System.Byte[] _salt;
     private readonly System.Int32 _iterations;
@@ -75,7 +76,9 @@ public sealed class PBKDF2 : System.IDisposable
     /// <exception cref="System.ArgumentNullException">
     /// Thrown when <paramref name="password"/> is <c>null</c>.
     /// </exception>
-    public System.Byte[] GenerateKey(System.String password)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.Byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.String password)
     {
         System.ArgumentNullException.ThrowIfNull(password);
         System.Byte[] pw = System.Text.Encoding.UTF8.GetBytes(password);
@@ -88,7 +91,9 @@ public sealed class PBKDF2 : System.IDisposable
     /// </summary>
     /// <param name="password">The password bytes (e.g., UTF-8 encoded password).</param>
     /// <returns>A new byte array containing the derived key.</returns>
-    public System.Byte[] GenerateKey(System.ReadOnlySpan<System.Byte> password)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.Byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password)
     {
         System.Byte[] dk = System.GC.AllocateUninitializedArray<System.Byte>(_keyLength);
         GenerateKey(password, dk);
@@ -109,7 +114,11 @@ public sealed class PBKDF2 : System.IDisposable
     /// <exception cref="System.ArgumentException">
     /// Thrown if <paramref name="output"/> is smaller than the configured key length.
     /// </exception>
-    public void GenerateKey(System.ReadOnlySpan<System.Byte> password, System.Span<System.Byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public void GenerateKey(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (output.Length < _keyLength)
@@ -154,9 +163,12 @@ public sealed class PBKDF2 : System.IDisposable
     /// <exception cref="System.ObjectDisposedException">
     /// Thrown if this instance has been disposed.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean GenerateKey(
-        System.ReadOnlySpan<System.Byte> password,
-        System.Span<System.Byte> output, out System.Int32 bytesWritten)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (output.Length < _keyLength)
@@ -171,6 +183,8 @@ public sealed class PBKDF2 : System.IDisposable
 
     #region Core PBKDF2
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void F(
         System.ReadOnlySpan<System.Byte> password,
         System.ReadOnlySpan<System.Byte> salt,
@@ -207,6 +221,8 @@ public sealed class PBKDF2 : System.IDisposable
         si.Clear();
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void HmacSha3_256(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> data,
@@ -263,6 +279,8 @@ public sealed class PBKDF2 : System.IDisposable
         inner.Clear();
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void WriteInt32BE(System.Int32 value, System.Span<System.Byte> dest)
     {
         dest[0] = (System.Byte)((System.UInt32)value >> 24);

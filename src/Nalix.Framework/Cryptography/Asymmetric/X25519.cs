@@ -12,6 +12,7 @@ public static class X25519
     /// <summary>
     /// Represents an X25519 key pair consisting of a private key and a public key.
     /// </summary>
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public struct X25519KeyPair
     {
         /// <summary>
@@ -88,6 +89,7 @@ public static class X25519
         => Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
 }
 
+[System.Diagnostics.StackTraceHidden]
 internal static class Curve25519
 {
     /// <summary>
@@ -99,12 +101,8 @@ internal static class Curve25519
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     ];
 
-    /// <summary>
-    /// An inner function to calculate scalar * point
-    /// </summary>
-    /// <param name="input"></param>
-    /// <param name="baseIn"></param>
-    /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Byte[] ScalarMult(System.Byte[] input, System.Byte[] baseIn)
     {
         var e = new System.Byte[32];
@@ -177,7 +175,8 @@ internal static class Curve25519
     /// contents) a precomputed implementation might be used for performance.
     /// </para>
     /// </summary>
-    /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] ScalarMultiplication(System.Byte[] scalar, System.Byte[] point)
     {
         if (scalar.Length != 32)
@@ -209,6 +208,3 @@ internal static class Curve25519
             : result;
     }
 }
-
-
-

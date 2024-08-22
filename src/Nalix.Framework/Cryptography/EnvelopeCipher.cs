@@ -91,6 +91,8 @@ public static class EnvelopeCipher
     /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.ChaCha20);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
@@ -147,6 +149,8 @@ public static class EnvelopeCipher
     /// }
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> envelope,

@@ -106,7 +106,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     /// <param name="dst">Destination span to receive the keystream block.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void GenerateKeyBlock(System.Span<System.Byte> dst)
     {
         if (_isDisposed)
@@ -140,7 +140,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
         System.Byte[] output,
         System.Byte[] input,
@@ -178,7 +178,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
         System.Byte[] output,
         System.Byte[] input,
@@ -204,7 +204,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] EncryptBytes(
         System.Byte[] input,
         System.Int32 numBytes,
@@ -232,7 +232,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Encrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] EncryptBytes(
         System.Byte[] input,
         SimdMode simdMode = SimdMode.AutoDetect)
@@ -254,7 +254,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     /// <remarks>dst.Length must equal src.Length.</remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
     {
         if (dst.Length != src.Length)
@@ -270,7 +270,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     /// <remarks>dst.Length must equal src.Length.</remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst, out System.Int32 written)
     {
         written = 0;
@@ -297,7 +297,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="numBytes">ProtocolType of bytes to decrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
         System.Byte[] output, System.Byte[] input,
         System.Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
@@ -329,7 +329,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array to preallocated output buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
         System.Byte[] output, System.Byte[] input,
         SimdMode simdMode = SimdMode.AutoDetect)
@@ -349,7 +349,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
         System.Byte[] input, System.Int32 numBytes,
         SimdMode simdMode = SimdMode.AutoDetect)
@@ -376,7 +376,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
         System.Byte[] input,
         SimdMode simdMode = SimdMode.AutoDetect)
@@ -397,14 +397,15 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For ChaCha20, this is identical to Encrypt.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst) => Encrypt(src, dst);
 
     /// <summary>
     /// In-place encryption (XOR) of <paramref name="buffer"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
     public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (_isDisposed)
@@ -414,7 +415,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            _ = AB12CD34();
+            simdMode = AB12CD34();
         }
 
         System.Int32 offset = 0;
@@ -447,7 +448,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// In-place decryption of <paramref name="buffer"/> (same as EncryptInPlace).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect) => EncryptInPlace(buffer, simdMode);
 
     #endregion Decryption methods
@@ -463,6 +464,8 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="input">Input data to encrypt/decrypt</param>
     /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
     /// <returns>Encrypted/decrypted output</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.Byte[] key,
         System.Byte[] nonce,
@@ -478,6 +481,8 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypts the input bytes using ChaCha20 in a one-shot static API.
     /// (Same as Encrypt, provided for clarity.)
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
         System.Byte[] key,
         System.Byte[] nonce,
@@ -496,8 +501,9 @@ public sealed class ChaCha20 : System.IDisposable
     /// <summary>
     /// Read little-endian uint from span without allocation.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 ReadU32Little(System.ReadOnlySpan<System.Byte> src, System.Int32 offset)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt32 ABF98B53(System.ReadOnlySpan<System.Byte> src, System.Int32 offset)
     {
         return (System.UInt32)(src[offset]
             | src[offset + 1] << 8
@@ -509,7 +515,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Set up the ChaCha20 state with the given key (span-based). Does NOT allocate.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void E8F7A6B5(System.ReadOnlySpan<System.Byte> keySpan)
     {
         if (keySpan.Length != KeySize)
@@ -524,7 +530,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 i = 0; i < 8; i++)
         {
-            State[4 + i] = ReadU32Little(keySpan, i * 4);
+            State[4 + i] = ABF98B53(keySpan, i * 4);
         }
     }
 
@@ -532,7 +538,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// Set up the ChaCha20 state with the given nonce (span) and block counter. A 12-byte nonce and a 4-byte counter are required.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void F9E8D7C6(System.ReadOnlySpan<System.Byte> nonceSpan, System.UInt32 counter)
     {
         if (nonceSpan.Length != NonceSize)
@@ -545,7 +551,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 i = 0; i < 3; i++)
         {
-            State[13 + i] = ReadU32Little(nonceSpan, i * 4);
+            State[13 + i] = ABF98B53(nonceSpan, i * 4);
         }
     }
 
@@ -570,7 +576,7 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void DE45FA67(
         System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output, System.Int32 numBytes)
     {
@@ -588,7 +594,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         System.Int32 offset = 0;
         System.Int32 full = numBytes / BlockSize;
-        System.Int32 tail = numBytes - full * BlockSize;
+        System.Int32 tail = numBytes - (full * BlockSize);
 
         for (System.Int32 loop = 0; loop < full; loop++)
         {
@@ -617,7 +623,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// This version reuses internal buffers to reduce GC.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void EF56AB78(
         System.Byte[] output, System.Byte[] input,
         System.Int32 numBytes, SimdMode simdMode)
@@ -712,8 +718,8 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void FA67BC89(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private unsafe static void FA67BC89(
         System.UInt32[] stateToModify, System.UInt32[] workingBuffer, System.Byte[] temporaryBuffer)
     {
         // Copy state to working buffer (byte copy for performance)
@@ -734,7 +740,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 i = 0; i < StateLength; i++)
         {
-            BitwiseOperations.ToBytes(temporaryBuffer, BitwiseOperations.Add(workingBuffer[i], stateToModify[i]), 4 * i);
+            fixed (System.Byte* ptr = &temporaryBuffer[4 * i])
+            {
+                System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, BitwiseOperations.Add(workingBuffer[i], stateToModify[i]));
+            }
         }
 
         stateToModify[12] = BitwiseOperations.AddOne(stateToModify[12]);
@@ -754,16 +763,16 @@ public sealed class ChaCha20 : System.IDisposable
         System.UInt32[] x, System.UInt32 a, System.UInt32 b, System.UInt32 c, System.UInt32 d)
     {
         x[a] = BitwiseOperations.Add(x[a], x[b]);
-        x[d] = BitwiseOperations.RotateLeft(BitwiseOperations.XOr(x[d], x[a]), 16);
+        x[d] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(x[d], x[a]), 16);
 
         x[c] = BitwiseOperations.Add(x[c], x[d]);
-        x[b] = BitwiseOperations.RotateLeft(BitwiseOperations.XOr(x[b], x[c]), 12);
+        x[b] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(x[b], x[c]), 12);
 
         x[a] = BitwiseOperations.Add(x[a], x[b]);
-        x[d] = BitwiseOperations.RotateLeft(BitwiseOperations.XOr(x[d], x[a]), 8);
+        x[d] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(x[d], x[a]), 8);
 
         x[c] = BitwiseOperations.Add(x[c], x[d]);
-        x[b] = BitwiseOperations.RotateLeft(BitwiseOperations.XOr(x[b], x[c]), 7);
+        x[b] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(x[b], x[c]), 7);
     }
 
     #endregion Private Methods

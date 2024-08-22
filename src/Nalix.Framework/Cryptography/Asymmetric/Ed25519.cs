@@ -8,6 +8,9 @@ namespace Nalix.Framework.Cryptography.Asymmetric;
 /// <summary>
 /// Represents the Ed25519 cryptographic algorithm for public key signing and verification.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Ed25519
 {
     #region Constants
@@ -32,6 +35,8 @@ public static class Ed25519
     /// <param name="message">The message to sign.</param>
     /// <param name="privateKey">The private key to sign the message with.</param>
     /// <returns>The generated signature.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Sign(System.Byte[] message, System.Byte[] privateKey)
     {
         if (message == null || message.Length == 0)
@@ -98,6 +103,8 @@ public static class Ed25519
     /// Thrown if any of the inputs (<paramref name="signature"/>, <paramref name="message"/>, or <paramref name="publicKey"/>) is null
     /// or if their lengths are invalid.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Verify(System.Byte[] signature, System.Byte[] message, System.Byte[] publicKey)
     {
         // Validate input arguments
@@ -159,7 +166,7 @@ public static class Ed25519
     /// <param name="x">The value to invert.</param>
     /// <returns>The modular inverse of the value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Numerics.BigInteger Inv(System.Numerics.BigInteger x)
         => System.Numerics.BigInteger.ModPow(x, Q - 2, Q);
 
@@ -170,7 +177,7 @@ public static class Ed25519
     /// <param name="q">Second point to add.</param>
     /// <returns>The result of the point addition.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static Point Edwards(Point p, Point q)
     {
         System.Numerics.BigInteger a = p.Y.ModAdd(p.X, Q);
@@ -197,7 +204,7 @@ public static class Ed25519
     /// <param name="e">The scalar to multiply the point by.</param>
     /// <returns>The resulting point from the scalar multiplication.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static Point ScalarMul(Point p, System.Numerics.BigInteger e)
     {
         Point result = new(System.Numerics.BigInteger.Zero, System.Numerics.BigInteger.One);
@@ -221,7 +228,7 @@ public static class Ed25519
     /// <param name="s">The scalar to clamp.</param>
     /// <returns>The clamped scalar.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Numerics.BigInteger ClampScalar(System.ReadOnlySpan<System.Byte> s)
     {
         // CAFEBABE a 32-byte buffer to modify bits as needed
@@ -240,7 +247,7 @@ public static class Ed25519
     /// <param name="data">The data to hash.</param>
     /// <returns>The scalar result of hashing the data.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
     {
         System.Byte[] h = Keccak256.HashData(data);
@@ -248,9 +255,8 @@ public static class Ed25519
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Numerics.BigInteger HashToScalar(
-        System.ReadOnlySpan<System.Byte> prefix, System.Byte[] message)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> prefix, System.Byte[] message)
     {
         // Incremental hashing to avoid building a temporary buffer:
         // H(prefix || message)
@@ -305,7 +311,7 @@ public static class Ed25519
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Numerics.BigInteger RecoverX(System.Numerics.BigInteger y)
     {
         // Recover x using curve equation: x^2 = (y^2 - 1) / (D*y^2 + 1)
@@ -347,7 +353,8 @@ public static class Ed25519
     private static System.Numerics.BigInteger DecodeScalar(System.ReadOnlySpan<System.Byte> data)
         => new System.Numerics.BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void DeriveKeyMaterial(
         System.ReadOnlySpan<System.Byte> secretKey,
         System.Span<System.Byte> aBytes,
