@@ -9,7 +9,7 @@ public readonly partial struct Identifier
     /// </summary>
     /// <returns>A Base36 encoded string representing this identifier.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public override System.String ToString() => ToBase36();
 
     /// <summary>
@@ -21,7 +21,7 @@ public readonly partial struct Identifier
     /// and URL-safe string representation.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String ToBase36()
     {
         System.UInt64 combinedValue = GetCombinedValue();
@@ -36,7 +36,7 @@ public readonly partial struct Identifier
     /// The hexadecimal representation shows the raw byte values of the identifier.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String ToHex()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
@@ -52,9 +52,8 @@ public readonly partial struct Identifier
     /// </param>
     /// <returns>A string representation of this identifier in the specified format.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String ToString(System.Boolean useHexFormat)
-        => useHexFormat ? ToHex() : ToBase36();
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.String ToString(System.Boolean useHexFormat) => useHexFormat ? ToHex() : ToBase36();
 
     /// <summary>
     /// Converts this identifier to a string representation using the specified format string.
@@ -64,8 +63,7 @@ public readonly partial struct Identifier
     /// null or empty → Base36.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String ToString(System.String? format, System.IFormatProvider? formatProvider)
     {
         if (System.String.IsNullOrEmpty(format))
