@@ -3,7 +3,7 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Internal.Formatters;
 
-namespace Nalix.Logging;
+namespace Nalix.Logging.Core;
 
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
