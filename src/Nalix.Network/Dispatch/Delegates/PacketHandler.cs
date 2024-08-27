@@ -61,7 +61,7 @@ public readonly struct PacketHandler<TPacket>(
     /// A <see cref="System.Threading.Tasks.ValueTask{TResult}"/> that completes with the handler’s result.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context) => this.Invoker(this.Instance, context);
 
     /// <summary>
@@ -77,8 +77,7 @@ public readonly struct PacketHandler<TPacket>(
     /// </list>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    // Additional checks (e.g., permissions) can be added here.
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods

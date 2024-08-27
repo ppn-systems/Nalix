@@ -38,10 +38,10 @@ public sealed class PacketContext<TPacket> : IPoolable
     public TPacket Packet
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get;
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private set;
     } = default!;
 
@@ -51,10 +51,10 @@ public sealed class PacketContext<TPacket> : IPoolable
     public IConnection Connection
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get;
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private set;
     } = default!;
 
@@ -64,7 +64,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     public PacketMetadata Attributes
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get; private set;
     }
 
@@ -74,10 +74,10 @@ public sealed class PacketContext<TPacket> : IPoolable
     public System.Boolean SkipOutbound
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get;
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         internal set;
     }
 
@@ -87,10 +87,10 @@ public sealed class PacketContext<TPacket> : IPoolable
     public System.Threading.CancellationToken CancellationToken
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get;
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         internal set;
     }
 
@@ -138,7 +138,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
     {
         _ = System.Threading.Interlocked.Exchange(
@@ -160,7 +160,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// Clears all properties and resets fields to their default values, preparing the context for return to the pool.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void Reset()
     {
         this.Packet = default!;
@@ -189,7 +189,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.Pooled"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void ResetForPool()
     {
         if (this._isInitialized)
@@ -208,7 +208,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Return()
     {
         if (System.Threading.Interlocked.Exchange(
