@@ -14,6 +14,8 @@ using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
 
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public abstract partial class TcpListenerBase : IListener, IReportable
 {
     #region Constants
