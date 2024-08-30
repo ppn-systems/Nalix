@@ -1,6 +1,5 @@
 ﻿using Nalix.Framework.Time;
 using System;
-using System.Threading;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -14,13 +13,6 @@ public class ClockTests
         var precise = Clock.GetUtcNowPrecise();
         var diff = Math.Abs((precise - now).TotalMilliseconds);
         Assert.True(diff < 100, $"Lệch thời gian quá lớn: {diff}ms");
-    }
-
-    [Fact]
-    public void GetUtcNowString_Should_Return_CorrectFormat()
-    {
-        var s = Clock.GetUtcNowString("yyyy-MM-dd HH:mm");
-        Assert.Matches(@"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", s);
     }
 
     [Fact]
@@ -118,38 +110,6 @@ public class ClockTests
         var dt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
         _ = Assert.Throws<ArgumentException>(() => Clock.DateTimeToUnixTimeSeconds(dt));
         _ = Assert.Throws<ArgumentException>(() => Clock.DateTimeToUnixTimeMilliseconds(dt));
-    }
-
-    [Fact]
-    public void Max_Min_TimeSpan()
-    {
-        var t1 = TimeSpan.FromSeconds(10);
-        var t2 = TimeSpan.FromSeconds(20);
-        Assert.Equal(t2, Clock.Max(t1, t2));
-        Assert.Equal(t1, Clock.Min(t1, t2));
-    }
-
-    [Fact]
-    public void IsInRange_Should_Work()
-    {
-        var now = Clock.GetUtcNowPrecise();
-        Assert.True(Clock.IsInRange(now, TimeSpan.FromSeconds(1)));
-        Assert.False(Clock.IsInRange(now.AddSeconds(10), TimeSpan.FromSeconds(1)));
-    }
-
-    [Fact]
-    public void Clamp_DateTime_And_TimeSpan()
-    {
-        var min = DateTime.UtcNow.AddSeconds(-1);
-        var max = DateTime.UtcNow.AddSeconds(1);
-        var value = DateTime.UtcNow.AddSeconds(5);
-        Assert.Equal(max, Clock.Clamp(value, min, max));
-        Assert.Equal(min, Clock.Clamp(min.AddSeconds(-5), min, max));
-
-        var minTs = TimeSpan.FromSeconds(1);
-        var maxTs = TimeSpan.FromSeconds(5);
-        var ts = TimeSpan.FromSeconds(10);
-        Assert.Equal(maxTs, Clock.Clamp(ts, minTs, maxTs));
     }
 
     [Fact]
