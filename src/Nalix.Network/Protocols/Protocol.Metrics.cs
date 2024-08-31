@@ -53,6 +53,8 @@ public abstract partial class Protocol : IReportable
     /// Includes metrics like connection status, message count, and error count.
     /// </summary>
     /// <returns>A formatted string containing the protocol status report.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public virtual System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();
