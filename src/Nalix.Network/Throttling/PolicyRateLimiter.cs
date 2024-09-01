@@ -59,6 +59,8 @@ public static class PolicyRateLimiter
     /// If null, the rate limit is applied globally per opcode.
     /// </param>
     /// <returns>Decision containing Allowed, RetryAfterMs, Credit, and Reason.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static TokenBucketLimiter.LimitDecision Check(
         System.UInt16 opCode,
         PacketRateLimitAttribute attr, System.String ip)
@@ -127,8 +129,9 @@ public static class PolicyRateLimiter
 
     #region Private Methods
 
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static NetAddressKey IxCP9(System.String s)
     {
         // Hash key string as UTF-8 with SHA3-256, then take first 16 bytes
@@ -151,7 +154,8 @@ public static class PolicyRateLimiter
         return NetAddressKey.FromIpAddress(ip);
     }
 
-
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static TokenBucketLimiter GetOrAddLimiter(Policy policy)
     {
         // Fast path
@@ -188,6 +192,8 @@ public static class PolicyRateLimiter
         return actual.Limiter;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static Policy FindNearestPolicy(Policy wanted)
     {
         Policy nearest = default;
@@ -222,6 +228,9 @@ public static class PolicyRateLimiter
         };
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void SweepStale()
     {
         System.Int64 now = System.DateTime.UtcNow.Ticks;
@@ -237,8 +246,7 @@ public static class PolicyRateLimiter
     }
 
     // Reuse your existing default options loader:
-    private static readonly TokenBucketOptions s_defaults =
-        ConfigurationManager.Instance.Get<TokenBucketOptions>();
+    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
 
     #endregion Private Methods
 }
