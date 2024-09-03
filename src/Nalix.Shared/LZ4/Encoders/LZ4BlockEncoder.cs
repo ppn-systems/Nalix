@@ -9,7 +9,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-public static unsafe class LZ4BlockEncoder
+public static class LZ4BlockEncoder
 {
     /// <summary>
     /// Calculates the maximum compressed length for a given input size.
@@ -17,6 +17,7 @@ public static unsafe class LZ4BlockEncoder
     /// </summary>
     /// <param name="input">The size of the data to be compressed.</param>
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -35,13 +36,10 @@ public static unsafe class LZ4BlockEncoder
     /// </returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 EncodeBlock(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output,
-        System.Int32* hashTable)
+    public static unsafe System.Int32 EncodeBlock(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output, System.Int32* hashTable)
     {
         if (input.IsEmpty || output.IsEmpty)
         {
@@ -69,16 +67,15 @@ public static unsafe class LZ4BlockEncoder
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Int32 EncodeInternal(
-        System.Byte* inputBase,
-        System.Int32 inputLength,
-        System.Byte* outputBase,
-        System.Int32 outputLength,
+    private unsafe static System.Int32 EncodeInternal(
+        System.Byte* inputBase, System.Int32 inputLength,
+        System.Byte* outputBase, System.Int32 outputLength,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32* hashTable)
     {
         System.Byte* inputPtr = inputBase;
@@ -174,16 +171,12 @@ public static unsafe class LZ4BlockEncoder
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Boolean WriteSequence(
+    private unsafe static System.Boolean WriteSequence(
         ref System.Byte* outputPtr,
-        System.Byte* outputEnd,
-        System.Byte* literalStartPtr,
-        System.Int32 literalLength,
-        System.Int32 matchLength,
-        System.Int32 offset)
+        System.Byte* outputEnd, System.Byte* literalStartPtr,
+        System.Int32 literalLength, System.Int32 matchLength, System.Int32 offset)
     {
         const System.Int32 tokenLen = 1;
         const System.Int32 matchThreshold = LZ4CompressionConstants.MinMatchLength + LZ4CompressionConstants.TokenMatchMask + 1;
@@ -252,14 +245,10 @@ public static unsafe class LZ4BlockEncoder
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Boolean WriteFinalLiterals(
-        ref System.Byte* outputPtr,
-        System.Byte* outputEnd,
-        System.Byte* literalStartPtr,
-        System.Int32 literalLength)
+    private unsafe static System.Boolean WriteFinalLiterals(
+        ref System.Byte* outputPtr, System.Byte* outputEnd, System.Byte* literalStartPtr, System.Int32 literalLength)
     {
         const System.Int32 tokenLen = 1;
 
