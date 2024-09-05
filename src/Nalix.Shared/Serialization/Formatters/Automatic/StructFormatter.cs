@@ -18,7 +18,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class StructFormatter<T> : IFormatter<T> where T : struct
+internal sealed class StructFormatter<T> : IFormatter<T> where T : struct
 {
     #region Core Fields
 
@@ -71,8 +71,7 @@ public sealed class StructFormatter<T> : IFormatter<T> where T : struct
     /// Thrown if serialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
         for (System.Int32 i = 0; i < _accessors.Length; i++)
@@ -90,8 +89,7 @@ public sealed class StructFormatter<T> : IFormatter<T> where T : struct
     /// Thrown if deserialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
         T obj = System.Activator.CreateInstance<T>();
@@ -113,7 +111,7 @@ public sealed class StructFormatter<T> : IFormatter<T> where T : struct
     /// </summary>
     /// <returns>An array of field accessors.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static FieldAccessor<T>[] CreateAccessors()
     {
         var fields = FieldCache<T>.GetFields();

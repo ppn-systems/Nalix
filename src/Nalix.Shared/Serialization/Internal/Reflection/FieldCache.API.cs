@@ -18,6 +18,7 @@ internal static partial class FieldCache<T>
     /// Retrieves all cached field metadata as a span.
     /// </summary>
     /// <returns>A <see cref="System.ReadOnlySpan{T}"/> containing metadata for all fields.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.ReadOnlySpan<FieldSchema> GetFields()
@@ -27,6 +28,7 @@ internal static partial class FieldCache<T>
     /// Gets the number of fields cached for the specified type.
     /// </summary>
     /// <returns>The count of cached fields.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 GetFieldCount() => _metadata.Length;
@@ -36,6 +38,7 @@ internal static partial class FieldCache<T>
     /// </summary>
     /// <param name="index">The index of the field.</param>
     /// <returns>The metadata for the specified field.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(System.Int32 index) => _metadata[index];
@@ -48,13 +51,21 @@ internal static partial class FieldCache<T>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">
     /// Thrown if the field name does not exist in the cache.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(System.String fieldName)
     {
+        System.ArgumentNullException.ThrowIfNull(fieldName);
+
+        if (fieldName.Length is 0)
+        {
+            throw new System.ArgumentException("Field name cannot be empty.", nameof(fieldName));
+        }
+
         return _fieldIndex.TryGetValue(fieldName, out System.Int32 index)
             ? _metadata[index]
-            : throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
+            : throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}", nameof(fieldName));
     }
 
     /// <summary>
@@ -62,6 +73,7 @@ internal static partial class FieldCache<T>
     /// </summary>
     /// <param name="fieldName">The name of the field to check.</param>
     /// <returns><c>true</c> if the field exists; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean HasField(System.String fieldName) => _fieldIndex.ContainsKey(fieldName);
@@ -74,6 +86,7 @@ internal static partial class FieldCache<T>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">
     /// Thrown if the field name does not exist in the cache.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Type GetFieldType(System.String fieldName) => GetField(fieldName).FieldType;

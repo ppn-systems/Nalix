@@ -59,6 +59,8 @@ internal static partial class FieldCache<T>
 
     #region Field Discovery
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static FieldSchema[] DiscoverFields<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields |
@@ -123,6 +125,8 @@ internal static partial class FieldCache<T>
             : [.. includedFields];
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Collections.Generic.Dictionary<System.String, System.Int32> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
@@ -138,6 +142,8 @@ internal static partial class FieldCache<T>
     }
 
     // Updated method to move the DynamicallyAccessedMembersAttribute to the parameter
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
         "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
@@ -178,6 +184,8 @@ internal static partial class FieldCache<T>
 
     #region Domain Rules - Business Logic
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Boolean ShouldIgnoreField(System.Reflection.FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
@@ -222,6 +230,10 @@ internal static partial class FieldCache<T>
 
     #region Ensure - Fail Fast Strategy
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureExplicitLayoutIsValid()
     {
         if (_layout is not SerializeLayout.Explicit)
@@ -233,6 +245,10 @@ internal static partial class FieldCache<T>
         EnsureNoNegativeOrders();
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureNoDuplicateOrders()
     {
         var orderGroups = System.Linq.Enumerable.Where(
@@ -252,6 +268,10 @@ internal static partial class FieldCache<T>
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureNoNegativeOrders()
     {
         System.Collections.Generic.IEnumerable<FieldSchema> negativeOrders = System.Linq.Enumerable
