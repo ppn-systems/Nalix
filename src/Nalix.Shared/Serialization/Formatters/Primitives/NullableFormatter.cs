@@ -15,7 +15,11 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
+internal sealed class NullableFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
     /// <summary>
     /// Flag indicating that the value is null.

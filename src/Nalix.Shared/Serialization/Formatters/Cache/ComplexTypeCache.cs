@@ -7,7 +7,11 @@ namespace Nalix.Shared.Serialization.Formatters.Cache;
 /// </summary>
 /// <typeparam name="T">The type for which the formatter is stored.</typeparam>
 [System.Diagnostics.DebuggerStepThrough]
-internal sealed class ComplexTypeCache<T>
+internal sealed class ComplexTypeCache<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     /// <summary>
     /// The cached formatter instance for the specified type <typeparamref name="T"/>.
