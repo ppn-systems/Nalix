@@ -12,7 +12,8 @@ namespace Nalix.Shared.Serialization.Internal.Reflection;
 /// </summary>
 /// <typeparam name="T">The type whose fields are being cached.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal static partial class FieldCache<T>
+internal static partial class FieldCache<
+T>
 {
     /// <summary>
     /// Retrieves all cached field metadata as a span.

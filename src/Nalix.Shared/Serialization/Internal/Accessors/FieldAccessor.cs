@@ -16,7 +16,11 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// </summary>
 /// <typeparam name="T">Type của object chứa field.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal abstract class FieldAccessor<T>
+internal abstract class FieldAccessor<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     /// <summary>
     /// Serializes một field của object sử dụng field cache optimization.
