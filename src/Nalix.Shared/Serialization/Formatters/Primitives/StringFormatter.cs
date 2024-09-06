@@ -75,9 +75,7 @@ public sealed class StringFormatter : IFormatter<System.String>
     {
         ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
         if (length == 0) return string.Empty;
-#pragma warning disable CS8603 // Possible null reference return.
-        if (length == SerializerBounds.Null) return null;
-#pragma warning restore CS8603 // Possible null reference return.
+        if (length == SerializerBounds.Null) return null!;
         if (length > SerializerBounds.MaxString)
             throw new SerializationException("String length out of range");
 
