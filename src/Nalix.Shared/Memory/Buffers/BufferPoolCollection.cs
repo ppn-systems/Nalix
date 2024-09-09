@@ -8,7 +8,7 @@ namespace Nalix.Shared.Memory.Buffers;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerDisplay("Pools={_pools.Count}, Keys={_sortedKeys.Length}")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public sealed class BufferPoolCollection : System.IDisposable
+internal sealed class BufferPoolCollection : System.IDisposable
 {
     #region Fields
 
@@ -79,7 +79,8 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void CreatePool(System.Int32 bufferSize, System.Int32 initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
@@ -97,7 +98,9 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Updates the sorted keys with proper locking.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void UpdateSortedKeys()
     {
         _keysLock.EnterWriteLock();
@@ -118,6 +121,7 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] RentBuffer(System.Int32 size)
@@ -153,7 +157,9 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Returns a buffer to the appropriate pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ReturnBuffer(System.Byte[]? buffer)
     {
         if (buffer is null)
@@ -184,8 +190,9 @@ public sealed class BufferPoolCollection : System.IDisposable
 
     #region Resize Debounce
 
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void EvaluateResize(
         BufferPoolShared pool, System.Double expandThreshold,
         System.Double shrinkThreshold, System.Int32 minIncrease, System.Int32 maxOneShot)
@@ -231,7 +238,9 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Adjusts the rent and return counters and decides whether to fire a resize event.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Boolean AdjustCounter(System.Int32 poolSize, System.Boolean isRent)
     {
         BufferCounters counters = _adjustmentCounters.GetOrAdd(poolSize, static _ => new BufferCounters());
@@ -265,7 +274,9 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 FindSuitablePoolSize(System.Int32 size)
     {
         _keysLock.EnterReadLock();
@@ -307,6 +318,9 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Releases all resources used by the buffer pools.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         _ = System.Threading.Tasks.Parallel.ForEach(_pools.Values, pool => pool.Dispose());
