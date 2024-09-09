@@ -123,7 +123,7 @@ internal sealed class IniConfig
                     string stringValue = FormatValue(value);
                     sectionData[key] = stringValue;
 
-                    // Clear any cached value for this key
+                    // Dispose any cached value for this key
                     string cacheKey = $"{section}:{key}";
                     _valueCache.Remove(cacheKey);
 
@@ -662,7 +662,7 @@ internal sealed class IniConfig
         _fileLock.EnterReadLock();
         try
         {
-            // Clear existing data
+            // Dispose existing data
             _iniData.Clear();
             _valueCache.Clear();
 

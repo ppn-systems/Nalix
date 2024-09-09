@@ -61,7 +61,7 @@ public static class LiteSerializer
                 formatter.Serialize(ref writer, value);
 
                 System.Diagnostics.Debug.WriteLine(
-                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.BytesWritten} bytes.");
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
 
                 return writer.ToArray();
             }
@@ -105,7 +105,7 @@ public static class LiteSerializer
                 formatter.Serialize(ref writer, value);
 
                 System.Diagnostics.Debug.WriteLine(
-                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.BytesWritten} bytes.");
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
 
                 return writer.ToArray();
             }
@@ -164,7 +164,7 @@ public static class LiteSerializer
             DataWriter writer = new(buffer);
 
             formatter.Serialize(ref writer, value);
-            return writer.BytesWritten;
+            return writer.WrittenCount;
         }
 
         throw new System.NotSupportedException(

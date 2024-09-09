@@ -45,13 +45,13 @@ public sealed class StringFormatter : IFormatter<System.String>
         if (byteCount > 0)
         {
             writer.Expand(byteCount);
-            System.Span<System.Byte> dest = writer.GetSpan(byteCount);
+            ref System.Byte destination = ref writer.GetFreeBufferReference();
 
             fixed (System.Char* src = value)
-            fixed (System.Byte* pDest = dest)
+            fixed (System.Byte* dest = &destination)
             {
                 // Encode trực tiếp vào dest
-                int bytesWritten = Utf8.GetBytes(src, value.Length, pDest, byteCount);
+                System.Int32 bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
 
                 if (bytesWritten != byteCount)
                     throw new SerializationException("UTF8 encoding error for the string.");
