@@ -79,9 +79,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// and the buffer exceeds <see cref="_maxBufferSize"/>, the buffer is flushed immediately.
     /// </summary>
     /// <param name="logMessage">The log entry to publish.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage)
     {
         if (_disposed)
@@ -102,9 +102,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Flushes the current log buffer to the underlying file logging target.
     /// This method is thread-safe and can be called manually or triggered automatically.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Flush()
     {
         if (_disposed)
@@ -130,6 +130,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="configureOptions">The action used to configure the options.</param>
     /// <returns>The configured <see cref="BatchFileLogOptions"/>.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static BatchFileLogOptions ConfigureOptions(System.Action<BatchFileLogOptions> configureOptions)
@@ -147,8 +148,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Releases resources used by the <see cref="BatchFileLogTarget"/> instance.
     /// Flushes any remaining logs in the buffer before shutting down.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         if (_disposed)
