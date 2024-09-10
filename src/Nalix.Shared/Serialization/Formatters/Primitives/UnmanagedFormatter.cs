@@ -48,17 +48,14 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     {
         T value;
         System.Int32 size = TypeMetadata.SizeOf<T>();
-        System.ReadOnlySpan<System.Byte> span = reader.GetSpan(size);
+        ref System.Byte start = ref reader.GetSpanReference(size);
 
 #if DEBUG
         if (reader.BytesRemaining < size)
             throw new InvalidOperationException($"Buffer underrun while deserializing {typeof(T)}. Needed {size} bytes.");
 #endif
 
-        fixed (System.Byte* ptr = span)
-        {
-            value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ptr);
-        }
+        value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref start);
 
         reader.Advance(size);
         return value;
