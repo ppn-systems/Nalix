@@ -34,9 +34,6 @@ internal sealed class FieldAccessorImpl<
 
     #region Serialization Implementation
 
-    /// <summary>
-    /// Serializes field sử dụng FieldCache cho zero-boxing access.
-    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -49,9 +46,6 @@ internal sealed class FieldAccessorImpl<
         _formatter.Serialize(ref writer, value);
     }
 
-    /// <summary>
-    /// Deserializes field sử dụng FieldCache cho zero-boxing access.
-    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
