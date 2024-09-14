@@ -10,8 +10,6 @@ public static class Program
         NLogix.Host.Instance.Error("\x1b[38;5;214mThis is Orange 214\x1b[0m");
         NLogix.Host.Instance.Info("Hello, Nalix.Logging.Tests!");
 
-        System.Threading.Thread.Sleep(1000);
-
         using (new TransientConsoleScope("Nalix Report", cols: 120, rows: 35))
         {
             // Từ đây trở đi Console.Write* sẽ in vào console mới

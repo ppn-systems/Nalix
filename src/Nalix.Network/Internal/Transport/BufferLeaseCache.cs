@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Caches;
 
