@@ -2,6 +2,7 @@ using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
 using Nalix.Shared.Time;
+using System.Net.Sockets;
 
 namespace Nalix.Network.Connection.Transport;
 
@@ -163,8 +164,6 @@ internal class TransportStream : System.IDisposable
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task<bool> SendAsync(
         System.ReadOnlyMemory<byte> data,
         System.Threading.CancellationToken cancellationToken)
@@ -175,40 +174,7 @@ internal class TransportStream : System.IDisposable
 
             _logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
 
-            System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
-            System.Net.Sockets.SocketAsyncEventArgs args = new();
-
-            // Convert to array for use with SocketAsyncEventArgs.
-            byte[] dataArray = data.ToArray();
-            args.SetBuffer(dataArray, 0, dataArray.Length);
-
-            args.Completed += (sender, args) =>
-            {
-                if (args.SocketError == System.Net.Sockets.SocketError.Success)
-                {
-                    tcs.SetResult(args.BytesTransferred);
-                }
-                else
-                {
-                    tcs.SetException(new System.Net.Sockets.SocketException((int)args.SocketError));
-                }
-            };
-
-            if (!_socket.SendAsync(args))
-            {
-                // If completed synchronously, set the result manually.
-                if (args.SocketError == System.Net.Sockets.SocketError.Success)
-                {
-                    tcs.SetResult(args.BytesTransferred);
-                }
-                else
-                {
-                    tcs.SetException(new System.Net.Sockets.SocketException((int)args.SocketError));
-                }
-            }
-
-            await tcs.Task;
-
+            await _socket.SendAsync(data, SocketFlags.None, cancellationToken);
             _cache.PushOutgoing(data);
             return true;
         }
