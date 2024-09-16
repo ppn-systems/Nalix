@@ -105,7 +105,7 @@ public readonly partial struct Packet
     /// Gets the payload data being transmitted in this packet.
     /// </summary>
     [SerializeOrder(PacketOffset.Payload)]
-    public System.Memory<System.Byte> Payload { get; }
+    public System.ReadOnlyMemory<System.Byte> Payload { get; }
 
     #endregion Properties
 }
