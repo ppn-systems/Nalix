@@ -2,7 +2,6 @@ using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
 using Nalix.Shared.Time;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Connection.Transport;
 
@@ -18,8 +17,8 @@ internal class TransportStream : System.IDisposable
     private readonly TransportCache _cache;
     private readonly System.Net.Sockets.Socket _socket;
 
-    private byte[] _buffer;
-    private bool _disposed;
+    private System.Byte[] _buffer;
+    private System.Boolean _disposed;
 
     #endregion Fields
 
@@ -33,12 +32,12 @@ internal class TransportStream : System.IDisposable
     /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
-    public long UpTime => _cache.Uptime;
+    public System.Int64 UpTime => _cache.Uptime;
 
     /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
-    public long LastPingTime => _cache.LastPingTime;
+    public System.Int64 LastPingTime => _cache.LastPingTime;
 
     #endregion Properties
 
@@ -87,10 +86,10 @@ internal class TransportStream : System.IDisposable
             args.Completed += (sender, args) =>
             {
                 // Convert the result to Task to keep the API intact
-                System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
                 tcs.SetResult(args.BytesTransferred);
 
-                System.Threading.Tasks.Task<int> receiveTask = tcs.Task;
+                System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     try
@@ -113,10 +112,10 @@ internal class TransportStream : System.IDisposable
 
             if (!_socket.ReceiveAsync(args))
             {
-                System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
                 tcs.SetResult(args.BytesTransferred);
 
-                System.Threading.Tasks.Task<int> receiveTask = tcs.Task;
+                System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     await OnReceiveCompleted(receiveTask, cancellationToken);
@@ -136,7 +135,7 @@ internal class TransportStream : System.IDisposable
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Send(System.ReadOnlySpan<byte> data)
+    public bool Send(System.ReadOnlySpan<System.Byte> data)
     {
         try
         {
@@ -164,8 +163,8 @@ internal class TransportStream : System.IDisposable
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.Task<bool> SendAsync(
-        System.ReadOnlyMemory<byte> data,
+    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
         try
@@ -174,7 +173,7 @@ internal class TransportStream : System.IDisposable
 
             _logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
 
-            await _socket.SendAsync(data, SocketFlags.None, cancellationToken);
+            await _socket.SendAsync(data, System.Net.Sockets.SocketFlags.None, cancellationToken);
             _cache.PushOutgoing(data);
             return true;
         }
@@ -190,12 +189,12 @@ internal class TransportStream : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.ReadOnlyMemory<byte> GetIncomingPackets()
+    public System.ReadOnlyMemory<System.Byte> GetIncomingPackets()
     {
-        if (_cache.Incoming.TryGetValue(out System.ReadOnlyMemory<byte> data))
+        if (_cache.Incoming.TryGetValue(out System.ReadOnlyMemory<System.Byte> data))
             return data;
 
-        return System.ReadOnlyMemory<byte>.Empty; // Avoid null
+        return System.ReadOnlyMemory<System.Byte>.Empty; // Avoid null
     }
 
     /// <summary>
