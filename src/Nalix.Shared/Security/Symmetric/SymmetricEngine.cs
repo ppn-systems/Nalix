@@ -8,7 +8,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
-using Nalix.Shared.Security;
 
 namespace Nalix.Shared.Security.Symmetric;
 
@@ -20,7 +19,6 @@ namespace Nalix.Shared.Security.Symmetric;
 /// returns header || nonce || ciphertext, and Decrypt(key, envelope, out plaintext).
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class SymmetricEngine
 {
     /// <summary>

@@ -9,7 +9,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
-using Nalix.Shared.Security;
 using Nalix.Shared.Security.Symmetric;
 
 namespace Nalix.Shared.Security.Aead;
@@ -43,7 +42,6 @@ namespace Nalix.Shared.Security.Aead;
 /// </para>
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class AeadEngine
 {
     /// <summary>
