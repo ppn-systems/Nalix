@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,14 +10,14 @@ namespace Nalix.Cryptography.Checksums;
 /// </summary>
 public static class Crc08
 {
-    private const byte Polynomial = 0x31;
-    private const byte InitialValue = 0xFF;
+    private const System.Byte Polynomial = 0x31;
+    private const System.Byte InitialValue = 0xFF;
 
     /// <summary>
     /// Precomputed lookup table for CRC-8/MODBUS polynomial (0x31).
     /// This table is used to speed up CRC-8 calculations.
     /// </summary>
-    private static readonly byte[] Crc8LookupTable = Crc00.GenerateTable8(Polynomial);
+    private static readonly System.Byte[] Crc8LookupTable = Crc00.GenerateTable8(Polynomial);
 
     /// <summary>
     /// Computes the CRC-8 checksum of the specified bytes
@@ -26,9 +25,9 @@ public static class Crc08
     /// <param name="bytes">The buffer to compute the CRC upon</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute(ReadOnlySpan<byte> bytes)
+    public static System.Byte Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
-        if (bytes.IsEmpty) throw new ArgumentException("Bytes span cannot be empty", nameof(bytes));
+        if (bytes.IsEmpty) throw new System.ArgumentException("Bytes span cannot be empty", nameof(bytes));
         if (Sse42.IsSupported && bytes.Length >= 16) return ComputeSse42(bytes);
         if (Vector.IsHardwareAccelerated && bytes.Length >= 32) return ComputeSimd(bytes);
         else return ComputeScalar(bytes);
@@ -40,12 +39,12 @@ public static class Crc08
     /// <param name="bytes">The buffer to compute the CRC upon</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute(params byte[] bytes)
+    public static System.Byte Compute(params System.Byte[] bytes)
     {
         if (bytes == null || bytes.Length == 0)
-            throw new ArgumentException("Bytes array cannot be null or empty", nameof(bytes));
+            throw new System.ArgumentException("Bytes array cannot be null or empty", nameof(bytes));
 
-        return Compute(bytes.AsSpan());
+        return Compute(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -56,23 +55,23 @@ public static class Crc08
     /// <param name="length">The length of the buffer upon which to compute the CRC</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute(byte[] bytes, int start, int length)
+    public static System.Byte Compute(System.Byte[] bytes, System.Int32 start, System.Int32 length)
     {
-        ArgumentNullException.ThrowIfNull(bytes);
-        ArgumentOutOfRangeException.ThrowIfNegative(start);
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        System.ArgumentNullException.ThrowIfNull(bytes);
+        System.ArgumentOutOfRangeException.ThrowIfNegative(start);
+        System.ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         if (bytes.Length == 0)
-            throw new ArgumentOutOfRangeException(nameof(bytes), "Bytes array cannot be empty");
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Bytes array cannot be empty");
 
         if (start >= bytes.Length && length > 1)
-            throw new ArgumentOutOfRangeException(nameof(start), "Start index is out of range");
+            throw new System.ArgumentOutOfRangeException(nameof(start), "Start index is out of range");
 
-        int end = start + length;
+        System.Int32 end = start + length;
         if (end > bytes.Length)
-            throw new ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds");
+            throw new System.ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds");
 
-        return Compute(bytes.AsSpan(start, length));
+        return Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
     }
 
     /// <summary>
@@ -81,15 +80,15 @@ public static class Crc08
     /// <param name="data">The memory to compute the CRC upon</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe byte Compute<T>(Span<T> data) where T : unmanaged
+    public static unsafe System.Byte Compute<T>(System.Span<T> data) where T : unmanaged
     {
         if (data.IsEmpty)
-            throw new ArgumentException("Data span cannot be empty", nameof(data));
+            throw new System.ArgumentException("Data span cannot be empty", nameof(data));
 
-        ReadOnlySpan<byte> bytes;
-        if (typeof(T) == typeof(byte))
+        System.ReadOnlySpan<System.Byte> bytes;
+        if (typeof(T) == typeof(System.Byte))
         {
-            bytes = MemoryMarshal.Cast<T, byte>(data);
+            bytes = MemoryMarshal.Cast<T, System.Byte>(data);
         }
         else
         {
@@ -107,16 +106,16 @@ public static class Crc08
     /// <param name="expectedCrc">The expected CRC-8 value.</param>
     /// <returns>True if the CRC matches, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Verify(ReadOnlySpan<byte> data, byte expectedCrc)
+    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedCrc)
         => Compute(data) == expectedCrc;
 
     /// <summary>
     /// Process 8 bytes at a time for better performance on larger inputs
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ProcessOctet(byte crc, ReadOnlySpan<byte> octet)
+    private static System.Byte ProcessOctet(System.Byte crc, System.ReadOnlySpan<System.Byte> octet)
     {
-        ref byte data = ref MemoryMarshal.GetReference(octet);
+        ref System.Byte data = ref MemoryMarshal.GetReference(octet);
 
         crc = Crc8LookupTable[crc ^ data];
         crc = Crc8LookupTable[crc ^ Unsafe.Add(ref data, 1)];
@@ -136,23 +135,23 @@ public static class Crc08
     /// <param name="bytes">The buffer to compute the CRC upon</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ComputeScalar(ReadOnlySpan<byte> bytes)
+    private static System.Byte ComputeScalar(System.ReadOnlySpan<System.Byte> bytes)
     {
-        byte crc = InitialValue;
+        System.Byte crc = InitialValue;
 
         // Process bytes in chunks when possible
         if (bytes.Length >= 8)
         {
-            int unalignedBytes = bytes.Length % 8;
-            int alignedLength = bytes.Length - unalignedBytes;
+            System.Int32 unalignedBytes = bytes.Length % 8;
+            System.Int32 alignedLength = bytes.Length - unalignedBytes;
 
-            for (int i = 0; i < alignedLength; i += 8)
+            for (System.Int32 i = 0; i < alignedLength; i += 8)
             {
                 crc = ProcessOctet(crc, bytes.Slice(i, 8));
             }
 
             // Process remaining bytes
-            for (int i = alignedLength; i < bytes.Length; i++)
+            for (System.Int32 i = alignedLength; i < bytes.Length; i++)
             {
                 crc = Crc8LookupTable[crc ^ bytes[i]];
             }
@@ -160,7 +159,7 @@ public static class Crc08
         else
         {
             // Process small arrays with simple loop
-            for (int i = 0; i < bytes.Length; i++)
+            for (System.Int32 i = 0; i < bytes.Length; i++)
             {
                 crc = Crc8LookupTable[crc ^ bytes[i]];
             }
@@ -173,17 +172,17 @@ public static class Crc08
     /// SIMD-accelerated implementation of CRC-8.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ComputeSimd(ReadOnlySpan<byte> bytes)
+    private static System.Byte ComputeSimd(System.ReadOnlySpan<System.Byte> bytes)
     {
-        byte crc = InitialValue;
-        int vectorSize = Vector<byte>.Count;
-        int length = bytes.Length;
+        System.Byte crc = InitialValue;
+        System.Int32 vectorSize = Vector<System.Byte>.Count;
+        System.Int32 length = bytes.Length;
 
-        int i = 0;
+        System.Int32 i = 0;
         while (i + vectorSize <= length)
         {
-            Vector<byte> dataVec = new(bytes.Slice(i, vectorSize));
-            for (int j = 0; j < vectorSize; j++)
+            Vector<System.Byte> dataVec = new(bytes.Slice(i, vectorSize));
+            for (System.Int32 j = 0; j < vectorSize; j++)
             {
                 crc = Crc8LookupTable[crc ^ dataVec[j]];
             }
@@ -199,18 +198,18 @@ public static class Crc08
     /// SSE4.2 accelerated CRC-8 computation.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe byte ComputeSse42(ReadOnlySpan<byte> bytes)
+    private static unsafe System.Byte ComputeSse42(System.ReadOnlySpan<System.Byte> bytes)
     {
-        byte crc = InitialValue;
+        System.Byte crc = InitialValue;
 
-        fixed (byte* pBytes = bytes)
+        fixed (System.Byte* pBytes = bytes)
         {
-            byte* p = pBytes;
-            byte* end = p + bytes.Length;
+            System.Byte* p = pBytes;
+            System.Byte* end = p + bytes.Length;
 
             while (p < end)
             {
-                crc = (byte)Sse42.Crc32(crc, *p);
+                crc = (System.Byte)Sse42.Crc32(crc, *p);
                 p++;
             }
         }
