@@ -10,14 +10,24 @@ namespace Nalix.Cryptography.Checksums;
 /// </summary>
 public static class Crc08
 {
+    #region Constants
+
     private const System.Byte Polynomial = 0x31;
     private const System.Byte InitialValue = 0xFF;
+
+    #endregion Constants
+
+    #region Fields
 
     /// <summary>
     /// Precomputed lookup table for CRC-8/MODBUS polynomial (0x31).
     /// This table is used to speed up CRC-8 calculations.
     /// </summary>
     private static readonly System.Byte[] Crc8LookupTable = Crc00.GenerateTable8(Polynomial);
+
+    #endregion Fields
+
+    #region APIs
 
     /// <summary>
     /// Computes the CRC-8 checksum of the specified bytes
@@ -27,7 +37,9 @@ public static class Crc08
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
-        if (bytes.IsEmpty) throw new System.ArgumentException("Bytes span cannot be empty", nameof(bytes));
+        if (bytes.IsEmpty) throw new System.ArgumentException(
+            "Bytes span cannot be empty", nameof(bytes));
+
         if (Sse42.IsSupported && bytes.Length >= 16) return ComputeSse42(bytes);
         if (Vector.IsHardwareAccelerated && bytes.Length >= 32) return ComputeSimd(bytes);
         else return ComputeScalar(bytes);
@@ -42,7 +54,8 @@ public static class Crc08
     public static System.Byte Compute(params System.Byte[] bytes)
     {
         if (bytes == null || bytes.Length == 0)
-            throw new System.ArgumentException("Bytes array cannot be null or empty", nameof(bytes));
+            throw new System.ArgumentException(
+                "Bytes array cannot be null or empty", nameof(bytes));
 
         return Compute(System.MemoryExtensions.AsSpan(bytes));
     }
@@ -55,21 +68,25 @@ public static class Crc08
     /// <param name="length">The length of the buffer upon which to compute the CRC</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static System.Byte Compute(System.Byte[] bytes, System.Int32 start, System.Int32 length)
+    public static System.Byte Compute(
+        System.Byte[] bytes, System.Int32 start, System.Int32 length)
     {
         System.ArgumentNullException.ThrowIfNull(bytes);
         System.ArgumentOutOfRangeException.ThrowIfNegative(start);
         System.ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         if (bytes.Length == 0)
-            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Bytes array cannot be empty");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(bytes), "Bytes array cannot be empty");
 
         if (start >= bytes.Length && length > 1)
-            throw new System.ArgumentOutOfRangeException(nameof(start), "Start index is out of range");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(start), "Start index is out of range");
 
         System.Int32 end = start + length;
         if (end > bytes.Length)
-            throw new System.ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(length), "Specified length exceeds buffer bounds");
 
         return Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
     }
@@ -80,7 +97,8 @@ public static class Crc08
     /// <param name="data">The memory to compute the CRC upon</param>
     /// <returns>The specified CRC</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe System.Byte Compute<T>(System.Span<T> data) where T : unmanaged
+    public static unsafe System.Byte Compute<T>(
+        System.Span<T> data) where T : unmanaged
     {
         if (data.IsEmpty)
             throw new System.ArgumentException("Data span cannot be empty", nameof(data));
@@ -106,8 +124,14 @@ public static class Crc08
     /// <param name="expectedCrc">The expected CRC-8 value.</param>
     /// <returns>True if the CRC matches, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedCrc)
+    public static System.Boolean Verify(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Byte expectedCrc)
         => Compute(data) == expectedCrc;
+
+    #endregion APIs
+
+    #region Lookup Table Generation
 
     /// <summary>
     /// Process 8 bytes at a time for better performance on larger inputs
@@ -216,4 +240,6 @@ public static class Crc08
 
         return crc;
     }
+
+    #endregion Lookup Table Generation
 }
