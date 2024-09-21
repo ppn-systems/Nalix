@@ -32,7 +32,6 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
-    private readonly UdpIngressWorker _udpIngressWorker;
     private readonly SocketAsyncEventArgsPool _argsPool;
     private readonly System.Net.Sockets.Socket _listener;
     private readonly System.Threading.SemaphoreSlim _lock;
@@ -51,7 +50,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _isRunning || _udpIngressWorker.IsRunning;
+    public bool IsListening => _isRunning;
 
     /// <summary>
     /// Enables or disables the update loop for the listener.
@@ -64,20 +63,6 @@ public abstract partial class Listener : IListener, System.IDisposable
             if (_isRunning)
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             _timeSyncWorker.IsTimeSyncEnabled = value;
-        }
-    }
-
-    /// <summary>
-    /// Enables or disables the UDP receive loop.
-    /// </summary>
-    public bool IsUdpEnabled
-    {
-        get => _udpIngressWorker.IsEnabled;
-        set
-        {
-            if (_udpIngressWorker.IsRunning)
-                throw new System.InvalidOperationException("Cannot change IsUdpEnabled while listening.");
-            _udpIngressWorker.IsEnabled = value;
         }
     }
 
@@ -150,7 +135,6 @@ public abstract partial class Listener : IListener, System.IDisposable
         }
 
         _timeSyncWorker = new TimeSynchronizer(logger);
-        _udpIngressWorker = new UdpIngressWorker(logger, protocol);
 
         _timeSyncWorker.TimeSynchronized += SynchronizeTime;
     }
