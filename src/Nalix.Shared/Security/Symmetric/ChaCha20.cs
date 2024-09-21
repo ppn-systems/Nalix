@@ -593,7 +593,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         System.Int32 offset = 0;
         System.Int32 full = numBytes / BlockSize;
-        System.Int32 tail = numBytes - full * BlockSize;
+        System.Int32 tail = numBytes - (full * BlockSize);
 
         for (System.Int32 loop = 0; loop < full; loop++)
         {
