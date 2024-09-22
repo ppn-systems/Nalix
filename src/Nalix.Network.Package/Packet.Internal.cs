@@ -1,8 +1,6 @@
-using Nalix.Common.Constants;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Cryptography.Checksums;
-using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Internal;
 using Nalix.Shared.Time;
 
@@ -72,37 +70,25 @@ public readonly partial struct Packet
     {
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)
+        {
             throw new Common.Exceptions.PackageException(
                 $"Packet size ({payload.Length + PacketSize.Header} bytes) " +
                 $"exceeds maximum allowed size ({MaxPacketSize} bytes)");
+        }
+
+        // Create a secure copy of the payload to prevent external modification
+        _buffer = MemoryVault.Allocate(payload.Span);
 
         // Initialize fields
         OpCode = opCode;
         Type = type;
         Flags = flags;
         Priority = priority;
-        Number = number == 0 ? (System.Byte)(timestamp % System.Byte.MaxValue) : number;
-        Timestamp = timestamp == 0 ? Clock.UnixMillisecondsNow() : timestamp;
-
-        // Create a secure copy of the payload to prevent external modification
-        Payload = MemoryAllocator.Allocate(payload);
-
-        // Compute checksum only if needed
+        Payload = _buffer.Memory;
         Checksum = checksum == 0 ? Crc32.Compute(Payload.Span) : checksum;
+        Timestamp = timestamp == 0 ? Clock.UnixMillisecondsNow() : timestamp;
+        Number = number == 0 ? (System.Byte)(Timestamp % System.Byte.MaxValue) : number;
 
         _hash = GetHashCode();
-
-        if (Payload.Length > PacketConstants.HeapAllocLimit)
-        {
-            try
-            {
-                // Register large packets for garbage collection
-                PacketAutoDisposer.Register(this);
-            }
-            catch (System.Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to register packet for disposal: {ex.Message}");
-            }
-        }
     }
 }

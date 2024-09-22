@@ -2,8 +2,8 @@
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Internal;
-using Nalix.Cryptography.Symmetric;
 using Nalix.Cryptography.Symmetric.Block;
+using Nalix.Cryptography.Symmetric.Stream;
 using Nalix.Randomization;
 
 namespace Nalix.Cryptography;
