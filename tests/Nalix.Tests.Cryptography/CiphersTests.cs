@@ -25,7 +25,7 @@ public class CiphersTests
     public void Encrypt_WithValidInputs_ShouldSucceed()
     {
         // Arrange & Act
-        var result = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
+        var result = Ciphers.Encrypt(_validData, _validKey, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.True(result.Length > 0);
@@ -35,7 +35,7 @@ public class CiphersTests
     public void Decrypt_ShouldReturnOriginalData()
     {
         // Arrange
-        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, SymmetricAlgorithmType.XTEA);
 
         // Act
         var decrypted = Ciphers.Decrypt(encrypted, _validKey);
@@ -45,13 +45,13 @@ public class CiphersTests
     }
 
     [Theory(DisplayName = "Encrypt - Should work with different algorithms")] // Kiểm tra mã hóa với các thuật toán khác nhau
-    [InlineData(EncryptionType.ChaCha20Poly1305)]
-    [InlineData(EncryptionType.Salsa20)]
-    [InlineData(EncryptionType.Speck)]
-    [InlineData(EncryptionType.TwofishECB)]
-    [InlineData(EncryptionType.TwofishCBC)]
-    [InlineData(EncryptionType.XTEA)]
-    public void Encrypt_ShouldWorkWithDifferentAlgorithms(EncryptionType algorithm)
+    [InlineData(SymmetricAlgorithmType.ChaCha20Poly1305)]
+    [InlineData(SymmetricAlgorithmType.Salsa20)]
+    [InlineData(SymmetricAlgorithmType.Speck)]
+    [InlineData(SymmetricAlgorithmType.TwofishECB)]
+    [InlineData(SymmetricAlgorithmType.TwofishCBC)]
+    [InlineData(SymmetricAlgorithmType.XTEA)]
+    public void Encrypt_ShouldWorkWithDifferentAlgorithms(SymmetricAlgorithmType algorithm)
     {
         // Arrange & Act
         var encrypted = Ciphers.Encrypt(_validData, _validKey, algorithm);
@@ -66,7 +66,7 @@ public class CiphersTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            Ciphers.Encrypt(_validData, null!, EncryptionType.XTEA));
+            Ciphers.Encrypt(_validData, null!, SymmetricAlgorithmType.XTEA));
 
         Assert.Equal("key", exception.ParamName);
     }
@@ -79,7 +79,7 @@ public class CiphersTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            Ciphers.Encrypt(emptyData, _validKey, EncryptionType.XTEA));
+            Ciphers.Encrypt(emptyData, _validKey, SymmetricAlgorithmType.XTEA));
 
         Assert.Contains("Data cannot be empty", exception.Message);
     }
@@ -88,7 +88,7 @@ public class CiphersTests
     public void TryEncrypt_ValidInputs_ShouldReturnTrue()
     {
         // Act
-        bool success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted, EncryptionType.XTEA);
+        bool success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.True(success);
@@ -99,10 +99,10 @@ public class CiphersTests
     public void TryDecrypt_ValidInputs_ShouldReturnTrue()
     {
         // Arrange
-        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, SymmetricAlgorithmType.XTEA);
 
         // Act
-        bool success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted, EncryptionType.XTEA);
+        bool success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.True(success);
@@ -113,7 +113,7 @@ public class CiphersTests
     public void TryEncrypt_InvalidInputs_ShouldReturnFalse()
     {
         // Act
-        bool success = Ciphers.TryEncrypt(_validData, null!, out var encrypted, EncryptionType.XTEA);
+        bool success = Ciphers.TryEncrypt(_validData, null!, out var encrypted, SymmetricAlgorithmType.XTEA);
 
         // Assert
         Assert.False(success);
@@ -124,11 +124,11 @@ public class CiphersTests
     public void Decrypt_InvalidAlgorithm_ShouldThrowCryptoException()
     {
         // Arrange
-        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, SymmetricAlgorithmType.XTEA);
 
         // Act & Assert
         var exception = Assert.Throws<CryptoException>(() =>
-            Ciphers.Decrypt(encrypted, _validKey, (EncryptionType)255));
+            Ciphers.Decrypt(encrypted, _validKey, (SymmetricAlgorithmType)255));
 
         Assert.Contains("not supported", exception.Message);
     }
