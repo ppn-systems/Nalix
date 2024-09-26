@@ -127,7 +127,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
             return;
         }
 
-        using (ConsoleGate.Shared())
+        using (TransientConsoleScope.Shared())
         {
             while (_queue.TryDequeue(out LogEntry log))
             {

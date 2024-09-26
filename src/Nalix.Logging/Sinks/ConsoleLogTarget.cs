@@ -53,12 +53,11 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// <param name="logMessage">The log message to be outputted.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     public void Publish(LogEntry logMessage)
     {
         System.String formatted = _loggerFormatter.FormatLog(logMessage);
 
-        using (ConsoleGate.Shared())
+        using (TransientConsoleScope.Shared())
         {
             System.Console.WriteLine(formatted);
         }

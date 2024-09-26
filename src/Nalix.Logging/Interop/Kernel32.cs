@@ -2,7 +2,7 @@
 
 namespace Nalix.Logging.Interop;
 
-public static partial class Kernel32
+internal static partial class Kernel32
 {
     internal const System.String KERNEL32 = "kernel32.dll";
     internal const System.Int32 LF_FACESIZE = 32;
