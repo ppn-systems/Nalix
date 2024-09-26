@@ -1,6 +1,7 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Configurations;
+using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Channel;
 
@@ -19,10 +20,10 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
     // Snapshot variables
 
-    private readonly int[] _expiredCounts;
-    private readonly int[] _rejectedCounts;
-    private readonly int[] _enqueuedCounts;
-    private readonly int[] _dequeuedCounts;
+    private readonly int[]? _expiredCounts;
+    private readonly int[]? _rejectedCounts;
+    private readonly int[]? _enqueuedCounts;
+    private readonly int[]? _dequeuedCounts;
 
     // Cache priority count to avoid repeated enum lookups
 
@@ -54,29 +55,16 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     /// </summary>
     private ChannelDispatch()
     {
-        _options = null!;
-        _queueTimer = null;
-
-        // Initialize priority count based on the PacketPriority enum
         _priorityCount = System.Enum.GetValues<PacketPriority>().Length;
-
-        // Initialize arrays based on priority count
+        _options ??= ConfigurationStore.Instance.Get<DispatchQueueOptions>();
         _priorityChannels = new System.Threading.Channels.Channel<TPacket>[_priorityCount];
-        _priorityCounts = new int[_priorityCount];
-        _expiredCounts = new int[_priorityCount];
-        _rejectedCounts = new int[_priorityCount];
-        _enqueuedCounts = new int[_priorityCount];
-        _dequeuedCounts = new int[_priorityCount];
+
+        _priorityCounts = new System.Int32[_priorityCount];
 
         // Create channels for each priority level
-        for (int i = 0; i < _priorityCount; i++)
+        for (System.Byte i = 0; i < _priorityCount; i++)
         {
-            _priorityChannels[i] = System.Threading.Channels.Channel.CreateUnbounded<TPacket>(
-                new System.Threading.Channels.UnboundedChannelOptions
-                {
-                    SingleReader = false,
-                    SingleWriter = false
-                });
+            _priorityChannels[i] = ChannelDispatch<TPacket>.CreateChannel(_options.MaxCapacity);
         }
     }
 
@@ -90,10 +78,12 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
         if (options.EnableMetrics)
         {
-            _expiredCounts = new int[_priorityCount];
-            _rejectedCounts = new int[_priorityCount];
-            _enqueuedCounts = new int[_priorityCount];
-            _dequeuedCounts = new int[_priorityCount];
+            // Initialize arrays based on priority count
+            _expiredCounts = new System.Int32[_priorityCount];
+
+            _rejectedCounts = new System.Int32[_priorityCount];
+            _enqueuedCounts = new System.Int32[_priorityCount];
+            _dequeuedCounts = new System.Int32[_priorityCount];
 
             _queueTimer = new System.Diagnostics.Stopwatch();
             _queueTimer.Start();
@@ -101,4 +91,26 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     }
 
     #endregion Constructors
+
+    #region Private Methods
+
+    private static System.Threading.Channels.Channel<TPacket> CreateChannel(int capacity)
+    {
+        return capacity > 0
+            ? System.Threading.Channels.Channel.CreateBounded<TPacket>(
+                new System.Threading.Channels.BoundedChannelOptions(capacity)
+                {
+                    FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait,
+                    SingleReader = false,
+                    SingleWriter = false
+                })
+            : System.Threading.Channels.Channel.CreateUnbounded<TPacket>(
+                new System.Threading.Channels.UnboundedChannelOptions
+                {
+                    SingleReader = false,
+                    SingleWriter = false
+                });
+    }
+
+    #endregion Private Methods
 }
