@@ -232,7 +232,7 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe string ToString(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe string? ToString(this System.ReadOnlySpan<byte> span, ref int offset)
     {
         int length = span.ToInt32(ref offset); // read and update offset inside ToInt32
 
@@ -351,7 +351,7 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string ToString(this byte[] buffer, ref int offset)
+    public static string? ToString(this byte[] buffer, ref int offset)
         => ((System.ReadOnlySpan<byte>)buffer).ToString(ref offset);
 
     #endregion byte[] overloads
