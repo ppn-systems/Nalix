@@ -1,10 +1,9 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
-using Nalix.Network.Listeners.Internal;
+using Nalix.Network.Internal;
 using Nalix.Network.Protocols;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Listeners;
 
@@ -134,9 +133,6 @@ public abstract partial class Listener : IListener, System.IDisposable
         _timeSyncWorker = new TimeSynchronizer(logger);
 
         _timeSyncWorker.TimeSynchronized += SynchronizeTime;
-
-        ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(80);
-        ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(40);
     }
 
     /// <summary>
