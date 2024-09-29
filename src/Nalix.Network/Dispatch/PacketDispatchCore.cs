@@ -1,6 +1,8 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Package;
+using Nalix.Network.Dispatch.Middleware;
+using Nalix.Network.Dispatch.Middleware.Inbound;
 using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch;
@@ -29,6 +31,11 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// </summary>
     protected readonly PacketDispatchOptions<TPacket> Options;
 
+    /// <summary>
+    /// The middleware pipeline used for processing packets.
+    /// </summary>
+    protected readonly PacketMiddlewarePipeline<TPacket> Pipeline;
+
     #endregion Properties
 
     #region Constructors
@@ -46,7 +53,13 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
-        => Options = options ?? throw new System.ArgumentNullException(nameof(options));
+    {
+        Options = options ?? throw new System.ArgumentNullException(nameof(options));
+        Pipeline = new PacketMiddlewarePipeline<TPacket>()
+            .Use(new RateLimitMiddleware<TPacket>())
+            .Use(new DecompressionMiddleware<TPacket>())
+            .Use(new DecryptionMiddleware<TPacket>());
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
@@ -86,11 +99,20 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected static async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
+    protected async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
         TPacket packet,
         IConnection connection,
         System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
-        => await handler(packet, connection).ConfigureAwait(false);
+    {
+        PacketContext<TPacket> context = new(packet, connection);
+
+        async System.Threading.Tasks.Task HandlerWrapper()
+        {
+            await handler(context.Packet, context.Connection).ConfigureAwait(false);
+        }
+
+        await Pipeline.ExecuteAsync(context, HandlerWrapper).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.
@@ -129,9 +151,8 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
 
             try
             {
-                await PacketDispatchCore<TPacket>
-                    .ExecuteHandlerAsync(packet, connection, handler)
-                    .ConfigureAwait(false);
+                await this.ExecuteHandlerAsync(packet, connection, handler)
+                          .ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {

@@ -15,39 +15,18 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.Func<TPacket, IConnection, System.Threading.Tasks.Task> CreateHandlerDelegate(
         System.Reflection.MethodInfo method, System.Object controllerInstance)
-        => CreateOptimizedHandler(method, controllerInstance, GetPacketAttributes(method));
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private System.Func<TPacket, IConnection, System.Threading.Tasks.Task> CreateOptimizedHandler(
-        System.Reflection.MethodInfo method,
-        System.Object controllerInstance,
-        PacketDescriptor attributes)
     {
+        PacketDescriptor attributes = GetPacketAttributes(method);
         return async (packet, connection) =>
         {
-            System.Diagnostics.Stopwatch? stopwatch = _isMetricsEnabled ? System.Diagnostics.Stopwatch.StartNew() : null;
-
             try
             {
-                // Rate limiting check
-                if (!CheckRateLimit(connection, attributes))
-                {
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.RateLimited));
-                    return;
-                }
-
                 // Permission check
                 if (!CheckPermission(connection, attributes))
                 {
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PermissionDenied));
                     return;
                 }
-
-                // Encryption handling
-                packet = (await this.ProcessEncryption(packet, connection, attributes))!;
-                if (packet == null) return; // Error already sent
 
                 // Method invocation
                 System.Object? result = await InvokeMethod(method, controllerInstance, packet, connection, attributes);
@@ -64,33 +43,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             }
             finally
             {
-                if (stopwatch is not null)
-                {
-                    stopwatch.Stop();
-                    _metricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}",
-                                             stopwatch.ElapsedMilliseconds);
-                }
                 packet.Dispose();
             }
         };
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private System.Boolean CheckRateLimit(IConnection connection, PacketDescriptor attributes)
-    {
-        if (attributes.RateLimit is null) return true;
-
-        System.String endPointStr = connection.RemoteEndPoint.ToString()!;
-        unsafe
-        {
-            fixed (System.Char* endPointPtr = endPointStr)
-            {
-                System.ReadOnlySpan<System.Char> span = new(endPointPtr, endPointStr.Length);
-                return _rateLimiter.Check(span.ToString(), attributes.RateLimit);
-            }
-        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -100,39 +55,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         IConnection connection,
         PacketDescriptor attributes)
         => attributes.Permission?.Level <= connection.Level;
-
-    private async System.Threading.Tasks.Task<TPacket?> ProcessEncryption(
-        TPacket packet,
-        IConnection connection,
-        PacketDescriptor attributes)
-    {
-        if (attributes.Encryption is null) return packet;
-
-        System.Boolean isEncrypted = packet.IsEncrypted;
-        System.Boolean shouldBeEncrypted = attributes.Encryption.IsEncrypted;
-
-        if (shouldBeEncrypted != isEncrypted)
-        {
-            await connection.Tcp.SendAsync(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
-            return default;
-        }
-
-        if (shouldBeEncrypted && isEncrypted)
-        {
-            try
-            {
-                return TPacket.Decrypt(packet, connection.EncryptionKey, attributes.Encryption.AlgorithmType);
-            }
-            catch (System.Exception ex)
-            {
-                _logger?.Error("Failed to decrypt packet: {0}", ex.Message);
-                await connection.Tcp.SendAsync(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
-                return default;
-            }
-        }
-
-        return packet;
-    }
 
     private async System.Threading.Tasks.Task<System.Object?> InvokeMethod(
         System.Reflection.MethodInfo method,
