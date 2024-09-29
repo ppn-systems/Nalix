@@ -54,7 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private static bool CheckPermission(
         IConnection connection,
         PacketDescriptor attributes)
-        => attributes.Permission?.Level <= connection.Level;
+        => attributes.Permission is null || attributes.Permission.Level <= connection.Level;
 
     private async System.Threading.Tasks.Task<System.Object?> InvokeMethod(
         System.Reflection.MethodInfo method,
