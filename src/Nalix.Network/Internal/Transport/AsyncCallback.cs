@@ -22,7 +22,7 @@ internal static class AsyncCallback
     // Static delegate to avoid capturing closures.
     private static readonly System.Action<System.Object?> s_Invoke = static stateObj =>
     {
-        var state = (State)stateObj!;
+        State state = (State)stateObj!;
         try
         {
             state.Callback(state.Sender, state.Args);
