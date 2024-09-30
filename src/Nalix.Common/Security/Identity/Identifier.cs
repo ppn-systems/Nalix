@@ -1,4 +1,4 @@
-namespace Nalix.Common.Identity;
+namespace Nalix.Common.Security.Identity;
 
 /// <summary>
 /// Defines core functionality for unique identifier implementations.

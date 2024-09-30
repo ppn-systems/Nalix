@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography;
+using Nalix.Common.Security.Cryptography;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
