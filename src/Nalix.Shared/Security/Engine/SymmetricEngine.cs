@@ -129,7 +129,7 @@ public static class SymmetricEngine
         System.Byte[] nonceBuf = nonce.IsEmpty ? new System.Byte[nonceLen] : nonce.ToArray();
         if (nonce.IsEmpty)
         {
-            SecureRandom.Fill(nonceBuf);
+            Csprng.Fill(nonceBuf);
         }
         else if (nonceBuf.Length != nonceLen)
         {
@@ -405,7 +405,7 @@ public static class SymmetricEngine
     private static System.UInt32 GenerateRandomSeq()
     {
         System.Span<System.Byte> tmp = stackalloc System.Byte[4];
-        SecureRandom.Fill(tmp);
+        Csprng.Fill(tmp);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
     }
 
