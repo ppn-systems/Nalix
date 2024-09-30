@@ -1,8 +1,8 @@
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Cryptography.Checksums;
+using Nalix.Framework.Time;
 using Nalix.Network.Package.Engine.Internal;
-using Nalix.Shared.Time;
 
 namespace Nalix.Network.Package;
 

@@ -30,7 +30,7 @@ Nalix.Shared is a .NET library that provides shared utilities and configurations
   <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+        <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 	</ItemGroup>
 
 </Project>

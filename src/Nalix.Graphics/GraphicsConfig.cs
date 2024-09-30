@@ -1,6 +1,6 @@
+using Nalix.Common.Environment;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
-using Nalix.Shared.Environment;
 
 namespace Nalix.Graphics;
 
