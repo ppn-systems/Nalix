@@ -1,9 +1,14 @@
 # ![Icon](https://raw.githubusercontent.com/ppn-systems/Nalix/refs/heads/master/assets/Nalix.ico) **Nalix**
 
+![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white)
+
 ![NuGet Version](https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget)
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
+![Issues](https://img.shields.io/github/issues/ppn-systems/Nalix)
+![PRs](https://img.shields.io/github/issues-pr/ppn-systems/Nalix)
+![GitHub file size in bytes](https://img.shields.io/github/repo-size/ppn-systems/Nalix)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
 
 ## 📖 About
