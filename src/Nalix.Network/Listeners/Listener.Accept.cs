@@ -87,7 +87,7 @@ public abstract partial class Listener
     /// <summary>
     /// Synchronous method for accepting connections
     /// </summary>
-    /// <param name="cancellationToken">Token for cancellation</param>
+    /// <param name="cancellationToken">Identifier for cancellation</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AcceptConnectionsSync(System.Threading.CancellationToken cancellationToken)

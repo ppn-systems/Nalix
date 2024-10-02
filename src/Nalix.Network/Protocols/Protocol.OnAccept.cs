@@ -49,7 +49,7 @@ public abstract partial class Protocol
     /// Override to implement custom acceptance logic, such as IP validation.
     /// </summary>
     /// <param name="connection">The connection to be processed.</param>
-    /// <param name="cancellationToken">Token for cancellation</param>
+    /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(

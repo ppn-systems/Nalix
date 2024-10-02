@@ -63,7 +63,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     /// Starts a background task to periodically remove expired packets.
     /// </summary>
     /// <param name="interval">Time interval between cleanup checks.</param>
-    /// <param name="cancellationToken">Token to stop the background task.</param>
+    /// <param name="cancellationToken">Identifier to stop the background task.</param>
     /// <returns>The background task instance that is running the cleanup operation.</returns>
     /// <remarks>
     /// This method runs a background task that periodically checks for expired packets and removes them.
