@@ -1,8 +1,9 @@
-using Nalix.Common.Package.Enums;
+﻿using Nalix.Common.Package.Enums;
+using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class PriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.
@@ -77,18 +78,12 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
             throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
         }
 
-        System.Collections.Generic.List<TPacket> result = [];
+        System.Collections.Generic.List<TPacket> result = ListPool<TPacket>.Instance.Rent(limit);
 
         // Try to dequeue packets from the specified priority channel until the limit is reached
         while (result.Count < limit && _priorityChannels[(int)priority].Reader.TryRead(out TPacket? packet))
         {
             result.Add(packet);
-        }
-
-        // If no packets are dequeued, throw an exception
-        if (result.Count == 0)
-        {
-            throw new System.InvalidOperationException("Cannot dequeue from an empty queue.");
         }
 
         return result;
@@ -109,7 +104,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     public System.Collections.Generic.List<TPacket> Dequeue(
         System.Func<TPacket, bool> predicate, int limit = 100)
     {
-        System.Collections.Generic.List<TPacket> result = [];
+        System.Collections.Generic.List<TPacket> result = ListPool<TPacket>.Instance.Rent(100);
         int count = 0;
 
         while (count < limit && TryDequeue(out TPacket? packet))
@@ -158,28 +153,39 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TPacket? packet)
     {
-        long ticks = _options.EnableMetrics ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+        packet = default;
 
-        // Iterate from highest to lowest priority
+        if (_lastSuccessfulPriority >= 0 && _lastSuccessfulPriority < _priorityCount)
+        {
+            if (_priorityChannels[_lastSuccessfulPriority].Reader.TryRead(out packet))
+            {
+                System.Threading.Interlocked.Decrement(ref _priorityCounts[_lastSuccessfulPriority]);
+                System.Threading.Interlocked.Decrement(ref _totalCount);
+
+                if (_options.EnableMetrics)
+                {
+                    System.Threading.Interlocked.Increment(ref _dequeuedCounts![_lastSuccessfulPriority]);
+                }
+                return true;
+            }
+        }
+
         for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            while (_priorityChannels[i].Reader.TryRead(out TPacket? temp))
+            if (_priorityChannels[i].Reader.TryRead(out packet))
             {
+                _lastSuccessfulPriority = i;
                 System.Threading.Interlocked.Decrement(ref _priorityCounts[i]);
                 System.Threading.Interlocked.Decrement(ref _totalCount);
 
                 if (_options.EnableMetrics)
                 {
                     System.Threading.Interlocked.Increment(ref _dequeuedCounts![i]);
-                    UpdatePerformanceStats(ticks);
                 }
-
-                packet = temp;
                 return true;
             }
         }
 
-        packet = default;
         return false;
     }
 
@@ -198,8 +204,6 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TPacket? packet,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out TPacket? rejected)
     {
-        long startTicks = _options.EnableMetrics ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-
         packet = default;
         rejected = default; // Initialize rejected to default (null)
 
@@ -240,7 +244,6 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
                 if (_options.EnableMetrics)
                 {
                     System.Threading.Interlocked.Increment(ref _dequeuedCounts![i]);
-                    this.UpdatePerformanceStats(startTicks);
                 }
 
                 packet = temp;
