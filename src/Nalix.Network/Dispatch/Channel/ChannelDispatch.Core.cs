@@ -9,7 +9,7 @@ namespace Nalix.Network.Dispatch.Channel;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
+public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -48,9 +48,9 @@ public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
     #region Constructors
 
     /// <summary>
-    /// Initialize a new PriorityQueue using options.
+    /// Initialize a new MultiLevelQueue using options.
     /// </summary>
-    private PriorityQueue()
+    private MultiLevelQueue()
     {
         _priorityCount = System.Enum.GetValues<PacketPriority>().Length;
         _options ??= ConfigurationStore.Instance.Get<DispatchQueueOptions>();
@@ -61,15 +61,15 @@ public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
         // Create channels for each priority level
         for (System.Byte i = 0; i < _priorityCount; i++)
         {
-            _priorityChannels[i] = PriorityQueue<TPacket>.CreateChannel(_options.MaxCapacity);
+            _priorityChannels[i] = MultiLevelQueue<TPacket>.CreateChannel(_options.MaxCapacity);
         }
     }
 
     /// <summary>
-    /// Initialize a new PriorityQueue using options
+    /// Initialize a new MultiLevelQueue using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public PriorityQueue(DispatchQueueOptions options) : this()
+    public MultiLevelQueue(DispatchQueueOptions options) : this()
     {
         _options = options;
 
