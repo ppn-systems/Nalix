@@ -1,4 +1,4 @@
-using Nalix.Common.Caching;
+﻿using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Security.Cryptography;
