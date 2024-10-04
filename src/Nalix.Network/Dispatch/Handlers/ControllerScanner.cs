@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Options;
+namespace Nalix.Network.Dispatch.Handlers;
 
 /// <summary>
 /// High-performance controller scanner với caching và zero-allocation lookups.
