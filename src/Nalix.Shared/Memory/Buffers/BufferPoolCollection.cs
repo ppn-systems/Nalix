@@ -60,7 +60,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolCollection"/> class.
     /// </summary>
-    /// <param name="bufferConfig">Whether buffers should be wiped to zero when returned/disposed.</param>
+    /// <param name="bufferConfig">Buffer configuration used for all pools.</param>
     public BufferPoolCollection(BufferConfig bufferConfig)
     {
         _sortedKeys = [];
@@ -86,7 +86,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
         {
-            this.UpdateSortedKeys();
+            UpdateSortedKeys();
         }
     }
 
@@ -94,26 +94,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
     /// Returns a snapshot enumeration of all pools. The collection may change over time.
     /// </summary>
     public System.Collections.Generic.IReadOnlyCollection<BufferPoolShared> GetAllPools()
-        => (System.Collections.Generic.IReadOnlyCollection<BufferPoolShared>)_pools.Values;
-
-    /// <summary>
-    /// Updates the sorted keys with proper locking.
-    /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void UpdateSortedKeys()
-    {
-        _keysLock.EnterWriteLock();
-        try
-        {
-            _sortedKeys = [.. System.Linq.Enumerable.OrderBy(_pools.Keys, k => k)];
-        }
-        finally
-        {
-            _keysLock.ExitWriteLock();
-        }
-    }
+        => [.. _pools.Values]; // real snapshot, avoids invalid cast
 
     #endregion Pool Management
 
@@ -142,14 +123,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
 
         if (AdjustCounter(poolSize, isRent: true))
         {
-            // Pull config thresholds from your BufferConfig holder (inject or pass in ctor)
-            EvaluateResize(
-                pool,
-                expandThreshold: _config.ExpandThresholdPercent,   // or cfg.ExpandThresholdPercent
-                shrinkThreshold: _config.ShrinkThresholdPercent,   // or cfg.ShrinkThresholdPercent
-                minIncrease: _config.MinimumIncrease,          // or cfg.MinimumIncrease
-                maxOneShot: _config.MaxBufferIncreaseLimit         // or cfg.MaxBufferIncreaseLimit
-            );
+            EvaluateResize(pool);
         }
 
         return buffer;
@@ -177,13 +151,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
 
         if (AdjustCounter(buffer.Length, isRent: false))
         {
-            EvaluateResize(
-                pool,
-                expandThreshold: _config.ExpandThresholdPercent,   // or cfg.ExpandThresholdPercent
-                shrinkThreshold: _config.ShrinkThresholdPercent,   // or cfg.ShrinkThresholdPercent
-                minIncrease: _config.MinimumIncrease,          // or cfg.MinimumIncrease
-                maxOneShot: _config.MaxBufferIncreaseLimit         // or cfg.MaxBufferIncreaseLimit
-            );
+            EvaluateResize(pool);
         }
     }
 
@@ -191,68 +159,176 @@ internal sealed class BufferPoolCollection : System.IDisposable
 
     #region Resize Debounce
 
+    /// <summary>
+    /// Updates the sorted keys with proper locking.
+    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void EvaluateResize(
-        BufferPoolShared pool, System.Double expandThreshold,
-        System.Double shrinkThreshold, System.Int32 minIncrease, System.Int32 maxOneShot)
+    private void UpdateSortedKeys()
     {
-        ref readonly BufferPoolState st = ref pool.GetPoolInfoRef();
-        System.Double usage = st.GetUsageRatio();
-        System.Double missRate = st.GetMissRate();
-
-        System.Int64 now = System.Environment.TickCount64;
-        System.Int64 last = _cooldowns.GetOrAdd(st.BufferSize, 0);
-
-        // Adaptive cooldown
-        System.Int32 cooldown;
-        if (usage >= 0.90 || missRate >= 0.10)
+        _keysLock.EnterWriteLock();
+        try
         {
-            cooldown = MinCooldownMs; // hệ thống đang nóng → phản ứng nhanh
+            _sortedKeys = [.. System.Linq.Enumerable.Order(_pools.Keys)];
         }
-        else if (usage <= 0.20 && missRate < 0.01)
+        finally
         {
-            cooldown = MaxCooldownMs; // rất nhàn → giảm tần suất resize
-        }
-        else
-        {
-            cooldown = 3_000; // default
-        }
-
-        if (now - last < cooldown)
-        {
-            return;
-        }
-
-        // Expand when "hot" with safety margin; also consider misses
-        if (usage >= (expandThreshold + UsageEpsilon) || missRate > 0.02)
-        {
-            System.Int32 total = st.TotalBuffers <= 0 ? 1 : st.TotalBuffers;
-            System.Int32 pressure = System.Math.Max(1, (System.Int32)System.Math.Ceiling((usage - expandThreshold) * 8)); // rough proportional
-            System.Int32 step = System.Math.Clamp(pressure * minIncrease, minIncrease, maxOneShot);
-            EventIncrease?.Invoke(pool);
-            pool.IncreaseCapacity(step);
-            _cooldowns[st.BufferSize] = now;
-            return;
-        }
-
-        // Shrink only when really idle and safe (free >= shrink threshold)
-        if (usage <= (shrinkThreshold - UsageEpsilon) && st.CanShrink)
-        {
-            System.Int32 free = st.FreeBuffers;
-            if (free > 0)
-            {
-                System.Int32 step = System.Math.Max(minIncrease, free / 4); // conservative
-                EventShrink?.Invoke(pool);
-                pool.DecreaseCapacity(step);
-                _cooldowns[st.BufferSize] = now;
-            }
+            _keysLock.ExitWriteLock();
         }
     }
 
     /// <summary>
-    /// Adjusts the rent and return counters and decides whether to fire a resize event.
+    /// Orchestrates auto-resize evaluation for a given pool.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void EvaluateResize(BufferPoolShared pool)
+    {
+        ref readonly BufferPoolState state = ref pool.GetPoolInfoRef();
+        System.Double usage = state.GetUsageRatio();
+        System.Double missRate = state.GetMissRate();
+
+        System.Int64 now = System.Environment.TickCount64;
+        System.Int32 cooldown = GetAdaptiveCooldown(usage, missRate);
+
+        if (IsCooldownActive(state.BufferSize, now, cooldown))
+        {
+            return;
+        }
+
+        if (TryExpandPool(pool, in state, usage, missRate, now))
+        {
+            return;
+        }
+
+        TryShrinkPool(pool, in state, usage, now);
+    }
+
+    /// <summary>
+    /// Calculates cooldown based on current usage and miss rate.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Int32 GetAdaptiveCooldown(System.Double usage, System.Double missRate)
+    {
+        if (usage >= 0.90 || missRate >= 0.10)
+        {
+            // System is hot → react quickly
+            return MinCooldownMs;
+        }
+
+        if (usage <= 0.20 && missRate < 0.01)
+        {
+            // Very idle → reduce resize frequency
+            return MaxCooldownMs;
+        }
+
+        // Default
+        return 3_000;
+    }
+
+    /// <summary>
+    /// Checks whether we are still in cooldown window for a buffer size.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Boolean IsCooldownActive(System.Int32 bufferSize, System.Int64 now, System.Int32 cooldown)
+    {
+        System.Int64 last = _cooldowns.GetOrAdd(bufferSize, 0);
+        return now - last < cooldown;
+    }
+
+    /// <summary>
+    /// Attempts to expand the pool when under pressure.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private System.Boolean TryExpandPool(
+        BufferPoolShared pool,
+        in BufferPoolState state,
+        System.Double usage,
+        System.Double missRate,
+        System.Int64 now)
+    {
+        System.Double expandThreshold = _config.ExpandThresholdPercent;
+        if (usage < (expandThreshold + UsageEpsilon) && missRate <= 0.02)
+        {
+            return false;
+        }
+
+        System.Int32 step = CalculateExpandStep(state, usage, expandThreshold);
+        if (step <= 0)
+        {
+            return false;
+        }
+
+        EventIncrease?.Invoke(pool);
+        pool.IncreaseCapacity(step);
+        _cooldowns[state.BufferSize] = now;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Calculates expansion step based on usage and configuration.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int32 CalculateExpandStep(in BufferPoolState state, System.Double usage, System.Double expandThreshold)
+    {
+        System.Int32 minIncrease = _config.MinimumIncrease;
+        System.Int32 maxOneShot = _config.MaxBufferIncreaseLimit;
+
+        System.Int32 _ = state.TotalBuffers <= 0 ? 1 : state.TotalBuffers;
+        System.Int32 pressure = System.Math.Max(
+            1,
+            (System.Int32)System.Math.Ceiling((usage - expandThreshold) * 8)
+        );
+
+        return System.Math.Clamp(pressure * minIncrease, minIncrease, maxOneShot);
+    }
+
+    /// <summary>
+    /// Attempts to shrink the pool when it is sufficiently idle.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void TryShrinkPool(
+        BufferPoolShared pool,
+        in BufferPoolState state,
+        System.Double usage,
+        System.Int64 now)
+    {
+        System.Double shrinkThreshold = _config.ShrinkThresholdPercent;
+
+        if (usage > (shrinkThreshold - UsageEpsilon) || !state.CanShrink)
+        {
+            return;
+        }
+
+        System.Int32 free = state.FreeBuffers;
+        if (free <= 0)
+        {
+            return;
+        }
+
+        System.Int32 minIncrease = _config.MinimumIncrease;
+        System.Int32 step = System.Math.Max(minIncrease, free / 4); // conservative
+
+        EventShrink?.Invoke(pool);
+        pool.DecreaseCapacity(step);
+        _cooldowns[state.BufferSize] = now;
+    }
+
+    /// <summary>
+    /// Adjusts the rent and return counters and decides whether to trigger a resize evaluation.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -261,23 +337,15 @@ internal sealed class BufferPoolCollection : System.IDisposable
     {
         BufferCounters counters = _adjustmentCounters.GetOrAdd(poolSize, static _ => new BufferCounters());
 
-        if (isRent)
+        ref System.Int32 counterRef = ref (isRent
+            ? ref counters.RentCounter
+            : ref counters.ReturnCounter);
+
+        System.Int32 newValue = System.Threading.Interlocked.Increment(ref counterRef);
+        if (newValue >= _autoTuneThreshold)
         {
-            System.Int32 newValue = System.Threading.Interlocked.Increment(ref counters.RentCounter);
-            if (newValue >= _autoTuneThreshold)
-            {
-                _ = System.Threading.Interlocked.Exchange(ref counters.RentCounter, 0);
-                return true;
-            }
-        }
-        else
-        {
-            System.Int32 newValue = System.Threading.Interlocked.Increment(ref counters.ReturnCounter);
-            if (newValue >= _autoTuneThreshold)
-            {
-                _ = System.Threading.Interlocked.Exchange(ref counters.ReturnCounter, 0);
-                return true;
-            }
+            _ = System.Threading.Interlocked.Exchange(ref counterRef, 0);
+            return true;
         }
 
         return false;
