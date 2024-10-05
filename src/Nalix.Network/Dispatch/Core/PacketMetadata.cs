@@ -15,7 +15,7 @@ namespace Nalix.Network.Dispatch.Core;
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-public readonly struct PacketDescriptor(
+public readonly struct PacketMetadata(
     PacketOpcodeAttribute opCode,
     PacketTimeoutAttribute? timeout,
     PacketRateLimitAttribute? rateLimit,

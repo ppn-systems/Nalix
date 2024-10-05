@@ -1,5 +1,6 @@
 ﻿using Nalix.Common.Caching;
 using Nalix.Common.Connection;
+using Nalix.Shared.Memory.Pooling;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Core;
@@ -14,7 +15,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
 
     private TPacket _packet = default!;
     private IConnection _connection = default!;
-    private PacketDescriptor _descriptor;
+    private PacketMetadata _descriptor;
     private bool _isInitialized;
 
     // Context state
@@ -45,7 +46,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Packet descriptor với attributes.
     /// </summary>
-    public PacketDescriptor Descriptor
+    public PacketMetadata Descriptor
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _descriptor;
@@ -60,6 +61,12 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     #endregion Properties
 
     #region Constructor
+
+    static PacketContext()
+    {
+        // Register pool for PacketContext<TPacket>
+        ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(10);
+    }
 
     /// <summary>
     /// Default constructor cho pooling.
@@ -83,7 +90,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// Initialize context với new values (dùng khi rent từ pool).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Initialize(TPacket packet, IConnection connection, PacketDescriptor descriptor)
+    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
     {
         _packet = packet;
         _connection = connection;

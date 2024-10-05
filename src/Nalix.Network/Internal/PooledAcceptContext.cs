@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Caching;
-using Nalix.Shared.Memory.Pools;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Internal;
 
