@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -89,14 +89,14 @@ public sealed class BufferPoolShared : IDisposable
     /// Releases a buffer back into the pool.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReleaseBuffer(byte[] buffer)
+    public unsafe void ReleaseBuffer(byte[] buffer)
     {
         // Validate buffer
-        if (buffer == null || buffer.Length != _bufferSize)
+        if (buffer is null || Unsafe.SizeOf<byte>() * buffer.Length != _bufferSize)
             throw new ArgumentException("Invalid buffer.");
 
         // Dispose sensitive data for security if needed
-        // Array.Dispose(buffer, 0, buffer.Length);
+        // ClearBuffer(buffer);
 
         _freeBuffers.Enqueue(buffer);
     }
@@ -229,6 +229,15 @@ public sealed class BufferPoolShared : IDisposable
     #endregion IDisposable
 
     #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private unsafe void ClearBuffer(byte[] buffer)
+    {
+        fixed (byte* ptr = buffer)
+        {
+            Unsafe.InitBlock(ptr, 0, (uint)buffer.Length);
+        }
+    }
 
     /// <summary>
     /// Pre-allocates buffers to the specified capacity
