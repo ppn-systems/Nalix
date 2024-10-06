@@ -70,29 +70,29 @@ public readonly struct PacketHandlerInvoker<TPacket>(
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool CanExecute(PacketContext<TPacket> context)
+    public bool CanExecute(PacketContext<TPacket> _)
     {
         // Permission check
-        if (Attributes.Permission is not null &&
-            Attributes.Permission.Level > context.Connection.Level)
-        {
-            return false;
-        }
+        //if (Attributes.Permission is not null &&
+        //    Attributes.Permission.Level > context.Connection.Level)
+        //{
+        //    return false;
+        //}
 
         // Rate limit check (nếu có rate limiter)
-        if (Attributes.RateLimit is not null)
-        {
-            //var rateLimitKey = $"rate_limit_{context.Connection.Id}_{OpCode}";
-            //var lastRequest = context.GetValueProperty<System.Int64>(rateLimitKey);
-            //var now = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        //if (Attributes.RateLimit is not null)
+        //{
+        //    //var rateLimitKey = $"rate_limit_{context.Connection.Id}_{OpCode}";
+        //    //var lastRequest = context.GetValueProperty<System.Int64>(rateLimitKey);
+        //    //var now = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            //if (now - lastRequest < Attributes.RateLimit.Level)
-            //{
-            //    return false;
-            //}
+        //    //if (now - lastRequest < Attributes.RateLimit.Level)
+        //    //{
+        //    //    return false;
+        //    //}
 
-            //context.SetProperty(rateLimitKey, now);
-        }
+        //    //context.SetProperty(rateLimitKey, now);
+        //}
 
         return true;
     }
