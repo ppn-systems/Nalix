@@ -4,7 +4,7 @@ using Nalix.Network.Dispatch.Middleware.Core;
 
 namespace Nalix.Network.Dispatch.Middleware;
 
-internal class DecompressionMiddleware<TPacket> : IPacketMiddleware<TPacket>
+internal class DecompressMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketFactory<TPacket>
 {
     public async System.Threading.Tasks.Task InvokeAsync(
