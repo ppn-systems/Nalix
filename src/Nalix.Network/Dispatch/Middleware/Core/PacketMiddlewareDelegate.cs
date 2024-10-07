@@ -1,4 +1,6 @@
-﻿namespace Nalix.Network.Dispatch.Core;
+﻿using Nalix.Network.Dispatch.Core;
+
+namespace Nalix.Network.Dispatch.Middleware.Core;
 
 /// <summary>
 /// Delegate type representing a middleware handler for processing packets.

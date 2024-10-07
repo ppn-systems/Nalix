@@ -1,10 +1,10 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.ReturnHandlers;
+namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
 
 /// <inheritdoc/>
-public sealed class StringReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
+internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket>
     where TPacket : Common.Package.IPacket, Common.Package.IPacketFactory<TPacket>
 {
     /// <inheritdoc/>
@@ -16,7 +16,7 @@ public sealed class StringReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
         if (result is System.String data)
         {
             using var packet = TPacket.Create(0, data);
-            await context.Connection.Tcp.SendAsync(packet.Serialize());
+            _ = await context.Connection.Tcp.SendAsync(packet.Serialize());
         }
     }
 }

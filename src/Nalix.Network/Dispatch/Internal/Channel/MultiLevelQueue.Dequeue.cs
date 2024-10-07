@@ -4,7 +4,7 @@ using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
+internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.
