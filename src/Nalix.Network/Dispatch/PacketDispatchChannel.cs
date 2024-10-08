@@ -1,6 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Internal.Channel;
 
 namespace Nalix.Network.Dispatch;
 
@@ -45,7 +46,7 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Fields
 
     // Queue for storing raw handling tasks
-    private readonly Channel.MultiLevelQueue<TPacket> _dispatchQueue;
+    private readonly MultiLevelQueue<TPacket> _dispatchQueue;
 
     // Reverse mapping: IConnection -> set of all associated raw keys
     private readonly System.Collections.Generic.Dictionary<
@@ -75,9 +76,9 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         get
         {
-            lock (_lock)
+            lock (this._lock)
             {
-                return _dispatchQueue.Count;
+                return this._dispatchQueue.Count;
             }
         }
     }
@@ -94,12 +95,12 @@ public sealed class PacketDispatchChannel<TPacket>
     public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<TPacket>> options)
         : base(options)
     {
-        _isProcessing = false;
+        this._isProcessing = false;
 
-        _lock = new System.Threading.Lock();
-        _semaphore = new System.Threading.SemaphoreSlim(0);
-        _ctokens = new System.Threading.CancellationTokenSource();
-        _dispatchQueue = new Channel.MultiLevelQueue<TPacket>(Options.QueueOptions);
+        this._lock = new System.Threading.Lock();
+        this._semaphore = new System.Threading.SemaphoreSlim(0);
+        this._ctokens = new System.Threading.CancellationTokenSource();
+        this._dispatchQueue = new MultiLevelQueue<TPacket>(this.Options.QueueOptions);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");
@@ -116,16 +117,16 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Start()
     {
-        if (_isProcessing)
+        if (this._isProcessing)
         {
             base.Logger?.Debug("[Dispatch] RunAsync() called but dispatcher is already running.");
             return;
         }
 
-        _isProcessing = true;
+        this._isProcessing = true;
 
         base.Logger?.Info("[Dispatch] Dispatch loop starting...");
-        System.Threading.Tasks.Task.Run(RunQueueLoopAsync);
+        _ = System.Threading.Tasks.Task.Run(this.RunQueueLoopAsync);
     }
 
     /// <summary>
@@ -135,16 +136,18 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Stop()
     {
-        if (!_isProcessing)
+        if (!this._isProcessing)
+        {
             return;
+        }
 
-        _isProcessing = false;
+        this._isProcessing = false;
 
         try
         {
-            if (!_ctokens.IsCancellationRequested)
+            if (!this._ctokens.IsCancellationRequested)
             {
-                _ctokens.Cancel();
+                this._ctokens.Cancel();
                 base.Logger?.Info("[Dispatch] Dispatch loop stopped gracefully.");
             }
         }
@@ -169,7 +172,7 @@ public sealed class PacketDispatchChannel<TPacket>
             return;
         }
 
-        HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
+        this.HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
     }
 
     /// <inheritdoc />
@@ -184,7 +187,7 @@ public sealed class PacketDispatchChannel<TPacket>
             return;
         }
 
-        HandlePacket(raw.Value.Span, connection);
+        this.HandlePacket(raw.Value.Span, connection);
     }
 
     /// <inheritdoc />
@@ -200,7 +203,7 @@ public sealed class PacketDispatchChannel<TPacket>
         }
 
         // Deserialize and enqueue the raw for processing
-        HandlePacketAsync(TPacket.Deserialize(raw), connection);
+        this.HandlePacketAsync(TPacket.Deserialize(raw), connection);
     }
 
     /// <inheritdoc />
@@ -208,27 +211,27 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void HandlePacketAsync(TPacket packet, IConnection connection)
     {
-        lock (_lock)
+        lock (this._lock)
         {
-            _dispatchQueue.Enqueue(packet);
+            _ = this._dispatchQueue.Enqueue(packet);
 
-            _packetMap[packet.Hash] = connection;
+            this._packetMap[packet.Hash] = connection;
 
-            if (!_reverseMap.TryGetValue(connection,
+            if (!this._reverseMap.TryGetValue(connection,
                 out System.Collections.Generic.HashSet<System.Int32>? set))
             {
                 set = [];
 
                 // Create reverse mapping entry
-                _reverseMap[connection] = set;
+                this._reverseMap[connection] = set;
 
                 // Register event only once
-                connection.OnCloseEvent += OnConnectionClosed;
+                connection.OnCloseEvent += this.OnConnectionClosed;
             }
 
-            set.Add(packet.Hash);
+            _ = set.Add(packet.Hash);
         }
-        _semaphore.Release();
+        _ = this._semaphore.Release();
     }
 
     #endregion Public Methods
@@ -244,23 +247,25 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         try
         {
-            while (_isProcessing && !_ctokens.Token.IsCancellationRequested)
+            while (this._isProcessing && !this._ctokens.Token.IsCancellationRequested)
             {
                 // Wait for packets to be available
-                await _semaphore.WaitAsync(_ctokens.Token);
+                await this._semaphore.WaitAsync(this._ctokens.Token);
 
                 // Dequeue and process raw
                 TPacket packet;
                 IConnection? connection;
 
-                lock (_lock)
+                lock (this._lock)
                 {
-                    if (_dispatchQueue.Count == 0)
+                    if (this._dispatchQueue.Count == 0)
+                    {
                         continue;
+                    }
 
-                    packet = _dispatchQueue.Dequeue();
+                    packet = this._dispatchQueue.Dequeue();
 
-                    if (!_packetMap.TryGetValue(packet.Hash, out connection))
+                    if (!this._packetMap.TryGetValue(packet.Hash, out connection))
                     {
                         base.Logger?.Warn("[Dispatch] No connection found for raw.");
                         continue;
@@ -280,7 +285,7 @@ public sealed class PacketDispatchChannel<TPacket>
         }
         finally
         {
-            _isProcessing = false;
+            this._isProcessing = false;
         }
     }
 
@@ -288,22 +293,25 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(System.Object? sender, IConnectEventArgs e)
     {
-        if (sender is not IConnection connection) return;
-
-        lock (_lock)
+        if (sender is not IConnection connection)
         {
-            if (_reverseMap.TryGetValue(connection,
+            return;
+        }
+
+        lock (this._lock)
+        {
+            if (this._reverseMap.TryGetValue(connection,
                 out System.Collections.Generic.HashSet<System.Int32>? keys))
             {
                 foreach (System.Int32 key in keys)
                 {
-                    _packetMap.Remove(key);
+                    _ = this._packetMap.Remove(key);
                 }
 
-                _reverseMap.Remove(connection);
+                _ = this._reverseMap.Remove(connection);
             }
 
-            connection.OnCloseEvent -= OnConnectionClosed;
+            connection.OnCloseEvent -= this.OnConnectionClosed;
         }
 
         base.Logger?.Info($"[Dispatch] Auto-removed keys for closed connection {connection.RemoteEndPoint}");
@@ -319,8 +327,8 @@ public sealed class PacketDispatchChannel<TPacket>
     public void Dispose()
     {
         this.Stop();
-        _ctokens.Dispose();
-        _semaphore.Dispose();
+        this._ctokens.Dispose();
+        this._semaphore.Dispose();
     }
 
     #endregion IDisposable

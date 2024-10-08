@@ -23,7 +23,7 @@ internal sealed class TransportCache : System.IDisposable
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
     /// </summary>
-    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - _startTime;
+    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - this._startTime;
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
@@ -62,7 +62,7 @@ internal sealed class TransportCache : System.IDisposable
         data.Span[0..4].CopyTo(key);
         data.Span[^4..].CopyTo(key[4..]);
 
-        Outgoing.Add(key.ToArray(), data);
+        this.Outgoing.Add(key.ToArray(), data);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ internal sealed class TransportCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(System.ReadOnlyMemory<System.Byte> data)
     {
-        Incoming.Add(data);
+        this.Incoming.Add(data);
         PacketCached?.Invoke();
     }
 
@@ -85,11 +85,11 @@ internal sealed class TransportCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        Incoming.Clear();
-        Outgoing.Clear();
+        this.Incoming.Clear();
+        this.Outgoing.Clear();
 
-        Incoming.Dispose();
-        Outgoing.Dispose();
+        this.Incoming.Dispose();
+        this.Outgoing.Dispose();
     }
 
     #endregion Public Methods

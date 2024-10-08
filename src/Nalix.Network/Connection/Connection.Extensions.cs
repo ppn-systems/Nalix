@@ -12,7 +12,7 @@ internal static class ConnectionExtensions
     {
         void callback(Object? _, IConnectEventArgs __)
         {
-            limiter.ConnectionClosed(connection.RemoteEndPoint.ToString()!);
+            _ = limiter.ConnectionClosed(connection.RemoteEndPoint.ToString()!);
             connection.OnCloseEvent -= callback;
         }
 

@@ -3,7 +3,7 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Snapshot;
 
-namespace Nalix.Network.Dispatch.Channel;
+namespace Nalix.Network.Dispatch.Internal.Channel;
 
 internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
 {

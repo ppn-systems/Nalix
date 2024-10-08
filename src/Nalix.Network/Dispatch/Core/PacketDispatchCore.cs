@@ -22,7 +22,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
-    protected ILogger? Logger => Options.Logger;
+    protected ILogger? Logger => this.Options.Logger;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.
@@ -45,10 +45,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
-    protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
-    {
-        Options = options ?? throw new System.ArgumentNullException(nameof(options));
-    }
+    protected PacketDispatchCore(PacketDispatchOptions<TPacket> options) => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
@@ -58,7 +55,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// An optional delegate to configure the <see cref="PacketDispatchOptions{TPacket}"/> instance.
     /// </param>
     protected PacketDispatchCore(System.Action<PacketDispatchOptions<TPacket>>? configure = null)
-        : this(new PacketDispatchOptions<TPacket>()) => configure?.Invoke(Options);
+        : this(new PacketDispatchOptions<TPacket>()) => configure?.Invoke(this.Options);
 
     #endregion Constructors
 
@@ -122,12 +119,12 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
         TPacket packet,
         IConnection connection)
     {
-        if (Options.TryResolveHandler(packet.OpCode,
+        if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket,
             IConnection,
             System.Threading.Tasks.Task>? handler))
         {
-            Logger?.Debug($"[Dispatch] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");
+            this.Logger?.Debug($"[Dispatch] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");
 
             try
             {
@@ -136,7 +133,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
             }
             catch (System.Exception ex)
             {
-                Logger?.Error(
+                this.Logger?.Error(
                     $"[Dispatch] Exception occurred while handling packet OpCode: " +
                     $"{packet.OpCode} from {connection.RemoteEndPoint}. " +
                     $"Error: {ex.GetType().Name} - {ex.Message}", ex);
@@ -145,7 +142,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
             return;
         }
 
-        Logger?.Warn($"[Dispatch] No handler found for packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}.");
+        this.Logger?.Warn($"[Dispatch] No handler found for packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}.");
     }
 
     #endregion Ptotected Methods

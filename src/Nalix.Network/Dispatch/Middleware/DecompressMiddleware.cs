@@ -19,7 +19,7 @@ internal class DecompressMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             catch (System.Exception)
             {
-                await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Packet decompress failed!"));
+                _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Packet decompress failed!"));
                 return;
             }
         }
