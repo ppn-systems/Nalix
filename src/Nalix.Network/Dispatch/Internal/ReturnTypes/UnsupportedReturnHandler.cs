@@ -1,5 +1,4 @@
 ﻿using Nalix.Network.Dispatch.Core;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
 
@@ -7,7 +6,8 @@ namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
 internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
         PacketContext<TPacket> context)
