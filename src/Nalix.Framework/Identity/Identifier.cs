@@ -26,7 +26,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
 {
     #region Const
 
-    private const string Base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private const System.String Base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     #endregion Const
 
@@ -35,14 +35,10 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <summary>
     /// The main identifier value (32-bit unsigned integer).
     /// </summary>
-    [System.Runtime.InteropServices.FieldOffset(0)]
-    private readonly System.UInt32 _value;
 
     /// <summary>
     /// The machine identifier (16-bit unsigned integer).
     /// </summary>
-    [System.Runtime.InteropServices.FieldOffset(4)]
-    private readonly System.UInt16 _machineId;
 
     /// <summary>
     /// The identifier type (8-bit unsigned integer).
@@ -58,13 +54,15 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// Gets the main identifier value.
     /// </summary>
     /// <value>A 32-bit unsigned integer representing the core identifier.</value>
-    public System.UInt32 Value => _value;
+    [field: System.Runtime.InteropServices.FieldOffset(0)]
+    public System.UInt32 Value { get; }
 
     /// <summary>
     /// Gets the machine identifier.
     /// </summary>
     /// <value>A 16-bit unsigned integer representing the originating machine.</value>
-    public System.UInt16 MachineId => _machineId;
+    [field: System.Runtime.InteropServices.FieldOffset(4)]
+    public System.UInt16 MachineId { get; }
 
     /// <summary>
     /// Gets the identifier type.
@@ -84,8 +82,8 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <param name="type">The identifier type.</param>
     private Identifier(System.UInt32 value, System.UInt16 machineId, IdentifierType type)
     {
-        _value = value;
-        _machineId = machineId;
+        Value = value;
+        MachineId = machineId;
         _type = (System.Byte)type;
     }
 
@@ -145,7 +143,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsEmpty() => (_value | _machineId | _type) == 0;
+    public System.Boolean IsEmpty() => (Value | MachineId | _type) == 0;
 
     /// <summary>
     /// Determines whether this identifier is valid (not empty).
@@ -191,7 +189,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     public System.String ToHexString()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
-        TryWriteBytes(buffer, out _);
+        _ = TryWriteBytes(buffer, out _);
         return System.Convert.ToHexString(buffer);
     }
 
@@ -202,7 +200,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <c>true</c> to use hexadecimal format; <c>false</c> to use Base36 format.
     /// </param>
     /// <returns>A string representation of this identifier in the specified format.</returns>
-    public System.String ToString(bool useHexFormat)
+    public System.String ToString(System.Boolean useHexFormat)
         => useHexFormat ? ToHexString() : ToBase36String();
 
     #endregion String Representation Methods
@@ -222,7 +220,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     public System.Byte[] ToByteArray()
     {
         System.Byte[] result = new System.Byte[7];
-        TryWriteBytes(result, out _);
+        _ = TryWriteBytes(result, out _);
         return result;
     }
 
@@ -237,7 +235,9 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     public static Identifier FromByteArray(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
+        {
             throw new System.ArgumentException("Input must be exactly 7 bytes.", nameof(bytes));
+        }
 
         System.UInt32 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(
             ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bytes));
@@ -245,7 +245,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
         System.UInt16 machineId = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(
             ref System.Runtime.InteropServices.MemoryMarshal.GetReference(bytes[4..]));
 
-        byte type = bytes[6];
+        System.Byte type = bytes[6];
 
         return new Identifier(value, machineId, (IdentifierType)type);
     }
@@ -260,10 +260,9 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier FromByteArray(System.Byte[] bytes)
     {
-        if (bytes == null || bytes.Length != 7)
-            throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes));
-
-        return FromByteArray(System.MemoryExtensions.AsSpan(bytes));
+        return bytes == null || bytes.Length != 7
+            ? throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes))
+            : FromByteArray(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -274,7 +273,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <returns>
     /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
     /// </returns>
-    public bool TryFormat(System.Span<System.Char> destination, out System.Byte charsWritten)
+    public System.Boolean TryFormat(System.Span<System.Char> destination, out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
         System.Span<System.Char> buffer = stackalloc System.Char[13];
@@ -294,7 +293,9 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
 
         // Copy reversed
         for (System.Byte j = 0; j < i; j++)
+        {
             destination[j] = buffer[i - j - 1];
+        }
 
         charsWritten = i;
         return true;
@@ -310,10 +311,9 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// </exception>
     public static Identifier ParseBase36(System.String text)
     {
-        if (!TryParseBase36(System.MemoryExtensions.AsSpan(text), out Identifier result))
-            throw new System.FormatException($"Invalid Base36 handle: '{text}'");
-
-        return result;
+        return !TryParseBase36(System.MemoryExtensions.AsSpan(text), out Identifier result)
+            ? throw new System.FormatException($"Invalid Base36 handle: '{text}'")
+            : result;
     }
 
     /// <summary>
@@ -341,7 +341,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
         }
 
         // Use unsafe operations for optimal performance
-        ref byte destinationRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(destination);
+        ref System.Byte destinationRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(destination);
 
         // Fix: Use MemoryMarshal to treat the Identifier struct as a ReadOnlySpan<byte>
         System.ReadOnlySpan<System.Byte> sourceSpan =
@@ -368,12 +368,14 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool TryParseBase36(System.ReadOnlySpan<System.Char> text, out Identifier handle)
+    public static System.Boolean TryParseBase36(System.ReadOnlySpan<System.Char> text, out Identifier handle)
     {
         handle = default;
 
-        if (text.Length == 0 || text.Length > 13) // Max length of 7-byte base36
+        if (text.Length is 0 or > 13) // Max length of 7-byte base36
+        {
             return false;
+        }
 
         System.UInt64 value = 0;
 
@@ -382,18 +384,35 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
             System.Char c = text[i];
             System.Int32 digit;
 
-            if (c >= '0' && c <= '9') digit = c - '0';
-            else if (c >= 'A' && c <= 'Z') digit = c - 'A' + 10;
-            else if (c >= 'a' && c <= 'z') digit = c - 'a' + 10; // allow lowercase
-            else return false;
+            if (c is >= '0' and <= '9')
+            {
+                digit = c - '0';
+            }
+            else if (c is >= 'A' and <= 'Z')
+            {
+                digit = c - 'A' + 10;
+            }
+            else if (c is >= 'a' and <= 'z')
+            {
+                digit = c - 'a' + 10; // allow lowercase
+            }
+            else
+            {
+                return false;
+            }
 
-            if (digit >= 36) return false;
+            if (digit >= 36)
+            {
+                return false;
+            }
 
             value = (value * 36) + (System.UInt32)digit;
         }
 
         if (value > 0x00FFFFFFFFFFFFFFUL) // must be <= 7 bytes (56 bits)
+        {
             return false;
+        }
 
         // Split to struct layout
         System.UInt32 rawValue = (System.UInt32)(value & 0xFFFFFFFF);
@@ -432,8 +451,8 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     public System.Boolean Equals(Identifier other)
     {
         // Optimize comparison by treating the struct as a single 64-bit value
-        ulong thisValue = GetCombinedValue();
-        ulong otherValue = other.GetCombinedValue();
+        System.UInt64 thisValue = GetCombinedValue();
+        System.UInt64 otherValue = other.GetCombinedValue();
         return thisValue == otherValue;
     }
 
@@ -504,7 +523,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.UInt64 GetCombinedValue()
-        => ((System.UInt64)_type << 48) | ((System.UInt64)_machineId << 32) | _value;
+        => ((System.UInt64)_type << 48) | ((System.UInt64)MachineId << 32) | Value;
 
     /// <summary>
     /// Encodes a 64-bit unsigned integer to Base36 string representation.
@@ -513,7 +532,10 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <returns>A Base36 encoded string.</returns>
     private static System.String EncodeToBase36(System.UInt64 value)
     {
-        if (value == 0) return "0";
+        if (value == 0)
+        {
+            return "0";
+        }
 
         System.Span<System.Char> buffer = stackalloc System.Char[13]; // Maximum length for 64-bit Base36
         System.Byte charIndex = 0;
