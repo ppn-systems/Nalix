@@ -17,7 +17,7 @@ public partial interface IConnection
     /// <summary>
     /// Represents a transport interface for sending data packets.
     /// </summary>
-    public interface ITransport
+    interface ITransport
     {
         /// <summary>
         /// Sends a packet synchronously over the connection.
@@ -71,7 +71,7 @@ public partial interface IConnection
     /// TCP is a connectionless protocol, so this interface focuses mainly
     /// on sending data without connection state management or receive control.
     /// </remarks>
-    public interface ITcp : ITransport
+    interface ITcp : ITransport
     {
         /// <summary>
         /// Starts receiving data from the connection.
@@ -97,7 +97,7 @@ public partial interface IConnection
     /// UDP is a connectionless protocol, so this interface focuses mainly
     /// on sending data without connection state management or receive control.
     /// </remarks>
-    public interface IUdp : ITransport
+    interface IUdp : ITransport
     {
         // (Additional UDP-specific members can be added here if needed)
     }
