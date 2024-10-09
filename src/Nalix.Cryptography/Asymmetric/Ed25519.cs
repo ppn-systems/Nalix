@@ -33,9 +33,14 @@ public sealed class Ed25519
     public static System.Byte[] Sign(System.Byte[] message, System.Byte[] privateKey)
     {
         if (message == null || message.Length == 0)
+        {
             throw new System.ArgumentException("Message cannot be null or empty.", nameof(message));
+        }
+
         if (privateKey == null || privateKey.Length != 32)
+        {
             throw new System.ArgumentException("Private key must be 32 bytes long.", nameof(privateKey));
+        }
 
         // Compute the hash of the private key and split into two halves
         System.Byte[] h = ComputeHash(privateKey);
@@ -93,16 +98,29 @@ public sealed class Ed25519
     {
         // Validate input arguments
         if (signature == null)
+        {
             throw new System.ArgumentException("Signature cannot be null.", nameof(signature));
+        }
+
         if (message == null)
+        {
             throw new System.ArgumentException("Message cannot be null.", nameof(message));
+        }
+
         if (publicKey == null)
+        {
             throw new System.ArgumentException("Public key cannot be null.", nameof(publicKey));
+        }
 
         if (signature.Length != SignatureSize)
+        {
             throw new System.ArgumentException($"Signature must be {SignatureSize} bytes long.", nameof(signature));
+        }
+
         if (publicKey.Length != 32)
+        {
             throw new System.ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
+        }
 
         // Decode R, A, and s from the signature and publicKey
         Point r = DecodePoint(System.MemoryExtensions.AsSpan(signature, 0, 32));
@@ -193,7 +211,10 @@ public sealed class Ed25519
         while (e > 0)
         {
             if (!e.IsEven)
+            {
                 result = Edwards(result, current);
+            }
+
             current = Edwards(current, current);
             e >>= 1;
         }
@@ -259,7 +280,9 @@ public sealed class Ed25519
         }
         // Set the most significant bit to indicate x's parity
         if (!p.X.IsEven)
+        {
             destination[^1] |= 0x80;
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -270,8 +293,11 @@ public sealed class Ed25519
         System.Numerics.BigInteger y = new(data, isUnsigned: true, isBigEndian: true);
         System.Numerics.BigInteger x = RecoverX(y);
         // Use the high bit of the last byte to recover x parity
-        bool xParity = (data[^1] & 0x80) != 0;
-        if (x.IsEven != !xParity) x = Q - x;
+        System.Boolean xParity = (data[^1] & 0x80) != 0;
+        if (x.IsEven != !xParity)
+        {
+            x = Q - x;
+        }
 
         return new Point(x, y);
     }
@@ -304,7 +330,9 @@ public sealed class Ed25519
     private static void EncodeScalar(System.Numerics.BigInteger s, System.Span<System.Byte> destination)
     {
         if (!s.TryWriteBytes(destination, out System.Int32 bytesWritten, isUnsigned: true, isBigEndian: true))
+        {
             throw new System.InvalidOperationException("Failed to encode scalar.");
+        }
         // If fewer than 32 bytes were written, pad the beginning with zeros.
         if (bytesWritten < destination.Length)
         {

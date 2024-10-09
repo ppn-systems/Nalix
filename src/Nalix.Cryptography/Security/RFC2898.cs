@@ -23,19 +23,30 @@ public static class RFC2898
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] DeriveKey(
-        string password, byte[] salt,
-        int iterations, int keyLength,
+    public static System.Byte[] DeriveKey(
+        System.String password, System.Byte[] salt,
+        System.Int32 iterations, System.Int32 keyLength,
         HashAlgorithmType hashType = HashAlgorithmType.Sha1)
     {
-        if (string.IsNullOrEmpty(password))
+        if (System.String.IsNullOrEmpty(password))
+        {
             throw new System.ArgumentException("Password cannot be null or empty.", nameof(password));
+        }
+
         if (salt == null || salt.Length == 0)
+        {
             throw new System.ArgumentException("Salt cannot be null or empty.", nameof(salt));
+        }
+
         if (iterations <= 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(iterations), "Iterations must be greater than 0.");
+        }
+
         if (keyLength <= 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(keyLength), "Key length must be greater than 0.");
+        }
 
         using var pbkdf2 = new PBKDF2(salt, iterations, keyLength, hashType);
         return pbkdf2.DeriveKey(password);
@@ -52,12 +63,12 @@ public static class RFC2898
     /// <returns>A Base64Value-encoded string representing the derived key.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string DeriveKeyBase64(
-        string password, byte[] salt,
-        int iterations, int keyLength,
+    public static System.String DeriveKeyBase64(
+        System.String password, System.Byte[] salt,
+        System.Int32 iterations, System.Int32 keyLength,
         HashAlgorithmType hashType = HashAlgorithmType.Sha1)
     {
-        byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
+        System.Byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
         return System.Convert.ToBase64String(key);
     }
 
@@ -72,17 +83,17 @@ public static class RFC2898
     /// <returns>A lowercase hexadecimal string representing the derived key.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string DeriveKeyHex(
-        string password, byte[] salt,
-        int iterations, int keyLength,
+    public static System.String DeriveKeyHex(
+        System.String password, System.Byte[] salt,
+        System.Int32 iterations, System.Int32 keyLength,
         HashAlgorithmType hashType = HashAlgorithmType.Sha1)
     {
-        byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
+        System.Byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
         System.Text.StringBuilder sb = new(key.Length * 2);
 
-        foreach (byte b in key)
+        foreach (System.Byte b in key)
         {
-            sb.Append(b.ToString("x2"));
+            _ = sb.Append(b.ToString("x2"));
         }
 
         return sb.ToString();

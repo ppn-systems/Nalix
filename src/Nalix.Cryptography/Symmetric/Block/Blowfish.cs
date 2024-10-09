@@ -14,26 +14,26 @@ public class Blowfish
     /// <summary>
     /// The number of rounds used in Blowfish encryption.
     /// </summary>
-    public const int N = 16;
+    public const Int32 N = 16;
 
-    private const int KeyMinBytes = 4; // Minimum key size in bytes
-    private const int KeyMaxBytes = 56; // Maximum key size in bytes
+    private const Int32 KeyMinBytes = 4; // Minimum key size in bytes
+    private const Int32 KeyMaxBytes = 56; // Maximum key size in bytes
 
     #endregion Constants
 
     #region Fields
 
-    private readonly uint[] P;
-    private readonly uint[,] S;
+    private readonly UInt32[] P;
+    private readonly UInt32[,] S;
 
-    private static readonly uint[] _P =
+    private static readonly UInt32[] _P =
     [
         0X243F6A88, 0X85A308D3, 0X13198A2E, 0X03707344, 0XA4093822, 0X299F31D0,
         0X082EFA98, 0XEC4E6C89, 0X452821E6, 0X38D01377, 0XBE5466CF, 0X34E90C6C,
         0XC0AC29B7, 0XC97C50DD, 0X3F84D5B5, 0XB5470917, 0X9216D5D9, 0X8979FB1B
     ];
 
-    private static readonly uint[,] _S =
+    private static readonly UInt32[,] _S =
     {
         {
             0XD1310BA6, 0X98DFB5AC, 0X2FFD72DB, 0XD01ADFB7, 0XB8E1AFED, 0X6A267E96,
@@ -226,10 +226,10 @@ public class Blowfish
     /// </summary>
     /// <param name="schedule"></param>
     /// <param name="key"></param>
-    public Blowfish(uint[] schedule, byte[] key)
+    public Blowfish(UInt32[] schedule, Byte[] key)
     {
-        P = new uint[18];
-        S = new uint[4, 256];
+        P = new UInt32[18];
+        S = new UInt32[4, 256];
         Buffer.BlockCopy(schedule, 0, P, 0, 18 * 4);
         Buffer.BlockCopy(schedule, 18 * 4, S, 0, 1024 * 4);
         InitializeKeySchedule(key);
@@ -239,10 +239,10 @@ public class Blowfish
     /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
     /// </summary>
     /// <param name="key">The encryption key (must be between 4 and 56 bytes).</param>
-    public Blowfish(byte[] key)
+    public Blowfish(Byte[] key)
     {
-        P = _P.Clone() as uint[];
-        S = _S.Clone() as uint[,];
+        P = _P.Clone() as UInt32[];
+        S = _S.Clone() as UInt32[,];
         InitializeKeySchedule(key);
     }
 
@@ -250,7 +250,7 @@ public class Blowfish
     /// Initializes a new instance of the <see cref="Blowfish"/> class with a string key.
     /// </summary>
     /// <param name="key">The encryption key as a string.</param>
-    public Blowfish(string key)
+    public Blowfish(String key)
         : this(Encoding.ASCII.GetBytes(key))
     {
     }
@@ -266,7 +266,7 @@ public class Blowfish
     /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EncryptInPlace(byte[] data, int length) => this.EncryptBlock(data, 0, length);
+    public void EncryptInPlace(Byte[] data, Int32 length) => this.EncryptBlock(data, 0, length);
 
     /// <summary>
     /// Encrypts a specific block of data in place.
@@ -276,15 +276,17 @@ public class Blowfish
     /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EncryptBlock(byte[] data, int offset, int length)
+    public void EncryptBlock(Byte[] data, Int32 offset, Int32 length)
     {
         if (length % 8 != 0)
-            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
-
-        for (int i = offset; i < offset + length; i += 8)
         {
-            uint left = BitConverter.ToUInt32(data, i);
-            uint right = BitConverter.ToUInt32(data, i + 4);
+            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
+        }
+
+        for (Int32 i = offset; i < offset + length; i += 8)
+        {
+            UInt32 left = BitConverter.ToUInt32(data, i);
+            UInt32 right = BitConverter.ToUInt32(data, i + 4);
             this.EncryptBlock(ref left, ref right);
 
             Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
@@ -298,9 +300,9 @@ public class Blowfish
     /// <param name="plainText">The plaintext string to encrypt.</param>
     /// <returns>A Base64Value-encoded encrypted string.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string EncryptToBase64(string plainText)
+    public String EncryptToBase64(String plainText)
     {
-        byte[] data = Encoding.Unicode.GetBytes(plainText);
+        Byte[] data = Encoding.Unicode.GetBytes(plainText);
         this.EncryptInPlace(data, data.Length);
         return Convert.ToBase64String(data);
     }
@@ -312,7 +314,7 @@ public class Blowfish
     /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecryptInPlace(byte[] data, int length) => this.DecryptBlock(data, 0, length);
+    public void DecryptInPlace(Byte[] data, Int32 length) => this.DecryptBlock(data, 0, length);
 
     /// <summary>
     /// Decrypts a specific block of data in place.
@@ -322,15 +324,17 @@ public class Blowfish
     /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecryptBlock(byte[] data, int offset, int length)
+    public void DecryptBlock(Byte[] data, Int32 offset, Int32 length)
     {
         if (length % 8 != 0)
-            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
-
-        for (int i = offset; i < offset + length; i += 8)
         {
-            uint left = BitConverter.ToUInt32(data, i);
-            uint right = BitConverter.ToUInt32(data, i + 4);
+            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
+        }
+
+        for (Int32 i = offset; i < offset + length; i += 8)
+        {
+            UInt32 left = BitConverter.ToUInt32(data, i);
+            UInt32 right = BitConverter.ToUInt32(data, i + 4);
             this.DecryptBlock(ref left, ref right);
 
             Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
@@ -344,9 +348,9 @@ public class Blowfish
     /// <param name="cipherText">The Base64Value-encoded encrypted string.</param>
     /// <returns>The decrypted plaintext string.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string DecryptFromBase64(string cipherText)
+    public String DecryptFromBase64(String cipherText)
     {
-        byte[] data = Convert.FromBase64String(cipherText);
+        Byte[] data = Convert.FromBase64String(cipherText);
         this.DecryptInPlace(data, data.Length);
         return Encoding.Unicode.GetString(data);
     }
@@ -361,9 +365,9 @@ public class Blowfish
     /// <param name="left">The left 32-bit half of the block.</param>
     /// <param name="right">The right 32-bit half of the block.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EncryptBlock(ref uint left, ref uint right)
+    private void EncryptBlock(ref UInt32 left, ref UInt32 right)
     {
-        for (int i = 0; i < N; ++i)
+        for (Int32 i = 0; i < N; ++i)
         {
             left ^= P[i];
             right ^= this.SubstitutionFunction(left);
@@ -382,9 +386,9 @@ public class Blowfish
     /// <param name="left">The left 32-bit half of the block.</param>
     /// <param name="right">The right 32-bit half of the block.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DecryptBlock(ref uint left, ref uint right)
+    private void DecryptBlock(ref UInt32 left, ref UInt32 right)
     {
-        for (int i = N + 1; i > 1; --i)
+        for (Int32 i = N + 1; i > 1; --i)
         {
             left ^= P[i];
             right ^= this.SubstitutionFunction(left);
@@ -403,14 +407,14 @@ public class Blowfish
     /// <param name="value">The 32-bit input value.</param>
     /// <returns>The transformed value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private uint SubstitutionFunction(uint value)
+    private UInt32 SubstitutionFunction(UInt32 value)
     {
-        ushort a = (ushort)(value >> 24 & 0xFF);
-        ushort b = (ushort)(value >> 16 & 0xFF);
-        ushort c = (ushort)(value >> 8 & 0xFF);
-        ushort d = (ushort)(value & 0xFF);
+        UInt16 a = (UInt16)((value >> 24) & 0xFF);
+        UInt16 b = (UInt16)((value >> 16) & 0xFF);
+        UInt16 c = (UInt16)((value >> 8) & 0xFF);
+        UInt16 d = (UInt16)(value & 0xFF);
 
-        return S[0, a] + S[1, b] ^ S[2, c] + S[3, d];
+        return (S[0, a] + S[1, b]) ^ (S[2, c] + S[3, d]);
     }
 
     /// <summary>
@@ -418,22 +422,27 @@ public class Blowfish
     /// </summary>
     /// <param name="key">The encryption key.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InitializeKeySchedule(ReadOnlySpan<byte> key)
+    private void InitializeKeySchedule(ReadOnlySpan<Byte> key)
     {
         // Validate key length
-        if (key.Length < KeyMinBytes || key.Length > KeyMaxBytes)
+        if (key.Length is < KeyMinBytes or > KeyMaxBytes)
+        {
             throw new ArgumentException($"Key length must be between {KeyMinBytes} and {KeyMaxBytes} bytes.");
+        }
 
-        short j = 0;
-        uint data = 0;
+        Int16 j = 0;
+        UInt32 data = 0;
 
         // XOR P-array with key material
-        for (short i = 0; i < N + 2; ++i)
+        for (Int16 i = 0; i < N + 2; ++i)
         {
-            for (short k = 0; k < 4; ++k)
+            for (Int16 k = 0; k < 4; ++k)
             {
-                data = data << 8 | key[j++];
-                if (j >= key.Length) j = 0;
+                data = (data << 8) | key[j++];
+                if (j >= key.Length)
+                {
+                    j = 0;
+                }
             }
             P[i] ^= data;
         }

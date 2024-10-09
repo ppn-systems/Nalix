@@ -17,31 +17,31 @@ public sealed class Hmac : System.IDisposable
 {
     #region Constants
 
-    private const int Sha1BlockSize = 64;
-    private const int Sha1HashSize = 20;
+    private const System.Int32 Sha1BlockSize = 64;
+    private const System.Int32 Sha1HashSize = 20;
 
-    private const int Sha224BlockSize = 64;
-    private const int Sha224HashSize = 28;
+    private const System.Int32 Sha224BlockSize = 64;
+    private const System.Int32 Sha224HashSize = 28;
 
-    private const int Sha256BlockSize = 64;
-    private const int Sha256HashSize = 32;
+    private const System.Int32 Sha256BlockSize = 64;
+    private const System.Int32 Sha256HashSize = 32;
 
-    private const int Sha384BlockSize = 128;
-    private const int Sha384HashSize = 48;
+    private const System.Int32 Sha384BlockSize = 128;
+    private const System.Int32 Sha384HashSize = 48;
 
-    private const byte OuterPadValue = 0x5C;
-    private const byte InnerPadValue = 0x36;
+    private const System.Byte OuterPadValue = 0x5C;
+    private const System.Byte InnerPadValue = 0x36;
 
     #endregion Constants
 
     #region Fields
 
-    private readonly byte[] _key;
-    private readonly int _hashSize;
-    private readonly int _blockSize;
+    private readonly System.Byte[] _key;
+    private readonly System.Int32 _hashSize;
+    private readonly System.Int32 _blockSize;
     private readonly HashAlgorithmType _algorithm;
 
-    private bool _disposed;
+    private System.Boolean _disposed;
 
     #endregion Fields
 
@@ -54,10 +54,12 @@ public sealed class Hmac : System.IDisposable
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when the key is null.</exception>
     /// <exception cref="System.ArgumentException">Thrown when the key is empty.</exception>
-    public Hmac(System.ReadOnlySpan<byte> key, HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
+    public Hmac(System.ReadOnlySpan<System.Byte> key, HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
     {
         if (key.IsEmpty)
+        {
             throw new System.ArgumentException("HMAC key cannot be empty", nameof(key));
+        }
 
         _algorithm = algorithm;
 
@@ -88,9 +90,9 @@ public sealed class Hmac : System.IDisposable
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ComputeHash(
-        System.ReadOnlySpan<byte> key,
-        System.ReadOnlySpan<byte> data,
+    public static System.Byte[] ComputeHash(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> data,
         HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
@@ -104,22 +106,22 @@ public sealed class Hmac : System.IDisposable
     /// <returns>A byte array containing the computed HMAC.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] ComputeHash(System.ReadOnlySpan<byte> data)
+    public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         // Create inner and outer keys with appropriate padding
-        byte[] innerKeyPad = new byte[_blockSize];
-        byte[] outerKeyPad = new byte[_blockSize];
+        System.Byte[] innerKeyPad = new System.Byte[_blockSize];
+        System.Byte[] outerKeyPad = new System.Byte[_blockSize];
 
-        for (int i = 0; i < _blockSize; i++)
+        for (System.Int32 i = 0; i < _blockSize; i++)
         {
-            innerKeyPad[i] = (byte)(_key[i] ^ InnerPadValue);
-            outerKeyPad[i] = (byte)(_key[i] ^ OuterPadValue);
+            innerKeyPad[i] = (System.Byte)(_key[i] ^ InnerPadValue);
+            outerKeyPad[i] = (System.Byte)(_key[i] ^ OuterPadValue);
         }
 
         // Compute inner hash (H(Ka ⊕ ipad || message))
-        byte[] innerHash = ComputeInnerHash(innerKeyPad, data);
+        System.Byte[] innerHash = ComputeInnerHash(innerKeyPad, data);
 
         // Compute outer hash (H(Ka ⊕ opad || inner_hash))
         return ComputeOuterHash(outerKeyPad, innerHash);
@@ -136,14 +138,16 @@ public sealed class Hmac : System.IDisposable
     /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool VerifyHash(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> expectedHmac)
+    public System.Boolean VerifyHash(System.ReadOnlySpan<System.Byte> data, System.ReadOnlySpan<System.Byte> expectedHmac)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (expectedHmac.Length != _hashSize)
+        {
             return false;
+        }
 
-        byte[] computedHmac = ComputeHash(data);
+        System.Byte[] computedHmac = ComputeHash(data);
 
         // Use constant time comparison to prevent timing attacks
         return BitwiseUtils.FixedTimeEquals(computedHmac, expectedHmac);
@@ -158,10 +162,10 @@ public sealed class Hmac : System.IDisposable
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Verify(
-        System.ReadOnlySpan<byte> key,
-        System.ReadOnlySpan<byte> data,
-        System.ReadOnlySpan<byte> expectedHmac,
+    public static System.Boolean Verify(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> data,
+        System.ReadOnlySpan<System.Byte> expectedHmac,
         HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
@@ -172,14 +176,14 @@ public sealed class Hmac : System.IDisposable
     /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] PrepareKey(System.ReadOnlySpan<byte> key)
+    private System.Byte[] PrepareKey(System.ReadOnlySpan<System.Byte> key)
     {
-        byte[] normalizedKey = new byte[_blockSize];
+        System.Byte[] normalizedKey = new System.Byte[_blockSize];
 
         // If key is longer than block size, hash it
         if (key.Length > _blockSize)
         {
-            byte[] hashedKey = _algorithm switch
+            System.Byte[] hashedKey = _algorithm switch
             {
                 HashAlgorithmType.Sha1 => SHA1.HashData(key),
                 HashAlgorithmType.Sha224 => SHA224.HashData(key),
@@ -207,7 +211,7 @@ public sealed class Hmac : System.IDisposable
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private byte[] ComputeInnerHash(byte[] innerKeyPad, System.ReadOnlySpan<byte> data)
+    private System.Byte[] ComputeInnerHash(System.Byte[] innerKeyPad, System.ReadOnlySpan<System.Byte> data)
     {
         switch (_algorithm)
         {
@@ -256,7 +260,7 @@ public sealed class Hmac : System.IDisposable
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private byte[] ComputeOuterHash(byte[] outerKeyPad, byte[] innerHash)
+    private System.Byte[] ComputeOuterHash(System.Byte[] outerKeyPad, System.Byte[] innerHash)
     {
         switch (_algorithm)
         {
@@ -307,7 +311,10 @@ public sealed class Hmac : System.IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         // Clear sensitive data
         if (_key != null)

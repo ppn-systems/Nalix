@@ -36,7 +36,9 @@ public static class Crc64
         System.UInt64 crc = InitialValue;
 
         foreach (System.Byte b in data)
+        {
             crc = table[(crc ^ b) & 0xFF] ^ (crc >> 8);
+        }
 
         return ~crc;
     }
