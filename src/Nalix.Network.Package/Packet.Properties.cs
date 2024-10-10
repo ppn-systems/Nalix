@@ -22,19 +22,9 @@ public readonly partial struct Packet
 
     #region Fields
 
-    [SerializeIgnore]
-    private readonly System.Int32 _hash;
 
     [SerializeIgnore]
     private readonly ManagedBuffer _buffer;
-
-    [SerializeIgnore]
-    private static readonly Packet _empty = new(
-        0, 0, 0, 0,
-        PacketType.None,
-        PacketFlags.None,
-        PacketPriority.Low,
-        System.ReadOnlyMemory<byte>.Empty);
 
     /// <summary>
     /// UTF-8 encoding instance for packet processing.
@@ -49,8 +39,14 @@ public readonly partial struct Packet
     /// <summary>
     /// Empty packet instance with default values.
     /// </summary>
+    [field: SerializeIgnore]
     [SerializeIgnore]
-    public static Packet Empty => _empty;
+    public static Packet Empty { get; } = new(
+        0, 0, 0, 0,
+        PacketType.None,
+        PacketFlags.None,
+        PacketPriority.Low,
+        System.ReadOnlyMemory<System.Byte>.Empty);
 
     /// <summary>
     /// Gets the total length of the packet including header and payload.
@@ -85,8 +81,9 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the packet Hash.
     /// </summary>
+    [field: SerializeIgnore]
     [SerializeIgnore]
-    public System.Int32 Hash => _hash;
+    public System.Int32 Hash { get; }
 
     /// <summary>
     /// Gets the packet type, which specifies the kind of packet.

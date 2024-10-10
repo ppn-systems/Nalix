@@ -26,8 +26,7 @@ public readonly partial struct Packet
         System.Int64 currentTime = Clock.UnixMillisecondsNow();
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < Timestamp) return false;
-        return (currentTime - Timestamp) > timeout;
+        return currentTime >= Timestamp && (currentTime - Timestamp) > timeout;
     }
 
     /// <summary>
@@ -44,7 +43,6 @@ public readonly partial struct Packet
         System.Int64 timeoutMs = (System.Int64)timeout.TotalMilliseconds;
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < Timestamp) return false;
-        return (currentTime - Timestamp) > timeoutMs;
+        return currentTime >= Timestamp && (currentTime - Timestamp) > timeoutMs;
     }
 }

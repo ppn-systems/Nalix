@@ -45,7 +45,7 @@ public readonly partial struct Packet : IPacketDeserializer<Packet>
     static Packet IPacketDeserializer<Packet>.Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Packet packet = default;
-        LiteSerializer.Deserialize(buffer, ref packet);
+        _ = LiteSerializer.Deserialize(buffer, ref packet);
         return packet;
     }
 }

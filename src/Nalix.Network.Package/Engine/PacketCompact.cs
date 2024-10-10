@@ -29,22 +29,27 @@ public static class PacketCompact
     public static Packet Compress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
+        {
             throw new PackageException("Cannot compress an empty payload.");
+        }
 
         if ((packet.Flags & PacketFlags.Encrypted) != 0)
+        {
             throw new PackageException("Payload is encrypted and cannot be compressed.");
+        }
 
         if (packet.Payload.Length < 512)
+        {
             throw new PackageException("");
+        }
 
         try
         {
             System.Memory<System.Byte> bytes = CompressLZ4(packet.Payload.Span);
 
-            if (bytes.Length >= packet.Payload.Length)
-                throw new PackageException("");
-
-            return new Packet(
+            return bytes.Length >= packet.Payload.Length
+                ? throw new PackageException("")
+                : new Packet(
                 packet.OpCode, packet.Number,
                 packet.Checksum, packet.Timestamp, packet.Type,
                 packet.Flags | PacketFlags.Compressed, packet.Priority, bytes);
@@ -74,10 +79,14 @@ public static class PacketCompact
     public static Packet Decompress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
+        {
             throw new PackageException("Cannot decompress an empty payload.");
+        }
 
         if (!((packet.Flags & PacketFlags.Compressed) != 0))
+        {
             throw new PackageException("");
+        }
 
         try
         {
@@ -109,10 +118,9 @@ public static class PacketCompact
 
         System.Int32 lenght = LZ4Codec.Encode(input, buffer);
 
-        if (lenght < 0)
-            throw new PackageException("Compression failed due to insufficient buffer size.");
-
-        return System.MemoryExtensions.AsMemory(buffer, 0, lenght);
+        return lenght < 0
+            ? throw new PackageException("Compression failed due to insufficient buffer size.")
+            : System.MemoryExtensions.AsMemory(buffer, 0, lenght);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -120,12 +128,13 @@ public static class PacketCompact
     private static System.Memory<System.Byte> DecompressLZ4(System.ReadOnlySpan<System.Byte> input)
     {
         if (input.Length < Header.Size)
+        {
             throw new PackageException("Compressed payload too small to contain a valid header.");
+        }
 
-        if (!LZ4Codec.Decode(input, out System.Byte[]? buffer, out System.Int32 written))
-            throw new PackageException("Failed to decompress payload.");
-
-        return System.MemoryExtensions.AsMemory(buffer, 0, written);
+        return !LZ4Codec.Decode(input, out System.Byte[]? buffer, out System.Int32 written)
+            ? throw new PackageException("Failed to decompress payload.")
+            : System.MemoryExtensions.AsMemory(buffer, 0, written);
     }
 
     #endregion Private Methods
