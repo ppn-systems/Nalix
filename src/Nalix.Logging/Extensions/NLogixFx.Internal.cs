@@ -15,7 +15,10 @@ public static partial class NLogixFx
         System.String callerFilePath,
         System.Int32 callerLineNumber)
     {
-        if (!(level > MinimumLevel)) return;
+        if (!(level > MinimumLevel))
+        {
+            return;
+        }
 
         System.String fullMessage = BuildFullMessage(
             message, sourceName, extendedData,

@@ -65,17 +65,17 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Gets the Number of entries currently in the queue waiting to be written.
     /// </summary>
-    public int QueuedEntryCount => _entryQueue.Count;
+    public System.Int32 QueuedEntryCount => _entryQueue.Count;
 
     /// <summary>
     /// Gets the total Number of log entries written since this provider was created.
     /// </summary>
-    public long TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
+    public System.Int64 TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>
     /// Gets the Number of entries that were dropped due to queue capacity constraints.
     /// </summary>
-    public long EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
+    public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 
     #endregion Properties
 
@@ -142,7 +142,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     public void Dispose()
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         _isDisposed = true;
 
@@ -220,7 +222,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
                         // Try to add without blocking
                         if (!_entryQueue.TryAdd(message))
                         {
-                            System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
+                            _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
                         }
                     }
                 }
@@ -236,11 +238,11 @@ internal sealed class FileLoggerProvider : System.IDisposable
             try
             {
                 _fileWriter.WriteMessage(message, true);
-                System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
+                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
             }
             catch (System.Exception ex)
             {
-                HandleWriteError(ex, message);
+                _ = HandleWriteError(ex, message);
             }
         }
     }
@@ -251,7 +253,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     public void FlushQueue()
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         try
         {
@@ -265,11 +269,11 @@ internal sealed class FileLoggerProvider : System.IDisposable
                         try
                         {
                             _fileWriter.WriteMessage(message, true);
-                            System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
+                            _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
                         }
                         catch (System.Exception ex)
                         {
-                            HandleWriteError(ex, message);
+                            _ = HandleWriteError(ex, message);
                         }
                     }
                 }
@@ -288,7 +292,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Returns diagnostic information about this logger provider.
     /// </summary>
-    public string GetDiagnosticInfo()
+    public System.String GetDiagnosticInfo()
     {
         var uptime = System.DateTime.UtcNow - _startTime;
 
@@ -348,7 +352,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
                             try
                             {
                                 _fileWriter.WriteMessage(message, shouldFlush);
-                                System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
+                                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
                             }
                             catch (System.Exception ex)
                             {
@@ -386,7 +390,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     {
         // If no error handler is configured, we can't recover
         if (HandleFileError == null)
+        {
             return false;
+        }
 
         try
         {
@@ -400,7 +406,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
                 // Try writing the failed message to the new file
                 _fileWriter.WriteMessage(message, true);
-                System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
+                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
 
                 return true;
             }
