@@ -9,8 +9,6 @@ namespace Nalix.Shared.Serialization.Buffers;
 public struct DataWriter
 {
     private readonly System.Boolean _rent;
-
-    private System.Int32 _written;
     private System.Byte[] _buffer;
 
     /// <summary>
@@ -26,7 +24,7 @@ public struct DataWriter
         }
 
         _rent = true;
-        _written = 0;
+        WrittenCount = 0;
         _buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(size);
     }
 
@@ -43,14 +41,14 @@ public struct DataWriter
         }
 
         _rent = false;
-        _written = 0;
+        WrittenCount = 0;
         _buffer = buffer;
     }
 
     /// <summary>
     /// Gets the number of bytes written to the buffer.
     /// </summary>
-    public readonly System.Int32 WrittenCount => _written;
+    public System.Int32 WrittenCount { get; private set; }
 
     /// <summary>
     /// Gets a value indicating whether the buffer is null.
@@ -66,19 +64,19 @@ public struct DataWriter
     /// Gets a span of the remaining unwritten portion of the buffer.
     /// </summary>
     public readonly System.Span<System.Byte> FreeBuffer
-        => System.MemoryExtensions.AsSpan(_buffer, _written);
+        => System.MemoryExtensions.AsSpan(_buffer, WrittenCount);
 
     /// <summary>
     /// Gets a span of the written portion of the buffer.
     /// </summary>
     public readonly System.Span<System.Byte> WrittenBuffer
-        => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
+        => System.MemoryExtensions.AsSpan(_buffer, 0, WrittenCount);
 
     /// <summary>
     /// Gets a memory representation of the written data.
     /// </summary>
     public readonly System.Memory<System.Byte> WrittenMemory
-        => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
+        => System.MemoryExtensions.AsMemory(_buffer, 0, WrittenCount);
 
     /// <summary>
     /// Advances the write cursor by the specified count.
@@ -88,10 +86,12 @@ public struct DataWriter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
-        if (count <= 0 || _written + count > _buffer.Length)
+        if (count <= 0 || WrittenCount + count > _buffer.Length)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+        }
 
-        _written += count;
+        WrittenCount += count;
     }
 
     /// <summary>
@@ -117,7 +117,7 @@ public struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
         }
 
-        if (_buffer != null && _buffer.Length - _written >= minimumSize)
+        if (_buffer != null && _buffer.Length - WrittenCount >= minimumSize)
         {
             return;
         }
@@ -127,12 +127,12 @@ public struct DataWriter
             throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
         }
 
-        int newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
+        System.Int32 newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, WrittenCount + minimumSize);
         System.Byte[] newBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(newSize);
 
-        if (_buffer != null && _written > 0)
+        if (_buffer != null && WrittenCount > 0)
         {
-            System.Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _written);
+            System.Buffer.BlockCopy(_buffer, 0, newBuffer, 0, WrittenCount);
         }
 
         if (_buffer != null && _rent)
@@ -148,13 +148,7 @@ public struct DataWriter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Byte[] ToArray()
-    {
-        if (_written == 0)
-            return [];
-
-        return _buffer[.._written];
-    }
+    public readonly System.Byte[] ToArray() => WrittenCount == 0 ? [] : _buffer[..WrittenCount];
 
     /// <summary>
     /// Clears the buffer and returns it to the ArrayPool if rented.
@@ -166,9 +160,11 @@ public struct DataWriter
         if (_buffer != null)
         {
             if (_rent)
+            {
                 System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
+            }
 
-            _written = 0;
+            WrittenCount = 0;
             _buffer = null!;
         }
     }

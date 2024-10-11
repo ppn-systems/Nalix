@@ -35,9 +35,11 @@ public sealed class StringFormatter : IFormatter<System.String>
         }
 
         // Tính trước số byte sẽ cần khi encode UTF8
-        int byteCount = Utf8.GetByteCount(value);
+        System.Int32 byteCount = Utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
+        {
             throw new SerializationException("The string exceeds the allowed limit.");
+        }
 
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, (System.UInt16)byteCount);
@@ -54,7 +56,9 @@ public sealed class StringFormatter : IFormatter<System.String>
                 System.Int32 bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
 
                 if (bytesWritten != byteCount)
+                {
                     throw new SerializationException("UTF8 encoding error for the string.");
+                }
             }
 
             writer.Advance(byteCount);
@@ -76,10 +80,20 @@ public sealed class StringFormatter : IFormatter<System.String>
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
                                                 .Deserialize(ref reader);
 
-        if (length == 0) return string.Empty;
-        if (length == SerializerBounds.Null) return null!;
+        if (length == 0)
+        {
+            return System.String.Empty;
+        }
+
+        if (length == SerializerBounds.Null)
+        {
+            return null!;
+        }
+
         if (length > SerializerBounds.MaxString)
+        {
             throw new SerializationException("String length out of range");
+        }
 
         ref System.Byte start = ref reader.GetSpanReference(length);
 

@@ -20,11 +20,15 @@ public partial class ConfigurationLoader
         {
             // Skip properties with the ConfiguredIgnore attribute
             if (property.IsDefined(typeof(ConfiguredIgnoreAttribute), inherit: true))
+            {
                 continue;
+            }
 
             // Skip properties that can't be written to
             if (!property.CanWrite)
+            {
                 continue;
+            }
 
             // Create the property metadata
             PropertyMetadata propertyMetadata = new()

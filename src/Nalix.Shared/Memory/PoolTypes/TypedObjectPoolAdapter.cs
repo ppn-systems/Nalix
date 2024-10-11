@@ -45,7 +45,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get()
     {
-        Interlocked.Increment(ref _manager._totalGetOperations);
+        _ = Interlocked.Increment(ref _manager._totalGetOperations);
         return _pool.Get<T>();
     }
 
@@ -58,7 +58,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     {
         ArgumentNullException.ThrowIfNull(obj, nameof(obj));
 
-        Interlocked.Increment(ref _manager._totalReturnOperations);
+        _ = Interlocked.Increment(ref _manager._totalReturnOperations);
         _pool.Return(obj);
     }
 
@@ -67,9 +67,9 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The Number of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
-    public List<T> GetMultiple(int count)
+    public List<T> GetMultiple(Int32 count)
     {
-        Interlocked.Add(ref _manager._totalGetOperations, count);
+        _ = Interlocked.Add(ref _manager._totalGetOperations, count);
         return _pool.GetMultiple<T>(count);
     }
 
@@ -78,10 +78,17 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The Number of objects removed.</returns>
-    public int Trim(int percentage = 50)
+    public Int32 Trim(Int32 percentage = 50)
     {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
+        if (percentage < 0)
+        {
+            percentage = 0;
+        }
+
+        if (percentage > 100)
+        {
+            percentage = 100;
+        }
 
         return _pool.Trim(percentage);
     }
@@ -91,12 +98,12 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="objects">The objects to return.</param>
     /// <returns>The Number of objects successfully returned to the pool.</returns>
-    public int ReturnMultiple(IEnumerable<T> objects)
+    public Int32 ReturnMultiple(IEnumerable<T> objects)
     {
         ArgumentNullException.ThrowIfNull(objects);
 
-        int count = _pool.ReturnMultiple(objects);
-        Interlocked.Add(ref _manager._totalReturnOperations, count);
+        Int32 count = _pool.ReturnMultiple(objects);
+        _ = Interlocked.Add(ref _manager._totalReturnOperations, count);
         return count;
     }
 
@@ -104,26 +111,26 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Clears this type's pool.
     /// </summary>
     /// <returns>The Number of objects removed.</returns>
-    public int Clear() => _pool.ClearType<T>();
+    public Int32 Clear() => _pool.ClearType<T>();
 
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
     /// <param name="count">The Number of objects to preallocate.</param>
     /// <returns>The Number of objects successfully preallocated.</returns>
-    public int Prealloc(int count) => _pool.Prealloc<T>(count);
+    public Int32 Prealloc(Int32 count) => _pool.Prealloc<T>(count);
 
     /// <summary>
     /// Gets information about this type's pool.
     /// </summary>
     /// <returns>A dictionary containing pool statistics for this type.</returns>
-    public Dictionary<string, object> GetInfo() => _pool.GetTypeInfo<T>();
+    public Dictionary<String, Object> GetInfo() => _pool.GetTypeInfo<T>();
 
     /// <summary>
     /// Sets the maximum capacity for this type's pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity.</param>
-    public void SetMaxCapacity(int maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
+    public void SetMaxCapacity(Int32 maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
 
     #endregion Public Methods
 }

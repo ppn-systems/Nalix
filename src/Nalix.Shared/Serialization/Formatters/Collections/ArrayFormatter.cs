@@ -33,7 +33,10 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             .Get<System.UInt16>()
             .Serialize(ref writer, unchecked((System.UInt16)value.Length));
 
-        if (value.Length == 0) return;
+        if (value.Length == 0)
+        {
+            return;
+        }
 
         System.Int32 totalBytes = value.Length * TypeMetadata.SizeOf<T>();
 
@@ -63,10 +66,20 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             .Get<System.UInt16>()
             .Deserialize(ref reader);
 
-        if (length == 0) return [];
-        if (length == SerializerBounds.Null) return null!;
+        if (length == 0)
+        {
+            return [];
+        }
+
+        if (length == SerializerBounds.Null)
+        {
+            return null!;
+        }
+
         if (length > SerializerBounds.MaxArray)
+        {
             throw new SerializationException("Array length out of range");
+        }
 
         System.Int32 total = length * TypeMetadata.SizeOf<T>();
 

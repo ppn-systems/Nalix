@@ -12,7 +12,7 @@ internal static partial class TypeMetadata
     /// <returns>The size of the type in bytes.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int SizeOf<T>()
+    public static System.Int32 SizeOf<T>()
         => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
 
     /// <summary>
@@ -22,7 +22,7 @@ internal static partial class TypeMetadata
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsUnmanaged<[
+    public static System.Boolean IsUnmanaged<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsUnmanaged;
 
@@ -32,7 +32,7 @@ internal static partial class TypeMetadata
     /// <param name="type">The type to check for unmanaged status.</param>
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
-    public static bool IsUnmanaged(System.Type type)
+    public static System.Boolean IsUnmanaged(System.Type type)
     {
         try
         {
@@ -52,7 +52,7 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is nullable; otherwise, false.</returns>
-    public static bool IsNullable<
+    public static System.Boolean IsNullable<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsNullable;
 
@@ -63,7 +63,7 @@ internal static partial class TypeMetadata
     /// <returns>True if the type is a reference type or nullable; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsReferenceOrNullable<[
+    public static System.Boolean IsReferenceOrNullable<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsReference || Cache<T>.IsNullable;
 
@@ -76,7 +76,7 @@ internal static partial class TypeMetadata
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TypeKind TryGetFixedOrUnmanagedSize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>(out int size)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>(out System.Int32 size)
     {
         if (Cache<T>.IsUnmanagedSZArray)
         {
@@ -101,22 +101,22 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type is anonymous; otherwise, false.</returns>
-    public static bool IsAnonymous(System.Type type)
+    public static System.Boolean IsAnonymous(System.Type type)
     {
         // Kiểu ẩn danh thường không có namespace
-        bool hasNoNamespace = type.Namespace == null;
+        System.Boolean hasNoNamespace = type.Namespace == null;
 
         // Kiểu ẩn danh thường là sealed (không thể kế thừa)
-        bool isSealed = type.IsSealed;
+        System.Boolean isSealed = type.IsSealed;
 
         // Tên kiểu ẩn danh thường bắt đầu bằng các chuỗi đặc biệt do trình biên dịch tạo ra
-        bool nameIndicatesAnonymous =
+        System.Boolean nameIndicatesAnonymous =
             type.Name.StartsWith("<>f__AnonymousType", System.StringComparison.Ordinal) ||
             type.Name.StartsWith("<>__AnonType", System.StringComparison.Ordinal) ||
             type.Name.StartsWith("VB$AnonymousType_", System.StringComparison.Ordinal); // cho VB.NET
 
         // Kiểu ẩn danh được đánh dấu bằng thuộc tính CompilerGeneratedAttribute
-        bool isCompilerGenerated = type.IsDefined(
+        System.Boolean isCompilerGenerated = type.IsDefined(
             typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), inherit: false);
 
         // Kết luận: là kiểu ẩn danh nếu thỏa mãn tất cả điều kiện trên

@@ -1,68 +1,74 @@
 namespace Nalix.Extensions.IO;
 
 /// <summary>
-/// Provides extension methods for working with <see cref="System.Span{T}"/>, <see cref="System.ReadOnlySpan{T}"/>, and <see cref="byte"/> arrays.
+/// Provides extension methods for working with <see cref="System.Span{T}"/>, <see cref="System.ReadOnlySpan{T}"/>, and <see cref="System.Byte"/> arrays.
 /// </summary>
 public static partial class SpanExtensions
 {
     #region System.ReadOnlySpan<byte> methods
 
     /// <summary>
-    /// Reads a signed byte (<see cref="sbyte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a signed byte (<see cref="System.SByte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     /// <param name="span">The span of bytes to read from.</param>
     /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
-    /// <returns>The <see cref="sbyte"/> value at the specified offset.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="sbyte"/>.</exception>
+    /// <returns>The <see cref="System.SByte"/> value at the specified offset.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="System.SByte"/>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static sbyte ToSByte(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static System.SByte ToSByte(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 1)
+        {
             throw new System.ArgumentException("Span too small to read SByte.", nameof(span));
+        }
 
-        offset += sizeof(sbyte);
-        return unchecked((sbyte)span[offset]);
+        offset += sizeof(System.SByte);
+        return unchecked((System.SByte)span[offset]);
     }
 
     /// <summary>
-    /// Reads a byte (<see cref="byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a byte (<see cref="System.Byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     /// <param name="span">The span of bytes to read from.</param>
     /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
-    /// <returns>The <see cref="byte"/> value at the specified offset.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="byte"/>.</exception>
+    /// <returns>The <see cref="System.Byte"/> value at the specified offset.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="System.Byte"/>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte ToByte(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static System.Byte ToByte(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 1)
+        {
             throw new System.ArgumentException("Span too small to read Byte.", nameof(span));
+        }
 
-        offset += sizeof(byte);
+        offset += sizeof(System.Byte);
         return span[offset];
     }
 
     /// <summary>
-    /// Reads a bool (<see cref="byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a bool (<see cref="System.Byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     /// <param name="span">The span of bytes to read from.</param>
     /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
-    /// <returns>The <see cref="byte"/> value at the specified offset.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="byte"/>.</exception>
+    /// <returns>The <see cref="System.Byte"/> value at the specified offset.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="System.Byte"/>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool ToBool(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static System.Boolean ToBool(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 1)
+        {
             throw new System.ArgumentException("Span too small to read Byte.", nameof(span));
+        }
 
-        offset += sizeof(bool);
+        offset += sizeof(System.Boolean);
         return span[offset] != 0;
     }
 
     /// <summary>
-    /// Reads a 16-bit unsigned integer (<see cref="ushort"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 16-bit unsigned integer (<see cref="System.UInt16"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     /// <param name="span">The span of bytes to read from.</param>
     /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
@@ -70,178 +76,203 @@ public static partial class SpanExtensions
     /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the value.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe ushort ToUInt16(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.UInt16 ToUInt16(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 2)
+        {
             throw new System.ArgumentException("Span too small to read UInt16.", nameof(span));
+        }
 
-        offset += sizeof(ushort);
-        fixed (byte* ptr = &span[offset])
+        offset += sizeof(System.UInt16);
+        fixed (System.Byte* ptr = &span[offset])
         {
-            return *(ushort*)ptr;
+            return *(System.UInt16*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 16-bit signed integer (<see cref="short"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 16-bit signed integer (<see cref="System.Int16"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe short ToInt16(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Int16 ToInt16(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 2)
+        {
             throw new System.ArgumentException("Span too small to read Int16.", nameof(span));
+        }
 
-        offset += sizeof(short);
-        fixed (byte* ptr = &span[offset])
+        offset += sizeof(System.Int16);
+        fixed (System.Byte* ptr = &span[offset])
         {
-            return *(short*)ptr;
+            return *(System.Int16*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 32-bit unsigned integer (<see cref="uint"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 32-bit unsigned integer (<see cref="System.UInt32"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe uint ToUInt32(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.UInt32 ToUInt32(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 4)
+        {
             throw new System.ArgumentException("Span too small to read UInt32.", nameof(span));
+        }
 
-        offset += sizeof(uint);
-        fixed (byte* ptr = &span[offset])
+        offset += sizeof(System.UInt32);
+        fixed (System.Byte* ptr = &span[offset])
         {
-            return *(uint*)ptr;
+            return *(System.UInt32*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 32-bit signed integer (<see cref="int"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 32-bit signed integer (<see cref="System.Int32"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe int ToInt32(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Int32 ToInt32(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 4)
+        {
             throw new System.ArgumentException("Span too small to read Int32.", nameof(span));
+        }
 
-        offset += sizeof(int);
-        fixed (byte* ptr = &span[offset])
+        offset += sizeof(System.Int32);
+        fixed (System.Byte* ptr = &span[offset])
         {
-            return *(int*)ptr;
+            return *(System.Int32*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 64-bit unsigned integer (<see cref="ulong"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 64-bit unsigned integer (<see cref="System.UInt64"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe ulong ToUInt64(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.UInt64 ToUInt64(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 8)
+        {
             throw new System.ArgumentException("Span too small to read UInt64.", nameof(span));
+        }
 
-        offset += sizeof(ulong);
-        fixed (byte* ptr = &span[offset])
+        offset += sizeof(System.UInt64);
+        fixed (System.Byte* ptr = &span[offset])
         {
-            return *(ulong*)ptr;
+            return *(System.UInt64*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 64-bit signed integer (<see cref="long"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 64-bit signed integer (<see cref="System.Int64"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe long ToInt64(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Int64 ToInt64(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 8)
-            throw new System.ArgumentException("Span too small to read Int64.", nameof(span));
-
-        offset += sizeof(long);
-        fixed (byte* ptr = &span[offset])
         {
-            return *(long*)ptr;
+            throw new System.ArgumentException("Span too small to read Int64.", nameof(span));
+        }
+
+        offset += sizeof(System.Int64);
+        fixed (System.Byte* ptr = &span[offset])
+        {
+            return *(System.Int64*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 32-bit floating point number (<see cref="float"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 32-bit floating point number (<see cref="System.Single"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe float ToSingle(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Single ToSingle(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 4)
-            throw new System.ArgumentException("Span too small to read Single (float).", nameof(span));
-
-        offset += sizeof(float);
-        fixed (byte* ptr = &span[offset])
         {
-            return *(float*)ptr;
+            throw new System.ArgumentException("Span too small to read Single (float).", nameof(span));
+        }
+
+        offset += sizeof(System.Single);
+        fixed (System.Byte* ptr = &span[offset])
+        {
+            return *(System.Single*)ptr;
         }
     }
 
     /// <summary>
-    /// Reads a 64-bit floating point number (<see cref="double"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// Reads a 64-bit floating point number (<see cref="System.Double"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe double ToDouble(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Double ToDouble(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (span.Length < offset + 8)
-            throw new System.ArgumentException("Span too small to read Double.", nameof(span));
-
-        offset += sizeof(double);
-        fixed (byte* ptr = &span[offset])
         {
-            return *(double*)ptr;
+            throw new System.ArgumentException("Span too small to read Double.", nameof(span));
+        }
+
+        offset += sizeof(System.Double);
+        fixed (System.Byte* ptr = &span[offset])
+        {
+            return *(System.Double*)ptr;
         }
     }
 
     /// <summary>
-    /// Converts a <see cref="System.ReadOnlySpan{Byte}"/> to a <see cref="char"/> using the specified encoding.
+    /// Converts a <see cref="System.ReadOnlySpan{Byte}"/> to a <see cref="System.Char"/> using the specified encoding.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe char ToChar(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.Char ToChar(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
         if (offset < 0 || offset + 4 > span.Length)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(offset));
+        }
 
-        System.Span<char> charBuf = stackalloc char[1];
+        System.Span<System.Char> charBuf = stackalloc System.Char[1];
 
-        int charsDecoded;
-        fixed (byte* pData = &span[offset])
-        fixed (char* pChar = charBuf)
+        System.Int32 charsDecoded;
+        fixed (System.Byte* pData = &span[offset])
+        fixed (System.Char* pChar = charBuf)
         {
             charsDecoded = System.Text.Encoding.UTF8.GetChars(pData, 4, pChar, 1);
         }
 
         if (charsDecoded == 0)
+        {
             throw new System.ArgumentException("Failed to decode UTF-8 character from 4 bytes.");
+        }
 
         offset += 4;
         return charBuf[0];
     }
 
     /// <summary>
-    /// Converts a <see cref="System.ReadOnlySpan{Byte}"/> to a <see cref="string"/> using the specified encoding.
+    /// Converts a <see cref="System.ReadOnlySpan{Byte}"/> to a <see cref="System.String"/> using the specified encoding.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe string? ToString(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe System.String? ToString(this System.ReadOnlySpan<System.Byte> span, ref System.Int32 offset)
     {
-        int length = span.ToInt32(ref offset); // read and update offset inside ToInt32
+        System.Int32 length = span.ToInt32(ref offset); // read and update offset inside ToInt32
 
-        if (length == -1) return null;
+        if (length == -1)
+        {
+            return null;
+        }
 
         if (length < 0 || offset + length > span.Length)
+        {
             throw new System.ArgumentException("Invalid string length or span too small.");
+        }
 
-        string result = System.Text.Encoding.UTF8.GetString(span.Slice(offset, length));
+        System.String result = System.Text.Encoding.UTF8.GetString(span.Slice(offset, length));
         offset += length;
         return result;
     }
@@ -251,108 +282,108 @@ public static partial class SpanExtensions
     #region byte[] overloads
 
     /// <summary>
-    /// Reads a signed byte (<see cref="sbyte"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a signed byte (<see cref="System.SByte"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static sbyte ToSByte(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToSByte(ref offset);
+    public static System.SByte ToSByte(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToSByte(ref offset);
 
     /// <summary>
-    /// Reads a byte (<see cref="byte"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a byte (<see cref="System.Byte"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte ToByte(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToByte(ref offset);
+    public static System.Byte ToByte(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToByte(ref offset);
 
     /// <summary>
-    /// Reads a bool (<see cref="byte"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a bool (<see cref="System.Byte"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool ToBool(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToBool(ref offset);
+    public static System.Boolean ToBool(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToBool(ref offset);
 
     /// <summary>
-    /// Reads a 16-bit unsigned integer (<see cref="ushort"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 16-bit unsigned integer (<see cref="System.UInt16"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ushort ToUInt16(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToUInt16(ref offset);
+    public static System.UInt16 ToUInt16(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToUInt16(ref offset);
 
     /// <summary>
-    /// Reads a 16-bit signed integer (<see cref="short"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 16-bit signed integer (<see cref="System.Int16"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static short ToInt16(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToInt16(ref offset);
+    public static System.Int16 ToInt16(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToInt16(ref offset);
 
     /// <summary>
-    /// Reads a 32-bit unsigned integer (<see cref="uint"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 32-bit unsigned integer (<see cref="System.UInt32"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint ToUInt32(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToUInt32(ref offset);
+    public static System.UInt32 ToUInt32(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToUInt32(ref offset);
 
     /// <summary>
-    /// Reads a 32-bit signed integer (<see cref="int"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 32-bit signed integer (<see cref="System.Int32"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int ToInt32(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToInt32(ref offset);
+    public static System.Int32 ToInt32(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToInt32(ref offset);
 
     /// <summary>
-    /// Reads a 64-bit unsigned integer (<see cref="ulong"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 64-bit unsigned integer (<see cref="System.UInt64"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ulong ToUInt64(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToUInt64(ref offset);
+    public static System.UInt64 ToUInt64(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToUInt64(ref offset);
 
     /// <summary>
-    /// Reads a 64-bit signed integer (<see cref="long"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 64-bit signed integer (<see cref="System.Int64"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static long ToInt64(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToInt64(ref offset);
+    public static System.Int64 ToInt64(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToInt64(ref offset);
 
     /// <summary>
-    /// Reads a 32-bit floating point number (<see cref="float"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 32-bit floating point number (<see cref="System.Single"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static float ToSingle(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToSingle(ref offset);
+    public static System.Single ToSingle(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToSingle(ref offset);
 
     /// <summary>
-    /// Reads a 64-bit floating point number (<see cref="double"/>) from a <see cref="byte"/> array at the specified offset.
+    /// Reads a 64-bit floating point number (<see cref="System.Double"/>) from a <see cref="System.Byte"/> array at the specified offset.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static double ToDouble(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToDouble(ref offset);
+    public static System.Double ToDouble(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToDouble(ref offset);
 
     /// <summary>
-    /// Converts a <see cref="byte"/> array to a <see cref="char"/> using the specified encoding.
+    /// Converts a <see cref="System.Byte"/> array to a <see cref="System.Char"/> using the specified encoding.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static char ToChar(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToChar(ref offset);
+    public static System.Char ToChar(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToChar(ref offset);
 
     /// <summary>
-    /// Converts a <see cref="byte"/> array to a <see cref="string"/> using the specified encoding.
+    /// Converts a <see cref="System.Byte"/> array to a <see cref="System.String"/> using the specified encoding.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string? ToString(this byte[] buffer, ref int offset)
-        => ((System.ReadOnlySpan<byte>)buffer).ToString(ref offset);
+    public static System.String? ToString(this System.Byte[] buffer, ref System.Int32 offset)
+        => ((System.ReadOnlySpan<System.Byte>)buffer).ToString(ref offset);
 
     #endregion byte[] overloads
 }
