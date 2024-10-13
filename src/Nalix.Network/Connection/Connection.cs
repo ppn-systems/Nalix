@@ -102,7 +102,7 @@ public sealed partial class Connection : IConnection
         {
             if (value is null || value.Length != 32)
             {
-                throw new System.ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
+                throw new System.ArgumentException("EncryptionKey must be exactly 32 bytes.", nameof(value));
             }
 
             lock (this._lock)

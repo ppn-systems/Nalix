@@ -93,6 +93,13 @@ public sealed class SocketSettings : ConfigurationLoader
     /// </summary>
     public System.Boolean ReuseAddress { get; set; } = false;
 
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent connections allowed by the socket.
+    /// Default is 1000.
+    /// </summary>
+    public System.Int32 MaxConcurrentConnections { get; set; } = 1000;
+
     /// <summary>
     /// Gets a value indicating whether the current operating system is Windows.
     /// </summary>
