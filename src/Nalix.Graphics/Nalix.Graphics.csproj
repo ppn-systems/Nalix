@@ -1,39 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <IsTrimmable>true</IsTrimmable>
-    <OutputType>Library</OutputType>
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <IsTrimmable>true</IsTrimmable>
+        <OutputType>Library</OutputType>
 
-	  <Version>1.7.0</Version>
-	  <PackageVersion>1.7.0</PackageVersion>
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Graphics library.
-      - Includes Parallax rendering system.
-      - Integrated SFML 2.6.1 for 2D graphics, audio, and input.
-      - Support for layered background effects.
-      - Basic UI rendering and scalable icon system.
-      - Compatible with .NET 9.0 on Windows and Linux (linux-x64).
-      - Experimental support for image slicing and animated scenes.
-    </PackageReleaseNotes>
+        <PackageReleaseNotes>
+            - Initial release of Nalix.Graphics library.
+            - Includes Parallax rendering system.
+            - Integrated SFML 2.6.1 for 2D graphics, audio, and input.
+            - Support for layered background effects.
+            - Basic UI rendering and scalable icon system.
+            - Compatible with .NET 9.0 on Windows and Linux (linux-x64).
+            - Experimental support for image slicing and animated scenes.
+        </PackageReleaseNotes>
 
-  </PropertyGroup>
+    </PropertyGroup>
 
-  <Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+    <Import Project="..\Nalix.Build.props" />
+    <Import Project="..\Package.Build.props" />
 
-  <ItemGroup>
-    <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
-    <ProjectReference Include="..\Nalix.Logging\Nalix.Logging.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+        <ProjectReference Include="..\Nalix.Logging\Nalix.Logging.csproj" />
+    </ItemGroup>
   
-  <ItemGroup>
-    <PackageReference Include="SFML.Audio" Version="2.6.1" />
-    <PackageReference Include="SFML.Graphics" Version="2.6.1" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="SFML.Audio" Version="2.6.1" />
+        <PackageReference Include="SFML.Graphics" Version="2.6.1" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
+    </ItemGroup>
 
 </Project>

@@ -7,33 +7,33 @@
         <DefineConstants>UNSAFE</DefineConstants>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-    <Description>
+        <Description>
 Nalix.Cryptography is a high-performance .NET library providing secure and efficient cryptographic utilities. It supports symmetric and asymmetric encryption, authenticated encryption (AEAD), hashing, message authentication codes (MAC), integrity checks, padding schemes, and general security enhancements. Designed for developers requiring robust cryptographic solutions with minimal overhead.
-    </Description>
+        </Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Cryptography.
-      - Features include:
-      • Symmetric and asymmetric encryption for secure data exchange.
-      • Authenticated encryption (AEAD) for data confidentiality and integrity.
-      • Hashing algorithms for secure data fingerprinting.
-      • Message authentication codes (MAC) for verifying message integrity.
-      • Integrity and padding utilities for secure data formatting.
-      • Security enhancements to strengthen cryptographic implementations.
-    </PackageReleaseNotes>
+        <PackageReleaseNotes>
+          - Initial release of Nalix.Cryptography.
+          - Features include:
+          • Symmetric and asymmetric encryption for secure data exchange.
+          • Authenticated encryption (AEAD) for data confidentiality and integrity.
+          • Hashing algorithms for secure data fingerprinting.
+          • Message authentication codes (MAC) for verifying message integrity.
+          • Integrity and padding utilities for secure data formatting.
+          • Security enhancements to strengthen cryptographic implementations.
+        </PackageReleaseNotes>
 	
-</PropertyGroup>
+    </PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
     <Import Project="..\Package.Build.props" />
 
-  <ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
         <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 	    <ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
-  </ItemGroup>
+    </ItemGroup>
 
 </Project>

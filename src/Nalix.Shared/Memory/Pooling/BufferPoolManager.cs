@@ -258,20 +258,14 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
                     .Select(pair =>
                     {
                         String[] parts = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length != 2)
-                        {
-                            throw new FormatException(
+                        return parts.Length != 2
+                            ? throw new FormatException(
                                 $"Incorrectly formatted pair: '{pair}'. " +
-                                $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').");
-                        }
-
-                        if (!Int32.TryParse(parts[0].Trim(), out Int32 allocationSize) || allocationSize <= 0)
-                        {
-                            throw new ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), "Buffers allocation size must be greater than zero.");
-                        }
-
-                        return !Double.TryParse(parts[1].Trim(), out Double ratio) || ratio <= 0 || ratio > 1
+                                $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').")
+                            : !Int32.TryParse(parts[0].Trim(), out Int32 allocationSize) || allocationSize <= 0
+                            ? throw new ArgumentOutOfRangeException(
+                                nameof(bufferAllocationsString), "Buffers allocation size must be greater than zero.")
+                            : !Double.TryParse(parts[1].Trim(), out Double ratio) || ratio <= 0 || ratio > 1
                             ? throw new ArgumentOutOfRangeException(
                                 nameof(bufferAllocationsString), "Ratio must be between 0 and 1.")
                             : (allocationSize, ratio);
