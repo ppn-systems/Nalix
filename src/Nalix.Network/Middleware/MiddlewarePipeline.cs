@@ -93,6 +93,19 @@ public class MiddlewarePipeline<TPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> final,
         System.Threading.CancellationToken startToken)
     {
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
+        static System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> CreateWrapper(
+            PacketContext<TPacket> context, IPacketMiddleware<TPacket> middleware,
+            System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
+        {
+            return token =>
+                middleware.InvokeAsync(
+                    context,
+                    downstreamToken => next(downstreamToken)
+                );
+        }
+
         // Start from 'final', wrap backwards.
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next = final;
 
@@ -100,9 +113,7 @@ public class MiddlewarePipeline<TPacket>
         {
             IPacketMiddleware<TPacket> current = middlewares[i];
             System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> localNext = next;
-
-            // Mỗi middleware nhận 'next' và tự quyết định token nào sẽ đẩy xuống
-            next = (_) => current.InvokeAsync(context, localNext);
+            next = CreateWrapper(context, current, localNext);
         }
 
         // Kick off the chain with the provided starting token
