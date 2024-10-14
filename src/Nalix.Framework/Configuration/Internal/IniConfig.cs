@@ -895,7 +895,7 @@ internal sealed class IniConfig
     }
 
     /// <summary>
-    /// Writes the INI data to the file with optimized I/O and error handling.
+    /// Writes the INI data to the file with optimized IEndpointKey /O and error handling.
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(

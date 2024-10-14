@@ -150,7 +150,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return (ProtocolCode.OPERATION_UNSUPPORTED, ProtocolAction.NONE, ControlFlags.NONE);
         }
 
-        // 5) I/O / socket => phần lớn transient
+        // 5) IEndpointKey /O / socket => phần lớn transient
         if (ex is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException se1)
         {
             return ClassifySocket(se1);

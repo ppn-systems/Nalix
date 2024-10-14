@@ -191,7 +191,7 @@ internal static class Curve25519
 
         System.Byte[] zero = new System.Byte[32];
         System.Byte[] result = ScalarMult(scalar, point);
-        // here I tried to make something like subtle.ConstantTimeCompare
+        // here IEndpointKey  tried to make something like subtle.ConstantTimeCompare
         if (result.Length != zero.Length)
         {
             throw new System.Exception("This should not happen. Because result is always 32 bytes");

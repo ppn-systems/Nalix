@@ -8,7 +8,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Connection;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 
 namespace Nalix.Network.Listeners.Udp;
 

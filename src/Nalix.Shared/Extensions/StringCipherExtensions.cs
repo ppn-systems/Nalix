@@ -6,7 +6,7 @@ using Nalix.Shared.Security;
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
-/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 I/O on top of <see cref="EnvelopeCipher"/>.
+/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 IEndpointKey /O on top of <see cref="EnvelopeCipher"/>.
 /// </summary>
 public static class StringCipherExtensions
 {

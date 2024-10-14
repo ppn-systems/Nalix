@@ -9,7 +9,7 @@ namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// A logging target that buffers log messages and periodically writes them to the console.
-/// This approach improves performance by reducing console I/O operations when logging frequently.
+/// This approach improves performance by reducing console IEndpointKey /O operations when logging frequently.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
