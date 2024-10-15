@@ -474,6 +474,7 @@ internal class TransportStream : System.IDisposable
             this._socket.Close();
 
             this._cache.Dispose();
+            this._socket.Dispose();
         }
 
         this._disposed = true;

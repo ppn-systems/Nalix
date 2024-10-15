@@ -211,7 +211,6 @@ public sealed partial class Connection : IConnection
         }
         finally
         {
-            this._socket.Dispose();
             this._ctokens.Dispose();
             this._cstream.Dispose();
         }
