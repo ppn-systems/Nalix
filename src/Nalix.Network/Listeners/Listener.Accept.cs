@@ -34,23 +34,28 @@ public abstract partial class Listener
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private IConnection InitializeConnection(System.Net.Sockets.Socket socket, PooledAcceptContext context)
+    private IConnection InitializeConnection(
+        System.Net.Sockets.Socket socket,
+        PooledAcceptContext context)
     {
         ConfigureHighPerformanceSocket(socket);
 
-        IConnection connection = new Connection.Connection(socket, this._bufferPool, this._logger);
-
-        connection.OnCloseEvent += (_, _) =>
+        try
         {
+            IConnection connection = new Connection.Connection(socket, this._bufferPool, this._logger);
+
+            connection.EnforceLimiterOnClose(this._connectionLimiter);
+            connection.OnCloseEvent += this.HandleConnectionClose;
+            connection.OnProcessEvent += this._protocol.ProcessMessage!;
+            connection.OnPostProcessEvent += this._protocol.PostProcessMessage!;
+
+            return connection;
+        }
+        finally
+        {
+            // Ensure the context is returned to the pool even if connection creation fails
             ObjectPoolManager.Instance.Return<PooledAcceptContext>(context);
-        };
-
-        connection.EnforceLimiterOnClose(this._connectionLimiter);
-        connection.OnCloseEvent += this.HandleConnectionClose;
-        connection.OnProcessEvent += this._protocol.ProcessMessage!;
-        connection.OnPostProcessEvent += this._protocol.PostProcessMessage!;
-
-        return connection;
+        }
     }
 
     /// <summary>
@@ -94,25 +99,6 @@ public abstract partial class Listener
             this._logger.Error("[TCP] Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
             connection.Close();
         }
-    }
-
-    /// <summary>
-    /// Synchronous method for accepting connections
-    /// </summary>
-    /// <param name="cancellationToken">Identifier for cancellation</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void AcceptConnectionsSync(System.Threading.CancellationToken cancellationToken)
-    {
-        this._cancellationToken = cancellationToken;
-
-        PooledAcceptContext context = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
-        PooledSocketAsyncEventArgs args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
-
-        args.Context = context;
-        args.Completed += this.OnSyncAcceptCompleted;
-
-        this.AcceptNext(args);
     }
 
     /// <summary>
@@ -161,7 +147,7 @@ public abstract partial class Listener
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
-    System.Threading.CancellationToken cancellationToken)
+        System.Threading.CancellationToken cancellationToken)
     {
         PooledAcceptContext context = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
 
@@ -176,7 +162,7 @@ public abstract partial class Listener
                 if (!this._connectionLimiter.IsConnectionAllowed(
                     ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
-                    socket.Close();
+                    this.SafeCloseSocket(socket);
                     throw new System.OperationCanceledException();
                 }
 
@@ -191,11 +177,11 @@ public abstract partial class Listener
             if (!this._connectionLimiter.IsConnectionAllowed(
                 ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
             {
-                socket.Close();
+                this.SafeCloseSocket(socket);
                 throw new System.OperationCanceledException();
             }
 
-            return InitializeConnection(socket, context);
+            return this.InitializeConnection(socket, context);
         }
         catch
         {
@@ -279,14 +265,14 @@ public abstract partial class Listener
                 if (!socket.Connected || socket.Handle.ToInt64() == -1)
                 {
                     this._logger.Warn("[TCP] Socket is invalid or disconnected");
-                    SafeCloseSocket(socket);
+                    this.SafeCloseSocket(socket);
                     return;
                 }
 
                 if (!this._connectionLimiter.IsConnectionAllowed(
                     ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
-                    SafeCloseSocket(socket);
+                    this.SafeCloseSocket(socket);
                     return;
                 }
 
@@ -302,7 +288,7 @@ public abstract partial class Listener
             {
                 this._logger.Warn("[TCP] Socket was disposed during accept");
 
-                SafeCloseSocket(socket);
+                this.SafeCloseSocket(socket);
                 if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
                 {
                     ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context);
