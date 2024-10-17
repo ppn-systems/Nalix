@@ -1,4 +1,4 @@
-using Nalix.Common.Exceptions;
+﻿using Nalix.Common.Exceptions;
 using Nalix.Framework.Time;
 
 namespace Nalix.Network.Listeners;
@@ -26,6 +26,13 @@ public abstract partial class Listener
             return;
         }
 
+        if (this._listener == null ||
+            !this._listener.IsBound ||
+            this._listener.SafeHandle.IsInvalid)
+        {
+            this.CreateSocketListener();
+        }
+
         try
         {
             this._isRunning = true;
@@ -41,7 +48,7 @@ public abstract partial class Listener
             {
                 try
                 {
-                    this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                    this._listener?.Close();
                 }
                 catch { }
             });
@@ -102,7 +109,7 @@ public abstract partial class Listener
 
                     if (this._listener != null)
                     {
-                        this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                        this._listener?.Close();
                         await System.Threading.Tasks.Task.Delay(200, cancellationToken)
                                                          .ConfigureAwait(false);
                     }
@@ -134,7 +141,7 @@ public abstract partial class Listener
             // Close the socket listener to deactivate the accept
             if (this._isRunning)
             {
-                this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                this._listener?.Close();
                 this._logger.Info($"[TCP] Listener on {Config.Port} stopped");
             }
         }
@@ -142,8 +149,12 @@ public abstract partial class Listener
         {
             this._logger.Error("[TCP] Error closing listener socket: {0}", ex.Message);
         }
-
-        this._isRunning = false;
+        finally
+        {
+            this._isRunning = false;
+            this._cts?.Dispose();
+            this._cts = null;
+        }
     }
 
     /// <summary>
