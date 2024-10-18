@@ -23,9 +23,8 @@ public partial class ConfigurationLoader
         if (property.PropertyType.IsEnum)
         {
             // Use reflection to call generic method
-            var method = typeof(IniConfig)
-                .GetMethod(nameof(IniConfig.GetEnum))
-                ?.MakeGenericMethod(property.PropertyType);
+            System.Reflection.MethodInfo? method = typeof(IniConfig).GetMethod(nameof(IniConfig.GetEnum))?
+                                                                    .MakeGenericMethod(property.PropertyType);
 
             return method?.Invoke(configFile, [section, property.Name]);
         }
@@ -47,6 +46,7 @@ public partial class ConfigurationLoader
             System.TypeCode.Single => configFile.GetSingle(section, property.Name),
             System.TypeCode.Double => configFile.GetDouble(section, property.Name),
             System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
+            System.TypeCode.Object when property.PropertyType == typeof(System.Guid) => configFile.GetGuid(section, property.Name),
             System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan) => configFile.GetTimeSpan(section, property.Name),
             _ => ThrowUnsupported(property),
         };
@@ -63,7 +63,7 @@ public partial class ConfigurationLoader
     private void HandleEmptyValue(IniConfig configFile, System.String section, PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
-        System.String valueToWrite;
+        System.Object valueToWrite = currentValue ?? "null";
 
         if (property.PropertyType.IsEnum)
         {
@@ -106,6 +106,8 @@ public partial class ConfigurationLoader
             System.TypeCode.Boolean => "false",
             System.TypeCode.Char => System.String.Empty,
             System.TypeCode.String => System.String.Empty,
+            System.TypeCode.Object when propertyType.PropertyType == typeof(System.Guid) =>
+            System.Guid.Empty.ToString("c", System.Globalization.CultureInfo.InvariantCulture),
             System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             System.TypeCode.Object when propertyType.PropertyType == typeof(System.TimeSpan) =>
             System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture),
@@ -124,7 +126,6 @@ public partial class ConfigurationLoader
                                 .Error($"[{nameof(ConfigurationLoader)}:{nameof(ThrowUnsupported)}] " +
                                        $"unsupported-type type={property.PropertyType.Name} key={property.Name}");
 
-        throw new System.NotSupportedException(
-            $"Value type {property.PropertyType.Name} is not supported for configuration files.");
+        throw new System.NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files.");
     }
 }
