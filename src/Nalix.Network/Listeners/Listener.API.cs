@@ -30,7 +30,7 @@ public abstract partial class Listener
             !this._listener.IsBound ||
             this._listener.SafeHandle.IsInvalid)
         {
-            this.CreateSocketListener();
+            this.InitializeTcpListenerSocket();
         }
 
         try
