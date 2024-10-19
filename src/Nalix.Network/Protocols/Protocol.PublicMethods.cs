@@ -68,7 +68,7 @@ public abstract partial class Protocol
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
 
-            // Connection failed validation, close immediately
+            // Connections failed validation, close immediately
             connection.Close();
             return;
         }

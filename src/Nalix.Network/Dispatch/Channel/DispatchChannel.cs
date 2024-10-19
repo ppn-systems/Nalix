@@ -10,7 +10,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Connection;
+using Nalix.Network.Connections;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch.Channel;

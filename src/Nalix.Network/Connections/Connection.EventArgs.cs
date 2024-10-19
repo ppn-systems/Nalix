@@ -2,7 +2,7 @@
 
 using Nalix.Common.Connection;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 /// <summary>
 /// Provides event data for connection-related events.
