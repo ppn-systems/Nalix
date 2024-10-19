@@ -2,7 +2,7 @@
 using Nalix.Framework.Time;
 using Nalix.Network.Timing;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Tcp;
 
 /// <summary>
 /// An abstract base class for network listeners.
