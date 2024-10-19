@@ -2,12 +2,12 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<IsTrimmable>true</IsTrimmable>
+		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
 		<Deterministic>true</Deterministic>
 
-		<Version>2.1.7</Version>
-		<PackageVersion>2.1.7</PackageVersion>
+		<Version>2.3.0</Version>
+		<PackageVersion>2.3.0</PackageVersion>
 
 		<Description>
 A high-performance, configurable TCP remote client for integrating with Nalix-based systems. Provides reliable communication, automatic packet handling, and simple async connection support.

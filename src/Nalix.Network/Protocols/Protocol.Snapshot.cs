@@ -1,5 +1,5 @@
 using Nalix.Common.Abstractions;
-using Nalix.Network.Snapshot;
+using Nalix.Network.Observability;
 
 namespace Nalix.Network.Protocols;
 

@@ -1,6 +1,6 @@
 using Nalix.Common.Package.Enums;
 
-namespace Nalix.Network.Snapshot;
+namespace Nalix.Network.Observability;
 
 /// <summary>
 /// Provides detailed statistics and performance metrics for a priority-based packet queue.
