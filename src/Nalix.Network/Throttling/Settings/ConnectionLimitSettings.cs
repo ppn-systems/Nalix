@@ -1,6 +1,6 @@
 using System;
 
-namespace Nalix.Network.Security.Settings;
+namespace Nalix.Network.Throttling.Settings;
 
 /// <summary>
 /// Represents settings for connection limits, including maximum connections, cleanup interval, and inactivity threshold.

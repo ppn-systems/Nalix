@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Connection;
-using Nalix.Network.Security.Guard;
+using Nalix.Network.Throttling;
 using System;
 using System.Linq;
 using System.Net;
