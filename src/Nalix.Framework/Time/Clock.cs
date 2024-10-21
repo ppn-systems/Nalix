@@ -333,15 +333,7 @@ public static class Clock
     public static System.DateTime Clamp(
         System.DateTime value,
         System.DateTime min,
-        System.DateTime max)
-    {
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value > max ? max : value;
-    }
+        System.DateTime max) => value < min ? min : value > max ? max : value;
 
     /// <summary>
     /// Clamps a TimeSpan between a minimum and maximum value.
@@ -351,15 +343,7 @@ public static class Clock
     public static System.TimeSpan Clamp(
         System.TimeSpan value,
         System.TimeSpan min,
-        System.TimeSpan max)
-    {
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value > max ? max : value;
-    }
+        System.TimeSpan max) => value < min ? min : value > max ? max : value;
 
     #endregion Comparison Methods
 
@@ -626,12 +610,9 @@ public static class Clock
         var totalDuration = endTime - startTime;
         var elapsed = GetUtcNowPrecise() - startTime;
 
-        if (elapsed <= System.TimeSpan.Zero)
-        {
-            return 0.0;
-        }
-
-        return elapsed >= totalDuration ? 1.0 : elapsed.TotalMilliseconds / totalDuration.TotalMilliseconds;
+        return elapsed <= System.TimeSpan.Zero
+            ? 0.0
+            : elapsed >= totalDuration ? 1.0 : elapsed.TotalMilliseconds / totalDuration.TotalMilliseconds;
     }
 
     #endregion Time-based Operations
@@ -759,12 +740,9 @@ public static class Clock
                 return $"in {System.Math.Floor(diff.TotalDays / 7)} weeks";
             }
 
-            if (diff.TotalDays < 60)
-            {
-                return "in a month";
-            }
-
-            return diff.TotalDays < 365
+            return diff.TotalDays < 60
+                ? "in a month"
+                : diff.TotalDays < 365
                 ? $"in {System.Math.Floor(diff.TotalDays / 30)} months"
                 : $"in {System.Math.Floor(diff.TotalDays / 365)} years";
         }
@@ -815,12 +793,9 @@ public static class Clock
             return $"{System.Math.Floor(diff.TotalDays / 7)} weeks ago";
         }
 
-        if (diff.TotalDays < 60)
-        {
-            return "a month ago";
-        }
-
-        return diff.TotalDays < 365
+        return diff.TotalDays < 60
+            ? "a month ago"
+            : diff.TotalDays < 365
             ? $"{System.Math.Floor(diff.TotalDays / 30)} months ago"
             : $"{System.Math.Floor(diff.TotalDays / 365)} years ago";
     }

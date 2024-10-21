@@ -189,7 +189,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     public System.String ToHexString()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
-        _ = TryWriteBytes(buffer, out _);
+        _ = TrySerialize(buffer, out _);
         return System.Convert.ToHexString(buffer);
     }
 
@@ -208,23 +208,6 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     #region Serialization Methods
 
     /// <summary>
-    /// Converts this identifier to a byte array.
-    /// </summary>
-    /// <returns>A 7-byte array containing the binary representation of this identifier.</returns>
-    /// <remarks>
-    /// The returned array contains the identifier in little-endian format:
-    /// - Bytes 0-3: Value (uint)
-    /// - Bytes 4-5: Machine ID (ushort)
-    /// - Byte 6: Type (byte)
-    /// </remarks>
-    public System.Byte[] ToByteArray()
-    {
-        System.Byte[] result = new System.Byte[7];
-        _ = TryWriteBytes(result, out _);
-        return result;
-    }
-
-    /// <summary>
     /// Creates a <see cref="Identifier"/> from a 7-byte array.
     /// </summary>
     /// <param name="bytes">The byte array containing the identifier data.</param>
@@ -232,7 +215,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier FromByteArray(System.ReadOnlySpan<System.Byte> bytes)
+    public static Identifier Deserialize(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
         {
@@ -258,11 +241,43 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier FromByteArray(System.Byte[] bytes)
+    public static Identifier Deserialize(System.Byte[] bytes)
     {
         return bytes == null || bytes.Length != 7
             ? throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes))
-            : FromByteArray(System.MemoryExtensions.AsSpan(bytes));
+            : Deserialize(System.MemoryExtensions.AsSpan(bytes));
+    }
+
+    /// <summary>
+    /// Parses a Base36 string representation of a <see cref="Identifier"/>.
+    /// </summary>
+    /// <param name="text">The Base36 string to parse.</param>
+    /// <returns>A <see cref="Identifier"/> instance equivalent to the Base36 string.</returns>
+    /// <exception cref="System.FormatException">
+    /// Thrown if the input string is not a valid Base36 representation of a <see cref="Identifier"/>.
+    /// </exception>
+    public static Identifier Deserialize(System.String text)
+    {
+        return !TryDeserialize(System.MemoryExtensions.AsSpan(text), out Identifier result)
+            ? throw new System.FormatException($"Invalid Base36 handle: '{text}'")
+            : result;
+    }
+
+    /// <summary>
+    /// Converts this identifier to a byte array.
+    /// </summary>
+    /// <returns>A 7-byte array containing the binary representation of this identifier.</returns>
+    /// <remarks>
+    /// The returned array contains the identifier in little-endian format:
+    /// - Bytes 0-3: Value (uint)
+    /// - Bytes 4-5: Machine ID (ushort)
+    /// - Byte 6: Type (byte)
+    /// </remarks>
+    public System.Byte[] Serialize()
+    {
+        System.Byte[] result = new System.Byte[7];
+        _ = TrySerialize(result, out _);
+        return result;
     }
 
     /// <summary>
@@ -273,7 +288,8 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <returns>
     /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
     /// </returns>
-    public System.Boolean TryFormat(System.Span<System.Char> destination, out System.Byte charsWritten)
+    public System.Boolean TrySerialize(
+        System.Span<System.Char> destination, out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
         System.Span<System.Char> buffer = stackalloc System.Char[13];
@@ -302,21 +318,6 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     }
 
     /// <summary>
-    /// Parses a Base36 string representation of a <see cref="Identifier"/>.
-    /// </summary>
-    /// <param name="text">The Base36 string to parse.</param>
-    /// <returns>A <see cref="Identifier"/> instance equivalent to the Base36 string.</returns>
-    /// <exception cref="System.FormatException">
-    /// Thrown if the input string is not a valid Base36 representation of a <see cref="Identifier"/>.
-    /// </exception>
-    public static Identifier ParseBase36(System.String text)
-    {
-        return !TryParseBase36(System.MemoryExtensions.AsSpan(text), out Identifier result)
-            ? throw new System.FormatException($"Invalid Base36 handle: '{text}'")
-            : result;
-    }
-
-    /// <summary>
     /// Attempts to write the binary representation of this identifier to the specified span.
     /// </summary>
     /// <param name="destination">The span to write the bytes to.</param>
@@ -332,7 +333,8 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten)
+    public System.Boolean TrySerialize(
+        System.Span<System.Byte> destination, out System.Int32 bytesWritten)
     {
         if (destination.Length < 7)
         {
@@ -368,7 +370,8 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryParseBase36(System.ReadOnlySpan<System.Char> text, out Identifier handle)
+    public static System.Boolean TryDeserialize(
+        System.ReadOnlySpan<System.Char> text, out Identifier handle)
     {
         handle = default;
 
