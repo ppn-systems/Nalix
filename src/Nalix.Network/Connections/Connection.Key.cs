@@ -184,7 +184,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Equals(Nalix.Common.Abstractions.IEndpointKey? other)
+        public System.Boolean Equals(IEndpointKey? other)
         {
             if (other is null)
             {
@@ -195,22 +195,6 @@ public sealed partial class Connection
             if (other is EndpointKey concrete)
             {
                 return Equals(concrete);
-            }
-
-            // Fallback: compare via interface contract (canonical textual representation).
-            if (IsIPv6 != other.IsIPv6)
-            {
-                return false;
-            }
-
-            if (HasPort != other.HasPort)
-            {
-                return false;
-            }
-
-            if (HasPort && Port != other.Port)
-            {
-                return false;
             }
 
             return System.String.Equals(
