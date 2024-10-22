@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Metadata;
+namespace Nalix.Common.Packets.Metadata;
 
 /// <summary>
 /// Offsets for the components in the packet header.
@@ -16,14 +16,14 @@ public static class PacketOffset
     public const System.Int32 OpCode = Length + PacketSize.Length;
 
     /// <summary>
-    /// Offset for the packet Number.
+    /// Offset for the packet ProtocolType.
     /// </summary>
-    public const System.Int32 Number = OpCode + PacketSize.OpCode;
+    public const System.Int32 Protocol = OpCode + PacketSize.OpCode;
 
     /// <summary>
     /// Offset for the packet checksum.
     /// </summary>
-    public const System.Int32 Checksum = Number + PacketSize.Number;
+    public const System.Int32 Checksum = Protocol + PacketSize.Protocol;
 
     /// <summary>
     /// Offset for the packet timestamp.

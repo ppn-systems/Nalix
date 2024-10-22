@@ -1,11 +1,12 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿using Nalix.Common.Packets;
+using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Packet;
 
 /// <inheritdoc/>
 internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
-    where TPacket : Common.Package.IPacket
+    where TPacket : IPacket
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

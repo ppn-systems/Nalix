@@ -1,6 +1,6 @@
 using Nalix.Common.Security.Cryptography;
 
-namespace Nalix.Common.Package;
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Provides a contract for encrypting and decrypting a packet of type <typeparamref name="TPacket"/>.

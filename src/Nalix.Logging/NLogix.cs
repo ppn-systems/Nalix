@@ -41,7 +41,7 @@ public sealed partial class NLogix : LogEngine, ILogger
     private static System.String SanitizeLogMessage(System.String? message)
         => message?.Replace("\n", "").Replace("\r", "") ?? System.String.Empty;
 
-    // Writes a log entry with the specified level, event Number, message, and optional exception.
+    // Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void WriteLog(

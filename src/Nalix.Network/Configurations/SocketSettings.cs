@@ -1,4 +1,4 @@
-using Nalix.Common.Package.Metadata;
+using Nalix.Common.Packets.Metadata;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 

@@ -1,5 +1,5 @@
 using Nalix.Common.Exceptions;
-using Nalix.Common.Package.Enums;
+using Nalix.Common.Packets.Enums;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
@@ -50,7 +50,7 @@ public static class PacketCompact
             return bytes.Length >= packet.Payload.Length
                 ? throw new PackageException("")
                 : new Packet(
-                packet.OpCode, packet.Number,
+                packet.OpCode, packet.ProtocolType,
                 packet.Checksum, packet.Timestamp, packet.Type,
                 packet.Flags | PacketFlags.Compressed, packet.Priority, bytes);
         }
@@ -91,7 +91,7 @@ public static class PacketCompact
         try
         {
             return new Packet(
-                packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
+                packet.OpCode, packet.ProtocolType, packet.Checksum, packet.Timestamp,
                 packet.Type, packet.Flags & ~PacketFlags.Compressed,
                 packet.Priority, DecompressLZ4(packet.Payload.Span));
         }

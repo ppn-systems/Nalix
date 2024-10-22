@@ -1,7 +1,7 @@
 namespace Nalix.Common.Security.Identity;
 
 /// <summary>
-/// Number type to serve different purposes in the system.
+/// ProtocolType type to serve different purposes in the system.
 /// </summary>
 public enum IdentifierType : System.Byte
 {
@@ -131,7 +131,7 @@ public enum IdentifierType : System.Byte
     #endregion External Integration
 
     /// <summary>
-    /// The maximum valid value for Number types.
+    /// The maximum valid value for ProtocolType types.
     /// </summary>
     MaxValue = 255
 }

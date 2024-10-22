@@ -25,7 +25,7 @@ public abstract partial class Protocol
     #endregion Properties
 
     /// <summary>
-    /// Disposes resources used by this Protocol.
+    /// Disposes resources used by this ProtocolType.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

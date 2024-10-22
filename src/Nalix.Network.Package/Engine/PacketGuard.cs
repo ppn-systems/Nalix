@@ -1,6 +1,6 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Package.Enums;
+using Nalix.Common.Packets.Enums;
 using Nalix.Common.Security.Cryptography;
 using Nalix.Cryptography;
 
@@ -53,7 +53,7 @@ public static class PacketGuard
         try
         {
             return new Packet(
-                packet.OpCode, packet.Number, packet.Checksum,
+                packet.OpCode, packet.ProtocolType, packet.Checksum,
                 packet.Timestamp, packet.Type, packet.Flags | PacketFlags.Encrypted,
                 packet.Priority, Ciphers.Encrypt(packet.Payload, key, algorithm));
         }
@@ -110,7 +110,7 @@ public static class PacketGuard
         try
         {
             return new Packet(
-                packet.OpCode, packet.Number, packet.Checksum,
+                packet.OpCode, packet.ProtocolType, packet.Checksum,
                 packet.Timestamp, packet.Type, packet.Flags & ~PacketFlags.Encrypted,
                 packet.Priority, Ciphers.Decrypt(packet.Payload, key, algorithm));
         }

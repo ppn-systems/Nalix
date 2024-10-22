@@ -60,7 +60,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
         this System.String message,
         System.String source,
@@ -84,7 +84,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line Number.</param>
+    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
     public static void Log(
         this System.String message,
         System.Type source,
@@ -107,7 +107,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
         this System.Exception ex,
         System.String? source = null,
@@ -134,7 +134,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
         this System.Exception ex,
         System.Type? source = null,

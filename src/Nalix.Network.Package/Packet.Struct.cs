@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Package;
-using Nalix.Common.Package.Enums;
+﻿using Nalix.Common.Packets;
+using Nalix.Common.Packets.Enums;
 
 namespace Nalix.Network.Package;
 
@@ -14,9 +14,9 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific ProtocolType and payload.
     /// </summary>
-    /// <param name="opCode">The packet Number.</param>
+    /// <param name="opCode">The packet ProtocolType.</param>
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -26,9 +26,9 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific ProtocolType and payload.
     /// </summary>
-    /// <param name="opCode">The packet Number.</param>
+    /// <param name="opCode">The packet ProtocolType.</param>
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

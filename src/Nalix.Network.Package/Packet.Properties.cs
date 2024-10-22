@@ -1,6 +1,6 @@
 using Nalix.Common.Constants;
-using Nalix.Common.Package.Enums;
-using Nalix.Common.Package.Metadata;
+using Nalix.Common.Packets.Enums;
+using Nalix.Common.Packets.Metadata;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Network.Package.Engine.Internal;
@@ -57,7 +57,7 @@ public readonly partial struct Packet
     public System.UInt16 Length => (System.UInt16)(PacketSize.Header + Payload.Length);
 
     /// <summary>
-    /// Gets the Number associated with the packet, which specifies an operation type.
+    /// Gets the ProtocolType associated with the packet, which specifies an operation type.
     /// </summary>
     [SerializeOrder(PacketOffset.OpCode)]
     public System.UInt16 OpCode { get; }
@@ -65,8 +65,8 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the packet identifier, which is a unique identifier for this packet instance.
     /// </summary>
-    [SerializeOrder(PacketOffset.Number)]
-    public System.Byte Number { get; }
+    [SerializeOrder(PacketOffset.Protocol)]
+    public System.Byte ProtocolType { get; }
 
     /// <summary>
     /// Gets the CRC32 checksum of the packet payload for integrity validation.

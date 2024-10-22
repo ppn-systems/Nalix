@@ -1,6 +1,6 @@
 using Nalix.Common.Security.Cryptography;
 
-namespace Nalix.Common.Package.Attributes;
+namespace Nalix.Common.Packets.Attributes;
 
 /// <summary>
 /// Custom attribute to indicate if a method should have packet encryption.

@@ -1,4 +1,5 @@
-﻿using Nalix.Network.Dispatch.Internal.ReturnTypes.Memory;
+﻿using Nalix.Common.Packets;
+using Nalix.Network.Dispatch.Internal.ReturnTypes.Memory;
 using Nalix.Network.Dispatch.Internal.ReturnTypes.Packet;
 using Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
 using Nalix.Network.Dispatch.Internal.ReturnTypes.Task;
@@ -15,10 +16,10 @@ namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
 /// IPacket, IPacketFactory, IPacketEncryptor, and IPacketCompressor.
 /// </typeparam>
 internal static class ReturnTypeHandlerFactory<TPacket>
-    where TPacket : Common.Package.IPacket,
-                   Common.Package.IPacketFactory<TPacket>,
-                   Common.Package.IPacketEncryptor<TPacket>,
-                   Common.Package.IPacketCompressor<TPacket>
+    where TPacket : IPacket,
+                   IPacketFactory<TPacket>,
+                   IPacketEncryptor<TPacket>,
+                   IPacketCompressor<TPacket>
 {
     /// <summary>
     /// Cached handlers để tránh recreation.
@@ -28,10 +29,10 @@ internal static class ReturnTypeHandlerFactory<TPacket>
     static ReturnTypeHandlerFactory()
     {
         // Ensure the factory is initialized with the correct packet type.
-        if (!typeof(TPacket).IsAssignableTo(typeof(Common.Package.IPacket)))
+        if (!typeof(TPacket).IsAssignableTo(typeof(IPacket)))
         {
             throw new System.ArgumentException(
-                $"TPacket must implement {nameof(Common.Package.IPacket)}.");
+                $"TPacket must implement {nameof(IPacket)}.");
         }
 
         _handlers = CreateHandlers();

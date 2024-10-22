@@ -1,7 +1,7 @@
 namespace Nalix.Network.Package;
 
 [System.Diagnostics.DebuggerDisplay(
-    "Packet {OpCode}: OpCode={OpCode}, Number={Number}, Length={Length}, Type={Type}, Flags={Flags}")]
+    "Packet {OpCode}: OpCode={OpCode}, ProtocolType={ProtocolType}, Length={Length}, Type={Type}, Flags={Flags}")]
 public readonly partial struct Packet
 {
     /// <summary>
@@ -9,7 +9,7 @@ public readonly partial struct Packet
     /// </summary>
     /// <remarks>
     /// This method provides a structured view of the packet's contents, including:
-    /// - Number, type, flags, Number, priority, timestamp, and checksum.
+    /// - ProtocolType, type, flags, ProtocolType, priority, timestamp, and checksum.
     /// - Payload size and, if applicable, a hex dump of the payload data.
     /// - If the payload is larger than 32 bytes, only the first and last 16 bytes are displayed.
     /// </remarks>
@@ -25,7 +25,7 @@ public readonly partial struct Packet
         _ = sb.AppendLine($"Packet [{OpCode}]:");
         _ = sb.AppendLine($"  Type: {Type}");
         _ = sb.AppendLine($"  Flags: {Flags}");
-        _ = sb.AppendLine($"  Number: 0x{Number:X4}");
+        _ = sb.AppendLine($"  ProtocolType: 0x{ProtocolType:X4}");
         _ = sb.AppendLine($"  Priority: {Priority}");
         _ = sb.AppendLine($"  Timestamp: {Timestamp}");
         _ = sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");
@@ -68,7 +68,7 @@ public readonly partial struct Packet
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString()
-        => $"Packet Number={Number}, Type={Type}, Number={OpCode}, " +
+        => $"Packet ProtocolType={ProtocolType}, Type={Type}, ProtocolType={OpCode}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
            $"Checksum={IsValid()}, Payload={Payload.Length} bytes, Size={Length} bytes";
 }
