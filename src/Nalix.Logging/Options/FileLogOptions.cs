@@ -64,7 +64,7 @@ public sealed class FileLogOptions
     }
 
     /// <summary>
-    /// The maximum ProtocolType of entries that can be queued before blocking or discarding.
+    /// The maximum TransportProtocol of entries that can be queued before blocking or discarding.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     public System.Int32 MaxQueueSize
@@ -86,7 +86,7 @@ public sealed class FileLogOptions
     /// Gets or sets the name template for log files.
     /// </summary>
     /// <remarks>
-    /// The actual filename may have additional information appended like date or sequence ProtocolType.
+    /// The actual filename may have additional information appended like date or sequence TransportProtocol.
     /// </remarks>
     public System.String LogFileName
     {

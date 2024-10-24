@@ -35,7 +35,7 @@ internal static class LoggingBuilder
     /// <param name="builder">The StringBuilder to append the log to.</param>
     /// <param name="timeStamp">The timestamp of the log entry.</param>
     /// <param name="logLevel">The logging level.</param>
-    /// <param name="eventId">The event ProtocolType associated with the log entry.</param>
+    /// <param name="eventId">The event TransportProtocol associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception information.</param>
     /// <param name="colors">Whether to include ANSI color codes in the output.</param>
@@ -69,7 +69,7 @@ internal static class LoggingBuilder
     /// </summary>
     /// <param name="timeStamp">The timestamp of the log entry.</param>
     /// <param name="logLevel">The logging level.</param>
-    /// <param name="eventId">The event ProtocolType associated with the log entry.</param>
+    /// <param name="eventId">The event TransportProtocol associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception information.</param>
     /// <param name="colors">Whether to include ANSI color codes in the output.</param>
@@ -186,7 +186,7 @@ internal static class LoggingBuilder
     }
 
     /// <summary>
-    /// Appends a formatted event ProtocolType to the string builder if it exists.
+    /// Appends a formatted event TransportProtocol to the string builder if it exists.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -194,7 +194,7 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         in EventId eventId, System.Boolean colors)
     {
-        // Skip if it's the empty event ProtocolType
+        // Skip if it's the empty event TransportProtocol
         if (eventId.Id == 0)
         {
             return;
@@ -208,7 +208,7 @@ internal static class LoggingBuilder
             _ = builder.Append(ColorAnsi.Blue);
         }
 
-        // Append ProtocolType
+        // Append TransportProtocol
         _ = builder.Append(eventId.Id);
 
         // Append name if present
@@ -368,10 +368,10 @@ internal static class LoggingBuilder
         // Base size includes timestamp format, brackets, and separators
         System.Int32 length = LoggingConstants.DefaultLogBufferSize + message.Length;
 
-        // Add event ProtocolType length if present
+        // Add event TransportProtocol length if present
         if (eventId.Id != 0)
         {
-            length += 5; // Brackets, space, and typical ProtocolType length
+            length += 5; // Brackets, space, and typical TransportProtocol length
             if (eventId.Name != null)
             {
                 length += eventId.Name.Length + 1; // +1 for colon

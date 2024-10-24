@@ -22,7 +22,7 @@ public static class SecureCredentials
     public const System.Int32 SaltSize = 32;
 
     /// <summary>
-    /// ProtocolType of iterations for PBKDF2.
+    /// TransportProtocol of iterations for PBKDF2.
     /// </summary>
     public const System.Int32 Iterations = 100_000;
 

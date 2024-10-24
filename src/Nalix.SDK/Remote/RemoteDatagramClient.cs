@@ -9,10 +9,10 @@ namespace Nalix.SDK.Remote;
 /// This client is designed to communicate with a predefined remote endpoint using the UDP protocol.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type that must implement <see cref="IPacket"/>, <see cref="IPacketFactory{TPacket}"/>, and <see cref="IPacketDeserializer{TPacket}"/>.
+/// The packet type that must implement <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>, and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
 public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable
-    where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 

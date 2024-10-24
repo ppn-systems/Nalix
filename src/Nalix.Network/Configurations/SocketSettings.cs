@@ -1,4 +1,3 @@
-using Nalix.Common.Packets.Metadata;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
@@ -77,7 +76,7 @@ public sealed class SocketSettings : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum size of the UDP packet.
     /// </summary>
-    public System.Int32 MinUdpSize { get; set; } = PacketSize.Header + 16;
+    public System.Int32 MinUdpSize { get; set; } = 32;
 
     /// <summary>
     /// Gets or sets a value indicating whether the socket should use the Reliable Keep-Alive mechanism.

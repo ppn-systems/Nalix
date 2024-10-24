@@ -23,7 +23,7 @@ internal class TypePool(System.Int32 maxCapacity)
     #region Properties
 
     /// <summary>
-    /// Gets the ProtocolType of objects available in this pool.
+    /// Gets the TransportProtocol of objects available in this pool.
     /// </summary>
     public System.Int32 AvailableCount => _objects.Count;
 
@@ -85,7 +85,7 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <summary>
     /// Clears all objects from this pool.
     /// </summary>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The TransportProtocol of objects removed.</returns>
     public System.Int32 Clear()
     {
         System.Int32 count = _objects.Count;
@@ -97,7 +97,7 @@ internal class TypePool(System.Int32 maxCapacity)
     /// Trims the pool to a target size based on a percentage of the maximum capacity.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The TransportProtocol of objects removed.</returns>
     public System.Int32 Trim(System.Int32 percentage)
     {
         if (percentage >= 100)
