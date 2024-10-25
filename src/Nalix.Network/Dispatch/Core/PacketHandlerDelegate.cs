@@ -62,7 +62,8 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// <returns>A task that completes with the handler’s result.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context) => this.CompiledInvoker(this.ControllerInstance, context);
+    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context)
+        => this.CompiledInvoker(this.ControllerInstance, context);
 
     /// <summary>
     /// <para>✅ <b>Extendable Logic</b>:</para>

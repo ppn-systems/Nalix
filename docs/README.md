@@ -11,9 +11,11 @@ Each project in the Nalix ecosystem has comprehensive documentation with detaile
 ### Core Libraries
 
 #### [**Nalix** - Foundation Library](./Nalix/README.md)
+
 The foundational library providing essential utilities for diagnostics, runtime management, secure randomization, unique identification, threading, and reflection.
 
 **Key Features:**
+
 - 🎲 Advanced randomization (cryptographically secure and high-performance PRNGs)
 - 🆔 Unique identifier generation (Base32/36/58/64 formats)
 - 🔧 Assembly management and dynamic loading
@@ -21,9 +23,11 @@ The foundational library providing essential utilities for diagnostics, runtime 
 - 📊 Performance diagnostics and profiling
 
 #### [**Nalix.Common** - Shared Foundation](./Nalix.Common/README.md)
+
 Foundational library providing essential utilities for logging, memory management, cryptography, security, exception handling, and system operations.
 
 **Key Features:**
+
 - 📝 Comprehensive logging framework with hierarchical levels
 - 🧠 Memory management and buffer pooling
 - 🔒 Security and permission systems
@@ -33,9 +37,11 @@ Foundational library providing essential utilities for logging, memory managemen
 ### Specialized Libraries
 
 #### [**Nalix.Shared** - Cross-Cutting Concerns](./Nalix.Shared/README.md)
+
 Comprehensive library providing shared models, serialization, localization, and foundational definitions used across the entire Nalix ecosystem.
 
 **Key Features:**
+
 - 🔄 High-performance binary serialization (10GB/s+ throughput)
 - 🌐 Localization and internationalization (PO file support)
 - ⏰ Precision time management (microsecond accuracy)
@@ -43,9 +49,11 @@ Comprehensive library providing shared models, serialization, localization, and 
 - 📦 Client communication protocols
 
 #### [**Nalix.Cryptography** - Security Toolkit](./Nalix.Cryptography/README.md)
+
 High-performance cryptographic library providing secure and efficient cryptographic utilities for modern applications.
 
 **Key Features:**
+
 - 🔐 Authenticated encryption (ChaCha20-Poly1305 AEAD)
 - 🔄 Symmetric and asymmetric cryptography
 - 🏷️ Message authentication codes (HMAC, Poly1305)
@@ -53,39 +61,31 @@ High-performance cryptographic library providing secure and efficient cryptograp
 - ⚡ Performance-optimized implementations (>1GB/s throughput)
 
 #### [**Nalix.Network** - Networking Foundation](./Nalix.Network/README.md)
+
 High-performance networking library for building scalable and efficient networking applications with real-time capabilities.
 
 **Key Features:**
+
 - 🚀 High-performance connection management (100,000+ concurrent connections)
 - 🔧 Pluggable protocol framework
 - 📡 Event-driven listeners and async processing
 - 🎯 Packet dispatch and routing system
 - 🛡️ Built-in security and authentication
 
-#### [**Nalix.Network.Package** - Packet Communication](./Nalix.Network.Package/README.md)
-Lightweight library for structured packet-based communication with advanced serialization, compression, and encryption capabilities.
-
-**Key Features:**
-- 📦 Immutable packet structures with rich metadata
-- 🗜️ Built-in compression and encryption
-- ⚡ High-performance serialization (1M+ packets/second)
-- 🔒 Security validation and integrity checks
-- 🛠️ Diagnostic tools and packet inspection
-
 #### [**Nalix.Logging** - Enterprise Logging](./Nalix.Logging/README.md)
+
 Flexible and high-performance logging library providing structured logging capabilities for enterprise applications.
 
 **Key Features:**
+
 - 🎯 Multiple logging targets (console, file, batch, email, database)
 - 📊 Structured logging with JSON/XML support
 - ⚡ High-performance async processing (1M+ logs/second)
 - 🔧 Full dependency injection integration
 - 📈 Built-in performance monitoring and metrics
 
-#### [**Nalix.Graphics** - 2D Graphics Engine](./Nalix.Graphics/README.md)
-Comprehensive 2D graphics and game engine library built on SFML for creating games and interactive applications.
-
 **Key Features:**
+
 - 🎮 Complete game engine with scene management
 - 🖼️ Advanced UI framework with interactive components
 - 🎨 Hardware-accelerated 2D rendering
@@ -187,20 +187,15 @@ logger.Info($"Operations completed in {elapsed:F2}ms");
 
 ## 📊 Performance Characteristics
 
-### Throughput Benchmarks
-- **Serialization**: 10GB/s+ binary serialization
-- **Cryptography**: 1GB/s+ encryption (ChaCha20-Poly1305)
-- **Networking**: 100,000+ concurrent connections
-- **Logging**: 1M+ log entries per second
-- **Packet Processing**: 1M+ packets per second
-
 ### Memory Efficiency
-- **Zero-allocation paths**: Span<T> and Memory<T> usage
+
+- **Zero-allocation paths**: `Span<T>` and `Memory<T>` usage
 - **Object pooling**: Reduced garbage collection pressure
 - **Buffer management**: Efficient memory reuse
 - **Streaming operations**: Process data without full materialization
 
 ### Latency Targets
+
 - **Network operations**: <1ms for local communications
 - **Serialization**: <1µs for small objects
 - **Cryptographic operations**: <100µs for typical workloads
@@ -209,18 +204,20 @@ logger.Info($"Operations completed in {elapsed:F2}ms");
 ## 🛡️ Security Features
 
 ### Cryptographic Capabilities
+
 - **Modern Algorithms**: ChaCha20, Ed25519, X25519, SHA-3
 - **Authenticated Encryption**: ChaCha20-Poly1305 AEAD
 - **Key Management**: Secure key derivation and storage
 - **Constant-Time Operations**: Timing attack resistance
 
 ### Network Security
-- **Transport Layer Security**: TLS 1.3 support
+
 - **Application Layer Encryption**: Additional protection layer
 - **Authentication**: Multi-factor authentication support
 - **Authorization**: Role-based access control (RBAC)
 
 ### Data Protection
+
 - **Input Validation**: Comprehensive sanitization
 - **Secure Defaults**: Security-first configuration
 - **Audit Logging**: Complete audit trails
@@ -229,19 +226,16 @@ logger.Info($"Operations completed in {elapsed:F2}ms");
 ## 🔧 Development Environment
 
 ### Requirements
+
 - **.NET 9.0 SDK** or later
 - **Visual Studio 2022** or Visual Studio Code with C# extensions
 - **Git** for version control
 
 ### Supported Platforms
+
 - **Windows** (x64, ARM64)
 - **Linux** (x64, ARM64)
 - **macOS** (x64, ARM64)
-
-### Package Dependencies
-- **SFML 2.6.1** (Graphics library)
-- **SixLabors.ImageSharp 3.1.8** (Image processing)
-- **System.Text.Json** (JSON serialization)
 
 ## 📖 Documentation Structure
 
@@ -259,12 +253,14 @@ Each library includes comprehensive documentation:
 ## 🧪 Testing and Quality
 
 ### Test Coverage
+
 - **Unit Tests**: Comprehensive test suites for all public APIs
 - **Integration Tests**: End-to-end testing scenarios
 - **Performance Tests**: Benchmark validation
 - **Security Tests**: Vulnerability assessments
 
 ### Quality Assurance
+
 - **Code Analysis**: Static analysis tools
 - **Performance Profiling**: Continuous performance monitoring
 - **Security Scanning**: Automated security assessments
@@ -273,11 +269,13 @@ Each library includes comprehensive documentation:
 ## 🚢 Deployment Options
 
 ### Development
+
 - **Local Development**: Visual Studio debugging
 - **Package Testing**: Local NuGet package testing
 - **Integration Testing**: Isolated test environments
 
 ### Production
+
 - **Docker Containers**: Containerized deployments
 - **Kubernetes**: Orchestrated scaling
 - **Cloud Platforms**: Azure, AWS, GCP support
@@ -286,12 +284,14 @@ Each library includes comprehensive documentation:
 ## 🗺️ Roadmap
 
 ### Version 1.5 (Q2 2024)
+
 - **gRPC Integration**: High-performance RPC support
 - **OpenTelemetry**: Distributed tracing and metrics
 - **Native AOT**: Ahead-of-time compilation support
 - **WebAssembly**: Browser and edge deployment
 
 ### Version 2.0 (Q4 2024)
+
 - **Cloud Native Features**: Enhanced cloud deployment
 - **AI/ML Integration**: Machine learning pipeline support
 - **GraphQL Support**: Modern API query language
@@ -320,10 +320,9 @@ Nalix is licensed under the [Apache License, Version 2.0](LICENSE). See the LICE
 
 ## 📞 Support and Community
 
-- **GitHub Issues**: [Report bugs and request features](https://github.com/phcnguyen/Nalix/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/phcnguyen/Nalix/discussions)
-- **Documentation**: [Complete API documentation](https://nalixdocs.example.com)
-- **Examples**: [Sample applications and tutorials](https://github.com/phcnguyen/Nalix/tree/master/examples)
+- **GitHub Issues**: [Report bugs and request features](https://github.com/ppn-systems/Nalix/issues)
+- **Discussions**: [Community discussions and Q&A](https://github.com/ppn-systems/Nalix/discussions)
+- **Examples**: [Sample applications and tutorials](https://github.com/ppn-systems/Nalix/tree/master/examples)
 
 ---
 
