@@ -32,6 +32,7 @@ public static class PolicyRateLimiter
     private static readonly System.Int32[] RpsTiers;
     private static readonly System.Int32[] BurstTiers;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters;
+    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
 
     private static System.Int32 s_checkCounter;
 
@@ -233,9 +234,6 @@ public static class PolicyRateLimiter
             }
         }
     }
-
-    // Reuse your existing default options loader:
-    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
 
     #endregion Private Methods
 }

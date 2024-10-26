@@ -29,8 +29,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
-        System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(System.Threading.CancellationToken cancellationToken = default)
     {
         await _rxGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -115,7 +114,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         }
         finally
         {
-            _rxGate.Release();
+            _ = _rxGate.Release();
         }
     }
 }
