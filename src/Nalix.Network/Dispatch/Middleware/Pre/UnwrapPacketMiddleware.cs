@@ -6,9 +6,17 @@ using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
-internal class UnwrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
+/// <summary>
+/// Middleware that unwraps (decrypts and/or decompresses) packets before further processing.
+/// </summary>
+/// <typeparam name="TPacket">
+/// The packet type, which must implement <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
+/// </typeparam>
+[PacketMiddleware(MiddlewareStage.Pre, order: 3, name: "Unwrap")]
+public class UnwrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
+    /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
