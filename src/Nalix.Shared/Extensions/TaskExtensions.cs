@@ -26,7 +26,7 @@ public static class TaskExtensions
     /// <para>This method operates similarly to the <see langword="await"/> C# operator,
     /// but is meant to be called from a non-<see langword="async"/> method.</para>
     /// </summary>
-    /// <typeparam name="TResult">The type of the task's result.</typeparam>
+    /// <typeparam name="TResult">The type of the @this's result.</typeparam>
     /// <param name="this">The <see cref="System.Threading.Tasks.Task{TResult}"/> on which this method is called.</param>
     /// <returns>The result of <paramref name="this"/>.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
@@ -55,5 +55,36 @@ public static class TaskExtensions
         System.ArgumentNullException.ThrowIfNull(@this);
 
         @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Suspends execution until the specified <see cref="System.Threading.Tasks.Task{TResult}"/> is completed or the timeout expires.
+    /// <para>
+    /// If the task completes within the specified timeout, its result is returned.
+    /// Otherwise, <c>default</c> is returned.
+    /// </para>
+    /// <para>
+    /// This method is useful for awaiting a task with a timeout in non-<see langword="async"/> methods.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">The type of the result produced by the task.</typeparam>
+    /// <param name="this">The <see cref="System.Threading.Tasks.Task{TResult}"/> to await.</param>
+    /// <param name="msTimeout">The timeout in milliseconds.</param>
+    /// <returns>
+    /// The result of the task if it completes within the timeout; otherwise, <c>default</c>.
+    /// </returns>
+    public static async System.Threading.Tasks.Task<T?> WithTimeout<T>(
+        this System.Threading.Tasks.Task<T> @this,
+        System.Int32 msTimeout)
+    {
+        var timeout = System.Threading.Tasks.Task.Delay(msTimeout);
+        var completed = await System.Threading.Tasks.Task.WhenAny(@this, timeout);
+
+        if (completed == @this)
+        {
+            return await @this;
+        }
+
+        return default; // or throw TimeoutException
     }
 }
