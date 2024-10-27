@@ -129,20 +129,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 
             while (reader.TryRead(out TPacket? packet))
             {
-                if (packet.IsExpired((System.Int64)this._options.Timeout.TotalMilliseconds))
-                {
-                    //packet.Dispose();
-                    totalExpired++;
-
-                    if (this._options.EnableMetrics)
-                    {
-                        this._expiredCounts![i]++;
-                    }
-                }
-                else
-                {
-                    buffer.Add(packet);
-                }
+                buffer.Add(packet);
             }
 
             for (System.Int32 j = 0; j < buffer.Count; j++)
