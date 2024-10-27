@@ -42,6 +42,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private System.EventHandler<IConnectEventArgs>? _callbackClose;
 
     private System.Int32 _disposed;                 // 0 = no, 1 = yes
+    private System.Int32 _closeSignaled;
     private System.Int32 _receiveStarted;           // 0 = not yet, 1 = started
     private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
     private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
@@ -159,7 +160,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                     if (n == 0)
                     {
                         this.CancelReceiveOnce();
-                        AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+                        this.InvokeCloseOnce();
                         return false;
                     }
                     sent += n;
@@ -198,7 +199,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 if (n == 0)
                 {
                     this.CancelReceiveOnce();
-                    AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+                    this.InvokeCloseOnce();
                     return false;
                 }
                 sent += n;
@@ -269,7 +270,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 {
                     // peer closed / connection issue
                     this.CancelReceiveOnce();
-                    AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+                    this.InvokeCloseOnce();
                     return false;
                 }
 
@@ -301,9 +302,30 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// </summary>
     private static System.String FormatEndpoint(System.Net.Sockets.Socket s)
     {
-        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (System.ObjectDisposedException) { return "<disposed>"; }
-        catch { return "<unknown>"; }
+        try
+        {
+            return s.RemoteEndPoint?.ToString() ?? "<unknown>";
+        }
+        catch (System.ObjectDisposedException)
+        {
+            return "<disposed>";
+        }
+        catch
+        {
+            return "<unknown>";
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void InvokeCloseOnce()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
+        {
+            return;
+        }
+
+        AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
     }
 
     /// <summary>
@@ -357,6 +379,11 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         System.Memory<System.Byte> dst,
         System.Threading.CancellationToken token)
     {
+        if (dst.Length == 0)
+        {
+            return;
+        }
+
         System.Int32 read = 0;
         while (read < dst.Length)
         {
@@ -391,7 +418,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                         .Meta($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] recv-header size(le)={size}");
 #endif
 
-                if (size < HeaderSize)
+                if (size < HeaderSize || size > PacketConstants.PacketSizeLimit)
                 {
                     throw new System.Net.Sockets.SocketException(
                         (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
@@ -451,7 +478,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         finally
         {
             this.CancelReceiveOnce();
-            AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+            this.InvokeCloseOnce();
         }
     }
 
@@ -468,7 +495,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
-            AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+            this.InvokeCloseOnce();
 
             try
             {
