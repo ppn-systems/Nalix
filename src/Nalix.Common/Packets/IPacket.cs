@@ -20,6 +20,11 @@ public interface IPacket : IPoolable
     System.UInt16 Length { get; }
 
     /// <summary>
+    /// Gets the magic number used to identify the packet type or protocol.
+    /// </summary>
+    System.UInt32 MagicNumber { get; }
+
+    /// <summary>
     /// Gets the command associated with the packet.
     /// </summary>
     System.UInt16 OpCode { get; }
@@ -53,17 +58,6 @@ public interface IPacket : IPoolable
     #endregion Metadata
 
     #region Packet Methods
-
-    /// <summary>
-    /// Verifies if the packet's checksum is valid.
-    /// </summary>
-    System.Boolean IsValid();
-
-    /// <summary>
-    /// Checks if the packet has expired.
-    /// </summary>
-    /// <param name="timeout">The expiration timeout.</param>
-    System.Boolean IsExpired(System.Int64 timeout);
 
     /// <summary>
     /// Serializes the packet into a byte array for transmission or storage.
