@@ -1,6 +1,6 @@
 ﻿using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Internal.Analyzers;
+namespace Nalix.Network.Dispatch.Analyzers;
 
 /// <summary>
 /// Holds metadata and a compiled delegate for a packet handler method.

@@ -1,8 +1,8 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
+using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Internal.Analyzers;
 using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Shared.Memory.Pooling;
 
