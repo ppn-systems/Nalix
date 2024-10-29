@@ -1,10 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Benchmarks")]
 #endif
 
 namespace Nalix.SDK.Remote.Internal;
@@ -26,6 +27,9 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
         ?? throw new System.ArgumentNullException(nameof(stream));
 
     private readonly System.Threading.SemaphoreSlim _gate = new(1, 1);
+
+    // reuse small header buffer because writes are serialized by _gate (no concurrent writes)
+    private readonly System.Byte[] _header = new System.Byte[2];
 
     /// <summary>
     /// Checks if the network stream is healthy and writable.
@@ -72,7 +76,7 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
         }
 
 
-        if (bytes.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        if (bytes.Length > PacketConstants.PacketSizeLimit)
         {
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large.");
         }
@@ -81,10 +85,10 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
         try
         {
             System.UInt16 total = (System.UInt16)(bytes.Length + sizeof(System.UInt16));
-            System.Byte[] header = new System.Byte[2];
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, total);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(_header, total);
 
-            await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
+            // use existing array overload to avoid allocating new header arr each time
+            await _stream.WriteAsync(System.MemoryExtensions.AsMemory(_header, 0, 2), cancellationToken).ConfigureAwait(false);
             await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
             await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -124,7 +128,7 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        if (bytes.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        if (bytes.Length > PacketConstants.PacketSizeLimit)
         {
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large");
         }

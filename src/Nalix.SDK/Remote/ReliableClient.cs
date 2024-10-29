@@ -148,25 +148,14 @@ public sealed class ReliableClient : System.IDisposable
         _discNotified = 0;
 
         _client?.Close();
-        _client = new System.Net.Sockets.TcpClient
-        {
-            NoDelay = true,
-            LingerState = new System.Net.Sockets.LingerOption(false, 0)
-        };
-        _client.Client.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.KeepAlive, true);
+        ConfigureSocket(_client);
 
+        using System.Threading.CancellationTokenSource cts =
+            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        // Optional: allow address reuse during dev/testing
-        _client.Client.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress, true);
-
-        using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
 
-        await _connGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _connGate.WaitAsync(cts.Token).ConfigureAwait(false);
 
         try
         {
@@ -211,17 +200,9 @@ public sealed class ReliableClient : System.IDisposable
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Error($"Network receive loop error: {ex.Message}");
 
-                            // Push FIFO (with simple backpressure policy)
                             if (packet != null)
                             {
-                                if (PacketReceived is not null)
-                                {
-                                    SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
-                                }
-                                else if (Options.IncomingSize > 0)
-                                {
-                                    Incoming.Push(packet);
-                                }
+                                SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -331,6 +312,54 @@ public sealed class ReliableClient : System.IDisposable
     #endregion APIs
 
     #region Private Methods
+
+    private static void ConfigureSocket(System.Net.Sockets.TcpClient client)
+    {
+        if (client is null)
+        {
+            return;
+        }
+
+        try
+        {
+            client.NoDelay = true;
+            client.SendBufferSize = 8192;
+            client.ReceiveBufferSize = 8192;
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            // Default to graceful linger of 0 (no lingering) during normal operation.
+            // Final abortive close is performed in DeepClose via AbortiveClose.
+            client.LingerState = new System.Net.Sockets.LingerOption(false, 0);
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            client.Client?.SetSocketOption(
+                System.Net.Sockets.SocketOptionLevel.Socket,
+                System.Net.Sockets.SocketOptionName.KeepAlive, true);
+        }
+        catch { /* ignore */ }
+
+        if (System.OperatingSystem.IsWindows())
+        {
+            _ = client.Client.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues,
+                              GetKeepAliveConfig(keepAliveTimeMs: 20_000, keepAliveIntervalMs: 5_000), null);
+        }
+    }
+
+    private static System.Byte[] GetKeepAliveConfig(System.UInt32 keepAliveTimeMs, System.UInt32 keepAliveIntervalMs)
+    {
+        System.Byte[] buffer = new System.Byte[12];
+        System.BitConverter.GetBytes(1u).CopyTo(buffer, 0); // Enable
+        System.BitConverter.GetBytes(keepAliveTimeMs).CopyTo(buffer, 4); // Idle time
+        System.BitConverter.GetBytes(keepAliveIntervalMs).CopyTo(buffer, 8); // Interval
+        return buffer;
+    }
+
 
     private void MarkIoDead(System.Exception ex = null)
     {
