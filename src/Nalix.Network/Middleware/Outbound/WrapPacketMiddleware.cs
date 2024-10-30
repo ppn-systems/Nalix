@@ -140,9 +140,9 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
     private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
     {
-        return context.Packet.Transport == ProtocolType.TCP
+        return context.Packet.Protocol == ProtocolType.TCP
             ? context.Packet.Length - PacketConstants.CompressionThreshold > PacketConstants.CompressionThreshold
-            : context.Packet.Transport == ProtocolType.UDP &&
+            : context.Packet.Protocol == ProtocolType.UDP &&
               context.Packet.Length - PacketConstants.CompressionThreshold is > 600 and < 1200;
     }
 }

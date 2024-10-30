@@ -48,7 +48,7 @@ public class Binary1024 : FrameBase, IPoolable, IPacketDeserializer<Binary1024>,
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.None;
-        Transport = ProtocolType.NONE;
+        Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.BINARY1024;
     }
@@ -68,7 +68,7 @@ public class Binary1024 : FrameBase, IPoolable, IPacketDeserializer<Binary1024>,
         }
 
         this.Data = data ?? [];
-        this.Transport = transport;
+        this.Protocol = transport;
     }
 
     /// <summary>
@@ -161,11 +161,11 @@ public class Binary1024 : FrameBase, IPoolable, IPacketDeserializer<Binary1024>,
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.None;
-        this.Transport = ProtocolType.NONE;
+        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"BINARY1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
+        $"Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 }
