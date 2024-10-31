@@ -25,7 +25,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     private static readonly System.DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
 
     private readonly ILogger? _logger;
-    private readonly ConnectionLimitOptions _config;
+    private readonly ConnLimitOptions _config;
 
     private readonly System.Threading.Timer _cleanupTimer;
     private readonly System.Threading.SemaphoreSlim _cleanupLock;
@@ -49,10 +49,10 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <param name="connectionConfig">The connection configuration. If null, default config is used.</param>
     /// <param name="logger">Optional logger for metrics and diagnostics.</param>
     /// <exception cref="System.ArgumentException">Thrown when configuration has invalid values.</exception>
-    public ConnectionLimiter(ConnectionLimitOptions? connectionConfig = null, ILogger? logger = null)
+    public ConnectionLimiter(ConnLimitOptions? connectionConfig = null, ILogger? logger = null)
     {
         this._logger = logger;
-        this._config = connectionConfig ?? ConfigurationStore.Instance.Get<ConnectionLimitOptions>();
+        this._config = connectionConfig ?? ConfigurationStore.Instance.Get<ConnLimitOptions>();
 
         if (this._config.MaxConnectionsPerIpAddress <= 0)
         {
@@ -85,14 +85,14 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Initializes with default configuration and logger.
     /// </summary>
     public ConnectionLimiter(ILogger? logger = null)
-        : this((ConnectionLimitOptions?)null, logger)
+        : this((ConnLimitOptions?)null, logger)
     {
     }
 
     /// <summary>
     /// Initializes with custom configuration via action callback.
     /// </summary>
-    public ConnectionLimiter(System.Action<ConnectionLimitOptions>? configure = null, ILogger? logger = null)
+    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure = null, ILogger? logger = null)
         : this(CreateConfiguredConfig(configure), logger)
     {
     }
@@ -101,7 +101,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with default configuration and logger.
     /// </summary>
     public ConnectionLimiter()
-        : this((ConnectionLimitOptions?)null, null)
+        : this((ConnLimitOptions?)null, null)
     {
     }
 
@@ -369,10 +369,10 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ConnectionLimitOptions CreateConfiguredConfig(
-        System.Action<ConnectionLimitOptions>? configure)
+    private static ConnLimitOptions CreateConfiguredConfig(
+        System.Action<ConnLimitOptions>? configure)
     {
-        var config = ConfigurationStore.Instance.Get<ConnectionLimitOptions>();
+        var config = ConfigurationStore.Instance.Get<ConnLimitOptions>();
         configure?.Invoke(config);
         return config;
     }

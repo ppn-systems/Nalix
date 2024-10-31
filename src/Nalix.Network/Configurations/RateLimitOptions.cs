@@ -11,10 +11,10 @@ namespace Nalix.Network.Configurations;
 /// and the time window for counting requests.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="RequestRateLimitOptions"/> class with the specified rate limit settings.
+/// Initializes a new instance of the <see cref="RateLimitOptions"/> class with the specified rate limit settings.
 /// </remarks>
 /// <param name="settings">The rate limit settings to apply.</param>
-public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : ConfigurationLoader
+public sealed class RateLimitOptions(RequestLimitSettings settings) : ConfigurationLoader
 {
     #region Fields
 
@@ -39,29 +39,29 @@ public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : Con
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RequestRateLimitOptions"/> class with the specified rate limit settings.
+    /// Initializes a new instance of the <see cref="RateLimitOptions"/> class with the specified rate limit settings.
     /// </summary>
     /// <param name="requests">The maximum TransportProtocol of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
-    public RequestRateLimitOptions(System.Int32 requests, System.Int32 lockoutSeconds, System.Int32 windowMilliseconds)
+    public RateLimitOptions(System.Int32 requests, System.Int32 lockoutSeconds, System.Int32 windowMilliseconds)
         : this(new RequestLimitSettings(requests, lockoutSeconds, windowMilliseconds))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RequestRateLimitOptions"/> class with a specified request limit.
+    /// Initializes a new instance of the <see cref="RateLimitOptions"/> class with a specified request limit.
     /// </summary>
     /// <param name="limit">The predefined request limit to apply.</param>
-    public RequestRateLimitOptions(RequestLimitType limit)
+    public RateLimitOptions(RequestLimitType limit)
         : this(GetSettingsForLimit(limit))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RequestRateLimitOptions"/> class with a default request limit of <see cref="RequestLimitType.Medium"/>.
+    /// Initializes a new instance of the <see cref="RateLimitOptions"/> class with a default request limit of <see cref="RequestLimitType.Medium"/>.
     /// </summary>
-    public RequestRateLimitOptions()
+    public RateLimitOptions()
         : this(RequestLimitType.Medium)
     {
     }

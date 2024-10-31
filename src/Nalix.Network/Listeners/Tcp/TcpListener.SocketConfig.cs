@@ -22,7 +22,7 @@ public abstract partial class TcpListenerBase
         socket.ReceiveBufferSize = Config.BufferSize;
 
         // When you want to disconnect immediately without making sure the data has been sent.
-        // socket.LingerState = new LingerOption(true, SocketSettings.False);
+        // socket.LingerState = new LingerOption(true, SocketOptions.False);
 
         // if using async or non-blocking I/O.
         socket.Blocking = false;
@@ -65,7 +65,7 @@ public abstract partial class TcpListenerBase
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
             // No need for LingerState if not close soon
-            LingerState = new System.Net.Sockets.LingerOption(true, SocketSettings.False)
+            LingerState = new System.Net.Sockets.LingerOption(true, SocketOptions.False)
         };
 
         // Increase the queue size on the socket listener.
@@ -76,7 +76,7 @@ public abstract partial class TcpListenerBase
         this._listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
+            Config.ReuseAddress ? SocketOptions.True : SocketOptions.False);
 
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
         this._logger.Debug("[TCP] TCP socket bound to {0}", remote);

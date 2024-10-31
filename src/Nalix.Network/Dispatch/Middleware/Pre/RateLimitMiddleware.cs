@@ -27,7 +27,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
     /// </summary>
     public RateLimitMiddleware()
     {
-        RequestRateLimitOptions option = ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
+        RateLimitOptions option = ConfigurationStore.Instance.Get<RateLimitOptions>();
         this._limiter = new RequestLimiter(option);
     }
 
