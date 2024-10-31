@@ -117,6 +117,11 @@ public static class DirectiveClientExtensions
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(packet);
 
+        if (!client.IsConnected)
+        {
+            return false;
+        }
+
         if (packet is not Directive d)
         {
             return false;
