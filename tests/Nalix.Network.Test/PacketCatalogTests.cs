@@ -27,7 +27,7 @@ public sealed class PacketCatalogTests
 
         PacketPriority IPacket.Priority => throw new NotImplementedException();
 
-        ProtocolType IPacket.Transport => throw new NotImplementedException();
+        ProtocolType IPacket.Protocol => throw new NotImplementedException();
 
         void IPoolable.ResetForPool() => throw new NotImplementedException();
         Byte[] IPacket.Serialize() => throw new NotImplementedException();
