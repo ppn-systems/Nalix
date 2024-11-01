@@ -5,11 +5,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Nalix.Shared.L10N;
+namespace Nalix.SDK.L10N.Formats;
 
 /// <summary>
 /// Represents a Portable Object (PO) file for translations.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(
+    System.ComponentModel.EditorBrowsableState.Never)]
 public partial class PoFile
 {
     #region Fields
@@ -65,7 +67,7 @@ public partial class PoFile
         "Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
     private void Parse(TextReader reader)
     {
-        String? line;
+        String line;
         String msgid = "", msgidPlural = "", msgstr = "";
         List<String> msgstrPlural = [];
         Boolean isPlural = false;
@@ -141,7 +143,7 @@ public partial class PoFile
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if available, otherwise returns the original text.</returns>
     public String GetString(String id)
-        => _translations.TryGetValue(id, out String? value) ? value : id;
+        => _translations.TryGetValue(id, out String value) ? value : id;
 
     /// <summary>
     /// Gets the pluralized translation for a given TransportProtocol.
@@ -152,7 +154,7 @@ public partial class PoFile
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     public String GetPluralString(String id, String idPlural, Int32 n)
     {
-        if (_pluralTranslations.TryGetValue(id, out String[]? plurals))
+        if (_pluralTranslations.TryGetValue(id, out String[] plurals))
         {
             Int32 index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
@@ -172,7 +174,7 @@ public partial class PoFile
     public String GetParticularString(String context, String id)
     {
         String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
-        return _translations.TryGetValue(key, out String? value) ? value : id;
+        return _translations.TryGetValue(key, out String value) ? value : id;
     }
 
     /// <summary>
@@ -187,7 +189,7 @@ public partial class PoFile
     {
         String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
 
-        if (_pluralTranslations.TryGetValue(key, out String[]? plurals))
+        if (_pluralTranslations.TryGetValue(key, out String[] plurals))
         {
             Int32 index = _pluralRule(n);
 
@@ -205,8 +207,8 @@ public partial class PoFile
     /// </summary>
     /// <param name="key">The metadata key.</param>
     /// <returns>The metadata value if found, otherwise <c>null</c>.</returns>
-    public String? GetMetadata(String key)
-        => _metadata.TryGetValue(key, out String? value) ? value : null;
+    public String GetMetadata(String key)
+        => _metadata.TryGetValue(key, out String value) ? value : null;
 
     #endregion Public API
 
@@ -264,7 +266,7 @@ public partial class PoFile
         }
 
         // Set plural rule if available
-        if (_metadata.TryGetValue("Plural-Forms", out String? pluralForms))
+        if (_metadata.TryGetValue("Plural-Forms", out String pluralForms))
         {
             _pluralRule = ParsePluralRule(pluralForms);
         }
