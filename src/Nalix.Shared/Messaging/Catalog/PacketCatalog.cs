@@ -148,7 +148,6 @@ public sealed class PacketCatalog : IPacketCatalog
     /// </returns>
     public System.Boolean TryGetTransformer(
         System.Type packetType,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketTransformer transformer)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketTransformer transformer)
         => _transformers.TryGetValue(packetType, out transformer);
 }
