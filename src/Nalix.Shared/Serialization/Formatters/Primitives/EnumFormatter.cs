@@ -32,9 +32,8 @@ public sealed class EnumFormatter<
             throw new System.InvalidOperationException($"Type {typeof(T)} is not an enum.");
         }
 
-        UnderlyingTypeCode = System.Type
-            .GetTypeCode(System.Enum
-            .GetUnderlyingType(typeof(T)));
+        UnderlyingTypeCode = System.Type.GetTypeCode(System.Enum
+                                        .GetUnderlyingType(typeof(T)));
 
         (_serialize, _deserialize) = CreateEnumFormatterDelegates();
     }
@@ -67,12 +66,13 @@ public sealed class EnumFormatter<
 
     #region Delegates for Enum Formatter
 
-    private delegate void SerializeDelegate(ref DataWriter writer, T value);
-
     private delegate T DeserializeDelegate(ref DataReader reader);
+    private delegate void SerializeDelegate(ref DataWriter writer, T value);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Style", "IDE0350:Use implicitly typed lambda", Justification = "<Pending>")]
     private static (SerializeDelegate serialize, DeserializeDelegate deserialize) CreateEnumFormatterDelegates()
     {
         return UnderlyingTypeCode switch
