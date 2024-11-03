@@ -1,7 +1,6 @@
 using Nalix.Common.Security.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Hmac;
 
@@ -91,7 +90,8 @@ public sealed class Hmac : System.IDisposable
     /// <param name="data">The message to authenticate.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] ComputeHash(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> data,
@@ -107,7 +107,8 @@ public sealed class Hmac : System.IDisposable
     /// <param name="data">The message to authenticate.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
@@ -139,7 +140,8 @@ public sealed class Hmac : System.IDisposable
     /// <remarks>
     /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean VerifyHash(
         System.ReadOnlySpan<System.Byte> data,
         System.ReadOnlySpan<System.Byte> expectedHmac)
@@ -165,7 +167,8 @@ public sealed class Hmac : System.IDisposable
     /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Verify(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> data,
@@ -179,7 +182,8 @@ public sealed class Hmac : System.IDisposable
     /// <summary>
     /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Byte[] PrepareKey(System.ReadOnlySpan<System.Byte> key)
     {
         System.Byte[] normalizedKey = new System.Byte[_blockSize];
@@ -210,7 +214,8 @@ public sealed class Hmac : System.IDisposable
     /// <summary>
     /// Computes the inner hash of the HMAC function.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -261,7 +266,8 @@ public sealed class Hmac : System.IDisposable
     /// <summary>
     /// Computes the outer hash of the HMAC function.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -316,7 +322,8 @@ public sealed class Hmac : System.IDisposable
     /// <summary>
     /// Disposes resources used by the HMAC instance.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed)
