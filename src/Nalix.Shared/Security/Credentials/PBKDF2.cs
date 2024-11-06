@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Randomization;
+using Nalix.Framework.Random;
 using Nalix.Shared.Security.Primitives;
 
 namespace Nalix.Shared.Security.Credentials;
