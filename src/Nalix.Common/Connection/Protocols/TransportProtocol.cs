@@ -5,6 +5,12 @@
 /// </summary>
 public enum TransportProtocol : System.Byte
 {
+
+    /// <summary>
+    /// No transport protocol specified.
+    /// </summary>
+    Null = 0x00,
+
     /// <summary>
     /// Transmission Control Protocol (reliable, connection-based).
     /// </summary>
