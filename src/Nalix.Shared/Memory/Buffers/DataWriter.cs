@@ -41,10 +41,11 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
         }
 
-        _owner = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(size);
+        _owner = BufferLease.Pool.Rent(size);
         _span = System.MemoryExtensions.AsSpan(_owner);
         _rent = true;
-        WrittenCount = 0;
+
+        this.WrittenCount = 0;
     }
 
     /// <summary>
@@ -62,7 +63,8 @@ public ref struct DataWriter
         _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
         _span = System.MemoryExtensions.AsSpan(buffer);
         _rent = false;
-        WrittenCount = 0;
+
+        this.WrittenCount = 0;
     }
 
     /// <summary>
@@ -80,7 +82,8 @@ public ref struct DataWriter
         _owner = null;      // no backing array ownership
         _span = span;       // direct span view (stackalloc, sliced array, etc.)
         _rent = false;      // not rented → cannot Expand()
-        WrittenCount = 0;
+
+        this.WrittenCount = 0;
     }
 
     #endregion Constructors
@@ -94,37 +97,10 @@ public ref struct DataWriter
     public System.Int32 WrittenCount { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the buffer view is empty (no underlying storage).
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public readonly System.Boolean IsNull => _span == System.Span<System.Byte>.Empty;
-
-    /// <summary>
-    /// Gets the total capacity of the internal buffer in bytes.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public readonly System.Int32 Length => _span.Length;
-
-    /// <summary>
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
     public readonly System.Span<System.Byte> FreeBuffer => _span[WrittenCount..];
-
-    /// <summary>
-    /// Gets a span representing the committed (written) segment of the buffer.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public readonly System.Span<System.Byte> WrittenBuffer => _span[..WrittenCount];
-
-    /// <summary>
-    /// Gets a <see cref="System.Memory{Byte}"/> view over the committed data
-    /// when a backing array exists; otherwise <see cref="System.Memory{Byte}.Empty"/>.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public readonly System.Memory<System.Byte> WrittenMemory
-        => _owner is null ? System.Memory<System.Byte>.Empty
-        : System.MemoryExtensions.AsMemory(_owner, 0, WrittenCount);
 
     #endregion Properties
 
@@ -140,12 +116,12 @@ public ref struct DataWriter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
-        if (count <= 0 || (System.UInt32)(WrittenCount + count) > (System.UInt32)_span.Length)
+        if (count <= 0 || (System.UInt32)(this.WrittenCount + count) > (System.UInt32)_span.Length)
         {
             throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
         }
 
-        WrittenCount += count;
+        this.WrittenCount += count;
     }
 
     /// <summary>
@@ -156,8 +132,7 @@ public ref struct DataWriter
     [System.Diagnostics.CodeAnalysis.UnscopedRef]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref System.Byte GetFreeBufferReference()
-        => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
+    public readonly ref System.Byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(this.FreeBuffer);
 
     /// <summary>
     /// Ensures at least <paramref name="minimumSize"/> bytes are available in <see cref="FreeBuffer"/>.
@@ -201,7 +176,7 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
         }
 
-        if (_span.Length - WrittenCount >= minimumSize)
+        if (_span.Length - this.WrittenCount >= minimumSize)
         {
             return;
         }
@@ -213,25 +188,25 @@ public ref struct DataWriter
 
         // Rent a larger buffer and copy committed bytes
         System.Int32 current = _owner?.Length ?? 0;
-        System.Int32 needed = WrittenCount + minimumSize;
+        System.Int32 needed = this.WrittenCount + minimumSize;
         System.Int32 newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
 
-        System.Byte[] newOwner = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(newSize);
-        if (WrittenCount > 0)
+        System.Byte[] newOwner = BufferLease.Pool.Rent(newSize);
+        if (this.WrittenCount > 0)
         {
             if (current <= 128)
             {
-                _span[..WrittenCount].CopyTo(newOwner);
+                _span[..this.WrittenCount].CopyTo(newOwner);
             }
             else
             {
-                CopyBytes(_owner, newOwner, WrittenCount);
+                CopyBytes(_owner, newOwner, this.WrittenCount);
             }
         }
 
         if (_owner is not null)
         {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_owner);
+            BufferLease.Pool.Return(_owner);
         }
 
         _owner = newOwner;
@@ -245,7 +220,7 @@ public ref struct DataWriter
     [System.Diagnostics.DebuggerStepThrough]
     public readonly System.Byte[] ToArray()
     {
-        System.Int32 n = WrittenCount;
+        System.Int32 n = this.WrittenCount;
         System.Byte[] result = new System.Byte[n];
         if (n > 0)
         {
@@ -269,14 +244,14 @@ public ref struct DataWriter
         {
             if (_rent)
             {
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(_owner);
+                BufferLease.Pool.Return(_owner);
             }
 
             _owner = null;
         }
 
         _span = [];
-        WrittenCount = 0;
+        this.WrittenCount = 0;
     }
 
     #endregion APIs
