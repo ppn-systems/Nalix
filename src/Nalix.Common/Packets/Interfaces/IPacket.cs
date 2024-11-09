@@ -4,7 +4,7 @@ using Nalix.Common.Packets.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 
-namespace Nalix.Common.Packets;
+namespace Nalix.Common.Packets.Interfaces;
 
 /// <summary>
 /// Defines the contract for a network packet.
@@ -17,6 +17,7 @@ public interface IPacket : IPoolable
     /// <summary>
     /// Gets the total length of the packet.
     /// </summary>
+    [SerializeIgnore]
     System.UInt16 Length { get; }
 
     /// <summary>

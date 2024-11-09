@@ -1,5 +1,5 @@
 using Nalix.Common.Connection;
-using Nalix.Common.Packets;
+using Nalix.Common.Packets.Interfaces;
 
 namespace Nalix.Network.Dispatch.Core;
 

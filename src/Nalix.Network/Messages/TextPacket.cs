@@ -1,6 +1,7 @@
 ﻿using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization;
@@ -17,52 +18,47 @@ public sealed class TextPacket : IPacket
     /// Gets the total length of the serialized packet in bytes.
     /// Includes metadata and content.
     /// </summary>
-    [SerializeOrder(0)]
+    [SerializeIgnore]
     public System.UInt16 Length => (System.UInt16)(
-        Content.Length +
-        sizeof(PacketFlags) +
-        sizeof(System.UInt16) +       // OpCode
-        sizeof(System.UInt16) +       // Length
-        sizeof(System.UInt32) +       // MagicNumber
-        sizeof(PacketPriority) +
-        sizeof(TransportProtocol));
+        PacketConstants.HeaderSize +
+        System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
 
     /// <summary>
     /// Gets the magic number used to identify the packet type or protocol.
     /// </summary>
-    [SerializeOrder(2)]
+    [SerializeOrder(0)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the opcode representing the command or category of this packet.
     /// </summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(4)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(8)]
+    [SerializeOrder(6)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the priority level of the packet.
     /// </summary>
-    [SerializeOrder(9)]
+    [SerializeOrder(7)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (TCP/UDP) this packet is intended for.
     /// </summary>
-    [SerializeOrder(10)]
+    [SerializeOrder(8)]
     public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the content of the packet as a string.
     /// </summary>
-    [SerializeOrder(11)]
+    [SerializeOrder(9)]
     [SerializeDynamicSize(256)]
-    public System.String Content;
+    public System.String Content { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TextPacket"/> class with empty content.
@@ -70,7 +66,7 @@ public sealed class TextPacket : IPacket
     public TextPacket()
     {
         OpCode = 0x00;
-        MagicNumber = 0x00000000;
+        MagicNumber = PacketConstants.MagicNumber;
 
         Flags = PacketFlags.None;
         Content = System.String.Empty;
@@ -83,28 +79,19 @@ public sealed class TextPacket : IPacket
     /// </summary>
     /// <param name="content">The UTF-8 string to be stored in the packet.</param>
     public void Initialize(System.String content)
-        => Initialize(content, 0x00, 0x00000000, PacketFlags.None, TransportProtocol.Null);
+        => Initialize(content, TransportProtocol.Null);
 
     /// <summary>
     /// Initializes the packet with the specified parameters.
     /// </summary>
     /// <param name="content">The UTF-8 string to be stored in the packet.</param>
-    /// <param name="opCode">The operation code that identifies this packet type.</param>
-    /// <param name="magicNumber">A protocol identifier or packet family identifier.</param>
-    /// <param name="flags">Optional packet flags (default is None).</param>
     /// <param name="transport">The transport protocol this packet is intended for.</param>
     public void Initialize(
         System.String content,
-        System.UInt16 opCode,
-        System.UInt32 magicNumber,
-        PacketFlags flags = PacketFlags.None,
         TransportProtocol transport = TransportProtocol.Tcp)
     {
-        Content = content ?? System.String.Empty;
-        OpCode = opCode;
-        MagicNumber = magicNumber;
-        Flags = flags;
         Transport = transport;
+        Content = content ?? System.String.Empty;
     }
 
 
@@ -128,9 +115,6 @@ public sealed class TextPacket : IPacket
     /// </summary>
     public void ResetForPool()
     {
-        OpCode = 0x00;
-        MagicNumber = 0x00000000;
-
         Flags = PacketFlags.None;
         Content = System.String.Empty;
         Priority = PacketPriority.Normal;
