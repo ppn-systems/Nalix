@@ -6,7 +6,7 @@ using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Network.Protocols.Messages;
+namespace Nalix.Shared.Transport;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
@@ -120,4 +120,9 @@ public sealed class LiteralPacket : IPacket
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
     }
+
+    /// <inheritdoc/>
+    public override System.String ToString()
+        => $"BinaryPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+           $"Priority={Priority}, Transport={Transport}, Content={(Content?.Length ?? 0) * 4} bytes)";
 }
