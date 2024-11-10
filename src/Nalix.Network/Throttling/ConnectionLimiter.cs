@@ -13,7 +13,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 {
     #region Constants
 
-    // LZ4Constants for optimization
+    // LZ4CompressionConstants for optimization
     private const System.Int32 MaxCleanupKeys = 1000;
 
     private const System.Int32 EstimatedCollectionCapacity = 256;
@@ -52,7 +52,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     public ConnectionLimiter(ConnLimitOptions? connectionConfig = null, ILogger? logger = null)
     {
         this._logger = logger;
-        this._config = connectionConfig ?? ConfigurationStore.Instance.Get<ConnLimitOptions>();
+        this._config = connectionConfig ?? ConfigurationManager.Instance.Get<ConnLimitOptions>();
 
         if (this._config.MaxConnectionsPerIpAddress <= 0)
         {
@@ -372,7 +372,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     private static ConnLimitOptions CreateConfiguredConfig(
         System.Action<ConnLimitOptions>? configure)
     {
-        var config = ConfigurationStore.Instance.Get<ConnLimitOptions>();
+        var config = ConfigurationManager.Instance.Get<ConnLimitOptions>();
         configure?.Invoke(config);
         return config;
     }
