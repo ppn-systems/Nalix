@@ -1,30 +1,29 @@
-using System;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Helper class to track disposal state and handle the actual disposal of the array.
 /// </summary>
-internal sealed class DisposableTracker<T>(T[] array, Int32 length, ArrayPool<T> pool) : IDisposable
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+internal sealed class DisposableTracker<T>(
+    T[] array, System.Int32 length,
+    System.Buffers.ArrayPool<T> pool) : System.IDisposable
 {
     #region Fields
 
-    private Int32 _disposed;
+    private System.Int32 _disposed;
     private T[]? _array = array;
-    private readonly Int32 _length = length;
-    private readonly ArrayPool<T> _pool = pool;
+    private readonly System.Int32 _length = length;
+    private readonly System.Buffers.ArrayPool<T> _pool = pool;
 
     #endregion Fields
 
     #region IDisposable
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
@@ -39,7 +38,7 @@ internal sealed class DisposableTracker<T>(T[] array, Int32 length, ArrayPool<T>
         _array = null;
 
         // Dispose the array before returning it to the pool
-        Array.Clear(array, 0, _length);
+        System.Array.Clear(array, 0, _length);
         _pool.Return(array);
     }
 
