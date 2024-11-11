@@ -32,7 +32,8 @@ internal sealed class PooledAcceptContext : IPoolable
     };
 
     // Always access through BindArgs(...) to keep handler wiring correct.
-    private System.Net.Sockets.SocketAsyncEventArgs? _args;
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.Net.Sockets.SocketAsyncEventArgs _args;
 
     /// <summary>
     /// The SAEA currently bound to this context.

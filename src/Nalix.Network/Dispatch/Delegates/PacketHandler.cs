@@ -12,7 +12,7 @@ namespace Nalix.Network.Dispatch.Delegates;
 public readonly struct PacketHandler<TPacket>(
     System.UInt16 opCode, PacketMetadata metadata,
     System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
-    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> compiledInvoker)
+    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> compiledInvoker)
 {
     #region Fields
 
@@ -46,7 +46,7 @@ public readonly struct PacketHandler<TPacket>(
     /// PERFORMANCE CRITICAL: avoids reflection and allocations.
     /// </summary>
     public readonly System.Func<System.Object, PacketContext<TPacket>,
-                    System.Threading.Tasks.ValueTask<System.Object?>> Invoker = compiledInvoker;
+                    System.Threading.Tasks.ValueTask<System.Object>> Invoker = compiledInvoker;
 
     #endregion Fields
 
@@ -62,7 +62,7 @@ public readonly struct PacketHandler<TPacket>(
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context) => this.Invoker(this.Instance, context);
+    public System.Threading.Tasks.ValueTask<System.Object> ExecuteAsync(PacketContext<TPacket> context) => this.Invoker(this.Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.

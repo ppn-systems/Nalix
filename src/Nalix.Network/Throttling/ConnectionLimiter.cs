@@ -44,7 +44,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// <summary>
     /// Initializes a new <see cref="ConnectionLimiter"/> with an optional config. If <paramref name="config"/> is null, global config is used.
     /// </summary>
-    public ConnectionLimiter(ConnectionLimitOptions? config)
+    public ConnectionLimiter([System.Diagnostics.CodeAnalysis.AllowNull] ConnectionLimitOptions config)
     {
         _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
         Validate(_config);
@@ -166,7 +166,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.MaybeNull] System.Net.EndPoint? endPoint)
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.AllowNull] System.Net.EndPoint endPoint)
     {
         if (endPoint is null)
         {
@@ -186,7 +186,9 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void OnConnectionClosed(System.Object? sender, IConnectEventArgs args)
+    public void OnConnectionClosed(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (sender is null)

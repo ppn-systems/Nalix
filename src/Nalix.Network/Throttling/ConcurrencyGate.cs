@@ -28,7 +28,8 @@ public static class ConcurrencyGate
     /// </summary>
     public readonly struct Lease(System.Threading.SemaphoreSlim sem) : System.IDisposable
     {
-        private readonly System.Threading.SemaphoreSlim? _sem = sem;
+        [System.Diagnostics.CodeAnalysis.AllowNull]
+        private readonly System.Threading.SemaphoreSlim _sem = sem;
 
         /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(
@@ -86,7 +87,7 @@ public static class ConcurrencyGate
             System.Int32 q = System.Threading.Interlocked.Increment(ref e.QueueCount);
             if (q > e.QueueMax)
             {
-                System.Threading.Interlocked.Decrement(ref e.QueueCount);
+                _ = System.Threading.Interlocked.Decrement(ref e.QueueCount);
                 throw new ConcurrencyRejectedException("Concurrency queue is full.");
             }
 
@@ -97,7 +98,7 @@ public static class ConcurrencyGate
             }
             finally
             {
-                System.Threading.Interlocked.Decrement(ref e.QueueCount);
+                _ = System.Threading.Interlocked.Decrement(ref e.QueueCount);
             }
         }
         else

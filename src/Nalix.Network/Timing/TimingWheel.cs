@@ -84,7 +84,7 @@ public sealed class TimingWheel : IActivatable
     private System.Int64 _tick;
 
     // Lifecycle
-    private System.Threading.CancellationTokenSource? _cts; // null when not running
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts; // null when not running
 
     #endregion Fields
 
@@ -174,7 +174,7 @@ public sealed class TimingWheel : IActivatable
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
             name: NetTaskCatalog.TimingWheelWorker(TickMs, WheelSize),
             group: NetTaskCatalog.TimingWheelGroup,
-            work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
+            work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
@@ -296,8 +296,8 @@ public sealed class TimingWheel : IActivatable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task RunLoop(
-        IWorkerContext? ctx = null,
-        System.Threading.CancellationToken ct = default)
+        [System.Diagnostics.CodeAnalysis.AllowNull] IWorkerContext ctx = null,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken ct = default)
     {
         _ = System.Threading.Interlocked.Exchange(ref _tick, 0);
 
@@ -314,7 +314,7 @@ public sealed class TimingWheel : IActivatable
 
                 var q = Wheel[bucketIndex];
 
-                while (q.TryDequeue(out TimeoutTask? task))
+                while (q.TryDequeue(out TimeoutTask task))
                 {
                     if (!Active.TryGetValue(task.Conn, out var live) || !ReferenceEquals(task, live))
                     {
@@ -379,7 +379,9 @@ public sealed class TimingWheel : IActivatable
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(System.Object? sender, IConnectEventArgs args)
+    private void OnConnectionClosed(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
     {
         if (args.Connection is null)
         {
@@ -395,7 +397,7 @@ public sealed class TimingWheel : IActivatable
         for (System.Int32 i = 0; i < Wheel.Length; i++)
         {
             var q = Wheel[i];
-            while (q.TryDequeue(out TimeoutTask? t))
+            while (q.TryDequeue(out TimeoutTask t))
             {
                 t.ResetForPool();
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
