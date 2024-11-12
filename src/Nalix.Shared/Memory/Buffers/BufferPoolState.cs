@@ -5,7 +5,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// </summary>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential)]
-public readonly record struct BufferPoolSnapshot : System.IEquatable<BufferPoolSnapshot>
+public readonly record struct BufferPoolState : System.IEquatable<BufferPoolState>
 {
     /// <summary>
     /// TransportProtocol of misses
