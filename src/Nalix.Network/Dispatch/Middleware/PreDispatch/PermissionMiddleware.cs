@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch.Middleware.Pre;
 /// before allowing the packet to proceed to the next handler.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being processed.</typeparam>
-[PacketMiddleware(MiddlewareStage.Pre, order: 2, name: "Permission")]
+[PacketMiddleware(MiddlewareStage.PreDispatch, order: 2, name: "Permission")]
 public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {

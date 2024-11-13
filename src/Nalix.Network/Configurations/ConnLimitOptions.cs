@@ -17,7 +17,7 @@ public sealed class ConnLimitOptions(ConnectionLimitSettings settings) : Configu
 {
     #region Predefined Connection Limit Settings
 
-    // Pre-defined connection limits to avoid repetitive calculations
+    // PreDispatch-defined connection limits to avoid repetitive calculations
     private static readonly ConnectionLimitSettings LowSettings = new(20, 30_000, 120_000);
 
     private static readonly ConnectionLimitSettings MediumSettings = new(100, 60_000, 300_000);
