@@ -222,7 +222,7 @@ public sealed class DirectiveController()
 
         // Some servers expect ACK for certain directives. If you adopt that pattern,
         // you can optionally send ACK correlated to d.SequenceId here.
-        // await _connection.SendAsync(ControlType.ACK, ProtocolCode.NONE, ProtocolAction.NONE, d.SequenceId).ConfigureAwait(false);
+        // await _connection.SEND_ASYNC(ControlType.ACK, ProtocolCode.NONE, ProtocolAction.NONE, d.SequenceId).ConfigureAwait(false);
         _ = ct; // placeholder
     }
 }

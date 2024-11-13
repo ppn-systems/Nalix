@@ -164,7 +164,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     #region Private Methods
 
     [System.Diagnostics.DebuggerStepThrough]
-    private void ScheduleStop()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void SCHEDULE_STOP()
     {
         if (System.Threading.Interlocked.Exchange(ref _stopInitiated, 1) != 0)
         {
@@ -193,7 +195,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TcpListenerBase)}:{nameof(ScheduleStop)}] " +
+                                        .Error($"[{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                                                $"stop-error port={self._port} ex={ex.Message}");
             }
             finally
