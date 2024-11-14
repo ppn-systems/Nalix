@@ -1,5 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
+using Nalix.Common.Packets;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
@@ -72,6 +73,8 @@ internal class TransportStream : System.IDisposable
     /// Begins receiving data asynchronously.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
         if (this._disposed)
@@ -141,24 +144,72 @@ internal class TransportStream : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Send(System.ReadOnlySpan<System.Byte> data)
     {
-        try
+        if (data.IsEmpty)
         {
-            if (data.IsEmpty)
+            return false;
+        }
+
+        if (data.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
+        }
+
+        System.UInt16 totalLength = (System.UInt16)(data.Length + sizeof(System.UInt16));
+
+        if (data.Length <= PacketConstants.StackAllocLimit)
+        {
+            try
             {
+                _logger?.Debug("[{0}] Sending data (stackalloc)", nameof(TransportStream));
+
+                System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bufferS, totalLength);
+
+                data.CopyTo(bufferS[sizeof(System.UInt16)..]);
+                System.Int32 sent = _socket.Send(bufferS);
+                if (sent != bufferS.Length)
+                {
+                    _logger?.Error("[{0}] Partial send: {1}/{2}", nameof(TransportStream), sent, bufferS.Length);
+                    return false;
+                }
+
+                // Note: _cache only supports ReadOnlyMemory<byte>, so convert
+                this._cache.PushOutgoing(data.ToArray());
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                _logger?.Error("[{0}] Send error (stackalloc): {1}", nameof(TransportStream), ex);
                 return false;
             }
+        }
 
-            this._logger?.Debug("[{0}] Sending data", nameof(TransportStream));
-            _ = this._socket.Send(data);
+        System.Byte[] buffer = _pool.Rent(totalLength);
+
+        try
+        {
+            _logger?.Debug("[{0}] Sending data (pooled)", nameof(TransportStream));
+
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
+                                                  .AsSpan(buffer), totalLength);
+            data.CopyTo(System.MemoryExtensions
+                .AsSpan(buffer, sizeof(System.UInt16)));
+
+
+            _ = _socket.Send(buffer, 0, totalLength, System.Net.Sockets.SocketFlags.None);
 
             // Note: _cache only supports ReadOnlyMemory<byte>, so convert
-            this._cache.PushOutgoing(data.ToArray());
+            this._cache.PushOutgoing(System.MemoryExtensions.AsMemory(buffer, 2, totalLength));
             return true;
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("[{0}] Send error: {1}", nameof(TransportStream), ex);
+            _logger?.Error("[{0}] Send error (pooled): {1}", nameof(TransportStream), ex);
             return false;
+        }
+        finally
+        {
+            _pool.Return(buffer);
         }
     }
 
@@ -174,23 +225,43 @@ internal class TransportStream : System.IDisposable
         System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
+        if (data.IsEmpty)
+        {
+            return false;
+        }
+
+        if (data.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
+        }
+
+        System.UInt16 totalLength = (System.UInt16)(data.Length + sizeof(System.UInt16));
+        System.Byte[] buffer = _pool.Rent(totalLength);
+
         try
         {
-            if (data.IsEmpty)
-            {
-                return false;
-            }
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
+                                                  .AsSpan(buffer), totalLength);
+
+            data.Span.CopyTo(System.MemoryExtensions
+                     .AsSpan(buffer, sizeof(System.UInt16)));
 
             this._logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
 
-            _ = await this._socket.SendAsync(data, System.Net.Sockets.SocketFlags.None, cancellationToken);
+            _ = await this._socket.SendAsync(System.MemoryExtensions
+                                  .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken);
             this._cache.PushOutgoing(data);
+
             return true;
         }
         catch (System.Exception ex)
         {
             this._logger?.Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
             return false;
+        }
+        finally
+        {
+            _pool.Return(buffer);
         }
     }
 
@@ -253,6 +324,8 @@ internal class TransportStream : System.IDisposable
     /// </summary>
     /// <param name="task">The task representing the read operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task OnReceiveCompleted(
         System.Threading.Tasks.Task<System.Int32> task,
         System.Threading.CancellationToken cancellationToken)
@@ -340,7 +413,7 @@ internal class TransportStream : System.IDisposable
             {
                 this._logger?.Debug("[{0}] Packet received", nameof(TransportStream));
                 this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-                this._cache.PushIncoming(System.MemoryExtensions.AsMemory(this._buffer, 0, totalBytesRead));
+                this._cache.PushIncoming(System.MemoryExtensions.AsMemory(this._buffer, 2, totalBytesRead));
             }
             else
             {
