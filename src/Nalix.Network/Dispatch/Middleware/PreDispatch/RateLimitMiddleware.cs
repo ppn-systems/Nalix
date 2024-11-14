@@ -2,12 +2,14 @@
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
+using Nalix.Network.Dispatch.Middleware.Enums;
+using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Transport;
 
-namespace Nalix.Network.Dispatch.Middleware.Pre;
+namespace Nalix.Network.Dispatch.Middleware.PreDispatch;
 
 /// <summary>
 /// Middleware that enforces rate limiting for incoming packets.
@@ -57,7 +59,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return<LiteralPacket>(text);
+                ObjectPoolManager.Instance.Return(text);
             }
         }
 
