@@ -71,8 +71,11 @@ public sealed partial class TaskManager : ITaskManager
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public IRecurringHandle ScheduleRecurring(
         [System.Diagnostics.CodeAnalysis.StringSyntax("identifier")]
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name, System.TimeSpan interval,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work, IRecurringOptions? options = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
+        [System.Diagnostics.CodeAnalysis.NotNull]
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
+        [System.Diagnostics.CodeAnalysis.AllowNull] IRecurringOptions? options = null)
     {
         System.ArgumentNullException.ThrowIfNull(work);
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -109,9 +112,10 @@ public sealed partial class TaskManager : ITaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public async System.Threading.Tasks.ValueTask RunOnceAsync(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        System.Threading.CancellationToken ct = default)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentNullException.ThrowIfNull(work);
@@ -147,10 +151,11 @@ public sealed partial class TaskManager : ITaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public IWorkerHandle StartWorker(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String group,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
+        [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        IWorkerOptions? options = null)
+        [System.Diagnostics.CodeAnalysis.AllowNull] IWorkerOptions? options = null)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -222,9 +227,18 @@ public sealed partial class TaskManager : ITaskManager
                 }
 
                 st.MarkStart();
+                WorkerContext ctx = new(st, this);
 
-                var ctx = new WorkerContext(st, this);
-                await work(ctx, ct).ConfigureAwait(false);
+                if (options.ExecutionTimeout is { } to && to > System.TimeSpan.Zero)
+                {
+                    using System.Threading.CancellationTokenSource wcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    wcts.CancelAfter(to);
+                    await work(ctx, wcts.Token);
+                }
+                else
+                {
+                    await work(ctx, ct);
+                }
 
                 st.MarkStop();
             }
