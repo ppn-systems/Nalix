@@ -1,49 +1,60 @@
 namespace Nalix.Common.Security.Identity;
 
 /// <summary>
-/// Defines core functionality for unique identifier implementations.
+/// Defines the core contract for a unique identifier, including type,
+/// machine association, serialization, and equality comparison.
 /// </summary>
 public interface IIdentifier : System.IEquatable<IIdentifier>
 {
     /// <summary>
-    /// Gets the underlying 32-bit unsigned integer value.
+    /// Gets the underlying 32-bit unsigned integer value of the identifier.
     /// </summary>
     System.UInt32 Value { get; }
 
     /// <summary>
-    /// Gets the IdentifierType encoded within this identifier.
+    /// Gets the <see cref="IdentifierType"/> encoded within this identifier.
     /// </summary>
     IdentifierType Type { get; }
 
     /// <summary>
-    /// Gets the machine TransportProtocol component encoded within this identifier.
+    /// Gets the machine ID component encoded within this identifier.
     /// </summary>
     System.UInt16 MachineId { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this TransportProtocol is empty.
+    /// Determines whether this identifier is empty (uninitialized or default value).
     /// </summary>
-    /// <returns>True if this TransportProtocol is empty; otherwise, false.</returns>
+    /// <returns>
+    /// <see langword="true"/> if the identifier is empty; otherwise, <see langword="false"/>.
+    /// </returns>
     System.Boolean IsEmpty();
 
     /// <summary>
     /// Converts the identifier to a string representation.
     /// </summary>
-    /// <param name="isHex">If true, returns a hexadecimal string; otherwise, returns a Base36 string.</param>
+    /// <param name="isHex">
+    /// If <see langword="true"/>, returns a hexadecimal string;  
+    /// otherwise, returns a Base36-encoded string.
+    /// </param>
     /// <returns>The string representation of the identifier.</returns>
     System.String ToString(System.Boolean isHex);
 
     /// <summary>
-    /// Converts the identifier to a byte array.
+    /// Serializes the identifier into a byte array.
     /// </summary>
-    /// <returns>A byte array representing this identifier.</returns>
+    /// <returns>
+    /// A byte array containing the serialized representation of the identifier.
+    /// </returns>
     System.Byte[] Serialize();
 
     /// <summary>
-    /// Tries to write the identifier to a span of bytes.
+    /// Attempts to serialize the identifier into the provided byte span.
     /// </summary>
-    /// <param name="destination">The destination span.</param>
-    /// <param name="bytesWritten">The TransportProtocol of bytes written.</param>
-    /// <returns>True if successful; false if the destination is too small.</returns>
+    /// <param name="destination">The destination byte span.</param>
+    /// <param name="bytesWritten">When this method returns, contains the number of bytes written.</param>
+    /// <returns>
+    /// <see langword="true"/> if the identifier was successfully serialized;  
+    /// otherwise, <see langword="false"/> if the destination is too small.
+    /// </returns>
     System.Boolean TrySerialize(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
 }

@@ -1,15 +1,24 @@
 namespace Nalix.Common.Packets.Attributes;
 
 /// <summary>
-/// Marks a class as a packet controller responsible for handling packet commands.
-/// Optionally, a name, active status, and version can be provided for logging and debugging purposes.
+/// Specifies that the target class is a packet controller responsible for handling packet commands.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="PacketControllerAttribute"/> class.
+/// This attribute can optionally specify a controller name, active status, and version number
+/// for logging, debugging, or feature management purposes.
 /// </remarks>
-/// <param name="name">The name of the packet controller. Defaults to "Unknown" if not provided.</param>
-/// <param name="isActive">Indicates whether the controller is active. Defaults to true.</param>
-/// <param name="version">The version of the packet controller. Defaults to "1.0".</param>
+/// <param name="name">
+/// The human-readable name of the packet controller.
+/// Defaults to <c>"Unknown"</c> if not provided.
+/// </param>
+/// <param name="isActive">
+/// Indicates whether the controller is active and should handle packets.
+/// Defaults to <c>true</c>.
+/// </param>
+/// <param name="version">
+/// The version identifier for the packet controller.
+/// Defaults to <c>"1.0"</c>.
+/// </param>
 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
     System.String name = "Unknown",
@@ -17,18 +26,18 @@ public sealed class PacketControllerAttribute(
     System.String version = "1.0") : System.Attribute
 {
     /// <summary>
-    /// The name of the packet controller, used for logging and debugging.
-    /// If no name is provided, defaults to "Unknown".
+    /// Gets the name of the packet controller.
+    /// Used primarily for logging and debugging purposes.
     /// </summary>
     public System.String Name { get; } = name;
 
     /// <summary>
-    /// The version of the packet controller. Default is "1.0".
+    /// Gets the version string of the packet controller.
     /// </summary>
     public System.String Version { get; } = version;
 
     /// <summary>
-    /// The active status of the packet controller. Default is true.
+    /// Gets a value indicating whether the packet controller is active.
     /// </summary>
     public System.Boolean IsActive { get; } = isActive;
 }
