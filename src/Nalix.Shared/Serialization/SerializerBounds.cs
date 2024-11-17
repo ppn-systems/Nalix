@@ -1,22 +1,26 @@
 namespace Nalix.Shared.Serialization;
 
 /// <summary>
-/// Constants used in serialization for representing special values.
+/// Defines constant values used during serialization to represent special cases
+/// such as null values and maximum size limits.
 /// </summary>
 public static class SerializerBounds
 {
     /// <summary>
-    /// Represents a null value (System.UInt16.MaxValue = 65535).
+    /// Special marker for a <c>null</c> value.
+    /// Equal to <see cref="System.UInt16.MaxValue"/> (65535).
     /// </summary>
     public const System.UInt16 Null = System.UInt16.MaxValue;
 
     /// <summary>
-    /// Maximum allowed array size (System.UInt16.MaxValue - 1 = 65534).
+    /// Maximum allowed array size.
+    /// Equal to <see cref="System.UInt16.MaxValue"/> - 1 (65534).
     /// </summary>
     public const System.UInt16 MaxArray = System.UInt16.MaxValue - 1;
 
     /// <summary>
-    /// Maximum allowed string length (System.UInt16.MaxValue - 2 = 65533).
+    /// Maximum allowed string length.
+    /// Equal to <see cref="System.UInt16.MaxValue"/> - 2 (65533).
     /// </summary>
     public const System.UInt16 MaxString = System.UInt16.MaxValue - 2;
 }
