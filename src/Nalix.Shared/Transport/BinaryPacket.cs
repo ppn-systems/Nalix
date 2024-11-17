@@ -29,7 +29,7 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
     [SerializeOrder(0)]
-    public System.UInt32 MagicNumber { get; set; }
+    public static System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
@@ -59,20 +59,21 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeOrder(9)]
-    [SerializeDynamicSize(512)]
+    [SerializeDynamicSize(256)]
     public System.Byte[] Data { get; set; }
+
+    static BinaryPacket() => MagicNumber = (System.UInt32)PacketMagicNumbers.BinaryPacket;
 
     /// <summary>
     /// Initializes a new <see cref="BinaryPacket"/> with empty content.
     /// </summary>
     public BinaryPacket()
     {
-        OpCode = 0x00;
-        MagicNumber = PacketConstants.MagicNumber;
-        Flags = PacketFlags.None;
         Data = [];
+        Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
+        OpCode = PacketConstants.OpCodeDefault;
     }
 
     /// <summary>
@@ -108,11 +109,15 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="BinaryPacket"/> instance.</returns>
-    public static BinaryPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    public static BinaryPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
         BinaryPacket packet = ObjectPoolManager.Instance.Get<BinaryPacket>();
-        _ = LiteSerializer.Deserialize(buffer, ref packet);
-        return packet;
+        System.Int32 bytesRead = LiteSerializer.Deserialize<BinaryPacket>(buffer, ref packet);
+
+        return bytesRead == 0
+            ? throw new System.InvalidOperationException(
+                "Failed to deserialize packet: No bytes were read.")
+            : packet;
     }
 
     /// <summary>

@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch.Core;
 /// <typeparam name="TPacket">
 /// The packet type that implements both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
-public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
+public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
 {
     #region Properties
 
