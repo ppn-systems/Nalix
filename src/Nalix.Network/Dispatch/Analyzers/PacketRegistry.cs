@@ -1,26 +1,62 @@
 ﻿using Nalix.Common.Attributes;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Shared.Extensions;
+using System.Linq;
+using System.Reflection;
 
 namespace Nalix.Network.Dispatch.Analyzers;
 
 internal static class PacketRegistry
 {
     private static readonly System.Collections.Generic.Dictionary<
-        System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _packetFactories = [];
+        System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _packetFactories;
 
     private static readonly System.Collections.Generic.Dictionary<
-        System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _cachedFactories = [];
+        System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _cachedFactories;
 
     static PacketRegistry()
     {
-        // Get the executing assembly
-        System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        _packetFactories = [];
+        _cachedFactories = [];
+        System.Collections.Generic.List<Assembly> assembliesToScan = [];
 
-        // Get all types in the assembly
-        System.Type[] types = assembly.GetTypes();
+        if (Assembly.GetEntryAssembly() is { } entryAsm)
+        {
+            assembliesToScan.Add(entryAsm);
+        }
 
-        foreach (System.Type type in types)
+        assembliesToScan.AddRange(
+            System.AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic &&
+                            !System.String.IsNullOrWhiteSpace(a.FullName) &&
+                            a.GetTypes().Any(t => t.Namespace != null &&
+                                                  t.Namespace.StartsWith(
+                                                      $"{nameof(Nalix)}.{nameof(Shared)}.{nameof(Shared.Messaging)}")))
+        );
+
+        Initialize([.. assembliesToScan.Distinct()]);
+    }
+
+    /// <summary>
+    /// Initializes the registry by scanning the given assemblies for packet types.
+    /// </summary>
+    /// <param name="assemblies">Assemblies to scan for packets.</param>
+    public static void Initialize(params Assembly[] assemblies)
+    {
+        if (assemblies == null || assemblies.Length == 0)
+        {
+            assemblies = [Assembly.GetExecutingAssembly()];
+        }
+
+        foreach (Assembly assembly in assemblies.Distinct())
+        {
+            RegisterPacketsFromAssembly(assembly);
+        }
+    }
+
+    private static void RegisterPacketsFromAssembly(Assembly assembly)
+    {
+        foreach (System.Type type in assembly.GetTypes())
         {
             if (!typeof(IPacket).IsAssignableFrom(type) || !type.IsClass)
             {
@@ -28,8 +64,7 @@ internal static class PacketRegistry
             }
 
             // Check if the type has the MagicNumberAttribute
-            if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type)
-                is not MagicNumberAttribute magicNumberAttribute)
+            if (type.GetCustomAttribute<MagicNumberAttribute>() is not MagicNumberAttribute magicNumberAttribute)
             {
                 continue;
             }
@@ -39,9 +74,8 @@ internal static class PacketRegistry
             // If MagicNumber already exists, throw an exception
             if (_packetFactories.ContainsKey(magicNumber))
             {
-
                 throw new System.InvalidOperationException(
-                    $"MagicNumber {magicNumber} is already assigned to another packet type. " +
+                    $"MagicNumber 0x{magicNumber:X8} is already assigned to another packet type. " +
                     $"Duplicate MagicNumber found in type {type.FullName}.");
             }
 
@@ -51,55 +85,50 @@ internal static class PacketRegistry
             {
                 continue;
             }
-            var transformerType = type.GetInterface(ipacketTransformerFullName);
 
-            // Get the Deserialize method from the transformer
+            var transformerType = type.GetInterface(ipacketTransformerFullName);
             var deserializeMethod = transformerType?.GetMethod("Deserialize");
+
             if (deserializeMethod == null)
             {
                 continue;
             }
 
             // Cache the deserialization delegate for later use
-            _packetFactories[magicNumber] = CreateDeserializerDelegate(deserializeMethod);
+            _packetFactories[magicNumber] = CreateDeserializerDelegate(magicNumber, deserializeMethod);
         }
     }
 
     // Lazy loading: Cache deserialization delegate when it's actually needed
-    private static System.Func<System.ReadOnlySpan<System.Byte>, IPacket> CreateDeserializerDelegate(System.Reflection.MethodInfo deserializeMethod)
+    private static System.Func<System.ReadOnlySpan<System.Byte>, IPacket> CreateDeserializerDelegate(
+        System.UInt32 magicNumber, MethodInfo deserializeMethod)
     {
         return buffer =>
         {
-            System.Type declaringType = deserializeMethod.DeclaringType ??
-                throw new System.InvalidOperationException("Deserialize method's DeclaringType is null.");
-
-            System.UInt32 key = (System.UInt32)declaringType.GetHashCode();
-            if (!_cachedFactories.TryGetValue(key, out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? value))
+            if (!_cachedFactories.TryGetValue(magicNumber,
+                out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory))
             {
-                System.Func<System.ReadOnlySpan<System.Byte>, IPacket> factory = deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>();
-
-                value = factory;
-                _cachedFactories[key] = value;
+                factory = deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>();
+                _cachedFactories[magicNumber] = factory;
             }
-            return value(buffer);
+            return factory(buffer);
         };
     }
 
-    // Resolve packet deserializer based on magic number
-    public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? ResolvePacketDeserializer(System.UInt32 magicNumber)
-    {
-        // Use magicNumber directly to retrieve the deserializer delegate
-        return _cachedFactories.TryGetValue(magicNumber, out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? cachedFactory)
-            ? cachedFactory
-            : _packetFactories.TryGetValue(magicNumber, out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory)
-            ? factory
-            : null;
-    }
+    /// <summary>
+    /// Resolve packet deserializer based on magic number.
+    /// </summary>
+    public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>?
+        ResolvePacketDeserializer(System.UInt32 magicNumber)
+        => _cachedFactories.TryGetValue(magicNumber,
+            out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? cachedFactory)
+            ? cachedFactory : _packetFactories.TryGetValue(magicNumber,
+            out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory) ? factory : null;
 
-    // Resolve packet deserializer based on raw bytes (uses ReadMagicNumber extension method)
-    public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? ResolvePacketDeserializer(System.ReadOnlySpan<System.Byte> raw)
-    {
-        System.UInt32 magicNumber = raw.ReadMagicNumberLE();
-        return ResolvePacketDeserializer(magicNumber);
-    }
+    /// <summary>
+    /// Resolve packet deserializer based on raw bytes.
+    /// </summary>
+    public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>?
+        ResolvePacketDeserializer(System.ReadOnlySpan<System.Byte> raw)
+        => ResolvePacketDeserializer(raw.ReadMagicNumberLE());
 }

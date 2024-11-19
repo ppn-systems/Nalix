@@ -6,6 +6,11 @@
 public enum MagicNumbers : System.UInt32
 {
     /// <summary>
+    /// No magic number assigned.
+    /// </summary>
+    Unknown = 0x00000000,
+
+    /// <summary>
     /// Magic number for BinaryPacket type.
     /// This number is used to identify packets of type BinaryPacket.
     /// </summary>
