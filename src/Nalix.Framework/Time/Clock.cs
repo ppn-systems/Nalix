@@ -152,8 +152,8 @@ public static partial class Clock
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void ResetSynchronization()
     {
-        _timeOffset = 0;
-        _driftCorrection = 1.0;
+        _ = System.Threading.Interlocked.Exchange(ref _timeOffset, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _driftCorrection, 1.0);
 
         IsSynchronized = false;
         LastSyncTime = System.DateTime.MinValue;
