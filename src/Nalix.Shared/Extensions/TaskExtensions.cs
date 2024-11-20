@@ -105,4 +105,30 @@ public static class TaskExtensions
 
         return default; // or throw TimeoutException
     }
+
+    /// <summary>
+    /// Registers cancellation such that the TCS will complete as canceled
+    /// if the token fires. Auto-disposes on leaving using-scope.
+    /// </summary>
+    /// <typeparam name="T">TCS payload type.</typeparam>
+    /// <param name="tcs">The TaskCompletionSource instance.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>IDisposable registration handle.</returns>
+    public static System.IDisposable LinkCancellation<T>(
+        this System.Threading.Tasks.TaskCompletionSource<T> tcs, System.Threading.CancellationToken token)
+    {
+        if (!token.CanBeCanceled)
+        {
+            return DummyDisposable.Instance;
+        }
+
+        return token.Register(() => tcs.TrySetCanceled(token));
+    }
+
+    private sealed class DummyDisposable : System.IDisposable
+    {
+        public static readonly DummyDisposable Instance = new();
+        private DummyDisposable() { }
+        public void Dispose() { }
+    }
 }
