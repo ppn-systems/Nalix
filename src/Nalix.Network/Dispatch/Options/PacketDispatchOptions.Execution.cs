@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Packets.Interfaces;
-using Nalix.Network.Dispatch.Core;
+﻿using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.ReturnTypes;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
@@ -9,72 +8,46 @@ namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     #region Private Methods
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask ExecuteHandler(
         PacketHandlerDelegate<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
-        try
+        if (this._pipeline is not null)
         {
-            System.Int32 timeout = descriptor.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
-            System.Threading.Tasks.ValueTask<System.Object?> execTask = descriptor.ExecuteAsync(context);
-
-            if (timeout > 0)
-            {
-                var execTaskAsTask = execTask.AsTask(); // Convert ValueTask to Task once
-                var completed = await System.Threading.Tasks.Task.WhenAny(
-                    execTaskAsTask, System.Threading.Tasks.Task.Delay(timeout));
-
-                if (completed != execTaskAsTask)
-                {
-                    TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
-                    try
-                    {
-                        text.Initialize($"Request timeout ({timeout}ms).");
-                        _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-                        return;
-                    }
-                    finally
-                    {
-                        ObjectPoolManager.Instance.Return<TextPacket>(text);
-                    }
-                }
-
-                // Await the execTaskAsTask only once
-                System.Object? result = await execTaskAsTask;
-
-                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
-                await returnHandler.HandleAsync(result, context);
-            }
-            else
-            {
-                // Await the ValueTask only once
-                System.Object? result = await execTask;
-
-                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
-                await returnHandler.HandleAsync(result, context);
-            }
+            await this._pipeline.ExecuteAsync(context, Terminal).ConfigureAwait(false);
         }
-        catch (System.Exception ex)
+        else
         {
-            await this.HandleExecutionException(descriptor, context, ex);
+            await Terminal().ConfigureAwait(false);
+        }
+
+        async System.Threading.Tasks.Task Terminal()
+        {
+            try
+            {
+                // Execute the handler and await the ValueTask once
+                System.Object? result = await descriptor.ExecuteAsync(context);
+
+                // Handle the result
+                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+                await returnHandler.HandleAsync(result, context);
+            }
+            catch (System.Exception ex)
+            {
+                await this.HandleExecutionException(descriptor, context, ex);
+            }
         }
     }
 
     /// <summary>
     /// Handle execution exception.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask HandleExecutionException(
         PacketHandlerDelegate<TPacket> descriptor,
         PacketContext<TPacket> context,
         System.Exception exception)
     {
-        this._logger?.Error("Handler execution failed for OpCode={0}: {1}",
+        this.Logger?.Error("Handler execution failed for OpCode={0}: {1}",
             descriptor.OpCode, exception.Message);
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
