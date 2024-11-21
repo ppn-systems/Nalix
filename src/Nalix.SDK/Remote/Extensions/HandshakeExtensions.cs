@@ -3,7 +3,9 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;                     // ProtocolType
+using Nalix.Common.SDK;
 using Nalix.Framework.Injection;
+using Nalix.Shared.Extensions;
 using Nalix.Shared.Messaging.Controls;            // Handshake
 using Nalix.Shared.Security.Asymmetric;
 using Nalix.Shared.Security.Hashing;
@@ -45,7 +47,7 @@ public static class HandshakeExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         System.UInt16 opCode = 1,
         System.Int32 timeoutMs = 5_000,
         System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
@@ -93,8 +95,7 @@ public static class HandshakeExtensions
             _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
         }
 
-        client.PacketReceived += OnPacket;
-        client.Disconnected += OnDisconnected;
+        using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
 
         try
         {
@@ -106,7 +107,7 @@ public static class HandshakeExtensions
                                     .Debug("Handshake request sent.");
 
             // Await server response (with timeout/ct)
-            using (linked.Token.Register(() => tcs.TrySetCanceled(linked.Token)))
+            using (tcs.LinkCancellation(linked.Token))
             {
                 Handshake hs = await tcs.Task.ConfigureAwait(false);
 
@@ -158,12 +159,6 @@ public static class HandshakeExtensions
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[HandshakeAsync] Failed: {ex}");
             return false;
-        }
-        finally
-        {
-            // Auto-unsubscribe
-            client.PacketReceived -= OnPacket;
-            client.Disconnected -= OnDisconnected;
         }
     }
 }
