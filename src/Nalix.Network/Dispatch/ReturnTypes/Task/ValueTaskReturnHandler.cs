@@ -7,8 +7,6 @@ internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TP
     : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
         PacketContext<TPacket> context)
