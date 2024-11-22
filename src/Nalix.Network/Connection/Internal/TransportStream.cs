@@ -3,6 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection.Internal;
@@ -14,7 +15,6 @@ internal class TransportStream : System.IDisposable
 {
     #region Fields
 
-    private readonly ILogger? _logger;
     private readonly IBufferPool _pool;
     private readonly TransportCache _cache;
     private readonly System.Net.Sockets.Socket _socket;
@@ -53,16 +53,12 @@ internal class TransportStream : System.IDisposable
     /// </summary>
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
-    /// <param name="logger">The logger (optional).</param>
-    public TransportStream(System.Net.Sockets.Socket socket, IBufferPool bufferPool, ILogger? logger = null)
+    public TransportStream(System.Net.Sockets.Socket socket, IBufferPool bufferPool)
     {
-        this._logger = logger;
         this._pool = bufferPool;
         this._buffer = this._pool.Rent();
         this._cache = new TransportCache();
         this._socket = socket;
-
-        this._logger?.Debug("TransportStream created");
     }
 
     #endregion Constructor
@@ -79,13 +75,15 @@ internal class TransportStream : System.IDisposable
     {
         if (this._disposed)
         {
-            this._logger?.Debug("[{0}] BeginReceive called on disposed", nameof(TransportStream));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] BeginReceive called on disposed", nameof(TransportStream));
             return;
         }
 
         try
         {
-            this._logger?.Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
 
             System.Net.Sockets.SocketAsyncEventArgs args = new();
             args.SetBuffer(this._buffer, 0, 2);
@@ -106,13 +104,14 @@ internal class TransportStream : System.IDisposable
                     catch (System.Net.Sockets.SocketException ex) when
                         (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
                     {
-                        this._logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Debug("[{0}] _udpListener reset", nameof(TransportStream));
                         this.Disconnected?.Invoke();
                     }
                     catch (System.Exception ex)
                     {
-                        this._logger?.Error("[{0}] BeginReceive error: {1}",
-                                      nameof(TransportStream), ex.Message);
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
                     }
                 }, cancellationToken);
             };
@@ -131,7 +130,8 @@ internal class TransportStream : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
         }
     }
 
@@ -160,7 +160,8 @@ internal class TransportStream : System.IDisposable
         {
             try
             {
-                _logger?.Debug("[{0}] Sending data (stackalloc)", nameof(TransportStream));
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[{nameof(TransportStream)}] Sending data (stackalloc)");
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
                 System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bufferS, totalLength);
@@ -169,7 +170,8 @@ internal class TransportStream : System.IDisposable
                 System.Int32 sent = _socket.Send(bufferS);
                 if (sent != bufferS.Length)
                 {
-                    _logger?.Error("[{0}] Partial send: {1}/{2}", nameof(TransportStream), sent, bufferS.Length);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error("[{0}] Partial send: {1}/{2}", nameof(TransportStream), sent, bufferS.Length);
                     return false;
                 }
 
@@ -179,7 +181,8 @@ internal class TransportStream : System.IDisposable
             }
             catch (System.Exception ex)
             {
-                _logger?.Error("[{0}] Send error (stackalloc): {1}", nameof(TransportStream), ex);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[{0}] Send error (stackalloc): {1}", nameof(TransportStream), ex);
                 return false;
             }
         }
@@ -188,7 +191,8 @@ internal class TransportStream : System.IDisposable
 
         try
         {
-            _logger?.Debug("[{0}] Sending data (pooled)", nameof(TransportStream));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Sending data (pooled)", nameof(TransportStream));
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                   .AsSpan(buffer), totalLength);
@@ -204,7 +208,8 @@ internal class TransportStream : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] Send error (pooled): {1}", nameof(TransportStream), ex);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[{0}] Send error (pooled): {1}", nameof(TransportStream), ex);
             return false;
         }
         finally
@@ -246,7 +251,8 @@ internal class TransportStream : System.IDisposable
             data.Span.CopyTo(System.MemoryExtensions
                      .AsSpan(buffer, sizeof(System.UInt16)));
 
-            this._logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Sending data async", nameof(TransportStream));
 
             _ = await this._socket.SendAsync(System.MemoryExtensions
                                   .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken);
@@ -256,7 +262,8 @@ internal class TransportStream : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
             return false;
         }
         finally
@@ -295,7 +302,8 @@ internal class TransportStream : System.IDisposable
 
         this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
         this._cache.PushIncoming(new System.ReadOnlyMemory<System.Byte>(data));
-        this._logger?.Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
     }
 
 
@@ -340,7 +348,9 @@ internal class TransportStream : System.IDisposable
             System.Int32 totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
-                this._logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[{nameof(TransportStream)}] Clients closed");
+
                 this.Disconnected?.Invoke();
                 return;
             }
@@ -353,18 +363,22 @@ internal class TransportStream : System.IDisposable
             System.Int32 offset = 0;
             System.UInt16 size = System.BitConverter.ToUInt16(this._buffer, offset);
             offset += sizeof(System.UInt16);
-            this._logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > this._pool.MaxBufferSize)
             {
-                this._logger?.Error("[{0}] Size {1} exceeds max {2} ",
-                                nameof(TransportStream), size, this._pool.MaxBufferSize);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[{0}] Size {1} exceeds max {2} ", nameof(TransportStream), size, this._pool.MaxBufferSize);
+
                 return;
             }
 
             if (size > this._buffer.Length)
             {
-                this._logger?.Debug("[{0}] Renting larger buffer", nameof(TransportStream));
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug("[{0}] Renting larger buffer", nameof(TransportStream));
+
                 this._pool.Return(this._buffer);
                 this._buffer = this._pool.Rent(size);
             }
@@ -401,7 +415,9 @@ internal class TransportStream : System.IDisposable
 
                 if (bytesRead == 0)
                 {
-                    this._logger?.Debug($"[{nameof(TransportStream)}] Clients closed during read");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Debug($"[{nameof(TransportStream)}] Clients closed during read");
+
                     this.Disconnected?.Invoke();
                     return;
                 }
@@ -411,24 +427,31 @@ internal class TransportStream : System.IDisposable
 
             if (totalBytesRead == size)
             {
-                this._logger?.Debug("[{0}] Packet received", nameof(TransportStream));
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug("[{0}] Packet received", nameof(TransportStream));
+
                 this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-                this._cache.PushIncoming(System.MemoryExtensions.AsMemory(this._buffer, 2, totalBytesRead));
+
+                this._cache.PushIncoming(System.MemoryExtensions
+                           .AsMemory(this._buffer, 2, totalBytesRead));
             }
             else
             {
-                this._logger?.Error("[{0}] Incomplete packet", nameof(TransportStream));
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[{0}] Incomplete packet", nameof(TransportStream));
             }
         }
         catch (System.Net.Sockets.SocketException ex) when
               (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
         {
-            this._logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] _udpListener reset", nameof(TransportStream));
             this.Disconnected?.Invoke();
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error(ex);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error(ex);
         }
         finally
         {
@@ -460,7 +483,8 @@ internal class TransportStream : System.IDisposable
             }
             catch (System.Exception ex)
             {
-                this._logger?.Debug("[{0}] Error shutting down socket: {1}", nameof(TransportStream), ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug("[{0}] Error shutting down socket: {1}", nameof(TransportStream), ex.Message);
             }
 
             this._socket.Close();
@@ -470,7 +494,8 @@ internal class TransportStream : System.IDisposable
         }
 
         this._disposed = true;
-        this._logger?.Debug("TransportStream disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("TransportStream disposed");
     }
 
     #endregion Private Methods

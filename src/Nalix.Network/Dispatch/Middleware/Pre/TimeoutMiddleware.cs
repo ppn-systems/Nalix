@@ -25,7 +25,8 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         if (timeout > 0)
         {
             System.Threading.Tasks.Task execution = next();
-            System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout);
+            using System.Threading.CancellationTokenSource cts = new();
+            System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, cts.Token);
 
             System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay);
 
@@ -44,8 +45,11 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ObjectPoolManager.Instance.Return(text);
                 }
             }
-
-            await execution;
+            else
+            {
+                cts.Cancel();
+                await execution;
+            }
         }
         else
         {

@@ -81,12 +81,12 @@ public sealed class PacketDispatch(System.Action<PacketDispatchOptions<IPacket>>
             return;
         }
 
-        this.HandlePacketAsync(deserializer(raw), connection);
+        this.HandlePacket(deserializer(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(IPacket packet, IConnection connection)
+    public void HandlePacket(IPacket packet, IConnection connection)
         => base.ExecutePacketHandlerAsync(packet, connection).Await();
 }
