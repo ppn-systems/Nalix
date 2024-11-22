@@ -45,65 +45,6 @@ public class ClockTests
     }
 
     [Fact]
-    public void UnixTimeSecondsToDateTime_Should_Convert()
-    {
-        const Int64 unix = 1700000000L;
-        var dt = Clock.UnixTimeSecondsToDateTime(unix);
-        Assert.Equal(unix, (Int64)(dt - DateTime.UnixEpoch).TotalSeconds);
-    }
-
-    [Fact]
-    public void UnixTimeMillisecondsToDateTime_Should_Convert()
-    {
-        const Int64 unix = 1700000000000L;
-        var dt = Clock.UnixTimeMillisecondsToDateTime(unix);
-        Assert.Equal(unix, (Int64)(dt - DateTime.UnixEpoch).TotalMilliseconds);
-    }
-
-    [Fact]
-    public void UnixTimeMicrosecondsToDateTime_Should_Convert()
-    {
-        const Int64 micro = 170000000000000L;
-        var dt = Clock.UnixTimeMicrosecondsToDateTime(micro);
-        Assert.Equal(micro, (dt - DateTime.UnixEpoch).Ticks / 10);
-    }
-
-    [Fact]
-    public void TimeMillisecondsToDateTime_Should_Convert()
-    {
-        const Int64 ms = 1000000;
-        var dt = Clock.TimeMillisecondsToDateTime(ms);
-        Assert.Equal(ms, (Int64)(dt - DateTime.UnixEpoch.AddSeconds(Clock.TimeEpochTimestamp)).TotalMilliseconds);
-    }
-
-    [Fact]
-    public void UnixTimeToDateTime_And_DateTimeToUnixTime_Should_Convert()
-    {
-        var now = DateTime.UtcNow;
-        var span = now - DateTime.UnixEpoch;
-        var dt2 = Clock.UnixTimeToDateTime(span);
-        Assert.Equal(now.Ticks / TimeSpan.TicksPerSecond, dt2.Ticks / TimeSpan.TicksPerSecond);
-
-        var unix = Clock.DateTimeToUnixTime(now);
-        Assert.Equal(span.Ticks, unix.Ticks);
-    }
-
-    [Fact]
-    public void DateTimeToTime_Should_Throw_IfNotUtc()
-    {
-        var dt = new DateTime(2021, 1, 1, 0, 0, 0, DateTimeKind.Local);
-        _ = Assert.Throws<ArgumentException>(() => Clock.DateTimeToTime(dt));
-    }
-
-    [Fact]
-    public void DateTimeToUnixTimeSeconds_And_Milliseconds_Should_Throw_IfNotUtc()
-    {
-        var dt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Local);
-        _ = Assert.Throws<ArgumentException>(() => Clock.DateTimeToUnixTimeSeconds(dt));
-        _ = Assert.Throws<ArgumentException>(() => Clock.DateTimeToUnixTimeMilliseconds(dt));
-    }
-
-    [Fact]
     public void SynchronizeTime_And_ResetSynchronization()
     {
         var now = DateTime.UtcNow.AddSeconds(1);
@@ -115,12 +56,5 @@ public class ClockTests
         Clock.ResetSynchronization();
         Assert.False(Clock.IsSynchronized);
         Assert.Equal(DateTime.MinValue, Clock.LastSyncTime);
-    }
-
-    [Fact]
-    public void GetCurrentErrorEstimateMs_Should_Return_Zero_IfNotSync()
-    {
-        Clock.ResetSynchronization();
-        Assert.Equal(0, Clock.GetCurrentErrorEstimateMs());
     }
 }

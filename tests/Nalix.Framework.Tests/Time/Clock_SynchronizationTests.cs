@@ -17,7 +17,7 @@ public class Clock_SynchronizationTests
     public void GetCurrentErrorEstimateMs_NoSync_Zero()
     {
         Clock.ResetSynchronization();
-        Assert.Equal(0, Clock.GetCurrentErrorEstimateMs(), 6);
+        Assert.Equal(0, Clock.CurrentErrorEstimateMs(), 6);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class Clock_SynchronizationTests
     {
         Clock.ResetSynchronization();
         _ = Clock.SynchronizeTime(DateTime.UtcNow.AddSeconds(2));
-        var err = Clock.GetCurrentErrorEstimateMs();
+        var err = Clock.CurrentErrorEstimateMs();
         // Có thể dương / âm tùy thời điểm, nhưng magnitude > 0
         Assert.True(Math.Abs(err) >= 0);
     }

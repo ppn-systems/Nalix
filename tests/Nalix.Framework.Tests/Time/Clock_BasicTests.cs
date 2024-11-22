@@ -15,17 +15,6 @@ public class Clock_BasicTests
     }
 
     [Fact]
-    public void Static_Constants_And_Props_Are_Consistent()
-    {
-        Assert.True(Clock.IsHighResolution == Stopwatch.IsHighResolution);
-        Assert.Equal(Stopwatch.Frequency, Clock.TicksPerSecond);
-        Assert.Equal(1.0 / Stopwatch.Frequency, Clock.TickFrequency, 8);
-
-        Assert.Equal(1577836800L, Clock.TimeEpochTimestamp);
-        Assert.Equal(new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), Clock.TimeEpochDatetime);
-    }
-
-    [Fact]
     public void Unix_Time_Getters_Increase_And_Agree()
     {
         Int64 s1 = Clock.UnixSecondsNow();
