@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Exceptions;
+using Nalix.Common.Logging;
 using Nalix.Framework.Time;
 using Nalix.Network.Timing;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -28,7 +30,8 @@ public abstract partial class TcpListenerBase
 
         if (this._isRunning)
         {
-            this._logger.Warn("[TCP] Accept connections is already running.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("[TCP] Accept connections is already running.");
             return;
         }
 
@@ -42,7 +45,8 @@ public abstract partial class TcpListenerBase
         try
         {
             this._isRunning = true;
-            this._logger.Debug("Starting listener");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("Starting listener");
 
             this._cts?.Dispose();
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -62,7 +66,8 @@ public abstract partial class TcpListenerBase
 
             try
             {
-                this._logger.Info("[TCP] {0} listening on port {1}", this._protocol, Config.Port);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info("[TCP] {0} listening on port {1}", this._protocol, Config.Port);
 
                 System.Collections.Generic.List<System.Threading.Tasks.Task> tasks =
                 [
@@ -77,7 +82,8 @@ public abstract partial class TcpListenerBase
                         {
                             if (t.IsFaulted && !linkedToken.IsCancellationRequested)
                             {
-                                this._logger.Error("[TCP] Accept task failed: {0}", t.Exception?.GetBaseException().Message);
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                        .Error("[TCP] Accept task failed: {0}", t.Exception?.GetBaseException().Message);
                             }
                         }, linkedToken);
 
@@ -94,7 +100,8 @@ public abstract partial class TcpListenerBase
         }
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            this._logger.Info("[TCP] TcpListenerBase on {0} stopped by cancellation", Config.Port);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info("[TCP] TcpListenerBase on {0} stopped by cancellation", Config.Port);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
@@ -124,7 +131,8 @@ public abstract partial class TcpListenerBase
                 }
                 catch (System.Exception ex)
                 {
-                    this._logger.Error("[TCP] Error during shutdown: {0}", ex.Message);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error("[TCP] Error during shutdown: {0}", ex.Message);
                 }
                 finally
                 {
@@ -150,12 +158,14 @@ public abstract partial class TcpListenerBase
             if (this._isRunning)
             {
                 this._listener?.Close();
-                this._logger.Info($"[TCP] TcpListenerBase on {Config.Port} stopped");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info($"[TCP] TcpListenerBase on {Config.Port} stopped");
             }
         }
         catch (System.Exception ex)
         {
-            this._logger.Error("[TCP] Error closing listener socket: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[TCP] Error closing listener socket: {0}", ex.Message);
         }
         finally
         {
