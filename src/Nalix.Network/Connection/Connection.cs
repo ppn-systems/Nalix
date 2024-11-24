@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Caching;
-using Nalix.Common.Connection;
+﻿using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Security.Cryptography;
 using Nalix.Common.Security.Identity;
@@ -38,16 +37,15 @@ public sealed partial class Connection : IConnection
     /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
     /// </summary>
     /// <param name="socket">The socket used for the connection.</param>
-    /// <param name="bufferAllocator">The buffer pool used for data allocation.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
-    public Connection(System.Net.Sockets.Socket socket, IBufferPoolManager bufferAllocator)
+    public Connection(System.Net.Sockets.Socket socket)
     {
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
         _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
 
 
-        _cstream = new TransportStream(socket, bufferAllocator)
+        _cstream = new TransportStream(socket)
         {
             Disconnected = () =>
             {
