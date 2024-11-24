@@ -40,7 +40,7 @@ public sealed partial class Connection : IConnection
     /// <param name="socket">The socket used for the connection.</param>
     /// <param name="bufferAllocator">The buffer pool used for data allocation.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
-    public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator)
+    public Connection(System.Net.Sockets.Socket socket, IBufferPoolManager bufferAllocator)
     {
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();

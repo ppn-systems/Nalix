@@ -1,7 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Buffers;
 using System.Linq;
 
@@ -10,7 +9,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation and deallocation.
 /// </summary>
-public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBufferPool, System.IDisposable
+public sealed class BufferPoolManager : IBufferPoolManager, System.IDisposable
 {
     #region Constants
 
@@ -424,7 +423,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// <summary>
     /// Releases all resources of the buffer pools.
     /// </summary>
-    protected override void Dispose(System.Boolean disposeManaged)
+    public void Dispose()
     {
         // Stop the trimming timer if enabled
         _trimTimer?.Dispose();
@@ -436,7 +435,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
         // Dispose the pool manager
         _poolManager.Dispose();
 
-        base.Dispose(disposeManaged);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable

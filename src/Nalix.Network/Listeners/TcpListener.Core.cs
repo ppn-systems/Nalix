@@ -29,7 +29,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
-    private readonly IBufferPool _bufferPool;
+    private readonly IBufferPoolManager _bufferPool;
     private readonly System.Threading.Lock _socketLock;
 
     private readonly System.Threading.SemaphoreSlim _lock;
@@ -81,7 +81,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool)
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPoolManager bufferPool)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
@@ -126,7 +126,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    protected TcpListenerBase(IProtocol protocol, IBufferPool bufferPool)
+    protected TcpListenerBase(IProtocol protocol, IBufferPoolManager bufferPool)
         : this(Config.Port, protocol, bufferPool)
     {
     }
