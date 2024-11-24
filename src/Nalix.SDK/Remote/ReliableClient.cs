@@ -207,7 +207,8 @@ public sealed class ReliableClient : IReliableClient
                 new WorkerOptions
                 {
                     Tag = "tcp",
-                    OnFailed = (st, ex) => InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn($"Worker failed: {ex.Message}")
+                    OnFailed = (st, ex) => InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                                   .Warn($"Worker failed: {ex.Message}")
                 });
 
             _workerId[0] = woker.Id;
