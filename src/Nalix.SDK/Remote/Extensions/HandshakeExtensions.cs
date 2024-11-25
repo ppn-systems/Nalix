@@ -151,13 +151,13 @@ public static class HandshakeExtensions
         catch (System.OperationCanceledException oce)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[HandshakeAsync] Canceled: {oce.Message}");
+                                    .Debug($"[HandshakeAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[HandshakeAsync] Failed: {ex}");
+                                    .Error($"[HandshakeAsync] Failed: {ex}.");
             return false;
         }
     }
