@@ -57,13 +57,12 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with improved performance.
     /// </summary>
-    public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
+    public BufferPoolManager(BufferConfig? bufferConfig = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
 
         _suitablePoolSizeCache = new();
 
-        _logger = logger;
         _totalBuffers = config.TotalBuffers;
         _enableTrimming = config.EnableMemoryTrimming;
 
