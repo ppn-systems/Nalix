@@ -123,9 +123,20 @@ public sealed partial class Connection : IConnection
                 throw new System.ArgumentException("Secret must be exactly 32 bytes.", nameof(value));
             }
 
-            lock (_lock)
+            // Copy to protect internal secret from external mutation.
+            System.Byte[] copy = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(32);
+            try
             {
-                _secret = value;
+                System.Buffer.BlockCopy(value, 0, copy, 0, 32);
+                lock (_lock)
+                {
+                    // return previous if it was pooled? we use Array.Empty or rented - keep simple:
+                    _secret = copy.Length == 32 ? copy : [.. copy[..32]];
+                }
+            }
+            finally
+            {
+                // If copy isn't used as internal storage, return it. But we used it as internal storage so do not return.
             }
         }
     }
