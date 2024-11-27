@@ -7,6 +7,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static unsafe class LZ4BlockEncoder
 {
     /// <summary>
@@ -17,6 +18,7 @@ public static unsafe class LZ4BlockEncoder
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetMaxLength(System.Int32 input)
         => input + (input / 250) + LZ4BlockHeader.Size;
 
@@ -31,8 +33,11 @@ public static unsafe class LZ4BlockEncoder
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 EncodeBlock(
         System.ReadOnlySpan<System.Byte> input,
         System.Span<System.Byte> output,
@@ -62,14 +67,17 @@ public static unsafe class LZ4BlockEncoder
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.Int32 EncodeInternal(
         System.Byte* inputBase,
         System.Int32 inputLength,
         System.Byte* outputBase,
         System.Int32 outputLength,
-        System.Int32* hashTable)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32* hashTable)
     {
         System.Byte* inputPtr = inputBase;
         System.Byte* inputEnd = inputBase + inputLength;
@@ -139,8 +147,11 @@ public static unsafe class LZ4BlockEncoder
     /// <summary>
     /// Writes a sequence of literals and a match to the output buffer.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.Boolean WriteSequence(
         ref System.Byte* outputPtr,
         System.Byte* outputEnd,
@@ -206,8 +217,11 @@ public static unsafe class LZ4BlockEncoder
     /// <summary>
     /// Writes the final literals to the output buffer.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.Boolean WriteFinalLiterals(
         ref System.Byte* outputPtr,
         System.Byte* outputEnd,
