@@ -1,5 +1,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Accessors;
 using Nalix.Shared.Serialization.Internal.Reflection;
@@ -11,6 +12,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// Implements SOLID principles with Domain-Driven Design patterns.
 /// </summary>
 /// <typeparam name="T">The type to serialize.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where T : struct
 {
     #region Core Fields
@@ -19,11 +21,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     /// Array of cached field accessors for optimized serialization performance.
     /// </summary>
     private readonly FieldAccessor<T>[] _accessors;
-
-    /// <summary>
-    /// Logger instance for tracking serialization diagnostics.
-    /// </summary>
-    private readonly ILogger? _logger = null;
 
     /// <summary>
     /// Indicates whether the formatter has been disposed.
@@ -44,13 +41,16 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     {
         try
         {
-            _accessors = CreateAccessors();
-            _logger?.Info("ObjectFormatter<{Type}> initialized: {Count} fields, {Layout} layout",
-                typeof(T).Name, _accessors.Length, FieldCache<T>.GetLayout());
+            _accessors = StructFormatter<T>.CreateAccessors();
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"StructFormatter<{typeof(T).Name}> " +
+                                           $"initialized: {_accessors.Length} fields, {FieldCache<T>.GetLayout()} layout");
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("Failed to initialize ObjectFormatter<{Type}>: {Error}", typeof(T).Name, ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"Failed to initialize StructFormatter<{typeof(T).Name}>: {ex.Message}");
+
             throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }
     }
@@ -73,16 +73,9 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
-        try
+        for (System.Int32 i = 0; i < _accessors.Length; i++)
         {
-            for (System.Int32 i = 0; i < _accessors.Length; i++)
-            {
-                _accessors[i].Serialize(ref writer, value);
-            }
-        }
-        catch (System.Exception ex) when (ex is not SerializationException)
-        {
-            throw new SerializationException($"Serialization failed for {typeof(T).Name}", ex);
+            _accessors[i].Serialize(ref writer, value);
         }
     }
 
@@ -100,21 +93,14 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
-        try
-        {
-            var obj = System.Activator.CreateInstance<T>();
+        T obj = System.Activator.CreateInstance<T>();
 
-            for (System.Int32 i = 0; i < _accessors.Length; i++)
-            {
-                _accessors[i].Deserialize(ref reader, obj);
-            }
-
-            return obj;
-        }
-        catch (System.Exception ex) when (ex is not SerializationException)
+        for (System.Int32 i = 0; i < _accessors.Length; i++)
         {
-            throw new SerializationException($"Deserialization failed for {typeof(T).Name}", ex);
+            _accessors[i].Deserialize(ref reader, obj);
         }
+
+        return obj;
     }
 
     #endregion Serialization
@@ -127,7 +113,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
     /// <returns>An array of field accessors.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private FieldAccessor<T>[] CreateAccessors()
+    private static FieldAccessor<T>[] CreateAccessors()
     {
         var fields = FieldCache<T>.GetFields();
         if (fields.Length is 0)
@@ -139,15 +125,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, System.IDisposable where
 
         for (System.Int32 i = 0; i < fields.Length; i++)
         {
-            try
-            {
-                accessors[i] = FieldAccessor<T>.Create(fields[i], i);
-            }
-            catch (System.Exception ex)
-            {
-                _logger?.Warn("Skipping field {Field}: {Error}", fields[i].Name, ex.Message);
-                throw;
-            }
+            accessors[i] = FieldAccessor<T>.Create(fields[i], i);
         }
 
         return accessors;

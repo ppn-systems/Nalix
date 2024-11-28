@@ -8,6 +8,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of unmanaged types.
 /// </summary>
 /// <typeparam name="T">The unmanaged type of the array elements.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
 {
     /// <summary>

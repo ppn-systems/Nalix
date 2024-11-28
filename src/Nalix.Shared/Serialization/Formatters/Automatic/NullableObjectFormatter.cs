@@ -10,6 +10,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// This formatter writes a single byte marker (0 for null, 1 for non-null) followed by the serialized object if non-null.
 /// Serialization and deserialization of the underlying object are delegated to an instance of <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider"/>.
 /// </remarks>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class, new()
 {
     /// <summary>
