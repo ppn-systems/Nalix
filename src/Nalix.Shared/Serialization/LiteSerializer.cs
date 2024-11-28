@@ -343,10 +343,7 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw new System.ArgumentException(
-                $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
-                nameof(buffer)
-            );
+            throw new System.ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
@@ -450,7 +447,7 @@ public static class LiteSerializer
             BufferLease lease = BufferLease.Rent(size, zeroOnDispose);
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lease.SpanFull), value);
-            lease.SetLength(size);
+            lease.CommitLength(size);
 
             return lease;
         }
@@ -465,7 +462,7 @@ public static class LiteSerializer
                 BufferLease lz = BufferLease.Rent(4, zeroOnDispose);
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lz.SpanFull), -1); // NullArrayMarker
-                lz.SetLength(4);
+                lz.CommitLength(4);
 
                 return lz;
             }
@@ -478,7 +475,7 @@ public static class LiteSerializer
                 BufferLease lz = BufferLease.Rent(4, zeroOnDispose);
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lz.SpanFull), 0); // EmptyArrayMarker
-                lz.SetLength(4);
+                lz.CommitLength(4);
 
                 return lz;
             }
@@ -495,7 +492,7 @@ public static class LiteSerializer
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array),
                 (System.UInt32)dataSize);
 
-            lease.SetLength(total);
+            lease.CommitLength(total);
             return lease;
         }
 
@@ -514,7 +511,7 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
                 // If DataWriter succeeds within span bounds:
-                lease.SetLength(writer.WrittenCount);
+                lease.CommitLength(writer.WrittenCount);
                 return lease;
             }
             catch (System.Exception ex) when (ex is SerializationException or System.IndexOutOfRangeException or System.ArgumentOutOfRangeException)
@@ -538,7 +535,7 @@ public static class LiteSerializer
             try
             {
                 formatter.Serialize(ref w, value);
-                probe.SetLength(w.WrittenCount);
+                probe.CommitLength(w.WrittenCount);
                 return probe;
             }
             finally
@@ -575,7 +572,7 @@ public static class LiteSerializer
 
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), value);
-            target.SetLength(size);
+            target.CommitLength(size);
 
             return size;
         }
@@ -593,7 +590,7 @@ public static class LiteSerializer
 
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), -1);
-                target.SetLength(4);
+                target.CommitLength(4);
                 return 4;
             }
 
@@ -609,7 +606,7 @@ public static class LiteSerializer
 
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), 0);
-                target.SetLength(4);
+                target.CommitLength(4);
 
                 return 4;
             }
@@ -629,7 +626,7 @@ public static class LiteSerializer
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array),
                 (System.UInt32)dataSize);
 
-            target.SetLength(total);
+            target.CommitLength(total);
             return total;
         }
 
@@ -643,7 +640,7 @@ public static class LiteSerializer
                 throw new SerializationException($"Buffer too small. Required: {writer.WrittenCount}, Actual: {target.Capacity}");
             }
 
-            target.SetLength(writer.WrittenCount);
+            target.CommitLength(writer.WrittenCount);
             return writer.WrittenCount;
         }
         finally
