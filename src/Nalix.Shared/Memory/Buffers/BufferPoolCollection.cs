@@ -3,6 +3,9 @@
 /// <summary>
 /// Manages shared buffer pools.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.DebuggerDisplay("Pools={_pools.Count}, Keys={_sortedKeys.Length}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class BufferPoolCollection : System.IDisposable
 {
     #region Fields
@@ -114,6 +117,8 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CreatePool(System.Int32 bufferSize, System.Int32 initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
