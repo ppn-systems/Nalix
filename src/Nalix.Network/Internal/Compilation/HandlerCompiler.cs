@@ -65,14 +65,14 @@ internal sealed class HandlerCompiler<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
-                                      $"scan controller={controllerType.Name}");
+                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
+                                       $"scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
                                        $"found count={compiledMethods.Count}");
 
         // Create the controller instance
@@ -122,7 +122,7 @@ internal sealed class HandlerCompiler<
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
     {
         // Get methods with [PacketOpcode] attribute
-        var methodInfos = System.Linq.Enumerable.ToArray(
+        System.Reflection.MethodInfo[] methodInfos = System.Linq.Enumerable.ToArray(
             System.Linq.Enumerable.Where(
                 controllerType.GetMethods(
                     System.Reflection.BindingFlags.Public |
@@ -139,7 +139,7 @@ internal sealed class HandlerCompiler<
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
                                        $"compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
@@ -154,7 +154,7 @@ internal sealed class HandlerCompiler<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(HandlerCompiler<TController, TPacket>)}] dup-opcode " +
+                                            .Warn($"[{nameof(HandlerCompiler<,>)}] dup-opcode " +
                                                   $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
@@ -166,14 +166,14 @@ internal sealed class HandlerCompiler<
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(HandlerCompiler<TController, TPacket>)}] compiled " +
+                                            .Trace($"[{nameof(HandlerCompiler<,>)}] compiled " +
                                                    $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
                     System.String ctx = Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
+                                            .Error($"[{nameof(HandlerCompiler<,>)}] " +
                                                    $"failed-compile {ctx} ex={ex.GetType().Name}", ex);
                 }
             }
@@ -193,19 +193,27 @@ internal sealed class HandlerCompiler<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static HandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
-        var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
-        var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
+        System.Linq.Expressions.ParameterExpression x00 = System.Linq.Expressions.Expression
+            .Parameter(typeof(System.Object), "instance");
 
-        var pktProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
-                                                        .GetProperty(nameof(PacketContext<TPacket>.Packet))!);
-        var connProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
-                                                         .GetProperty(nameof(PacketContext<TPacket>.Connection))!);
-        var ctProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
-                                                       .GetProperty(nameof(PacketContext<TPacket>.CancellationToken))!);
+        System.Linq.Expressions.ParameterExpression x01 = System.Linq.Expressions.Expression
+            .Parameter(typeof(PacketContext<TPacket>), "context");
+
+        System.Linq.Expressions.MemberExpression x02 = System.Linq.Expressions.Expression
+            .Property(x01, typeof(PacketContext<TPacket>)
+            .GetProperty(nameof(PacketContext<>.Packet))!);
+
+        System.Linq.Expressions.MemberExpression x03 = System.Linq.Expressions.Expression
+            .Property(x01, typeof(PacketContext<TPacket>)
+            .GetProperty(nameof(PacketContext<>.Connection))!);
+
+        System.Linq.Expressions.MemberExpression x04 = System.Linq.Expressions.Expression
+            .Property(x01, typeof(PacketContext<TPacket>)
+            .GetProperty(nameof(PacketContext<>.CancellationToken))!);
 
 
         // Get the actual parameter types of the method
-        var parms = method.GetParameters();
+        System.Reflection.ParameterInfo[] parms = method.GetParameters();
 
         if (parms.Length is not 2 and not 3)
         {
@@ -213,86 +221,91 @@ internal sealed class HandlerCompiler<
                 $"Handler {method.DeclaringType?.Name}.{method.Name} must have 2 or 3 parameters " +
                 "(packet, connection[, CancellationToken]). Found: {parms.Length}.");
         }
-        var pktArgType = parms[0].ParameterType;
-        var connArgType = parms[1].ParameterType;
 
-        if (!typeof(IPacket).IsAssignableFrom(pktArgType))
+        System.Type x05 = parms[0].ParameterType;
+        System.Type x06 = parms[1].ParameterType;
+
+        if (!typeof(IPacket).IsAssignableFrom(x05))
         {
-            throw new System.InvalidOperationException($"First parameter of {method.Name} must implement IPacket. Found: {pktArgType}.");
+            throw new System.InvalidOperationException($"First parameter of {method.Name} must implement IPacket. Found: {x05}.");
         }
 
-        if (!typeof(IConnection).IsAssignableFrom(connArgType))
+        if (!typeof(IConnection).IsAssignableFrom(x06))
         {
-            throw new System.InvalidOperationException($"Second parameter of {method.Name} must implement IConnection. Found: {connArgType}.");
+            throw new System.InvalidOperationException($"Second parameter of {method.Name} must implement IConnection. Found: {x06}.");
         }
 
-        var pktArg = pktArgType.IsAssignableFrom(typeof(TPacket)) ? (System.Linq.Expressions.Expression)pktProp
-                     : System.Linq.Expressions.Expression.Convert(pktProp, pktArgType);
+        System.Linq.Expressions.Expression x07 = x05.IsAssignableFrom(typeof(TPacket))
+            ? x02
+            : System.Linq.Expressions.Expression.Convert(x02, x05);
 
-        var connArg = connArgType == typeof(IConnection) ? (System.Linq.Expressions.Expression)connProp
-                     : System.Linq.Expressions.Expression.Convert(connProp, connArgType);
+        System.Linq.Expressions.Expression x08 = x06 == typeof(IConnection)
+            ? x03
+            : System.Linq.Expressions.Expression.Convert(x03, x06);
 
-        var args = parms.Length == 2
-            ? [pktArg, connArg]
-            : new[] { pktArg, connArg, System.Linq.Expressions.Expression.Convert(ctProp, parms[2].ParameterType) };
+        System.Linq.Expressions.Expression[] x09 = parms.Length == 2
+            ? [x07, x08]
+            : [x07, x08, System.Linq.Expressions.Expression.Convert(x04, parms[2].ParameterType)];
 
-        System.Linq.Expressions.Expression call = method.IsStatic
-            ? System.Linq.Expressions.Expression.Call(method, args)
+        System.Linq.Expressions.Expression x10 = method.IsStatic
+            ? System.Linq.Expressions.Expression.Call(method, x09)
             : System.Linq.Expressions.Expression.Call(
-                System.Linq.Expressions.Expression.Convert(instanceParam, method.DeclaringType!), method, args);
+              System.Linq.Expressions.Expression.Convert(x00, method.DeclaringType!), method, x09);
 
-        System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
-            ? System.Linq.Expressions.Expression.Block(call, System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
-            : System.Linq.Expressions.Expression.Convert(call, typeof(global::System.Object));
+        System.Linq.Expressions.Expression x11 = method.ReturnType == typeof(void)
+            ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
+            : System.Linq.Expressions.Expression.Convert(x10, typeof(global::System.Object));
 
         // Compile or create delegate depending on AOT support
-        System.Func<System.Object, PacketContext<TPacket>, System.Object> sync;
+        System.Func<System.Object, PacketContext<TPacket>, System.Object> x12;
 
         if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
         {
             // JIT-capable: compile IL
-            sync = System.Linq.Expressions.Expression
-                .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object>>(body, instanceParam, contextParam)
-                .Compile();
+            x12 = System.Linq.Expressions.Expression
+                    .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object>>(x11, x00, x01)
+                    .Compile();
         }
         else
         {
             // AOT fallback: CreateDelegate + tiny adapter
-            var openDelegateType = method.IsStatic
+            System.Type x13 = method.IsStatic
                 ? method.CreateDelegateTypeForStatic()
                 : method.CreateDelegateTypeForInstance();
 
-            var dlg = method.IsStatic
-                ? method.CreateDelegate(openDelegateType)
-                : null; // instance-bound at call time
+            System.Delegate x14 = method.IsStatic
+                ? method.CreateDelegate(x13)
+                : null; // instance-bound at x10 time
 
-            sync = (instance, context) =>
+            x12 = (instance, context) =>
             {
                 // materialize parameters
-                var p0 = ((System.Object)context.Packet)!;
-                var p1 = (System.Object)context.Connection;
-                System.Object p2 = null;
+                System.Object x17 = null;
+                System.Object x15 = context.Packet!;
+                System.Object x16 = context.Connection;
 
                 if (parms.Length == 3)
                 {
-                    p2 = context.CancellationToken;
+                    x17 = context.CancellationToken;
                 }
 
                 // fast cast/convert
-                var a0 = pktArgType.IsInstanceOfType(p0) ? p0 : System.Convert.ChangeType(p0, pktArgType);
-                var a1 = connArgType.IsInstanceOfType(p1) ? p1 : System.Convert.ChangeType(p1, connArgType);
+                System.Object x18 = x05.IsInstanceOfType(x15) ? x15 : System.Convert.ChangeType(x15, x05);
+                System.Object x19 = x06.IsInstanceOfType(x16) ? x16 : System.Convert.ChangeType(x16, x06);
 
                 // invoke
-                System.Object result = method.IsStatic
-                    ? method.Invoke(null, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!])
-                    : method.Invoke(instance, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!]);
+                System.Object x21 = method.IsStatic
+                    ? method.Invoke(null, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!])
+                    : method.Invoke(instance, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!]);
 
-                return result;
+                return x21;
             };
         }
 
-        var asyncWrapper = CreateAsyncWrapper(sync, method.ReturnType);
-        return new HandlerInvoker<TPacket>(method, method.ReturnType, asyncWrapper);
+        System.Func<System.Object, PacketContext<TPacket>,
+            System.Threading.Tasks.ValueTask<System.Object>> x20 = CreateAsyncWrapper(x12, method.ReturnType);
+
+        return new HandlerInvoker<TPacket>(method, method.ReturnType, x20);
     }
 
     /// <summary>
@@ -304,15 +317,15 @@ internal sealed class HandlerCompiler<
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CreateAsyncWrapper(
-        System.Func<System.Object, PacketContext<TPacket>, System.Object> syncDelegate,
+        System.Func<System.Object, PacketContext<TPacket>, System.Object> x00,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]System.Type returnType)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]System.Type x01)
     {
-        if (returnType == typeof(System.Threading.Tasks.Task))
+        if (x01 == typeof(System.Threading.Tasks.Task))
         {
             return async (instance, context) =>
             {
-                if (syncDelegate(instance, context) is System.Threading.Tasks.Task t)
+                if (x00(instance, context) is System.Threading.Tasks.Task t)
                 {
                     await t.ConfigureAwait(false);
                     return null;
@@ -321,34 +334,34 @@ internal sealed class HandlerCompiler<
             };
         }
 
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
+        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
         {
-            // Cache Result getter at compile-time for this returnType
-            var resultProp = returnType.GetProperty("Result")!;
+            // Cache Result getter at compile-time for this x01
+            System.Reflection.PropertyInfo x02 = x01.GetProperty("Result")!;
             return async (instance, context) =>
             {
-                var r = syncDelegate(instance, context);
+                System.Object r = x00(instance, context);
                 if (r is System.Threading.Tasks.Task t)
                 {
                     await t.ConfigureAwait(false);
-                    return resultProp.GetValue(t);
+                    return x02.GetValue(t);
                 }
                 return r;
             };
         }
 
-        if (returnType == typeof(System.Threading.Tasks.ValueTask))
+        if (x01 == typeof(System.Threading.Tasks.ValueTask))
         {
             // Call .GetAwaiter().GetResult() without allocations
-            var getAwaiter = typeof(System.Threading.Tasks.ValueTask)
+            System.Reflection.MethodInfo getAwaiter = typeof(System.Threading.Tasks.ValueTask)
                 .GetMethod("GetAwaiter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)!;
 
-            var awaiterIsCompleted = getAwaiter.ReturnType.GetProperty("IsCompleted")!;
-            var awaiterGetResult = getAwaiter.ReturnType.GetMethod("GetResult")!;
+            System.Reflection.PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted")!;
+            System.Reflection.MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult")!;
 
             return async (instance, context) =>
             {
-                var r = syncDelegate(instance, context);
+                System.Object r = x00(instance, context);
                 if (r is System.Threading.Tasks.ValueTask vt)
                 {
                     // prefer await: lets the compiler pick optimal path
@@ -359,33 +372,32 @@ internal sealed class HandlerCompiler<
             };
         }
 
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>))
+        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>))
         {
             // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
-            var vtResultProp = returnType.GetProperty("Result"); // exists but only valid if completed
-            var asTaskMethod = returnType.GetMethod("AsTask", System.Type.EmptyTypes)!; // ValueTask<T>.AsTask()
+            System.Reflection.PropertyInfo x06 = x01.GetProperty("Result"); // exists but only valid if completed
+            System.Reflection.MethodInfo x07 = x01.GetMethod("AsTask", System.Type.EmptyTypes)!; // ValueTask<T>.AsTask()
 
             return async (instance, context) =>
             {
-                var r = syncDelegate(instance, context);
+                System.Object r = x00(instance, context);
                 if (r is null)
                 {
                     return null;
                 }
 
-                // call AsTask() via reflection once per wrapper
-                var taskObj = asTaskMethod.Invoke(r, null)!; // Task<T>
-                var task = (System.Threading.Tasks.Task)taskObj;
-                await task.ConfigureAwait(false);
+                // x10 AsTask() via reflection once per wrapper
+                System.Object x03 = x07.Invoke(r, null)!; // Task<T>
+                System.Threading.Tasks.Task x04 = (System.Threading.Tasks.Task)x03;
+                await x04.ConfigureAwait(false);
 
                 // read Task<T>.Result once completed
-                var taskResultProp = taskObj.GetType().GetProperty("Result")!;
-                return taskResultProp.GetValue(taskObj);
+                System.Reflection.PropertyInfo x05 = x03.GetType().GetProperty("Result")!;
+                return x05.GetValue(x03);
             };
         }
 
-        return (instance, context) =>
-            System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context));
+        return (instance, context) => System.Threading.Tasks.ValueTask.FromResult(x00(instance, context));
     }
 
 
@@ -418,12 +430,12 @@ internal sealed class HandlerCompiler<
         System.String controller, System.UInt16 opcode,
         System.Reflection.MethodInfo method = null, System.Type returnType = null)
     {
-        var op = $"opcode=0x{opcode:X4}";
-        var ctrl = $"controller={controller}";
-        var m = method is null ? "" : $" method={method.Name}";
-        var sig = method is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
-                                                              .Select(method
-                                                              .GetParameters(), p => p.ParameterType.Name))})->{returnType?.Name ?? "void"}";
+        System.String op = $"opcode=0x{opcode:X4}";
+        System.String ctrl = $"controller={controller}";
+        System.String m = method is null ? "" : $" method={method.Name}";
+        System.String sig = method is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
+                                                                        .Select(method
+                                                                        .GetParameters(), p => p.ParameterType.Name))})->{returnType?.Name ?? "void"}";
 
         return $"{op} {ctrl}{m}{sig}";
     }
