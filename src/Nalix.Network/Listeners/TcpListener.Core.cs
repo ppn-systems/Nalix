@@ -70,6 +70,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     #region Constructors
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static TcpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
 
     /// <summary>
@@ -78,6 +80,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// </summary>
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     protected TcpListenerBase(System.UInt16 port, IProtocol protocol)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
@@ -120,6 +123,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     protected TcpListenerBase(IProtocol protocol)
         : this(Config.Port, protocol)
     {
@@ -132,6 +136,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// <summary>
     /// Disposes the resources used by the listener.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
@@ -146,6 +151,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// <param name="disposing">
     /// true to release both managed and unmanaged resources; false to release only unmanaged resources.
     /// </param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(System.Boolean disposing)

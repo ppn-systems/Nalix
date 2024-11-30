@@ -5,6 +5,9 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Initialize()
     {
         _udpClient = new System.Net.Sockets.UdpClient(Config.Port)
@@ -16,6 +19,7 @@ public abstract partial class UdpListenerBase
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("[UDP] UDP client bound to port {0}", Config.Port);
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
