@@ -6,6 +6,8 @@ namespace Nalix.Logging.Formatters;
 /// <summary>
 /// High-performance log building utilities optimized for minimal allocations.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class LoggingBuilder
 {
     #region Constants
@@ -41,7 +43,8 @@ internal static class LoggingBuilder
     /// <param name="colors">Whether to include ANSI color codes in the output.</param>
     /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void BuildLog(
         System.Text.StringBuilder builder,
         in System.DateTime timeStamp, LogLevel logLevel,
@@ -64,48 +67,13 @@ internal static class LoggingBuilder
         AppendException(builder, exception, colors);
     }
 
-    /// <summary>
-    /// Creates a fully formatted log entry and returns it as a string.
-    /// </summary>
-    /// <param name="timeStamp">The timestamp of the log entry.</param>
-    /// <param name="logLevel">The logging level.</param>
-    /// <param name="eventId">The event TransportProtocol associated with the log entry.</param>
-    /// <param name="message">The log message.</param>
-    /// <param name="exception">Optional exception information.</param>
-    /// <param name="colors">Whether to include ANSI color codes in the output.</param>
-    /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
-    /// <returns>A formatted log message.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String CreateLogMessage(
-        in System.DateTime timeStamp, LogLevel logLevel, in EventId eventId,
-        System.String message, System.Exception? exception, System.Boolean colors = false,
-        System.String? customTimestampFormat = null)
-    {
-        // Determine appropriate buffer size based on message
-        System.Int32 bufferSize = message.Length < 100 ? SmallMessageBufferSize :
-                         message.Length < 500 ? MediumMessageBufferSize :
-                         LargeMessageBufferSize;
-
-        // Use pooled StringBuilder to reduce memory pressure
-        System.Text.StringBuilder builder = StringBuilderPool.Rent(bufferSize);
-        try
-        {
-            BuildLog(builder, timeStamp, logLevel, eventId, message, exception, colors, customTimestampFormat);
-            return builder.ToString();
-        }
-        finally
-        {
-            StringBuilderPool.Return(builder);
-        }
-    }
-
     #endregion Public Methods
 
     #region Utility Methods
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendNumber(
         System.Text.StringBuilder builder, System.Boolean colors)
     {
@@ -124,7 +92,8 @@ internal static class LoggingBuilder
     /// Appends a formatted timestamp to the string builder.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendTimestamp(
         System.Text.StringBuilder builder,
         in System.DateTime timeStamp, System.String? format, System.Boolean colors)
@@ -160,7 +129,8 @@ internal static class LoggingBuilder
     /// Appends a formatted log level to the string builder.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendLogLevel(
         System.Text.StringBuilder builder,
         LogLevel logLevel, System.Boolean colors)
@@ -189,7 +159,8 @@ internal static class LoggingBuilder
     /// Appends a formatted event TransportProtocol to the string builder if it exists.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendEventId(
         System.Text.StringBuilder builder,
         in EventId eventId, System.Boolean colors)
@@ -230,7 +201,8 @@ internal static class LoggingBuilder
     /// Appends a formatted message to the string builder.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendMessage(
         System.Text.StringBuilder builder,
         System.String message, System.Boolean colors)
@@ -257,7 +229,8 @@ internal static class LoggingBuilder
     /// Appends exception details to the string builder if an exception exists.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendException(
         System.Text.StringBuilder builder,
         System.Exception? exception, System.Boolean colors)
@@ -289,7 +262,8 @@ internal static class LoggingBuilder
     /// Formats exception details with a structured approach for better readability.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void FormatExceptionDetails(
         System.Text.StringBuilder builder,
         System.Exception exception, System.Int32 level = 0)
@@ -359,8 +333,10 @@ internal static class LoggingBuilder
     /// <summary>
     /// Calculates the estimated buffer size needed for the complete log message.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Int32 CalculateEstimatedLength(
         System.String message, in EventId eventId,
         System.Exception? exception, System.Boolean colors)
@@ -403,8 +379,10 @@ internal static class LoggingBuilder
     /// <summary>
     /// Ensures the StringBuilder has sufficient capacity, expanding only when necessary.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void EnsureCapacity(
         System.Text.StringBuilder builder,
         System.Int32 requiredCapacity)

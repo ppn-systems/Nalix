@@ -20,8 +20,12 @@ namespace Nalix.Framework.Identity;
 /// - Bytes 4-5: Machine ID (ushort, little-endian)
 /// - Byte 6: Identifier type (byte)
 /// </remarks>
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Runtime.InteropServices.StructLayout(
-    System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7)]
+    System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
+    CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
+[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type} ({ToBase36String()})")]
 public readonly partial struct Identifier : IIdentifier, System.IEquatable<Identifier>
 {
     #region Const
@@ -73,6 +77,7 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
+    [System.Diagnostics.DebuggerHidden]
     private Identifier(System.UInt32 value, System.UInt16 machineId, IdentifierType type)
     {
         Value = value;

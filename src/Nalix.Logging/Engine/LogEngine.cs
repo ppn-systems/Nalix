@@ -7,6 +7,8 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
 public abstract class LogEngine : System.IDisposable
 {
     #region Fields
@@ -63,7 +65,10 @@ public abstract class LogEngine : System.IDisposable
     /// <param name="configureOptions">
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
-    /// </param>
+    /// </param>    
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected void Configure(System.Action<NLogOptions> configureOptions)
         => configureOptions?.Invoke(_logOptions);
 
@@ -73,7 +78,8 @@ public abstract class LogEngine : System.IDisposable
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected System.Boolean IsEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
@@ -84,7 +90,8 @@ public abstract class LogEngine : System.IDisposable
     /// <param name="message">The log message.</param>
     /// <param name="error">Optional exception information.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected void CreateLogEntry(
         LogLevel level, EventId eventId,
         System.String message, System.Exception? error = null)
@@ -106,7 +113,8 @@ public abstract class LogEngine : System.IDisposable
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected void CreateFormattedLogEntry(
         LogLevel level, EventId eventId,
         System.String format, params System.Object[] args)
@@ -120,14 +128,6 @@ public abstract class LogEngine : System.IDisposable
         // Format the message only if we're going to use it
         CreateLogEntry(level, eventId, FormatMessage(format, args));
     }
-
-    /// <summary>
-    /// Gets the current timestamp for logging operations.
-    /// </summary>
-    /// <returns>A UTC timestamp for logging.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected static System.DateTime GetTimestamp() => System.DateTime.UtcNow;
 
     /// <summary>
     /// Releases managed and unmanaged resources used by the logging engine.
@@ -164,6 +164,7 @@ public abstract class LogEngine : System.IDisposable
 
     #region Private Methods
 
+    [System.Diagnostics.Contracts.Pure]
     private static System.String FormatMessage(System.String format, System.Object[]? args)
         => args == null || args.Length == 0 ? format : System.String.Format(format, args);
 

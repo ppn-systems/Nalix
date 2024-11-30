@@ -5,6 +5,8 @@ namespace Nalix.Logging.Formatters.Internal;
 /// <summary>
 /// Manages writing logs to a file with support for file rotation and error handling.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("File={_provider.Options.LogFileName,nq}, Size={_currentFileSize}")]
 internal sealed class FileWriter : System.IDisposable
 {
     #region Fields
@@ -49,6 +51,9 @@ internal sealed class FileWriter : System.IDisposable
     /// Use a new log file, typically after an error with the current one.
     /// </summary>
     /// <param name="newLogFileName">New log file name.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void UseNewLogFile(System.String newLogFileName)
     {
         if (System.String.IsNullOrEmpty(newLogFileName))
@@ -69,6 +74,9 @@ internal sealed class FileWriter : System.IDisposable
     /// </summary>
     /// <param name="message">The message to write.</param>
     /// <param name="flush">Whether to flush after writing.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void WriteMessage(System.String message, System.Boolean flush)
     {
         if (System.String.IsNullOrEmpty(message))
@@ -123,6 +131,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Forces any buffered data to be written to the file.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void Flush()
     {
         lock (_fileLock)
@@ -134,6 +145,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Closes the log file.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void Close()
     {
         lock (_fileLock)
@@ -161,6 +175,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Disposes the writer and releases all resources.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (_isDisposed)
@@ -179,6 +196,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Ensures the log directory exists.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void EnsureDirectoryExists()
     {
         try
@@ -212,6 +232,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Generates a unique log file name.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.String GenerateUniqueLogFileName()
     {
         System.String baseFileName = _provider.Options.LogFileName;
@@ -273,6 +296,9 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// Creates a new log file when the existing one exceeds size limits.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void CreateNewLogFile()
     {
         lock (_fileLock)
@@ -288,6 +314,9 @@ internal sealed class FileWriter : System.IDisposable
     /// Creates and opens the log file stream.
     /// </summary>
     /// <param name="append">Whether to append to an existing file.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void CreateLogFileStream(System.Boolean append)
     {
         System.String logFilePath = System.IO.Path.Combine(_provider.Options.LogDirectory, _provider.Options.LogFileName);
@@ -357,6 +386,9 @@ internal sealed class FileWriter : System.IDisposable
     /// Opens a log file.
     /// </summary>
     /// <param name="append">Whether to append to an existing file.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OpenFile(System.Boolean append)
     {
         lock (_fileLock)
