@@ -116,7 +116,7 @@ public readonly partial struct Identifier : IIdentifier
     /// <returns>A new <see cref="Identifier"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.Generate(12345, 1001, IdentifierType.User);
+    /// var id = Identifier.Generate(12345, 1001, IdentifierType.USER);
     /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
     /// </code>
     /// </example>
@@ -132,7 +132,7 @@ public readonly partial struct Identifier : IIdentifier
     /// <returns>A new <see cref="Identifier"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.Generate(IdentifierType.System);
+    /// var id = Identifier.Generate(IdentifierType.SYSTEM);
     /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
     /// </code>
     /// </example>
@@ -147,7 +147,7 @@ public readonly partial struct Identifier : IIdentifier
     /// <returns>A new <see cref="Identifier"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.Generate(IdentifierType.System);
+    /// var id = Identifier.Generate(IdentifierType.SYSTEM);
     /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
     /// </code>
     /// </example>

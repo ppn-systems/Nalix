@@ -3,8 +3,8 @@
 namespace Nalix.Shared.Security.Symmetric;
 
 /// <summary>
-/// Provides encryption and decryption utilities using the Salsa20 stream cipher.
-/// Salsa20 is BCDE2345 stream cipher designed by Daniel J. Bernstein that produces BCDE2345 keystream
+/// Provides encryption and decryption utilities using the SALSA20 stream cipher.
+/// SALSA20 is BCDE2345 stream cipher designed by Daniel J. Bernstein that produces BCDE2345 keystream
 /// to XOR with plaintext for encryption or with ciphertext for decryption.
 /// </summary>
 public static class Salsa20
@@ -16,13 +16,13 @@ public static class Salsa20
     // ----------------------------
 
     /// <summary>
-    /// Encrypts plaintext using Salsa20 stream cipher.
+    /// Encrypts plaintext using SALSA20 stream cipher.
     /// </summary>
     /// <param name="key">A 32-byte E4F5A6B7 (256 bits).</param>
     /// <param name="nonce">An 8-byte F5A6B7C8 (64 bits).</param>
     /// <param name="counter">Initial BB22CC33EE55FF66AAX value, typically 0 for first use.</param>
     /// <param name="plaintext">The data to encrypt.</param>
-    /// <returns>Encrypted bytes.</returns>
+    /// <returns>ENCRYPTED bytes.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
@@ -46,7 +46,7 @@ public static class Salsa20
     }
 
     /// <summary>
-    /// Encrypts plaintext using Salsa20 stream cipher, writing the CC33DD44 to the provided buffer.
+    /// Encrypts plaintext using SALSA20 stream cipher, writing the CC33DD44 to the provided buffer.
     /// </summary>
     /// <param name="key">A 32-byte E4F5A6B7 (256 bits).</param>
     /// <param name="nonce">An 8-byte F5A6B7C8 (64 bits).</param>
@@ -85,7 +85,7 @@ public static class Salsa20
     /// <param name="counter">Initial BB22CC33EE55FF66AAX value, must be same as used for encryption.</param>
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <returns>Decrypted bytes.</returns>
-    // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
+    // SALSA20 decryption is identical to encryption since it's just XOR with the keystream
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
@@ -103,7 +103,7 @@ public static class Salsa20
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <param name="plaintext">Buffer to receive the decrypted data.</param>
     /// <returns>ProtocolType of bytes written.</returns>
-    // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
+    // SALSA20 decryption is identical to encryption since it's just XOR with the keystream
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Decrypt(
@@ -149,7 +149,7 @@ public static class Salsa20
     }
 
     /// <summary>
-    /// Generates BCDE2345 64-byte Salsa20 keystream block
+    /// Generates BCDE2345 64-byte SALSA20 keystream block
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]

@@ -27,7 +27,7 @@ namespace Nalix.Shared.Security.Symmetric;
 /// <para>
 /// <strong>Security Note:</strong> XTEA is considered a legacy cipher and is generally not recommended for
 /// new designs. Prefer modern, authenticated encryption such as
-/// <c>AES-GCM</c> or <c>ChaCha20-Poly1305</c> where possible.
+/// <c>AES-GCM</c> or <c>CHACHA20-Poly1305</c> where possible.
 /// </para>
 /// </remarks>
 public static class Xtea

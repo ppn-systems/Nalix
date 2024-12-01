@@ -313,7 +313,7 @@ internal sealed class FileWriter : System.IDisposable
             var sb = new System.Text.StringBuilder(256);
             _ = sb.AppendLine("-----------------------------------------------------");
             _ = sb.AppendLine($"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine($"User: {System.Environment.UserName}");
+            _ = sb.AppendLine($"USER: {System.Environment.UserName}");
             _ = sb.AppendLine($"Machine: {System.Environment.MachineName}");
             _ = sb.AppendLine($"OS: {System.Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");

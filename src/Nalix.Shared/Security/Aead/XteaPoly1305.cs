@@ -9,7 +9,7 @@ namespace Nalix.Shared.Security.Aead;
 
 /// <summary>
 /// Allocation-minimized, Span-first AEAD built from XTEA in CTR mode + Poly1305 MAC.
-/// See remarks: legacy cipher; prefer AES-GCM/ChaCha20-Poly1305 for new designs.
+/// See remarks: legacy cipher; prefer AES-GCM/CHACHA20-Poly1305 for new designs.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
@@ -28,7 +28,7 @@ public static class XteaPoly1305
     private const System.Byte NONCE8 = 8;
     private const System.Byte BLOCK8 = 8;
 
-    // Keep AEAD rounds consistent with your Xtea implementation.
+    // Keep AEAD rounds consistent with your XTEA implementation.
     private const System.Byte XteaRounds = Xtea.DefaultRounds; // 64 (a.k.a. 32 cycles)
 
     #endregion
@@ -227,7 +227,7 @@ public static class XteaPoly1305
     private static System.Int32 PadLen16(System.Int32 length) => 16 - (length & 0x0F) & 0x0F;
 
     /// <summary>
-    /// Derive 32-byte Poly1305 OTK from counters 0..3 using Xtea.Encrypt.
+    /// Derive 32-byte Poly1305 OTK from counters 0..3 using XTEA.Encrypt.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -275,7 +275,7 @@ public static class XteaPoly1305
     }
 
     /// <summary>
-    /// Generate one 8-byte keystream block using your Xtea.Encrypt over a single 8-byte block.
+    /// Generate one 8-byte keystream block using your XTEA.Encrypt over a single 8-byte block.
     /// Input block = LE(nonce + counter) mod 2^64.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(

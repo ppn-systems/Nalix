@@ -312,7 +312,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
         return $"FileLoggerProvider Status [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" +
                 System.Environment.NewLine +
-               $"- Current User: {System.Environment.UserName}" +
+               $"- Current USER: {System.Environment.UserName}" +
                 System.Environment.NewLine +
                $"- Log Files: {System.IO.Path.GetFullPath(System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName))}" +
                 System.Environment.NewLine +

@@ -203,11 +203,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         {
             switch (_options.DropPolicy)
             {
-                case DropPolicy.DropNewest:
+                case DropPolicy.DROP_NEWEST:
                     // Simply drop the incoming packet (do nothing).
                     return;
 
-                case DropPolicy.DropOldest:
+                case DropPolicy.DROP_OLDEST:
                     // Remove one oldest across priorities: scan from lowest → highest for fairness in eviction.
                     if (TryEvictOldest(cqs, cs, out _))
                     {
@@ -221,7 +221,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     }
                     break;
 
-                case DropPolicy.Block:
+                case DropPolicy.BLOCK:
                     // Short spin (cheap backpressure). Avoid long blocks in high-throughput networking.
                     var sw = new System.Threading.SpinWait();
                     while (cs.ApproxTotal >= _options.MaxPerConnectionQueue)
@@ -231,7 +231,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                     break;
 
-                case DropPolicy.Coalesce:
+                case DropPolicy.COALESCE:
                     // If you provide a key selector, you can coalesce here.
                     // With ConcurrentQueue it's non-trivial to update in-place; keep simple → evict oldest.
                     if (!TryEvictOldest(cqs, cs, out _))
@@ -315,7 +315,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     }
 
     /// <summary>
-    /// Evicts one oldest packet across all priorities (low → high) for DropOldest/Coalesce.
+    /// Evicts one oldest packet across all priorities (low → high) for DROP_OLDEST/COALESCE.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |

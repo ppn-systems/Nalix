@@ -102,10 +102,10 @@ public sealed partial class Connection : IConnection
     public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
 
     /// <inheritdoc />
-    public PermissionLevel Level { get; set; } = PermissionLevel.None;
+    public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
 
     /// <inheritdoc />
-    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.ChaCha20Poly1305;
+    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
 
     /// <inheritdoc />
     public System.Byte[] Secret
