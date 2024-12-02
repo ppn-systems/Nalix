@@ -1,4 +1,6 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.ReturnTypes;
 

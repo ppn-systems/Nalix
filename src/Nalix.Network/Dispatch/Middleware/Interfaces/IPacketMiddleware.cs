@@ -1,4 +1,6 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.Middleware.Interfaces;
 
@@ -14,7 +16,7 @@ public interface IPacketMiddleware<TPacket>
     /// </summary>
     /// <param name="context">Encapsulates the packet and its connection metadata.</param>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
-    /// <returns>A Task representing the asynchronous operation.</returns>
+    /// <returns>A task representing the asynchronous operation.</returns>
     System.Threading.Tasks.Task InvokeAsync(
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> next);

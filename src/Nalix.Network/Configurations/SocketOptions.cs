@@ -1,4 +1,4 @@
-using Nalix.Shared.Configuration.Attributes;
+using Nalix.Common.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;

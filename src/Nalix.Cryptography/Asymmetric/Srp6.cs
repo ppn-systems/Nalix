@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security.Cryptography.Asymmetric;
 using Nalix.Cryptography.Hashing;

@@ -46,7 +46,14 @@ public abstract partial class UdpListenerBase
     /// </summary>
     public System.Boolean IsTimeSyncEnabled
     {
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => TimeSynchronizer.Instance.IsTimeSyncEnabled;
+
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
             if (this._isRunning)

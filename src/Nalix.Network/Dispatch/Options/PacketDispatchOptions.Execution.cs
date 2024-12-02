@@ -1,4 +1,6 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.ReturnTypes;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
@@ -40,9 +42,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
     }
 
-    /// <summary>
-    /// Handle execution exception.
-    /// </summary>
     private async System.Threading.Tasks.ValueTask HandleExecutionException(
         PacketHandlerDelegate<TPacket> descriptor,
         PacketContext<TPacket> context,

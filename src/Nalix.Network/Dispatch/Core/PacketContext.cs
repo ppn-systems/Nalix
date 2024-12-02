@@ -1,13 +1,21 @@
-﻿using Nalix.Common.Caching;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
-/// Enhanced PacketContext với pooling support và zero-allocation design.
+/// Represents a context for handling network packets with support for object pooling and zero-allocation design.
 /// </summary>
-/// <typeparam name="TPacket">Packet type</typeparam>
+/// <typeparam name="TPacket">The type of packet being processed.</typeparam>
+/// <remarks>
+/// This class is designed to manage the lifecycle of a packet context, including initialization, property storage,
+/// and cleanup for reuse in a high-performance networking environment. It uses object pooling to minimize memory
+/// allocations and supports thread-safe operations.
+/// </remarks>
+[System.Diagnostics.DebuggerDisplay("IsInitialized={_isInitialized}, Properties={_properties.Count}")]
 public sealed class PacketContext<TPacket> : IPoolable
 {
     #region Fields
@@ -23,7 +31,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     #region Properties
 
     /// <summary>
-    /// Current packet being processed.
+    /// Gets the current packet being processed.
     /// </summary>
     public TPacket Packet
     {
@@ -36,7 +44,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     } = default!;
 
     /// <summary>
-    /// Connection associated with packet.
+    /// Gets the connection associated with the packet.
     /// </summary>
     public IConnection Connection
     {
@@ -49,7 +57,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     } = default!;
 
     /// <summary>
-    /// Packet descriptor với attributes.
+    /// Gets the packet metadata with attributes.
     /// </summary>
     public PacketMetadata Attributes
     {
@@ -59,15 +67,20 @@ public sealed class PacketContext<TPacket> : IPoolable
     }
 
     /// <summary>
-    /// Properties dictionary để middleware có thể share data.
+    /// Gets the dictionary used to share data between middleware components.
     /// </summary>
-    public System.Collections.Generic.IDictionary<System.String, System.Object> Properties
-        => this._properties;
+    public System.Collections.Generic.IDictionary<System.String, System.Object> Properties => this._properties;
 
     #endregion Properties
 
     #region Constructor
 
+    /// <summary>
+    /// Initializes static resources for the <see cref="PacketContext{TPacket}"/> class.
+    /// </summary>
+    /// <remarks>
+    /// Preallocates 64 instances and sets a maximum pool capacity of 1024 instances in the object pool.
+    /// </remarks>
     static PacketContext()
     {
         // Register pool for PacketContext<TPacket>
@@ -77,8 +90,11 @@ public sealed class PacketContext<TPacket> : IPoolable
 
 
     /// <summary>
-    /// Default constructor cho pooling.
+    /// Initializes a new instance of the <see cref="PacketContext{TPacket}"/> class for pooling.
     /// </summary>
+    /// <remarks>
+    /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.Pooled"/> state.
+    /// </remarks>
     public PacketContext() => _state = PacketContextState.Pooled;
 
     #endregion Constructor
@@ -86,8 +102,14 @@ public sealed class PacketContext<TPacket> : IPoolable
     #region Methods
 
     /// <summary>
-    /// Initialize context với new values.
+    /// Initializes the context with the specified packet, connection, and metadata.
     /// </summary>
+    /// <param name="packet">The packet to process.</param>
+    /// <param name="connection">The connection associated with the packet.</param>
+    /// <param name="descriptor">The metadata describing the packet.</param>
+    /// <remarks>
+    /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
@@ -103,8 +125,11 @@ public sealed class PacketContext<TPacket> : IPoolable
     }
 
     /// <summary>
-    /// Reset context state to be able to return to pool.
+    /// Resets the context to its initial state for reuse.
     /// </summary>
+    /// <remarks>
+    /// Clears all properties and resets fields to their default values, preparing the context for return to the pool.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
@@ -116,30 +141,49 @@ public sealed class PacketContext<TPacket> : IPoolable
         this._properties.Clear();
     }
 
+    /// <summary>
+    /// Sets the packet for the context.
+    /// </summary>
+    /// <param name="packet">The packet to set.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void SetPacket(TPacket packet) => this.Packet = packet;
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public void SetPacket(TPacket packet) => this.Packet = packet;
 
     /// <summary>
-    /// Set property value.
+    /// Sets a property value in the context's property dictionary.
     /// </summary>
+    /// <typeparam name="T">The type of the property value.</typeparam>
+    /// <param name="key">The key of the property.</param>
+    /// <param name="value">The value to set.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="key"/> or <paramref name="value"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void SetProperty<T>(System.String key, T value) where T : notnull => this._properties[key] = value;
 
     /// <summary>
-    /// Get property value.
+    /// Retrieves a reference type property value from the context's property dictionary.
     /// </summary>
+    /// <typeparam name="T">The type of the property value.</typeparam>
+    /// <param name="key">The key of the property.</param>
+    /// <returns>The property value if found and of type <typeparamref name="T"/>; otherwise, <c>null</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T? GetProperty<T>(System.String key) where T : class
         => this._properties.TryGetValue(key, out var value) ? value as T : null;
 
     /// <summary>
-    /// Get value type property.
+    /// Retrieves a value type property from the context's property dictionary.
     /// </summary>
+    /// <typeparam name="T">The type of the property value.</typeparam>
+    /// <param name="key">The key of the property.</param>
+    /// <param name="defaultValue">The default value to return if the key is not found or the value is not of type <typeparamref name="T"/>.</param>
+    /// <returns>The property value if found and of type <typeparamref name="T"/>; otherwise, <paramref name="defaultValue"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
         => this._properties.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
 
@@ -148,8 +192,11 @@ public sealed class PacketContext<TPacket> : IPoolable
     #region IDisposable
 
     /// <summary>
-    /// Reset context.
+    /// Resets the context for reuse in the object pool.
     /// </summary>
+    /// <remarks>
+    /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.Pooled"/> state.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
@@ -165,8 +212,11 @@ public sealed class PacketContext<TPacket> : IPoolable
     }
 
     /// <summary>
-    /// Dispose context.
+    /// Returns the context to the object pool.
     /// </summary>
+    /// <remarks>
+    /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.InUse"/> state.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return()

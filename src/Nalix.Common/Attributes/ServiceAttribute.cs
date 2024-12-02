@@ -1,4 +1,4 @@
-﻿using System;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Common.Attributes;
 
@@ -20,8 +20,8 @@ namespace Nalix.Common.Attributes;
 /// }
 /// </code>
 /// </example>
-[AttributeUsage(AttributeTargets.Class, Inherited = false)]
-public sealed class ServiceAttribute : Attribute
+[System.AttributeUsage(System.AttributeTargets.Class, Inherited = false)]
+public sealed class ServiceAttribute : System.Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ServiceAttribute"/> class.

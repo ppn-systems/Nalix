@@ -1,4 +1,6 @@
-﻿using Nalix.Shared.Serialization.Formatters.Automatic;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
