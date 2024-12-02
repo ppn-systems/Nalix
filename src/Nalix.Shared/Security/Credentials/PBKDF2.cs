@@ -60,6 +60,7 @@ public static class Pbkdf2
     /// <returns><c>true</c> if the credential is valid; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Verify(
         [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] salt,
@@ -82,6 +83,7 @@ public static class Pbkdf2
         /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static System.String Hash(
             [System.Diagnostics.CodeAnalysis.NotNull] System.String credential)
         {
@@ -101,6 +103,7 @@ public static class Pbkdf2
         /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static System.Boolean Verify(
             [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
             [System.Diagnostics.CodeAnalysis.NotNull] System.String encoded)

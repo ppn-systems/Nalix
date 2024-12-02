@@ -56,6 +56,7 @@ public static class SpeckPoly1305
     /// <param name="tag">Destination for the 16-byte authentication tag.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static void Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
@@ -107,6 +108,7 @@ public static class SpeckPoly1305
     /// <returns><c>true</c> if tag verification succeeds and plaintext is written; otherwise <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
@@ -167,6 +169,7 @@ public static class SpeckPoly1305
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
@@ -199,6 +202,7 @@ public static class SpeckPoly1305
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
