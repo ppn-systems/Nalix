@@ -35,7 +35,12 @@ internal readonly struct EnvelopeHeader
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public EnvelopeHeader(System.Byte version, CipherSuiteType type, System.Byte flags, System.Byte nonceLen, System.UInt32 seq)
+    public EnvelopeHeader(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte version,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte nonceLen,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq)
     {
         Version = version;
         Type = type;
@@ -49,7 +54,9 @@ internal readonly struct EnvelopeHeader
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void WriteTo(System.Span<System.Byte> dest, EnvelopeHeader header)
+    public static void WriteTo(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
+        [System.Diagnostics.CodeAnalysis.NotNull] EnvelopeHeader header)
     {
         if (dest.Length < Size)
         {
@@ -69,7 +76,9 @@ internal readonly struct EnvelopeHeader
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> src, out EnvelopeHeader header)
+    internal static System.Boolean TryParse(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out EnvelopeHeader header)
     {
         header = default;
         if (src.Length < Size)
