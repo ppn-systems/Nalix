@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Cryptography.Internal;
+using Nalix.Cryptography.Primitives;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Cryptography.Asymmetric;

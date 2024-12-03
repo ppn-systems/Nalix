@@ -3,7 +3,7 @@
 using Nalix.Common.Attributes;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Interfaces;
-using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
 using System.Linq;
