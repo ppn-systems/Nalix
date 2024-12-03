@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.ReturnTypes;
+using Nalix.Network.Dispatch.Results;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
 
