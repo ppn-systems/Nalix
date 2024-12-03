@@ -133,7 +133,8 @@ public static class FormatterProvider
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
     {
         System.ArgumentNullException.ThrowIfNull(formatter);
 
@@ -203,7 +204,8 @@ public static class FormatterProvider
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
     {
         // Check if the type is a value type and not an enum
         System.Type type = typeof(T);
@@ -309,7 +311,7 @@ public static class FormatterProvider
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static IFormatter<T> GetComplex<
+    public static IFormatter<T> GetComplex<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |

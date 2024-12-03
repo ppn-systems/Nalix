@@ -26,14 +26,15 @@ public static class SerializerBounds
     /// </summary>
     public const System.UInt16 MaxString = System.UInt16.MaxValue - 2;
 
-    // Magic numbers cho special cases
     /// <summary>
-    /// 
+    /// Special marker for a <c>null</c> array.
+    /// Consists of four bytes with value 255: [255, 255, 255, 255].
     /// </summary>
     public static readonly System.Byte[] NullArrayMarker = [255, 255, 255, 255];
 
     /// <summary>
-    /// 
+    /// Special marker for an empty array.
+    /// Consists of four zero bytes: [0, 0, 0, 0].
     /// </summary>
     public static readonly System.Byte[] EmptyArrayMarker = [0, 0, 0, 0];
 }
