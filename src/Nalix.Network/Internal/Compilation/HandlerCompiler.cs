@@ -146,16 +146,16 @@ internal sealed class HandlerCompiler<
         {
             System.Collections.Generic.Dictionary<System.UInt16, HandlerInvoker<TPacket>> compiled = new(methods.Length);
 
-            foreach (var method in methods)
+            foreach (System.Reflection.MethodInfo method in methods)
             {
-                var opcodeAttr = System.Reflection.CustomAttributeExtensions
+                PacketOpcodeAttribute opcodeAttr = System.Reflection.CustomAttributeExtensions
                     .GetCustomAttribute<PacketOpcodeAttribute>(method)!;
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[{nameof(HandlerCompiler<,>)}] dup-opcode " +
-                                                  $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                                  $"{__(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
                 }
@@ -167,14 +167,14 @@ internal sealed class HandlerCompiler<
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[{nameof(HandlerCompiler<,>)}] compiled " +
-                                                   $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                                   $"{__(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
-                    System.String ctx = Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    System.String ___ = __(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[{nameof(HandlerCompiler<,>)}] " +
-                                                   $"failed-compile {ctx} ex={ex.GetType().Name}", ex);
+                                                   $"failed-compile {___} ex={ex.GetType().Name}", ex);
                 }
             }
 
@@ -426,8 +426,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.String Ctx(
-        System.String controller, System.UInt16 opcode,
+    private static System.String __(System.String controller, System.UInt16 opcode,
         System.Reflection.MethodInfo method = null, System.Type returnType = null)
     {
         System.String op = $"opcode=0x{opcode:X4}";
