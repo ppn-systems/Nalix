@@ -4,7 +4,7 @@ using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Dispatch.Core;
+namespace Nalix.Network.Dispatch.Core.Context;
 
 /// <summary>
 /// Represents a context for handling network packets with support for object pooling and zero-allocation design.
