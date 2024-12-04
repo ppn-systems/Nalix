@@ -1,5 +1,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Cryptography;
 using System;
 using System.Text;
