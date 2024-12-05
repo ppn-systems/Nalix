@@ -164,6 +164,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.Boolean IsIgnorableAcceptError(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketError code,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
