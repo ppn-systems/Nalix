@@ -3,7 +3,6 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Interfaces;
-using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Shared.Injection;
