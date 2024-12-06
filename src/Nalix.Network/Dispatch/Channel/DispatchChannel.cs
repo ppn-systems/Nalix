@@ -60,9 +60,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     #region Fields
 
-    private const System.Int32 LowestPriorityIndex = (System.Int32)PacketPriority.None;
-    private const System.Int32 HighestPriorityIndex = (System.Int32)PacketPriority.Urgent;
-    private const System.Int32 GetPriorityLevels = (System.Int32)PacketPriority.Urgent + 1;
+    private const System.Int32 LowestPriorityIndex = (System.Int32)PacketPriority.NONE;
+    private const System.Int32 HighestPriorityIndex = (System.Int32)PacketPriority.URGENT;
+    private const System.Int32 GetPriorityLevels = (System.Int32)PacketPriority.URGENT + 1;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger _logger;
