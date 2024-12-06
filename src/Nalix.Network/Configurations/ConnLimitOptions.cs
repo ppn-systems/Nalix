@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Attributes;
 using Nalix.Common.Security.Types;
 using Nalix.Network.Throttling.Settings;
