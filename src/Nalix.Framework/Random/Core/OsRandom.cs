@@ -124,7 +124,7 @@ public static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill(System.Span<System.Byte> dst)
+    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
         if (dst.Length == 0)
         {

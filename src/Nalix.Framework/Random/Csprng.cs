@@ -47,7 +47,7 @@ public static class Csprng
     /// </summary>
     /// <returns>A cryptographically secure nonce.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] CreateNonce(System.Int32 length = 12)
+    public static System.Byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length = 12)
     {
         if (length <= 0)
         {
@@ -68,7 +68,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill(System.Span<System.Byte> data)
+    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> data)
     {
         if (data.Length == 0)
         {
@@ -88,7 +88,7 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] GetBytes(System.Int32 length)
+    public static System.Byte[] GetBytes([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length)
     {
         if (length < 0)
         {
@@ -114,7 +114,9 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 GetInt32(System.Int32 min, System.Int32 max)
+    public static System.Int32 GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 min,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 max)
     {
         if (min >= max)
         {
@@ -145,7 +147,8 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 GetInt32(System.Int32 max) => GetInt32(0, max);
+    public static System.Int32 GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 max) => GetInt32(0, max);
 
     /// <summary>
     /// Fills the given byte array with cryptographically strong random values.
@@ -155,7 +158,8 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void NextBytes(System.Byte[] buffer)
+    public static void NextBytes(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
         _f(buffer);
@@ -169,7 +173,8 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void NextBytes(System.Span<System.Byte> buffer) => Fill(buffer);
+    public static void NextBytes(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
