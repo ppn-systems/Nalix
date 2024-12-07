@@ -22,8 +22,6 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task StartListeningAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
@@ -153,8 +151,6 @@ public abstract partial class TcpListenerBase
     /// Stops the listener from accepting further connections.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void StopListening()
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);

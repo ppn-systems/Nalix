@@ -39,6 +39,7 @@ public abstract partial class UdpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
+
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error("[UDP] Receive error on {0}: {1}", Config.Port, ex.Message);
 

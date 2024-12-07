@@ -146,8 +146,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// Disposes the resources used by the listener.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         this.Dispose(true);
@@ -161,8 +159,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// true to release both managed and unmanaged resources; false to release only unmanaged resources.
     /// </param>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(System.Boolean disposing)
     {
         if (this._isDisposed)

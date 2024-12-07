@@ -56,8 +56,6 @@ public abstract partial class Protocol
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual void OnAccept(
         IConnection connection,
         System.Threading.CancellationToken cancellationToken = default)
