@@ -8,16 +8,22 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of nullable value types.
 /// </summary>
 /// <typeparam name="T">The value type of the array elements, which must be a structure.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struct
 {
+    private static System.String DebuggerDisplay => $"NullableArrayFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes an array of nullable value type elements into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array of nullable value type elements to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T?[] value)
     {
         if (value == null)
@@ -48,7 +54,8 @@ public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struc
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of nullable value type elements, or null if the serialized data represents a null array.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T?[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

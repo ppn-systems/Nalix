@@ -9,12 +9,17 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// directly serializing the underlying type.
 /// </summary>
 /// <typeparam name="T">The enum type to be serialized and deserialized.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class EnumFormatter<T> : IFormatter<T>
 {
     private static readonly SerializeDelegate _serialize;
     private static readonly DeserializeDelegate _deserialize;
+
     private static readonly System.TypeCode UnderlyingTypeCode;
+    private static System.String DebuggerDisplay => $"EnumFormatter<{typeof(T).FullName}>";
 
     static EnumFormatter()
     {
@@ -39,7 +44,8 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T value)
         => _serialize(ref writer, value);
 
@@ -52,7 +58,8 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T Deserialize(ref DataReader reader)
         => _deserialize(ref reader);
 
