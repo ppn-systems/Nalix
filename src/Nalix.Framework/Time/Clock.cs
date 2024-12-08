@@ -469,14 +469,6 @@ public static class Clock
         => _threadStopwatch.Value!.Elapsed.Ticks / 10.0;
 
     /// <summary>
-    /// Creates a new TimeStamp for precise interval measurement.
-    /// </summary>
-    /// <returns>A TimeStamp object representing the current time.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TimeStamp CreateTimeStamp() => new(System.Diagnostics.Stopwatch.GetTimestamp());
-
-    /// <summary>
     /// Measures the execution time of an action.
     /// </summary>
     /// <param name="action">The action to measure.</param>

@@ -9,9 +9,14 @@ namespace Nalix.Framework.Randomization;
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
 /// The generator has a period of approximately 2^63 and provides good statistical properties.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public abstract class MwcRandom
 {
+    private System.String DebuggerDisplay => $"MwcRandom[state=0x{_state:X16}]";
+
     // Performance for the MWC algorithm
     private const System.UInt64 Multiplier = 698769069UL;
 
@@ -57,7 +62,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void SetSeed(System.UInt32 seed)
     {
         _state = (InitialCarry << 32) | seed;
@@ -74,7 +80,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <returns>The current seed as a uint.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt32 GetSeed() => (System.UInt32)_state;
 
     /// <summary>
@@ -82,7 +89,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <returns>A random TransportProtocol as a uint.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt32 Get()
     {
         // MWC algorithm: state = (multiplier * (state & 0xFFFFFFFF) + (state >> 32))
@@ -96,7 +104,8 @@ public abstract class MwcRandom
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random TransportProtocol in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt32 Get(System.UInt32 max)
     {
         if (max <= 1)
@@ -128,7 +137,8 @@ public abstract class MwcRandom
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random TransportProtocol in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt32 Get(System.UInt32 min, System.UInt32 max) => min >= max ? min : min + Get(max - min);
 
     /// <summary>
@@ -136,7 +146,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <returns>A random TransportProtocol as a ulong.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected System.UInt64 Get64()
     {
         // Use each 32-bit generation individually for better statistical properties
@@ -150,7 +161,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected System.Single GetFloat() =>
         // Use only 24 bits for floating point precision (mantissa size for float)
         (Get() >> 8) * (1.0f / 16777216.0f);
@@ -160,7 +172,8 @@ public abstract class MwcRandom
     /// </summary>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected System.Double GetDouble() =>
         // Use all 53 bits of precision available in a double
         (Get64() >> 11) * (1.0 / 9007199254740992.0);
@@ -175,9 +188,10 @@ public abstract class MwcRandom
     /// Fills the given buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Runtime.CompilerServices.SkipLocalsInit]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected void NextBytes(System.Span<System.Byte> buffer)
     {
         System.Int32 i = 0;
