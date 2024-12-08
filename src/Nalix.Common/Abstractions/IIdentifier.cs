@@ -50,7 +50,9 @@ public interface IIdentifier
     /// <see langword="true"/> if the identifier was successfully serialized;
     /// otherwise, <see langword="false"/> if the destination is too small.
     /// </returns>
-    System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
+    System.Boolean TryWriteBytes(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten);
 
     /// <summary>
     /// Attempts to format the token as a Base36 string representation into the provided character span.
@@ -60,7 +62,9 @@ public interface IIdentifier
     /// <returns>
     /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
     /// </returns>
-    System.Boolean TryFormatBase36(System.Span<System.Char> destination, out System.Byte charsWritten);
+    System.Boolean TryFormatBase36(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Char> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte charsWritten);
 
     /// <summary>
     /// Converts the identifier to a string representation.
@@ -70,5 +74,5 @@ public interface IIdentifier
     /// otherwise, returns a Base36-encoded string.
     /// </param>
     /// <returns>The string representation of the identifier.</returns>
-    System.String ToString(System.Boolean isHex);
+    System.String ToString([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean isHex);
 }
