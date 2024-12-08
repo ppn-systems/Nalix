@@ -6,7 +6,6 @@ using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Connection;
 
@@ -15,7 +14,7 @@ namespace Nalix.Network.Connection;
 /// Thread-safe with minimal allocations and efficient lookup operations.
 /// </summary>
 [Service]
-public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub, System.IDisposable
+public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 {
     #region Fields
 
@@ -378,7 +377,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <summary>
     /// Releases unmanaged resources and performs other cleanup operations.
     /// </summary>
-    public new void Dispose()
+    public void Dispose()
     {
         if (this._disposed)
         {

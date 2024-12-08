@@ -51,7 +51,7 @@ public abstract partial class UdpListenerBase
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => TimeSynchronizer.Instance.IsTimeSyncEnabled;
+        get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
@@ -63,7 +63,8 @@ public abstract partial class UdpListenerBase
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
 
-            TimeSynchronizer.Instance.IsTimeSyncEnabled = value;
+            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                           .IsTimeSyncEnabled = value;
         }
     }
 
@@ -91,7 +92,8 @@ public abstract partial class UdpListenerBase
 
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
-        TimeSynchronizer.Instance.TimeSynchronized += this.SynchronizeTime;
+        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                       .TimeSynchronized += this.SynchronizeTime;
 
         Config.Port = this._port;
     }
@@ -137,7 +139,8 @@ public abstract partial class UdpListenerBase
             {
                 this._udpClient?.Close();
 
-                TimeSynchronizer.Instance.TimeSynchronized -= this.SynchronizeTime;
+                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 

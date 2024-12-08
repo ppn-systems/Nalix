@@ -59,7 +59,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => TimeSynchronizer.Instance.IsTimeSyncEnabled;
+        get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
@@ -71,7 +71,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
 
-            TimeSynchronizer.Instance.IsTimeSyncEnabled = value;
+            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
         }
     }
 
@@ -116,7 +116,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                                     .Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
 
-        TimeSynchronizer.Instance.TimeSynchronized += this.SynchronizeTime;
+        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(60);
         _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
@@ -176,7 +176,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                 this._listener?.Close();
                 this._listener?.Dispose();
 
-                TimeSynchronizer.Instance.TimeSynchronized -= this.SynchronizeTime;
+                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 
