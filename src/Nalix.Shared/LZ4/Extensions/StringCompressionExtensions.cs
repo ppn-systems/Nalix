@@ -5,6 +5,7 @@ namespace Nalix.Shared.LZ4.Extensions;
 /// <summary>
 /// Provides string helpers to compress/decompress UTF-8 text using LZ4 and encode/decode as Base64.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class StringCompressionExtensions
 {
     private const System.Int32 StackAllocThreshold = 256;
