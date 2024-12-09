@@ -18,6 +18,7 @@ public interface IPacketMiddleware<TPacket>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     System.Threading.Tasks.Task InvokeAsync(
-        PacketContext<TPacket> context,
+        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context,
+        [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next);
 }
