@@ -1,6 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Common.Logging;
 using Nalix.Framework.Time;
 using Nalix.Shared.Injection;
@@ -14,7 +13,6 @@ namespace Nalix.Network.Timing;
 /// Designed as a singleton. Once <see cref="IsTimeSyncEnabled"/> is set to <c>true</c>, 
 /// the synchronizer starts emitting ticks at ~16ms intervals via the <see cref="TimeSynchronized"/> event.
 /// </remarks>
-[Service]
 public class TimeSynchronizer : System.IDisposable
 {
     #region Fields

@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Common.Logging;
 using Nalix.Logging.Engine;
 
@@ -17,7 +16,6 @@ namespace Nalix.Logging;
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogix.Host"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
 /// </remarks>
-[Service]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
 public sealed partial class NLogix : LogEngine, ILogger

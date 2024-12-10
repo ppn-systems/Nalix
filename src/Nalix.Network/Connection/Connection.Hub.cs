@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
@@ -13,7 +12,6 @@ namespace Nalix.Network.Connection;
 /// High-performance connection manager optimized for MMORPG servers.
 /// Thread-safe with minimal allocations and efficient lookup operations.
 /// </summary>
-[Service]
 public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 {
     #region Fields
