@@ -77,7 +77,9 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double SynchronizeTime(System.DateTime externalTime, System.Double maxAllowedDriftMs = 1000.0)
+    public static System.Double SynchronizeTime(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.DateTime externalTime,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != System.DateTimeKind.Utc)
         {
@@ -127,8 +129,10 @@ public static partial class Clock
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double SynchronizeUnixMilliseconds(
-        System.Int64 serverUnixMs, System.Double rttMs = 0,
-        System.Double maxAllowedDriftMs = 1_000.0, System.Double maxHardAdjustMs = 10_000.0)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int64 serverUnixMs,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Double rttMs = 0,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxAllowedDriftMs = 1_000.0,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxHardAdjustMs = 10_000.0)
     {
         // Compensate half RTT (one-way latency)
         System.Int64 corrected = serverUnixMs + (System.Int64)(rttMs * 0.5);
