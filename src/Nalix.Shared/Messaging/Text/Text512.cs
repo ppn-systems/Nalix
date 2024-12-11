@@ -9,6 +9,8 @@ namespace Nalix.Shared.Messaging.Text;
 
 /// <inheritdoc/>
 [MagicNumber(MagicNumbers.Text512)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("Text512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Text512 : Text256
 {
     /// <inheritdoc/>
@@ -24,4 +26,9 @@ public sealed class Text512 : Text256
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)MagicNumbers.Text512;
     }
+
+    /// <inheritdoc/>
+    public override System.String ToString()
+        => $"Text512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+           $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }
