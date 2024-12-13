@@ -28,7 +28,7 @@ public interface IWorkerOptions
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
     /// </summary>
-    IdentifierType IdType { get; init; }
+    SnowflakeType IdType { get; init; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.

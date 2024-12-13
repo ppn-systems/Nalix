@@ -10,7 +10,7 @@ namespace Nalix.Common.Abstractions;
 /// underlying network address (IPv4/IPv6) and an optional port
 /// component when applicable.
 /// </remarks>
-public interface IEndpointKey
+public interface INetworkEndpoint
 {
     /// <summary>
     /// Gets the canonical textual representation of the address part

@@ -68,7 +68,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="id">The worker's identifier.</param>
     /// <returns>True if the worker was cancelled; otherwise, false.</returns>
-    System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id);
+    System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id);
 
     /// <summary>
     /// Cancels all workers in a group.
@@ -100,7 +100,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="handle">The handle to the worker if found.</param>
     /// <returns>True if the worker was found; otherwise, false.</returns>
     System.Boolean TryGetWorker(
-        [System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle handle);
 
     /// <summary>
