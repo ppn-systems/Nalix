@@ -8,6 +8,7 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Serialization;
@@ -127,7 +128,8 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
     public static Handshake Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
-        Handshake packet = ObjectPoolManager.Instance.Get<Handshake>();
+        Handshake packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                   .Get<Handshake>();
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0

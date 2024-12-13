@@ -118,11 +118,15 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
-        _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(60);
-        _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PooledSocketAsyncEventArgs>(60);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PooledAcceptContext>(30);
 
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledAcceptContext>(1024);
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncEventArgs>(1024);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PooledAcceptContext>(1024);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(1024);
 
         Config.Port = this._port;
     }
