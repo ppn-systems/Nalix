@@ -86,10 +86,8 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Pull(
-    [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out TPacket packet,
-    [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out IConnection connection)
+    [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TPacket packet,
+    [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection)
     {
         foreach (var kvp in _connectionChannels)
         {

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Interfaces;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Dispatch.Core.Engine;
@@ -34,11 +35,10 @@ namespace Nalix.Network.Dispatch;
 /// </code>
 /// </example>
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
-public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable
+public sealed class PacketDispatchChannel
+    : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
 {
     #region Fields
-
-    private System.Boolean _running;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
@@ -47,6 +47,9 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     private readonly IDispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
     private readonly System.Threading.CancellationTokenSource _cts = new();
+
+    private System.Int32 _running;
+    private System.Threading.Tasks.Task? _loopTask;
 
     #endregion Fields
 
@@ -60,7 +63,6 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<IPacket>> options)
         : base(options)
     {
-        _running = false;
         _dispatch = new DispatchChannel<IPacket>(logger: null);
 
         // Push any additional initialization here if needed
@@ -78,9 +80,9 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Start()
+    public void Activate()
     {
-        if (_running)
+        if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
 #if DEBUG
             Logger?.Debug("[Dispatch] StartTickLoopAsync() called but dispatcher is already running.");
@@ -88,10 +90,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
             return;
         }
 
-        _running = true;
-
         Logger?.Info("[Dispatch] Dispatch loop starting...");
-        _ = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
+        _loopTask = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
     }
 
     /// <summary>
@@ -99,14 +99,12 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Stop()
+    public void Deactivate()
     {
-        if (!_running)
+        if (System.Threading.Interlocked.Exchange(ref _running, 0) == 0)
         {
             return;
         }
-
-        _running = false;
 
         try
         {
@@ -116,6 +114,15 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
 #if DEBUG
                 Logger?.Trace("[Dispatch] Dispatch loop stopped gracefully.");
 #endif
+            }
+
+            try { _semaphore.Release(); } catch { /* ignore over-release */ }
+
+            System.Threading.Tasks.Task? t = _loopTask;
+            if (t is not null)
+            {
+                try { t.Wait(System.TimeSpan.FromSeconds(2)); }
+                catch { /* ignore */ }
             }
         }
         catch (System.ObjectDisposedException)
@@ -205,7 +212,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     {
         try
         {
-            while (_running && !_cts.Token.IsCancellationRequested)
+            while (System.Threading.Volatile.Read(ref _running) == 1 &&
+                  !_cts.Token.IsCancellationRequested)
             {
                 // Wait for packets to be available
                 await this._semaphore.WaitAsync(this._cts.Token).ConfigureAwait(false);
@@ -230,7 +238,7 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
         }
         finally
         {
-            _running = false;
+            System.Threading.Volatile.Write(ref _running, 0);
         }
     }
 
@@ -244,7 +252,7 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
-        this.Stop();
+        this.Deactivate();
         this._cts.Dispose();
         this._semaphore.Dispose();
     }
