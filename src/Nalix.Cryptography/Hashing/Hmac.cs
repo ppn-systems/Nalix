@@ -323,8 +323,7 @@ public sealed class Hmac : System.IDisposable
     /// <summary>
     /// Disposes resources used by the HMAC instance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)

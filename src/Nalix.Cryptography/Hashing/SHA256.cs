@@ -13,6 +13,7 @@ namespace Nalix.Cryptography.Hashing;
 /// It supports incremental updates and can be used in a streaming manner.
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
+[System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, Bytes={_byteCount}")]
 public sealed class SHA256 : IShaDigest, System.IDisposable
 {
     #region Fields
@@ -40,53 +41,15 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     #region Public Methods
 
     /// <summary>
-    /// Computes the SHA-256 hash of the given data in a single call.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>The computed 256-bit hash as a byte array.</returns>
-    /// <remarks>
-    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
-    {
-        using SHA256 sha256 = new();
-        sha256.Update(data);
-        System.Byte[] hash = sha256.FinalizeHash();
-        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(hash.Length);
-        hash.CopyTo(result, 0);
-        return result;
-    }
-
-    /// <summary>
-    /// Computes the SHA-256 hash of the input data and writes the result to the provided output buffer.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <param name="output">The output buffer where the 32-byte hash will be written. Must be at least 32 bytes long.</param>
-    /// <exception cref="System.ArgumentException">Thrown if the output buffer is smaller than 32 bytes.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
-    {
-        if (output.Length < 32)
-        {
-            throw new System.ArgumentException("Output buffer must be at least 32 bytes", nameof(output));
-        }
-
-        using SHA256 sha256 = new();
-        sha256.Update(data);
-        sha256.FinalizeHash(output);
-    }
-
-    /// <summary>
     /// Resets the hash state to its initial values.
     /// </summary>
     /// <remarks>
     /// This method must be called before reusing an instance to compute a new hash.
     /// </remarks>
+    [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Initialize()
     {
         unsafe
@@ -115,6 +78,48 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     }
 
     /// <summary>
+    /// Computes the SHA-256 hash of the given data in a single call.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 256-bit hash as a byte array.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
+    /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
+    {
+        using SHA256 sha256 = new();
+        sha256.Update(data);
+        System.Byte[] hash = sha256.FinalizeHash();
+        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(hash.Length);
+        hash.CopyTo(result, 0);
+        return result;
+    }
+
+    /// <summary>
+    /// Computes the SHA-256 hash of the input data and writes the result to the provided output buffer.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <param name="output">The output buffer where the 32-byte hash will be written. Must be at least 32 bytes long.</param>
+    /// <exception cref="System.ArgumentException">Thrown if the output buffer is smaller than 32 bytes.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    {
+        if (output.Length < 32)
+        {
+            throw new System.ArgumentException("Output buffer must be at least 32 bytes", nameof(output));
+        }
+
+        using SHA256 sha256 = new();
+        sha256.Update(data);
+        sha256.FinalizeHash(output);
+    }
+
+    /// <summary>
     /// Computes the SHA-256 hash of the given data using an instance method.
     /// </summary>
     /// <param name="data">The input data to hash.</param>
@@ -123,6 +128,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash()"/>.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
@@ -145,6 +151,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method processes data in 512-bit blocks and buffers any remaining bytes for the next update.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(System.ReadOnlySpan<System.Byte> data)
@@ -201,6 +208,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <remarks>
     /// Once finalized, the hash cannot be updated further. Calling this method multiple times returns the same result.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FinalizeHash(System.Span<System.Byte> output)
@@ -261,6 +269,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <remarks>
     /// Once finalized, the hash cannot be updated further. Calling this method multiple times returns the same result.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] FinalizeHash()
@@ -349,12 +358,9 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 TransformBlock(
-        System.Byte[] inputBuffer,
-        System.Int32 inputOffset,
-        System.Int32 inputCount,
-        System.Byte[] outputBuffer,
-        System.Int32 outputOffset)
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
+    public System.Int32 TransformBlock(System.Byte[] inputBuffer, System.Int32 inputOffset,
+        System.Int32 inputCount, System.Byte[] outputBuffer, System.Int32 outputOffset)
     {
         System.ArgumentNullException.ThrowIfNull(inputBuffer);
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
@@ -392,6 +398,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
     public void TransformFinalBlock(System.Byte[] inputBuffer, System.Int32 inputOffset, System.Int32 inputCount)
     {
         System.ArgumentNullException.ThrowIfNull(inputBuffer);
@@ -414,6 +421,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
 
     #region Private Methods
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlock(System.ReadOnlySpan<System.Byte> block)
@@ -472,6 +480,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe System.UInt32 Reverse(System.Byte* ptr) =>
@@ -488,6 +497,7 @@ public sealed class SHA256 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method clears sensitive data from memory and marks the instance as disposed.
     /// </remarks>
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)
