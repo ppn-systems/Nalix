@@ -30,12 +30,12 @@ namespace Nalix.SDK.Remote.Interop;
 [System.Diagnostics.DebuggerDisplay("Remote={Ip}:{Port}, Connected={IsConn}")]
 public sealed class RsClient(String ip, Int32 port) : IDisposable
 {
+    private Task _rx;
     private TcpClient _cli;
     private NetworkStream _st;
     private CancellationTokenSource _cts;
-    private Task _rx;
-    private readonly System.Collections.Concurrent.ConcurrentQueue<Byte[]> _q = new();
     private readonly SemaphoreSlim _ready = new(0);
+    private readonly System.Collections.Concurrent.ConcurrentQueue<Byte[]> _q = new();
 
     /// <summary>
     /// Gets the remote IP address of the server to connect to.
