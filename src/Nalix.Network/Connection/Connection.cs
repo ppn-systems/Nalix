@@ -21,7 +21,6 @@ public sealed partial class Connection : IConnection
 
     private readonly TransportStream _cstream;
     private readonly System.Threading.Lock _lock;
-    private readonly System.Net.Sockets.Socket _socket;
     private readonly System.Threading.CancellationTokenSource _ctokens;
 
     private System.Boolean _disposed;
@@ -44,7 +43,6 @@ public sealed partial class Connection : IConnection
     {
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
-        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
 
 
         _cstream = new TransportStream(socket)
@@ -67,7 +65,7 @@ public sealed partial class Connection : IConnection
         this.Tcp = new TcpTransport(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this._socket.RemoteEndPoint?.ToString());
+                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this.RemoteEndPoint);
     }
 
     #endregion Constructor
@@ -163,13 +161,6 @@ public sealed partial class Connection : IConnection
     {
         try
         {
-            if (!force && this._socket.Connected &&
-               (!this._socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) ||
-                 this._socket.Available > 0))
-            {
-                return;
-            }
-
             if (this._disposed)
             {
                 return;
@@ -211,6 +202,9 @@ public sealed partial class Connection : IConnection
         {
             this.Disconnect();
 
+            this._ctokens.Dispose();
+            this._cstream.Dispose();
+
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return<UdpTransport>((UdpTransport)this.Udp);
         }
@@ -218,11 +212,6 @@ public sealed partial class Connection : IConnection
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
-        }
-        finally
-        {
-            this._ctokens.Dispose();
-            this._cstream.Dispose();
         }
 
         System.GC.SuppressFinalize(this);

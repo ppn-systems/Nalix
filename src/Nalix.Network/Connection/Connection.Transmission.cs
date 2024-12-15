@@ -143,11 +143,7 @@ public sealed partial class Connection : IConnection
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
         {
             System.ObjectDisposedException.ThrowIf(this._outer._disposed, nameof(Connection));
-
-            using System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource
-                .CreateLinkedTokenSource(cancellationToken, this._outer._ctokens.Token);
-
-            this._outer._cstream.BeginReceive(linkedCts.Token);
+            this._outer._cstream.BeginReceive(cancellationToken);
         }
 
         #region Synchronous Methods
