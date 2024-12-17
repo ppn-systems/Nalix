@@ -14,8 +14,7 @@ namespace Nalix.SDK.Remote.Core;
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
-public class RemoteStreamClient<TPacket> : System.IDisposable
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 
@@ -56,40 +55,6 @@ public class RemoteStreamClient<TPacket> : System.IDisposable
     #endregion Constructor
 
     #region APIs
-
-    /// <summary>
-    /// Connects to a remote server synchronously within a specified timeout period.
-    /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stream))]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_outbound))]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_inbound))]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Connect(
-        System.Int32 timeout = 20000,
-        System.Threading.CancellationToken cancellationToken = default)
-    {
-        _client?.Close();
-        _client = new System.Net.Sockets.TcpClient { NoDelay = true };
-
-        using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(timeout);
-
-        try
-        {
-            _client.Connect(Options.Address, Options.Port); // Synchronous Connect
-
-            _stream = _client.GetStream();
-            _outbound = new RemoteStreamSender<TPacket>(_stream);
-            _inbound = new RemoteStreamReceiver<TPacket>(_stream);
-        }
-        catch (System.Exception ex)
-        {
-            // Token specific exceptions like SocketException if needed
-            throw new System.InvalidOperationException("Failed to connect", ex);
-        }
-    }
 
     /// <summary>
     /// Asynchronously connects to a remote server within a specified timeout period.
@@ -147,35 +112,6 @@ public class RemoteStreamClient<TPacket> : System.IDisposable
         => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SendAsync(packet, ct);
 
     /// <summary>
-    /// Synchronously sends a packet over the active connection.
-    /// </summary>
-    /// <param name="packet">The packet to send.</param>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if the client is not connected.
-    /// </exception>
-    /// <exception cref="System.IO.IOException">
-    /// Thrown if an I/O error occurs while writing to the underlying stream.
-    /// </exception>
-    public void Send(TPacket packet)
-        => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).Send(packet);
-
-    /// <summary>
-    /// Synchronously receives the next packet from the active connection.
-    /// </summary>
-    /// <returns>The deserialized packet instance.</returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if the client is not connected or the stream is not readable.
-    /// </exception>
-    /// <exception cref="System.IO.EndOfStreamException">
-    /// Thrown if the stream ends unexpectedly while reading a packet.
-    /// </exception>
-    /// <exception cref="System.IO.IOException">
-    /// Thrown if an I/O error occurs while reading from the underlying stream.
-    /// </exception>
-    public TPacket Receive()
-        => (_inbound ?? throw new System.InvalidOperationException("Not connected.")).Receive();
-
-    /// <summary>
     /// Asynchronously receives the next packet from the active connection.
     /// </summary>
     /// <param name="ct">A token that can be used to cancel the operation.</param>
@@ -194,26 +130,6 @@ public class RemoteStreamClient<TPacket> : System.IDisposable
     /// </exception>
     public System.Threading.Tasks.Task<TPacket> ReceiveAsync(System.Threading.CancellationToken ct = default)
         => (_inbound ?? throw new System.InvalidOperationException("Not connected.")).ReceiveAsync(ct);
-
-    /// <summary>
-    /// Ultra-fast synchronous receive that applies aggressive, low-level optimizations.
-    /// </summary>
-    /// <remarks>
-    /// Intended for performance-critical paths where thread-safety and framing are guaranteed by the caller.
-    /// Avoid calling concurrently from multiple threads.
-    /// </remarks>
-    /// <returns>The deserialized packet instance.</returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if the client is not connected or the stream is not readable.
-    /// </exception>
-    /// <exception cref="System.IO.EndOfStreamException">
-    /// Thrown if the stream ends unexpectedly while reading a packet.
-    /// </exception>
-    /// <exception cref="System.IO.IOException">
-    /// Thrown if an I/O error occurs while reading from the underlying stream.
-    /// </exception>
-    public TPacket ReceiveUnsafe()
-        => (_inbound ?? throw new System.InvalidOperationException("Not connected.")).ReceiveUnsafe();
 
     /// <summary>
     /// Closes the network connection and releases resources.
