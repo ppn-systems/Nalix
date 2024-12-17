@@ -147,7 +147,7 @@ public static class LiteSerializer
         }
         else
         {
-            throw new SerializationException($"Type {typeof(T).FullName} is not serializable.");
+            throw new SerializationException($"TYPE {typeof(T).FullName} is not serializable.");
         }
     }
 
@@ -321,7 +321,7 @@ public static class LiteSerializer
 
             System.Type elementType = typeof(T).GetElementType()
                 ?? throw new SerializationException(
-                    $"Type '{typeof(T)}' is expected to be an array, but element type could not be resolved."
+                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
             if (IsEmptyArrayMarker(buffer))
@@ -424,7 +424,7 @@ public static class LiteSerializer
 
             System.Type elementType = typeof(T).GetElementType()
                 ?? throw new SerializationException(
-                    $"Type '{typeof(T)}' is expected to be an array, but element type could not be resolved."
+                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
             if (IsEmptyArrayMarker(buffer))

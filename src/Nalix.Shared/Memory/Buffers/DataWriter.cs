@@ -38,7 +38,7 @@ public ref struct DataWriter
     {
         if (size <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
+            throw new System.ArgumentOutOfRangeException(nameof(size), "SIZE must be greater than zero.");
         }
 
         _owner = BufferLease.Pool.Rent(size);
@@ -57,7 +57,7 @@ public ref struct DataWriter
     {
         if (buffer.Length == 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(buffer), "Size must be greater than zero.");
+            throw new System.ArgumentOutOfRangeException(nameof(buffer), "SIZE must be greater than zero.");
         }
 
         _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
@@ -76,7 +76,7 @@ public ref struct DataWriter
     {
         if (span.Length <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(span), "Size must be greater than zero.");
+            throw new System.ArgumentOutOfRangeException(nameof(span), "SIZE must be greater than zero.");
         }
 
         _owner = null;      // no backing array ownership
@@ -173,7 +173,7 @@ public ref struct DataWriter
 
         if (minimumSize <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
+            throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
         }
 
         if (_span.Length - this.WrittenCount >= minimumSize)

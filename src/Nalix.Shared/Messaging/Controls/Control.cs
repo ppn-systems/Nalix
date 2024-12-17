@@ -179,5 +179,5 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
-        $"Tr={Protocol}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
+        $"Tr={Protocol}, SEQ={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }

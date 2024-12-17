@@ -17,7 +17,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [MagicNumber(FrameMagicCode.DIRECTIVE)]
-[System.Diagnostics.DebuggerDisplay("DIRECTIVE Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
+[System.Diagnostics.DebuggerDisplay("DIRECTIVE SEQ={SequenceId}, TYPE={TYPE}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
     /// <inheritdoc/>
