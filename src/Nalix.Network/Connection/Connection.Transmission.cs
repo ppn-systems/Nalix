@@ -3,7 +3,7 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Connection;

@@ -1,12 +1,13 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
+using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Core.Engine;
 using Nalix.Network.Dispatch.Core.Interfaces;
-using Nalix.Network.Dispatch.Inspection;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Dispatch;
 
@@ -68,24 +69,47 @@ public sealed class PacketDispatch(System.Action<PacketDispatchOptions<IPacket>>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void HandlePacket(in System.ReadOnlySpan<System.Byte> raw, IConnection connection)
     {
+        // 1) Fast-fail: empty payload
         if (raw.IsEmpty)
         {
-            Logger?.Error(
-                "[{0}] Empty ReadOnlySpan<byte> received from {1}. Packet dropped.",
-                nameof(PacketDispatch), connection.RemoteEndPoint);
+            Logger?.Warn(
+                "[PacketDispatch] Empty payload from {0}. Dropped.",
+                connection.RemoteEndPoint);
             return;
         }
 
-        System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? deserializer = PacketRegistry.ResolvePacketDeserializer(raw);
+        // 2) Capture basic context once
+        System.Int32 len = raw.Length;
+        System.UInt32 magic = len >= 4 ? raw.ReadMagicNumberLE() : 0u;
 
-        if (deserializer == null)
+        // 3) Resolve catalog ONCE
+        PacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>();
+        if (catalog is null)
         {
-            Logger?.Error("[{0}] No deserializer found for the packet from {1}. Packet dropped.",
-                                nameof(PacketDispatch), connection.RemoteEndPoint);
+            Logger?.Error(
+                "[PacketDispatch] Missing PacketCatalog. Remote={0}, Len={1}, Magic=0x{2:X8}. Dropped.",
+                connection.RemoteEndPoint, len, magic);
             return;
         }
 
-        this.HandlePacket(deserializer(raw), connection);
+        // 4) Try deserialize
+        if (!catalog.TryDeserialize(raw, out IPacket? packet) || packet is null)
+        {
+            // Log only a small head preview to avoid leaking large/secret data
+            System.String head = System.Convert.ToHexString(raw[..System.Math.Min(16, len)]);
+            Logger?.Warn(
+                "[PacketDispatch] Unknown packet. Remote={0}, Len={1}, Magic=0x{2:X8}, Head={3}. Dropped.",
+                connection.RemoteEndPoint, len, magic, head);
+            return;
+        }
+
+        // 5) Success trace (can be disabled in production)
+        Logger?.Trace(
+            "[PacketDispatch] Deserialized {0} from {1}. Len={2}, Magic=0x{3:X8}.",
+            packet.GetType().Name, connection.RemoteEndPoint, len, magic);
+
+        // 6) Dispatch to typed handler
+        this.HandlePacket(packet, connection);
     }
 
     /// <inheritdoc />
