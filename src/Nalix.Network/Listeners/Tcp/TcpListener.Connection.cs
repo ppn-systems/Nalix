@@ -74,7 +74,7 @@ public abstract partial class TcpListenerBase
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
+                                .Debug($"[{nameof(TcpListenerBase)}] Closing {args.Connection.RemoteEndPoint}");
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
@@ -95,13 +95,13 @@ public abstract partial class TcpListenerBase
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[TCP] New connection from {0}", connection.RemoteEndPoint);
+                                    .Debug($"[{nameof(TcpListenerBase)}] New connection from {connection.RemoteEndPoint}");
             this._protocol.OnAccept(connection);
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[TCP] Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
+                                    .Error($"[{nameof(TcpListenerBase)}] Process error from {connection.RemoteEndPoint}: {ex.Message}");
             connection.Close();
         }
     }
@@ -131,7 +131,7 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
+                                        .Error($"[{nameof(TcpListenerBase)}] Accept error on {Config.Port}: {ex.Message}");
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
@@ -165,7 +165,7 @@ public abstract partial class TcpListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                         .Return<PooledAcceptContext>(context);
 
-                throw new System.InvalidOperationException("TcpListenerBase socket is not initialized.");
+                throw new System.InvalidOperationException($"[{nameof(TcpListenerBase)}] socket is not initialized.");
             }
 
             if (!_listener.AcceptAsync(context.Args))
@@ -274,10 +274,11 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex) when (!_cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
+                                        .Error($"[{nameof(TcpListenerBase)}] Accept error on {Config.Port}: {ex.Message}");
 
                 // Brief delay to prevent CPU spinning on repeated errors
-                _ = System.Threading.Tasks.Task.Delay(100, _cancellationToken);
+                _ = System.Threading.Tasks.Task.Delay(100, _cancellationToken)
+                                               .ConfigureAwait(false);
             }
         }
     }
@@ -293,7 +294,7 @@ public abstract partial class TcpListenerBase
                 if (!socket.Connected || socket.Handle.ToInt64() == -1)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn("[TCP] Socket is invalid or disconnected");
+                                            .Warn($"[{nameof(TcpListenerBase)}] Socket is invalid or disconnected");
 
                     SafeCloseSocket(socket);
                     return;
@@ -317,7 +318,7 @@ public abstract partial class TcpListenerBase
             catch (System.ObjectDisposedException)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn("[TCP] Socket was disposed during accept");
+                                        .Warn($"[{nameof(TcpListenerBase)}] Socket was disposed during accept");
 
                 SafeCloseSocket(socket);
                 if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
@@ -329,9 +330,13 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[TCP] Process accept error: {0}", ex.Message);
+                                        .Error($"[{nameof(TcpListenerBase)}] Process accept error: {ex.Message}");
 
-                try { socket.Close(); } catch { }
+                try
+                {
+                    socket.Close();
+                }
+                catch { }
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                         .Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)e).Context!);
             }
@@ -339,7 +344,7 @@ public abstract partial class TcpListenerBase
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("[TCP] Accept failed: {0}", e.SocketError);
+                                    .Warn($"[{nameof(TcpListenerBase)}] Accept failed: {e.SocketError}");
 
             if (e is PooledSocketAsyncEventArgs pooled)
             {
@@ -361,7 +366,7 @@ public abstract partial class TcpListenerBase
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[TCP] Error closing socket: {0}", ex.Message);
+                                    .Debug($"[{nameof(TcpListenerBase)}] Error closing socket: {ex.Message}");
         }
     }
 }

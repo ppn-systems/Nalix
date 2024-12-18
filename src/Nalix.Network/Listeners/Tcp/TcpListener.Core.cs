@@ -113,7 +113,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
+                                    .Info($"[{nameof(TcpListenerBase)}] SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
@@ -190,10 +190,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info("TcpListenerBase disposed");
+                                .Info($"[{nameof(TcpListenerBase)}] disposed");
     }
-
-    public void DeactivateAsync() => throw new System.NotImplementedException();
 
     #endregion IDispose
 }

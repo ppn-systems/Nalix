@@ -32,7 +32,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
         if (this._isRunning)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("[UDP] Listener is already running.");
+                                    .Warn($"[{nameof(UdpListenerBase)}] Listener is already running.");
             return;
         }
 
@@ -45,7 +45,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
         {
             this._isRunning = true;
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("Starting UDP listener");
+                                    .Debug($"[{nameof(UdpListenerBase)}] Starting UDP listener");
 
             this._cts?.Dispose();
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -57,7 +57,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             try
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info("[UDP] Listening on port {0}", Config.Port);
+                                        .Info($"[{nameof(UdpListenerBase)}] Listening on port {Config.Port}");
 
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
                 await receiveTask.ConfigureAwait(false);
@@ -70,15 +70,15 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info("[UDP] Listener on {0} stopped by cancellation", Config.Port);
+                                    .Info($"[{nameof(UdpListenerBase)}] Listener on {Config.Port} stopped by cancellation");
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            throw new InternalErrorException($"[UDP] Could not start on port {Config.Port}", ex);
+            throw new InternalErrorException($"[{nameof(UdpListenerBase)}] Could not start on port {Config.Port}", ex);
         }
         catch (System.Exception ex)
         {
-            throw new InternalErrorException($"[UDP] Critical error in listener on port {Config.Port}", ex);
+            throw new InternalErrorException($"[{nameof(UdpListenerBase)}] Critical error in listener on port {Config.Port}", ex);
         }
         finally
         {
@@ -99,7 +99,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error("[UDP] Error during shutdown: {0}", ex.Message);
+                                            .Error($"[{nameof(UdpListenerBase)}] Error during shutdown: {ex.Message}");
                 }
                 finally
                 {
@@ -127,13 +127,13 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             {
                 this._udpClient?.Close();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info("[UDP] Listener on {0} stopped", Config.Port);
+                                        .Info($"[{nameof(UdpListenerBase)}] Listener on {Config.Port} stopped.");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[UDP] Error closing listener: {0}", ex.Message);
+                                    .Error($"[{nameof(UdpListenerBase)}] Error closing listener: {ex.Message}.");
         }
         finally
         {

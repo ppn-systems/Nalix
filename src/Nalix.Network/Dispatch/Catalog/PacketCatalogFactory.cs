@@ -65,19 +65,19 @@ public sealed class PacketCatalogFactory
         if (asm is null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("[PacketCatalogFactory] IncludeAssembly ignored: assembly is null.");
+                                    .Warn($"[{nameof(PacketCatalogFactory)}] IncludeAssembly ignored: assembly is null.");
             return this;
         }
 
         if (_assemblies.Add(asm))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketCatalogFactory] Assembly registered for scan: {asm.FullName}");
+                                    .Debug($"[{nameof(PacketCatalogFactory)}] Assembly registered for scan: {asm.FullName}");
         }
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketCatalogFactory] Assembly already registered, skipping: {asm.FullName}");
+                                    .Debug($"[{nameof(PacketCatalogFactory)}] Assembly already registered, skipping: {asm.FullName}");
         }
         return this;
     }
@@ -94,12 +94,13 @@ public sealed class PacketCatalogFactory
         if (_explicitPacketTypes.Add(typeof(TPacket)))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketCatalogFactory] Explicit packet type registered: {typeof(TPacket).FullName}");
+                                    .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type registered: {typeof(TPacket).FullName}");
         }
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketCatalogFactory] Explicit packet type already registered, skipping: {typeof(TPacket).FullName}");
+                                    .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type already " +
+                                           $"registered, skipping: {typeof(TPacket).FullName}");
         }
         return this;
     }
@@ -127,26 +128,27 @@ public sealed class PacketCatalogFactory
         System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[PacketCatalogFactory] assemblies={_assemblies.Count}, explicitTypes={_explicitPacketTypes.Count}");
+                                .Info($"[{nameof(PacketCatalogFactory)}] " +
+                                      $"assemblies={_assemblies.Count}, explicitTypes={_explicitPacketTypes.Count}");
 
         foreach (System.Reflection.Assembly asm in _assemblies)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketCatalogFactory] Scanning: {asm.FullName}");
+                                    .Debug($"[{nameof(PacketCatalogFactory)}] Scanning: {asm.FullName}");
 
             foreach (System.Type type in ReflectionHelpers.SafeGetTypes(asm))
             {
                 if (type is null || !type.IsClass || type.IsAbstract)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[PacketCatalogFactory] Skipped type (not concrete class): {type?.FullName}");
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped type (not concrete class): {type?.FullName}");
                     continue;
                 }
 
                 if (!typeof(IPacket).IsAssignableFrom(type))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[PacketCatalogFactory] Skipped type (not IPacket): {type?.FullName}");
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped type (not IPacket): {type?.FullName}");
                     continue;
                 }
 
@@ -157,7 +159,7 @@ public sealed class PacketCatalogFactory
         if (candidates.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("[PacketCatalogFactory] No candidate packet types were discovered. " +
+                                    .Warn($"[{nameof(PacketCatalogFactory)}] No candidate packet types were discovered. " +
                                           "The resulting catalog will be empty.");
         }
 
@@ -168,7 +170,7 @@ public sealed class PacketCatalogFactory
             if (magicAttr is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[PacketCatalogFactory] Type has no MagicNumberAttribute, skipping: {type.FullName}");
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] Type has no MagicNumberAttribute, skipping: {type.FullName}");
                 continue; // only types with magic number are packets
             }
 
@@ -179,7 +181,7 @@ public sealed class PacketCatalogFactory
             if (transformerIface is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[PacketCatalogFactory] Packet type has MagicNumber but no IPacketTransformer<>: " +
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] Packet type has MagicNumber but no IPacketTransformer<>: " +
                                                $"{type.FullName}, magic=0x{magicAttr.MagicNumber:X8}");
                 continue;
             }
@@ -195,14 +197,14 @@ public sealed class PacketCatalogFactory
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() != null)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()!
-                                                .Error($"[PacketCatalogFactory] Duplicate MagicNumber found: " +
+                                                .Error($"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber found: " +
                                                        $"0x{magicAttr.MagicNumber:X8} on {type.FullName}");
                         continue; // Skip this type, already registered
                     }
                     else
                     {
                         throw new System.InvalidOperationException(
-                            $"[PacketCatalogFactory] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                            $"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
                     }
                 }
 
@@ -219,7 +221,7 @@ public sealed class PacketCatalogFactory
             if (compress == null || decompress == null || encrypt == null || decrypt == null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()!
-                                        .Warn($"[PacketCatalogFactory] Missing transformer methods for {type.FullName} " +
+                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
                                               $"(Compress/Decompress/Encrypt/Decrypt), skipping transformers.");
                 continue;
             }
@@ -232,7 +234,7 @@ public sealed class PacketCatalogFactory
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[PacketCatalogFactory] Built: {deserializers.Count} packets, {transformers.Count} transformers.");
+                                .Info($"[{nameof(PacketCatalogFactory)}] Built: {deserializers.Count} packets, {transformers.Count} transformers.");
 
         return new PacketCatalog(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers),

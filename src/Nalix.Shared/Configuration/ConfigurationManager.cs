@@ -144,13 +144,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 _configLock.ExitWriteLock();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info("[ConfigManager] Reload completed. Reloaded {0} containers.", _configContainerDict.Count);
+                                        .Info($"[{nameof(ConfigurationManager)}] Reload completed. " +
+                                              $"Reloaded {_configContainerDict.Count} containers.");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[ConfigManager] Reload failed: {0}", ex);
+                                    .Error($"[{nameof(ConfigurationManager)}] Reload failed: {ex.Message}", ex);
             return false;
         }
         finally

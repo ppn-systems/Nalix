@@ -60,7 +60,7 @@ public abstract partial class UdpListenerBase
         {
             if (this._isRunning)
             {
-                throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
+                throw new System.InvalidOperationException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
             }
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
@@ -148,7 +148,7 @@ public abstract partial class UdpListenerBase
         }
 
         this._isDisposed = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info("UDP Listener disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info($"[{nameof(UdpListenerBase)}] Listener disposed");
     }
 
     #endregion IDisposable

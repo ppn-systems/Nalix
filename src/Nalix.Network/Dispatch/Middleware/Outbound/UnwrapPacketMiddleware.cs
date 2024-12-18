@@ -43,7 +43,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[UnwrapPacketMiddleware] Missing PacketCatalog.");
+                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] Missing PacketCatalog.");
                 return;
             }
 
