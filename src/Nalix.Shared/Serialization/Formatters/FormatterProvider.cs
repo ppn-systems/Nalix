@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Serialization.Formatters.Automatic;
@@ -110,6 +111,12 @@ public static class FormatterProvider
         Register<System.DateTime?[]>(new NullableArrayFormatter<System.DateTime>());
         Register<System.TimeSpan?[]>(new NullableArrayFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?[]>(new NullableArrayFormatter<System.DateTimeOffset>());
+
+        // Custom
+        Register<UInt56[]>(new ArrayFormatter<UInt56>());
+        Register<UInt56>(new UnmanagedFormatter<UInt56>());
+        Register<UInt56?>(new NullableFormatter<UInt56>());
+        Register<UInt56?[]>(new NullableArrayFormatter<UInt56>());
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
             "[FormatterProvider] init-ok in {0} ms. Total={1} " +

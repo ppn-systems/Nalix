@@ -33,9 +33,7 @@ internal readonly struct EnvelopeHeader
     public readonly CipherSuiteType TYPE;
     public readonly System.Byte NONCE_LEN;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public EnvelopeHeader(
+    internal EnvelopeHeader(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte version,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
@@ -54,7 +52,7 @@ internal readonly struct EnvelopeHeader
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void WriteTo(
+    internal static void Encode(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] EnvelopeHeader header)
     {
@@ -77,7 +75,7 @@ internal readonly struct EnvelopeHeader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    internal static System.Boolean TryParse(
+    internal static System.Boolean Decode(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out EnvelopeHeader header)
     {
