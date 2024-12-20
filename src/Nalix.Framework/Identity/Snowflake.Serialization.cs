@@ -7,7 +7,7 @@ namespace Nalix.Framework.Identity;
 
 public readonly partial struct Snowflake
 {
-    #region Deserialize Methods
+    #region Deserialize
 
     /// <summary>
     /// Creates an identifier from a 56-bit combined value. Upper 8 bits must be zero.
@@ -34,9 +34,9 @@ public readonly partial struct Snowflake
         }
 
         // Read using BinaryPrimitives (fast, optimized)
+        System.Byte type = bytes[6];
         System.UInt32 value = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(bytes);
         System.UInt16 machineId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(4, 2));
-        System.Byte type = bytes[6];
 
         return new Snowflake(value, machineId, (SnowflakeType)type);
     }
@@ -52,9 +52,9 @@ public readonly partial struct Snowflake
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Snowflake FromBytes(System.Byte[] bytes) => FromBytes(System.MemoryExtensions.AsSpan(bytes));
 
-    #endregion Deserialize Methods
+    #endregion Deserialize
 
-    #region Serialization Methods
+    #region Serialization
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -90,9 +90,9 @@ public readonly partial struct Snowflake
         }
 
         // Write little-endian directly for best performance
+        destination[6] = (System.Byte)Type;
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (System.Byte)(((System.Byte)Type >> 48) & 0xFF);
 
         bytesWritten = Size;
         return true;
@@ -109,12 +109,12 @@ public readonly partial struct Snowflake
             return false;
         }
 
+        destination[6] = (System.Byte)Type;
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (System.Byte)(((System.Byte)Type >> 48) & 0xFF);
 
         return true;
     }
 
-    #endregion Serialization Methods
+    #endregion Serialization
 }
