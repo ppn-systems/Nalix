@@ -130,6 +130,7 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     {
         Handshake packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                    .Get<Handshake>();
+
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
