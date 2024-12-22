@@ -15,7 +15,7 @@ namespace Nalix.Common.Protocols;
 /// e.g., <c>0x0100_0000</c> and above for application-level protocols.
 /// </para>
 /// </summary>
-public enum FrameMagicCode : System.UInt32
+public enum ProtocolMagic : System.UInt32
 {
     /// <summary>
     /// No magic number assigned.

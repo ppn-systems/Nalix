@@ -16,7 +16,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagicCode.HANDSHAKE)]
+[MagicNumber(ProtocolMagic.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("HANDSHAKE OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
@@ -46,10 +46,10 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         Data = [];
         Flags = PacketFlags.NONE;
-        Priority = PacketPriority.NONE;
         Protocol = ProtocolType.NONE;
-        OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagicCode.HANDSHAKE;
+        Priority = PacketPriority.NONE;
+        OpCode = PacketConstants.OPCODE_DEFAULT;
+        MagicNumber = (System.UInt32)ProtocolMagic.HANDSHAKE;
     }
 
     /// <summary>
@@ -62,8 +62,8 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
         System.UInt16 opCode,
         System.Byte[] data, ProtocolType transport) : this()
     {
-        this.OpCode = opCode;
         this.Data = data;
+        this.OpCode = opCode;
         this.Protocol = transport;
     }
 
@@ -112,8 +112,8 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         this.Data = [];
         this.Flags = PacketFlags.NONE;
-        this.Priority = PacketPriority.NONE;
         this.Protocol = ProtocolType.NONE;
+        this.Priority = PacketPriority.NONE;
     }
 
     /// <inheritdoc/>

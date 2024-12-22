@@ -13,12 +13,12 @@ public static class PacketConstants
     /// The size, in bytes, of the fixed packet header.
     /// Includes:
     /// <list type="bullet">
-    /// <item><see cref="PacketFlags"/></item>
-    /// <item><see cref="System.UInt16"/> OpCode</item>
-    /// <item><see cref="System.UInt16"/> Length</item>
+    /// <item><see cref="PacketFlags"/>Flags (Byte)</item>
+    /// <item><see cref="System.UInt16"/> OpCode (UInt32)</item>
+    /// <item><see cref="System.UInt16"/> Length (UInt16)</item>
     /// <item><see cref="System.UInt32"/> MagicNumber</item>
-    /// <item><see cref="PacketPriority"/></item>
-    /// <item><see cref="ProtocolType"/></item>
+    /// <item><see cref="PacketPriority"/>Priority (Byte)</item>
+    /// <item><see cref="ProtocolType"/>Protocol (Byte)</item>
     /// </list>
     /// </summary>
     public const System.Byte HeaderSize =
@@ -32,7 +32,7 @@ public static class PacketConstants
     /// <summary>
     /// The default operation code value for packets.
     /// </summary>
-    public const System.Byte OpCodeDefault = 0x00;
+    public const System.Byte OPCODE_DEFAULT = 0x00;
 
     /// <summary>
     /// The threshold size, in bytes, above which memory is allocated from the heap instead of the stack.
