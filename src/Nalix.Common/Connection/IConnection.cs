@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Cryptography.Enums;
-using Nalix.Common.Security.Identity;
+using Nalix.Common.Security.Abstractions;
+using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
 
 namespace Nalix.Common.Connection;

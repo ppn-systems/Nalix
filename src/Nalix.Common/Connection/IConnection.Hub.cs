@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Identity;
+using Nalix.Common.Security.Abstractions;
 
 namespace Nalix.Common.Connection;
 
@@ -18,6 +18,13 @@ public interface IConnectionHub
     System.Boolean RegisterConnection(IConnection connection);
 
     /// <summary>
+    /// Unregisters a client connection from the session manager using its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the connection to unregister.</param>
+    /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
+    System.Boolean UnregisterConnection(IIdentifier id);
+
+    /// <summary>
     /// Associates a username with an existing client connection.
     /// </summary>
     /// <param name="connection">The client connection.</param>
@@ -26,13 +33,6 @@ public interface IConnectionHub
     /// This method should be called after the connection is successfully registered.
     /// </remarks>
     void AssociateUsername(IConnection connection, System.String username);
-
-    /// <summary>
-    /// Unregisters a client connection from the session manager using its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the connection to unregister.</param>
-    /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    System.Boolean UnregisterConnection(IIdentifier id);
 
     /// <summary>
     /// Closes all active client connections with an optional reason.
