@@ -30,8 +30,6 @@ internal sealed class BufferLeaseCache : System.IDisposable
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private System.EventHandler<IConnectEventArgs> _callback;
 
-    private static CacheSizeOptions Config => ConfigurationManager.Instance.Get<CacheSizeOptions>();
-
     private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
 
     #endregion Fields
@@ -57,7 +55,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
 
     #region Constructors
 
-    public BufferLeaseCache() => this.Incoming = new(Config.Incoming);
+    public BufferLeaseCache() => this.Incoming = new(ConfigurationManager.Instance.Get<CacheSizeOptions>().Incoming);
 
     #endregion Constructors
 
