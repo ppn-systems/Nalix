@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Network.Dispatch.Core.Context;
+namespace Nalix.Network.Dispatch.Enums;
 
 /// <summary>
 /// Defines the lifecycle states of a <see cref="PacketContext{TPacket}"/> instance

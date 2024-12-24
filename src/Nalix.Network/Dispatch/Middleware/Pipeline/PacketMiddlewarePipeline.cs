@@ -1,9 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Network.Dispatch.Abstractions;
 
-namespace Nalix.Network.Dispatch.Middleware.Core.Pipeline;
+namespace Nalix.Network.Dispatch.Middleware.Pipeline;
 
 /// <summary>
 /// Represents a middleware pipeline for processing packets.

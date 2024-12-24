@@ -2,7 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Time;
 using Nalix.Network.Listeners.Core;
 using Nalix.Shared.Injection;

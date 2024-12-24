@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Network.Dispatch.Core.Metadata;
-using Nalix.Network.Dispatch.Middleware.Core.Pipeline;
+using Nalix.Network.Dispatch.Delegates;
+using Nalix.Network.Dispatch.Middleware.Pipeline;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -19,7 +19,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 
     private readonly System.Collections.Generic.Dictionary<
-        System.UInt16, PacketHandlerDelegate<TPacket>> _handlerCache;
+        System.UInt16, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
     /// Gets or sets a custom error-handling delegate invoked when packet processing fails.

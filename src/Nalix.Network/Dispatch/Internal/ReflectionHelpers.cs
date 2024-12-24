@@ -1,6 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Network.Dispatch.Catalog.Internal;
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+
+namespace Nalix.Network.Dispatch.Internal;
 
 /// <summary>
 /// Small helpers to keep builder code short and readable.

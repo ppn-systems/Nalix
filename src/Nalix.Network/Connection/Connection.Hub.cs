@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
-using Nalix.Common.Security.Identity;
+using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
 using Nalix.Shared.Injection;
 
@@ -83,32 +83,6 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AssociateUsername(IConnection connection, System.String username)
-    {
-        if (connection is null || System.String.IsNullOrWhiteSpace(username) || this._disposed)
-        {
-            return;
-        }
-
-        var id = connection.Id;
-
-        // Remove old association if exists
-        if (this._usernames.TryGetValue(id, out System.String? oldUsername))
-        {
-            _ = this._usernameToId.TryRemove(oldUsername, out _);
-        }
-
-        // Push new associations
-        this._usernames[id] = username;
-        this._usernameToId[username] = id;
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ConnectionHub)}] Username associated: {username} -> {id}");
-    }
-
-    /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean UnregisterConnection(IIdentifier id)
     {
         if (id is null || this._disposed)
@@ -136,6 +110,32 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Warn($"[{nameof(ConnectionHub)}] Failed to unregister connection: {id}");
         return false;
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void AssociateUsername(IConnection connection, System.String username)
+    {
+        if (connection is null || System.String.IsNullOrWhiteSpace(username) || this._disposed)
+        {
+            return;
+        }
+
+        var id = connection.Id;
+
+        // Remove old association if exists
+        if (this._usernames.TryGetValue(id, out System.String? oldUsername))
+        {
+            _ = this._usernameToId.TryRemove(oldUsername, out _);
+        }
+
+        // Push new associations
+        this._usernames[id] = username;
+        this._usernameToId[username] = id;
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(ConnectionHub)}] Username associated: {username} -> {id}");
     }
 
     /// <inheritdoc/>

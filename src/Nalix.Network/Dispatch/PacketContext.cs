@@ -2,11 +2,12 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Network.Dispatch.Core.Metadata;
+using Nalix.Network.Dispatch.Delegates;
+using Nalix.Network.Dispatch.Enums;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Dispatch.Core.Context;
+namespace Nalix.Network.Dispatch;
 
 /// <summary>
 /// Represents a context for handling network packets with support for object pooling and zero-allocation design.
