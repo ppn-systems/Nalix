@@ -13,9 +13,12 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.ReadOnlyMemory<System.Byte> memory)
+        if (result is not System.ReadOnlyMemory<System.Byte> memory)
         {
-            _ = await context.Connection.Tcp.SendAsync(memory);
+            return;
         }
+
+        _ = await context.Connection.Tcp.SendAsync(memory)
+                                        .ConfigureAwait(false);
     }
 }

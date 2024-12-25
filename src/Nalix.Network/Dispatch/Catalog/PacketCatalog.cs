@@ -43,13 +43,35 @@ public sealed class PacketCatalog : IPacketCatalog
     /// <remarks>
     /// Both dictionaries are assumed to be non-null and already frozen. The constructor does not copy the inputs.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketCatalog(
-        System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers,
-        System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> transformers)
+        System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> transformers,
+        System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers)
     {
-        _deserializers = deserializers;
         _transformers = transformers;
+        _deserializers = deserializers;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketCatalog"/> class by executing
+    /// the specified configuration action on a <see cref="PacketCatalogFactory"/>.
+    /// </summary>
+    /// <param name="action">
+    /// A delegate that configures the <see cref="PacketCatalogFactory"/> by registering
+    /// explicit packet types and/or assemblies. Must not be <see langword="null"/>.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if <paramref name="action"/> is <see langword="null"/>.
+    /// </exception>
+    public PacketCatalog(System.Action<PacketCatalogFactory> action)
+    {
+        System.ArgumentNullException.ThrowIfNull(action);
+        PacketCatalogFactory factory = new();
+        action(factory);
+
+        PacketCatalog built = factory.CreateCatalog();
+
+        _transformers = built._transformers;
+        _deserializers = built._deserializers;
     }
 
     /// <summary>

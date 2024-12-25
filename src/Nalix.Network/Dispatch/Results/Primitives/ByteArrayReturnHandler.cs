@@ -13,9 +13,17 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Byte[] data)
+        if (result is not System.Byte[] data)
         {
-            _ = await context.Connection.Tcp.SendAsync(data);
+            return;
         }
+
+        if (data.Length == 0)
+        {
+            return;
+        }
+
+        _ = await context.Connection.Tcp.SendAsync(data)
+                                        .ConfigureAwait(false);
     }
 }

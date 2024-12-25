@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Results;
-
 namespace Nalix.Network.Dispatch.Results.Task;
 
 /// <inheritdoc/>
@@ -12,9 +10,11 @@ internal sealed class ValueTaskVoidReturnHandler<TPacket> : IReturnHandler<TPack
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Threading.Tasks.ValueTask valueTask)
+        if (result is not System.Threading.Tasks.ValueTask valueTask)
         {
-            await valueTask;
+            return;
         }
+
+        await valueTask.ConfigureAwait(false);
     }
 }

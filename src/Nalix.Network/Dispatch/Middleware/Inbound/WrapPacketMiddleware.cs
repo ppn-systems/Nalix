@@ -10,8 +10,6 @@ using Nalix.Network.Dispatch.Attributes;
 using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Enums;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Inbound;
 
@@ -73,39 +71,15 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                                         .Error($"[{nameof(WrapPacketMiddleware)}] " +
                                                $"No transformer found for packet type {current.GetType().Name}.");
 
-                Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                       .Get<Text256>();
-                try
-                {
-                    text.Initialize("Unsupported packet type for encryption/compression.");
-                    _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-                    return;
-                }
-                finally
-                {
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return<Text256>(text);
-                }
+                _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for encryption/compression.")
+                                                .ConfigureAwait(false);
             }
 
         }
         catch (System.Exception)
         {
-            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<Text256>();
-            try
-            {
-                text.Initialize("An error occurred while processing your request.");
-                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-                return;
-            }
-            finally
-            {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<Text256>(text);
-            }
+            _ = await context.Connection.Tcp.SendAsync("An error occurred while processing your request.")
+                                            .ConfigureAwait(false);
         }
 
         await next();

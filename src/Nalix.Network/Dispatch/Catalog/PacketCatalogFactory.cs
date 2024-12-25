@@ -260,11 +260,35 @@ public sealed class PacketCatalogFactory
             System.Reflection.MethodInfo? compress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Compress));
             System.Reflection.MethodInfo? decompress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decompress));
 
-            if (compress == null || decompress == null || encrypt == null || decrypt == null)
+            if (compress == null)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()!
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
-                                              $"(Compress/Decompress/Encrypt/Decrypt), skipping transformers.");
+                                              $"(Compress), skipping transformers.");
+                continue;
+            }
+
+            if (decompress == null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
+                                              $"(Decompress), skipping transformers.");
+                continue;
+            }
+
+            if (encrypt == null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
+                                              $"(Encrypt), skipping transformers.");
+                continue;
+            }
+
+            if (decrypt == null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods for {type.FullName} " +
+                                              $"(Decrypt), skipping transformers.");
                 continue;
             }
 
@@ -280,8 +304,8 @@ public sealed class PacketCatalogFactory
                                       $"Built: {deserializers.Count} packets, {transformers.Count} transformers.");
 
         return new PacketCatalog(
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers),
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers)
+            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
+            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers)
         );
     }
 }
