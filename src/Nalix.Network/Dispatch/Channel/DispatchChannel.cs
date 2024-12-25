@@ -3,7 +3,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Network.Dispatch.Abstractions;
+using Nalix.Network.Abstractions;
 
 namespace Nalix.Network.Dispatch.Channel;
 

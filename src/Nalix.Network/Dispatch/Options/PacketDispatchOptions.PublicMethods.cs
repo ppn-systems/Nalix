@@ -3,9 +3,9 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Network.Dispatch.Abstractions;
+using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Network.Dispatch.Internal;
+using Nalix.Network.Internal.Dispatch;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
