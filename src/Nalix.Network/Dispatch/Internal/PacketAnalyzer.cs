@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
@@ -111,7 +112,11 @@ internal sealed class PacketAnalyzer<
         // Get methods with [PacketOpcode] attribute
         var methodInfos = System.Linq.Enumerable.ToArray(
             System.Linq.Enumerable.Where(
-                controllerType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
+                controllerType.GetMethods(
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance |
+                    System.Reflection.BindingFlags.Static
+                ),
                 m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null));
 
         if (methodInfos.Length == 0)
@@ -147,7 +152,7 @@ internal sealed class PacketAnalyzer<
                         $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
                 }
 
-                var compiledMethod = CompileMethodAccessor(method);
+                PacketHandlerInvoker<TPacket> compiledMethod = CompileMethodAccessor(method);
                 compiled[opcodeAttr.OpCode] = compiledMethod;
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -171,28 +176,60 @@ internal sealed class PacketAnalyzer<
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
         var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
-        var castedInstance = System.Linq.Expressions.Expression.Convert(instanceParam, method.DeclaringType!);
+        var pktProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
+                                                        .GetProperty(nameof(PacketContext<TPacket>.Packet))!);
+        var connProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
+                                                         .GetProperty(nameof(PacketContext<TPacket>.Connection))!);
 
-        var packetProperty = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
-                                                               .GetProperty(nameof(PacketContext<TPacket>.Packet))!);
+        // Get the actual parameter types of the method
+        var parms = method.GetParameters();
 
-        var connectionProperty = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
-                                                                   .GetProperty(nameof(PacketContext<TPacket>.Connection))!);
+        // must be exactly 2 params: (TPacket-like, IConnection-like)
+        if (parms.Length != 2)
+        {
+            throw new System.InvalidOperationException(
+                $"Handler {method.DeclaringType?.Name}.{method.Name} must have exactly 2 parameters " +
+                "(packet, connection). Found: {parms.Length}.");
+        }
 
-        var methodCall = System.Linq.Expressions.Expression.Call(castedInstance, method, packetProperty, connectionProperty);
+        var pktArgType = parms[0].ParameterType;   // ex: Handshake
+        var connArgType = parms[1].ParameterType;   // ex: IConnection hay Connection
+
+        if (!typeof(IPacket).IsAssignableFrom(pktArgType))
+        {
+            throw new System.InvalidOperationException(
+                $"First parameter of {method.Name} must implement IPacket. Found: {pktArgType}.");
+        }
+
+        if (!typeof(IConnection).IsAssignableFrom(connArgType))
+        {
+            throw new System.InvalidOperationException(
+                $"Second parameter of {method.Name} must implement IConnection. Found: {connArgType}.");
+        }
+
+        var pktArg = pktArgType.IsAssignableFrom(typeof(TPacket))
+                        ? (System.Linq.Expressions.Expression)pktProp
+                        : System.Linq.Expressions.Expression.Convert(pktProp, pktArgType);
+
+        var connArg = connArgType.IsAssignableFrom(typeof(IConnection))
+                        ? (System.Linq.Expressions.Expression)connProp
+                        : System.Linq.Expressions.Expression.Convert(connProp, connArgType);
+
+        System.Linq.Expressions.Expression call = method.IsStatic
+            ? System.Linq.Expressions.Expression.Call(method, pktArg, connArg)
+            : System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression
+                                                .Convert(instanceParam, method.DeclaringType!), method, pktArg, connArg);
 
         System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
-            ? System.Linq.Expressions.Expression.Block(methodCall, System.Linq.Expressions.Expression
-                                                .Constant(null, typeof(System.Object)))
-            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(System.Object));
+            ? System.Linq.Expressions.Expression.Block(call, System.Linq.Expressions.Expression
+                                                .Constant(null, typeof(global::System.Object)))
+            : System.Linq.Expressions.Expression.Convert(call, typeof(global::System.Object));
 
-        var lambda = System.Linq.Expressions.Expression.Lambda<
-            System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(body, instanceParam, contextParam);
+        var sync = System.Linq.Expressions.Expression.Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
+                       body, instanceParam, contextParam).Compile();
 
-        var compiledDelegate = lambda.Compile();
-        var asyncDelegate = CreateAsyncWrapper(compiledDelegate, method.ReturnType);
-
-        return new PacketHandlerInvoker<TPacket>(method, method.ReturnType, asyncDelegate);
+        var asyncWrapper = CreateAsyncWrapper(sync, method.ReturnType);
+        return new PacketHandlerInvoker<TPacket>(method, method.ReturnType, asyncWrapper);
     }
 
     /// <summary>
@@ -203,13 +240,12 @@ internal sealed class PacketAnalyzer<
         CreateAsyncWrapper(
         System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
-        System.Type returnType)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type returnType)
     {
         return returnType == typeof(System.Threading.Tasks.Task)
             ? (async (instance, context) =>
             {
-                var result = syncDelegate(instance, context);
+                System.Object? result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.Task task)
                 {
                     await task;
@@ -220,7 +256,7 @@ internal sealed class PacketAnalyzer<
             : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>)
             ? (async (instance, context) =>
             {
-                var result = syncDelegate(instance, context);
+                System.Object? result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.Task task)
                 {
                     await task;
@@ -232,7 +268,7 @@ internal sealed class PacketAnalyzer<
             : returnType == typeof(System.Threading.Tasks.ValueTask)
             ? (async (instance, context) =>
             {
-                var result = syncDelegate(instance, context);
+                System.Object? result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.ValueTask valueTask)
                 {
                     await valueTask;
@@ -243,14 +279,14 @@ internal sealed class PacketAnalyzer<
             : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>)
             ? (async (instance, context) =>
             {
-                var result = syncDelegate(instance, context);
-                if (result is System.Threading.Tasks.ValueTask valueTask)
+                System.Object? r = syncDelegate(instance, context);
+                if (r is null)
                 {
-                    await valueTask;
-                    var resultProperty = GetResultProperty(returnType);
-                    return resultProperty?.GetValue(result);
+                    return null;
                 }
-                return result;
+
+                System.Object? awaited = await (dynamic)r;
+                return (global::System.Object?)awaited;
             })
             : ((instance, context) => System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context)));
     }
