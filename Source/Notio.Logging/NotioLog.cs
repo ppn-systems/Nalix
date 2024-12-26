@@ -1,16 +1,13 @@
-﻿using Notio.Logging.Base;
-using Notio.Logging.Format;
-using Notio.Logging.Metadata;
+﻿using Notio.Logging.Metadata;
 using Notio.Logging.Sinks;
 using System;
-using System.Reflection.Emit;
 
 namespace Notio.Logging;
 
 /// <summary>
 /// Lớp NotioLog cung cấp các phương thức ghi log cho các sự kiện.
 /// </summary>
-public sealed class NotioLog : LoggerBase
+public sealed class NotioLog : LoggingProvider
 {
     private static readonly Lazy<NotioLog> _instance = new(() => new NotioLog());
 
@@ -28,7 +25,7 @@ public sealed class NotioLog : LoggerBase
     {
         base.LoggerManager
             .AddHandler(new ConsoleLogSinks())
-            .AddHandler(new FileLogSinks("Notio"));
+            .AddHandler(new FileLogSinks());
     }
 
     /// <summary>

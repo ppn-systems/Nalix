@@ -1,46 +1,26 @@
-﻿using Notio.Logging.Base;
-using Notio.Logging.Metadata;
-using Notio.Logging.Sinks;
+﻿using Notio.Logging.Sinks;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Storage;
+namespace Notio.Logging.Extensions;
 
 /// <summary>
 /// Nhà cung cấp bộ ghi log tệp tin tổng quát.
 /// </summary>
-public class LoggerProvider
+public class FileLoggerProvider
 {
     private readonly ConcurrentDictionary<string, FileLogSinks> loggers = new();
     private readonly BlockingCollection<string> entryQueue = new(1024);
     private readonly Task processQueueTask;
     private readonly FileWriter fWriter;
 
-    internal LoggerOptions Options { get; private set; }
+    internal FileLoggerOptions Options { get; private set; }
 
     public string LogFileName;
     public bool Append => Options.Append;
     public long FileSizeLimitBytes => Options.FileSizeLimitBytes;
     public int MaxRollingFiles => Options.MaxRollingFiles;
-
-    /// <summary>
-    /// Sử dụng múi giờ UTC cho dấu thời gian trong các thông báo log hay không. Mặc định là false.
-    /// </summary>
-    public bool UseUtcTimestamp
-    {
-        get => Options.UseUtcTimestamp;
-        set { Options.UseUtcTimestamp = value; }
-    }
-
-    /// <summary>
-    /// Bộ định dạng tùy chỉnh cho dòng nhập log.
-    /// </summary>
-    public Func<LogMessage, string> FormatLogEntry
-    {
-        get => Options.FormatLogEntry;
-        set { Options.FormatLogEntry = value; }
-    }
 
     /// <summary>
     /// Bộ định dạng tùy chỉnh cho tên tệp log.
@@ -61,28 +41,28 @@ public class LoggerProvider
     }
 
     /// <summary>
-    /// Khởi tạo <see cref="LoggerProvider"/> với tên tệp tin và tùy chọn ghi đè mặc định.
+    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè mặc định.
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
-    public LoggerProvider(string fileName) : this(fileName, true)
+    public FileLoggerProvider(string fileName) : this(fileName, true)
     {
     }
 
     /// <summary>
-    /// Khởi tạo <see cref="LoggerProvider"/> với tên tệp tin và tùy chọn ghi đè.
+    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè.
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
     /// <param name="append">Tùy chọn ghi đè.</param>
-    public LoggerProvider(string fileName, bool append) : this(fileName, new LoggerOptions() { Append = append })
+    public FileLoggerProvider(string fileName, bool append) : this(fileName, new FileLoggerOptions() { Append = append })
     {
     }
 
     /// <summary>
-    /// Khởi tạo <see cref="LoggerProvider"/> với tên tệp tin và tùy chọn cấu hình.
+    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn cấu hình.
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
     /// <param name="options">Tùy chọn cấu hình.</param>
-    public LoggerProvider(string fileName, LoggerOptions options)
+    public FileLoggerProvider(string fileName, FileLoggerOptions options)
     {
         Options = options;
         LogFileName = Environment.ExpandEnvironmentVariables(fileName);
@@ -171,9 +151,12 @@ public class LoggerProvider
         }
     }
 
-    private static void ProcessQueue(object state)
+    private static void ProcessQueue(object? state)
     {
-        var fileLogger = (LoggerProvider)state;
+        if (state == null) 
+            return;
+
+        FileLoggerProvider fileLogger = (FileLoggerProvider)state;
         fileLogger.ProcessQueue();
     }
 }

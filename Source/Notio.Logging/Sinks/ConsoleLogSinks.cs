@@ -12,11 +12,11 @@ namespace Notio.Logging.Sinks;
 /// Khởi tạo đối tượng ConsoleLogSinks với định dạng log cụ thể.
 /// </remarks>
 /// <param name="loggerFormatter">Đối tượng thực hiện định dạng log.</param>
-public sealed class ConsoleLogSinks(ILoggerFormatter loggerFormatter) : ILoggerSinks
+public sealed class ConsoleLogSinks(ILoggingFormatter loggerFormatter) : ILoggingSinks
 {
-    private readonly ILoggerFormatter _loggerFormatter = loggerFormatter;
+    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public ConsoleLogSinks() : this(new LoggerFormatter()) { }
+    public ConsoleLogSinks() : this(new LoggingFormatter()) { }
 
     /// <summary>
     /// Xuất thông điệp log ra console.

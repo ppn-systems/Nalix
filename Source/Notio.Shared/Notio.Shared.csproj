@@ -12,12 +12,11 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<Optimize>true</Optimize>
 		<Deterministic>true</Deterministic>
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
-
 
 </Project>

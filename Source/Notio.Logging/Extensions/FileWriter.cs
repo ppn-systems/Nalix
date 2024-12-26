@@ -1,22 +1,21 @@
-﻿using Notio.Logging.Base;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 
-namespace Notio.Logging.Storage;
+namespace Notio.Logging.Extensions;
 
 /// <summary>
 /// Lớp quản lý ghi log vào tệp tin.
 /// </summary>
 internal class FileWriter
 {
-    private readonly LoggerProvider FileLogPrv;
-    private string LogFileName;
-    private int RollingNumber;
-    private FileStream LogFileStream;
-    private StreamWriter LogFileWriter;
+    private readonly FileLoggerProvider FileLogPrv;
+    private string LogFileName = "default";
+    private int? RollingNumber;
+    private FileStream? LogFileStream;
+    private StreamWriter? LogFileWriter;
 
-    internal FileWriter(LoggerProvider fileLogPrv)
+    internal FileWriter(FileLoggerProvider fileLogPrv)
     {
         FileLogPrv = fileLogPrv;
 
@@ -39,7 +38,7 @@ internal class FileWriter
         if (FileLogPrv.FileSizeLimitBytes > 0)
         {
             // rolling file is used
-            if (FileLogPrv.Options.RollingFilesConvention == LoggerOptions.FileRollingConvention.Ascending)
+            if (FileLogPrv.Options.RollingFilesConvention == FileLoggerOptions.FileRollingConvention.Ascending)
             {
                 var logFiles = GetExistingLogFiles(baseLogFileName);
                 if (logFiles.Length > 0)
@@ -68,10 +67,10 @@ internal class FileWriter
 
     private void CreateLogFileStream(bool append)
     {
-        var fileInfo = new FileInfo(LogFileName);
+        FileInfo fileInfo = new(LogFileName);
         // Directory.Create will check if the directory already exists,
         // so there is no need for a "manual" check first.
-        fileInfo.Directory.Create();
+        fileInfo?.Directory?.Create();
 
         LogFileStream = new FileStream(LogFileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
         if (append)
@@ -102,7 +101,7 @@ internal class FileWriter
         {
             if (FileLogPrv.HandleFileError != null)
             {
-                var fileErr = new FileError(LogFileName, ex);
+                FileError fileErr = new(LogFileName, ex);
                 FileLogPrv.HandleFileError(fileErr);
                 if (fileErr.NewLogFileName != null)
                 {
@@ -118,7 +117,7 @@ internal class FileWriter
 
     private string GetNextFileLogName()
     {
-        var baseLogFileName = GetBaseLogFileName();
+        string baseLogFileName = GetBaseLogFileName();
         // if file does not exist or file size limit is not reached - do not add rolling file index
         if (!File.Exists(baseLogFileName) ||
             FileLogPrv.FileSizeLimitBytes <= 0 ||
@@ -127,17 +126,17 @@ internal class FileWriter
 
         switch (FileLogPrv.Options.RollingFilesConvention)
         {
-            case LoggerOptions.FileRollingConvention.Ascending:
+            case FileLoggerOptions.FileRollingConvention.Ascending:
                 //Unchanged default handling just optimized for performance and code reuse
                 int currentFileIndex = GetIndexFromFile(baseLogFileName, LogFileName);
-                var nextFileIndex = currentFileIndex + 1;
+                int nextFileIndex = currentFileIndex + 1;
                 if (FileLogPrv.MaxRollingFiles > 0)
                 {
                     nextFileIndex %= FileLogPrv.MaxRollingFiles;
                 }
                 return GetFileFromIndex(baseLogFileName, nextFileIndex);
 
-            case LoggerOptions.FileRollingConvention.AscendingStableBase:
+            case FileLoggerOptions.FileRollingConvention.AscendingStableBase:
                 {
                     //Move current base file to next rolling file number
                     RollingNumber++;
@@ -145,7 +144,8 @@ internal class FileWriter
                     {
                         RollingNumber %= FileLogPrv.MaxRollingFiles - 1;
                     }
-                    var moveFile = GetFileFromIndex(baseLogFileName, RollingNumber + 1);
+
+                    string moveFile = GetFileFromIndex(baseLogFileName, (RollingNumber ?? 0) + 1);
                     if (File.Exists(moveFile))
                     {
                         File.Delete(moveFile);
@@ -153,20 +153,21 @@ internal class FileWriter
                     File.Move(baseLogFileName, moveFile);
                     return baseLogFileName;
                 }
-            case LoggerOptions.FileRollingConvention.Descending:
+            case FileLoggerOptions.FileRollingConvention.Descending:
                 {
                     //Move all existing files to index +1 except if they are > MaxRollingFiles
-                    var logFiles = GetExistingLogFiles(baseLogFileName);
+                    FileInfo[] logFiles = GetExistingLogFiles(baseLogFileName);
                     if (logFiles.Length > 0)
                     {
-                        foreach (var finfo in logFiles.OrderByDescending(fInfo => fInfo.Name))
+                        foreach (FileInfo finfo in logFiles.OrderByDescending(fInfo => fInfo.Name))
                         {
-                            var index = GetIndexFromFile(baseLogFileName, finfo.Name);
+                            int index = GetIndexFromFile(baseLogFileName, finfo.Name);
                             if (FileLogPrv.MaxRollingFiles > 0 && index >= FileLogPrv.MaxRollingFiles - 1)
                             {
                                 continue;
                             }
-                            var moveFile = GetFileFromIndex(baseLogFileName, index + 1);
+
+                            string moveFile = GetFileFromIndex(baseLogFileName, index + 1);
                             if (File.Exists(moveFile))
                             {
                                 File.Delete(moveFile);
@@ -181,7 +182,7 @@ internal class FileWriter
     }
 
     // lưu tên tệp log cơ bản cuối cùng được trả về để tránh kiểm tra quá mức trong CheckForNewLogFile.isBaseFileNameChanged
-    private string __LastBaseLogFileName = null;
+    private string? __LastBaseLogFileName = null;
 
     private void CheckForNewLogFile()
     {
@@ -198,13 +199,13 @@ internal class FileWriter
 
         bool isMaxFileSizeThresholdReached()
         {
-            return FileLogPrv.FileSizeLimitBytes > 0 && LogFileStream.Length > FileLogPrv.FileSizeLimitBytes;
+            return FileLogPrv.FileSizeLimitBytes > 0 && LogFileStream?.Length > FileLogPrv.FileSizeLimitBytes;
         }
         bool isBaseFileNameChanged()
         {
             if (FileLogPrv.FormatLogFileName != null)
             {
-                var baseLogFileName = GetBaseLogFileName();
+                string baseLogFileName = GetBaseLogFileName();
                 if (baseLogFileName != __LastBaseLogFileName)
                 {
                     __LastBaseLogFileName = baseLogFileName;
@@ -222,6 +223,7 @@ internal class FileWriter
         {
             CheckForNewLogFile();
             LogFileWriter.WriteLine(message);
+
             if (flush)
                 LogFileWriter.Flush();
         }
@@ -232,12 +234,11 @@ internal class FileWriter
     /// </summary>
     private static int GetIndexFromFile(string baseLogFileName, string filename)
     {
-        var baseFileNameOnly = Path.GetFileNameWithoutExtension(baseLogFileName.AsSpan());
-        var currentFileNameOnly = Path.GetFileNameWithoutExtension(filename.AsSpan());
+        ReadOnlySpan<char> baseFileNameOnly = Path.GetFileNameWithoutExtension(baseLogFileName.AsSpan());
+        ReadOnlySpan<char> currentFileNameOnly = Path.GetFileNameWithoutExtension(filename.AsSpan());
+        ReadOnlySpan<char> suffix = currentFileNameOnly[baseFileNameOnly.Length..];
 
-        var suffix = currentFileNameOnly[baseFileNameOnly.Length..];
-
-        if (suffix.Length > 0 && int.TryParse(suffix, out var parsedIndex))
+        if (suffix.Length > 0 && int.TryParse(suffix, out int parsedIndex))
         {
             return parsedIndex;
         }
@@ -246,17 +247,19 @@ internal class FileWriter
 
     private static string GetFileFromIndex(string baseLogFileName, int index)
     {
-        var nextFileName = string.Concat(Path.GetFileNameWithoutExtension(baseLogFileName.AsSpan()), index > 0 ? index.ToString() : "", Path.GetExtension(baseLogFileName.AsSpan()));
+        string nextFileName = string.Concat(Path.GetFileNameWithoutExtension(baseLogFileName.AsSpan()), index > 0 ? index.ToString() : "", Path.GetExtension(baseLogFileName.AsSpan()));
         return string.Concat(Path.Join(Path.GetDirectoryName(baseLogFileName.AsSpan()), nextFileName.AsSpan()));
     }
 
     private static FileInfo[] GetExistingLogFiles(string baseLogFileName)
     {
-        var logFileMask = Path.GetFileNameWithoutExtension(baseLogFileName) + "*" + Path.GetExtension(baseLogFileName);
-        var logDirName = Path.GetDirectoryName(baseLogFileName);
+        string logFileMask = Path.GetFileNameWithoutExtension(baseLogFileName) + "*" + Path.GetExtension(baseLogFileName);
+        string? logDirName = Path.GetDirectoryName(baseLogFileName);
+
         if (string.IsNullOrEmpty(logDirName))
             logDirName = Directory.GetCurrentDirectory();
-        var logdir = new DirectoryInfo(logDirName);
+
+        DirectoryInfo logdir = new(logDirName);
         return logdir.Exists ? logdir.GetFiles(logFileMask, SearchOption.TopDirectoryOnly) : [];
     }
 
@@ -264,11 +267,11 @@ internal class FileWriter
     {
         if (LogFileWriter != null)
         {
-            var logWriter = LogFileWriter;
+            StreamWriter logWriter = LogFileWriter;
             LogFileWriter = null;
 
             logWriter.Dispose();
-            LogFileStream.Dispose();
+            LogFileStream?.Dispose();
             LogFileStream = null;
         }
     }

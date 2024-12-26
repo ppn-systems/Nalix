@@ -5,7 +5,7 @@ namespace Notio.Logging.Interfaces;
 /// <summary>
 /// Định nghĩa giao diện cho mục tiêu xử lý nhật ký.
 /// </summary>
-public interface ILoggerSinks
+public interface ILoggingSinks
 {
     /// <summary>
     /// Gửi một thông điệp log đến mục tiêu xử lý.

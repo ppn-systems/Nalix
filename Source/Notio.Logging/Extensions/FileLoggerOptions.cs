@@ -1,13 +1,12 @@
 ﻿using Notio.Logging.Metadata;
-using Notio.Logging.Storage;
 using System;
 
-namespace Notio.Logging.Base;
+namespace Notio.Logging.Extensions;
 
 /// <summary>
 /// Tùy chọn cấu hình cho bộ ghi log tệp tin.
 /// </summary>
-public class LoggerOptions
+public class FileLoggerOptions
 {
     /// <summary>
     /// Ghi thêm vào các tệp log hiện có hay ghi đè chúng.
@@ -33,21 +32,6 @@ public class LoggerOptions
     public int MaxRollingFiles { get; set; } = 0;
 
     /// <summary>
-    /// Sử dụng múi giờ UTC cho dấu thời gian trong các thông báo log hay không. Mặc định là false.
-    /// </summary>
-    public bool UseUtcTimestamp { get; set; }
-
-    /// <summary>
-    /// Bộ định dạng tùy chỉnh cho dòng nhập log.
-    /// </summary>
-    public Func<LogMessage, string> FormatLogEntry { get; set; }
-
-    /// <summary>
-    /// Bộ lọc tùy chỉnh cho dòng nhập log.
-    /// </summary>
-    public Func<LogMessage, bool> FilterLogEntry { get; set; }
-
-    /// <summary>
     /// Mức ghi log tối thiểu cho bộ ghi log tệp tin.
     /// </summary>
     public LogLevel MinLevel { get; set; } = LogLevel.Trace;
@@ -70,7 +54,7 @@ public class LoggerOptions
     /// Bộ xử lý tùy chỉnh cho lỗi tệp log.
     /// </summary>
     /// <remarks>
-    /// Nếu bộ xử lý này được cung cấp, ngoại lệ mở tệp (khi tạo <code>LoggerProvider</code>) sẽ bị loại bỏ.
+    /// Nếu bộ xử lý này được cung cấp, ngoại lệ mở tệp (khi tạo <code>FileLoggerProvider</code>) sẽ bị loại bỏ.
     /// Bạn có thể xử lý lỗi tệp theo logic của ứng dụng và đề xuất một tên tệp log thay thế (nếu muốn giữ bộ ghi log hoạt động).
     /// </remarks>
     /// <example>

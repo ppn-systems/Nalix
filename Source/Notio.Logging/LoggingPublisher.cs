@@ -2,16 +2,16 @@
 using Notio.Logging.Metadata;
 using System.Collections.Generic;
 
-namespace Notio.Logging.Base;
+namespace Notio.Logging;
 
-public class LoggerPublisher : ILoggerPublisher
+public class LoggingPublisher : ILogingPublisher
 {
-    private readonly IList<ILoggerSinks> loggerSinks;
+    private readonly IList<ILoggingSinks> loggerSinks;
 
     /// <summary>
-    /// Khởi tạo một <see cref="LoggerPublisher"/> mới.
+    /// Khởi tạo một <see cref="LoggingPublisher"/> mới.
     /// </summary>
-    public LoggerPublisher()
+    public LoggingPublisher()
     {
         loggerSinks = [];
     }
@@ -22,7 +22,7 @@ public class LoggerPublisher : ILoggerPublisher
     /// <param name="logMessage">Thông điệp nhật ký cần công khai.</param>
     public void Publish(LogMessage logMessage)
     {
-        foreach (ILoggerSinks loggerHandler in loggerSinks)
+        foreach (ILoggingSinks loggerHandler in loggerSinks)
             loggerHandler.Publish(logMessage);
     }
 
@@ -30,8 +30,8 @@ public class LoggerPublisher : ILoggerPublisher
     /// Thêm một handler ghi nhật ký.
     /// </summary>
     /// <param name="loggerHandler">Handler ghi nhật ký cần thêm.</param>
-    /// <returns>Instance hiện tại của <see cref="ILoggerPublisher"/>.</returns>
-    public ILoggerPublisher AddHandler(ILoggerSinks loggerHandler)
+    /// <returns>Instance hiện tại của <see cref="ILogingPublisher"/>.</returns>
+    public ILogingPublisher AddHandler(ILoggingSinks loggerHandler)
     {
         if (loggerHandler != null) loggerSinks.Add(loggerHandler);
         return this;
@@ -42,7 +42,7 @@ public class LoggerPublisher : ILoggerPublisher
     /// </summary>
     /// <param name="loggerHandler">Handler ghi nhật ký cần xóa.</param>
     /// <returns>True nếu xóa thành công, ngược lại False.</returns>
-    public bool RemoveHandler(ILoggerSinks loggerHandler)
+    public bool RemoveHandler(ILoggingSinks loggerHandler)
     {
         return loggerSinks.Remove(loggerHandler);
     }

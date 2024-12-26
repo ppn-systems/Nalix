@@ -1,28 +1,25 @@
-﻿using Notio.Logging.Interfaces;
+﻿using Notio.Logging.Extensions;
+using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 
-namespace Notio.Logging.Base;
+namespace Notio.Logging;
 
-public abstract class LoggerBase
+public abstract class LoggingProvider
 {
-    private readonly LoggerPublisher _logPublisher = new();
+    private readonly LoggingPublisher _logPublisher = new();
 
-    internal LoggerOptions Options { get; private set; } = new();
+    internal FileLoggerOptions Options { get; private set; } = new();
 
     /// <summary>
     /// Lấy đối tượng quản lý ghi nhật ký.
     /// </summary>
-    public ILoggerPublisher LoggerManager => _logPublisher;
+    public ILogingPublisher LoggerManager => _logPublisher;
 
     /// <summary>
     /// Mức ghi log tối thiểu.
     /// </summary>
-    public LogLevel MinLevel
-    {
-        get => Options.MinLevel;
-        set { Options.MinLevel = value; }
-    }
+    public LogLevel MinLevel = LogLevel.Trace;
 
     public bool IsEnabled(LogLevel logLevel)
         => logLevel >= MinLevel;
@@ -31,7 +28,7 @@ public abstract class LoggerBase
     /// Ghi một thông điệp với mức độ chỉ định.
     /// </summary>
     protected void PublishLog(
-        LogLevel level, EventId eventId, string message, Exception exception = null)
+        LogLevel level, EventId eventId, string message, Exception? exception = null)
     {
         if (!IsEnabled(level))
             return;

@@ -1,42 +1,42 @@
 ﻿namespace Notio.Logging.Metadata;
 
 /// <summary>
-/// Represents the severity level of a log message.
+/// Đại diện cho các mức độ nghiêm trọng của một thông điệp nhật ký.
 /// </summary>
 public enum LogLevel
 {
     /// <summary>
-    /// Used to represent trace-level messages.
+    /// Dùng để đại diện cho các thông điệp ở mức theo dõi (trace-level).
     /// </summary>
     Trace,
 
     /// <summary>
-    /// Used to represent debug-level messages.
+    /// Dùng để đại diện cho các thông điệp ở mức gỡ lỗi (debug-level).
     /// </summary>
     Debug,
 
     /// <summary>
-    /// Used to represent informational messages.
+    /// Dùng để đại diện cho các thông điệp mang tính thông tin (informational).
     /// </summary>
     Information,
 
     /// <summary>
-    /// Used to represent warning-level messages.
+    /// Dùng để đại diện cho các thông điệp ở mức cảnh báo (warning-level).
     /// </summary>
     Warning,
 
     /// <summary>
-    /// Used to represent error-level messages.
+    /// Dùng để đại diện cho các thông điệp ở mức lỗi (error-level).
     /// </summary>
     Error,
 
     /// <summary>
-    /// Used to represent critical-level messages.
+    /// Dùng để đại diện cho các thông điệp ở mức nghiêm trọng (critical-level).
     /// </summary>
     Critical,
 
     /// <summary>
-    /// Represents a non-specific or unspecified log level.
+    /// Đại diện cho mức độ không cụ thể hoặc không xác định (non-specific).
     /// </summary>
     None
 }
