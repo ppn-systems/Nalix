@@ -4,19 +4,19 @@ using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 
-namespace Notio.Logging.Sinks;
+namespace Notio.Logging.Targets;
 
 /// <summary>
 /// Trình ghi tệp chung hoạt động theo cách tiêu chuẩn.
 /// </summary>
-public class FileLogSinks(ILoggingFormatter loggerFormatter) : ILoggingSinks
+public class FileTarget(ILoggingFormatter loggerFormatter) : ILoggingTarget
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
     public readonly FileLoggerProvider LoggerPrv = new("Notio_");
 
-    public FileLogSinks() : this(new LoggingFormatter()) { }
+    public FileTarget() : this(new LoggingFormatter()) { }
 
-    public void Publish(LogMessage logMessage)
+    public void Publish(LogEntry logMessage)
         => LoggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage, DateTime.Now));
 }

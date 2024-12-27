@@ -3,26 +3,26 @@ using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 
-namespace Notio.Logging.Sinks;
+namespace Notio.Logging.Targets;
 
 /// <summary>
-/// Lớp ConsoleLogSinks cung cấp khả năng xuất thông điệp nhật ký ra console với màu sắc tương ứng với mức độ log.
+/// Lớp ConsoleTarget cung cấp khả năng xuất thông điệp nhật ký ra console với màu sắc tương ứng với mức độ log.
 /// </summary>
 /// <remarks>
-/// Khởi tạo đối tượng ConsoleLogSinks với định dạng log cụ thể.
+/// Khởi tạo đối tượng ConsoleTarget với định dạng log cụ thể.
 /// </remarks>
 /// <param name="loggerFormatter">Đối tượng thực hiện định dạng log.</param>
-public sealed class ConsoleLogSinks(ILoggingFormatter loggerFormatter) : ILoggingSinks
+public sealed class ConsoleTarget(ILoggingFormatter loggerFormatter) : ILoggingTarget
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public ConsoleLogSinks() : this(new LoggingFormatter()) { }
+    public ConsoleTarget() : this(new LoggingFormatter()) { }
 
     /// <summary>
     /// Xuất thông điệp log ra console.
     /// </summary>
     /// <param name="logMessage">Thông điệp log cần xuất.</param>
-    public void Publish(LogMessage logMessage)
+    public void Publish(LogEntry logMessage)
     {
         try
         {

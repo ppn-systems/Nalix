@@ -23,7 +23,7 @@ public class LoggingFormatter : ILoggingFormatter
         _ => logLevel.ToString().ToUpperInvariant(),
     };
 
-    public string FormatLog(LogMessage logMsg, DateTime timeStamp)
+    public string FormatLog(LogEntry logMsg, DateTime timeStamp)
         => FormatLogEntry(timeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     public static string FormatLogEntry(

@@ -1,4 +1,4 @@
-﻿using Notio.Logging.Sinks;
+﻿using Notio.Logging.Targets;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
@@ -10,7 +10,7 @@ namespace Notio.Logging.Extensions;
 /// </summary>
 public class FileLoggerProvider
 {
-    private readonly ConcurrentDictionary<string, FileLogSinks> loggers = new();
+    private readonly ConcurrentDictionary<string, FileTarget> loggers = new();
     private readonly BlockingCollection<string> entryQueue = new(1024);
     private readonly Task processQueueTask;
     private readonly FileWriter fWriter;

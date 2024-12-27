@@ -3,7 +3,7 @@
 /// <summary>
 /// Đại diện một thông điệp nhật ký trong hệ thống logging.
 /// </summary>
-public readonly struct LogMessage
+public readonly struct LogEntry
 {
     /// <summary>
     /// Nội dung của thông điệp nhật ký.
@@ -32,7 +32,7 @@ public readonly struct LogMessage
     /// <param name="eventId">ID sự kiện liên quan đến thông điệp.</param>
     /// <param name="message">Nội dung của thông điệp nhật ký.</param>
     /// <param name="exception">Ngoại lệ đi kèm (nếu có).</param>
-    internal LogMessage(LogLevel level, EventId eventId, string message, System.Exception? exception = null)
+    internal LogEntry(LogLevel level, EventId eventId, string message, System.Exception? exception = null)
     {
         Message = message;
         LogLevel = level;
