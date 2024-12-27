@@ -36,8 +36,9 @@ internal static class SystemInfo
     /// </summary>
     /// <param name="info">Thông tin cần phân tích.</param>
     /// <returns>Chuỗi đã phân tích hoặc "null" nếu không có dữ liệu.</returns>
-    public static string ParseDefault(this string info) =>
-        !string.IsNullOrEmpty(info) ? info.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[1].Trim() : "null";
+    public static string ParseDefault(this string info) 
+        => !string.IsNullOrEmpty(info) 
+        ? info.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[1].Trim() : "null";
 
     /// <summary>
     /// Phân tích chuỗi thông tin CPU.
