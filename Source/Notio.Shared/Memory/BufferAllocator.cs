@@ -7,7 +7,7 @@ using System.Numerics;
 using System.Threading;
 using Notio.Common;
 
-namespace Notio.Infrastructure.Memory.Buffer;
+namespace Notio.Shared.Buffer;
 
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.

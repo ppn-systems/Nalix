@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Linq;
 
-namespace Notio.Infrastructure.Memory.Buffer;
+namespace Notio.Shared.Buffer;
 
 /// <summary>
 /// Quản lý các pool của các bộ đệm dùng chung.
