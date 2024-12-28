@@ -1,8 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
+using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
 namespace Nalix.Logging.Sinks.File;
@@ -27,12 +25,6 @@ public sealed class FileLogOptions
     #region Fields
 
     private static readonly System.TimeSpan DefaultFlushInterval = System.TimeSpan.FromSeconds(1);
-
-    private static readonly System.String DefaultBaseDirectory =
-        System.AppDomain.CurrentDomain.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar);
-
-    private static readonly System.String DefaultLogDirectory =
-        System.IO.Path.Combine(DefaultBaseDirectory, "assets", "data", "logs");
 
     private System.Int32 _maxFileSize = DefaultMaxFileSize;
     private System.Int32 _maxQueueSize = DefaultMaxQueueSize;
@@ -109,7 +101,7 @@ public sealed class FileLogOptions
     /// <remarks>
     /// If the directory doesn't exist, it will be created when logging starts.
     /// </remarks>
-    public System.String LogDirectory { get; set; } = DefaultLogDirectory;
+    public System.String LogDirectory { get; set; } = Directories.LogsDirectory;
 
     /// <summary>
     /// Gets or sets the interval at which log entries are flushed to disk.
