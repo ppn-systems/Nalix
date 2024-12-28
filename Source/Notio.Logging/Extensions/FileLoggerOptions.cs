@@ -48,7 +48,7 @@ public class FileLoggerOptions
     ///   return String.Format(Path.GetFileNameWithoutExtension(fname) + "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname), DateTime.UtcNow);
     /// };
     /// </example>
-    public Func<string, string> FormatLogFileName { get; set; }
+    public Func<string, string>? FormatLogFileName { get; set; }
 
     /// <summary>
     /// Bộ xử lý tùy chỉnh cho lỗi tệp log.
@@ -62,7 +62,7 @@ public class FileLoggerOptions
     ///   err.UseNewLogFileName(Path.GetFileNameWithoutExtension(err.LogFileName) + "_alt" + Path.GetExtension(err.LogFileName));
     /// };
     /// </example>
-    public Action<FileError> HandleFileError { get; set; }
+    public Action<FileError>? HandleFileError { get; set; }
 
     /// <summary>
     /// Định nghĩa quy ước đặt tên và thứ tự của các tệp log quay vòng.

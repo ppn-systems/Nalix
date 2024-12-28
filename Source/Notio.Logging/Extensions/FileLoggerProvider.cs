@@ -25,7 +25,7 @@ public class FileLoggerProvider
     /// <summary>
     /// Bộ định dạng tùy chỉnh cho tên tệp log.
     /// </summary>
-    public Func<string, string> FormatLogFileName
+    public Func<string, string>? FormatLogFileName
     {
         get => Options.FormatLogFileName;
         set { Options.FormatLogFileName = value; }
@@ -34,7 +34,7 @@ public class FileLoggerProvider
     /// <summary>
     /// Bộ xử lý tùy chỉnh cho lỗi tệp.
     /// </summary>
-    public Action<FileError> HandleFileError
+    public Action<FileError>? HandleFileError
     {
         get => Options.HandleFileError;
         set { Options.HandleFileError = value; }

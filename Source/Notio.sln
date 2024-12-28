@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Shared", "Notio.Share
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Infrastructure", "Notio.Infrastructure\Notio.Infrastructure.csproj", "{FEA8E5F6-0B6F-42F2-83B9-AE97EABDEAD3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Application", "Notio.Application\Notio.Application.csproj", "{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{FEA8E5F6-0B6F-42F2-83B9-AE97EABDEAD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEA8E5F6-0B6F-42F2-83B9-AE97EABDEAD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEA8E5F6-0B6F-42F2-83B9-AE97EABDEAD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

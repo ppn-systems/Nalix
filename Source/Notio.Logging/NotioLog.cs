@@ -1,6 +1,7 @@
 ﻿using Notio.Logging.Metadata;
 using Notio.Logging.Targets;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Logging;
 
@@ -9,8 +10,9 @@ namespace Notio.Logging;
 /// </summary>
 public sealed class NotioLog : LoggingEngine
 {
-    private static readonly Lazy<NotioLog> _instance = new(() => new());
+    private bool _isInitialized;
     public static readonly EventId Empty = new(0);
+    private static readonly Lazy<NotioLog> _instance = new(() => new());
 
     /// <summary>
     /// Khởi tạo một instance mới của lớp NotioLog.
@@ -28,15 +30,24 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="configure">Hành động để cấu hình <see cref="LoggingBuilder"/>.</param>
     public void Initialize(Action<LoggingBuilder>? configure = null)
     {
-        LoggingBuilder builder = new(Publisher);
+        if (_isInitialized) throw new InvalidOperationException("Logging has already been initialized.");
+        _isInitialized = true;
+
+        LoggingBuilder builder = new(base.Publisher);
         configure?.Invoke(builder);
 
-        if (builder.UseDefaults)
+        if (builder.IsDefaults)
         {
-            Publisher
+            base.Publisher
                 .AddTarget(new ConsoleTarget())
                 .AddTarget(new FileTarget());
         }
+    }
+
+    public void ConfigureDefaults(Func<LoggingBuilder, LoggingBuilder> defaults)
+    {
+        LoggingBuilder builder = new(base.Publisher);
+        defaults(builder);
     }
 
     /// <summary>
@@ -56,12 +67,32 @@ public sealed class NotioLog : LoggingEngine
     /// </summary>
     /// <param name="level">Mức độ log.</param>
     /// <param name="eventId">ID sự kiện.</param>
-    /// <param name="ex">Ngoại lệ.</param>
-    public void Write(LogLevel level, EventId eventId, Exception ex)
+    /// <param name="exception">Ngoại lệ.</param>
+    public void Write(LogLevel level, EventId eventId, Exception exception)
     {
-        ArgumentNullException.ThrowIfNull(ex);
-        base.CreateLogEntry(level, eventId, ex.Message, ex);
+        ArgumentNullException.ThrowIfNull(exception);
+        base.CreateLogEntry(level, eventId, $"{exception.Message}\n{exception.StackTrace}", exception);
     }
+
+    /// <summary>
+    /// Ghi log với mức độ, ID sự kiện và ngoại lệ.
+    /// </summary>
+    /// <param name="level">Mức độ log.</param>
+    /// <param name="eventId">ID sự kiện.</param>
+    /// <param name="exception">Ngoại lệ.</param>
+    public void Write(LogLevel level, EventId eventId, string message, Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        base.CreateLogEntry(level, eventId, message, exception);
+    }
+
+    /// <summary>
+    /// Ghi log thông tin với định dạng chuỗi.
+    /// </summary>
+    /// <param name="format">Chuỗi định dạng.</param>
+    /// <param name="args">Các tham số để định dạng chuỗi.</param>
+    public void Info(string format, params object[] args)
+        => Write(LogLevel.Information, Empty, string.Format(format, args));
 
     /// <summary>
     /// Ghi log thông tin.
@@ -76,8 +107,8 @@ public sealed class NotioLog : LoggingEngine
     /// </summary>
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
-    public void Debug(string message, EventId? eventId = null)
-        => Write(LogLevel.Debug, eventId ?? Empty, message);
+    public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
+        => Write(LogLevel.Debug, eventId ?? Empty, $"[{memberName}] {message}");
 
     /// <summary>
     /// Ghi log trace.
@@ -98,20 +129,34 @@ public sealed class NotioLog : LoggingEngine
     /// <summary>
     /// Ghi log lỗi với ngoại lệ.
     /// </summary>
-    /// <param name="ex">Ngoại lệ.</param>
+    /// <param name="exception">Ngoại lệ.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
-    public void Error(Exception ex, EventId? eventId = null)
-        => Write(LogLevel.Error, eventId ?? Empty, ex);
+    public void Error(Exception exception, EventId? eventId = null)
+        => Write(LogLevel.Error, eventId ?? Empty, exception);
 
     /// <summary>
     /// Ghi log lỗi với thông điệp và ngoại lệ.
     /// </summary>
     /// <param name="message">Thông điệp log.</param>
-    /// <param name="ex">Ngoại lệ.</param>
+    /// <param name="exception">Ngoại lệ.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
-    public void Error(string message, Exception ex, EventId? eventId = null)
-    {
-        ArgumentNullException.ThrowIfNull(ex);
-        base.CreateLogEntry(LogLevel.Error, eventId ?? Empty, message, ex);
-    }
+    public void Error(string message, Exception exception, EventId? eventId = null)
+        => Write(LogLevel.Error, eventId ?? Empty, message, exception);
+
+    /// <summary>
+    /// Ghi log lỗi nghiêm trọng.
+    /// </summary>
+    /// <param name="message">Thông điệp log.</param>
+    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
+    public void Fatal(string message, EventId? eventId = null)
+        => Write(LogLevel.Critical, eventId ?? Empty, message);
+
+    /// <summary>
+    /// Ghi log lỗi nghiêm trọng.
+    /// </summary>
+    /// <param name="message">Thông điệp log.</param>
+    /// <param name="exception">Ngoại lệ (tùy chọn).</param>
+    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
+    public void Fatal(string message, Exception exception, EventId? eventId = null)
+        => Write(LogLevel.Critical, eventId ?? Empty, message, exception);
 }

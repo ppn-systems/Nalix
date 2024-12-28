@@ -20,11 +20,9 @@ public sealed class ConfigManager
     /// <summary>
     /// Khởi tạo một instance của <see cref="ConfigManager"/>.
     /// </summary>
-    private ConfigManager()
-    {
-        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "Configuration.ini");
-        _iniFile = new(path);
-    }
+    private ConfigManager() 
+        => _iniFile = new(Path.Combine(DefaultDirectories.DataPath, "Configuration.ini"));
+    
 
     /// <summary>
     /// Khởi tạo nếu cần và trả về <typeparamref name="TClass"/>.

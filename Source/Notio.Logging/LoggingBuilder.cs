@@ -13,7 +13,7 @@ public class LoggingBuilder
     /// <summary>
     /// Cho biết có sử dụng cấu hình mặc định hay không.
     /// </summary>
-    internal bool UseDefaults { get; private set; } = true;
+    internal bool IsDefaults { get; private set; } = true;
 
     /// <summary>
     /// Khởi tạo một <see cref="LoggingBuilder"/> mới.
@@ -25,22 +25,17 @@ public class LoggingBuilder
     }
 
     /// <summary>
-    /// Xóa cấu hình mặc định.
-    /// </summary>
-    /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
-    public LoggingBuilder ClearDefaults()
-    {
-        UseDefaults = false;
-        return this;
-    }
-
-    /// <summary>
     /// Thêm mục tiêu logging.
     /// </summary>
     /// <param name="target">Đối tượng <see cref="ILoggingTarget"/> để thêm vào.</param>
     /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
     public LoggingBuilder AddTarget(ILoggingTarget target)
     {
+        if (IsDefaults)
+        {
+            this.IsDefaults = false;
+        }
+
         _publisher.AddTarget(target);
         return this;
     }

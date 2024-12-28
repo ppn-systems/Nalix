@@ -2,17 +2,19 @@
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
-		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
+		<OutputType>Exe</OutputType>
 		<IsPublishable>false</IsPublishable>
 		<Nullable>enable</Nullable>
+
+		<StartupObject>Notio.Application.Threading.Program</StartupObject>
 	</PropertyGroup>
 
 	<Import Project="$(SolutionDir)Notio.Settings.props" />
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	</PropertyGroup>
-	
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<Optimize>true</Optimize>
 		<Deterministic>true</Deterministic>
@@ -20,7 +22,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 	</ItemGroup>
 
 </Project>

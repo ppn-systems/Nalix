@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Shared;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -10,7 +11,7 @@ namespace Notio.Logging.Extensions;
 internal class FileWriter
 {
     private readonly FileLoggerProvider FileLogPrv;
-    private string LogFileName = "default";
+    private string LogFileName = "Notio.log";
     private int? RollingNumber;
     private FileStream? LogFileStream;
     private StreamWriter? LogFileWriter;
@@ -25,15 +26,16 @@ internal class FileWriter
 
     private string GetBaseLogFileName()
     {
-        var fName = FileLogPrv.LogFileName;
+        string fName = FileLogPrv.LogFileName;
         if (FileLogPrv.FormatLogFileName != null)
             fName = FileLogPrv.FormatLogFileName(fName);
-        return fName;
+
+        return Path.Combine(DefaultDirectories.LogsPath, fName);
     }
 
     private void DetermineLastFileLogName()
     {
-        var baseLogFileName = GetBaseLogFileName();
+        string baseLogFileName = GetBaseLogFileName();
         __LastBaseLogFileName = baseLogFileName;
         if (FileLogPrv.FileSizeLimitBytes > 0)
         {

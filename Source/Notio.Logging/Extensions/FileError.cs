@@ -17,13 +17,13 @@ public class FileError
     /// </summary>
     public string LogFileName { get; private set; }
 
+    internal string? NewLogFileName { get; private set; }
+
     internal FileError(string logFileName, Exception ex)
     {
         LogFileName = logFileName;
         ErrorException = ex;
     }
-
-    internal string NewLogFileName { get; private set; }
 
     /// <summary>
     /// Đề xuất một tên tệp log mới để sử dụng thay cho tên hiện tại.

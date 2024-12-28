@@ -1,8 +1,10 @@
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <PropertyGroup>
-    <OutputPath>..\..\bin</OutputPath>
-    <IntermediateOutputPath>..\..\obj</IntermediateOutputPath>
-  </PropertyGroup>
+	<PropertyGroup>
+		<DebugType>none</DebugType>
+		<GenerateJson>false</GenerateJson>
+		<OutputPath>..\..\bin</OutputPath>
+		<IntermediateOutputPath>..\..\obj</IntermediateOutputPath>
+	</PropertyGroup>
 
 </Project>
