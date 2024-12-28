@@ -19,8 +19,7 @@ public class FileLoggerProvider
 
     public string LogFileName;
     public bool Append => Options.Append;
-    public long FileSizeLimitBytes => Options.FileSizeLimitBytes;
-    public int MaxRollingFiles => Options.MaxRollingFiles;
+    public int MaxFileSize => Options.MaxFileSize;
 
     /// <summary>
     /// Bộ định dạng tùy chỉnh cho tên tệp log.

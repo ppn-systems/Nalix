@@ -17,7 +17,7 @@ public class TcpSocketListener : IDisposable
     private bool _disposed;
     private Socket? _listenerSocket;
     private readonly IPEndPoint _endPoint;
-    private readonly SocketConfiguration _config;
+    private readonly SocketConfig _config;
     private readonly SecurityConfig? _security;
     private readonly SessionManager _clientManager;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
@@ -82,11 +82,11 @@ public class TcpSocketListener : IDisposable
     /// <param name="security">Cấu hình bảo mật.</param>
     public TcpSocketListener(
         IPEndPoint endPoint,
-        SocketConfiguration? config = null,
+        SocketConfig? config = null,
         SecurityConfig? security = null)
     {
         _endPoint = endPoint;
-        _config = config ?? new SocketConfiguration();
+        _config = config ?? new SocketConfig();
         _security = security;
         _clientManager = new SessionManager(_config);
         _clientManager.ErrorOccurred += OnError;
@@ -150,7 +150,7 @@ public class TcpSocketListener : IDisposable
                     _listenerSocket!.EndAccept,
                     null);
 
-                ConfigureSocket(clientSocket);
+                this.ConfigureSocket(clientSocket);
                 await _clientManager.AddClientAsync(clientSocket, _security);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

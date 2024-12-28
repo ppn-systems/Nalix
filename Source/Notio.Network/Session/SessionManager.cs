@@ -13,7 +13,7 @@ namespace Notio.Network.Session;
 public class SessionManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, SocketSession> _clients = new();
-    private readonly SocketConfiguration _config;
+    private readonly SocketConfig _config;
     private bool _disposed;
 
     /// <summary>
@@ -50,7 +50,7 @@ public class SessionManager : IDisposable
     /// Khởi tạo một <see cref="SessionManager"/> mới.
     /// </summary>
     /// <param name="config">Cấu hình socket.</param>
-    public SessionManager(SocketConfiguration config)
+    public SessionManager(SocketConfig config)
     {
         _config = config;
     }

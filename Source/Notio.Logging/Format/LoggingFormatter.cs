@@ -1,6 +1,8 @@
-﻿using Notio.Logging.Interfaces;
+﻿using Notio.Common.Metadata;
+using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Notio.Logging.Format;
@@ -10,7 +12,17 @@ namespace Notio.Logging.Format;
 /// </summary>
 public class LoggingFormatter : ILoggingFormatter
 {
-    private const string LogSeparator = " - ";
+    private static readonly string[] LogLevelStrings =
+    [
+        "TRCE", // LogLevel.Trace (0)
+        "DBUG", // LogLevel.Debug (1)
+        "INFO", // LogLevel.Information (2)
+        "WARN", // LogLevel.Warning (3)
+        "FAIL", // LogLevel.Error (4)
+        "CRIT", // LogLevel.Critical (5)
+        "NONE"  // LogLevel.None (6)
+    ];
+
     /// <summary>
     /// Instance singleton của <see cref="LoggingFormatter"/> có thể tái sử dụng.
     /// </summary>
@@ -57,43 +69,69 @@ public class LoggingFormatter : ILoggingFormatter
         return logBuilder.ToString();
     }
 
-    private static string GetShortLogLevel(LogLevel logLevel) => logLevel switch
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string GetShortLogLevel(LogLevel logLevel)
     {
-        LogLevel.Trace => "TRCE",
-        LogLevel.Debug => "DBUG",
-        LogLevel.Information => "INFO",
-        LogLevel.Warning => "WARN",
-        LogLevel.Error => "FAIL",
-        LogLevel.Critical => "CRIT",
-        LogLevel.None => "NONE",
-        _ => logLevel.ToString().ToUpperInvariant(),
-    };
+        int index = (int)logLevel;
+        if ((uint)index < (uint)LogLevelStrings.Length)
+        {
+            return LogLevelStrings[index];
+        }
+        return logLevel.ToString().ToUpperInvariant();
+    }
 
     private static void BuildLog(
-        StringBuilder logBuilder, DateTime timeStamp, LogLevel logLevel,
-        EventId eventId, string message, Exception? exception)
+        StringBuilder builder,
+        in DateTime timeStamp,
+        LogLevel logLevel,
+        in EventId eventId,
+        string message,
+        Exception? exception)
     {
-        logBuilder.AppendFormat("{0:yyyy-MM-dd HH:mm:ss.fff}", timeStamp);
-        logBuilder.Append(LogSeparator);
-        logBuilder.Append(GetShortLogLevel(logLevel));
-        logBuilder.Append(LogSeparator);
+        // Sử dụng Span để tối ưu string manipulation
+        Span<char> dateBuffer = stackalloc char[23]; // yyyy-MM-dd HH:mm:ss.fff
 
+        // Format datetime trực tiếp vào Span
+        if (timeStamp.TryFormat(dateBuffer, out int charsWritten, "yyyy-MM-dd HH:mm:ss.fff"))
+        {
+            builder.Append('[')
+                   .Append(dateBuffer[..charsWritten])
+                   .Append(']')
+                   .Append("\t-\t");
+        }
+
+        // Append LogLevel
+        builder.Append('[')
+               .Append(GetShortLogLevel(logLevel))
+               .Append(']')
+               .Append("\t-\t");
+
+        // Append EventId
+        builder.Append('[');
         if (eventId.Name is not null)
         {
-            logBuilder.Append(eventId.Name);
+            builder.Append(eventId.Id)
+                   .Append(':')
+                   .Append(eventId.Name);
         }
         else
         {
-            logBuilder.Append(eventId.Id);
+            builder.Append(eventId.Id);
         }
+        builder.Append(']')
+               .Append("\t-\t");
 
-        logBuilder.Append(LogSeparator);
-        logBuilder.Append(message);
+        // Append Message
+        builder.Append('[')
+               .Append(message)
+               .Append(']');
 
+        // Append Exception if exists
         if (exception is not null)
         {
-            logBuilder.Append(Environment.NewLine);
-            logBuilder.Append(exception);
+            builder.Append("\t-\t")
+                   .AppendLine()
+                   .Append(exception);
         }
     }
 }

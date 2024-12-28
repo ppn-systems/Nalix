@@ -13,7 +13,7 @@ public class FileTarget(ILoggingFormatter loggerFormatter) : ILoggingTarget
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public readonly FileLoggerProvider LoggerPrv = new("Notio_");
+    public readonly FileLoggerProvider LoggerPrv = new("Notio");
 
     public FileTarget() : this(new LoggingFormatter()) { }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Logging.Metadata;
+namespace Notio.Common.Metadata;
 
 /// <summary>
 /// Xác định một sự kiện ghi log. Trình nhận dạng chính là thuộc tính "Id", với thuộc tính "Name" cung cấp một mô tả ngắn về loại sự kiện này.
