@@ -1,13 +1,13 @@
 ﻿using Notio.Common.IMemory;
 using Notio.Shared.Configuration;
-using Notio.Logging;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
 using Notio.Common;
+using Notio.Shared.Memory.Buffer;
 
-namespace Notio.Shared.Buffer;
+namespace Notio.Shared.Memory;
 
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
@@ -23,6 +23,11 @@ public sealed class BufferAllocator : IBufferAllocator
     private readonly BufferPoolManager _poolManager = new();
 
     public BufferConfig BufferConfig { get; } = ConfigManager.Instance.GetConfig<BufferConfig>();
+
+    /// <summary>
+    /// Sự kiện theo dõi.
+    /// </summary>
+    public event Action<string>? TraceOccurred;
 
     /// <summary>
     /// Khởi tạo một thể hiện mới của lớp <see cref="BufferAllocator"/> với các cấu hình phân bổ bộ đệm và tổng số bộ đệm.
@@ -152,7 +157,7 @@ public sealed class BufferAllocator : IBufferAllocator
                 spinLock.Enter(ref lockTaken);
                 pool.DecreaseCapacity(buffersToShrink);
 
-                NotioLog.Instance.Trace(
+                TraceOccurred?.Invoke(
                     $"Shrank buffer pool for size {poolInfo.BufferSize}, " +
                     $"reduced by {buffersToShrink}, " +
                     $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
@@ -164,7 +169,7 @@ public sealed class BufferAllocator : IBufferAllocator
         }
         else
         {
-            NotioLog.Instance.Trace(
+            TraceOccurred?.Invoke(
                 $"No buffers were shrunk for pool size {poolInfo.BufferSize}. " +
                 $"Current capacity is optimal.");
         }
