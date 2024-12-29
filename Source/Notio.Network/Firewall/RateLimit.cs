@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Shared.Configuration;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,13 +11,25 @@ namespace Notio.Network.Firewall;
 /// <summary>
 /// Lớp xử lý giới hạn số lượng yêu cầu từ mỗi địa chỉ IP trong một cửa sổ thời gian.
 /// </summary>
-public sealed class RateLimit(int maxAllowedRequests, int timeWindowInMilliseconds, int lockoutDurationInSeconds)
+public sealed class RateLimit
 {
-    private readonly int _maxRequests = maxAllowedRequests;
-    private readonly TimeSpan _timeWindow = TimeSpan.FromMilliseconds(timeWindowInMilliseconds);
-    private readonly int _lockoutDuration = lockoutDurationInSeconds;
-
+    private readonly int _maxAllowedRequests;
+    private readonly TimeSpan _timeWindowDuration;
+    private readonly int _lockoutDurationSeconds;
+    private readonly NetworkConfig _networkConfig;
     private readonly ConcurrentDictionary<string, (Queue<DateTime> Requests, DateTime? BlockedUntil)> _ipData = new();
+
+    public RateLimit(NetworkConfig? networkConfig)
+    {
+        if (networkConfig != null)
+            _networkConfig = networkConfig;
+        else
+            _networkConfig = ConfigManager.Instance.GetConfig<NetworkConfig>();
+
+        _maxAllowedRequests = _networkConfig.MaxAllowedRequests;
+        _lockoutDurationSeconds = _networkConfig.LockoutDurationSeconds;
+        _timeWindowDuration = TimeSpan.FromMilliseconds(_networkConfig.TimeWindowInMilliseconds);
+    }
 
     /// <summary>
     /// Kiểm tra xem một địa chỉ IP có được phép gửi yêu cầu hay không, dựa trên số lượng yêu cầu đã thực hiện.
@@ -37,13 +50,13 @@ public sealed class RateLimit(int maxAllowedRequests, int timeWindowInMillisecon
 
         var requests = ipInfo.Requests ?? new Queue<DateTime>();
 
-        while (requests.Count > 0 && currentTime - requests.Peek() > _timeWindow)
+        while (requests.Count > 0 && currentTime - requests.Peek() > _timeWindowDuration)
         {
             requests.Dequeue();
         }
 
         // Kiểm tra số lượng yêu cầu
-        if (requests.Count < _maxRequests)
+        if (requests.Count < _maxAllowedRequests)
         {
             requests.Enqueue(currentTime);
             _ipData[endPoint] = (requests, ipInfo.BlockedUntil);
@@ -51,7 +64,7 @@ public sealed class RateLimit(int maxAllowedRequests, int timeWindowInMillisecon
         }
 
         // Khóa IP nếu vượt giới hạn
-        _ipData[endPoint] = (requests, currentTime.AddSeconds(_lockoutDuration));
+        _ipData[endPoint] = (requests, currentTime.AddSeconds(_lockoutDurationSeconds));
         return false;
     }
 
@@ -70,7 +83,7 @@ public sealed class RateLimit(int maxAllowedRequests, int timeWindowInMillisecon
             {
                 var ipInfo = _ipData[ip];
                 while (ipInfo.Requests.Count > 0 &&
-                       currentTime - ipInfo.Requests.Peek() > _timeWindow)
+                       currentTime - ipInfo.Requests.Peek() > _timeWindowDuration)
                 {
                     ipInfo.Requests.Dequeue();
                 }

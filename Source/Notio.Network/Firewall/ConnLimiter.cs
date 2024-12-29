@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Notio.Shared.Configuration;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Notio.Network.Firewall;
@@ -6,10 +7,21 @@ namespace Notio.Network.Firewall;
 /// <summary>
 /// Lớp xử lý giới hạn số lượng kết nối đồng thời từ mỗi địa chỉ IP.
 /// </summary>
-public sealed class ConnLimiter(int _maxConnectionsPerIpAddress)
+public sealed class ConnLimiter
 {
-    private readonly int _maxConnectionsPerIp = _maxConnectionsPerIpAddress;
+    private readonly int _maxConnectionsPerIp;
+    private readonly NetworkConfig _networkConfig;
     private readonly ConcurrentDictionary<string, int> _ipConnectionCounts = new();
+
+    public ConnLimiter(NetworkConfig networkConfig)
+    {
+        if (networkConfig != null)
+            _networkConfig = networkConfig;
+        else
+            _networkConfig = ConfigManager.Instance.GetConfig<NetworkConfig>();
+
+        _maxConnectionsPerIp = _networkConfig.MaxConnectionsPerIpAddress;
+    }
 
     /// <summary>
     /// Kiểm tra xem kết nối từ địa chỉ IP có được phép hay không, dựa trên số lượng kết nối hiện tại.
