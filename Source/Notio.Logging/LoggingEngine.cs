@@ -1,4 +1,4 @@
-﻿using Notio.Common;
+﻿using Notio.Common.Metadata;
 using Notio.Logging.Extensions;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;

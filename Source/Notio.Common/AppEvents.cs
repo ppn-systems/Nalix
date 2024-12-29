@@ -12,8 +12,8 @@ public static class AppEvents
     /// </summary>
     public static class Buffer
     {
-        public static readonly EventId Shrink = new(1002, "ShrinkBuffer");
-        public static readonly EventId Increase = new(1001, "IncreaseBuffer");
+        public static readonly EventId Shrink = new(1001, "Optimize Buffer Usage");
+        public static readonly EventId Increase = new(1002, "Expand Buffer Pool");
     }
 
 }

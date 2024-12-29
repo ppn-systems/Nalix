@@ -8,8 +8,10 @@ namespace Notio.Infrastructure.Time;
 /// </summary>
 public static class Clock
 {
-    private const long GameTimeEpochTimestamp = 1733534675; // Mốc thời gian game (Sat Dec 07 2024 08:24:35 GMT+0700)
-    private static readonly DateTime GameTimeEpoch = DateTime.UnixEpoch.AddSeconds(GameTimeEpochTimestamp); // Game Epoch
+    public const long TimeEpochTimestamp = 1577836800; // Mốc thời gian game (Wed Jan 01 2020 00:00:00)
+    public static readonly DateTime TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
 
     private static readonly DateTime _utcBase = DateTime.UtcNow; // Thời gian gốc UTC
     private static readonly Stopwatch _utcStopwatch = Stopwatch.StartNew(); // Stopwatch để tính chính xác thời gian
@@ -25,11 +27,6 @@ public static class Clock
     public static TimeSpan UnixTime => TimeSpan.FromMilliseconds(CurrentUnixMilliseconds);
 
     /// <summary>
-    /// Trả về thời gian game hiện tại (kể từ 07/12/2024), dưới dạng TimeSpan.
-    /// </summary>
-    public static TimeSpan GameTime => TimeSpan.FromMilliseconds(CurrentGameMilliseconds);
-
-    /// <summary>
     /// Timestamp Unix hiện tại (millisecond).
     /// </summary>
     public static long CurrentUnixMilliseconds => (long)(UtcNowPrecise - DateTime.UnixEpoch).TotalMilliseconds;
@@ -37,53 +34,63 @@ public static class Clock
     /// <summary>
     /// Timestamp game hiện tại (millisecond).
     /// </summary>
-    public static long CurrentGameMilliseconds => (long)(UtcNowPrecise - GameTimeEpoch).TotalMilliseconds;
-
-    /// <summary>
-    /// Tính số bước thời gian (quantum) trong một TimeSpan dựa trên kích thước bước.
-    /// </summary>
-    public static long CalcNumTimeQuantums(TimeSpan time, TimeSpan quantumSize)
-        => time.Ticks / quantumSize.Ticks;
+    public static long CurrentGameMilliseconds => (long)(UtcNowPrecise - TimeEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Chuyển đổi timestamp Unix (milliseconds) thành DateTime.
     /// </summary>
+    /// <param name="timestamp">Timestamp Unix (milliseconds).</param>
+    /// <returns>Đối tượng DateTime tương ứng.</returns>
     public static DateTime UnixTimeMillisecondsToDateTime(long timestamp)
         => DateTime.UnixEpoch.AddMilliseconds(timestamp);
 
     /// <summary>
-    /// Chuyển đổi timestamp game (milliseconds) thành DateTime.
+    /// Chuyển đổi timestamp (milliseconds) thành DateTime.
     /// </summary>
-    public static DateTime GameTimeMillisecondsToDateTime(long timestamp)
-        => GameTimeEpoch.AddMilliseconds(timestamp);
+    /// <param name="timestamp">Timestamp (milliseconds).</param>
+    /// <returns>Đối tượng DateTime tương ứng.</returns>
+    public static DateTime TimeMillisecondsToDateTime(long timestamp)
+        => TimeEpoch.AddMilliseconds(timestamp);
 
     /// <summary>
     /// Chuyển đổi TimeSpan (thời gian Unix) thành DateTime.
     /// </summary>
+    /// <param name="timeSpan">Thời gian Unix dưới dạng TimeSpan.</param>
+    /// <returns>Đối tượng DateTime tương ứng.</returns>
     public static DateTime UnixTimeToDateTime(TimeSpan timeSpan)
         => DateTime.UnixEpoch.Add(timeSpan);
 
     /// <summary>
     /// Chuyển đổi DateTime thành TimeSpan đại diện cho thời gian Unix.
     /// </summary>
+    /// <param name="dateTime">Đối tượng DateTime.</param>
+    /// <returns>TimeSpan đại diện cho thời gian Unix.</returns>
     public static TimeSpan DateTimeToUnixTime(DateTime dateTime)
         => dateTime - DateTime.UnixEpoch;
 
     /// <summary>
     /// Chuyển đổi DateTime thành TimeSpan đại diện cho thời gian game.
     /// </summary>
-    public static TimeSpan DateTimeToGameTime(DateTime dateTime)
-        => dateTime - GameTimeEpoch;
+    /// <param name="dateTime">Đối tượng DateTime.</param>
+    /// <returns>TimeSpan đại diện cho thời gian game.</returns>
+    public static TimeSpan DateTimeToTime(DateTime dateTime)
+        => dateTime - TimeEpoch;
 
     /// <summary>
     /// So sánh và trả về khoảng thời gian lớn nhất giữa hai TimeSpan.
     /// </summary>
+    /// <param name="time1">Thời gian đầu tiên.</param>
+    /// <param name="time2">Thời gian thứ hai.</param>
+    /// <returns>Khoảng thời gian lớn nhất giữa hai TimeSpan.</returns>
     public static TimeSpan Max(TimeSpan time1, TimeSpan time2)
         => time1 > time2 ? time1 : time2;
 
     /// <summary>
     /// So sánh và trả về khoảng thời gian nhỏ nhất giữa hai TimeSpan.
     /// </summary>
+    /// <param name="time1">Thời gian đầu tiên.</param>
+    /// <param name="time2">Thời gian thứ hai.</param>
+    /// <returns>Khoảng thời gian nhỏ nhất giữa hai TimeSpan.</returns>
     public static TimeSpan Min(TimeSpan time1, TimeSpan time2)
         => time1 < time2 ? time1 : time2;
 }

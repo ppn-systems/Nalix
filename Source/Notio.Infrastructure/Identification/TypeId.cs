@@ -1,4 +1,4 @@
-﻿namespace Notio.Infrastructure.Services;
+﻿namespace Notio.Infrastructure.Identification;
 
 /// <summary>
 /// Loại ID để phục vụ cho các mục đích khác nhau trong hệ thống.
@@ -11,9 +11,9 @@ public enum TypeId
     Generic = 0,
 
     /// <summary>
-    /// ID phiên bản khu vực.
+    /// ID phiên bản hệ thống hoặc cấu hình chung.
     /// </summary>
-    Region = 1,
+    System = 1,
 
     /// <summary>
     /// ID tài khoản hoặc người chơi trong cơ sở dữ liệu.
@@ -26,17 +26,12 @@ public enum TypeId
     Session = 3,
 
     /// <summary>
-    /// ID phiên bản trò chơi.
+    /// ID dành cho các đoạn chat.
     /// </summary>
-    Game = 4,
-
-    /// <summary>
-    /// ID đại diện cho các thực thể (hình đại diện, vật phẩm, v.v.).
-    /// </summary>
-    Entity = 5,
+    Chat = 4,
 
     /// <summary>
     /// Giới hạn loại ID, không được vượt qua giá trị này.
     /// </summary>
-    Limit = 1 << 4
+    Limit = 1 << 5
 }

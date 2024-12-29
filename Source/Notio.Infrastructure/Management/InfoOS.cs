@@ -9,10 +9,10 @@ public static class InfoOS
     /// </summary>
     /// <returns>Chuỗi tên hệ điều hành hoặc "Unsupported OS" nếu không phải Windows hoặc Linux.</returns>
     public static string GetOperatingSystem() =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-        ? "Windows" 
-        : RuntimeInformation.IsOSPlatform(OSPlatform.Linux) 
-        ? "Linux" 
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? "Windows"
+        : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+        ? "Linux"
         : "Unsupported OS";
 
     /// <summary>

@@ -12,24 +12,19 @@ namespace Notio.Network.IO;
 /// </summary>
 public sealed class SocketWriter : IDisposable
 {
+    private volatile bool _disposed;
     private readonly Socket _socket;
     private readonly IBufferAllocator _bufferAllocator;
     private readonly ConcurrentQueue<SocketAsyncEventArgs> _sendArgsPool;
     private readonly SemaphoreSlim _sendLock;
     private readonly CancellationTokenSource _cts;
     private const int MaxPoolSize = 32;
-    private volatile bool _disposed;
 
     /// <summary>
     /// Event được kích hoạt khi có lỗi xảy ra trong quá trình gửi
     /// </summary>
-    public event Action<Exception>? OnError;
+    public event Action<string, Exception>? ErrorOccurred;
 
-    /// <summary>
-    /// Khởi tạo một đối tượng SocketWriter mới.
-    /// </summary>
-    /// <param name="socket">Socket dùng để gửi dữ liệu.</param>
-    /// <param name="bufferAllocator">Đối tượng quản lý bộ đệm.</param>
     public SocketWriter(Socket socket, IBufferAllocator bufferAllocator)
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
@@ -45,85 +40,56 @@ public sealed class SocketWriter : IDisposable
         }
     }
 
-    /// <summary>
-    /// Gửi dữ liệu bất đồng bộ với timeout.
-    /// </summary>
-    /// <param name="data">Dữ liệu cần gửi.</param>
-    /// <param name="timeout">Thời gian timeout cho quá trình gửi dữ liệu.</param>
-    /// <param name="cancellationToken">Token hủy bỏ (tùy chọn).</param>
-    /// <returns>Trả về trạng thái thành công của quá trình gửi.</returns>
-    public async ValueTask<bool> SendAsync(ReadOnlyMemory<byte> data,
-        TimeSpan timeout,
-        CancellationToken cancellationToken = default)
+    public async ValueTask<bool> SendAsync(ReadOnlyMemory<byte> data, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken, _cts.Token);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
         cts.CancelAfter(timeout);
 
         try
         {
             await _sendLock.WaitAsync(cts.Token).ConfigureAwait(false);
 
+            if (!_sendArgsPool.TryDequeue(out var sendArgs))
+            {
+                sendArgs = CreateSocketAsyncEventArgs();
+            }
+
+            byte[] buffer = _bufferAllocator.RentBuffer(data.Length);
             try
             {
-                if (!_sendArgsPool.TryDequeue(out var sendArgs))
+                data.CopyTo(buffer);
+                sendArgs.SetBuffer(buffer, 0, data.Length);
+
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                sendArgs.Completed += (_, e) => tcs.TrySetResult(e.SocketError == SocketError.Success);
+
+                if (!_socket.SendAsync(sendArgs))
                 {
-                    sendArgs = CreateSocketAsyncEventArgs();
+                    tcs.TrySetResult(sendArgs.SocketError == SocketError.Success);
                 }
 
-                byte[] buffer = _bufferAllocator.RentBuffer(data.Length);
-                try
-                {
-                    data.CopyTo(buffer);
-                    sendArgs.SetBuffer(buffer, 0, data.Length);
-
-                    TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                    sendArgs.Completed += OnSendCompleted;
-
-                    if (!_socket.SendAsync(sendArgs))
-                    {
-                        OnSendCompleted(this, sendArgs);
-                    }
-
-                    await tcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
-
-                    return sendArgs.SocketError == SocketError.Success;
-                }
-                finally
-                {
-                    _bufferAllocator.ReturnBuffer(buffer);
-
-                    if (_sendArgsPool.Count < MaxPoolSize)
-                    {
-                        sendArgs.Completed -= OnSendCompleted;
-                        _sendArgsPool.Enqueue(sendArgs);
-                    }
-                    else
-                    {
-                        sendArgs.Dispose();
-                    }
-                }
+                await tcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                return sendArgs.SocketError == SocketError.Success;
             }
             finally
             {
-                _sendLock.Release();
+                _bufferAllocator.ReturnBuffer(buffer);
+                RecycleSendArgs(sendArgs);
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            OnError?.Invoke(ex);
+            ErrorOccurred?.Invoke("ex Error occurred while sending asynchronously.", ex);
             return false;
+        }
+        finally
+        {
+            _sendLock.Release();
         }
     }
 
-    /// <summary>
-    /// Gửi dữ liệu đồng bộ.
-    /// </summary>
-    /// <param name="data">Dữ liệu cần gửi.</param>
-    /// <returns>Trả về trạng thái thành công của quá trình gửi.</returns>
     public bool Send(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -143,56 +109,39 @@ public sealed class SocketWriter : IDisposable
         }
         catch (Exception ex)
         {
-            OnError?.Invoke(ex);
+            ErrorOccurred?.Invoke("ex Error occurred while sending synchronously.", ex);
             return false;
         }
     }
 
-    /// <summary>
-    /// Tạo một SocketAsyncEventArgs mới.
-    /// </summary>
-    /// <returns>Một đối tượng SocketAsyncEventArgs mới.</returns>
-    private SocketAsyncEventArgs CreateSocketAsyncEventArgs()
+    private static SocketAsyncEventArgs CreateSocketAsyncEventArgs() => new();
+    
+    private void RecycleSendArgs(SocketAsyncEventArgs sendArgs)
     {
-        var args = new SocketAsyncEventArgs();
-        args.Completed += OnSendCompleted;
-        return args;
-    }
-
-    /// <summary>
-    /// Xử lý sự kiện khi gửi hoàn thành.
-    /// </summary>
-    private void OnSendCompleted(object? sender, SocketAsyncEventArgs e)
-    {
-        if (e.SocketError != SocketError.Success)
+        if (_sendArgsPool.Count < MaxPoolSize)
         {
-            OnError?.Invoke(new SocketException((int)e.SocketError));
+            sendArgs.SetBuffer(null, 0, 0);
+            _sendArgsPool.Enqueue(sendArgs);
+        }
+        else
+        {
+            sendArgs.Dispose();
         }
     }
 
-    /// <summary>
-    /// Giải phóng tài nguyên.
-    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
 
         _disposed = true;
 
-        try
-        {
-            _cts.Cancel();
-            _cts.Dispose();
-            _sendLock.Dispose();
+        _cts.Cancel();
+        _cts.Dispose();
+        _sendLock.Dispose();
 
-            while (_sendArgsPool.TryDequeue(out var args))
-            {
-                args.Dispose();
-            }
-        }
-        catch (Exception ex)
+        while (_sendArgsPool.TryDequeue(out var args))
         {
-            OnError?.Invoke(ex);
+            args.Dispose();
         }
     }
 }

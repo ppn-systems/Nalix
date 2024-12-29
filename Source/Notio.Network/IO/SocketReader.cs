@@ -13,13 +13,14 @@ namespace Notio.Network.IO;
 public class SocketReader : IDisposable
 {
     private readonly Socket _socket;
+    private readonly CancellationTokenSource _cts;
     private readonly IBufferAllocator _multiSizeBuffer;
     private readonly SocketAsyncEventArgs _receiveEventArgs;
 
     private byte[] _buffer;
-    private bool _disposed = false;
     private bool _isReceiving = false;
-    private CancellationTokenSource? _cts;
+    private volatile bool _disposed = false;
+    private CancellationToken _linkedCts = default;
 
     /// <summary>
     /// Sự kiện được kích hoạt khi dữ liệu được nhận.
@@ -29,7 +30,7 @@ public class SocketReader : IDisposable
     /// <summary>
     /// Sự kiện được kích hoạt khi có lỗi.
     /// </summary>
-    public event Action<string, Exception>? OnError;
+    public event Action<string, Exception>? ErrorOccurred;
 
     /// <summary>
     /// Trạng thái bị hủy.
@@ -62,35 +63,48 @@ public class SocketReader : IDisposable
     /// Bắt đầu nhận dữ liệu.
     /// </summary>
     /// <param name="externalCancellationToken">Mã hủy ngoài (tùy chọn).</param>
-    public void Receive(CancellationToken? externalCancellationToken = null)
+    public void BeginReceiving(CancellationToken? externalCancellationToken = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_cts == null || _cts.IsCancellationRequested)
-        {
-            this.HandleException(new OperationCanceledException(), "Receive cancelled or already stopped.");
-            return;
-        }
+        using var linkedCts = externalCancellationToken != null 
+        ? CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken.Value, _cts.Token)
+        : _cts;
 
-        if (externalCancellationToken != null)
-        {
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken.Value);
-        }
+        _linkedCts = linkedCts.Token;
 
         _isReceiving = true;
-        this.StartReceiving();
+        this.InitiateReceiveLoop();
     }
 
-    private void StartReceiving()
+    /// <summary>
+    /// Hủy bỏ việc nhận dữ liệu.
+    /// </summary>
+    public void CancelReceiving()
     {
         if (_disposed) return;
 
         try
         {
-            if (!_socket.ReceiveAsync(_receiveEventArgs))
-            {
-                this.OnReceiveCompleted(this, _receiveEventArgs);
-            }
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _isReceiving = false;
+        }
+        catch (Exception ex)
+        {
+            this.ManageException(ex, $"Error while cancelling: {ex.Message}");
+        }
+    }
+
+    private void InitiateReceiveLoop()
+    {
+        if (_disposed) return;
+
+        try
+        {
+            if (!_linkedCts.IsCancellationRequested && 
+                !_socket.ReceiveAsync(_receiveEventArgs))
+                this.OnReceiveCompleted(this, _receiveEventArgs);          
         }
         catch (ObjectDisposedException ex)
         {
@@ -98,7 +112,7 @@ public class SocketReader : IDisposable
         }
         catch (Exception ex)
         {
-            this.HandleException(ex, $"Unexpected error: {ex.Message}");
+            this.ManageException(ex, $"Unexpected error: {ex.Message}");
         }
     }
 
@@ -123,15 +137,15 @@ public class SocketReader : IDisposable
                 this.ResizeBufferIfNeeded(dataSize);
 
                 if (e.Buffer != null)
-                    this.OnDataReceived(new SocketReceivedEventArgs(e.Buffer.Take(bytesRead).ToArray()));
+                    this.OnDataReceived(e.Buffer.Take(bytesRead).ToArray());
             }
             else
             {
-                await Task.Delay(10).ConfigureAwait(false);
+                await Task.Delay(1).ConfigureAwait(false);
                 await Task.Yield();
             }
 
-            this.StartReceiving();
+            this.InitiateReceiveLoop();
         }
         catch (OperationCanceledException)
         {
@@ -140,7 +154,7 @@ public class SocketReader : IDisposable
         }
         catch (Exception ex)
         {
-            this.HandleException(ex, $"Error in OnReceiveCompleted: {ex.Message}");
+            this.ManageException(ex, $"Error in OnReceiveCompleted: {ex.Message}");
         }
     }
 
@@ -150,32 +164,13 @@ public class SocketReader : IDisposable
     }
 
     /// <summary>
-    /// Hủy bỏ việc nhận dữ liệu.
+    /// Giải phóng tài nguyên và hủy đối tượng.
     /// </summary>
-    public void Cancel()
+    public void Dispose()
     {
-        if (_disposed) return;
-
         try
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = null;
-            _isReceiving = false;
-        }
-        catch (Exception ex)
-        {
-            this.HandleException(ex, $"Error while cancelling: {ex.Message}");
-        }
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed) return;
-
-        try
-        {
-            if (disposing)
+            if (_disposed)
             {
                 if (_receiveEventArgs != null)
                 {
@@ -204,39 +199,33 @@ public class SocketReader : IDisposable
         {
             _disposed = true;
             _isReceiving = false;
+            GC.SuppressFinalize(this);
         }
-    }
-
-    /// <summary>
-    /// Giải phóng tài nguyên và hủy đối tượng.
-    /// </summary>
-    public void Dispose()
-    {
-        this.Dispose(disposing: true);
-        GC.SuppressFinalize(this);
     }
 
     private void ResizeBufferIfNeeded(int dataSize)
     {
         if (dataSize > _buffer.Length)
         {
+            byte[] newBuffer = _multiSizeBuffer.RentBuffer(dataSize);
+            Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _buffer.Length);
             _multiSizeBuffer.ReturnBuffer(_buffer);
-            _buffer = _multiSizeBuffer.RentBuffer(dataSize);
+            _buffer = newBuffer;
             _receiveEventArgs.SetBuffer(_buffer, 0, _buffer.Length);
         }
     }
 
-    private void HandleException(Exception ex, string message)
+    private void ManageException(Exception ex, string message)
     {
         this.Dispose();
-        OnError?.Invoke(message, ex);
+        ErrorOccurred?.Invoke(message, ex);
     }
 
     private void HandleDispose(Exception ex)
     {
         _isReceiving = false;
         this.Dispose();
-        this.HandleException(ex, $"Socket disposed: {ex.Message}");
+        this.ManageException(ex, $"Socket disposed: {ex.Message}");
     }
 
     private readonly Func<SocketAsyncEventArgs, bool> HandleSocketError = (e) =>

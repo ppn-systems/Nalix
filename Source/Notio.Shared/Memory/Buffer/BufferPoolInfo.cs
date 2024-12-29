@@ -1,4 +1,4 @@
-﻿namespace Notio.Shared.Buffer;
+﻿namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
 /// Thông tin về Buffer Pool

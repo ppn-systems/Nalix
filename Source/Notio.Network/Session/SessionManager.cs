@@ -1,186 +1,122 @@
-﻿using Notio.Network.Config;
+﻿using Notio.Infrastructure.Identification;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Notio.Network.Session;
 
 /// <summary>
-/// Quản lý phiên làm việc của các khách hàng kết nối thông qua socket.
+/// Quản lý các phiên làm việc của khách hàng.
+/// <para>
+/// Lớp này chịu trách nhiệm quản lý, thêm, xóa và lấy các session hiện tại của người dùng.
+/// </para>
 /// </summary>
-public class SessionManager : IDisposable
+public sealed class SessionManager(IConnLimiter connLimiter)
 {
-    private readonly ConcurrentDictionary<string, SocketSession> _clients = new();
-    private readonly SocketConfig _config;
-    private bool _disposed;
+    // Lưu trữ tất cả các session hiện tại trong một ConcurrentDictionary.
+    private readonly ConcurrentDictionary<UniqueId, SessionClient> _activeSessions = new();
+
+    private readonly IConnLimiter _connLimiter = connLimiter;
+
+    // Biến đếm số lượng session hiện tại.
+    private int _sessionCount = 0;
 
     /// <summary>
-    /// Sự kiện được kích hoạt khi một khách hàng mới kết nối.
+    /// Xảy ra khi một phiên làm việc được thêm.
     /// </summary>
-    public event EventHandler<SocketSession>? ClientConnected;
+    public event Action<SessionClient>? SessionAdded;
 
     /// <summary>
-    /// Sự kiện được kích hoạt khi một khách hàng ngắt kết nối.
+    /// Xảy ra khi một phiên làm việc bị xóa.
     /// </summary>
-    public event EventHandler<SocketSession>? ClientDisconnected;
+    public event Action<UniqueId>? SessionRemoved;
 
     /// <summary>
-    /// Sự kiện được kích hoạt khi dữ liệu được nhận từ một khách hàng.
+    /// Thêm session mới vào danh sách và cập nhật số lượng session.
     /// </summary>
-    public event EventHandler<(SocketSession Client, byte[] Data)>? DataReceived;
-
-    /// <summary>
-    /// Sự kiện được kích hoạt khi xảy ra lỗi.
-    /// </summary>
-    public event EventHandler<Exception>? ErrorOccurred;
-
-    /// <summary>
-    /// Số lượng khách hàng hiện đang kết nối.
-    /// </summary>
-    public int ConnectedClientsCount => _clients.Count;
-
-    /// <summary>
-    /// Danh sách các khách hàng hiện đang kết nối.
-    /// </summary>
-    public IReadOnlyDictionary<string, SocketSession> Clients => _clients;
-
-    /// <summary>
-    /// Khởi tạo một <see cref="SessionManager"/> mới.
-    /// </summary>
-    /// <param name="config">Cấu hình socket.</param>
-    public SessionManager(SocketConfig config)
+    /// <param name="session">Phiên làm việc cần thêm.</param>
+    /// <returns>Trả về <c>true</c> nếu session được thêm thành công, ngược lại là <c>false</c>.</returns>
+    public bool AddSession(SessionClient session)
     {
-        _config = config;
+        if (!ManageConnLimit(session.EndPoint, true))
+            return false;
+
+        bool isNewSession = _activeSessions.TryAdd(session.Id, session);
+
+        if (isNewSession)
+        {
+            Interlocked.Increment(ref _sessionCount);
+            SessionAdded?.Invoke(session);
+        }
+
+        return isNewSession;
     }
 
     /// <summary>
-    /// Thêm khách hàng mới vào phiên làm việc.
+    /// Lấy session theo ID.
     /// </summary>
-    /// <param name="socket">Socket của khách hàng mới.</param>
-    /// <param name="security">Cấu hình bảo mật (tùy chọn).</param>
-    public async Task AddClientAsync(Socket socket, SecurityConfig? security = null)
+    /// <param name="sessionId">ID của session cần tìm.</param>
+    /// <returns>Trả về phiên làm việc nếu tìm thấy, nếu không trả về <c>null</c>.</returns>
+    public SessionClient? GetSession(UniqueId sessionId)
     {
-        if (ConnectedClientsCount >= _config.MaxConnections)
+        _activeSessions.TryGetValue(sessionId, out SessionClient? session);
+        return session;
+    }
+
+    /// <summary>
+    /// Thử lấy session theo ID.
+    /// </summary>
+    /// <param name="sessionId">ID của session cần tìm.</param>
+    /// <param name="session">Session tìm thấy nếu có, hoặc <c>null</c> nếu không có.</param>
+    /// <returns>Trả về <c>true</c> nếu tìm thấy session, ngược lại là <c>false</c>.</returns>
+    public bool TryGetSession(UniqueId sessionId, out SessionClient? session) =>
+        _activeSessions.TryGetValue(sessionId, out session);
+
+    /// <summary>
+    /// Xóa session theo ID.
+    /// </summary>
+    /// <param name="sessionId">ID của session cần xóa.</param>
+    /// <returns>Trả về <c>true</c> nếu xóa thành công, ngược lại là <c>false</c>.</returns>
+    public bool RemoveSession(UniqueId sessionId)
+    {
+        bool isRemoved = _activeSessions.TryRemove(sessionId, out SessionClient? session);
+
+        if (session != null)
         {
-            socket.Close();
-            return;
+            ManageConnLimit(session.EndPoint, false);
+            Interlocked.Decrement(ref _sessionCount);
+            SessionRemoved?.Invoke(sessionId);
         }
 
-        var client = new SocketSession(socket, _config.ReceiveBufferSize, security);
-        client.DataReceived += OnClientDataReceived;
-        client.Disconnected += OnClientDisconnected;
-        client.ErrorOccurred += OnClientError;
+        return isRemoved;
+    }
 
-        if (_clients.TryAdd(client.Id, client))
+    /// <summary>
+    /// Lấy danh sách tất cả các session hiện tại.
+    /// </summary>
+    /// <returns>Trả về danh sách các session hiện tại.</returns>
+    public IEnumerable<SessionClient> GetAllSessions()
+    {
+        return _activeSessions.Values;
+    }
+
+    /// <summary>
+    /// Lấy số lượng session hiện tại.
+    /// </summary>
+    /// <returns>Số lượng session hiện tại.</returns>
+    public int Count() => _sessionCount;
+
+    private bool ManageConnLimit(string ipAddress, bool isAdding)
+    {
+        if (isAdding)
         {
-            ClientConnected?.Invoke(this, client);
-            await client.StartReceiving();
+            return _connLimiter.IsConnectionAllowed(ipAddress);
         }
         else
         {
-            client.Disconnect();
-            client.Dispose();
+            _connLimiter.ConnectionClosed(ipAddress);
+            return true;
         }
-    }
-
-    private void OnClientDataReceived(object? sender, byte[] data)
-    {
-        if (sender is SocketSession client)
-            DataReceived?.Invoke(this, (client, data));
-    }
-
-    private void OnClientDisconnected(object? sender, EventArgs e)
-    {
-        if (sender is SocketSession client)
-        {
-            if (_clients.TryRemove(client.Id, out _))
-                ClientDisconnected?.Invoke(this, client);
-        }
-    }
-
-    private void OnClientError(object? sender, Exception ex)
-    {
-        ErrorOccurred?.Invoke(this, ex);
-    }
-
-    /// <summary>
-    /// Gửi dữ liệu tới tất cả các khách hàng kết nối, ngoại trừ một khách hàng cụ thể nếu được cung cấp.
-    /// </summary>
-    /// <param name="data">Dữ liệu để gửi.</param>
-    /// <param name="excludeClientId">ID của khách hàng không nhận dữ liệu (tùy chọn).</param>
-    public async Task BroadcastAsync(byte[] data, string? excludeClientId = null)
-    {
-        foreach (var client in _clients.Values)
-        {
-            if (client.Id != excludeClientId)
-            {
-                try
-                {
-                    await client.SendAsync(data);
-                }
-                catch (Exception ex)
-                {
-                    ErrorOccurred?.Invoke(this, ex);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Ngắt kết nối tất cả các khách hàng.
-    /// </summary>
-    public async Task DisconnectAllAsync()
-    {
-        foreach (var client in _clients.Values)
-        {
-            try
-            {
-                client.Disconnect();
-            }
-            catch (Exception ex)
-            {
-                ErrorOccurred?.Invoke(this, ex);
-            }
-        }
-        _clients.Clear();
-    }
-
-    /// <summary>
-    /// Giải phóng tài nguyên được sử dụng bởi <see cref="SessionManager"/>.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Giải phóng tài nguyên được sử dụng bởi <see cref="SessionManager"/>.
-    /// </summary>
-    /// <param name="disposing">True để giải phóng tài nguyên quản lý, False để chỉ giải phóng tài nguyên không quản lý.</param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                DisconnectAllAsync().Wait();
-                foreach (var client in _clients.Values)
-                {
-                    client.Dispose();
-                }
-            }
-            _disposed = true;
-        }
-    }
-
-    /// <summary>
-    /// Giải phóng tài nguyên khi hủy đối tượng.
-    /// </summary>
-    ~SessionManager()
-    {
-        Dispose(false);
     }
 }
