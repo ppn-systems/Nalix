@@ -35,8 +35,8 @@ public sealed class ConnLimiter
 
         int newConnectionCount = _ipConnectionCounts.AddOrUpdate(
             endPoint,
-            1, 
-            (key, oldValue) => oldValue + 1 
+            1,
+            (key, oldValue) => oldValue + 1
         );
 
         return newConnectionCount <= _maxConnectionsPerIp;
@@ -55,7 +55,7 @@ public sealed class ConnLimiter
             int newCount = currentCount - 1;
             if (newCount == 0)
             {
-                return 0;  
+                return 0;
             }
 
             return newCount;

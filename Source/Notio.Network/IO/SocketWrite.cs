@@ -1,9 +1,9 @@
 ﻿using Notio.Common.IMemory;
+using System;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using System.Threading;
-using System;
+using System.Threading.Tasks;
 
 namespace Notio.Network.IO;
 
@@ -115,7 +115,7 @@ public sealed class SocketWriter : IDisposable
     }
 
     private static SocketAsyncEventArgs CreateSocketAsyncEventArgs() => new();
-    
+
     private void RecycleSendArgs(SocketAsyncEventArgs sendArgs)
     {
         if (_sendArgsPool.Count < MaxPoolSize)

@@ -1,10 +1,10 @@
 ﻿using Notio.Common.IMemory;
 using Notio.Common.Models;
 using Notio.Infrastructure.Identification;
+using System;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
-using System;
 
 namespace Notio.Network.Session;
 

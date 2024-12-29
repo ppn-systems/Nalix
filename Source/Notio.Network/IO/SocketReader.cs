@@ -67,7 +67,7 @@ public sealed class SocketReader : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        using var linkedCts = externalCancellationToken != null 
+        using var linkedCts = externalCancellationToken != null
         ? CancellationTokenSource.CreateLinkedTokenSource(externalCancellationToken.Value, _cts.Token)
         : _cts;
 
@@ -102,9 +102,9 @@ public sealed class SocketReader : IDisposable
 
         try
         {
-            if (!_linkedCts.IsCancellationRequested && 
+            if (!_linkedCts.IsCancellationRequested &&
                 !_socket.ReceiveAsync(_receiveEventArgs))
-                this.OnReceiveCompleted(this, _receiveEventArgs);          
+                this.OnReceiveCompleted(this, _receiveEventArgs);
         }
         catch (ObjectDisposedException ex)
         {
