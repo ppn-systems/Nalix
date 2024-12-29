@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Threading;
 using Notio.Common;
 using Notio.Shared.Memory.Buffer;
+using Notio.Common.Metadata;
 
 namespace Notio.Shared.Memory;
 
@@ -27,7 +28,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// <summary>
     /// Sự kiện theo dõi.
     /// </summary>
-    public event Action<string>? TraceOccurred;
+    public event Action<string, EventId>? TraceOccurred;
 
     /// <summary>
     /// Khởi tạo một thể hiện mới của lớp <see cref="BufferAllocator"/> với các cấu hình phân bổ bộ đệm và tổng số bộ đệm.
@@ -160,7 +161,8 @@ public sealed class BufferAllocator : IBufferAllocator
                 TraceOccurred?.Invoke(
                     $"Shrank buffer pool for size {poolInfo.BufferSize}, " +
                     $"reduced by {buffersToShrink}, " +
-                    $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
+                    $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.",
+                    AppEvents.Buffer.Shrink);
             }
             finally
             {
@@ -171,7 +173,8 @@ public sealed class BufferAllocator : IBufferAllocator
         {
             TraceOccurred?.Invoke(
                 $"No buffers were shrunk for pool size {poolInfo.BufferSize}. " +
-                $"Current capacity is optimal.");
+                $"Current capacity is optimal.",
+                AppEvents.Buffer.Shrink);
         }
     }
 
@@ -210,10 +213,11 @@ public sealed class BufferAllocator : IBufferAllocator
                 {
                     pool.IncreaseCapacity(maxIncrease);
 
-                    NotioLog.Instance.Trace(
+                    TraceOccurred?.Invoke(
                         $"Increased buffer pool for size {poolInfo.BufferSize}, " +
                         $"added {maxIncrease}, " +
-                        $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.");
+                        $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.",
+                        AppEvents.Buffer.Increase);
                 }
             }
             finally
@@ -224,11 +228,11 @@ public sealed class BufferAllocator : IBufferAllocator
         else
         {
             // Logging
-            NotioLog.Instance.Trace(
+            TraceOccurred?.Invoke(
                 $"No increase needed for pool size {poolInfo.BufferSize}. " +
                 $"Free buffers: {poolInfo.FreeBuffers}, " +
                 $"threshold: {threshold}.",
-                AppEvents.Buffer.Resize);
+                AppEvents.Buffer.Increase);
         }
     }
 

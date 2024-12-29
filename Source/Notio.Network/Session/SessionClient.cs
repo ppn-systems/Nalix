@@ -56,12 +56,7 @@ public sealed class SessionClient(Socket socket, IBufferAllocator multiSizeBuffe
     /// <summary>
     /// Sự kiện xảy ra khi có thông tin.
     /// </summary>
-    public event Action<string>? InfoOccurred;
-
-    /// <summary>
-    /// Sự kiện xảy ra khi có cảnh báo.
-    /// </summary>
-    public event Action<string>? WarningOccurred;
+    public event Action<string>? TraceOccurred;
 
     /// <summary>
     /// Sự kiện xảy ra khi có lỗi.
@@ -104,7 +99,7 @@ public sealed class SessionClient(Socket socket, IBufferAllocator multiSizeBuffe
             ValidateConnection();
 
             _network.SocketReader.BeginReceiving(_token);
-            InfoOccurred?.Invoke($"Session {_id} connected to {_connection.EndPoint}");
+            TraceOccurred?.Invoke($"Session {_id} connected to {_connection.EndPoint}");
         }
         catch (Exception ex) when (ex is TimeoutException or IOException)
         {
@@ -130,7 +125,7 @@ public sealed class SessionClient(Socket socket, IBufferAllocator multiSizeBuffe
         {
             try
             {
-                InfoOccurred?.Invoke("Attempting to reconnect...");
+                TraceOccurred?.Invoke("Attempting to reconnect...");
                 Connect();
                 return;
             }
@@ -159,7 +154,7 @@ public sealed class SessionClient(Socket socket, IBufferAllocator multiSizeBuffe
         {
             _network.SocketReader?.CancelReceiving();
             Dispose();
-            InfoOccurred?.Invoke($"Session {_id} disconnected from {_connection.EndPoint}");
+            TraceOccurred?.Invoke($"Session {_id} disconnected from {_connection.EndPoint}");
         }
         catch (Exception ex)
         {
@@ -186,7 +181,7 @@ public sealed class SessionClient(Socket socket, IBufferAllocator multiSizeBuffe
     {
         if (string.IsNullOrEmpty(_connection.EndPoint) || IsSocketInvalid())
         {
-            WarningOccurred?.Invoke("Client address is invalid or Socket is not connected.");
+            TraceOccurred?.Invoke("Client address is invalid or Socket is not connected.");
             Disconnect();
         }
     }
