@@ -1,4 +1,5 @@
 ﻿using Notio.Infrastructure.Identification;
+using Notio.Network.Firewall;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,12 +13,12 @@ namespace Notio.Network.Session;
 /// Lớp này chịu trách nhiệm quản lý, thêm, xóa và lấy các session hiện tại của người dùng.
 /// </para>
 /// </summary>
-public sealed class SessionManager(IConnLimiter connLimiter)
+public sealed class SessionManager(ConnLimiter connLimiter)
 {
     // Lưu trữ tất cả các session hiện tại trong một ConcurrentDictionary.
     private readonly ConcurrentDictionary<UniqueId, SessionClient> _activeSessions = new();
 
-    private readonly IConnLimiter _connLimiter = connLimiter;
+    private readonly ConnLimiter _connLimiter = connLimiter;
 
     // Biến đếm số lượng session hiện tại.
     private int _sessionCount = 0;

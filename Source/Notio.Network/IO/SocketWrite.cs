@@ -12,13 +12,13 @@ namespace Notio.Network.IO;
 /// </summary>
 public sealed class SocketWriter : IDisposable
 {
+    private const int MaxPoolSize = 32;
     private volatile bool _disposed;
     private readonly Socket _socket;
-    private readonly IBufferAllocator _bufferAllocator;
-    private readonly ConcurrentQueue<SocketAsyncEventArgs> _sendArgsPool;
     private readonly SemaphoreSlim _sendLock;
     private readonly CancellationTokenSource _cts;
-    private const int MaxPoolSize = 32;
+    private readonly IBufferAllocator _bufferAllocator;
+    private readonly ConcurrentQueue<SocketAsyncEventArgs> _sendArgsPool;
 
     /// <summary>
     /// Event được kích hoạt khi có lỗi xảy ra trong quá trình gửi

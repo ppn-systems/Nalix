@@ -10,7 +10,7 @@ namespace Notio.Network.IO;
 /// <summary>
 /// Lớp đọc dữ liệu từ socket và xử lý các sự kiện liên quan.
 /// </summary>
-public class SocketReader : IDisposable
+public sealed class SocketReader : IDisposable
 {
     private readonly Socket _socket;
     private readonly CancellationTokenSource _cts;
@@ -23,16 +23,6 @@ public class SocketReader : IDisposable
     private CancellationToken _linkedCts = default;
 
     /// <summary>
-    /// Sự kiện được kích hoạt khi dữ liệu được nhận.
-    /// </summary>
-    public event EventHandler<byte[]>? DataReceived;
-
-    /// <summary>
-    /// Sự kiện được kích hoạt khi có lỗi.
-    /// </summary>
-    public event Action<string, Exception>? ErrorOccurred;
-
-    /// <summary>
     /// Trạng thái bị hủy.
     /// </summary>
     public bool Disposed => _disposed;
@@ -41,6 +31,16 @@ public class SocketReader : IDisposable
     /// Trạng thái đang nhận dữ liệu.
     /// </summary>
     public bool IsReceiving => _isReceiving;
+
+    /// <summary>
+    /// Sự kiện được kích hoạt khi dữ liệu được nhận.
+    /// </summary>
+    public event EventHandler<byte[]>? DataReceived;
+
+    /// <summary>
+    /// Sự kiện được kích hoạt khi có lỗi.
+    /// </summary>
+    public event Action<string, Exception>? ErrorOccurred;
 
     /// <summary>
     /// Khởi tạo đối tượng SocketReader.
@@ -137,7 +137,7 @@ public class SocketReader : IDisposable
                 this.ResizeBufferIfNeeded(dataSize);
 
                 if (e.Buffer != null)
-                    this.OnDataReceived(e.Buffer.Take(bytesRead).ToArray());
+                    DataReceived?.Invoke(this, e.Buffer.Take(bytesRead).ToArray());
             }
             else
             {
@@ -156,11 +156,6 @@ public class SocketReader : IDisposable
         {
             this.ManageException(ex, $"Error in OnReceiveCompleted: {ex.Message}");
         }
-    }
-
-    protected virtual void OnDataReceived(byte[] e)
-    {
-        DataReceived?.Invoke(this, e);
     }
 
     /// <summary>
