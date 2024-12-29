@@ -16,7 +16,9 @@ public sealed class ConsoleTarget(ILoggingFormatter loggerFormatter) : ILoggingT
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public ConsoleTarget() : this(new LoggingFormatter()) { }
+    public ConsoleTarget() : this(new LoggingFormatter())
+    {
+    }
 
     /// <summary>
     /// Xuất thông điệp log ra console.

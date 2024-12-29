@@ -19,6 +19,7 @@ public class Message
 
     // Navigation properties
     public User Sender { get; set; }
+
     public Chat Chat { get; set; }
     public ICollection<MessageAttachment> Attachments { get; set; }
 }

@@ -152,7 +152,7 @@ public class FileLoggerProvider
 
     private static void ProcessQueue(object? state)
     {
-        if (state == null) 
+        if (state == null)
             return;
 
         FileLoggerProvider fileLogger = (FileLoggerProvider)state;

@@ -20,5 +20,6 @@ public class User
 
     // Navigation properties
     public ICollection<UserChat> UserChats { get; set; }
+
     public ICollection<Message> SentMessages { get; set; }
 }

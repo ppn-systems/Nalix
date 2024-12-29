@@ -31,7 +31,8 @@ public class LoggingFormatter : ILoggingFormatter
     /// <summary>
     /// Khởi tạo một instance mới của <see cref="LoggingFormatter"/>.
     /// </summary>
-    public LoggingFormatter() { }
+    public LoggingFormatter()
+    { }
 
     /// <summary>
     /// Định dạng một thông điệp log với timestamp, cấp độ log, ID sự kiện, thông điệp và ngoại lệ.

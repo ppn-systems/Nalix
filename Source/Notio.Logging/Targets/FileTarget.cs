@@ -15,7 +15,9 @@ public class FileTarget(ILoggingFormatter loggerFormatter) : ILoggingTarget
 
     public readonly FileLoggerProvider LoggerPrv = new("Notio");
 
-    public FileTarget() : this(new LoggingFormatter()) { }
+    public FileTarget() : this(new LoggingFormatter())
+    {
+    }
 
     public void Publish(LogEntry logMessage)
         => LoggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage, DateTime.Now));

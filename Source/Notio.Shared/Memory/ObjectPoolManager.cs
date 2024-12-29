@@ -16,6 +16,7 @@ public sealed class ObjectPoolManager
     /// Singleton instance
     /// </summary>
     private static readonly Lazy<ObjectPoolManager> _instance = new(() => new ObjectPoolManager());
+
     public static ObjectPoolManager Instance => _instance.Value;
 
     private ObjectPoolManager()

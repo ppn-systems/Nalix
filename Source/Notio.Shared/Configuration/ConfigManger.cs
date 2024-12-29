@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Notio.Shared.Configuration;
 
@@ -20,9 +20,8 @@ public sealed class ConfigManager
     /// <summary>
     /// Khởi tạo một instance của <see cref="ConfigManager"/>.
     /// </summary>
-    private ConfigManager() 
+    private ConfigManager()
         => _iniFile = new(Path.Combine(DefaultDirectories.DataPath, "Configuration.ini"));
-    
 
     /// <summary>
     /// Khởi tạo nếu cần và trả về <typeparamref name="TClass"/>.

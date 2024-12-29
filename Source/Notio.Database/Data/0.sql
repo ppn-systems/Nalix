@@ -49,7 +49,7 @@ CREATE TABLE Messages (
     MessageId BIGINT AUTO_INCREMENT PRIMARY KEY,                                -- ID duy nhất của tin nhắn
     ChatId BIGINT NOT NULL,                                                     -- ID của cuộc trò chuyện mà tin nhắn thuộc về
     SenderId BIGINT NOT NULL,                                                   -- ID của người gửi tin nhắn
-    MessageType ENUM('text', 'image', 'video', 'file') NOT NULL DEFAULT 'text', -- Loại tin nhắn, mặc định là text
+    MessageType ENUM('Text', 'Image', 'Video', 'File') NOT NULL DEFAULT 'Text', -- Loại tin nhắn, mặc định là text
     MessageContent TEXT COMPRESSED,                                             -- Nội dung tin nhắn, sử dụng nén để tiết kiệm không gian lưu trữ
     MediaMetadata JSON,                                                         -- Lưu metadata của media dưới dạng JSON
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,                              -- Thời gian tạo tin nhắn

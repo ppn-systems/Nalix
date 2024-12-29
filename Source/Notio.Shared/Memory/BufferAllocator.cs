@@ -1,12 +1,12 @@
-﻿using Notio.Common.IMemory;
+﻿using Notio.Common;
+using Notio.Common.IMemory;
+using Notio.Common.Metadata;
 using Notio.Shared.Configuration;
+using Notio.Shared.Memory.Buffer;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
-using Notio.Common;
-using Notio.Shared.Memory.Buffer;
-using Notio.Common.Metadata;
 
 namespace Notio.Shared.Memory;
 
@@ -162,7 +162,7 @@ public sealed class BufferAllocator : IBufferAllocator
                     $"Shrank buffer pool for size {poolInfo.BufferSize}, " +
                     $"reduced by {buffersToShrink}, " +
                     $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.",
-                    AppEvents.Buffer.Shrink);
+                    NotioEvents.Buffer.Shrink);
             }
             finally
             {
@@ -174,10 +174,9 @@ public sealed class BufferAllocator : IBufferAllocator
             TraceOccurred?.Invoke(
                 $"No buffers were shrunk for pool size {poolInfo.BufferSize}. " +
                 $"Current capacity is optimal.",
-                AppEvents.Buffer.Shrink);
+                NotioEvents.Buffer.Shrink);
         }
     }
-
 
     /// <summary>
     /// Tăng dung lượng bộ đệm với thuật toán tối ưu.
@@ -217,7 +216,7 @@ public sealed class BufferAllocator : IBufferAllocator
                         $"Increased buffer pool for size {poolInfo.BufferSize}, " +
                         $"added {maxIncrease}, " +
                         $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.",
-                        AppEvents.Buffer.Increase);
+                        NotioEvents.Buffer.Increase);
                 }
             }
             finally
@@ -232,7 +231,7 @@ public sealed class BufferAllocator : IBufferAllocator
                 $"No increase needed for pool size {poolInfo.BufferSize}. " +
                 $"Free buffers: {poolInfo.FreeBuffers}, " +
                 $"threshold: {threshold}.",
-                AppEvents.Buffer.Increase);
+                NotioEvents.Buffer.Increase);
         }
     }
 

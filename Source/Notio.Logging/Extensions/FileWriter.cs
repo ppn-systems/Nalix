@@ -10,7 +10,7 @@ namespace Notio.Logging.Extensions;
 internal class FileWriter
 {
     private int _count = 0;
-    
+
     private FileStream? _logFileStream;
     private StreamWriter? _logFileWriter;
     private readonly FileLoggerProvider _fileLogProvider;
@@ -47,7 +47,7 @@ internal class FileWriter
         _logFileStream = new FileStream(logFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
         _logFileStream.Seek(0, append ? SeekOrigin.End : SeekOrigin.Begin);
 
-        if (!append) 
+        if (!append)
             _logFileStream.SetLength(0);
 
         _logFileWriter = new StreamWriter(_logFileStream);
@@ -59,7 +59,7 @@ internal class FileWriter
 
         do
         {
-            newFileName = $"{_fileLogProvider.LogFileName}_{_count++}.log"; 
+            newFileName = $"{_fileLogProvider.LogFileName}_{_count++}.log";
         } while (File.Exists(Path.Combine(DefaultDirectories.LogsPath, newFileName)));
 
         if (_count != 0)
@@ -68,7 +68,7 @@ internal class FileWriter
             if (_count < 0) _count = 0;
             return Path.Combine(DefaultDirectories.LogsPath, $"{_fileLogProvider.LogFileName}_{_count}.log");
         }
-        
+
         return newFileName;
     }
 

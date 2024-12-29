@@ -15,5 +15,6 @@ public class UserChat
 
     // Navigation properties
     public User User { get; set; }
+
     public Chat Chat { get; set; }
 }

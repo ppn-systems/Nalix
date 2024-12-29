@@ -18,7 +18,8 @@ public sealed class NotioLog : LoggingEngine
     /// <summary>
     /// Khởi tạo một instance mới của lớp NotioLog.
     /// </summary>
-    private NotioLog() { }
+    private NotioLog()
+    { }
 
     /// <summary>
     /// Lấy instance duy nhất của lớp NotioLog.

@@ -1,9 +1,9 @@
 ﻿1. Tạo và Lấy dữ liệu từ các bảng:
 Bạn có thể sử dụng DbContext để thêm, cập nhật, xóa hoặc lấy dữ liệu từ các bảng.
 
-Ví dụ các thao tác cơ bản:
 Thêm mới người dùng:
-csharp```
+
+```csharp
 using (var context = new AppDbContext(options))
 {
     var newUser = new User
@@ -20,7 +20,8 @@ using (var context = new AppDbContext(options))
 ```
 
 Thêm mới cuộc trò chuyện:
-csharp```
+
+```csharp
 using (var context = new AppDbContext(options))
 {
     var newChat = new Chat
@@ -32,8 +33,10 @@ using (var context = new AppDbContext(options))
     context.SaveChanges();
 }
 ```
+
 Gửi tin nhắn:
-csharp```
+
+```csharp
 using (var context = new AppDbContext(options))
 {
     var message = new Message
@@ -52,7 +55,7 @@ using (var context = new AppDbContext(options))
 2. Lấy thông tin nhắn trong một cuộc trò chuyện:
 Bạn có thể lấy danh sách tin nhắn theo cuộc trò chuyện:
 
-csharp```
+```csharp
 using (var context = new AppDbContext(options))
 {
     var chatMessages = context.Messages
@@ -65,7 +68,8 @@ using (var context = new AppDbContext(options))
 Để thêm hoặc gỡ bỏ người dùng từ một cuộc trò chuyện:
 
 Thêm một người dùng vào cuộc trò chuyện:
-csharp```
+
+```csharp
 using (var context = new AppDbContext(options))
 {
     var userChat = new UserChat
@@ -80,7 +84,8 @@ using (var context = new AppDbContext(options))
 }
 ```
 Gỡ bỏ người dùng khỏi cuộc trò chuyện:
-csharp```
+
+```csharp
 using (var context = new AppDbContext(options))
 {
     var userChat = context.UserChats
@@ -94,9 +99,10 @@ using (var context = new AppDbContext(options))
 }
 ```
 4. Tạo và Quản lý File đính kèm:
+
 Để thêm file đính kèm cho tin nhắn:
 
-csharp```
+```csharp
 using (var context = new AppDbContext(options))
 {
     var attachment = new MessageAttachment

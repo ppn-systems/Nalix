@@ -5,7 +5,7 @@ namespace Notio.Common;
 /// <summary>
 /// Represents common application events with predefined event identifiers.
 /// </summary>
-public static class AppEvents
+public static class NotioEvents
 {
     /// <summary>
     /// Events related to buffer operations.
@@ -15,5 +15,4 @@ public static class AppEvents
         public static readonly EventId Shrink = new(1001, "Optimize Buffer Usage");
         public static readonly EventId Increase = new(1002, "Expand Buffer Pool");
     }
-
 }

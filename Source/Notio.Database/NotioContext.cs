@@ -3,7 +3,7 @@ using Notio.Common.Models.Db;
 
 namespace Notio.Database;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbContext(options)
 {
     public DbSet<User> Users { get; set; }
     public DbSet<Chat> Chats { get; set; }
