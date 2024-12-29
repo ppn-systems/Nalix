@@ -10,6 +10,14 @@ namespace Notio.Security;
 /// </summary>
 public static class Aes256
 {
+    public static byte[] GenerateKey()
+    {
+        using Aes aes = Aes.Create();
+        aes.KeySize = 256;
+        aes.GenerateKey();
+        return aes.Key;
+    }
+
     /// <summary>
     /// Tăng giá trị của bộ đếm sử dụng cho mã hóa AES trong chế độ CTR.
     /// </summary>

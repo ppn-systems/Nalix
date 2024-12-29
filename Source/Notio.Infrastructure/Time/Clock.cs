@@ -24,17 +24,22 @@ public static class Clock
     /// <summary>
     /// Trả về thời gian Unix hiện tại (kể từ 01/01/1970), dưới dạng TimeSpan.
     /// </summary>
-    public static TimeSpan UnixTime => TimeSpan.FromMilliseconds(CurrentUnixMilliseconds);
+    public static TimeSpan UnixTime => TimeSpan.FromMilliseconds(UnixMillisecondsNow);
 
     /// <summary>
     /// Timestamp Unix hiện tại (millisecond).
     /// </summary>
-    public static long CurrentUnixMilliseconds => (long)(UtcNowPrecise - DateTime.UnixEpoch).TotalMilliseconds;
+    public static long UnixMillisecondsNow => (long)(UtcNowPrecise - DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
-    /// Timestamp game hiện tại (millisecond).
+    /// Timestamp Unix hiện tại (second).
     /// </summary>
-    public static long CurrentGameMilliseconds => (long)(UtcNowPrecise - TimeEpoch).TotalMilliseconds;
+    public static long UnixSecondsNow => (long)(UtcNowPrecise - DateTime.UnixEpoch).TotalSeconds;
+
+    /// <summary>
+    /// Timestamp Unix hiện tại (tick - 1 tick = 0.0001 giây).
+    /// </summary>
+    public static long UnixTicksNow => (long)(UtcNowPrecise - DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Chuyển đổi timestamp Unix (milliseconds) thành DateTime.

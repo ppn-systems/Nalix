@@ -19,11 +19,4 @@
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
-		<ProjectReference Include="..\Notio.Security\Notio.Security.csproj" />
-		<ProjectReference Include="..\Notio.Infrastructure\Notio.Infrastructure.csproj" />
-	</ItemGroup>
-
 </Project>
