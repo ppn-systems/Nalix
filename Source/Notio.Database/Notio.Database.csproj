@@ -18,4 +18,15 @@
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<Compile Include="Data\1.sql" />
+		<Compile Include="Data\0.sql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+	</ItemGroup>
+
 </Project>
