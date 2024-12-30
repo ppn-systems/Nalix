@@ -25,49 +25,19 @@ namespace Nalix.Shared.Messaging.Control;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Control OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Control : IPacket, IPacketReasoned, IPacketSequenced, IPacketTransformer<Control>
+public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPacketTransformer<Control>
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
-    public System.UInt16 Length =>
+    public override System.UInt16 Length =>
         PacketConstants.HeaderSize
         + sizeof(System.UInt32)  // SequenceId
         + sizeof(System.UInt16)  // ReasonCode
         + sizeof(ControlType)    // ControlType
         + sizeof(System.Int64)   // Timestamp
         + sizeof(System.Int64);  // MonoTicks
-
-    /// <summary>
-    /// Gets the magic number used to identify the packet format.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
-    public System.UInt32 MagicNumber { get; set; }
-
-    /// <summary>
-    /// Gets the operation code (OpCode) of this packet.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)]
-    public System.UInt16 OpCode { get; set; }
-
-    /// <summary>
-    /// Gets the flags associated with this packet.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)]
-    public PacketFlags Flags { get; set; }
-
-    /// <summary>
-    /// Gets the packet priority.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)]
-    public PacketPriority Priority { get; set; }
-
-    /// <summary>
-    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)]
-    public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
@@ -145,23 +115,6 @@ public sealed class Control : IPacket, IPacketReasoned, IPacketSequenced, IPacke
     public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.Tcp) => Initialize(type, 0, 0, transport);
 
     /// <summary>
-    /// Serializes the packet to a newly allocated byte array.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <summary>
-    /// Serializes the packet into the provided destination buffer.
-    /// </summary>
-    /// <param name="buffer">The destination buffer. Must be large enough.</param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
-
-    /// <summary>
     /// Deserializes a <see cref="Binary128"/> from the specified buffer.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
@@ -208,7 +161,7 @@ public sealed class Control : IPacket, IPacketReasoned, IPacketSequenced, IPacke
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
     /// </summary>
-    public void ResetForPool()
+    public override void ResetForPool()
     {
         this.Timestamp = 0;
         this.MonoTicks = 0;
