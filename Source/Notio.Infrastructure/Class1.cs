@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Notio.Infrastructure.Identification;
+using Notio.Infrastructure.Services;
 
-namespace Notio.Infrastructure
-{
-    internal class Class1
-    {
-    }
-}
+UniqueId uniqueId = UniqueId.NewId(TypeId.System);
+ulong idValue = UniqueId.FromHex(uniqueId.ToHex());
+ParsedId _ = UniqueId.Parse(idValue);

@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using System.Threading;
+﻿using Notio.Common.Connection.Enums;
 using System;
-using Notio.Common.Connection.Enums;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Notio.Common.Connection;
 
@@ -27,7 +27,7 @@ public interface IConnection : IDisposable
 
     /// <summary>
     /// Thời điểm kết nối
-    /// </summary> 
+    /// </summary>
     DateTimeOffset ConnectedTimestamp { get; }
 
     /// <summary>
@@ -36,7 +36,7 @@ public interface IConnection : IDisposable
     event EventHandler<ConnectionReceiveEventArgs> OnReceiveEvent;
 
     /// <summary>
-    /// Sự kiện thay đổi trạng thái kết nối 
+    /// Sự kiện thay đổi trạng thái kết nối
     /// </summary>
     event EventHandler<ConnectionStateEventArgs> OnStateEvent;
 

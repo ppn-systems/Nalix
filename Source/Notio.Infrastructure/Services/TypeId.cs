@@ -1,4 +1,4 @@
-﻿namespace Notio.Infrastructure.Identification;
+﻿namespace Notio.Infrastructure.Services;
 
 /// <summary>
 /// Loại ID để phục vụ cho các mục đích khác nhau trong hệ thống.
