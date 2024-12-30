@@ -51,11 +51,9 @@ public sealed class SocketWriter : IDisposable
         {
             await _sendLock.WaitAsync(cts.Token).ConfigureAwait(false);
 
-            if (!_sendArgsPool.TryDequeue(out var sendArgs))
-            {
+            if (!_sendArgsPool.TryDequeue(out SocketAsyncEventArgs? sendArgs))
                 sendArgs = CreateSocketAsyncEventArgs();
-            }
-
+            
             byte[] buffer = _bufferAllocator.RentBuffer(data.Length);
             try
             {
