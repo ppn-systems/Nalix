@@ -1,4 +1,4 @@
-﻿using Notio.Common.Contracts.Network;
+﻿using Notio.Common.Connection;
 
 namespace Notio.Network.Protocols;
 
@@ -18,7 +18,7 @@ public abstract class Protocol : IProtocol
     /// <param name="connection">Kết nối mới.</param>
     public virtual void OnAccept(IConnection connection)
     {
-        connection.BeginStreamRead();
+        connection.BeginReceive();
 
         //todo ip ban validation
     }
@@ -30,7 +30,7 @@ public abstract class Protocol : IProtocol
     /// <param name="args">Tham số của sự kiện kết nối.</param>
     public void PostProcessMessage(object sender, IConnectionEventArgs args)
     {
-        if (!KeepConnectionOpen) args.Connection.Close();
+        if (!KeepConnectionOpen) args.Connection.Disconnect();
     }
 
     /// <summary>

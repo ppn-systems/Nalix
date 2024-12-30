@@ -3,9 +3,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Common.Contracts.Network;
 using Notio.Network.Protocols;
 using Notio.Logging;
+using Notio.Common.Connection;
 
 namespace Notio.Network.Listeners;
 
@@ -58,7 +58,7 @@ public abstract class Listener(int port, IProtocol protocol) : TcpListener(IPAdd
     {
         // De-subscribe to this event first.
         args.Connection.OnCloseEvent -= OnConnectionClose!;
-        args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
+        args.Connection.OnReceiveEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
     }
 }

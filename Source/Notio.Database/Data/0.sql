@@ -1,11 +1,11 @@
-﻿-- Tạo bảng Users với các tối ưu hóa
+﻿
 CREATE TABLE Users (
     UserId BIGINT AUTO_INCREMENT PRIMARY KEY,       -- ID duy nhất của người dùng
     Username VARCHAR(50) NOT NULL,                  -- Tên đăng nhập không được để trống
     PasswordHash CHAR(60) NOT NULL,                 -- Cố định độ dài cho bcrypt hash
     DisplayName NVARCHAR(100),                      -- Hỗ trợ Unicode tốt hơn cho tên hiển thị
     Email VARCHAR(100),                             -- Email của người dùng
-    AvatarUrl VARCHAR(255),                         -- Đường dẫn đến avatar của người dùng, giảm độ dài tối đa
+    AvatarUrl VARCHAR(255),                         -- Đường dẫn đến avatar của người dùng
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Thời gian tạo tài khoản
     LastLogin TIMESTAMP NULL,                       -- Thời gian đăng nhập gần nhất
     IsActive BOOLEAN DEFAULT TRUE,                  -- Trạng thái hoạt động của tài khoản, mặc định là TRUE
@@ -14,7 +14,6 @@ CREATE TABLE Users (
     KEY idx_status_created (IsActive, CreatedAt)    -- Index kết hợp để tối ưu hóa truy vấn theo trạng thái và thời gian tạo
 ) ENGINE=InnoDB ROW_FORMAT=COMPRESSED;              -- Sử dụng định dạng nén để tiết kiệm không gian lưu trữ
 
--- Tạo bảng Chats với partition
 CREATE TABLE Chats (
     ChatId BIGINT AUTO_INCREMENT PRIMARY KEY,       -- ID duy nhất của cuộc trò chuyện
     ChatName VARCHAR(100),                          -- Tên cuộc trò chuyện
@@ -29,7 +28,6 @@ PARTITION BY RANGE (UNIX_TIMESTAMP(CreatedAt)) (    -- Phân vùng dữ liệu t
     PARTITION p_future VALUES LESS THAN MAXVALUE
 );
 
--- Tạo bảng UserChats để liên kết Users và Chats
 CREATE TABLE UserChats (
     UserId BIGINT NOT NULL,                                 -- ID của người dùng
     ChatId BIGINT NOT NULL,                                 -- ID của cuộc trò chuyện
@@ -44,7 +42,6 @@ CREATE TABLE UserChats (
         ON DELETE CASCADE ON UPDATE CASCADE                 -- Xóa hoặc cập nhật liên kết khi cuộc trò chuyện bị xóa hoặc cập nhật
 ) ENGINE=InnoDB;
 
--- Tạo bảng Messages để lưu trữ tin nhắn
 CREATE TABLE Messages (
     MessageId BIGINT AUTO_INCREMENT PRIMARY KEY,                                -- ID duy nhất của tin nhắn
     ChatId BIGINT NOT NULL,                                                     -- ID của cuộc trò chuyện mà tin nhắn thuộc về

@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Notio.Security;
@@ -6,44 +7,74 @@ namespace Notio.Security;
 /// <summary>
 /// Lớp cung cấp các chức năng mã hóa và giải mã sử dụng thuật toán RSA với khóa 4096 bit.
 /// </summary>
-public static class Rsa4096
+public class Rsa4096
 {
+    private readonly RSA _rsa;
+
     /// <summary>
-    /// Tạo và trả về một cặp khóa RSA mới.
+    /// Khởi tạo một đối tượng Rsa4096 mới và tạo cặp khóa RSA.
     /// </summary>
-    /// <param name="keySize">Kích thước của khóa RSA (mặc định là 4096 bit).</param>
-    public static (RSAParameters PublicKey, RSAParameters PrivateKey) GenerateKeys(int keySize = 4096)
+    /// <param name="keySize">Kích thước của khóa RSA (mặc định là 4096 bit (512 byte)).</param>
+    public Rsa4096(int keySize = 4096)
     {
-        using var rsa = RSA.Create();
-        rsa.KeySize = keySize;
-        return (rsa.ExportParameters(false), rsa.ExportParameters(true));
+        _rsa = RSA.Create();
+        _rsa.KeySize = keySize;
+    }
+
+    /// <summary>
+    /// Xuất khóa công khai RSA.
+    /// </summary>
+    public RSAParameters PublicKey => _rsa.ExportParameters(false);
+
+    /// <summary>
+    /// Xuất khóa bí mật RSA.
+    /// </summary>
+    public RSAParameters PrivateKey => _rsa.ExportParameters(true);
+
+    /// <summary>
+    /// Nhập khóa công khai từ mảng byte.
+    /// </summary>
+    /// <param name="publicKeyBytes">Mảng byte chứa khóa công khai.</param>
+    public void ImportPublicKey(byte[] publicKeyBytes)
+    {
+        _rsa.ImportRSAPublicKey(new ReadOnlySpan<byte>(publicKeyBytes), out _);
+    }
+
+    /// <summary>
+    /// Xuất khóa công khai dưới dạng mảng byte.
+    /// </summary>
+    /// <returns>Mảng byte chứa khóa công khai.</returns>
+    public byte[] ExportPublicKey()
+    {
+        return _rsa.ExportRSAPublicKey();
     }
 
     /// <summary>
     /// Mã hóa văn bản bằng khóa công khai.
     /// </summary>
-    /// <param name="publicKey">Khóa công khai RSA.</param>
-    /// <param name="plaintext">Chuỗi văn bản cần mã hóa.</param>
+    /// <param name="plaintext">Mảng byte chứa dữ liệu cần mã hóa.</param>
     /// <returns>Mảng byte chứa dữ liệu đã được mã hóa.</returns>
-    public static byte[] Encrypt(RSAParameters publicKey, string plaintext)
+    public byte[] Encrypt(byte[] plaintext)
     {
-        using var rsaEncryptor = RSA.Create();
-        rsaEncryptor.ImportParameters(publicKey);
-
         // Sử dụng OAEP padding thay cho PKCS1
-        return rsaEncryptor.Encrypt(Encoding.UTF8.GetBytes(plaintext), RSAEncryptionPadding.OaepSHA256);
+        return _rsa.Encrypt(plaintext, RSAEncryptionPadding.OaepSHA256);
     }
 
     /// <summary>
     /// Giải mã dữ liệu đã mã hóa bằng khóa bí mật.
     /// </summary>
-    /// <param name="privateKey">Khóa bí mật RSA.</param>
     /// <param name="ciphertext">Mảng byte chứa dữ liệu đã mã hóa.</param>
-    /// <returns>Chuỗi văn bản đã được giải mã.</returns>
-    public static string Decrypt(RSAParameters privateKey, byte[] ciphertext)
+    /// <returns>Mảng byte đã được giải mã.</returns>
+    public byte[] Decrypt(byte[] ciphertext)
     {
-        using var rsaDecryptor = RSA.Create();
-        rsaDecryptor.ImportParameters(privateKey);
-        return Encoding.UTF8.GetString(rsaDecryptor.Decrypt(ciphertext, RSAEncryptionPadding.OaepSHA256));
+        return _rsa.Decrypt(ciphertext, RSAEncryptionPadding.OaepSHA256);
+    }
+
+    /// <summary>
+    /// Giải phóng tài nguyên được sử dụng bởi RSA.
+    /// </summary>
+    public void Dispose()
+    {
+        _rsa.Dispose();
     }
 }

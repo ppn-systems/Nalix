@@ -122,7 +122,7 @@ public class LoggingFormatter : ILoggingFormatter
         builder.Append(']')
                .Append("\t-\t");
 
-        // Append Message
+        // Append Data
         builder.Append('[')
                .Append(message)
                .Append(']');

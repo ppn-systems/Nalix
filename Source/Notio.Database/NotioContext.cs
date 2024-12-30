@@ -52,7 +52,7 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
             entity.HasIndex(e => new { e.ChatId, e.UserRole });
         });
 
-        // Cấu hình cho Message
+        // Cấu hình cho Data
         modelBuilder.Entity<Message>(entity =>
         {
             entity.HasKey(e => e.MessageId);

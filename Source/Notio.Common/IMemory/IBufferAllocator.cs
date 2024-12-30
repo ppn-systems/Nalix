@@ -15,13 +15,13 @@ public interface IBufferAllocator
     /// </summary>
     /// <param name="size">Kích thước của bộ đệm cần thuê. Giá trị mặc định là 256.</param>
     /// <returns>Mảng byte đại diện cho bộ đệm đã thuê.</returns>
-    byte[] RentBuffer(int size = 256);
+    byte[] Rent(int size = 256);
 
     /// <summary>
     /// Trả lại một bộ đệm để tái sử dụng.
     /// </summary>
     /// <param name="buffer">Bộ đệm cần trả lại.</param>
-    void ReturnBuffer(byte[] buffer);
+    void Return(byte[] buffer);
 
     /// <summary>
     /// Lấy thông tin phân bổ bộ nhớ cho một kích thước cụ thể.

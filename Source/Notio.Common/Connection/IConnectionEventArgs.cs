@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Contracts.Network;
+﻿namespace Notio.Common.Connection;
 
 public interface IConnectionEventArgs
 {

@@ -1,5 +1,5 @@
 ﻿using System;
-using Notio.Common.Contracts.Network;
+using Notio.Common.Connection;
 
 namespace Notio.Network.Connection;
 

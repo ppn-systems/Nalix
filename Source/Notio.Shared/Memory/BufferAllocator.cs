@@ -69,13 +69,13 @@ public sealed class BufferAllocator : IBufferAllocator
     /// </summary>
     /// <param name="size">Kích thước của bộ đệm cần thuê, mặc định là 256.</param>
     /// <returns>Một mảng byte của bộ đệm.</returns>
-    public byte[] RentBuffer(int size = 256) => _poolManager.RentBuffer(size);
+    public byte[] Rent(int size = 256) => _poolManager.RentBuffer(size);
 
     /// <summary>
     /// Trả lại bộ đệm về bộ đệm thích hợp.
     /// </summary>
     /// <param name="buffer">Bộ đệm để trả lại.</param>
-    public void ReturnBuffer(byte[] buffer) => _poolManager.ReturnBuffer(buffer);
+    public void Return(byte[] buffer) => _poolManager.ReturnBuffer(buffer);
 
     /// <summary>
     /// Lấy tỷ lệ phân bổ cho kích thước bộ đệm cho trước.
