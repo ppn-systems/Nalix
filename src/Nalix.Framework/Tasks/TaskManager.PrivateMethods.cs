@@ -11,7 +11,7 @@ public partial class TaskManager
 {
     #region Types
 
-    private sealed record Gate(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
+    private sealed record GATE(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
 
     #endregion Types
 
@@ -20,7 +20,7 @@ public partial class TaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void CleanupWorkers()
+    private void CLEANUP_WORKERS()
     {
         if (_disposed)
         {
@@ -73,7 +73,7 @@ public partial class TaskManager
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.Task RecurringLoopAsync(
+    private async System.Threading.Tasks.Task RECURRING_LOOP_ASYNC(
         RecurringState s, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
     {
         System.Threading.CancellationToken ct = s.CancellationTokenSource.Token;
@@ -179,7 +179,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[{nameof(TaskManager)}] recurring-timeout name={s.Name} msg={oce.Message}");
 
-                    await RecurringBackoffAsync(s, ct).ConfigureAwait(false);
+                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 catch (System.Exception ex)
                 {
@@ -187,7 +187,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[{nameof(TaskManager)}] recurring-error name={s.Name} msg={ex.Message}");
 
-                    await RecurringBackoffAsync(s, ct).ConfigureAwait(false);
+                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -205,7 +205,7 @@ public partial class TaskManager
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(TaskManager)}] recurring-loop-error name={s.Name} msg={ex.Message}");
 
-                await RecurringBackoffAsync(s, ct).ConfigureAwait(false);
+                await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }
         }
     }
@@ -213,7 +213,7 @@ public partial class TaskManager
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static async System.Threading.Tasks.ValueTask RecurringBackoffAsync(
+    private static async System.Threading.Tasks.ValueTask RECURRING_BACKOFF_ASYNC(
         RecurringState s,
         System.Threading.CancellationToken ct)
     {
@@ -242,7 +242,7 @@ public partial class TaskManager
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 CountRunningWorkers()
+    private System.Int32 COUNT_RUNNING_WORKERS()
 
     {
         System.Int32 n = 0; foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
@@ -259,7 +259,7 @@ public partial class TaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void RetainOrRemove(WorkerState st)
+    private void RETAIN_OR_REMOVE(WorkerState st)
     {
         System.TimeSpan? keep = st.Options.RetainFor;
         if (keep is null || keep <= System.TimeSpan.Zero)
@@ -282,7 +282,7 @@ public partial class TaskManager
                 }
             }
 
-            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
+            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out GATE? g))
             {
                 try { g.SemaphoreSlim.Dispose(); } catch { }
             }
