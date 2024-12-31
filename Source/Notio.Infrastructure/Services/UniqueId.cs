@@ -75,13 +75,12 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         return new string(chars, index, chars.Length - index).PadLeft(7, '0');
     }
 
-
     /// <summary>
     /// Phương thức chuyển đổi thành Hex
     /// </summary>
     /// <returns>Chuỗi đại diện ID.</returns>
     public string ToHex() => _value.ToString("X8");
-    
+
     /// <summary>
     /// Chuyển đổi chuỗi Base36 thành <see cref="UniqueId"/>.
     /// </summary>

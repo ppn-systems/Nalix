@@ -39,7 +39,7 @@ public class Connection : IConnection, IDisposable
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
     public Connection(Socket socket, IBufferAllocator bufferAllocator)
-    { 
+    {
         _socket = socket;
         _cache = new LRUCache(20);
         _stream = new NetworkStream(socket);
@@ -92,11 +92,15 @@ public class Connection : IConnection, IDisposable
     public string Id => _id.ToHex();
 
     public event EventHandler<ConnectionStateEventArgs>? OnStateEvent;
+
     public event EventHandler<ConnectionErrorEventArgs>? OnErrorEvent;
+
     public event EventHandler<ConnectionReceiveEventArgs>? OnReceiveEvent;
 
     public event EventHandler<IConnectionEventArgs>? OnProcessEvent;
+
     public event EventHandler<IConnectionEventArgs>? OnCloseEvent;
+
     public event EventHandler<IConnectionEventArgs>? OnPostProcessEvent;
 
     /// <summary>

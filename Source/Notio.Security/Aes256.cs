@@ -11,7 +11,6 @@ namespace Notio.Security;
 /// </summary>
 public static class Aes256
 {
-
     /// <summary>
     /// Tạo một khóa AES 256-bit (32 byte).
     /// </summary>

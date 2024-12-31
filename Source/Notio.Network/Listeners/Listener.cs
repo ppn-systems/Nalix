@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Notio.Common.Connection;
+using Notio.Logging;
+using Notio.Network.Protocols;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Network.Protocols;
-using Notio.Logging;
-using Notio.Common.Connection;
 
 namespace Notio.Network.Listeners;
 
