@@ -7,7 +7,13 @@ public static partial class Directories
     /// <summary>
     /// Recommended Unix directory permissions for common directory types.
     /// </summary>
-    private enum UnixDirPerms { Default755, Private700, Shared750, WorldReadable }
+    private enum UnixDirPerms : System.Byte
+    {
+        Default755 = 0x01,
+        Private700 = 0x02,
+        Shared750 = 0x03,
+        WorldReadable = 0x04
+    }
 
     /// <summary>
     /// Ensures a directory exists and applies platform-appropriate permissions. Returns the normalized full path.
@@ -33,7 +39,6 @@ public static partial class Directories
     private static void EnsureDirectoryExists(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path,
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
     {
         if (System.String.IsNullOrWhiteSpace(path))
@@ -69,7 +74,7 @@ public static partial class Directories
         {
             System.String msg =
                 "Failed to create directory: " + path + ". Error: " + ex.Message +
-                " (Caller: " + callerMemberName + " at " + System.IO.Path.GetFileName(callerFilePath) + ":" + callerLineNumber + ")";
+                " (Caller: " + callerMemberName + " at " + nameof(Directories) + ":" + callerLineNumber + ")";
             throw new System.IO.IOException(msg, ex);
         }
         finally
@@ -321,16 +326,40 @@ public static partial class Directories
         return m;
     }
 
-
+    // P/Invoke libc chmod (fallback for Unix)
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    // P/Invoke libc chmod (fallback for Unix)
     [System.Runtime.InteropServices.LibraryImport(
         "libc",
         EntryPoint = "chmod",
         SetLastError = true,
         StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf8)]
-    private static partial System.Int32 Chmod(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String pathname,
-        System.UInt32 mode);
+    [System.CodeDom.Compiler.GeneratedCode("Microsoft.Interop.LibraryImportGenerator", "9.0.12.36511")]
+    private static unsafe System.Int32 Chmod([System.Diagnostics.CodeAnalysis.DisallowNull] System.String pathname, System.UInt32 mode)
+    {
+        System.Byte* __pathname_native = default;
+        System.Int32 __retVal = 0;
+        System.Runtime.InteropServices.Marshalling.Utf8StringMarshaller.ManagedToUnmanagedIn __pathname_native__marshaller = default;
+        System.Int32 __lastError;
+
+        try
+        {
+            System.Span<System.Byte> buffer = stackalloc System.Byte[System.Runtime.InteropServices.Marshalling.Utf8StringMarshaller.ManagedToUnmanagedIn.BufferSize];
+#pragma warning disable CS9080
+            __pathname_native__marshaller.FromManaged(pathname, buffer);
+#pragma warning restore CS9080
+            __pathname_native = __pathname_native__marshaller.ToUnmanaged();
+            System.Runtime.InteropServices.Marshal.SetLastSystemError(0);
+            __retVal = __PInvoke(__pathname_native, mode);
+            __lastError = System.Runtime.InteropServices.Marshal.GetLastSystemError();
+        }
+        finally
+        {
+            __pathname_native__marshaller.Free();
+        }
+        System.Runtime.InteropServices.Marshal.SetLastPInvokeError(__lastError);
+        return __retVal;
+        [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "chmod", ExactSpelling = true)]
+        static extern unsafe System.Int32 __PInvoke(System.Byte* __pathname_native, System.UInt32 __mode_native);
+    }
 }

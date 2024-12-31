@@ -15,5 +15,5 @@ public enum MiddlewareStage : System.Byte
     /// <summary>
     /// Indicates the middleware is executed after the main operation.
     /// </summary>
-    PostDispatch = 2,
+    PostDispatch = 2
 }

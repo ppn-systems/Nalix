@@ -141,11 +141,11 @@ public static partial class Directories
         => GetFilePath(ConfigurationDirectory, fileName);
 
     /// <summary>
-    /// Returns a storage file path under <see cref="StoragePath"/>.
+    /// Returns a storage file path under <see cref="StorageDirectory"/>.
     /// </summary>
     public static System.String GetStorageFilePath(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
-        => GetFilePath(StoragePath, fileName);
+        => GetFilePath(StorageDirectory, fileName);
 
     /// <summary>
     /// Returns a database file path under <see cref="DatabaseDirectory"/>.
@@ -218,7 +218,7 @@ public static partial class Directories
         {
             System.String[] testPaths =
             [
-                LogsDirectory, DataDirectory, ConfigurationDirectory, TemporaryDirectory, StoragePath,
+                LogsDirectory, DataDirectory, ConfigurationDirectory, TemporaryDirectory, StorageDirectory,
                 DatabaseDirectory, CacheDirectory, UploadsDirectory, BackupsDirectory
             ];
 

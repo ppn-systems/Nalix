@@ -42,7 +42,7 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion)]
     [SerializeDynamicSize(DynamicSize)]
     public System.Byte[] Data { get; set; }
 

@@ -40,7 +40,7 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.End)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion)]
     public System.String Content { get; set; }
 
     /// <summary>
