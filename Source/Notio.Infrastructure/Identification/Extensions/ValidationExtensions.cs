@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Infrastructure.Identification;
+namespace Notio.Infrastructure.Identification.Extensions;
 
 internal static class ValidationExtensions
 {
@@ -8,7 +8,7 @@ internal static class ValidationExtensions
     {
         foreach (char c in input)
         {
-            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+            if (!(c >= '0' && c <= '9' || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f'))
                 return false;
         }
         return true;

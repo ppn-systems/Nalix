@@ -1,4 +1,4 @@
-﻿namespace Notio.Infrastructure.Identification;
+﻿namespace Notio.Infrastructure.Identification.Extensions;
 
 public class GenIdConfig
 {

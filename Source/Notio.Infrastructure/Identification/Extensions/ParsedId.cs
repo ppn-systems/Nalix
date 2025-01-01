@@ -1,7 +1,7 @@
 ﻿using Notio.Infrastructure.Time;
 using System;
 
-namespace Notio.Infrastructure.Identification;
+namespace Notio.Infrastructure.Identification.Extensions;
 
 /// <summary>
 /// Cấu trúc ParsedId chứa thông tin chi tiết về GenId.
