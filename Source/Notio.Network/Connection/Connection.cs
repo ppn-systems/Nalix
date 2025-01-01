@@ -6,7 +6,6 @@ using Notio.Infrastructure.Time;
 using Notio.Logging;
 using Notio.Network.Connection.Args;
 using Notio.Security;
-using Notio.Shared.Memory;
 using System;
 using System.Linq;
 using System.Net.Sockets;
@@ -14,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Notio.Common.Networking.Args;
+using Notio.Shared.Memory.Cache;
 
 namespace Notio.Network.Connection;
 
@@ -21,12 +21,13 @@ public class Connection : IConnection, IDisposable
 { 
     private const byte HEADER_LENGHT = 2;
     private const short KEY_RSA_SIZE = 4096;
+    private const short KEY_RSA_SIZE_BYTES = KEY_RSA_SIZE / 8;
 
     private readonly UniqueId _id;
     private readonly Socket _socket;
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
-    private readonly LRUCache _cacheOutgoingPacket;
+    private readonly BinaryCache _cacheOutgoingPacket;
     private readonly ReaderWriterLockSlim _rwLockState;
     private readonly IBufferAllocator _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
@@ -51,9 +52,9 @@ public class Connection : IConnection, IDisposable
         _stream = new NetworkStream(socket);
         _bufferAllocator = bufferAllocator;
         _id = UniqueId.NewId(TypeId.Session);
-        _rwLockState = new ReaderWriterLockSlim();
-        _cacheOutgoingPacket = new LRUCache(20);
+        _cacheOutgoingPacket = new BinaryCache(20);
         _ctokens = new CancellationTokenSource();
+        _rwLockState = new ReaderWriterLockSlim();
         _connectedTimestamp = DateTimeOffset.UtcNow;
 
         _disposed = false;
@@ -327,17 +328,15 @@ public class Connection : IConnection, IDisposable
                         // Xác thực kết nối
                         try
                         {
-                            short requiredKeySize = (KEY_RSA_SIZE / 8);
-
-                            if (size < requiredKeySize) break;
+                            if (size < KEY_RSA_SIZE_BYTES) break;
 
                             _rsa4096 = new Rsa4096(KEY_RSA_SIZE);
                             _aes256Key = Aes256.GenerateKey();
 
                             _rsa4096.ImportPublicKey(_buffer
                                     .Skip(Math
-                                    .Max(0, totalBytesRead - requiredKeySize))
-                                    .Take(requiredKeySize)
+                                    .Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
+                                    .Take(KEY_RSA_SIZE_BYTES)
                                     .ToArray()
                             );
 

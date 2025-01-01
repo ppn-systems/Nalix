@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Shared.Memory;
+namespace Notio.Shared.Memory.Pool;
 
 /// <summary>
 /// Cung cấp một pool các instance <see cref="List{T}"/> có thể tái sử dụng, tương tự như ArrayPool.

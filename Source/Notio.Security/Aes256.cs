@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Security.Exceptions;
+using System;
 using System.Buffers;
 using System.IO;
 using System.Security.Cryptography;
@@ -49,7 +50,7 @@ public static class Aes256
             aes.GenerateKey();
             return aes.Key;
         }
-        catch (Exception ex)
+        catch (Exceptions ex)
         {
             throw new CryptoOperationException("Failed to generate encryption key", ex);
         }
@@ -67,7 +68,7 @@ public static class Aes256
             rng.GetBytes(iv);
             return iv;
         }
-        catch (Exception ex)
+        catch (Exceptions ex)
         {
             throw new CryptoOperationException("Failed to generate secure IV", ex);
         }
@@ -97,7 +98,7 @@ public static class Aes256
             aes.Padding = PaddingMode.None;
             return aes;
         }
-        catch (Exception ex)
+        catch (Exceptions ex)
         {
             throw new CryptoOperationException("Failed to create AES encryptor", ex);
         }
@@ -144,7 +145,7 @@ public static class Aes256
 
             return ms.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch (Exceptions ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Encryption failed", ex);
         }
@@ -198,7 +199,7 @@ public static class Aes256
 
             return resultStream.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch (Exceptions ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Decryption failed", ex);
         }
@@ -251,7 +252,7 @@ public static class Aes256
 
             return ms.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch (Exceptions ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Async encryption failed", ex);
         }
@@ -304,7 +305,7 @@ public static class Aes256
 
             return resultStream.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch (Exceptions ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Async decryption failed", ex);
         }

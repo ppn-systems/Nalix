@@ -1,27 +1,27 @@
 ﻿namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Thông tin về Buffer Pool
+/// Information about the Buffer Pool
 /// </summary>
-public readonly record struct BufferPoolInfo
+public readonly record struct BufferMetrics
 {
     /// <summary>
-    /// Số lượng bộ đệm tự do
+    /// Number of free buffers
     /// </summary>
     public required int FreeBuffers { get; init; }
 
     /// <summary>
-    /// Tổng số bộ đệm
+    /// Total number of buffers
     /// </summary>
     public required int TotalBuffers { get; init; }
 
     /// <summary>
-    /// Kích thước bộ đệm
+    /// Size of the buffer
     /// </summary>
     public required int BufferSize { get; init; }
 
     /// <summary>
-    /// Số lần bỏ lỡ
+    /// Number of misses
     /// </summary>
     public required int Misses { get; init; }
 }

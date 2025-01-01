@@ -7,7 +7,7 @@ namespace Notio.Shared.Memory.Buffer;
 /// <summary>
 /// Quản lý các pool của các bộ đệm dùng chung.
 /// </summary>
-public sealed class BufferPoolManager : IDisposable
+public sealed class BufferManager : IDisposable
 {
     private readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
     private readonly ConcurrentDictionary<int, (int RentCounter, int ReturnCounter)> _adjustmentCounters = new();

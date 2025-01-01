@@ -20,8 +20,12 @@ public sealed class BufferAllocator : IBufferAllocator
     private bool _isInitialized;
     private readonly int _totalBuffers;
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
-    private readonly BufferPoolManager _poolManager = new();
+    private readonly BufferManager _poolManager = new();
 
+    /// <summary>
+    /// Lấy cấu hình bộ đệm từ quản lý cấu hình hệ thống.
+    /// </summary>
+    /// <value>Cấu hình bộ đệm được thiết lập từ hệ thống.</value>
     public BufferConfig BufferConfig { get; } = ConfigManager.Instance.GetConfig<BufferConfig>();
 
     /// <summary>
@@ -113,22 +117,41 @@ public sealed class BufferAllocator : IBufferAllocator
                 .Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(pair =>
                 {
-                    var parts = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    string[] parts = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length != 2)
                     {
-                        throw new FormatException($"Incorrectly formatted pairs: '{pair}'");
+                        throw new FormatException(
+                            $"Incorrectly formatted pairs: '{pair}'. " +
+                            $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').");
                     }
 
-                    return (
-                        int.Parse(parts[0].Trim()),
-                        double.Parse(parts[1].Trim())
-                    );
+                    int allocationSize = int.Parse(parts[0].Trim());
+                    double ratio = double.Parse(parts[1].Trim());
+
+                    if (allocationSize <= 0)
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(bufferAllocationsString), "Buffer allocation size must be greater than zero.");
+                    }
+
+                    if (ratio <= 0 || ratio > 1)
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(bufferAllocationsString), "Ratio must be between 0 and 1.");
+                    }
+
+                    return (allocationSize, ratio);
                 })
                 .ToArray();
         }
-        catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is OverflowException)
+        catch (Exception ex) when (ex is FormatException
+                                || ex is ArgumentException
+                                || ex is OverflowException
+                                || ex is ArgumentOutOfRangeException)
         {
-            throw new ArgumentException("The input string is malformed or contains invalid values.", ex);
+            throw new ArgumentException(
+                "The input string is malformed or contains invalid values. " +
+                $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').");
         }
     }
 
@@ -137,7 +160,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// </summary>
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferPoolInfo poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferMetrics poolInfo = ref pool.GetPoolInfoRef();
 
         double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         int targetBuffers = (int)(targetAllocation * _totalBuffers);
@@ -187,7 +210,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// </summary>
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferPoolInfo poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferMetrics poolInfo = ref pool.GetPoolInfoRef();
 
         int threshold = poolInfo.TotalBuffers >> 2; // 25% threshold
 

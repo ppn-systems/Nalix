@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace Notio.Security;
+namespace Notio.Security.Exceptions;
 
 /// <summary>
-/// Exception xảy ra khi có lỗi trong quá trình mã hóa/giải mã
+/// Exceptions xảy ra khi có lỗi trong quá trình mã hóa/giải mã
 /// </summary>
 public class CryptoOperationException : Exception
 {
