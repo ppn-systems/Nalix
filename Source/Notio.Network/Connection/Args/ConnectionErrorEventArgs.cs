@@ -1,4 +1,4 @@
-﻿using Notio.Common.Networking;
+﻿using Notio.Common.Networking.Args;
 using Notio.Common.Networking.Enums;
 using System;
 

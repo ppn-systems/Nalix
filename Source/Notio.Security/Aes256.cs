@@ -7,16 +7,6 @@ using System.Threading.Tasks;
 namespace Notio.Security;
 
 /// <summary>
-/// Exception xảy ra khi có lỗi trong quá trình mã hóa/giải mã
-/// </summary>
-public class CryptoOperationException : Exception
-{
-    public CryptoOperationException(string message) : base(message) { }
-    public CryptoOperationException(string message, Exception innerException)
-        : base(message, innerException) { }
-}
-
-/// <summary>
 /// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CTR
 /// </summary>
 public static class Aes256
@@ -123,37 +113,32 @@ public static class Aes256
 
         byte[] encryptedCounter = null;
         byte[] counter = null;
-        byte[] iv = null;
+        byte[] block = new byte[BlockSize]; // Move allocation out of the loop
 
         try
         {
-            // Cấp phát bộ nhớ từ pool
             encryptedCounter = Pool.Rent(BlockSize);
             counter = Pool.Rent(BlockSize);
-            iv = GenerateSecureIV();
+            byte[] iv = GenerateSecureIV();
 
             using var aes = CreateAesEncryptor(key);
             using var ms = new MemoryStream(plaintext.Length + BlockSize);
             using var encryptor = aes.CreateEncryptor();
 
-            // Ghi IV vào đầu ciphertext
             ms.Write(iv);
             iv.CopyTo(counter, 0);
 
-            // Mã hóa từng block
             for (int i = 0; i < plaintext.Length; i += BlockSize)
             {
                 encryptor.TransformBlock(counter, 0, BlockSize, encryptedCounter, 0);
 
                 int bytesToEncrypt = Math.Min(plaintext.Length - i, BlockSize);
-                Span<byte> block = stackalloc byte[bytesToEncrypt];
                 plaintext.AsSpan(i, bytesToEncrypt).CopyTo(block);
 
-                // XOR với counter
                 for (int j = 0; j < bytesToEncrypt; j++)
                     block[j] ^= encryptedCounter[j];
 
-                ms.Write(block);
+                ms.Write(block, 0, bytesToEncrypt);
                 IncrementCounter(counter);
             }
 
@@ -235,6 +220,7 @@ public static class Aes256
         byte[] encryptedCounter = null;
         byte[] counter = null;
         byte[] iv = null;
+        byte[] block = new byte[BlockSize]; // Move allocation out of the loop
 
         try
         {
@@ -254,13 +240,12 @@ public static class Aes256
                 encryptor.TransformBlock(counter, 0, BlockSize, encryptedCounter, 0);
 
                 int bytesToEncrypt = Math.Min(plaintext.Length - i, BlockSize);
-                Memory<byte> block = new byte[bytesToEncrypt];
                 plaintext.AsMemory(i, bytesToEncrypt).CopyTo(block);
 
                 for (int j = 0; j < bytesToEncrypt; j++)
-                    block.Span[j] ^= encryptedCounter[j];
+                    block[j] ^= encryptedCounter[j];
 
-                await ms.WriteAsync(block);
+                await ms.WriteAsync(block.AsMemory(0, bytesToEncrypt));
                 IncrementCounter(counter);
             }
 
