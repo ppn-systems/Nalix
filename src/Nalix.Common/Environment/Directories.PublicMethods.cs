@@ -218,8 +218,15 @@ public static partial class Directories
         {
             System.String[] testPaths =
             [
-                LogsDirectory, DataDirectory, ConfigurationDirectory, TemporaryDirectory, StorageDirectory,
-                DatabaseDirectory, CacheDirectory, UploadsDirectory, BackupsDirectory
+                LogsDirectory,
+                DataDirectory,
+                CacheDirectory,
+                UploadsDirectory,
+                BackupsDirectory,
+                StorageDirectory,
+                DatabaseDirectory,
+                TemporaryDirectory,
+                ConfigurationDirectory
             ];
 
             for (System.Int32 i = 0; i < testPaths.Length; i++)
