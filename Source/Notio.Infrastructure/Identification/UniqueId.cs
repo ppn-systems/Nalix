@@ -1,237 +1,240 @@
-﻿using Notio.Infrastructure.Services;
+﻿using Notio.Infrastructure.Identification.Extensions;
 using Notio.Infrastructure.Time;
 using System;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Threading;
+using System.Linq;
 
 namespace Notio.Infrastructure.Identification;
 
 /// <summary>
-/// UniqueId là bộ tạo ID 64-bit dựa trên cấu trúc Snowflake, cho phép tạo ID duy nhất
-/// một cách nhanh chóng và hiệu quả trong môi trường đa luồng.
+/// Đại diện cho một ID phiên duy nhất.
 /// </summary>
-public sealed class UniqueId
+/// <remarks>
+/// Khởi tạo một thể hiện mới của lớp <see cref="UniqueId"/> với giá trị được chỉ định.
+/// </remarks>
+/// <param name="value">Giá trị của ID.</param>
+public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<UniqueId>
 {
-    private static readonly Lazy<UniqueId> _instance = new(() => new UniqueId(TypeId.System));
-    private static readonly Lock _syncRoot = new();
-    private readonly ushort _machineId;
-    private readonly Lock _lockObject = new();
-    private readonly DateTime _epoch;
+    private const string Alphabet = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private const int Base = 36;
 
-    private ulong _id;
-    private TypeId _type;
-    private int _sequenceNumber;
-    private ulong _lastTimestamp;
+    private static readonly byte[] CharToValue = new byte[128].Select(x => byte.MaxValue).ToArray();
+    private readonly uint _value = value;
 
     /// <summary>
-    /// Giá trị ID hiện tại.
+    /// ID Default
     /// </summary>
-    public ulong Value => _id;
+    public static readonly UniqueId Empty = new(0);
 
     static UniqueId()
     {
-        _instance = new Lazy<UniqueId>(() => new UniqueId(TypeId.System));
-    }
-
-    private UniqueId(TypeId type, ushort machineId = 0, DateTime? epoch = null)
-    {
-        _epoch = epoch ?? Clock.TimeEpochDatetime;
-        if (_epoch > DateTime.UtcNow)
-            throw new ArgumentException("Epoch cannot be in the future.", nameof(epoch));
-
-        _type = type;
-        _machineId = machineId == 0 ? GenerateMachineId() : machineId;
-
-        if (_machineId >= UniqueIdConfig.MACHINE_MASK)
-            throw new OverflowException($"MachineId exceeds {UniqueIdConfig.MACHINE_BITS} bits.");
-
-        _lastTimestamp = GetTimestampFromEpoch();
+        for (byte i = 0; i < Alphabet.Length; i++)
+        {
+            CharToValue[Alphabet[i]] = i;
+        }
     }
 
     /// <summary>
-    /// Trả về một instance duy nhất của UniqueId.
-    /// </summary>
-    public static UniqueId Instance => _instance.Value;
-
-    /// <summary>
-    /// Tạo một UniqueId mới cho một loại cụ thể.
+    /// Tạo ID mới từ các yếu tố ngẫu nhiên và hệ thống.
     /// </summary>
     /// <param name="type">Loại ID duy nhất cần tạo.</param>
-    /// <returns>Đối tượng UniqueId mới.</returns>
-    public static UniqueId NewId(TypeId type)
+    /// <param name="machineId">Loại ID duy nhất cho từng máy chủ khác nhau.</param>
+    /// <returns>Đối tượng <see cref="UniqueId"/></returns>
+    public static UniqueId NewId(TypeId type = TypeId.Generic, ushort machineId = 0)
     {
-        lock (_syncRoot)
-        {
-            return Instance.GenerateFor(type);
-        }
+        byte[] randomBytes = new byte[4];
+        Random.Shared.NextBytes(randomBytes);
+
+        uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
+        uint timestamp = (uint)(Clock.UnixTime.Milliseconds & 0xFFFFFFFF);
+        uint uniqueValue = randomValue ^ (timestamp << 5 | timestamp >> 27);
+        uint typeId = (uint)type << 24;
+        uint machineValue = (uint)(machineId & 0xFFFF);
+
+        return new UniqueId(typeId | (uniqueValue & 0xFFFFFF) | machineValue);
     }
 
     /// <summary>
-    /// Tạo một UniqueId mới cho một loại cụ thể.
+    /// Chuyển đổi ID thành chuỗi Base36 hoặc chuỗi Hexadecimal (nếu được chỉ định).
     /// </summary>
-    /// <param name="type">Loại ID duy nhất cần tạo.</param>
-    /// <returns>Đối tượng UniqueId mới.</returns>
-    public UniqueId GenerateFor(TypeId type)
+    /// <param name="isHex">Nếu là chuỗi Hex, chuyển đổi thành số thập lục phân 8 chữ số.</param>
+    /// <returns>Chuỗi đại diện ID.</returns>
+    /// <exception cref="ArgumentException">Ném ra nếu chỉ số của chuỗi không hợp lệ.</exception>
+    public string ToString(bool isHex = false)
     {
-        lock (_lockObject)
-        {
-            _type = type;
-            return GenerateNew();
-        }
-    }
+        if (isHex)
+            return _value.ToString("X8");
 
-    /// <summary>
-    /// Tạo một UniqueId mới.
-    /// </summary>
-    /// <returns>Đối tượng UniqueId.</returns>
-    public UniqueId GenerateNew()
-    {
-        ulong timestamp = GetTimestampFromEpoch();
-        int sequence;
+        Span<char> chars = stackalloc char[13];
+        int index = chars.Length;
+        uint value = _value;
 
-        lock (_lockObject)
-        {
-            if (timestamp < _lastTimestamp)
-                throw new InvalidOperationException("Clock moved backwards. Refusing to generate ID.");
-
-            if (timestamp == _lastTimestamp)
-            {
-                sequence = ++_sequenceNumber & (int)UniqueIdConfig.SEQUENCE_MASK;
-                if (sequence == 0)
-                    timestamp = WaitForNextMillis(_lastTimestamp);
-            }
-            else
-            {
-                _sequenceNumber = 0;
-                sequence = 0;
-            }
-
-            _lastTimestamp = timestamp;
-        }
-
-        if (timestamp > UniqueIdConfig.TIMESTAMP_MASK)
-            throw new OverflowException($"Timestamp exceeds {UniqueIdConfig.TIMESTAMP_BITS} bits.");
-
-        _id = AssembleId(timestamp, sequence);
-        return this;
-    }
-
-    /// <summary>
-    /// Chuyển ID sang dạng Hex.
-    /// </summary>
-    /// <returns>Chuỗi ID dạng Hex.</returns>
-    public string ToHex() => _id.ToString("X16");
-
-    /// <summary>
-    /// Chuyển ID sang dạng Base64.
-    /// </summary>
-    /// <returns>Chuỗi ID dạng Base64.</returns>
-    public string ToBase64()
-    {
-        var bytes = BitConverter.GetBytes(_id);
-        return Convert.ToBase64String(bytes);
-    }
-
-    /// <summary>
-    /// Chuyển chuỗi Hex sang ID.
-    /// </summary>
-    /// <param name="hexId">Chuỗi Hex.</param>
-    /// <returns>Giá trị ID.</returns>
-    public static ulong FromHex(string hexId)
-    {
-        if (string.IsNullOrEmpty(hexId))
-            throw new ArgumentNullException(nameof(hexId));
-
-        return ulong.Parse(hexId, System.Globalization.NumberStyles.HexNumber);
-    }
-
-    /// <summary>
-    /// Chuyển chuỗi Base64 sang ID.
-    /// </summary>
-    /// <param name="base64Id">Chuỗi Base64.</param>
-    /// <returns>Giá trị ID.</returns>
-    public static ulong FromBase64(string base64Id)
-    {
-        if (string.IsNullOrEmpty(base64Id))
-            throw new ArgumentNullException(nameof(base64Id));
-
-        var bytes = Convert.FromBase64String(base64Id);
-        return BitConverter.ToUInt64(bytes, 0);
-    }
-
-    /// <summary>
-    /// Lấy ParsedId từ ID hiện tại.
-    /// </summary>
-    /// <returns>Đối tượng ParsedId.</returns>
-    public ParsedId GetParsedId() => Parse(_id);
-
-    /// <summary>
-    /// Phân tích một ID thành ParsedId.
-    /// </summary>
-    /// <param name="id">ID để phân tích.</param>
-    /// <returns>Đối tượng ParsedId tương ứng.</returns>
-    public static ParsedId Parse(ulong id) => new(id);
-
-    /// <summary>
-    /// Phân tích một chuỗi Hex thành ParsedId.
-    /// </summary>
-    /// <param name="hexId">Chuỗi Hex để phân tích.</param>
-    /// <returns>Đối tượng ParsedId tương ứng.</returns>
-    public static ParsedId ParseHex(string hexId) => Parse(FromHex(hexId));
-
-    /// <summary>
-    /// Phân tích một chuỗi Base64 thành ParsedId.
-    /// </summary>
-    /// <param name="base64Id">Chuỗi Base64 để phân tích.</param>
-    /// <returns>Đối tượng ParsedId tương ứng.</returns>
-    public static ParsedId ParseBase64(string base64Id) => Parse(FromBase64(base64Id));
-
-    /// <summary>
-    /// Trả về chuỗi đại diện của UniqueId.
-    /// </summary>
-    /// <returns>Chuỗi đại diện của UniqueId.</returns>
-    public override string ToString() => GetParsedId().ToString();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ulong GetTimestampFromEpoch()
-    {
-        double currentUnixTime = Clock.UnixTime.TotalMilliseconds;
-        double epochMilliseconds = new TimeSpan(_epoch.Ticks).TotalMilliseconds;
-        return (ulong)(currentUnixTime - epochMilliseconds);
-    }
-
-    private static ulong WaitForNextMillis(ulong lastTimestamp)
-    {
-        ulong timestamp;
         do
         {
-            Thread.Yield();
-            timestamp = (ulong)Clock.UnixTime.TotalMilliseconds;
-        } while (timestamp <= lastTimestamp);
-        return timestamp;
+            chars[--index] = Alphabet[(int)(value % Base)];
+            value /= Base;
+        } while (value > 0);
+
+        return new string(chars[index..]).PadLeft(7, '0');
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ulong AssembleId(ulong timestamp, int sequence)
+    public static UniqueId Parse(ReadOnlySpan<char> input)
     {
-        return ((ulong)_type & UniqueIdConfig.TYPE_MASK) << UniqueIdConfig.TYPE_SHIFT |
-               (_machineId & UniqueIdConfig.MACHINE_MASK) << UniqueIdConfig.MACHINE_SHIFT |
-               (timestamp & UniqueIdConfig.TIMESTAMP_MASK) << UniqueIdConfig.TIMESTAMP_SHIFT |
-               (ulong)sequence & UniqueIdConfig.SEQUENCE_MASK;
+        if (input.IsEmpty)
+            throw new ArgumentNullException(nameof(input));
+
+        bool isHex = input.Length == 8 && input.IsHexString();
+
+        return isHex
+            ? new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber))
+            : ParseBase36(input);
     }
 
-    private static ushort GenerateMachineId()
+    private static UniqueId ParseBase36(ReadOnlySpan<char> input)
     {
-        try
+        if (input.Length > 13)
+            throw new ArgumentException("Input is too long", nameof(input));
+
+        Span<byte> values = stackalloc byte[input.Length];
+        for (int i = 0; i < input.Length; i++)
         {
-            string uniqueIdentifier = $"{Environment.MachineName}-{Environment.ProcessId}";
-            byte[] hash = MD5.HashData(System.Text.Encoding.UTF8.GetBytes(uniqueIdentifier));
-            return (ushort)(BitConverter.ToUInt16(hash, 0) & UniqueIdConfig.MACHINE_MASK);
+            char c = char.ToUpperInvariant(input[i]);
+            if (c > 127 || (values[i] = CharToValue[c]) == byte.MaxValue)
+                throw new FormatException($"Invalid character '{input[i]}'");
         }
-        catch
-        {
-            return (ushort)Random.Shared.Next(0, (int)UniqueIdConfig.MACHINE_MASK);
-        }
+
+        uint result = 0;
+        for (int i = 0; i < values.Length; i++)
+            result = result * Base + values[i];
+
+        return new UniqueId(result);
     }
+
+    /// <summary>
+    /// Chuyển đổi chuỗi (Base36, Hex) thành <see cref="UniqueId"/>.
+    /// </summary>
+    /// <param name="input">Chuỗi cần chuyển đổi.</param>
+    /// <param name="isHex">Nếu là chuỗi Hex, chuyển đổi thành số thập lục phân.</param>
+    /// <returns>Đối tượng <see cref="UniqueId"/> từ chuỗi đã cho.</returns>
+    /// <exception cref="ArgumentNullException">Ném ra nếu chuỗi nhập vào rỗng hoặc chỉ chứa khoảng trắng.</exception>
+    /// <exception cref="ArgumentException">Ném ra nếu chuỗi nhập vào dài quá hoặc có ký tự không hợp lệ khi chuyển đổi Base36.</exception>
+    /// <exception cref="FormatException">Ném ra nếu chuỗi nhập vào chứa ký tự không hợp lệ trong hệ cơ số 36 hoặc trong trường hợp chuỗi Hex.</exception>
+    public static UniqueId Parse(ReadOnlySpan<char> input, bool isHex = false)
+    {
+        if (isHex)
+        {
+            if (input.IsEmpty || input.Length != 8)
+                throw new ArgumentException("Invalid Hex length. Must be 8 characters.", nameof(input));
+            return new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
+        }
+
+        if (input.IsEmpty)
+            throw new ArgumentNullException(nameof(input));
+        if (input.Length > 13)
+            throw new ArgumentException("Input is too long", nameof(input));
+
+        Span<byte> values = stackalloc byte[input.Length];
+        for (int i = 0; i < input.Length; i++)
+        {
+            char c = char.ToUpperInvariant(input[i]);
+            if (c > 127 || (values[i] = CharToValue[c]) == byte.MaxValue)
+                throw new FormatException($"Invalid character '{input[i]}'");
+        }
+
+        uint result = 0;
+        for (int i = 0; i < values.Length; i++)
+            result = result * Base + values[i];
+
+        return new UniqueId(result);
+    }
+
+    /// <summary>
+    /// Cố gắng phân tích đầu vào thành <see cref="UniqueId"/>.
+    /// </summary>
+    /// <param name="input">Chuỗi đầu vào cần phân tích.</param>
+    /// <param name="result">Kết quả của quá trình phân tích nếu thành công, ngược lại là giá trị mặc định.</param>
+    /// <returns>True nếu phân tích thành công, ngược lại false.</returns>
+    public static bool TryParse(ReadOnlySpan<char> input, out UniqueId result)
+    {
+        result = Empty;
+
+        if (input.IsEmpty || input.Length > 13)
+            return false;
+
+        uint value = 0;
+        foreach (char c in input)
+        {
+            byte charValue = c > 127 ? byte.MaxValue : CharToValue[char.ToUpperInvariant(c)];
+
+            if (charValue == byte.MaxValue)
+                return false;
+
+            value = value * Base + charValue;
+        }
+
+        result = new UniqueId(value);
+        return true;
+    }
+
+    /// <summary>
+    /// Xác định xem thể hiện hiện tại và đối tượng đã chỉ định có bằng nhau hay không.
+    /// </summary>
+    /// <param name="obj">Đối tượng để so sánh với thể hiện hiện tại.</param>
+    /// <returns>true nếu đối tượng hiện tại bằng đối tượng đã chỉ định; ngược lại, false.</returns>
+    public override bool Equals(object? obj) => obj is UniqueId other && Equals(other);
+
+    /// <summary>
+    /// Xác định xem thể hiện hiện tại và <see cref="UniqueId"/> đã chỉ định có bằng nhau hay không.
+    /// </summary>
+    /// <param name="other">Đối tượng <see cref="UniqueId"/> để so sánh với thể hiện hiện tại.</param>
+    /// <returns>true nếu đối tượng hiện tại bằng <see cref="UniqueId"/> đã chỉ định; ngược lại, false.</returns>
+    public bool Equals(UniqueId other) => _value == other._value;
+
+    /// <summary>
+    /// Trả về mã băm cho thể hiện hiện tại.
+    /// </summary>
+    /// <returns>Mã băm 32-bit có dấu cho thể hiện hiện tại.</returns>
+    public override int GetHashCode() => _value.GetHashCode();
+
+    /// <summary>
+    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác và trả về một số nguyên cho biết thứ tự tương đối của các đối tượng được so sánh.
+    /// </summary>
+    /// <param name="other">Đối tượng <see cref="UniqueId"/> để so sánh.</param>
+    /// <returns>Một số nguyên cho biết thứ tự tương đối của các đối tượng được so sánh.</returns>
+    public int CompareTo(UniqueId other) => _value.CompareTo(other._value);
+
+    /// <summary>
+    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu nhỏ hơn.
+    /// </summary>
+    public static bool operator <(UniqueId left, UniqueId right) => left._value < right._value;
+
+    /// <summary>
+    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu nhỏ hơn hoặc bằng.
+    /// </summary>
+    public static bool operator <=(UniqueId left, UniqueId right) => left._value <= right._value;
+
+    /// <summary>
+    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu lớn hơn.
+    /// </summary>
+    public static bool operator >(UniqueId left, UniqueId right) => left._value > right._value;
+
+    /// <summary>
+    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu lớn hơn hoặc bằng.
+    /// </summary>
+    public static bool operator >=(UniqueId left, UniqueId right) => left._value >= right._value;
+
+    /// <summary>
+    /// Xác định xem hai đối tượng <see cref="UniqueId"/> có bằng nhau hay không.
+    /// </summary>
+    /// <param name="left">Đối tượng đầu tiên để so sánh.</param>
+    /// <param name="right">Đối tượng thứ hai để so sánh.</param>
+    /// <returns>true nếu các đối tượng bằng nhau; ngược lại, false.</returns>
+    public static bool operator ==(UniqueId left, UniqueId right) => left.Equals(right);
+
+    /// <summary>
+    /// Xác định xem hai đối tượng <see cref="UniqueId"/> có khác nhau hay không.
+    /// </summary>
+    /// <param name="left">Đối tượng đầu tiên để so sánh.</param>
+    /// <param name="right">Đối tượng thứ hai để so sánh.</param>
+    /// <returns>true nếu các đối tượng khác nhau; ngược lại, false.</returns>
+    public static bool operator !=(UniqueId left, UniqueId right) => !(left == right);
 }

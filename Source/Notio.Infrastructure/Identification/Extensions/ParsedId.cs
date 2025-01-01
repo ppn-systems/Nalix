@@ -1,33 +1,32 @@
-﻿using Notio.Infrastructure.Services;
-using Notio.Infrastructure.Time;
+﻿using Notio.Infrastructure.Time;
 using System;
 
 namespace Notio.Infrastructure.Identification;
 
 /// <summary>
-/// Cấu trúc ParsedId chứa thông tin chi tiết về UniqueId.
+/// Cấu trúc ParsedId chứa thông tin chi tiết về GenId.
 /// </summary>
 public readonly struct ParsedId(ulong id)
 {
     /// <summary>
-    /// Loại UniqueId.
+    /// Loại GenId.
     /// </summary>
-    public TypeId Type => (TypeId)(id >> UniqueIdConfig.TYPE_SHIFT & UniqueIdConfig.TYPE_MASK);
+    public TypeId Type => (TypeId)(id >> GenIdConfig.TYPE_SHIFT & GenIdConfig.TYPE_MASK);
 
     /// <summary>
     /// ID máy.
     /// </summary>
-    public ushort MachineId => (ushort)(id >> UniqueIdConfig.MACHINE_SHIFT & UniqueIdConfig.MACHINE_MASK);
+    public ushort MachineId => (ushort)(id >> GenIdConfig.MACHINE_SHIFT & GenIdConfig.MACHINE_MASK);
 
     /// <summary>
     /// Thời gian tạo ID.
     /// </summary>
-    public long Timestamp => (long)(id >> UniqueIdConfig.TIMESTAMP_SHIFT & UniqueIdConfig.TIMESTAMP_MASK);
+    public long Timestamp => (long)(id >> GenIdConfig.TIMESTAMP_SHIFT & GenIdConfig.TIMESTAMP_MASK);
 
     /// <summary>
     /// Số thứ tự của ID.
     /// </summary>
-    public ushort SequenceNumber => (ushort)(id & UniqueIdConfig.SEQUENCE_MASK);
+    public ushort SequenceNumber => (ushort)(id & GenIdConfig.SEQUENCE_MASK);
 
     /// <summary>
     /// Thời gian tạo ID dạng DateTime.

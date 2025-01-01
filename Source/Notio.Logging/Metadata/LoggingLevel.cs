@@ -3,7 +3,7 @@
 /// <summary>
 /// Đại diện cho các mức độ nghiêm trọng của một thông điệp nhật ký.
 /// </summary>
-public enum LogLevel
+public enum LoggingLevel
 {
     /// <summary>
     /// Dùng để đại diện cho các thông điệp ở mức theo dõi (trace-level).

@@ -17,6 +17,7 @@ public class FileLoggerProvider
 
     internal FileLoggerOptions Options { get; private set; }
 
+    public string LogDirectory;
     public string LogFileName;
     public bool Append => Options.Append;
     public int MaxFileSize => Options.MaxFileSize;
@@ -43,7 +44,8 @@ public class FileLoggerProvider
     /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè mặc định.
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
-    public FileLoggerProvider(string fileName) : this(fileName, true)
+    public FileLoggerProvider(string directory, string fileName) 
+        : this(directory, fileName, true)
     {
     }
 
@@ -52,7 +54,8 @@ public class FileLoggerProvider
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
     /// <param name="append">Tùy chọn ghi đè.</param>
-    public FileLoggerProvider(string fileName, bool append) : this(fileName, new FileLoggerOptions() { Append = append })
+    public FileLoggerProvider(string directory, string fileName, bool append) 
+        : this(directory, fileName, new FileLoggerOptions() { Append = append })
     {
     }
 
@@ -61,9 +64,10 @@ public class FileLoggerProvider
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
     /// <param name="options">Tùy chọn cấu hình.</param>
-    public FileLoggerProvider(string fileName, FileLoggerOptions options)
+    public FileLoggerProvider(string directory, string fileName, FileLoggerOptions options)
     {
         Options = options;
+        LogDirectory = directory;
         LogFileName = Environment.ExpandEnvironmentVariables(fileName);
 
         fWriter = new FileWriter(this);

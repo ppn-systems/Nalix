@@ -1,8 +1,9 @@
-﻿using Notio.Common.Metadata;
-using Notio.Logging.Metadata;
+﻿using Notio.Logging.Metadata;
+using Notio.Logging.Engine;
 using Notio.Logging.Targets;
 using System;
 using System.Runtime.CompilerServices;
+using System.IO.Enumeration;
 
 namespace Notio.Logging;
 
@@ -42,7 +43,7 @@ public sealed class NotioLog : LoggingEngine
         {
             base.Publisher
                 .AddTarget(new ConsoleTarget())
-                .AddTarget(new FileTarget());
+                .AddTarget(new FileTarget(builder.LogDirectory, builder.LogFileName));
         }
     }
 
@@ -58,7 +59,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="level">Mức độ log.</param>
     /// <param name="eventId">ID sự kiện.</param>
     /// <param name="message">Thông điệp log.</param>
-    public void Write(LogLevel level, EventId eventId, string message)
+    public void Write(LoggingLevel level, EventId eventId, string message)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         base.CreateLogEntry(level, eventId, message);
@@ -70,7 +71,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="level">Mức độ log.</param>
     /// <param name="eventId">ID sự kiện.</param>
     /// <param name="exception">Ngoại lệ.</param>
-    public void Write(LogLevel level, EventId eventId, Exception exception)
+    public void Write(LoggingLevel level, EventId eventId, Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
         base.CreateLogEntry(level, eventId, $"{exception.Message}\n{exception.StackTrace}", exception);
@@ -82,7 +83,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="level">Mức độ log.</param>
     /// <param name="eventId">ID sự kiện.</param>
     /// <param name="exception">Ngoại lệ.</param>
-    public void Write(LogLevel level, EventId eventId, string message, Exception exception)
+    public void Write(LoggingLevel level, EventId eventId, string message, Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
         base.CreateLogEntry(level, eventId, message, exception);
@@ -94,7 +95,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="format">Chuỗi định dạng.</param>
     /// <param name="args">Các tham số để định dạng chuỗi.</param>
     public void Info(string format, params object[] args)
-        => Write(LogLevel.Information, Empty, string.Format(format, args));
+        => Write(LoggingLevel.Information, Empty, string.Format(format, args));
 
     /// <summary>
     /// Ghi log thông tin.
@@ -102,7 +103,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Info(string message, EventId? eventId = null)
-        => Write(LogLevel.Information, eventId ?? Empty, message);
+        => Write(LoggingLevel.Information, eventId ?? Empty, message);
 
     /// <summary>
     /// Ghi log debug.
@@ -110,7 +111,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
-        => Write(LogLevel.Debug, eventId ?? Empty, $"[{memberName}] {message}");
+        => Write(LoggingLevel.Debug, eventId ?? Empty, $"[{memberName}] {message}");
 
     /// <summary>
     /// Ghi log trace.
@@ -118,7 +119,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Trace(string message, EventId? eventId = null)
-        => Write(LogLevel.Trace, eventId ?? Empty, message);
+        => Write(LoggingLevel.Trace, eventId ?? Empty, message);
 
     /// <summary>
     /// Ghi log cảnh báo.
@@ -126,7 +127,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Warn(string message, EventId? eventId = null)
-        => Write(LogLevel.Warning, eventId ?? Empty, message);
+        => Write(LoggingLevel.Warning, eventId ?? Empty, message);
 
     /// <summary>
     /// Ghi log lỗi với ngoại lệ.
@@ -134,7 +135,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="exception">Ngoại lệ.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Error(Exception exception, EventId? eventId = null)
-        => Write(LogLevel.Error, eventId ?? Empty, exception);
+        => Write(LoggingLevel.Error, eventId ?? Empty, exception);
 
     /// <summary>
     /// Ghi log lỗi với thông điệp và ngoại lệ.
@@ -143,7 +144,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="exception">Ngoại lệ.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Error(string message, Exception exception, EventId? eventId = null)
-        => Write(LogLevel.Error, eventId ?? Empty, message, exception);
+        => Write(LoggingLevel.Error, eventId ?? Empty, message, exception);
 
     /// <summary>
     /// Ghi log lỗi nghiêm trọng.
@@ -151,7 +152,7 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="message">Thông điệp log.</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Fatal(string message, EventId? eventId = null)
-        => Write(LogLevel.Critical, eventId ?? Empty, message);
+        => Write(LoggingLevel.Critical, eventId ?? Empty, message);
 
     /// <summary>
     /// Ghi log lỗi nghiêm trọng.
@@ -160,5 +161,5 @@ public sealed class NotioLog : LoggingEngine
     /// <param name="exception">Ngoại lệ (tùy chọn).</param>
     /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Fatal(string message, Exception exception, EventId? eventId = null)
-        => Write(LogLevel.Critical, eventId ?? Empty, message, exception);
+        => Write(LoggingLevel.Critical, eventId ?? Empty, message, exception);
 }

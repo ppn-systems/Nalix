@@ -11,5 +11,5 @@ public interface ILoggingTarget
     /// Gửi một thông điệp log đến mục tiêu xử lý.
     /// </summary>
     /// <param name="logMessage">Đối tượng thông điệp log.</param>
-    void Publish(LogEntry logMessage);
+    void Publish(LoggingEntry logMessage);
 }

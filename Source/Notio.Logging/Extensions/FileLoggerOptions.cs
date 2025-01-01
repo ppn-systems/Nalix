@@ -26,7 +26,7 @@ public class FileLoggerOptions
     /// <summary>
     /// Mức ghi log tối thiểu cho bộ ghi log tệp tin.
     /// </summary>
-    public LogLevel MinLevel { get; set; } = LogLevel.Trace;
+    public LoggingLevel MinLevel { get; set; } = LoggingLevel.Trace;
 
     /// <summary>
     /// Bộ định dạng tùy chỉnh cho tên tệp log.

@@ -1,5 +1,4 @@
-﻿using Notio.Common.Metadata;
-using Notio.Logging.Interfaces;
+﻿using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 using System.Runtime.CompilerServices;
@@ -14,13 +13,13 @@ public class LoggingFormatter : ILoggingFormatter
 {
     private static readonly string[] LogLevelStrings =
     [
-        "TRCE", // LogLevel.Trace (0)
-        "DBUG", // LogLevel.Debug (1)
-        "INFO", // LogLevel.Information (2)
-        "WARN", // LogLevel.Warning (3)
-        "FAIL", // LogLevel.Error (4)
-        "CRIT", // LogLevel.Critical (5)
-        "NONE"  // LogLevel.None (6)
+        "TRCE", // LoggingLevel.Trace (0)
+        "DBUG", // LoggingLevel.Debug (1)
+        "INFO", // LoggingLevel.Information (2)
+        "WARN", // LoggingLevel.Warning (3)
+        "FAIL", // LoggingLevel.Error (4)
+        "CRIT", // LoggingLevel.Critical (5)
+        "NONE"  // LoggingLevel.None (6)
     ];
 
     /// <summary>
@@ -44,7 +43,7 @@ public class LoggingFormatter : ILoggingFormatter
     /// var formatter = new LoggingFormatter();
     /// string log = formatter.FormatLog(logEntry, DateTime.UtcNow);
     /// </example>
-    public string FormatLog(LogEntry logMsg, DateTime timeStamp)
+    public string FormatLog(LoggingEntry logMsg, DateTime timeStamp)
         => FormatLogEntry(timeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
@@ -57,10 +56,10 @@ public class LoggingFormatter : ILoggingFormatter
     /// <param name="exception">Ngoại lệ kèm theo (nếu có).</param>
     /// <returns>Chuỗi định dạng log.</returns>
     /// <example>
-    /// string log = LoggingFormatter.FormatLogEntry(DateTime.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
+    /// string log = LoggingFormatter.FormatLogEntry(DateTime.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     public static string FormatLogEntry(
-        DateTime timeStamp, LogLevel logLevel, EventId eventId,
+        DateTime timeStamp, LoggingLevel logLevel, EventId eventId,
         string message, Exception? exception)
     {
         StringBuilder logBuilder = new();
@@ -71,7 +70,7 @@ public class LoggingFormatter : ILoggingFormatter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetShortLogLevel(LogLevel logLevel)
+    private static string GetShortLogLevel(LoggingLevel logLevel)
     {
         int index = (int)logLevel;
         if ((uint)index < (uint)LogLevelStrings.Length)
@@ -84,7 +83,7 @@ public class LoggingFormatter : ILoggingFormatter
     private static void BuildLog(
         StringBuilder builder,
         in DateTime timeStamp,
-        LogLevel logLevel,
+        LoggingLevel logLevel,
         in EventId eventId,
         string message,
         Exception? exception)
@@ -101,7 +100,7 @@ public class LoggingFormatter : ILoggingFormatter
                    .Append("\t-\t");
         }
 
-        // Append LogLevel
+        // Append LoggingLevel
         builder.Append('[')
                .Append(GetShortLogLevel(logLevel))
                .Append(']')

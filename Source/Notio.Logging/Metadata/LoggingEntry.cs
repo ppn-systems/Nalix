@@ -1,11 +1,9 @@
-﻿using Notio.Common.Metadata;
-
-namespace Notio.Logging.Metadata;
+﻿namespace Notio.Logging.Metadata;
 
 /// <summary>
 /// Đại diện một thông điệp nhật ký trong hệ thống logging.
 /// </summary>
-public readonly struct LogEntry
+public readonly struct LoggingEntry
 {
     /// <summary>
     /// Nội dung của thông điệp nhật ký.
@@ -15,7 +13,7 @@ public readonly struct LogEntry
     /// <summary>
     /// Mức độ nhật ký của thông điệp.
     /// </summary>
-    public readonly LogLevel LogLevel;
+    public readonly LoggingLevel LogLevel;
 
     /// <summary>
     /// ID sự kiện liên quan đến thông điệp nhật ký.
@@ -34,7 +32,7 @@ public readonly struct LogEntry
     /// <param name="eventId">ID sự kiện liên quan đến thông điệp.</param>
     /// <param name="message">Nội dung của thông điệp nhật ký.</param>
     /// <param name="exception">Ngoại lệ đi kèm (nếu có).</param>
-    internal LogEntry(LogLevel level, EventId eventId, string message, System.Exception? exception = null)
+    internal LoggingEntry(LoggingLevel level, EventId eventId, string message, System.Exception? exception = null)
     {
         Message = message;
         LogLevel = level;

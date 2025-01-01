@@ -1,7 +1,6 @@
 ﻿using Notio.Common.Networking;
 using Notio.Common.Networking.Enums;
 using Notio.Common.IMemory;
-using Notio.Infrastructure.Services;
 using Notio.Infrastructure.Time;
 using Notio.Logging;
 using Notio.Network.Connection.Args;
@@ -14,6 +13,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Notio.Common.Networking.Args;
 using Notio.Shared.Memory.Cache;
+using Notio.Infrastructure.Identification;
 
 namespace Notio.Network.Connection;
 

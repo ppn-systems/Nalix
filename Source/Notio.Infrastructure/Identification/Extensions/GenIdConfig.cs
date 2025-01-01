@@ -1,6 +1,6 @@
 ﻿namespace Notio.Infrastructure.Identification;
 
-public class UniqueIdConfig
+public class GenIdConfig
 {
     // Constants for bit lengths
     public const int TYPE_BITS = 4;

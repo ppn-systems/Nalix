@@ -1,5 +1,4 @@
-﻿using Notio.Shared;
-using System;
+﻿using System;
 using System.IO;
 
 namespace Notio.Logging.Extensions;
@@ -32,7 +31,7 @@ internal class FileWriter
     private string GetBaseLogFileName()
     {
         string fileName = this.GenerateUniqueLogFileName();
-        return Path.Combine(DefaultDirectories.LogsPath, _fileLogProvider.FormatLogFileName?.Invoke(fileName) ?? fileName);
+        return Path.Combine(_fileLogProvider.LogDirectory, _fileLogProvider.FormatLogFileName?.Invoke(fileName) ?? fileName);
     }
 
     /// <summary>
@@ -60,13 +59,13 @@ internal class FileWriter
         do
         {
             newFileName = $"{_fileLogProvider.LogFileName}_{_count++}.log";
-        } while (File.Exists(Path.Combine(DefaultDirectories.LogsPath, newFileName)));
+        } while (File.Exists(Path.Combine(_fileLogProvider.LogDirectory, newFileName)));
 
         if (_count != 0)
         {
             _count -= 2;
             if (_count < 0) _count = 0;
-            return Path.Combine(DefaultDirectories.LogsPath, $"{_fileLogProvider.LogFileName}_{_count}.log");
+            return Path.Combine(_fileLogProvider.LogDirectory, $"{_fileLogProvider.LogFileName}_{_count}.log");
         }
 
         return newFileName;
@@ -78,7 +77,7 @@ internal class FileWriter
     private void CreateNewLogFileDirectory()
     {
         string newFileName = this.GenerateUniqueLogFileName();
-        this.UseNewLogFile(Path.Combine(DefaultDirectories.LogsPath, newFileName));
+        this.UseNewLogFile(Path.Combine(_fileLogProvider.LogDirectory, newFileName));
     }
 
     /// <summary>

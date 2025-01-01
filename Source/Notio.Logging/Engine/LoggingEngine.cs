@@ -1,11 +1,10 @@
-﻿using Notio.Common.Metadata;
-using Notio.Logging.Extensions;
+﻿using Notio.Logging.Extensions;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Logging;
+namespace Notio.Logging.Engine;
 
 public abstract class LoggingEngine
 {
@@ -20,17 +19,17 @@ public abstract class LoggingEngine
     /// <summary>
     /// Mức ghi log tối thiểu.
     /// </summary>
-    public LogLevel MinimumLevel = LogLevel.Trace;
+    public LoggingLevel MinimumLevel = LoggingLevel.Trace;
 
-    protected bool CanLog(LogLevel level) => level >= MinimumLevel;
+    protected bool CanLog(LoggingLevel level) => level >= MinimumLevel;
 
     /// <summary>
     /// Ghi một thông điệp với mức độ chỉ định.
     /// </summary>
-    protected void CreateLogEntry(LogLevel level, EventId eventId, string message, Exception? error = null)
+    protected void CreateLogEntry(LoggingLevel level, EventId eventId, string message, Exception? error = null)
     {
         if (!CanLog(level)) return;
-        _publisher.Publish(new LogEntry(level, eventId, message, error));
+        _publisher.Publish(new LoggingEntry(level, eventId, message, error));
     }
 
     internal class LoggingPublisher : ILoggingPublisher
@@ -41,7 +40,7 @@ public abstract class LoggingEngine
         /// Công khai một thông điệp nhật ký.
         /// </summary>
         /// <param name="entry">Thông điệp nhật ký cần công khai.</param>
-        public void Publish(LogEntry entry)
+        public void Publish(LoggingEntry entry)
         {
             foreach (ILoggingTarget target in _targets)
                 target.Publish(entry);
