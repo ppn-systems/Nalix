@@ -1,9 +1,10 @@
-﻿using Notio.Common.Connection.Enums;
+﻿using Notio.Common.Networking.Args;
+using Notio.Common.Networking.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Common.Connection;
+namespace Notio.Common.Networking;
 
 /// <summary>
 /// Giao diện quản lý kết nối.
@@ -28,37 +29,27 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Thời điểm kết nối
     /// </summary>
-    DateTimeOffset ConnectedTimestamp { get; }
+    DateTimeOffset Timestamp { get; }
 
     /// <summary>
-    /// Sự kiện nhận dữ liệu.
+    /// Sự kiện xử lý nhận dữ liệu.
     /// </summary>
-    event EventHandler<ConnectionReceiveEventArgs> OnReceiveEvent;
-
-    /// <summary>
-    /// Sự kiện thay đổi trạng thái kết nối
-    /// </summary>
-    event EventHandler<ConnectionStateEventArgs> OnStateEvent;
-
-    /// <summary>
-    /// Sự kiện thông báo lỗi kết nối.
-    /// </summary>
-    event EventHandler<ConnectionErrorEventArgs> OnErrorEvent;
-
-    /// <summary>
-    /// Sự kiện xử lý kết nối.
-    /// </summary>
-    event EventHandler<IConnectionEventArgs> OnProcessEvent;
+    event EventHandler<IConnctEventArgs> OnProcessEvent;
 
     /// <summary>
     /// Sự kiện ngắt kết nối.
     /// </summary>
-    event EventHandler<IConnectionEventArgs> OnCloseEvent;
+    event EventHandler<IConnctEventArgs> OnCloseEvent;
 
     /// <summary>
-    /// Sự kiện xử lý kết nối sau khi ngắt.
+    /// Sự kiện sau khi xử lý dữ liệu xong.
     /// </summary>
-    event EventHandler<IConnectionEventArgs> OnPostProcessEvent;
+    event EventHandler<IConnctEventArgs> OnPostProcessEvent;
+
+    /// <summary>
+    /// Sự kiện thông báo lỗi kết nối.
+    /// </summary>
+    event EventHandler<IErrorEventArgs> OnErrorEvent;
 
     /// <summary>
     /// Bắt đầu lắng nghe tin nhắn

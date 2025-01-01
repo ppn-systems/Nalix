@@ -2,13 +2,12 @@
 using Notio.Common.IMemory;
 using Notio.Common.Metadata;
 using Notio.Shared.Configuration;
-using Notio.Shared.Memory.Buffer;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
 
-namespace Notio.Shared.Memory;
+namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
@@ -24,6 +23,11 @@ public sealed class BufferAllocator : IBufferAllocator
     private readonly BufferPoolManager _poolManager = new();
 
     public BufferConfig BufferConfig { get; } = ConfigManager.Instance.GetConfig<BufferConfig>();
+
+    /// <summary>
+    /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.
+    /// </summary>
+    public int MaxBufferSize => _bufferAllocations.Max(alloc => alloc.BufferSize);
 
     /// <summary>
     /// Sự kiện theo dõi.
@@ -67,9 +71,9 @@ public sealed class BufferAllocator : IBufferAllocator
     /// <summary>
     /// Thuê một bộ đệm có ít nhất kích thước yêu cầu.
     /// </summary>
-    /// <param name="size">Kích thước của bộ đệm cần thuê, mặc định là 256.</param>
+    /// <param name="size">Kích thước của bộ đệm cần thuê, mặc định là 1024.</param>
     /// <returns>Một mảng byte của bộ đệm.</returns>
-    public byte[] Rent(int size = 256) => _poolManager.RentBuffer(size);
+    public byte[] Rent(int size = 1024) => _poolManager.RentBuffer(size);
 
     /// <summary>
     /// Trả lại bộ đệm về bộ đệm thích hợp.

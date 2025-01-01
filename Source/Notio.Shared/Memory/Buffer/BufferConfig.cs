@@ -16,5 +16,5 @@ public sealed class BufferConfig : ConfigContainer
     /// Chuỗi phân bổ buffer dạng "kích thước, tỷ lệ; kích thước, tỷ lệ; ...".
     /// </summary>
     public string BufferAllocations { get; private set; } =
-        "1024,0.45; 2048,0.25; 4096,0.20; 8192,0.6; 16384,0.4";
+        "1024,0.40; 2048,0.25; 4096,0.20; 8192,0.6; 16384,0.5; 32768:0.4";
 }

@@ -113,6 +113,7 @@ public sealed class BufferPoolManager : IDisposable
             if (key >= size)
                 return key;
         }
+
         return 0;
     }
 

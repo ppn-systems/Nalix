@@ -27,4 +27,8 @@
 		<ProjectReference Include="..\Notio.Infrastructure\Notio.Infrastructure.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Connection\Args\" />
+	</ItemGroup>
+
 </Project>

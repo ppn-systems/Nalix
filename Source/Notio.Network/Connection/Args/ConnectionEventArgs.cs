@@ -1,12 +1,13 @@
-﻿using Notio.Common.Connection;
+﻿using Notio.Common.Networking;
 using System;
 
-namespace Notio.Network.Connection;
+namespace Notio.Network.Connection.Args;
 
 /// <summary>
 /// Đại diện cho các sự kiện kết nối và cung cấp dữ liệu sự kiện.
 /// </summary>
-public class ConnectionEventArgs(Connection connection) : EventArgs, IConnectionEventArgs
+public class ConnectionEventArgs(Connection connection)
+    : EventArgs, IConnctEventArgs
 {
     /// <summary>
     /// Kết nối liên quan đến sự kiện.

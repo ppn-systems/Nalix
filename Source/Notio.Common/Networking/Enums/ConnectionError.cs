@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Connection.Enums;
+﻿namespace Notio.Common.Networking.Enums;
 
 /// <summary>
 /// Các loại lỗi có thể xảy ra khi kết nối.
@@ -29,6 +29,9 @@ public enum ConnectionError
     /// Lỗi mã hóa.
     /// </summary>
     EncryptionError,
+
+
+    DecryptionError,
 
     /// <summary>
     /// Dữ liệu không khớp.

@@ -1,12 +1,14 @@
-﻿using Notio.Common.Connection.Enums;
+﻿using Notio.Common.Networking;
+using Notio.Common.Networking.Enums;
 using System;
 
-namespace Notio.Common.Connection;
+namespace Notio.Network.Connection.Args;
 
 /// <summary>
 /// Event args cho các lỗi kết nối.
 /// </summary>
-public class ConnectionErrorEventArgs(ConnectionError errorType, string message) : EventArgs
+public class ConnectionErrorEventArgs(ConnectionError errorType, string message)
+    : EventArgs, IErrorEventArgs
 {
     /// <summary>
     /// Loại lỗi.

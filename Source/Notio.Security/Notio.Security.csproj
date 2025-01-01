@@ -5,7 +5,6 @@
 		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
-		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<Import Project="$(SolutionDir)Notio.Settings.props" />

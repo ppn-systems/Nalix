@@ -6,6 +6,11 @@
 public interface IBufferAllocator
 {
     /// <summary>
+    /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.
+    /// </summary>
+    int MaxBufferSize { get; }
+
+    /// <summary>
     /// Cấp phát bộ đệm cho bộ nhớ.
     /// </summary>
     void AllocateBuffers();

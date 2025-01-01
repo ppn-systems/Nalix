@@ -1,9 +1,10 @@
-﻿using Notio.Common.Connection;
-using Notio.Common.Connection.Enums;
+﻿using Notio.Common.Networking;
+using Notio.Common.Networking.Enums;
 using Notio.Common.IMemory;
 using Notio.Infrastructure.Services;
 using Notio.Infrastructure.Time;
 using Notio.Logging;
+using Notio.Network.Connection.Args;
 using Notio.Security;
 using Notio.Shared.Memory;
 using System;
@@ -11,17 +12,21 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace Notio.Network.Connection;
 
 public class Connection : IConnection, IDisposable
-{
-    private const ushort MaxSizeBuffer = 16384;
+{ 
+    private const byte HEADER_LENGHT = 2;
+    private const short KEY_RSA_SIZE = 4096;
 
     private readonly UniqueId _id;
     private readonly Socket _socket;
-    private readonly LRUCache _cache;
+    private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
+    private readonly LRUCache _cacheOutgoingPacket;
+    private readonly ReaderWriterLockSlim _rwLockState;
     private readonly IBufferAllocator _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
 
@@ -34,17 +39,19 @@ public class Connection : IConnection, IDisposable
     private CancellationTokenSource _ctokens;
 
     /// <summary>
-    /// Khởi tạo một đối tượng Connection mới.
+    /// Khởi tạo một đối tượng Networking mới.
     /// </summary>
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
     public Connection(Socket socket, IBufferAllocator bufferAllocator)
     {
         _socket = socket;
-        _cache = new LRUCache(20);
+        _receiveLock = new Lock();
         _stream = new NetworkStream(socket);
         _bufferAllocator = bufferAllocator;
         _id = UniqueId.NewId(TypeId.Session);
+        _rwLockState = new ReaderWriterLockSlim();
+        _cacheOutgoingPacket = new LRUCache(20);
         _ctokens = new CancellationTokenSource();
         _connectedTimestamp = DateTimeOffset.UtcNow;
 
@@ -58,7 +65,7 @@ public class Connection : IConnection, IDisposable
     /// <summary>
     /// Thời gian kết nối.
     /// </summary>
-    public DateTimeOffset ConnectedTimestamp => _connectedTimestamp;
+    public DateTimeOffset Timestamp => _connectedTimestamp;
 
     /// <summary>
     /// Khóa mã hóa AES 256.
@@ -69,11 +76,6 @@ public class Connection : IConnection, IDisposable
     /// Thời gian ping cuối cùng.
     /// </summary>
     public long LastPingTime => _lastPingTime;
-
-    /// <summary>
-    /// Trạng thái kết nối.
-    /// </summary>
-    public ConnectionState State => _state;
 
     /// <summary>
     /// Điểm cuối từ xa của kết nối.
@@ -89,19 +91,34 @@ public class Connection : IConnection, IDisposable
         }
     }
 
+    /// <summary>
+    /// Trạng thái kết nối.
+    /// </summary>
+    public ConnectionState State
+    {
+        get
+        {
+            _rwLockState.EnterReadLock();
+            try
+            {
+                return _state;
+            }
+            finally
+            {
+                _rwLockState.ExitReadLock();
+            }
+        }
+    }
+
     public string Id => _id.ToHex();
 
-    public event EventHandler<ConnectionStateEventArgs>? OnStateEvent;
+    public event EventHandler<IErrorEventArgs>? OnErrorEvent;
 
-    public event EventHandler<ConnectionErrorEventArgs>? OnErrorEvent;
+    public event EventHandler<IConnctEventArgs>? OnProcessEvent;
 
-    public event EventHandler<ConnectionReceiveEventArgs>? OnReceiveEvent;
+    public event EventHandler<IConnctEventArgs>? OnCloseEvent;
 
-    public event EventHandler<IConnectionEventArgs>? OnProcessEvent;
-
-    public event EventHandler<IConnectionEventArgs>? OnCloseEvent;
-
-    public event EventHandler<IConnectionEventArgs>? OnPostProcessEvent;
+    public event EventHandler<IConnctEventArgs>? OnPostProcessEvent;
 
     /// <summary>
     /// Bắt đầu nhận dữ liệu không đồng bộ.
@@ -109,6 +126,13 @@ public class Connection : IConnection, IDisposable
     /// <param name="cancellationToken">Token hủy bỏ.</param>
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
+        if (_disposed) return;
+
+        lock (_receiveLock)
+        {
+            if (!_socket.Connected || !_stream.CanRead) return;
+        }
+
         if (cancellationToken != default)
         {
             _ctokens.Dispose();
@@ -117,9 +141,11 @@ public class Connection : IConnection, IDisposable
 
         try
         {
-            _stream.BeginRead(
-                _buffer, 0, _buffer.Length,
-                new AsyncCallback(OnReceiveCompleted), (_buffer, _ctokens.Token));
+            lock (_receiveLock)
+            {
+                _stream.ReadAsync(_buffer, 0, HEADER_LENGHT, _ctokens.Token)
+                       .ContinueWith(OnReceiveCompleted, _ctokens.Token);
+            }
         }
         catch (Exception ex)
         {
@@ -150,26 +176,6 @@ public class Connection : IConnection, IDisposable
         }
     }
 
-    /// <summary>
-    /// Kiểm tra và điều chỉnh bộ đệm nếu kích thước dữ liệu nhận được lớn hơn kích thước bộ đệm hiện tại.
-    /// </summary>
-    /// <param name="newSize">Kích thước buffer mới.</param>
-    /// <returns>Trả về `true` nếu bộ đệm được thay đổi, `false` nếu không thay đổi.</returns>
-    public bool ResizeBuffer(int newSize)
-    {
-        if (newSize > _buffer.Length)
-        {
-            byte[] newBuffer = _bufferAllocator.Rent(newSize);
-            Array.Copy(_buffer, newBuffer, _buffer.Length);
-            _bufferAllocator.Return(_buffer);
-            _buffer = newBuffer;
-
-            return true;
-        }
-
-        return false;
-    }
-
     public void Disconnect(string? reason = null)
     {
         try
@@ -184,7 +190,6 @@ public class Connection : IConnection, IDisposable
         }
         finally
         {
-            OnStateEvent?.Invoke(this, new ConnectionStateEventArgs(_state, ConnectionState.Disconnected));  // Gửi sự kiện đóng kết nối
             _state = ConnectionState.Disconnected;
         }
     }
@@ -196,8 +201,8 @@ public class Connection : IConnection, IDisposable
             if (_state == ConnectionState.Authenticated)
                 data = Aes256.Encrypt(data, _aes256Key);
 
-            if (!_cache.TryGetValue(data, out byte[]? cachedData))
-                _cache.Add(data, data);
+            if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
+                _cacheOutgoingPacket.Add(data, data);
 
             // Gửi dữ liệu qua stream
             _stream.Write(data);
@@ -215,8 +220,8 @@ public class Connection : IConnection, IDisposable
             if (_state == ConnectionState.Authenticated)
                 data = await Aes256.EncryptAsync(data, _aes256Key);
 
-            if (!_cache.TryGetValue(data, out byte[]? cachedData))
-                _cache.Add(data, data);
+            if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
+                _cacheOutgoingPacket.Add(data, data);
 
             // Gửi dữ liệu qua stream
             await _stream.WriteAsync(data, cancellationToken);
@@ -253,98 +258,138 @@ public class Connection : IConnection, IDisposable
         }
     }
 
-    private async void OnReceiveCompleted(IAsyncResult ar)
+    private void UpdateState(ConnectionState newState)
     {
-        if (ar.AsyncState is Tuple<byte[], CancellationToken> state)
+        _rwLockState.EnterWriteLock();
+        try
         {
-            byte[] buffer = state.Item1;
-            CancellationToken cancellationToken = state.Item2;
+            _state = newState;
+        }
+        finally
+        {
+            _rwLockState.ExitWriteLock();
+        }
+    }
 
-            try
+    private void ResizeBuffer(int newSize)
+    {
+        if (newSize > _buffer.Length)
+        {
+            byte[] newBuffer = _bufferAllocator.Rent(newSize);
+            Array.Copy(_buffer, newBuffer, _buffer.Length);
+            _bufferAllocator.Return(_buffer);
+            _buffer = newBuffer;
+        }
+    }
+
+    private async Task OnReceiveCompleted(Task<int> task)
+    {
+        if (task.IsCanceled || _disposed) return;
+
+        try
+        {
+            int totalBytesRead = task.Result;
+            ushort size = BitConverter.ToUInt16(_buffer, 0);
+
+            if (size > _bufferAllocator.MaxBufferSize)
             {
-                if (!_socket.Connected || !_stream.CanRead) return;
-
-                int bytesRead = _stream.EndRead(ar);
-                ushort dataLength = BitConverter.ToUInt16(buffer, 0);
-                if (dataLength > MaxSizeBuffer)
-                {
-                    OnErrorEvent?.Invoke(this,
-                        new ConnectionErrorEventArgs(ConnectionError.DataTooLarge,
-                        $"Data length ({dataLength} bytes) " +
-                        $"exceeds the maximum allowed buffer size ({MaxSizeBuffer} bytes)."));
-                }
-                else if (bytesRead == 0 && dataLength != bytesRead)
-                {
-                    OnErrorEvent?.Invoke(this,
-                        new ConnectionErrorEventArgs(ConnectionError.DataMismatch, "Data length mismatch detected."));
-                }
-                else if (!cancellationToken.IsCancellationRequested)
-                {
-                    _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
-
-                    switch (_state)
-                    {
-                        case ConnectionState.Connecting:
-                            break;
-
-                        case ConnectionState.Connected:
-                            // Xác thực kết nối
-                            try
-                            {
-                                if (!(dataLength is >= 500 and <= 600)) { break; }
-
-                                _rsa4096 = new Rsa4096(4092);
-                                _aes256Key = Aes256.GenerateKey();
-                                _rsa4096.ImportPublicKey(buffer.Skip(Math.Max(0, bytesRead - 512)).Take(512).ToArray());
-
-                                byte[] key = _rsa4096.Encrypt(_aes256Key);
-
-                                await _stream.WriteAsync(key, cancellationToken);
-
-                                _state = ConnectionState.Authenticated;
-
-                                OnStateEvent?.Invoke(
-                                    this, new ConnectionStateEventArgs(ConnectionState.Connecting, ConnectionState.Authenticated));
-                            }
-                            catch (Exception ex)
-                            {
-                                OnErrorEvent?.Invoke(
-                                    this, new ConnectionErrorEventArgs(ConnectionError.AuthenticationError, ex.Message));
-                            }
-                            break;
-
-                        case ConnectionState.Authenticated:
-                            // Giải mã dữ liệu
-                            try
-                            {
-                                byte[] decrypted = await Aes256.DecryptAsync(
-                                    _aes256Key, buffer.Take(bytesRead).ToArray());
-
-                                OnReceiveEvent?.Invoke(this, new ConnectionReceiveEventArgs(decrypted));
-                            }
-                            catch (Exception ex)
-                            {
-                                OnErrorEvent?.Invoke(
-                                    this, new ConnectionErrorEventArgs(ConnectionError.EncryptionError, ex.Message));
-                            }
-                            break;
-
-                        default:
-                            OnReceiveEvent?.Invoke(this, new ConnectionReceiveEventArgs(buffer.Take(bytesRead).ToArray()));
-                            break;
-                    }
-                }
-                else
-                {
-                    await Task.Yield();
-                }
-
-                this.BeginReceive(); // Gọi lại để nhận dữ liệu tiếp theo
+                OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.DataTooLarge,
+                    $"Data length ({size} bytes) exceeds the maximum allowed buffer size ({_bufferAllocator.MaxBufferSize} bytes)."));
+                return;
             }
-            catch (Exception ex)
+
+            if (size > _buffer.Length)
+                ResizeBuffer(size);
+
+            while (totalBytesRead < size)
             {
-                OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.ReadError, ex.Message));
+                if (!_stream.CanRead) return;
+
+                var bytesRead = await _stream.ReadAsync(
+                    _buffer.AsMemory(totalBytesRead, size - totalBytesRead), _ctokens.Token);
+
+                if (bytesRead == 0) break;
+
+                totalBytesRead += bytesRead;
             }
+
+            if (!_ctokens.Token.IsCancellationRequested)
+            {
+                _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
+
+                switch (_state)
+                {
+                    case ConnectionState.Connecting:
+                        break;
+
+                    case ConnectionState.Connected:
+                        // Xác thực kết nối
+                        try
+                        {
+                            short requiredKeySize = (KEY_RSA_SIZE / 8);
+
+                            if (size < requiredKeySize) break;
+
+                            _rsa4096 = new Rsa4096(KEY_RSA_SIZE);
+                            _aes256Key = Aes256.GenerateKey();
+
+                            _rsa4096.ImportPublicKey(_buffer
+                                    .Skip(Math
+                                    .Max(0, totalBytesRead - requiredKeySize))
+                                    .Take(requiredKeySize)
+                                    .ToArray()
+                            );
+
+                            byte[] key = _rsa4096.Encrypt(_aes256Key);
+                            await _stream.WriteAsync(key, _ctokens.Token);
+
+                            this.UpdateState(ConnectionState.Authenticated);
+                        }
+                        catch (Exception ex)
+                        {
+                            if (State == ConnectionState.Authenticated)
+                                this.UpdateState(ConnectionState.Connected);
+
+                            this.OnErrorEvent?.Invoke(this, 
+                                new ConnectionErrorEventArgs(ConnectionError.AuthenticationError, ex.Message));
+                        }
+                        break;
+
+                    case ConnectionState.Authenticated:
+                        // Giải mã dữ liệu
+                        try
+                        {
+                            byte[] decrypted = await Aes256.DecryptAsync(
+                                _aes256Key, _buffer.Take(totalBytesRead).ToArray());
+
+                            this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+                        }
+                        catch (CryptographicException ex)
+                        {
+                            this.UpdateState(ConnectionState.Connecting);
+
+                            this.OnErrorEvent?.Invoke(
+                                this, new ConnectionErrorEventArgs(ConnectionError.DecryptionError, ex.Message));
+                        }
+                        catch (Exception ex)
+                        {
+                            this.OnErrorEvent?.Invoke(
+                                this, new ConnectionErrorEventArgs(ConnectionError.DecryptionError, ex.Message));
+                        }
+                        break;
+
+                    default:
+                        _ = _buffer.Take(totalBytesRead).ToArray();
+                        this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+                        break;
+                }
+            }
+
+            this.BeginReceive(); // Gọi lại để nhận dữ liệu tiếp theo
+        }
+        catch (Exception ex)
+        {
+            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.ReadError, ex.Message));
         }
     }
 }

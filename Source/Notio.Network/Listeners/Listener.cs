@@ -1,4 +1,5 @@
-﻿using Notio.Common.Connection;
+﻿using Notio.Common.Networking;
+using Notio.Common.IMemory;
 using Notio.Logging;
 using Notio.Network.Protocols;
 using System;
@@ -9,10 +10,12 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(int port, IProtocol protocol) : TcpListener(IPAddress.Any, port), IListener
+public abstract class Listener(int port, IProtocol protocol, IBufferAllocator bufferAllocator)
+    : TcpListener(IPAddress.Any, port), IListener
 {
     private readonly int _port = port;
     private readonly IProtocol _protocol = protocol;
+    private readonly IBufferAllocator _bufferAllocator = bufferAllocator;
 
     public void BeginListening(CancellationToken cancellationToken)
     {
@@ -33,7 +36,7 @@ public abstract class Listener(int port, IProtocol protocol) : TcpListener(IPAdd
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var connection = await CreateConnection(cancellationToken);
+                IConnection connection = await CreateConnection(cancellationToken);
 
                 _protocol.OnAccept(connection);
             }
@@ -46,7 +49,7 @@ public abstract class Listener(int port, IProtocol protocol) : TcpListener(IPAdd
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Connection connection = new(socket);
+        Notio.Network.Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Networking class
 
         connection.OnCloseEvent += OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;
@@ -54,11 +57,11 @@ public abstract class Listener(int port, IProtocol protocol) : TcpListener(IPAdd
         return connection;
     }
 
-    private void OnConnectionClose(object? sender, IConnectionEventArgs args)
+    private void OnConnectionClose(object? sender, IConnctEventArgs args)
     {
         // De-subscribe to this event first.
         args.Connection.OnCloseEvent -= OnConnectionClose!;
-        args.Connection.OnReceiveEvent -= _protocol.ProcessMessage!;
+        args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Connection.Enums;
+﻿namespace Notio.Common.Networking.Enums;
 
 /// <summary>
 /// Trạng thái kết nối.

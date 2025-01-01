@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection;
+﻿using Notio.Common.Networking;
 
 namespace Notio.Network.Protocols;
 
@@ -24,12 +24,12 @@ public interface IProtocol
     /// </summary>
     /// <param name="sender">Nguồn gốc của sự kiện.</param>
     /// <param name="args">Tham số của sự kiện kết nối.</param>
-    void ProcessMessage(object sender, IConnectionEventArgs args);
+    void ProcessMessage(object sender, IConnctEventArgs args);
 
     /// <summary>
     /// Chạy sau khi xử lý một tin nhắn từ kết nối.
     /// </summary>
     /// <param name="sender">Nguồn gốc của sự kiện.</param>
     /// <param name="args">Tham số của sự kiện kết nối.</param>
-    void PostProcessMessage(object sender, IConnectionEventArgs args);
+    void PostProcessMessage(object sender, IConnctEventArgs args);
 }
