@@ -27,6 +27,7 @@ public class Connection : IConnection, IDisposable
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
     private readonly BinaryCache _cacheOutgoingPacket;
+    private readonly FifoCache<byte[]> _cacheIncomingPacket;
     private readonly ReaderWriterLockSlim _rwLockState;
     private readonly IBufferAllocator _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
@@ -52,6 +53,7 @@ public class Connection : IConnection, IDisposable
         _bufferAllocator = bufferAllocator;
         _id = UniqueId.NewId(TypeId.Session);
         _cacheOutgoingPacket = new BinaryCache(20);
+        _cacheIncomingPacket = new FifoCache<byte[]>(20);
         _ctokens = new CancellationTokenSource();
         _rwLockState = new ReaderWriterLockSlim();
         _connectedTimestamp = DateTimeOffset.UtcNow;
@@ -147,6 +149,11 @@ public class Connection : IConnection, IDisposable
                 _stream.ReadAsync(_buffer, 0, HEADER_LENGHT, _ctokens.Token)
                        .ContinueWith(OnReceiveCompleted, _ctokens.Token);
             }
+        }
+        catch (ObjectDisposedException ex)
+        {
+            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.StreamClosed, ex.Message));
+            return;
         }
         catch (Exception ex)
         {
@@ -289,13 +296,10 @@ public class Connection : IConnection, IDisposable
 
     private void ResizeBuffer(int newSize)
     {
-        if (newSize > _buffer.Length)
-        {
-            byte[] newBuffer = _bufferAllocator.Rent(newSize);
-            Array.Copy(_buffer, newBuffer, _buffer.Length);
-            _bufferAllocator.Return(_buffer);
-            _buffer = newBuffer;
-        }
+        byte[] newBuffer = _bufferAllocator.Rent(newSize);
+        Array.Copy(_buffer, newBuffer, _buffer.Length);
+        _bufferAllocator.Return(_buffer);
+        _buffer = newBuffer;    
     }
 
     private async Task OnReceiveCompleted(Task<int> task)
@@ -315,7 +319,7 @@ public class Connection : IConnection, IDisposable
             }
 
             if (size > _buffer.Length)
-                ResizeBuffer(size);
+                this.ResizeBuffer(size);
 
             while (totalBytesRead < size)
             {
@@ -339,7 +343,6 @@ public class Connection : IConnection, IDisposable
                         break;
 
                     case ConnectionState.Connected:
-                        // Xác thực kết nối
                         try
                         {
                             if (size < KEY_RSA_SIZE_BYTES) break;
@@ -348,8 +351,7 @@ public class Connection : IConnection, IDisposable
                             _aes256Key = Aes256.GenerateKey();
 
                             _rsa4096.ImportPublicKey(_buffer
-                                    .Skip(Math
-                                    .Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
+                                    .Skip(Math.Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
                                     .Take(KEY_RSA_SIZE_BYTES)
                                     .ToArray()
                             );
@@ -370,12 +372,12 @@ public class Connection : IConnection, IDisposable
                         break;
 
                     case ConnectionState.Authenticated:
-                        // Giải mã dữ liệu
                         try
                         {
                             byte[] decrypted = await Aes256.DecryptAsync(
                                 _aes256Key, _buffer.Take(totalBytesRead).ToArray());
 
+                            _cacheIncomingPacket.Add(decrypted);
                             this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
                         }
                         catch (CryptographicException ex)
@@ -393,13 +395,13 @@ public class Connection : IConnection, IDisposable
                         break;
 
                     default:
-                        _ = _buffer.Take(totalBytesRead).ToArray();
+                        _cacheIncomingPacket.Add(_buffer.Take(totalBytesRead).ToArray());
                         this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
                         break;
                 }
             }
 
-            this.BeginReceive(); // Gọi lại để nhận dữ liệu tiếp theo
+            this.BeginReceive();
         }
         catch (Exception ex)
         {

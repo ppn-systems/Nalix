@@ -55,5 +55,7 @@ public enum ConnectionError
     /// <summary>
     /// Lỗi khi đóng kết nối.
     /// </summary>
-    CloseError
+    CloseError,
+
+    StreamClosed
 }
