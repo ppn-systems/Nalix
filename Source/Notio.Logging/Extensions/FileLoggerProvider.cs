@@ -44,7 +44,7 @@ public class FileLoggerProvider
     /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè mặc định.
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
-    public FileLoggerProvider(string directory, string fileName) 
+    public FileLoggerProvider(string directory, string fileName)
         : this(directory, fileName, true)
     {
     }
@@ -54,7 +54,7 @@ public class FileLoggerProvider
     /// </summary>
     /// <param name="fileName">Tên tệp tin.</param>
     /// <param name="append">Tùy chọn ghi đè.</param>
-    public FileLoggerProvider(string directory, string fileName, bool append) 
+    public FileLoggerProvider(string directory, string fileName, bool append)
         : this(directory, fileName, new FileLoggerOptions() { Append = append })
     {
     }

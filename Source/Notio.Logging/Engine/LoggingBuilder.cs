@@ -1,7 +1,7 @@
 ﻿using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
-using System.IO;
 using System;
+using System.IO;
 
 namespace Notio.Logging.Engine;
 
@@ -33,7 +33,7 @@ public class LoggingBuilder
     /// </summary>
     /// <param name="publisher">Đối tượng <see cref="ILoggingPublisher"/> để xuất bản các thông điệp logging.</param>
     internal LoggingBuilder(ILoggingPublisher publisher) => _publisher = publisher;
-    
+
     /// <summary>
     /// Thêm mục tiêu logging.
     /// </summary>
@@ -69,7 +69,7 @@ public class LoggingBuilder
     {
         if (string.IsNullOrWhiteSpace(directory))
             throw new ArgumentException("Invalid directory.", nameof(directory));
-        
+
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
 

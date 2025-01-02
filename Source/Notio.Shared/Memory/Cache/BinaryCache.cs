@@ -27,7 +27,6 @@ public class BinaryCache(int capacity)
             EvictLeastUsedItem();
     }
 
-
     /// <summary>
     /// Thêm một phần tử vào bộ nhớ cache.
     /// </summary>

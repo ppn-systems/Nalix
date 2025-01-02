@@ -30,7 +30,6 @@ public enum ConnectionError
     /// </summary>
     EncryptionError,
 
-
     DecryptionError,
 
     /// <summary>

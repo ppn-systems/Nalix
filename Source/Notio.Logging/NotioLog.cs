@@ -1,9 +1,8 @@
-﻿using Notio.Logging.Metadata;
-using Notio.Logging.Engine;
+﻿using Notio.Logging.Engine;
+using Notio.Logging.Metadata;
 using Notio.Logging.Targets;
 using System;
 using System.Runtime.CompilerServices;
-using System.IO.Enumeration;
 
 namespace Notio.Logging;
 

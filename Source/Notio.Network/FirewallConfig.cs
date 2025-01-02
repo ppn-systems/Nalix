@@ -38,6 +38,7 @@ public class FirewallConfig : ConfigContainer
 
     // Cấu hình Chung
     public bool EnableLogging { get; set; } = true;
+
     public bool EnableMetrics { get; set; } = true;
 
     // Cấu hình mức độ giới hạn

@@ -1,6 +1,4 @@
-﻿using Notio.Common;
-using Notio.Common.IMemory;
-using Notio.Common.Metadata;
+﻿using Notio.Common.IMemory;
 using Notio.Shared.Configuration;
 using System;
 using System.Linq;

@@ -3,7 +3,6 @@ using Notio.Logging.Format;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
-using System.IO;
 
 namespace Notio.Logging.Targets;
 
@@ -15,7 +14,9 @@ public class FileTarget : ILoggingTarget
     public readonly FileLoggerProvider LoggerPrv;
     private readonly ILoggingFormatter _loggerFormatter;
 
-    public FileTarget(string directory, string filename) : this(new LoggingFormatter(), directory, filename) { }
+    public FileTarget(string directory, string filename) : this(new LoggingFormatter(), directory, filename)
+    {
+    }
 
     public FileTarget(ILoggingFormatter loggerFormatter, string directory, string filename)
     {
