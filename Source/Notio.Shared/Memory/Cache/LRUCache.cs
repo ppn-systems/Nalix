@@ -1,20 +1,23 @@
-﻿using Notio.Shared.Memory.Extension;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
 /// <summary>
-/// Khởi tạo một bộ nhớ cache LRU với dung lượng xác định.
+/// Represents a Least Recently Used (LRU) cache with a specified capacity.
 /// </summary>
-/// <remarks>
-/// Khởi tạo một bộ nhớ cache LRU.
-/// </remarks>
-/// <param name="capacity">Dung lượng tối đa của bộ nhớ cache.</param>
-public class LRUCache(int capacity)
+/// <param name="capacity">The maximum capacity of the cache.</param>
+public sealed class LRUCache(int capacity)
 {
     private class CacheItem
     {
+        /// <summary>
+        /// Gets or sets the key of the cache item.
+        /// </summary>
         public byte[]? Key { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value of the cache item.
+        /// </summary>
         public byte[]? Value { get; set; }
     }
 
@@ -23,10 +26,10 @@ public class LRUCache(int capacity)
     private readonly LinkedList<CacheItem> _lruList = new();
 
     /// <summary>
-    /// Thêm một phần tử vào bộ nhớ cache.
+    /// Adds an item to the cache.
     /// </summary>
-    /// <param name="key">Khóa của phần tử.</param>
-    /// <param name="value">Giá trị của phần tử.</param>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="value">The value of the item.</param>
     public void Add(byte[] key, byte[] value)
     {
         if (_cacheMap.TryGetValue(key, out var node))
@@ -55,11 +58,34 @@ public class LRUCache(int capacity)
     }
 
     /// <summary>
-    /// Thử lấy giá trị từ bộ nhớ cache với khóa cho trước.
+    /// Gets the value associated with the specified key.
     /// </summary>
-    /// <param name="key">Khóa của phần tử.</param>
-    /// <param name="value">Giá trị của phần tử nếu tìm thấy.</param>
-    /// <returns>Trả về true nếu tìm thấy, ngược lại trả về false.</returns>
+    /// <param name="key">The key of the item to get.</param>
+    /// <returns>The value associated with the specified key.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the key is not found in the cache.</exception>
+    public byte[] GetValue(byte[] key)
+    {
+        if (_cacheMap.TryGetValue(key, out var node))
+        {
+            // Move the node to the front to mark it as most recently used
+            _lruList.Remove(node);
+            _lruList.AddFirst(node);
+
+            if (node.Value.Value == null)
+                throw new KeyNotFoundException("The key was not found in the cache.");
+
+            return node.Value.Value;
+        }
+
+        throw new KeyNotFoundException("The key was not found in the cache.");
+    }
+
+    /// <summary>
+    /// Tries to get the value associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key of the item to get.</param>
+    /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; otherwise, null.</param>
+    /// <returns>true if the key was found in the cache; otherwise, false.</returns>
     public bool TryGetValue(byte[] key, out byte[]? value)
     {
         if (_cacheMap.TryGetValue(key, out var node))
@@ -75,7 +101,7 @@ public class LRUCache(int capacity)
     }
 
     /// <summary>
-    /// Hủy toàn bộ bộ nhớ cache.
+    /// Clears all items from the cache.
     /// </summary>
     public void Clear()
     {

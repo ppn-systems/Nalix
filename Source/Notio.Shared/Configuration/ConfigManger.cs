@@ -21,7 +21,7 @@ public sealed class ConfigManager
     /// Khởi tạo một instance của <see cref="ConfigManager"/>.
     /// </summary>
     private ConfigManager()
-        => _iniFile = new(Path.Combine(DefaultDirectories.DataPath, "Configuration.ini"));
+        => _iniFile = new(Path.Combine(DefaultDirectories.ConfigPath, "Configuration.ini"));
 
     /// <summary>
     /// Khởi tạo nếu cần và trả về <typeparamref name="TClass"/>.

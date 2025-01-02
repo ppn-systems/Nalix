@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
@@ -92,6 +93,12 @@ internal sealed class ConfigIniFile
         }
     }
 
+    public char? GetChar(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && stringValue.Length == 1 ? stringValue[0] : (char?)null;
+    }
+
     /// <summary>
     /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigIniFile"/> này dưới dạng <see cref="string"/>.
     /// </summary>
@@ -114,6 +121,46 @@ internal sealed class ConfigIniFile
     {
         var stringValue = GetString(section, key);
         return stringValue != null && bool.TryParse(stringValue, out bool parsedValue) ? parsedValue : null;
+    }
+
+    public decimal? GetDecimal(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    public byte? GetByte(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && byte.TryParse(stringValue, out byte parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    public sbyte? GetSByte(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && sbyte.TryParse(stringValue, out sbyte parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    public short? GetInt16(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && short.TryParse(stringValue, out short parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    public ushort? GetUInt16(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && ushort.TryParse(stringValue, out ushort parsedValue)
+            ? parsedValue
+            : null;
     }
 
     /// <summary>
@@ -174,6 +221,34 @@ internal sealed class ConfigIniFile
     {
         var stringValue = GetString(section, key);
         return stringValue != null && float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    /// <summary>
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigIniFile"/> này dưới dạng <see cref="double"/>.
+    /// </summary>
+    /// <param name="section">Tên phần trong tệp ini.</param>
+    /// <param name="key">Tên khóa trong phần.</param>
+    /// <returns>Giá trị dưới dạng double hoặc null nếu không thể chuyển đổi.</returns>
+    public double? GetDouble(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedValue)
+            ? parsedValue
+            : null;
+    }
+
+    /// <summary>
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigIniFile"/> này dưới dạng <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="section">Tên phần trong tệp ini.</param>
+    /// <param name="key">Tên khóa trong phần.</param>
+    /// <returns>Giá trị dưới dạng DateTime hoặc null nếu không thể chuyển đổi.</returns>
+    public DateTime? GetDateTime(string section, string key)
+    {
+        var stringValue = GetString(section, key);
+        return stringValue != null && DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedValue)
             ? parsedValue
             : null;
     }

@@ -15,10 +15,11 @@ public sealed class BufferAllocator : IBufferAllocator
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
 
-    private bool _isInitialized;
     private readonly int _totalBuffers;
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly BufferManager _poolManager = new();
+
+    private bool _isInitialized;
 
     /// <summary>
     /// Lấy cấu hình bộ đệm từ quản lý cấu hình hệ thống.
@@ -34,7 +35,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// <summary>
     /// Sự kiện theo dõi.
     /// </summary>
-    public event Action<string, EventId>? TraceOccurred;
+    public event Action<string>? TraceOccurred;
 
     /// <summary>
     /// Khởi tạo một thể hiện mới của lớp <see cref="BufferAllocator"/> với các cấu hình phân bổ bộ đệm và tổng số bộ đệm.
@@ -158,7 +159,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// </summary>
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferMetrics poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
 
         double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         int targetBuffers = (int)(targetAllocation * _totalBuffers);
@@ -186,8 +187,7 @@ public sealed class BufferAllocator : IBufferAllocator
                 TraceOccurred?.Invoke(
                     $"Shrank buffer pool for size {poolInfo.BufferSize}, " +
                     $"reduced by {buffersToShrink}, " +
-                    $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.",
-                    NotioEvents.Buffer.Shrink);
+                    $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
             }
             finally
             {
@@ -198,8 +198,7 @@ public sealed class BufferAllocator : IBufferAllocator
         {
             TraceOccurred?.Invoke(
                 $"No buffers were shrunk for pool size {poolInfo.BufferSize}. " +
-                $"Current capacity is optimal.",
-                NotioEvents.Buffer.Shrink);
+                $"Current capacity is optimal.");
         }
     }
 
@@ -208,7 +207,7 @@ public sealed class BufferAllocator : IBufferAllocator
     /// </summary>
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferMetrics poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
 
         int threshold = poolInfo.TotalBuffers >> 2; // 25% threshold
 
@@ -240,8 +239,7 @@ public sealed class BufferAllocator : IBufferAllocator
                     TraceOccurred?.Invoke(
                         $"Increased buffer pool for size {poolInfo.BufferSize}, " +
                         $"added {maxIncrease}, " +
-                        $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.",
-                        NotioEvents.Buffer.Increase);
+                        $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.");
                 }
             }
             finally
@@ -255,8 +253,7 @@ public sealed class BufferAllocator : IBufferAllocator
             TraceOccurred?.Invoke(
                 $"No increase needed for pool size {poolInfo.BufferSize}. " +
                 $"Free buffers: {poolInfo.FreeBuffers}, " +
-                $"threshold: {threshold}.",
-                NotioEvents.Buffer.Increase);
+                $"threshold: {threshold}.");
         }
     }
 

@@ -17,7 +17,7 @@ public abstract class ConfigContainer
     /// <param name="configFile">Tệp cấu hình ini được sử dụng để khởi tạo.</param>
     internal void Initialize(ConfigIniFile configFile)
     {
-        Type type = GetType();  // Sử dụng reflection để lấy cấu hình
+        Type type = GetType();
 
         string section = type.Name;
         if (section.EndsWith("Configuration", StringComparison.OrdinalIgnoreCase))
@@ -25,17 +25,26 @@ public abstract class ConfigContainer
 
         foreach (var property in type.GetProperties())
         {
-            if (property.IsDefined(typeof(ConfigIgnoreAttribute))) continue;  // Bỏ qua các thuộc tính được chỉ định
+            if (property.IsDefined(typeof(ConfigIgnoreAttribute))) 
+                continue;  // Bỏ qua các thuộc tính được chỉ định
 
             object? value = Type.GetTypeCode(property.PropertyType) switch
             {
+                TypeCode.Char => configFile.GetChar(section, property.Name),
+                TypeCode.Byte => configFile.GetByte(section, property.Name),
+                TypeCode.SByte => configFile.GetSByte(section, property.Name),
                 TypeCode.String => configFile.GetString(section, property.Name),
                 TypeCode.Boolean => configFile.GetBool(section, property.Name),
+                TypeCode.Decimal => configFile.GetDecimal(section, property.Name),          
+                TypeCode.Int16 => configFile.GetInt16(section, property.Name),     
+                TypeCode.UInt16 => configFile.GetUInt16(section, property.Name),   
                 TypeCode.Int32 => configFile.GetInt32(section, property.Name),
                 TypeCode.UInt32 => configFile.GetUInt32(section, property.Name),
                 TypeCode.Int64 => configFile.GetInt64(section, property.Name),
                 TypeCode.UInt64 => configFile.GetUInt64(section, property.Name),
                 TypeCode.Single => configFile.GetSingle(section, property.Name),
+                TypeCode.Double => configFile.GetDouble(section, property.Name),
+                TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
                 _ => throw new NotImplementedException($"Value type {property.PropertyType} is not supported for configuration files."),
             };
 

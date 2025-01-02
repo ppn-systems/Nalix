@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Shared.Memory.Extension;
+namespace Notio.Shared.Memory.Cache;
 
-internal class ByteArrayComparer : IEqualityComparer<byte[]>
+internal sealed class ByteArrayComparer : IEqualityComparer<byte[]>
 {
     public bool Equals(byte[]? x, byte[]? y) => x == null ? y == null : y != null && x.SequenceEqual(y);
 

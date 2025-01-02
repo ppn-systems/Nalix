@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Shared.Memory;
+namespace Notio.Shared.Memory.Pool;
 
 /// <summary>
 /// Lưu trữ các instance <see cref="IPoolable"/> để tái sử dụng sau.
@@ -36,7 +36,7 @@ public sealed class ObjectPool
             T @object = new();
 
             TotalCount++;
-            TraceOccurred?.Invoke($"Get<T>(): Created a new instance of {typeof(T).Name} (TotalCount={TotalCount})");
+            TraceOccurred?.Invoke($"Get<TClass>(): Created a new instance of {typeof(T).Name} (TotalCount={TotalCount})");
 
             return @object;
         }

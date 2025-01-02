@@ -24,6 +24,11 @@ public static class DefaultDirectories
     public static readonly string DataPath = Path.Combine(BasePath, "Data");
 
     /// <summary>
+    /// Đường dẫn lưu trữ tệp cấu hình hệ thống.
+    /// </summary>
+    public static readonly string ConfigPath = Path.Combine(BasePath, "Config");
+
+    /// <summary>
     /// Đường dẫn lưu trữ tệp tạm thời.
     /// </summary>
     public static readonly string TempPath = Path.Combine(DataPath, "Temp");

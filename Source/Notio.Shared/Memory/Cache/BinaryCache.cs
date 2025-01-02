@@ -1,31 +1,15 @@
-﻿using Notio.Shared.Memory.Extension;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
 /// <summary>
 /// Khởi tạo một bộ nhớ cache với dung lượng xác định.
 /// </summary>
-public class BinaryCache(int capacity)
+public sealed class BinaryCache(int capacity)
 {
-    private int _capacity = capacity;
+    private readonly int _capacity = capacity;
     private readonly LinkedList<byte[]> _usageOrder = new();
     private readonly Dictionary<byte[], LinkedListNode<byte[]>> _cacheMap = new(new ByteArrayComparer());
-
-    /// <summary>
-    /// Thay đổi dung lượng của bộ nhớ cache.
-    /// </summary>
-    /// <param name="capacity">Dung lượng mới của bộ nhớ cache.</param>
-    /// <remarks>
-    /// Nếu dung lượng mới nhỏ hơn số lượng phần tử hiện tại, các phần tử ít được sử dụng nhất sẽ bị loại bỏ.
-    /// </remarks>
-    public void Resize(int capacity)
-    {
-        _capacity = capacity;
-
-        while (_cacheMap.Count > _capacity)
-            EvictLeastUsedItem();
-    }
 
     /// <summary>
     /// Thêm một phần tử vào bộ nhớ cache.
@@ -49,6 +33,20 @@ public class BinaryCache(int capacity)
             _usageOrder.AddFirst(newNode);
             _cacheMap[key] = newNode;
         }
+    }
+
+    /// <summary>
+    /// Lấy giá trị từ bộ nhớ cache với khóa cho trước.
+    /// </summary>
+    /// <param name="key">Khóa của phần tử.</param>
+    /// <returns>Giá trị của phần tử nếu tìm thấy.</returns>
+    /// <exception cref="KeyNotFoundException">Ném ngoại lệ nếu không tìm thấy khóa.</exception>
+    public byte[] GetValue(byte[] key)
+    {
+        if (_cacheMap.TryGetValue(key, out var node))
+            return node.Value;    
+
+        throw new KeyNotFoundException("The key was not found in the cache.");
     }
 
     /// <summary>

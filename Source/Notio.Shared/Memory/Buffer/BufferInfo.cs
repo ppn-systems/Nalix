@@ -3,7 +3,7 @@
 /// <summary>
 /// Information about the Buffer Pool
 /// </summary>
-public readonly record struct BufferMetrics
+public readonly record struct BufferInfo
 {
     /// <summary>
     /// Number of free buffers

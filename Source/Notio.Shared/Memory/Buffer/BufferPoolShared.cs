@@ -17,7 +17,7 @@ public sealed class BufferPoolShared : IDisposable
     private readonly ArrayPool<byte> _arrayPool;
     private readonly int _bufferSize;
 
-    private BufferMetrics _poolInfo;
+    private BufferInfo _poolInfo;
     private int _totalBuffers;
     private bool _disposed;
     private int _misses;
@@ -146,10 +146,10 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Lấy thông tin về pool bộ đệm và lưu trữ thông tin này trong một field private.
     /// </summary>
-    /// <returns>Tham chiếu chỉ đọc tới BufferMetrics.</returns>
-    public BufferMetrics GetPoolInfo()
+    /// <returns>Tham chiếu chỉ đọc tới BufferInfo.</returns>
+    public BufferInfo GetPoolInfo()
     {
-        return new BufferMetrics
+        return new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,
             TotalBuffers = _totalBuffers,
@@ -161,11 +161,11 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Lấy thông tin về pool bộ đệm và lưu trữ thông tin này trong một field private.
     /// </summary>
-    /// <returns>Tham chiếu chỉ đọc tới BufferMetrics.</returns>
-    public ref readonly BufferMetrics GetPoolInfoRef()
+    /// <returns>Tham chiếu chỉ đọc tới BufferInfo.</returns>
+    public ref readonly BufferInfo GetPoolInfoRef()
     {
-        // Cache thông tin pool trong một field private
-        _poolInfo = new BufferMetrics
+        // FifoCache thông tin pool trong một field private
+        _poolInfo = new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,
             TotalBuffers = _totalBuffers,
