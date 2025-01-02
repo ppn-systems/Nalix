@@ -1,8 +1,7 @@
-﻿using Notio.Common.Networking;
-using Notio.Common.Networking.Enums;
+﻿using Notio.Common.INetwork;
+using Notio.Common.INetwork.Enums;
 using Notio.Common.IMemory;
 using Notio.Infrastructure.Time;
-using Notio.Logging;
 using Notio.Network.Connection.Args;
 using Notio.Security;
 using System;
@@ -11,7 +10,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
-using Notio.Common.Networking.Args;
+using Notio.Common.INetwork.Args;
 using Notio.Shared.Memory.Cache;
 using Notio.Infrastructure.Identification;
 
@@ -41,7 +40,7 @@ public class Connection : IConnection, IDisposable
     private CancellationTokenSource _ctokens;
 
     /// <summary>
-    /// Khởi tạo một đối tượng Networking mới.
+    /// Khởi tạo một đối tượng INetwork mới.
     /// </summary>
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
@@ -79,6 +78,8 @@ public class Connection : IConnection, IDisposable
     /// </summary>
     public long LastPingTime => _lastPingTime;
 
+    public string Id => _id.ToString(true);
+
     /// <summary>
     /// Điểm cuối từ xa của kết nối.
     /// </summary>
@@ -111,8 +112,6 @@ public class Connection : IConnection, IDisposable
             }
         }
     }
-
-    public string Id => _id.ToHex();
 
     public event EventHandler<IErrorEventArgs>? OnErrorEvent;
 
@@ -158,23 +157,26 @@ public class Connection : IConnection, IDisposable
     /// <summary>
     /// Đóng kết nối nhận dữ liệu.
     /// </summary>
-    public void CloseReceive()
+    public void Close()
     {
         try
         {
-            //todo needs to remove this connection from pool
-            if (!_socket.Connected)
-            {
-                if (_stream.CanRead) _stream.Close();
-                return;
-            }
+            // TODO: Remove this connection from the pool.
 
-            // Tells the subscribers of this event that this connection has been closed.
-            OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            // Kiểm tra trạng thái kết nối thực tế của socket.
+            if (_socket == null || !_socket.Connected || _socket.Poll(1000, SelectMode.SelectRead) && _socket.Available == 0)
+            {
+                // Đảm bảo stream được đóng nếu socket không còn kết nối.
+                _stream?.Close();
+
+                // Thông báo trước khi đóng socket.
+                OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            } 
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error("Unable to close socket connection", ex);
+            // Log lỗi.
+            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
         }
     }
 
@@ -183,8 +185,7 @@ public class Connection : IConnection, IDisposable
         try
         {
             _ctokens.Cancel();  // Hủy bỏ token khi kết nối đang chờ hủy
-            _stream.Close();    // Đóng luồng mạng
-            _socket.Close();    // Đóng socket
+            this.CloseSocket();
         }
         catch (Exception ex)
         {
@@ -248,7 +249,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.Undefined, ex.Message));
+            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
         }
         finally
         {
@@ -257,6 +258,19 @@ public class Connection : IConnection, IDisposable
             _stream.Dispose();
             _socket.Dispose();
             GC.SuppressFinalize(this);
+        }
+    }
+
+    private void CloseSocket()
+    {
+        try
+        {
+            _socket.Shutdown(SocketShutdown.Both);
+            _socket.Close();
+        }
+        catch (Exception ex)
+        {
+            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
         }
     }
 

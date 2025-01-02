@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Networking.Enums;
+﻿namespace Notio.Common.INetwork.Enums;
 
 /// <summary>
 /// Các loại lỗi có thể xảy ra khi kết nối.

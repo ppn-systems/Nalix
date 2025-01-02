@@ -50,7 +50,7 @@ public static class Aes256
             aes.GenerateKey();
             return aes.Key;
         }
-        catch (Exceptions ex)
+        catch (Exception ex)
         {
             throw new CryptoOperationException("Failed to generate encryption key", ex);
         }
@@ -68,7 +68,7 @@ public static class Aes256
             rng.GetBytes(iv);
             return iv;
         }
-        catch (Exceptions ex)
+        catch (Exception ex)
         {
             throw new CryptoOperationException("Failed to generate secure IV", ex);
         }
@@ -98,7 +98,7 @@ public static class Aes256
             aes.Padding = PaddingMode.None;
             return aes;
         }
-        catch (Exceptions ex)
+        catch (Exception ex)
         {
             throw new CryptoOperationException("Failed to create AES encryptor", ex);
         }
@@ -145,7 +145,7 @@ public static class Aes256
 
             return ms.ToArray();
         }
-        catch (Exceptions ex) when (ex is not CryptoOperationException)
+        catch (Exception ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Encryption failed", ex);
         }
@@ -199,7 +199,7 @@ public static class Aes256
 
             return resultStream.ToArray();
         }
-        catch (Exceptions ex) when (ex is not CryptoOperationException)
+        catch (Exception ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Decryption failed", ex);
         }
@@ -252,7 +252,7 @@ public static class Aes256
 
             return ms.ToArray();
         }
-        catch (Exceptions ex) when (ex is not CryptoOperationException)
+        catch (Exception ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Async encryption failed", ex);
         }
@@ -305,7 +305,7 @@ public static class Aes256
 
             return resultStream.ToArray();
         }
-        catch (Exceptions ex) when (ex is not CryptoOperationException)
+        catch (Exception ex) when (ex is not CryptoOperationException)
         {
             throw new CryptoOperationException("Async decryption failed", ex);
         }

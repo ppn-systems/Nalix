@@ -1,4 +1,4 @@
-﻿using Notio.Common.Networking;
+﻿using Notio.Common.INetwork;
 using Notio.Common.IMemory;
 using Notio.Logging;
 using Notio.Network.Protocols;
@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Common.Networking.Args;
+using Notio.Common.INetwork.Args;
 
 namespace Notio.Network.Listeners;
 
@@ -50,7 +50,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferAllocator bu
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Notio.Network.Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Networking class
+        Notio.Network.Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the INetwork class
 
         connection.OnCloseEvent += OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;

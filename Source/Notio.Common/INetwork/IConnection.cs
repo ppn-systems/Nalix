@@ -1,10 +1,10 @@
-﻿using Notio.Common.Networking.Args;
-using Notio.Common.Networking.Enums;
+﻿using Notio.Common.INetwork.Args;
+using Notio.Common.INetwork.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Common.Networking;
+namespace Notio.Common.INetwork;
 
 /// <summary>
 /// Giao diện quản lý kết nối.
@@ -59,7 +59,7 @@ public interface IConnection : IDisposable
     // <summary>
     /// Kết thúc lắng nghe tin nhắn
     /// </summary>
-    void CloseReceive();
+    void Close();
 
     /// <summary>
     /// Gửi tin nhắn

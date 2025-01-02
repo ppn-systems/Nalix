@@ -23,6 +23,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
+		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,11 +1,11 @@
-﻿using Notio.Common.Metadata;
+﻿using Notio.Logging.Metadata;
 
-namespace Notio.Common;
+namespace Notio.Logging;
 
 /// <summary>
 /// Represents common application events with predefined event identifiers.
 /// </summary>
-public static class NotioEvents
+public static class NotioEvent
 {
     /// <summary>
     /// Events related to buffer operations.
