@@ -1,23 +1,23 @@
-﻿using Notio.Common.INetwork;
+﻿using Notio.Common.IMemory;
+using Notio.Common.INetwork;
+using Notio.Common.INetwork.Args;
 using Notio.Common.INetwork.Enums;
-using Notio.Common.IMemory;
+using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
 using Notio.Network.Connection.Args;
 using Notio.Security;
+using Notio.Shared.Memory.Cache;
 using System;
 using System.Linq;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using Notio.Common.INetwork.Args;
-using Notio.Shared.Memory.Cache;
-using Notio.Infrastructure.Identification;
 
 namespace Notio.Network.Connection;
 
 public class Connection : IConnection, IDisposable
-{ 
+{
     private const byte HEADER_LENGHT = 2;
     private const short KEY_RSA_SIZE = 4096;
     private const short KEY_RSA_SIZE_BYTES = KEY_RSA_SIZE / 8;
@@ -171,7 +171,7 @@ public class Connection : IConnection, IDisposable
 
                 // Thông báo trước khi đóng socket.
                 OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
-            } 
+            }
         }
         catch (Exception ex)
         {
@@ -364,7 +364,7 @@ public class Connection : IConnection, IDisposable
                             if (State == ConnectionState.Authenticated)
                                 this.UpdateState(ConnectionState.Connected);
 
-                            this.OnErrorEvent?.Invoke(this, 
+                            this.OnErrorEvent?.Invoke(this,
                                 new ConnectionErrorEventArgs(ConnectionError.AuthenticationError, ex.Message));
                         }
                         break;

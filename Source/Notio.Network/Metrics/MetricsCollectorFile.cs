@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Notio.Logging;
+using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using Notio.Logging;
 
 namespace Notio.Network.Metrics;
 

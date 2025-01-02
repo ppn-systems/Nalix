@@ -2,15 +2,15 @@
 
 namespace Notio.Network.Metrics;
 
-public class MetricsFirewall
+public class MetricsManager
 {
     private readonly MetricsCollectorFile _collector = new();
-    private static readonly Lazy<MetricsFirewall> _instance = new(() => new());
+    private static readonly Lazy<MetricsManager> _instance = new(() => new());
 
     /// <summary>
-    /// Lấy instance duy nhất của lớp MetricsFirewall.
+    /// Lấy instance duy nhất của lớp MetricsManager.
     /// </summary>
-    public static MetricsFirewall Instance => _instance.Value;
+    public static MetricsManager Instance => _instance.Value;
 
     public void TrackBandwidthUsage(string endPoint, long bytes, bool isUpload)
     {

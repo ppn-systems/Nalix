@@ -37,6 +37,7 @@ public class FirewallConfig : ConfigContainer
     public int TimeWindowInMilliseconds { get; set; } = 60000; // 1 phút
 
     // Cấu hình Chung
+    public bool EnableLogging { get; set; } = true;
     public bool EnableMetrics { get; set; } = true;
 
     // Cấu hình mức độ giới hạn
@@ -66,16 +67,19 @@ public class FirewallConfig : ConfigContainer
                 LockoutDurationSeconds = 600;
                 TimeWindowInMilliseconds = 30000;
                 break;
+
             case RequestLimit.Medium:
                 MaxAllowedRequests = 100;
                 LockoutDurationSeconds = 300;
                 TimeWindowInMilliseconds = 60000;
                 break;
+
             case RequestLimit.High:
                 MaxAllowedRequests = 500;
                 LockoutDurationSeconds = 150;
                 TimeWindowInMilliseconds = 120000;
                 break;
+
             case RequestLimit.Unlimited:
                 MaxAllowedRequests = 1000;
                 LockoutDurationSeconds = 60;
@@ -94,18 +98,21 @@ public class FirewallConfig : ConfigContainer
                 UploadBurstSize = 1024 * 1024; // 1MB burst
                 DownloadBurstSize = 1024 * 1024;
                 break;
+
             case BandwidthLimit.Medium:
                 MaxUploadBytesPerSecond = 1024 * 1024; // 1MB/s
                 MaxDownloadBytesPerSecond = 1024 * 1024;
                 UploadBurstSize = 2 * 1024 * 1024; // 2MB burst
                 DownloadBurstSize = 2 * 1024 * 1024;
                 break;
+
             case BandwidthLimit.High:
                 MaxUploadBytesPerSecond = 5 * 1024 * 1024; // 5MB/s
                 MaxDownloadBytesPerSecond = 5 * 1024 * 1024;
                 UploadBurstSize = 10 * 1024 * 1024; // 10MB burst
                 DownloadBurstSize = 10 * 1024 * 1024;
                 break;
+
             case BandwidthLimit.Unlimited:
                 MaxUploadBytesPerSecond = long.MaxValue;
                 MaxDownloadBytesPerSecond = long.MaxValue;
@@ -122,12 +129,15 @@ public class FirewallConfig : ConfigContainer
             case ConnectionLimit.Low:
                 MaxConnectionsPerIpAddress = 20;
                 break;
+
             case ConnectionLimit.Medium:
                 MaxConnectionsPerIpAddress = 100;
                 break;
+
             case ConnectionLimit.High:
                 MaxConnectionsPerIpAddress = 500;
                 break;
+
             case ConnectionLimit.Unlimited:
                 MaxConnectionsPerIpAddress = 1000;
                 break;

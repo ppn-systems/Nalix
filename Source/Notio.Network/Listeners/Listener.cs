@@ -1,5 +1,6 @@
-﻿using Notio.Common.INetwork;
-using Notio.Common.IMemory;
+﻿using Notio.Common.IMemory;
+using Notio.Common.INetwork;
+using Notio.Common.INetwork.Args;
 using Notio.Logging;
 using Notio.Network.Protocols;
 using System;
@@ -7,7 +8,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Common.INetwork.Args;
 
 namespace Notio.Network.Listeners;
 
