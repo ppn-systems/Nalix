@@ -50,9 +50,9 @@ public abstract class Listener(int port, IProtocol protocol, IBufferAllocator bu
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Notio.Network.Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the INetwork class
+        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the INetwork class
 
-        connection.OnCloseEvent += OnConnectionClose!;
+        connection.OnCloseEvent += this.OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
         return connection;
@@ -61,7 +61,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferAllocator bu
     private void OnConnectionClose(object? sender, IConnctEventArgs args)
     {
         // De-subscribe to this event first.
-        args.Connection.OnCloseEvent -= OnConnectionClose!;
+        args.Connection.OnCloseEvent -= this.OnConnectionClose!;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
     }
