@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Infrastructure.Identification.Extensions;
+namespace Notio.Infrastructure.Identification;
 
 internal static class ValidationExtensions
 {

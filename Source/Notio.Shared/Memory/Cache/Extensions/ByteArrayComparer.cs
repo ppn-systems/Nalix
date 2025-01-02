@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Shared.Memory.Cache;
+namespace Notio.Shared.Memory.Cache.Extensions;
 
 internal sealed class ByteArrayComparer : IEqualityComparer<byte[]>
 {
