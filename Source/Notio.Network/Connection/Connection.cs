@@ -80,6 +80,9 @@ public class Connection : IConnection, IDisposable
     /// </summary>
     public long LastPingTime => _lastPingTime;
 
+    /// <summary>
+    /// Id.
+    /// </summary>
     public string Id => _id.ToString(true);
 
     /// <summary>
@@ -93,6 +96,19 @@ public class Connection : IConnection, IDisposable
                 (_socket?.Connected ?? false)
                 ? _socket.RemoteEndPoint?.ToString()
                 ?? "0.0.0.0" : "Disconnected";
+        }
+    }
+
+    /// <summary>
+    /// Gói tin đến.
+    /// </summary>
+    public byte[] IncomingPacket
+    {
+        get 
+        {
+            if (_cacheIncomingPacket.Count > 0)
+                return _cacheIncomingPacket.GetValue();
+            return [];
         }
     }
 

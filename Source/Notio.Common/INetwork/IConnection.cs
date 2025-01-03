@@ -11,6 +11,9 @@ namespace Notio.Common.INetwork;
 /// </summary>
 public interface IConnection : IDisposable
 {
+    string Id { get; }
+    byte[] IncomingPacket { get; }
+
     /// <summary>
     /// Khóa mã hóa tin nhắn
     /// </summary>
