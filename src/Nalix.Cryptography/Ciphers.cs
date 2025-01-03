@@ -204,15 +204,26 @@ public static class Ciphers
     private static System.ReadOnlyMemory<System.Byte> EncryptChaCha20Poly1305(
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
-        System.Span<System.Byte> nonce = SecureRandom.CreateNonce(ChaCha20NonceSize);
+        // Nonce 12 bytes (unique per key!)
+        System.Span<System.Byte> nonce = stackalloc System.Byte[ChaCha20NonceSize];
+        SecureRandom.Fill(nonce);
 
-        ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null,
-            out System.Byte[] ciphertext, out System.Byte[] tag);
+        System.Span<System.Byte> ciphertext = stackalloc System.Byte[data.Length];
+        System.Span<System.Byte> tag = stackalloc System.Byte[ChaCha20Poly1305.TagSize];
 
-        var result = new System.Byte[ChaCha20NonceSize + ciphertext.Length + ChaCha20TagSize];
+        ChaCha20Poly1305.Encrypt(
+            key,
+            nonce,
+            data.Span,
+            [],
+            ciphertext,
+            tag);
+
+        // Pack = nonce || ciphertext || tag
+        System.Byte[] result = new System.Byte[ChaCha20NonceSize + ciphertext.Length + ChaCha20Poly1305.TagSize];
         nonce.CopyTo(result);
-        System.Array.Copy(ciphertext, 0, result, ChaCha20NonceSize, ciphertext.Length);
-        System.Array.Copy(tag, 0, result, ChaCha20NonceSize + ciphertext.Length, ChaCha20TagSize);
+        System.Array.Copy(ciphertext.ToArray(), 0, result, ChaCha20NonceSize, ciphertext.Length);
+        System.Array.Copy(tag.ToArray(), 0, result, ChaCha20NonceSize + ciphertext.Length, ChaCha20Poly1305.TagSize);
 
         return result;
     }
@@ -361,22 +372,35 @@ public static class Ciphers
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         System.ReadOnlySpan<System.Byte> input = data.Span;
-        const System.Int32 minSize = ChaCha20NonceSize + ChaCha20TagSize;
+        const System.Int32 minSize = ChaCha20NonceSize + ChaCha20Poly1305.TagSize;
 
         if (input.Length < minSize)
         {
             throw new System.ArgumentException(
-                $"Invalid data length. Encrypted data must contain a nonce ({ChaCha20NonceSize} bytes) and a tag ({ChaCha20TagSize} bytes).",
+                $"Invalid data length. " +
+                $"Encrypted data must contain a nonce ({ChaCha20NonceSize} bytes) and a tag ({ChaCha20Poly1305.TagSize} bytes).",
                 nameof(data));
         }
 
+        // Extract layout: nonce || ciphertext || tag
         System.ReadOnlySpan<System.Byte> nonce = input[..ChaCha20NonceSize];
-        System.ReadOnlySpan<System.Byte> tag = input.Slice(input.Length - ChaCha20TagSize, ChaCha20TagSize);
-        System.ReadOnlySpan<System.Byte> ciphertext = input.Slice(ChaCha20NonceSize, input.Length - ChaCha20NonceSize - ChaCha20TagSize);
+        System.ReadOnlySpan<System.Byte> tag = input.Slice(input.Length - ChaCha20Poly1305.TagSize, ChaCha20Poly1305.TagSize);
+        System.ReadOnlySpan<System.Byte> ciphertext = input.Slice(
+            ChaCha20NonceSize,
+            input.Length - ChaCha20NonceSize - ChaCha20Poly1305.TagSize);
 
-        return !ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out System.Byte[] plaintext)
-            ? throw new CryptoException("Decryption failed. Security of the encrypted data has failed.")
-            : (System.ReadOnlyMemory<System.Byte>)plaintext;
+        // Prepare plaintext buffer
+        System.Byte[] plaintext = new System.Byte[ciphertext.Length];
+
+        System.Boolean ok = ChaCha20Poly1305.Decrypt(
+            key,
+            nonce,
+            ciphertext,
+            [], // no AAD
+            tag,
+            plaintext);
+
+        return !ok ? throw new CryptoException("Decryption failed. Authentication tag mismatch.") : (System.ReadOnlyMemory<System.Byte>)plaintext;
     }
 
     private static System.ReadOnlyMemory<System.Byte> DecryptSalsa20(
