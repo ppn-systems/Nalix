@@ -104,7 +104,7 @@ public class Connection : IConnection, IDisposable
     /// </summary>
     public byte[] IncomingPacket
     {
-        get 
+        get
         {
             if (_cacheIncomingPacket.Count > 0)
                 return _cacheIncomingPacket.GetValue();
@@ -315,7 +315,7 @@ public class Connection : IConnection, IDisposable
         byte[] newBuffer = _bufferAllocator.Rent(newSize);
         Array.Copy(_buffer, newBuffer, _buffer.Length);
         _bufferAllocator.Return(_buffer);
-        _buffer = newBuffer;    
+        _buffer = newBuffer;
     }
 
     private async Task OnReceiveCompleted(Task<int> task)
