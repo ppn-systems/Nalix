@@ -27,10 +27,10 @@ public class Connection : IConnection, IDisposable
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
     private readonly BinaryCache _cacheOutgoingPacket;
-    private readonly FifoCache<byte[]> _cacheIncomingPacket;
     private readonly ReaderWriterLockSlim _rwLockState;
     private readonly IBufferAllocator _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
+    private readonly FifoCache<byte[]> _cacheIncomingPacket;
 
     private byte[] _buffer;
     private bool _disposed;
