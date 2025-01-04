@@ -1,7 +1,7 @@
 ﻿namespace Notio.Common.IMemory;
 
 /// <summary>
-/// Giao diện cho các đối tượng có thể được lưu trữ trong một <see cref="ObjectPool"/>.
+/// Giao diện cho các đối tượng có thể được lưu trữ.
 /// </summary>
 public interface IPoolable
 {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Notio.Shared.Memory.Extensions;
+using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
