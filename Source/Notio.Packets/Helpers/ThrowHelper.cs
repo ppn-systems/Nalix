@@ -16,4 +16,11 @@ internal static class ThrowHelper
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowInvalidLength() =>
         throw new ArgumentException("Invalid packet length");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowArgumentNullException(string paramName) =>
+        throw new ArgumentNullException(paramName);
+
+    public static void ThrowArgumentException(string message) =>
+        throw new ArgumentException(message);
 }

@@ -225,7 +225,7 @@ public class Connection : IConnection, IDisposable
         try
         {
             if (_state == ConnectionState.Authenticated)
-                data = AesCTR.Encrypt(data, _aes256Key);
+                data = Aes256.Encrypt(data, _aes256Key);
 
             if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
                 _cacheOutgoingPacket.Add(data, data);
@@ -244,7 +244,7 @@ public class Connection : IConnection, IDisposable
         try
         {
             if (_state == ConnectionState.Authenticated)
-                data = await AesCTR.EncryptAsync(data, _aes256Key);
+                data = await Aes256.EncryptAsync(data, _aes256Key);
 
             if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
                 _cacheOutgoingPacket.Add(data, data);
@@ -364,7 +364,7 @@ public class Connection : IConnection, IDisposable
                             if (size < KEY_RSA_SIZE_BYTES) break;
 
                             _rsa4096 = new Rsa4096(KEY_RSA_SIZE);
-                            _aes256Key = AesCTR.GenerateKey();
+                            _aes256Key = Aes256.GenerateKey();
 
                             _rsa4096.ImportPublicKey(_buffer
                                     .Skip(Math.Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
@@ -390,7 +390,7 @@ public class Connection : IConnection, IDisposable
                     case ConnectionState.Authenticated:
                         try
                         {
-                            byte[] decrypted = await AesCTR.DecryptAsync(
+                            byte[] decrypted = await Aes256.DecryptAsync(
                                 _aes256Key, _buffer.Take(totalBytesRead).ToArray());
 
                             _cacheIncomingPacket.Add(decrypted);
