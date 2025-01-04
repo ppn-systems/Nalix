@@ -10,7 +10,7 @@ namespace Notio.Security;
 /// <summary>
 /// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CTR
 /// </summary>
-public static class Aes256
+public static class AesCTR
 {
     private const int BlockSize = 16;  // AES block size in bytes
     private const int KeySize = 32;    // AES-256 key size in bytes
