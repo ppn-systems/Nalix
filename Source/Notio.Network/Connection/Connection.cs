@@ -411,8 +411,6 @@ public class Connection : IConnection, IDisposable
                         break;
 
                     default:
-                        _cacheIncomingPacket.Add(_buffer.Take(totalBytesRead).ToArray());
-                        this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
                         break;
                 }
             }
