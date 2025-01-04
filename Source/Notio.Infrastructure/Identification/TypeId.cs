@@ -6,32 +6,37 @@
 public enum TypeId
 {
     /// <summary>
-    /// ID chung không có mục đích cụ thể.
+    /// Không có mục đích cụ thể.
     /// </summary>
     Generic = 0,
 
     /// <summary>
-    /// ID phiên bản hệ thống hoặc cấu hình chung.
+    /// Dành cho các cấu hình hoặc phiên bản hệ thống.
     /// </summary>
     System = 1,
 
     /// <summary>
-    /// ID tài khoản hoặc người chơi trong cơ sở dữ liệu.
+    /// Dành cho quản lý tài khoản người dùng.
     /// </summary>
     Account = 2,
 
     /// <summary>
-    /// ID kết nối khách hàng.
+    /// Dành cho quản lý phiên.
     /// </summary>
     Session = 3,
 
     /// <summary>
-    /// ID dành cho các đoạn chat.
+    /// Dành cho quản lý các đoạn chat, tin nhắn.
     /// </summary>
     Chat = 4,
 
     /// <summary>
-    /// Giới hạn loại ID, không được vượt qua giá trị này.
+    /// Dành cho các gói tin giao tiếp trong mạng lưới.
+    /// </summary>
+    Packet = 5,
+
+    /// <summary>
+    /// Giới hạn về số loại ID, không vượt quá giá trị này.
     /// </summary>
     Limit = 1 << 5
 }

@@ -81,7 +81,18 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         if (input.IsEmpty)
             throw new ArgumentNullException(nameof(input));
 
-        bool isHex = input.Length == 8 && input.IsHexString();
+        bool isHex = input.Length == 8;
+        if (isHex)
+        {
+            foreach (char c in input)
+            {
+                if (!Uri.IsHexDigit(c))
+                {
+                    isHex = false;
+                    break;
+                }
+            }
+        }
 
         return isHex
             ? new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber))

@@ -7,7 +7,6 @@ public static class InfoMemory
     /// <summary>
     /// Lấy thông tin về việc sử dụng bộ nhớ.
     /// </summary>
-    /// <returns>Chuỗi mô tả trạng thái bộ nhớ hoặc thông báo lỗi.</returns>
     public static string Usage()
     {
         string command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)

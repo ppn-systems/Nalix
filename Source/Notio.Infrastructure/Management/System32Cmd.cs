@@ -35,7 +35,6 @@ internal static class SystemInfo
     /// Phân tích chuỗi thông tin mặc định.
     /// </summary>
     /// <param name="info">Thông tin cần phân tích.</param>
-    /// <returns>Chuỗi đã phân tích hoặc "null" nếu không có dữ liệu.</returns>
     public static string ParseDefault(this string info)
         => !string.IsNullOrEmpty(info)
         ? info.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[1].Trim() : "null";
@@ -44,7 +43,6 @@ internal static class SystemInfo
     /// Phân tích chuỗi thông tin CPU.
     /// </summary>
     /// <param name="cpu">Chuỗi thông tin CPU cần phân tích.</param>
-    /// <returns>Chuỗi phần trăm tải CPU hoặc thông báo lỗi.</returns>
     public static string ParseCPU(this string cpu)
     {
         if (string.IsNullOrEmpty(cpu)) return "Error";
@@ -57,7 +55,6 @@ internal static class SystemInfo
     /// Phân tích chuỗi thông tin bộ nhớ.
     /// </summary>
     /// <param name="memory">Chuỗi thông tin bộ nhớ cần phân tích.</param>
-    /// <returns>Chuỗi mô tả trạng thái bộ nhớ hoặc thông báo lỗi.</returns>
     public static string ParseMemory(this string memory)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -81,7 +78,6 @@ internal static class SystemInfo
     /// Chạy lệnh hệ thống và trả về kết quả.
     /// </summary>
     /// <param name="command">Lệnh cần chạy.</param>
-    /// <returns>Kết quả đầu ra của lệnh.</returns>
     public static string RunCommand(string command)
     {
         try
