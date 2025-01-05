@@ -4,7 +4,7 @@ using Nalix.Common.Attributes;
 using Nalix.Common.Security.Enums;
 using Nalix.Shared.Configuration.Binding;
 
-namespace Nalix.SDK.Remote.Core;
+namespace Nalix.SDK.Remote;
 
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.

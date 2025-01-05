@@ -3,10 +3,10 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Abstractions;
-using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Dispatch;
 

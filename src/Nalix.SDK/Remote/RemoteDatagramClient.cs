@@ -7,7 +7,7 @@ using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Caches;
 
-namespace Nalix.SDK.Remote.Core;
+namespace Nalix.SDK.Remote;
 
 /// <summary>
 /// Represents a singleton UDP client transport used for sending and receiving packets of type <typeparamref name="TPacket"/>.

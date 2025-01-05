@@ -5,7 +5,7 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Models;
 using Nalix.Shared.Extensions;
 
-namespace Nalix.Network.Dispatch.Catalog;
+namespace Nalix.Shared.Messaging.Catalog;
 
 /// <summary>
 /// Provides an immutable, thread-safe catalog of packet deserializers and transformers.
