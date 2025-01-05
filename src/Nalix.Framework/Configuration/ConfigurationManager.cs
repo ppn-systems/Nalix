@@ -148,14 +148,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 _configLock.ExitWriteLock();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
+                                        .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
                                               $"reload-ok count={_configContainerDict.Count}");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
+                                    .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
                                            $"reload-fail msg={ex.Message}", ex);
             return false;
         }
