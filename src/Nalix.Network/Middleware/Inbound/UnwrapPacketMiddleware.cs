@@ -38,7 +38,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Fatal($"[{nameof(UnwrapPacketMiddleware)}] missing-catalog");
+                                        .Fatal($"[NW.{nameof(UnwrapPacketMiddleware)}] missing-catalog");
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
@@ -55,7 +55,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
+                                        .Error($"[NW.{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
@@ -75,7 +75,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasDecrypt)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
+                        $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
@@ -97,7 +97,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasDecompress)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
+                        $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
@@ -117,21 +117,21 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (!ReferenceEquals(current, context.Packet))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(UnwrapPacketMiddleware)}] packet-replaced " +
+                                        .Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-replaced " +
                                                $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
                 context.AssignPacket(current);
             }
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(UnwrapPacketMiddleware)}] packet-in-place " +
+                                        .Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-in-place " +
                                                $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
+                                    .Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
 
             await context.Connection.SendAsync(
                 ControlType.FAIL,

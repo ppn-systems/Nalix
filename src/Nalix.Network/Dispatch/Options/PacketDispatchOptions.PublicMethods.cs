@@ -31,7 +31,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging([System.Diagnostics.CodeAnalysis.NotNull] ILogger logger)
     {
         this.Logger = logger;
-        this.Logger.Debug($"[{nameof(PacketDispatchOptions<>)}:{WithLogging}] logger-attached");
+        this.Logger.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
 
         return this;
     }
@@ -58,7 +58,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        this.Logger?.Debug($"[{nameof(PacketDispatchOptions<>)}:{WithErrorHandling}] error-handler-set");
+        this.Logger?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         this._errorHandler = errorHandler;
 
         return this;
@@ -211,10 +211,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         System.Type controllerType = typeof(TController);
 
-        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions
-            .GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new System.InvalidOperationException(
-                $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
+        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
+            ?? throw new System.InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketHandler<TPacket>[] handlerDescriptors =
             HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
@@ -223,14 +221,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (this._handlerCache.ContainsKey(descriptor.OpCode))
             {
-                throw new System.InvalidOperationException(
-                    $"OP_CODE '{descriptor.OpCode}' has already been registered.");
+                throw new System.InvalidOperationException($"OP_CODE '{descriptor.OpCode}' has already been registered.");
             }
 
             this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        this.Logger?.Info($"[{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+        this.Logger?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                           $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
 
         return this;
@@ -308,7 +305,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        this.Logger?.Warn($"[{nameof(PacketDispatchOptions<>)}:{TryResolveHandlerDescriptor}] handler-not-found opcode={opCode}");
+        this.Logger?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
         return false;
     }
 }

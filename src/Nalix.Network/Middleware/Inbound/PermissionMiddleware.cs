@@ -30,8 +30,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             context.Attributes.Permission.Level > context.Connection.Level)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
-                                          $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+                                    .Trace($"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
+                                           $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
