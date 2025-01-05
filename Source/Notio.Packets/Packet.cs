@@ -1,5 +1,5 @@
 ﻿using Notio.Common.IMemory;
-using Notio.Shared.Memory.Pool;
+using Notio.Packets.Metadata;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -18,10 +18,18 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     private const int MaxInlinePayloadSize = 128;
     private static readonly ArrayPool<byte> SharedPool = ArrayPool<byte>.Shared;
 
+    public int Length
+    {
+        get
+        {
+            return (short)(PacketSize.Header + Payload.Length);
+        }
+    }
     public byte Type { get; }
     public byte Flags { get; }
     public short Command { get; }
     public ReadOnlyMemory<byte> Payload { get; }
+    public ushort Checksum { get; }
 
     private readonly bool _isPooled;
 
@@ -74,17 +82,14 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
             return false;
 
         if (Payload.Length <= sizeof(ulong))
-        {
             return MemoryMarshal.Read<ulong>(Payload.Span) ==
                    MemoryMarshal.Read<ulong>(other.Payload.Span);
-        }
+        
 
         // SIMD comparison cho payload lớn
         if (Vector128.IsHardwareAccelerated && Payload.Length >= Vector128<byte>.Count)
-        {
             return MemoryCompareVectorized(Payload.Span, other.Payload.Span);
-        }
-
+        
         return Payload.Span.SequenceEqual(other.Payload.Span);
     }
 

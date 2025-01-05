@@ -13,24 +13,6 @@ namespace Notio.Security;
 public static class AesCTR
 {
     /// <summary>
-    /// Tạo một khóa AES 256-bit mới
-    /// </summary>
-    public static byte[] GenerateKey()
-    {
-        try
-        {
-            using var aes = Aes.Create();
-            aes.KeySize = Aes256.KeySize * 8; // Convert bytes to bits
-            aes.GenerateKey();
-            return aes.Key;
-        }
-        catch (Exception ex)
-        {
-            throw new CryptoOperationException("Failed to generate encryption key", ex);
-        }
-    }
-
-    /// <summary>
     /// Mã hóa dữ liệu sử dụng AES-256 CTR mode
     /// </summary>
     public static byte[] Encrypt(byte[] key, byte[] plaintext)

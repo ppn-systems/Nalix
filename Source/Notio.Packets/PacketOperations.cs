@@ -20,7 +20,7 @@ public static class PacketOperations
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     /// <summary>
-    /// Chuyển đổi Packet thành mảng byte với hiệu suất tối ưu.
+    /// Chuyển đổi Packet thành mảng byte.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToByteArray(this in Packet packet)
@@ -44,7 +44,6 @@ public static class PacketOperations
         {
             PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
 
-            // Tối ưu memory bằng cách chỉ copy đúng kích thước cần thiết
             if (rentedArray.Length == totalSize)
                 return rentedArray;
 
@@ -58,7 +57,7 @@ public static class PacketOperations
     }
 
     /// <summary>
-    /// Tạo Packet từ mảng byte với validation mạnh mẽ.
+    /// Tạo Packet từ mảng byte.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet FromByteArray(this ReadOnlySpan<byte> data)
@@ -77,7 +76,7 @@ public static class PacketOperations
     }
 
     /// <summary>
-    /// Thử chuyển đổi Packet thành mảng byte với zero-allocation khi có thể.
+    /// Thử chuyển đổi Packet thành mảng byte.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryToByteArray(this in Packet packet, Span<byte> destination, out int bytesWritten)
@@ -109,7 +108,7 @@ public static class PacketOperations
     }
 
     /// <summary>
-    /// Thử tạo Packet từ mảng byte với validation và exception handling mạnh mẽ.
+    /// Thử tạo Packet từ mảng byte.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryFromByteArray(ReadOnlySpan<byte> source, out Packet packet)

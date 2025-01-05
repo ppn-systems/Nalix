@@ -5,11 +5,29 @@ using System.Security.Cryptography;
 
 namespace Notio.Security;
 
-internal static class Aes256
+public static class Aes256
 {
     internal const int BlockSize = 16;  // AES block size in bytes
     internal const int KeySize = 32;    // AES-256 key size in bytes
     internal static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+
+    /// <summary>
+    /// Tạo một khóa AES 256-bit mới
+    /// </summary>
+    public static byte[] GenerateKey()
+    {
+        try
+        {
+            using var aes = Aes.Create();
+            aes.KeySize = Aes256.KeySize * 8; // Convert bytes to bits
+            aes.GenerateKey();
+            return aes.Key;
+        }
+        catch (Exception ex)
+        {
+            throw new CryptoOperationException("Failed to generate encryption key", ex);
+        }
+    }
 
     internal static void ValidateKey(byte[] key)
     {

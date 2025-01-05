@@ -15,7 +15,6 @@ internal static unsafe class PacketSerializerUnsafe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void WritePacketUnsafe(byte* destination, in Packet packet)
     {
-        // Kiểm tra null và giới hạn
         if (destination == null)
             ThrowHelper.ThrowArgumentNullException(nameof(destination));
 
@@ -29,7 +28,7 @@ internal static unsafe class PacketSerializerUnsafe
         BinaryPrimitives.WriteInt16LittleEndian(headerSpan, (short)totalSize);
         headerSpan[PacketOffset.Type] = packet.Type;
         headerSpan[PacketOffset.Flags] = packet.Flags;
-        BinaryPrimitives.WriteInt16LittleEndian(headerSpan.Slice(PacketOffset.Command), packet.Command);
+        BinaryPrimitives.WriteInt16LittleEndian(headerSpan[PacketOffset.Command..], packet.Command);
 
         // Copy payload với kiểm tra bounds
         if (!packet.Payload.IsEmpty)
