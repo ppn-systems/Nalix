@@ -114,7 +114,7 @@ public static class SecureCredentials
         }
         catch (System.FormatException)
         {
-            return false; // Base64Value không hợp lệ
+            return false; // Base64 Value false
         }
     }
 
