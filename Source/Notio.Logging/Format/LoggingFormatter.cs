@@ -1,4 +1,5 @@
-﻿using Notio.Logging.Interfaces;
+﻿using Notio.Logging.Enums;
+using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
 using System.Runtime.CompilerServices;
@@ -11,17 +12,6 @@ namespace Notio.Logging.Format;
 /// </summary>
 public class LoggingFormatter : ILoggingFormatter
 {
-    private static readonly string[] LogLevelStrings =
-    [
-        "TRCE", // LoggingLevel.Trace (0)
-        "DBUG", // LoggingLevel.Debug (1)
-        "INFO", // LoggingLevel.Information (2)
-        "WARN", // LoggingLevel.Warning (3)
-        "FAIL", // LoggingLevel.Error (4)
-        "CRIT", // LoggingLevel.Critical (5)
-        "NONE"  // LoggingLevel.None (6)
-    ];
-
     /// <summary>
     /// Instance singleton của <see cref="LoggingFormatter"/> có thể tái sử dụng.
     /// </summary>
@@ -64,74 +54,8 @@ public class LoggingFormatter : ILoggingFormatter
     {
         StringBuilder logBuilder = new();
 
-        BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception);
+        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception);
 
         return logBuilder.ToString();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetShortLogLevel(LoggingLevel logLevel)
-    {
-        int index = (int)logLevel;
-        if ((uint)index < (uint)LogLevelStrings.Length)
-        {
-            return LogLevelStrings[index];
-        }
-        return logLevel.ToString().ToUpperInvariant();
-    }
-
-    private static void BuildLog(
-        StringBuilder builder,
-        in DateTime timeStamp,
-        LoggingLevel logLevel,
-        in EventId eventId,
-        string message,
-        Exception? exception)
-    {
-        // Sử dụng Span để tối ưu string manipulation
-        Span<char> dateBuffer = stackalloc char[23]; // yyyy-MM-dd HH:mm:ss.fff
-
-        // Format datetime trực tiếp vào Span
-        if (timeStamp.TryFormat(dateBuffer, out int charsWritten, "yyyy-MM-dd HH:mm:ss.fff"))
-        {
-            builder.Append('[')
-                   .Append(dateBuffer[..charsWritten])
-                   .Append(']')
-                   .Append("\t-\t");
-        }
-
-        // Append LoggingLevel
-        builder.Append('[')
-               .Append(GetShortLogLevel(logLevel))
-               .Append(']')
-               .Append("\t-\t");
-
-        // Append EventId
-        builder.Append('[');
-        if (eventId.Name is not null)
-        {
-            builder.Append(eventId.Id)
-                   .Append(':')
-                   .Append(eventId.Name);
-        }
-        else
-        {
-            builder.Append(eventId.Id);
-        }
-        builder.Append(']')
-               .Append("\t-\t");
-
-        // Append Data
-        builder.Append('[')
-               .Append(message)
-               .Append(']');
-
-        // Append Exception if exists
-        if (exception is not null)
-        {
-            builder.Append("\t-\t")
-                   .AppendLine()
-                   .Append(exception);
-        }
     }
 }

@@ -1,5 +1,5 @@
-﻿using Notio.Common.INetwork;
-using Notio.Common.INetwork.Args;
+﻿using Notio.Common.Network;
+using Notio.Common.Network.Args;
 using System;
 
 namespace Notio.Network.Connection.Args;

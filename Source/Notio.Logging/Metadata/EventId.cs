@@ -10,7 +10,7 @@ namespace Notio.Logging.Metadata;
 /// </remarks>
 /// <param name="id">Trình nhận dạng số của sự kiện này.</param>
 /// <param name="name">Tên của sự kiện này.</param>
-public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
+public readonly struct EventId(int id, string? name = null) : IEquatable<EventId>
 {
     /// <summary>
     /// Tạo ngầm một EventId từ <see cref="int"/> được cung cấp.
@@ -51,7 +51,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     /// <summary>
     /// Lấy tên của sự kiện này.
     /// </summary>
-    public string Name { get; } = name;
+    public string? Name { get; } = name;
 
     /// <inheritdoc />
     public override string ToString()
@@ -70,7 +70,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null)
         {

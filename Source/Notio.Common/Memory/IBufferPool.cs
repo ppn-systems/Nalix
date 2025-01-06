@@ -1,19 +1,14 @@
-﻿namespace Notio.Common.IMemory;
+﻿namespace Notio.Common.Memory;
 
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
 /// </summary>
-public interface IArrayPool
+public interface IBufferPool
 {
     /// <summary>
     /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.
     /// </summary>
     int MaxBufferSize { get; }
-
-    /// <summary>
-    /// Cấp phát bộ đệm cho bộ nhớ.
-    /// </summary>
-    void AllocateBuffers();
 
     /// <summary>
     /// Thuê một bộ đệm với kích thước cụ thể.

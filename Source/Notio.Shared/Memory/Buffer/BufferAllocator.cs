@@ -1,4 +1,4 @@
-﻿using Notio.Common.IMemory;
+﻿using Notio.Common.Memory;
 using Notio.Shared.Configuration;
 using System;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace Notio.Shared.Memory.Buffer;
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
 /// </summary>
-public sealed class BufferAllocator : IArrayPool
+public sealed class BufferAllocator : IBufferPool
 {
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
@@ -52,13 +52,15 @@ public sealed class BufferAllocator : IArrayPool
 
         _poolManager.EventShrink += ShrinkBufferPoolSize;
         _poolManager.EventIncrease += IncreaseBufferPoolSize;
+
+        this.AllocateBuffers();
     }
 
     /// <summary>
     /// Cấp phát các bộ đệm dựa trên cấu hình.
     /// </summary>
     /// <exception cref="InvalidOperationException">Ném ra nếu bộ đệm đã được cấp phát.</exception>
-    public void AllocateBuffers()
+    private void AllocateBuffers()
     {
         if (_isInitialized) throw new InvalidOperationException("Buffers already allocated.");
 

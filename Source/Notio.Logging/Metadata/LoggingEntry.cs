@@ -1,4 +1,6 @@
-﻿namespace Notio.Logging.Metadata;
+﻿using Notio.Logging.Enums;
+
+namespace Notio.Logging.Metadata;
 
 /// <summary>
 /// Đại diện một thông điệp nhật ký trong hệ thống logging.

@@ -1,6 +1,6 @@
-﻿using Notio.Common.IMemory;
-using Notio.Common.INetwork;
-using Notio.Common.INetwork.Args;
+﻿using Notio.Common.Memory;
+using Notio.Common.Network;
+using Notio.Common.Network.Args;
 using Notio.Logging;
 using Notio.Network.Protocols;
 using System;
@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(int port, IProtocol protocol, IArrayPool bufferAllocator)
+public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferAllocator)
     : TcpListener(IPAddress.Any, port), IListener
 {
     private readonly int _port = port;
     private readonly IProtocol _protocol = protocol;
-    private readonly IArrayPool _bufferAllocator = bufferAllocator;
+    private readonly IBufferPool _bufferAllocator = bufferAllocator;
 
     public void BeginListening(CancellationToken cancellationToken)
     {
@@ -50,7 +50,7 @@ public abstract class Listener(int port, IProtocol protocol, IArrayPool bufferAl
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the INetwork class
+        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Network class
 
         connection.OnCloseEvent += this.OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;

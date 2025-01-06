@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.INetwork.Args;
+﻿namespace Notio.Common.Network.Args;
 
 public interface IConnctEventArgs
 {

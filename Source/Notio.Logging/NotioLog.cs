@@ -1,4 +1,5 @@
 ﻿using Notio.Logging.Engine;
+using Notio.Logging.Enums;
 using Notio.Logging.Metadata;
 using Notio.Logging.Targets;
 using System;
@@ -29,27 +30,24 @@ public sealed class NotioLog : LoggingEngine
     /// <summary>
     /// Khởi tạo hệ thống logging với cấu hình tùy chọn.
     /// </summary>
-    /// <param name="configure">Hành động để cấu hình <see cref="LoggingBuilder"/>.</param>
-    public void Initialize(Action<LoggingBuilder>? configure = null)
+    /// <param name="configure">Hành động để cấu hình <see cref="LoggingConfig"/>.</param>
+    public void Initialize(Action<LoggingConfig>? configure = null)
     {
         if (_isInitialized) throw new InvalidOperationException("Logging has already been initialized.");
         _isInitialized = true;
 
-        LoggingBuilder builder = new(base.Publisher);
+        LoggingConfig builder = new(base.Publisher);
         configure?.Invoke(builder);
 
         if (builder.IsDefaults)
         {
-            base.Publisher
-                .AddTarget(new ConsoleTarget())
-                .AddTarget(new FileTarget(builder.LogDirectory, builder.LogFileName));
+            builder.ConfigureDefaults(cfg =>
+            {
+                cfg.AddTarget(new ConsoleTarget());
+                cfg.AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName));
+                return cfg;
+            });
         }
-    }
-
-    public void ConfigureDefaults(Func<LoggingBuilder, LoggingBuilder> defaults)
-    {
-        LoggingBuilder builder = new(base.Publisher);
-        defaults(builder);
     }
 
     /// <summary>

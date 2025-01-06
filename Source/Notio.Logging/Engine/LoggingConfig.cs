@@ -1,5 +1,5 @@
-﻿using Notio.Logging.Interfaces;
-using Notio.Logging.Metadata;
+﻿using Notio.Logging.Enums;
+using Notio.Logging.Interfaces;
 using System;
 using System.IO;
 
@@ -8,7 +8,7 @@ namespace Notio.Logging.Engine;
 /// <summary>
 /// Xây dựng cấu hình logging.
 /// </summary>
-public class LoggingBuilder
+public class LoggingConfig
 {
     private static readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private readonly ILoggingPublisher _publisher;
@@ -29,17 +29,25 @@ public class LoggingBuilder
     public string LogFileName { get; private set; } = "Notio";
 
     /// <summary>
-    /// Khởi tạo một <see cref="LoggingBuilder"/> mới.
+    /// Khởi tạo một <see cref="LoggingConfig"/> mới.
     /// </summary>
     /// <param name="publisher">Đối tượng <see cref="ILoggingPublisher"/> để xuất bản các thông điệp logging.</param>
-    internal LoggingBuilder(ILoggingPublisher publisher) => _publisher = publisher;
+    internal LoggingConfig(ILoggingPublisher publisher) => _publisher = publisher;
 
+    /// <summary>
+    /// Thêm cấu hình mặc định cho LoggingConfig.
+    /// </summary>
+    /// <param name="configure">Hành động cấu hình mặc định.</param>
+    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
+    public LoggingConfig ConfigureDefaults(Func<LoggingConfig, LoggingConfig> configure)
+        => configure(this);
+    
     /// <summary>
     /// Thêm mục tiêu logging.
     /// </summary>
     /// <param name="target">Đối tượng <see cref="ILoggingTarget"/> để thêm vào.</param>
-    /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
-    public LoggingBuilder AddTarget(ILoggingTarget target)
+    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
+    public LoggingConfig AddTarget(ILoggingTarget target)
     {
         this.IsDefaults = false;
 
@@ -51,8 +59,8 @@ public class LoggingBuilder
     /// Thiết lập mức độ logging tối thiểu.
     /// </summary>
     /// <param name="level">Mức độ <see cref="LoggingLevel"/> tối thiểu.</param>
-    /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
-    public LoggingBuilder SetMinLevel(LoggingLevel level)
+    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
+    public LoggingConfig SetMinLevel(LoggingLevel level)
     {
         this.IsDefaults = false;
 
@@ -64,8 +72,8 @@ public class LoggingBuilder
     /// Thiết lập đường dẫn thư mục lưu trữ nhật ký.
     /// </summary>
     /// <param name="directory">Đường dẫn thư mục mới.</param>
-    /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
-    public LoggingBuilder SetLogDirectory(string directory)
+    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
+    public LoggingConfig SetLogDirectory(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory))
             throw new ArgumentException("Invalid directory.", nameof(directory));
@@ -83,8 +91,8 @@ public class LoggingBuilder
     /// Thiết lập tên file lưu trữ nhật ký.
     /// </summary>
     /// <param name="fileName">Tên file mới.</param>
-    /// <returns>Đối tượng <see cref="LoggingBuilder"/> hiện tại.</returns>
-    public LoggingBuilder SetLogFileName(string fileName)
+    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
+    public LoggingConfig SetLogFileName(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentException("Invalid file name.", nameof(fileName));

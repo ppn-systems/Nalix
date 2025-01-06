@@ -1,4 +1,4 @@
-﻿using Notio.Common.IMemory;
+﻿using Notio.Common.Memory;
 using Notio.Packets.Metadata;
 using System;
 using System.Buffers;
