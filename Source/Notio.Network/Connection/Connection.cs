@@ -28,7 +28,7 @@ public class Connection : IConnection, IDisposable
     private readonly NetworkStream _stream;
     private readonly BinaryCache _cacheOutgoingPacket;
     private readonly ReaderWriterLockSlim _rwLockState;
-    private readonly IBufferAllocator _bufferAllocator;
+    private readonly IArrayPool _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
     private readonly FifoCache<byte[]> _cacheIncomingPacket;
 
@@ -45,7 +45,7 @@ public class Connection : IConnection, IDisposable
     /// </summary>
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
-    public Connection(Socket socket, IBufferAllocator bufferAllocator)
+    public Connection(Socket socket, IArrayPool bufferAllocator)
     {
         _socket = socket;
         _receiveLock = new Lock();

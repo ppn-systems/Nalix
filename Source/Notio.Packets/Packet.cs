@@ -30,7 +30,6 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     public byte Flags { get; }
     public short Command { get; }
     public ReadOnlyMemory<byte> Payload { get; }
-    public ushort Checksum { get; }
 
     private readonly bool _isPooled;
 
@@ -118,8 +117,8 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         return first[i..].SequenceEqual(second[i..]);
     }
 
-    public override bool Equals(object? obj) =>
-        obj is Packet other && Equals(other);
+    public override bool Equals(object? obj) 
+        => obj is Packet other && Equals(other);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()

@@ -1,7 +1,8 @@
 ﻿using Notio.Packets.Extensions;
 using Notio.Packets.Metadata;
+using Notio.Shared.Memory.Buffer;
 using System;
-using System.Buffers;
+// using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,9 +16,17 @@ namespace Notio.Packets;
 [SkipLocalsInit]
 public static partial class PacketOperations
 {
-    private const int MinBufferSize = 256;
     private const int MaxStackAlloc = 512;
-    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+
+    private static BufferConfig BufferConfig => new()
+    {
+        TotalBuffers = 16,
+        BufferAllocations = 
+        "1024,0.25; 2048,0.20; 4096,0.15; 8192,0.10; 16384,0.10; 32768,0.03; 65536,0.02"
+    };
+
+    // private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+    private static readonly BufferAllocator Pool = new(BufferConfig);
 
     /// <summary>
     /// Chuyển đổi Packet thành mảng byte.
@@ -39,7 +48,7 @@ public static partial class PacketOperations
         }
 
         // Sử dụng ArrayPool cho packets lớn
-        byte[] rentedArray = Pool.Rent(Math.Max(totalSize, MinBufferSize));
+        byte[] rentedArray = Pool.Rent(totalSize);
         try
         {
             PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);

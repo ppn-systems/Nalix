@@ -3,7 +3,7 @@
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
 /// </summary>
-public interface IBufferAllocator
+public interface IArrayPool
 {
     /// <summary>
     /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.

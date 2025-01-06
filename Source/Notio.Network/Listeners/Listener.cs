@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(int port, IProtocol protocol, IBufferAllocator bufferAllocator)
+public abstract class Listener(int port, IProtocol protocol, IArrayPool bufferAllocator)
     : TcpListener(IPAddress.Any, port), IListener
 {
     private readonly int _port = port;
     private readonly IProtocol _protocol = protocol;
-    private readonly IBufferAllocator _bufferAllocator = bufferAllocator;
+    private readonly IArrayPool _bufferAllocator = bufferAllocator;
 
     public void BeginListening(CancellationToken cancellationToken)
     {

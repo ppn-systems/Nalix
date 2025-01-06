@@ -4,7 +4,7 @@ using Notio.Network.Protocols;
 namespace Notio.Network.Listeners;
 
 public sealed class LoginListener(
-    LoginProtocol protocol, IBufferAllocator bufferAllocator, NetworkConfig network) 
+    LoginProtocol protocol, IArrayPool bufferAllocator, NetworkConfig network) 
     : Listener(network.Port, protocol, bufferAllocator)
 {
 }

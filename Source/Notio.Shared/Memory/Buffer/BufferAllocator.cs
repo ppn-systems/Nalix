@@ -10,7 +10,7 @@ namespace Notio.Shared.Memory.Buffer;
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.
 /// </summary>
-public sealed class BufferAllocator : IBufferAllocator
+public sealed class BufferAllocator : IArrayPool
 {
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
