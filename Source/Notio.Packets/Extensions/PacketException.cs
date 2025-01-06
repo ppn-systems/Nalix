@@ -16,7 +16,7 @@ public class PacketException : Exception
     /// Khởi tạo một ngoại lệ packet với thông báo lỗi.
     /// </summary>
     /// <param name="message">Thông báo lỗi.</param>
-    public PacketException(string message) 
+    public PacketException(string message)
         : base(message)
     {
     }
@@ -26,16 +26,15 @@ public class PacketException : Exception
     /// </summary>
     /// <param name="message">Thông báo lỗi.</param>
     /// <param name="errorCode">Mã lỗi.</param>
-    public PacketException(string message, int errorCode) 
+    public PacketException(string message, int errorCode)
         : base(message) => ErrorCode = errorCode;
-    
 
     /// <summary>
     /// Khởi tạo một ngoại lệ packet với thông báo và ngoại lệ gốc.
     /// </summary>
     /// <param name="message">Thông báo lỗi.</param>
     /// <param name="innerException">Ngoại lệ gốc.</param>
-    public PacketException(string message, Exception innerException) 
+    public PacketException(string message, Exception innerException)
         : base(message, innerException)
     {
     }
@@ -46,6 +45,6 @@ public class PacketException : Exception
     /// <param name="message">Thông báo lỗi.</param>
     /// <param name="errorCode">Mã lỗi.</param>
     /// <param name="innerException">Ngoại lệ gốc.</param>
-    public PacketException(string message, int errorCode, Exception innerException) 
+    public PacketException(string message, int errorCode, Exception innerException)
         : base(message, innerException) => ErrorCode = errorCode;
 }

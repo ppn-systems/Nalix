@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace Notio.Packets;
 
@@ -73,4 +74,33 @@ public static partial class PacketOperations
 
         return PacketSerializer.ReadPacketFast(data);
     }
+
+    /// <summary>
+    /// Chuyển đổi Packet thành chuỗi JSON.
+    /// </summary>
+    public static string ToJson(this in Packet packet)
+        => JsonSerializer.Serialize(packet);
+
+    /// <summary>
+    /// Tạo Packet từ chuỗi JSON.
+    /// </summary>
+    public static Packet FromJson(this string json)
+    {
+        Packet packet = JsonSerializer.Deserialize<Packet>(json);
+        if (packet.Equals(default))
+        {
+            throw new PacketException("Failed to deserialize Packet.");
+        }
+        return packet;
+    }
+
+    /// <summary>
+    /// Trả về chuỗi dễ đọc của Packet.
+    /// </summary>
+    public static string ToString(this in Packet packet)
+        => 
+        $"Type: {packet.Type}, " +
+        $"Flags: {packet.Flags}, " +
+        $"Command: {packet.Command}, " +
+        $"Payload: {BitConverter.ToString(packet.Payload.ToArray())}";
 }

@@ -12,7 +12,7 @@ namespace Notio.Packets;
 /// <summary>
 /// Đại diện cho một packet dữ liệu với hiệu suất cao và tối ưu memory.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)] 
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
 {
     private const int MaxInlinePayloadSize = 128;
@@ -25,6 +25,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
             return (short)(PacketSize.Header + Payload.Length);
         }
     }
+
     public byte Type { get; }
     public byte Flags { get; }
     public short Command { get; }
@@ -62,7 +63,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (_isPooled && Payload.Length > 0)
         {
             if (MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
-                SharedPool.Return(segment.Array);         
+                SharedPool.Return(segment.Array);
         }
 
         GC.SuppressFinalize(this);
@@ -84,12 +85,11 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (Payload.Length <= sizeof(ulong))
             return MemoryMarshal.Read<ulong>(Payload.Span) ==
                    MemoryMarshal.Read<ulong>(other.Payload.Span);
-        
 
         // SIMD comparison cho payload lớn
         if (Vector128.IsHardwareAccelerated && Payload.Length >= Vector128<byte>.Count)
             return MemoryCompareVectorized(Payload.Span, other.Payload.Span);
-        
+
         return Payload.Span.SequenceEqual(other.Payload.Span);
     }
 

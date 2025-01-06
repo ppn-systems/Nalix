@@ -1,5 +1,4 @@
-﻿using Notio.Packets.Helpers;
-using Notio.Packets.Metadata;
+﻿using Notio.Packets.Metadata;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

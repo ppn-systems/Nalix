@@ -1,9 +1,6 @@
 ﻿using Notio.Packets.Extensions;
-using Notio.Packets.Helpers;
 using Notio.Packets.Metadata;
 using System;
-using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
