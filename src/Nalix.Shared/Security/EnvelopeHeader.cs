@@ -13,7 +13,6 @@
 
 using Nalix.Common.Enums;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
