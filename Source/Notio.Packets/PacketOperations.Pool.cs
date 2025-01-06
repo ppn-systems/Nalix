@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Notio.Shared.Memory.Pool;
+using System;
 using System.Runtime.CompilerServices;
-using Notio.Shared.Memory.Pool;
 
 namespace Notio.Packets;
 
 /// <summary>
 /// A static class to manage a pool of reusable Packet objects.
 /// </summary>
-public static class PacketPool
+public static partial class PacketOperations
 {
     // Private object pool for managing Packet instances.
     private static readonly ObjectPool _pool = new();

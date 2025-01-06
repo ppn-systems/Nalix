@@ -1,5 +1,4 @@
-﻿using Notio.Packets.Helpers;
-using Notio.Packets.Metadata;
+﻿using Notio.Packets.Metadata;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -16,10 +15,10 @@ internal static unsafe class PacketSerializerUnsafe
     internal static void WritePacketUnsafe(byte* destination, in Packet packet)
     {
         if (destination == null)
-            ThrowHelper.ThrowArgumentNullException(nameof(destination));
+            throw new PacketException(nameof(destination));
 
         if ((uint)packet.Payload.Length > ushort.MaxValue)
-            ThrowHelper.ThrowPayloadTooLarge();
+            throw new PacketException("Payload is too large.");
 
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -49,17 +48,17 @@ internal static unsafe class PacketSerializerUnsafe
     internal static void ReadPacketUnsafe(byte* source, out Packet packet, int length)
     {
         if (source == null)
-            ThrowHelper.ThrowArgumentNullException(nameof(source));
+            throw new PacketException(nameof(source));
 
         if (length < PacketSize.Header)
-            ThrowHelper.ThrowInvalidPacketSize();
+            throw new PacketException("Invalid packet size.");
 
         // Đọc độ dài gói tin an toàn hơn
         Span<byte> headerSpan = new(source, PacketSize.Header);
         short packetLength = BinaryPrimitives.ReadInt16LittleEndian(headerSpan);
 
         if ((uint)packetLength > length)
-            ThrowHelper.ThrowInvalidLength();
+            throw new Exception("Invalid packet size.");
 
         // Tính toán độ dài payload
         int payloadLength = packetLength - PacketSize.Header;

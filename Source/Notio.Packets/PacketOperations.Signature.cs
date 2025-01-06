@@ -10,13 +10,9 @@ namespace Notio.Packets;
 /// <summary>
 /// Lớp tĩnh <c>PacketSignature</c> cung cấp các phương thức để ký và xác minh gói dữ liệu.
 /// </summary>
-[SkipLocalsInit]
-public static class PacketSignature
+public static partial class PacketOperations
 {
     private const short SignatureSize = 32;
-    private const short MaxStackAlloc = 512;
-
-    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     /// <summary>
     /// Ký gói dữ liệu với khóa bí mật.
