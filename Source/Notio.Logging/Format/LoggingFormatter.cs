@@ -2,7 +2,6 @@
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
 using System;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Notio.Logging.Format;

@@ -1,6 +1,5 @@
 ﻿using Notio.Security.Exceptions;
 using System;
-using System.Buffers;
 using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;

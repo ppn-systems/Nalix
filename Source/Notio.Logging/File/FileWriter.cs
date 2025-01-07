@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Notio.Logging.Extensions;
+namespace Notio.Logging.File;
 
 /// <summary>
 /// Lớp quản lý ghi log vào tệp tin.
@@ -59,7 +59,7 @@ internal class FileWriter
         do
         {
             newFileName = $"{_fileLogProvider.LogFileName}_{_count++}.log";
-        } while (File.Exists(Path.Combine(_fileLogProvider.LogDirectory, newFileName)));
+        } while (System.IO.File.Exists(Path.Combine(_fileLogProvider.LogDirectory, newFileName)));
 
         if (_count != 0)
         {

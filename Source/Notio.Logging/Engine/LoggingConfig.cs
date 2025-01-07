@@ -41,7 +41,7 @@ public class LoggingConfig
     /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
     public LoggingConfig ConfigureDefaults(Func<LoggingConfig, LoggingConfig> configure)
         => configure(this);
-    
+
     /// <summary>
     /// Thêm mục tiêu logging.
     /// </summary>

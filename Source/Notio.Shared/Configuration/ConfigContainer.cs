@@ -25,7 +25,7 @@ public abstract class ConfigContainer
 
         foreach (var property in type.GetProperties())
         {
-            if (property.IsDefined(typeof(ConfigIgnoreAttribute))) 
+            if (property.IsDefined(typeof(ConfigIgnoreAttribute)))
                 continue;  // Bỏ qua các thuộc tính được chỉ định
 
             object? value = Type.GetTypeCode(property.PropertyType) switch
@@ -35,9 +35,9 @@ public abstract class ConfigContainer
                 TypeCode.SByte => configFile.GetSByte(section, property.Name),
                 TypeCode.String => configFile.GetString(section, property.Name),
                 TypeCode.Boolean => configFile.GetBool(section, property.Name),
-                TypeCode.Decimal => configFile.GetDecimal(section, property.Name),          
-                TypeCode.Int16 => configFile.GetInt16(section, property.Name),     
-                TypeCode.UInt16 => configFile.GetUInt16(section, property.Name),   
+                TypeCode.Decimal => configFile.GetDecimal(section, property.Name),
+                TypeCode.Int16 => configFile.GetInt16(section, property.Name),
+                TypeCode.UInt16 => configFile.GetUInt16(section, property.Name),
                 TypeCode.Int32 => configFile.GetInt32(section, property.Name),
                 TypeCode.UInt32 => configFile.GetUInt32(section, property.Name),
                 TypeCode.Int64 => configFile.GetInt64(section, property.Name),

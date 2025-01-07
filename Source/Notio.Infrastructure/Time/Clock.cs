@@ -18,7 +18,7 @@ public static class Clock
     /// <summary>
     /// Trả về thời gian UTC hiện tại.
     /// </summary>
-    public static DateTime UtcNowPrecise 
+    public static DateTime UtcNowPrecise
         => _utcBase.Add(_utcStopwatch.Elapsed);
 
     /// <summary>

@@ -2,6 +2,7 @@
 using Notio.Packets.Metadata;
 using Notio.Shared.Memory.Buffer;
 using System;
+
 // using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -21,7 +22,7 @@ public static partial class PacketOperations
     private static BufferConfig BufferConfig => new()
     {
         TotalBuffers = 16,
-        BufferAllocations = 
+        BufferAllocations =
         "1024,0.25; 2048,0.20; 4096,0.15; 8192,0.10; 16384,0.10; 32768,0.03; 65536,0.02"
     };
 
@@ -107,7 +108,7 @@ public static partial class PacketOperations
     /// Trả về chuỗi dễ đọc của Packet.
     /// </summary>
     public static string ToString(this in Packet packet)
-        => 
+        =>
         $"Type: {packet.Type}, " +
         $"Flags: {packet.Flags}, " +
         $"Command: {packet.Command}, " +

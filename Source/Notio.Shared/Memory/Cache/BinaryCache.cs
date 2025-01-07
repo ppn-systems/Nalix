@@ -45,7 +45,7 @@ public sealed class BinaryCache(int capacity)
     public byte[] GetValue(byte[] key)
     {
         if (_cacheMap.TryGetValue(key, out var node))
-            return node.Value;    
+            return node.Value;
 
         throw new KeyNotFoundException("The key was not found in the cache.");
     }

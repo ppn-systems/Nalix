@@ -3,7 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Extensions;
+namespace Notio.Logging.File;
 
 /// <summary>
 /// Nhà cung cấp bộ ghi log tệp tin tổng quát.

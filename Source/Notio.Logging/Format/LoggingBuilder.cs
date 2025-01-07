@@ -3,7 +3,6 @@ using Notio.Logging.Metadata;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Notio.Logging.Format;
@@ -14,11 +13,12 @@ internal static class LoggingBuilder
 
     // Cache các ký tự thường xuyên sử dụng
     private const char OpenBracket = '[';
+
     private const char CloseBracket = ']';
     private const char Separator = '\t';
     private const char Dash = '-';
     private const char Colon = ':';
-    
+
     private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
 
     // Sử dụng ReadOnlySpan để tối ưu memory

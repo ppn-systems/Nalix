@@ -117,7 +117,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         return first[i..].SequenceEqual(second[i..]);
     }
 
-    public override bool Equals(object? obj) 
+    public override bool Equals(object? obj)
         => obj is Packet other && Equals(other);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

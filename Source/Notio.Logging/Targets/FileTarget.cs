@@ -1,4 +1,4 @@
-﻿using Notio.Logging.Extensions;
+﻿using Notio.Logging.File;
 using Notio.Logging.Format;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
@@ -9,19 +9,13 @@ namespace Notio.Logging.Targets;
 /// <summary>
 /// Standard file logger implementation.
 /// </summary>
-public class FileTarget : ILoggingTarget
+public class FileTarget(ILoggingFormatter loggerFormatter, string directory, string filename) : ILoggingTarget
 {
-    public readonly FileLoggerProvider LoggerPrv;
-    private readonly ILoggingFormatter _loggerFormatter;
+    public readonly FileLoggerProvider LoggerPrv = new(directory, filename);
+    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
     public FileTarget(string directory, string filename) : this(new LoggingFormatter(), directory, filename)
     {
-    }
-
-    public FileTarget(ILoggingFormatter loggerFormatter, string directory, string filename)
-    {
-        _loggerFormatter = loggerFormatter;
-        LoggerPrv = new FileLoggerProvider(directory, filename);
     }
 
     public void Publish(LoggingEntry logMessage)
