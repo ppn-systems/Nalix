@@ -6,7 +6,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
@@ -23,8 +22,8 @@ namespace Nalix.Shared.Messaging.Binary;
 [MagicNumber(MagicNumbers.Binary256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Binary256 : FrameBase, IPacketTransformer<Binary256>
+[System.Diagnostics.DebuggerDisplay("Binary256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public class Binary256 : FrameBase, IPacketDeserializer<Binary256>, IPacketCompressor<Binary256>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 256;
@@ -47,7 +46,7 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
     public System.Byte[] Data { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Binary128"/> with empty content.
+    /// Initializes a new <see cref="Binary256"/> with empty content.
     /// </summary>
     public Binary256()
     {
@@ -56,7 +55,7 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Binary128;
+        MagicNumber = (System.UInt32)MagicNumbers.Binary256;
     }
 
     /// <summary>
@@ -78,10 +77,10 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Binary128"/> from the specified buffer.
+    /// Deserializes a <see cref="Binary256"/> from the specified buffer.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
+    /// <returns>A pooled <see cref="Binary256"/> instance.</returns>
     public static Binary256 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Binary256 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -93,18 +92,6 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
                 "Failed to deserialize packet: No bytes were read.")
             : packet;
     }
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Binary256 Encrypt(Binary256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Binary256 Decrypt(Binary256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
 
     /// <summary>
     /// Compresses <see cref="Data"/> using LZ4 (raw bytes, no Base64).
@@ -178,6 +165,6 @@ public class Binary256 : FrameBase, IPacketTransformer<Binary256>
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Binary128(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"Binary256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
         $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }

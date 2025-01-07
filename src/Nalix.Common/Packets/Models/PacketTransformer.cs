@@ -29,7 +29,28 @@ namespace Nalix.Common.Packets.Models;
 /// specified <see cref="SymmetricAlgorithmType"/> and decryption key.
 /// </param>
 public readonly record struct PacketTransformer(
-    System.Func<IPacket, IPacket> Compress,
-    System.Func<IPacket, IPacket> Decompress,
-    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> Encrypt,
-    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> Decrypt);
+    [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, IPacket> Compress,
+    [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, IPacket> Decompress,
+    [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> Encrypt,
+    [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> Decrypt)
+{
+    /// <summary>
+    /// True if encryption is supported.
+    /// </summary>
+    public System.Boolean HasEncrypt => Encrypt is not null;
+
+    /// <summary>
+    /// True if decryption is supported.
+    /// </summary>
+    public System.Boolean HasDecrypt => Decrypt is not null;
+
+    /// <summary>
+    /// True if compression is supported.
+    /// </summary>
+    public System.Boolean HasCompress => Compress is not null;
+
+    /// <summary>
+    /// True if decompression is supported.
+    /// </summary>
+    public System.Boolean HasDecompress => Decompress is not null;
+}

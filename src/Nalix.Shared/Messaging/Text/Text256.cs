@@ -6,7 +6,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
@@ -24,7 +23,7 @@ namespace Nalix.Shared.Messaging.Text;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Text256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Text256 : FrameBase, IPacketTransformer<Text256>
+public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompressor<Text256>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 256;
@@ -89,18 +88,6 @@ public class Text256 : FrameBase, IPacketTransformer<Text256>
                 "Failed to deserialize packet: No bytes were read.")
             : packet;
     }
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Text256 Encrypt(Text256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Text256 Decrypt(Text256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
 
     /// <summary>
     /// Compresses the packet content (UTF-8 → LZ4 → Base64).

@@ -6,7 +6,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
@@ -20,11 +19,11 @@ namespace Nalix.Shared.Messaging.Binary;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(MagicNumbers.Binary128)]
+[MagicNumber(MagicNumbers.Binary1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
+[System.Diagnostics.DebuggerDisplay("Binary1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCompressor<Binary1024>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 1024;
@@ -44,7 +43,7 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
     public System.Byte[] Data { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Binary128"/> with empty content.
+    /// Initializes a new <see cref="Binary1024"/> with empty content.
     /// </summary>
     public Binary1024()
     {
@@ -53,7 +52,7 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Binary128;
+        MagicNumber = (System.UInt32)MagicNumbers.Binary1024;
     }
 
     /// <summary>
@@ -75,10 +74,10 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Binary128"/> from the specified buffer.
+    /// Deserializes a <see cref="Binary1024"/> from the specified buffer.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
+    /// <returns>A pooled <see cref="Binary1024"/> instance.</returns>
     public static Binary1024 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Binary1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -90,18 +89,6 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
                 "Failed to deserialize packet: No bytes were read.")
             : packet;
     }
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Binary1024 Encrypt(Binary1024 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Binary1024 Decrypt(Binary1024 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
 
     /// <summary>
     /// Compresses <see cref="Data"/> using LZ4 (raw bytes, no Base64).
@@ -175,6 +162,6 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Binary128(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"Binary1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
         $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }
