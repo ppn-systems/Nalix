@@ -79,7 +79,7 @@ public class Binary128 : FrameBase, IPacketTransformer<Binary128>
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
-    public static Binary128 Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Binary128 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Binary128 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                    .Get<Binary128>();
