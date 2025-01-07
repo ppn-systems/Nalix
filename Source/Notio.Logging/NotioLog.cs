@@ -1,9 +1,9 @@
 ﻿using Notio.Logging.Engine;
 using Notio.Logging.Enums;
 using Notio.Logging.Metadata;
-using System.Runtime.CompilerServices;
-using System;
 using Notio.Logging.Targets;
+using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Logging;
 
@@ -12,7 +12,8 @@ public sealed class NotioLog : LoggingEngine
     private bool _isInitialized;
     private static readonly Lazy<NotioLog> _instance = new(() => new());
 
-    private NotioLog() { }
+    private NotioLog()
+    { }
 
     public static NotioLog Instance => _instance.Value;
 

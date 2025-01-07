@@ -1,7 +1,7 @@
 ﻿using Notio.Logging.Enums;
-using Notio.Logging.Storage;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
+using Notio.Logging.Storage;
 using System;
 using System.Collections.Generic;
 

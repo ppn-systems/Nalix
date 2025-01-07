@@ -1,9 +1,9 @@
 ﻿using Notio.Logging.Enums;
 using Notio.Logging.Metadata;
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System;
 
 namespace Notio.Logging.Format;
 
@@ -98,7 +98,6 @@ internal static class LoggingBuilder
         builder.Append(OpenBracket)
                .Append(message)
                .Append(CloseBracket);
-    
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AppendException(StringBuilder builder, Exception exception) =>
@@ -126,6 +125,6 @@ internal static class LoggingBuilder
     private static void EnsureCapacity(StringBuilder builder, int capacity)
     {
         if (builder.Capacity < capacity)
-            builder.EnsureCapacity(capacity);    
+            builder.EnsureCapacity(capacity);
     }
 }

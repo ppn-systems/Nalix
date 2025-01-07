@@ -1,7 +1,7 @@
-﻿using Notio.Logging.Storage;
-using Notio.Logging.Format;
+﻿using Notio.Logging.Format;
 using Notio.Logging.Interfaces;
 using Notio.Logging.Metadata;
+using Notio.Logging.Storage;
 using System;
 
 namespace Notio.Logging.Targets;

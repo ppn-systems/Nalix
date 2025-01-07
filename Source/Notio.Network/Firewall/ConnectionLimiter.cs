@@ -1,6 +1,5 @@
 ﻿using Notio.Logging;
 using Notio.Network.Firewall.Metadata;
-using Notio.Network.Metrics;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -61,7 +60,7 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime currentDate = now.Date;
 
         if (_firewallConfig.EnableMetrics)
-            MetricsManager.Instance.TrackConnection(endPoint, true);
+            NotioLog.Instance.Trace($"{endPoint}|New");
 
         return _connectionInfo.AddOrUpdate(
             endPoint,
@@ -101,7 +100,7 @@ public sealed class ConnectionLimiter : IDisposable
             throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         if (_firewallConfig.EnableMetrics)
-            MetricsManager.Instance.TrackConnection(endPoint, false);
+            NotioLog.Instance.Trace($"{endPoint}|Closed");
 
         bool success = _connectionInfo.AddOrUpdate(
             endPoint,

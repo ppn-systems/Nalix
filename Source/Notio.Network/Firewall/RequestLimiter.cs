@@ -1,4 +1,4 @@
-﻿using Notio.Network.Metrics;
+﻿using Notio.Logging;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -75,7 +75,7 @@ public sealed class RequestLimiter : IDisposable
         ).BlockedUntil?.CompareTo(currentTime) <= 0;
 
         if (_firewallConfig.EnableMetrics)
-            MetricsManager.Instance.TrackRequest(endPoint, status, currentTime.Minute);
+            NotioLog.Instance.Meta($"{endPoint}|{status}|{currentTime.Minute}ms");
 
         return status;
     }

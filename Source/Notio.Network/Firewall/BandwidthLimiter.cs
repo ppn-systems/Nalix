@@ -1,6 +1,5 @@
 ﻿using Notio.Logging;
 using Notio.Network.Firewall.Metadata;
-using Notio.Network.Metrics;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -102,7 +101,7 @@ public sealed class BandwidthLimiter : IDisposable
             );
 
             if (_firewallConfig.EnableMetrics)
-                MetricsManager.Instance.TrackBandwidthUsage(endPoint, stats.BytesSent, true);
+                NotioLog.Instance.Meta($"{endPoint}|{stats.BytesSent}|Upload");
 
             return stats.BytesSent <= _uploadLimit.BytesPerSecond;
         }
@@ -158,7 +157,7 @@ public sealed class BandwidthLimiter : IDisposable
             );
 
             if (_firewallConfig.EnableMetrics)
-                MetricsManager.Instance.TrackBandwidthUsage(endPoint, stats.BytesReceived, false);
+                NotioLog.Instance.Meta($"{endPoint}|{stats.BytesReceived}|Download");
 
             return stats.BytesReceived <= _downloadLimit.BytesPerSecond;
         }
