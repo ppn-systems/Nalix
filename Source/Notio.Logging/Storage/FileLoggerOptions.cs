@@ -1,7 +1,7 @@
 ﻿using Notio.Logging.Enums;
 using System;
 
-namespace Notio.Logging.File;
+namespace Notio.Logging.Storage;
 
 /// <summary>
 /// Tùy chọn cấu hình cho bộ ghi log tệp tin.

@@ -1,39 +1,29 @@
 ﻿using Notio.Logging.Engine;
 using Notio.Logging.Enums;
 using Notio.Logging.Metadata;
-using Notio.Logging.Targets;
-using System;
 using System.Runtime.CompilerServices;
+using System;
+using Notio.Logging.Targets;
 
 namespace Notio.Logging;
 
-/// <summary>
-/// Lớp NotioLog cung cấp các phương thức ghi log cho các sự kiện.
-/// </summary>
 public sealed class NotioLog : LoggingEngine
 {
     private bool _isInitialized;
-    public static readonly EventId Empty = new(0);
     private static readonly Lazy<NotioLog> _instance = new(() => new());
 
-    /// <summary>
-    /// Khởi tạo một instance mới của lớp NotioLog.
-    /// </summary>
-    private NotioLog()
-    { }
+    private NotioLog() { }
 
-    /// <summary>
-    /// Lấy instance duy nhất của lớp NotioLog.
-    /// </summary>
     public static NotioLog Instance => _instance.Value;
 
     /// <summary>
-    /// Khởi tạo hệ thống logging với cấu hình tùy chọn.
+    /// Initializes the logging system with optional configuration.
     /// </summary>
-    /// <param name="configure">Hành động để cấu hình <see cref="LoggingConfig"/>.</param>
     public void Initialize(Action<LoggingConfig>? configure = null)
     {
-        if (_isInitialized) throw new InvalidOperationException("Logging has already been initialized.");
+        if (_isInitialized)
+            throw new InvalidOperationException("Logging has already been initialized.");
+
         _isInitialized = true;
 
         LoggingConfig builder = new(base.Publisher);
@@ -51,112 +41,75 @@ public sealed class NotioLog : LoggingEngine
     }
 
     /// <summary>
-    /// Ghi log với mức độ, ID sự kiện và thông điệp.
+    /// Writes a log entry with specified level, event ID, message, and optional exception.
     /// </summary>
-    /// <param name="level">Mức độ log.</param>
-    /// <param name="eventId">ID sự kiện.</param>
-    /// <param name="message">Thông điệp log.</param>
-    public void Write(LoggingLevel level, EventId eventId, string message)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(message);
-        base.CreateLogEntry(level, eventId, message);
-    }
+    public void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
+       => base.CreateLogEntry(level, eventId, message, exception);
 
     /// <summary>
-    /// Ghi log với mức độ, ID sự kiện và ngoại lệ.
+    /// Logs metadata information.
     /// </summary>
-    /// <param name="level">Mức độ log.</param>
-    /// <param name="eventId">ID sự kiện.</param>
-    /// <param name="exception">Ngoại lệ.</param>
-    public void Write(LoggingLevel level, EventId eventId, Exception exception)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-        base.CreateLogEntry(level, eventId, $"{exception.Message}\n{exception.StackTrace}", exception);
-    }
+    public void Meta(string message, EventId? eventId = null)
+        => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
 
     /// <summary>
-    /// Ghi log với mức độ, ID sự kiện và ngoại lệ.
+    /// Logs trace information.
     /// </summary>
-    /// <param name="level">Mức độ log.</param>
-    /// <param name="eventId">ID sự kiện.</param>
-    /// <param name="exception">Ngoại lệ.</param>
-    public void Write(LoggingLevel level, EventId eventId, string message, Exception exception)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-        base.CreateLogEntry(level, eventId, message, exception);
-    }
-
-    /// <summary>
-    /// Ghi log thông tin với định dạng chuỗi.
-    /// </summary>
-    /// <param name="format">Chuỗi định dạng.</param>
-    /// <param name="args">Các tham số để định dạng chuỗi.</param>
-    public void Info(string format, params object[] args)
-        => Write(LoggingLevel.Information, Empty, string.Format(format, args));
-
-    /// <summary>
-    /// Ghi log thông tin.
-    /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
-    public void Info(string message, EventId? eventId = null)
-        => Write(LoggingLevel.Information, eventId ?? Empty, message);
-
-    /// <summary>
-    /// Ghi log debug.
-    /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
-    public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
-        => Write(LoggingLevel.Debug, eventId ?? Empty, $"[{memberName}] {message}");
-
-    /// <summary>
-    /// Ghi log trace.
-    /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Trace(string message, EventId? eventId = null)
-        => Write(LoggingLevel.Trace, eventId ?? Empty, message);
+        => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, message);
 
     /// <summary>
-    /// Ghi log cảnh báo.
+    /// Logs debug information.
     /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
+    public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
+        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{memberName}] {message}");
+
+    /// <summary>
+    /// Logs debug information for a specific class.
+    /// </summary>
+    public void Debug<TClass>(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
+        where TClass : class
+        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
+
+    /// <summary>
+    /// Logs information.
+    /// </summary>
+    public void Info(string format, params object[] args)
+        => WriteLog(LoggingLevel.Information, EventId.Empty, string.Format(format, args));
+
+    /// <summary>
+    /// Logs information.
+    /// </summary>
+    public void Info(string message, EventId? eventId = null)
+        => WriteLog(LoggingLevel.Information, eventId ?? EventId.Empty, message);
+
+    /// <summary>
+    /// Logs a warning message.
+    /// </summary>
     public void Warn(string message, EventId? eventId = null)
-        => Write(LoggingLevel.Warning, eventId ?? Empty, message);
+        => WriteLog(LoggingLevel.Warning, eventId ?? EventId.Empty, message);
 
     /// <summary>
-    /// Ghi log lỗi với ngoại lệ.
+    /// Logs an error with exception.
     /// </summary>
-    /// <param name="exception">Ngoại lệ.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Error(Exception exception, EventId? eventId = null)
-        => Write(LoggingLevel.Error, eventId ?? Empty, exception);
+        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
 
     /// <summary>
-    /// Ghi log lỗi với thông điệp và ngoại lệ.
+    /// Logs an error with message and exception.
     /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="exception">Ngoại lệ.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Error(string message, Exception exception, EventId? eventId = null)
-        => Write(LoggingLevel.Error, eventId ?? Empty, message, exception);
+        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
 
     /// <summary>
-    /// Ghi log lỗi nghiêm trọng.
+    /// Logs a critical error message.
     /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Fatal(string message, EventId? eventId = null)
-        => Write(LoggingLevel.Critical, eventId ?? Empty, message);
+        => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message);
 
     /// <summary>
-    /// Ghi log lỗi nghiêm trọng.
+    /// Logs a critical error with message and exception.
     /// </summary>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="exception">Ngoại lệ (tùy chọn).</param>
-    /// <param name="eventId">ID sự kiện (tùy chọn).</param>
     public void Fatal(string message, Exception exception, EventId? eventId = null)
-        => Write(LoggingLevel.Critical, eventId ?? Empty, message, exception);
+        => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message, exception);
 }

@@ -18,5 +18,4 @@
 		<Deterministic>true</Deterministic>
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
-
 </Project>

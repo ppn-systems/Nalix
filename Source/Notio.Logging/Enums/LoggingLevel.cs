@@ -6,6 +6,11 @@
 public enum LoggingLevel
 {
     /// <summary>
+    /// Mức độ dùng để đại diện cho các thông điệp liên quan đến các metrics (thống kê, dữ liệu đo đạc).
+    /// </summary>
+    Meta,
+
+    /// <summary>
     /// Dùng để đại diện cho các thông điệp ở mức theo dõi (trace-level).
     /// </summary>
     Trace,

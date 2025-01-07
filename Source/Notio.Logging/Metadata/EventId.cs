@@ -12,6 +12,8 @@ namespace Notio.Logging.Metadata;
 /// <param name="name">Tên của sự kiện này.</param>
 public readonly struct EventId(int id, string? name = null) : IEquatable<EventId>
 {
+    public static readonly EventId Empty = new(0);
+
     /// <summary>
     /// Tạo ngầm một EventId từ <see cref="int"/> được cung cấp.
     /// </summary>

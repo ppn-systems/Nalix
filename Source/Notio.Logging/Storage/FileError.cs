@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Logging.File;
+namespace Notio.Logging.Storage;
 
 /// <summary>
 /// Đại diện cho ngữ cảnh lỗi tệp tin.
