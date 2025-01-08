@@ -5,6 +5,7 @@
 		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<Import Project="$(SolutionDir)Notio.Settings.props" />

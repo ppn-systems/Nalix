@@ -1,59 +1,96 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 namespace Notio.Security;
 
 public static class AesCFB
 {
-    public static byte[] Encrypt(byte[] key, byte[] plaintext)
+    
+
+    public static async Task<byte[]> EncryptAsync(byte[] key, byte[] plaintext)
     {
         Aes256.ValidateKey(key);
         Aes256.ValidateInput(plaintext, nameof(plaintext));
 
         byte[] iv = Aes256.GenerateSecureIV();
         using var aes = CreateAesCFB(key, iv);
-        using var ms = new MemoryStream();
-        using var encryptor = aes.CreateEncryptor();
-        ms.Write(iv);
 
-        byte[] buffer = new byte[Aes256.BlockSize];
-        for (int i = 0; i < plaintext.Length; i += Aes256.BlockSize)
+        // Pre-allocate buffer with known size to avoid resizing
+        var resultSize = iv.Length + plaintext.Length;
+        using var resultStream = new MemoryStream(resultSize);
+
+        await resultStream.WriteAsync(iv);
+
+        // Use ArrayPool to avoid unnecessary allocations
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Aes256.BufferSize);
+        try
         {
-            int bytesToEncrypt = Math.Min(plaintext.Length - i, Aes256.BlockSize);
-            plaintext.AsSpan(i, bytesToEncrypt).CopyTo(buffer);
+            using var encryptor = aes.CreateEncryptor();
+            int position = 0;
 
-            encryptor.TransformBlock(buffer, 0, bytesToEncrypt, buffer, 0);
-            ms.Write(buffer, 0, bytesToEncrypt);
+            while (position < plaintext.Length)
+            {
+                int bytesToEncrypt = Math.Min(plaintext.Length - position, Aes256.BufferSize);
+                Buffer.BlockCopy(plaintext, position, buffer, 0, bytesToEncrypt);
+
+                encryptor.TransformBlock(buffer, 0, bytesToEncrypt, buffer, 0);
+                await resultStream.WriteAsync(buffer.AsMemory(0, bytesToEncrypt));
+
+                position += bytesToEncrypt;
+            }
+
+            return resultStream.ToArray();
         }
-
-        return ms.ToArray();
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
-    public static byte[] Decrypt(byte[] key, byte[] ciphertext)
+    public static async Task<byte[]> DecryptAsync(byte[] key, byte[] ciphertext)
     {
         Aes256.ValidateKey(key);
         Aes256.ValidateInput(ciphertext, nameof(ciphertext));
 
         if (ciphertext.Length <= Aes256.BlockSize)
-            throw new ArgumentException("Ciphertext is too short", nameof(ciphertext));
-
-        byte[] iv = new byte[Aes256.BlockSize];
-        Buffer.BlockCopy(ciphertext, 0, iv, 0, Aes256.BlockSize);
-
-        using var aes = CreateAesCFB(key, iv);
-        using var ms = new MemoryStream(ciphertext, Aes256.BlockSize, ciphertext.Length - Aes256.BlockSize);
-        using var decryptor = aes.CreateDecryptor();
-        byte[] buffer = new byte[Aes256.BlockSize];
-        using var resultStream = new MemoryStream();
-        int bytesRead;
-        while ((bytesRead = ms.Read(buffer, 0, Aes256.BlockSize)) > 0)
         {
-            decryptor.TransformBlock(buffer, 0, bytesRead, buffer, 0);
-            resultStream.Write(buffer, 0, bytesRead);
+            throw new ArgumentException("Ciphertext quá ngắn", nameof(ciphertext));
         }
 
-        return resultStream.ToArray();
+        byte[] iv = ciphertext.AsSpan(0, Aes256.BlockSize).ToArray();
+        using var aes = CreateAesCFB(key, iv);
+
+        // Pre-allocate result buffer
+        var resultSize = ciphertext.Length - Aes256.BlockSize;
+        using var resultStream = new MemoryStream(resultSize);
+
+        // Use ArrayPool for buffer
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Aes256.BufferSize);
+        try
+        {
+            using var decryptor = aes.CreateDecryptor();
+            int position = Aes256.BlockSize;
+
+            while (position < ciphertext.Length)
+            {
+                int bytesToDecrypt = Math.Min(ciphertext.Length - position, Aes256.BufferSize);
+                Buffer.BlockCopy(ciphertext, position, buffer, 0, bytesToDecrypt);
+
+                decryptor.TransformBlock(buffer, 0, bytesToDecrypt, buffer, 0);
+                await resultStream.WriteAsync(buffer.AsMemory(0, bytesToDecrypt));
+
+                position += bytesToDecrypt;
+            }
+
+            return resultStream.ToArray();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     private static Aes CreateAesCFB(byte[] key, byte[] iv)

@@ -1,244 +1,174 @@
 ﻿using Notio.Security.Exceptions;
 using System;
-using System.IO;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Notio.Security;
 
 /// <summary>
-/// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CTR
+/// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CTR (Counter)
 /// </summary>
-public static class AesCTR
+public static unsafe class AesCTR
 {
-    /// <summary>
-    /// Mã hóa dữ liệu sử dụng AES-256 CTR mode
-    /// </summary>
-    public static byte[] Encrypt(byte[] key, byte[] plaintext)
-    {
-        Aes256.ValidateKey(key);
-        Aes256.ValidateInput(plaintext, nameof(plaintext));
+    // Cache cho AES instances
+    private static readonly ThreadLocal<Aes> AesInstanceCache = new(() => Aes.Create());
 
-        byte[] encryptedCounter = null;
-        byte[] counter = null;
-        byte[] block = new byte[Aes256.BlockSize]; // Move allocation out of the loop
+    /// <summary>
+    /// Mã hóa dữ liệu sử dụng AES-256 CTR mode, trả về kết quả trong CryptoBuffer
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static unsafe CryptoBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    {
+        Aes256.ValidateKey(key.ToArray());
+
+        int totalLength = plaintext.Length + Aes256.BlockSize;
+        IMemoryOwner<byte> resultOwner = MemoryPool<byte>.Shared.Rent(totalLength);
 
         try
         {
-            encryptedCounter = Aes256.Pool.Rent(Aes256.BlockSize);
-            counter = Aes256.Pool.Rent(Aes256.BlockSize);
-            byte[] iv = Aes256.GenerateSecureIV();
-
-            using var aes = CreateAesCTR(key);
-            using var ms = new MemoryStream(plaintext.Length + Aes256.BlockSize);
-            using var encryptor = aes.CreateEncryptor();
-
-            ms.Write(iv);
-            iv.CopyTo(counter, 0);
-
-            for (int i = 0; i < plaintext.Length; i += Aes256.BlockSize)
+            fixed (void* resultPtr = resultOwner.Memory.Span)
+            fixed (void* keyPtr = key)
             {
-                encryptor.TransformBlock(counter, 0, Aes256.BlockSize, encryptedCounter, 0);
+                using var rentedBuffers = new RentedBuffers();
 
-                int bytesToEncrypt = Math.Min(plaintext.Length - i, Aes256.BlockSize);
-                plaintext.AsSpan(i, bytesToEncrypt).CopyTo(block);
+                // Tối ưu việc tạo và copy IV
+                Span<byte> iv = rentedBuffers.GetBuffer(Aes256.BlockSize);
+                Aes256.GenerateSecureIV(iv);
 
-                for (int j = 0; j < bytesToEncrypt; j++)
-                    block[j] ^= encryptedCounter[j];
+                Unsafe.CopyBlock(resultPtr, Unsafe.AsPointer(ref MemoryMarshal.GetReference(iv)), (uint)Aes256.BlockSize);
 
-                ms.Write(block, 0, bytesToEncrypt);
-                Aes256.IncrementCounter(counter);
+                // Setup counters
+                Span<byte> counter = rentedBuffers.GetBuffer(Aes256.BlockSize);
+                Span<byte> encryptedCounter = rentedBuffers.GetBuffer(Aes256.BlockSize);
+                Unsafe.CopyBlock(Unsafe.AsPointer(ref MemoryMarshal.GetReference(counter)),
+                               Unsafe.AsPointer(ref MemoryMarshal.GetReference(iv)),
+                               (uint)Aes256.BlockSize);
+
+                // Sử dụng cached AES instance
+                var aes = GetCachedAes(key);
+                using var encryptor = aes.CreateEncryptor();
+
+                // Copy và xử lý plaintext
+                var outputPtr = (byte*)resultPtr + Aes256.BlockSize;
+                fixed (void* plaintextPtr = plaintext)
+                {
+                    Unsafe.CopyBlock(outputPtr, plaintextPtr, (uint)plaintext.Length);
+                }
+
+                Aes256.ProcessBlocksOptimized(
+                    new Span<byte>(outputPtr, plaintext.Length),
+                    counter,
+                    encryptedCounter,
+                    encryptor);
+
+                return new CryptoBuffer(resultOwner, totalLength);
             }
-
-            return ms.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch
         {
-            throw new CryptoOperationException("Encryption failed", ex);
-        }
-        finally
-        {
-            if (encryptedCounter != null) Aes256.Pool.Return(encryptedCounter);
-            if (counter != null) Aes256.Pool.Return(counter);
+            resultOwner.Dispose();
+            throw;
         }
     }
 
     /// <summary>
-    /// Giải mã dữ liệu đã mã hóa bằng AES-256 CTR mode
+    /// Giải mã dữ liệu sử dụng AES-256 CTR mode, trả về kết quả trong CryptoBuffer
     /// </summary>
-    public static byte[] Decrypt(byte[] key, byte[] ciphertext)
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static unsafe CryptoBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
     {
-        Aes256.ValidateKey(key);
-        Aes256.ValidateInput(ciphertext, nameof(ciphertext));
-
         if (ciphertext.Length <= Aes256.BlockSize)
-            throw new ArgumentException("Ciphertext is too short", nameof(ciphertext));
+            throw new ArgumentException("Ciphertext quá ngắn", nameof(ciphertext));
 
-        byte[] encryptedCounter = null;
-        byte[] counter = null;
+        Aes256.ValidateKey(key.ToArray());
+
+        int resultLength = ciphertext.Length - Aes256.BlockSize;
+        IMemoryOwner<byte> resultOwner = MemoryPool<byte>.Shared.Rent(resultLength);
 
         try
         {
-            encryptedCounter = Aes256.Pool.Rent(Aes256.BlockSize);
-            counter = Aes256.Pool.Rent(Aes256.BlockSize);
-
-            // Lấy IV từ ciphertext
-            Buffer.BlockCopy(ciphertext, 0, counter, 0, Aes256.BlockSize);
-
-            using var aes = CreateAesCTR(key);
-            using var ms = new MemoryStream(ciphertext, Aes256.BlockSize, ciphertext.Length - Aes256.BlockSize);
-            using var encryptor = aes.CreateEncryptor();
-            using var resultStream = new MemoryStream();
-
-            byte[] buffer = new byte[Aes256.BlockSize];
-            int bytesRead;
-
-            while ((bytesRead = ms.Read(buffer, 0, Aes256.BlockSize)) > 0)
+            fixed (void* resultPtr = resultOwner.Memory.Span)
+            fixed (void* keyPtr = key)
+            fixed (void* ciphertextPtr = ciphertext)
             {
-                encryptor.TransformBlock(counter, 0, Aes256.BlockSize, encryptedCounter, 0);
+                using var rentedBuffers = new RentedBuffers();
 
-                for (int j = 0; j < bytesRead; j++)
-                    buffer[j] ^= encryptedCounter[j];
+                // Setup counters với pointer operations
+                Span<byte> counter = rentedBuffers.GetBuffer(Aes256.BlockSize);
+                Span<byte> encryptedCounter = rentedBuffers.GetBuffer(Aes256.BlockSize);
 
-                resultStream.Write(buffer, 0, bytesRead);
-                Aes256.IncrementCounter(counter);
+                Unsafe.CopyBlock(Unsafe.AsPointer(ref MemoryMarshal.GetReference(counter)),
+                               ciphertextPtr,
+                               (uint)Aes256.BlockSize);
+
+                // Sử dụng cached AES instance
+                var aes = GetCachedAes(key);
+                using var decryptor = aes.CreateDecryptor();
+
+                // Copy và xử lý ciphertext
+                Unsafe.CopyBlock(resultPtr,
+                               (byte*)ciphertextPtr + Aes256.BlockSize,
+                               (uint)resultLength);
+
+                Aes256.ProcessBlocksOptimized(
+                    new Span<byte>(resultPtr, resultLength),
+                    counter,
+                    encryptedCounter,
+                    decryptor);
+
+                return new CryptoBuffer(resultOwner, resultLength);
             }
-
-            return resultStream.ToArray();
         }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        catch
         {
-            throw new CryptoOperationException("Decryption failed", ex);
-        }
-        finally
-        {
-            if (encryptedCounter != null) Aes256.Pool.Return(encryptedCounter);
-            if (counter != null) Aes256.Pool.Return(counter);
+            resultOwner.Dispose();
+            throw;
         }
     }
 
     /// <summary>
-    /// Mã hóa dữ liệu bất đồng bộ sử dụng AES-256 CTR mode
+    /// Helper class để quản lý nhiều buffers tạm thời với tối ưu hóa thêm
     /// </summary>
-    public static async ValueTask<byte[]> EncryptAsync(byte[] key, byte[] plaintext)
+    private sealed class RentedBuffers : IDisposable
     {
-        Aes256.ValidateKey(key);
-        Aes256.ValidateInput(plaintext, nameof(plaintext));
+        private readonly List<(byte[] Buffer, int Length)> _buffers = [];
+        private readonly Lock _lock = new();
 
-        byte[] encryptedCounter = null;
-        byte[] counter = null;
-        byte[] iv = null;
-        byte[] block = new byte[Aes256.BlockSize]; // Move allocation out of the loop
-
-        try
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<byte> GetBuffer(int length)
         {
-            encryptedCounter = Aes256.Pool.Rent(Aes256.BlockSize);
-            counter = Aes256.Pool.Rent(Aes256.BlockSize);
-            iv = Aes256.GenerateSecureIV();
-
-            using var aes = CreateAesCTR(key);
-            using var ms = new MemoryStream(plaintext.Length + Aes256.BlockSize);
-            using var encryptor = aes.CreateEncryptor();
-
-            await ms.WriteAsync(iv);
-            iv.CopyTo(counter, 0);
-
-            for (int i = 0; i < plaintext.Length; i += Aes256.BlockSize)
+            lock (_lock)
             {
-                encryptor.TransformBlock(counter, 0, Aes256.BlockSize, encryptedCounter, 0);
-
-                int bytesToEncrypt = Math.Min(plaintext.Length - i, Aes256.BlockSize);
-                plaintext.AsMemory(i, bytesToEncrypt).CopyTo(block);
-
-                for (int j = 0; j < bytesToEncrypt; j++)
-                    block[j] ^= encryptedCounter[j];
-
-                await ms.WriteAsync(block.AsMemory(0, bytesToEncrypt));
-                Aes256.IncrementCounter(counter);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+                _buffers.Add((buffer, length));
+                return buffer.AsSpan(0, length);
             }
+        }
 
-            return ms.ToArray();
-        }
-        catch (Exception ex) when (ex is not CryptoOperationException)
+        public void Dispose()
         {
-            throw new CryptoOperationException("Async encryption failed", ex);
-        }
-        finally
-        {
-            if (encryptedCounter != null) Aes256.Pool.Return(encryptedCounter);
-            if (counter != null) Aes256.Pool.Return(counter);
-            if (iv != null) Aes256.Pool.Return(iv);
+            lock (_lock)
+            {
+                foreach (var (buffer, _) in _buffers)
+                {
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                }
+                _buffers.Clear();
+            }
         }
     }
 
-    /// <summary>
-    /// Giải mã dữ liệu bất đồng bộ đã mã hóa bằng AES-256 CTR mode
-    /// </summary>
-    public static async ValueTask<byte[]> DecryptAsync(byte[] key, byte[] ciphertext)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Aes GetCachedAes(ReadOnlySpan<byte> key)
     {
-        Aes256.ValidateKey(key);
-        Aes256.ValidateInput(ciphertext, nameof(ciphertext));
-
-        if (ciphertext.Length <= Aes256.BlockSize)
-            throw new ArgumentException("Ciphertext is too short", nameof(ciphertext));
-
-        byte[] encryptedCounter = null;
-        byte[] counter = null;
-
-        try
-        {
-            encryptedCounter = Aes256.Pool.Rent(Aes256.BlockSize);
-            counter = Aes256.Pool.Rent(Aes256.BlockSize);
-            Buffer.BlockCopy(ciphertext, 0, counter, 0, Aes256.BlockSize);
-
-            using var aes = CreateAesCTR(key);
-            using var ms = new MemoryStream(ciphertext, Aes256.BlockSize, ciphertext.Length - Aes256.BlockSize);
-            using var encryptor = aes.CreateEncryptor();
-            using var resultStream = new MemoryStream();
-
-            byte[] buffer = new byte[Aes256.BlockSize];
-            int bytesRead;
-
-            while ((bytesRead = await ms.ReadAsync(buffer.AsMemory(0, Aes256.BlockSize))) > 0)
-            {
-                encryptor.TransformBlock(counter, 0, Aes256.BlockSize, encryptedCounter, 0);
-
-                for (int j = 0; j < bytesRead; j++)
-                    buffer[j] ^= encryptedCounter[j];
-
-                await resultStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                Aes256.IncrementCounter(counter);
-            }
-
-            return resultStream.ToArray();
-        }
-        catch (Exception ex) when (ex is not CryptoOperationException)
-        {
-            throw new CryptoOperationException("Async decryption failed", ex);
-        }
-        finally
-        {
-            if (encryptedCounter != null) Aes256.Pool.Return(encryptedCounter);
-            if (counter != null) Aes256.Pool.Return(counter);
-        }
-    }
-
-    /// <summary>
-    /// Tạo và cấu hình AES encryptor
-    /// </summary>
-    private static Aes CreateAesCTR(byte[] key)
-    {
-        try
-        {
-            var aes = Aes.Create();
-            aes.Key = key;
-            aes.Mode = CipherMode.ECB;  // CTR mode uses ECB internally
-            aes.Padding = PaddingMode.None;
-            return aes;
-        }
-        catch (Exception ex)
-        {
-            throw new CryptoOperationException("Failed to create AES encryptor", ex);
-        }
+        Aes aes = AesInstanceCache.Value;
+        key.CopyTo(aes.Key);
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
+        return aes;
     }
 }
