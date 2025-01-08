@@ -7,8 +7,7 @@ using System.Threading;
 namespace Notio.Infrastructure.Identification;
 
 /// <summary>
-/// GenId là bộ tạo ID 64-bit dựa trên cấu trúc Snowflake, cho phép tạo ID duy nhất
-/// một cách nhanh chóng và hiệu quả trong môi trường đa luồng.
+/// GenId là bộ tạo ID 64-bit dựa trên cấu trúc Snowflake.
 /// </summary>
 public sealed class GenId
 {
