@@ -12,9 +12,17 @@ namespace Nalix.Shared.Serialization.Internal.Reflection;
 /// </summary>
 /// <typeparam name="T">The type whose fields are being cached.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal static partial class FieldCache<
-T>
+internal static partial class FieldCache<T>
 {
+    /// <summary>
+    /// Gets the number of fields cached for the specified type.
+    /// </summary>
+    /// <returns>The count of cached fields.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 GetFieldCount() => _metadata.Length;
+
     /// <summary>
     /// Retrieves all cached field metadata as a span.
     /// </summary>
@@ -24,15 +32,6 @@ T>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.ReadOnlySpan<FieldSchema> GetFields()
         => System.MemoryExtensions.AsSpan(_metadata);
-
-    /// <summary>
-    /// Gets the number of fields cached for the specified type.
-    /// </summary>
-    /// <returns>The count of cached fields.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 GetFieldCount() => _metadata.Length;
 
     /// <summary>
     /// Retrieves metadata for a field at the given index.

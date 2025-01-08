@@ -255,7 +255,7 @@ public static class LiteSerializer
             return writer.WrittenCount;
         }
 
-        throw new System.NotSupportedException($"Span<byte> serialization not supported for {typeof(T)}.");
+        throw new System.NotSupportedException($"System.Span<byte> serialization not supported for {typeof(T)}.");
     }
 
     /// <summary>
