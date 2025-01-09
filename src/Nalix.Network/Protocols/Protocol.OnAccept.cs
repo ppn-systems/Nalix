@@ -103,7 +103,7 @@ public abstract partial class Protocol
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"Error while accepting from {connection.RemoteEndPoint} (Id={connection.Id}): {ex.Message}", ex);
+                                           $"ERROR while accepting from {connection.RemoteEndPoint} (Id={connection.Id}): {ex.Message}", ex);
         }
     }
 

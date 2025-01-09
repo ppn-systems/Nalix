@@ -140,7 +140,7 @@ public abstract partial class TcpListenerBase
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(TcpListenerBase)}] Error during shutdown: {ex.Message}");
+                                            .Error($"[{nameof(TcpListenerBase)}] ERROR during shutdown: {ex.Message}");
                 }
                 finally
                 {
@@ -175,7 +175,7 @@ public abstract partial class TcpListenerBase
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TcpListenerBase)}] Error closing listener socket: {ex.Message}");
+                                    .Error($"[{nameof(TcpListenerBase)}] ERROR closing listener socket: {ex.Message}");
         }
         finally
         {

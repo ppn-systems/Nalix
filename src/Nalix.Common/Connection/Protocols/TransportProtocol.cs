@@ -11,15 +11,15 @@ public enum TransportProtocol : System.Byte
     /// <summary>
     /// No transport protocol specified.
     /// </summary>
-    Null = 0x00,
+    NONE = 0x00,
 
     /// <summary>
     /// Transmission Control Protocol (reliable, connection-based).
     /// </summary>
-    Tcp = 0x3A,
+    TCP = 0x3A,
 
     /// <summary>
     /// User Datagram Protocol (unreliable, connectionless).
     /// </summary>
-    Udp = 0xE1
+    UDP = 0xE1
 }
