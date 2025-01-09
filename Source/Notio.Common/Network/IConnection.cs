@@ -67,7 +67,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gửi tin nhắn
     /// </summary>
-    void Send(byte[] message);
+    void Send(ReadOnlySpan<byte> message);
 
     /// <summary>
     /// Gửi tin nhắn
