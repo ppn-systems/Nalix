@@ -2,12 +2,12 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Dispatch;
 
@@ -41,7 +41,7 @@ public sealed class PacketDispatchChannel
 {
     #region Fields
 
-    private readonly PacketCatalog _catalog;
+    private readonly IPacketCatalog _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
     private readonly System.Threading.CancellationTokenSource _cts = new();
@@ -61,15 +61,15 @@ public sealed class PacketDispatchChannel
     public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<IPacket>> options)
         : base(options)
     {
-        _dispatch = new DispatchChannel<IPacket>(logger: null);
-        _catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>()
+        _dispatch = new DispatchChannel<IPacket>(InstanceManager.Instance.GetExistingInstance<ILogger>());
+        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
-                       $"[{nameof(PacketDispatchChannel)}] PacketCatalog not registered in InstanceManager. " +
-                       $"Make sure to build and register PacketCatalog before starting dispatcher.");
+                       $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. " +
+                       $"Make sure to build and register IPacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
 #if DEBUG
-        Logger?.Debug("[Dispatch] Initialized with custom options");
+        Logger?.Debug($"[{nameof(PacketDispatchChannel)}] Initialized with custom options");
 #endif
     }
 
