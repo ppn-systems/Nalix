@@ -6,6 +6,7 @@ using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
 using Notio.Network.Connection.Args;
 using Notio.Security;
+using Notio.Security.Exceptions;
 using Notio.Shared.Memory.Cache;
 using System;
 using System.Linq;
@@ -244,7 +245,7 @@ public class Connection : IConnection, IDisposable
         try
         {
             if (_state == ConnectionState.Authenticated)
-                data = await AesCTR.EncryptAsync(data, _aes256Key);
+                data = AesCTR.Encrypt(_aes256Key, data).Memory.ToArray();          
 
             if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
                 _cacheOutgoingPacket.Add(data, data);
@@ -390,8 +391,8 @@ public class Connection : IConnection, IDisposable
                     case ConnectionState.Authenticated:
                         try
                         {
-                            byte[] decrypted = await AesCTR.DecryptAsync(
-                                _aes256Key, _buffer.Take(totalBytesRead).ToArray());
+                            byte[] decrypted = AesCTR.Decrypt(
+                                _aes256Key, _buffer.Take(totalBytesRead).ToArray()).Memory.ToArray();
 
                             _cacheIncomingPacket.Add(decrypted);
                             this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));

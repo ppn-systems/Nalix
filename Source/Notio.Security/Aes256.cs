@@ -10,6 +10,7 @@ namespace Notio.Security;
 
 public static class Aes256
 {
+    internal const int MinParallelSize = 1024 * 64; // 64KB threshold cho xử lý song song
     internal const int BufferSize = 81920; // 80KB buffer for better performance
     internal const int BlockSize = 16;  // AES block size in bytes
     internal const int KeySize = 32;    // AES-256 key size in bytes
@@ -34,37 +35,42 @@ public static class Aes256
         }
     }
 
-    internal static void ValidateKey(byte[] key)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void ValidateKey(ReadOnlySpan<byte> key)
     {
-        if (key == null)
-            throw new ArgumentNullException(nameof(key), "Encryption key cannot be null");
+        if (key.IsEmpty)
+            throw new ArgumentNullException(nameof(key), "Encryption key cannot be null or empty");
         if (key.Length != KeySize)
             throw new ArgumentException($"Key must be {KeySize} bytes for AES-256", nameof(key));
     }
 
-    internal static void ValidateInput(byte[] data, string paramName)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void ValidateInput(ReadOnlySpan<byte> data, string paramName)
     {
-        if (data == null)
-            throw new ArgumentNullException(paramName, "Input data cannot be null");
-        if (data.Length == 0)
-            throw new ArgumentException("Input data cannot be empty", paramName);
+        if (data.IsEmpty)
+            throw new ArgumentNullException(paramName, "Input data cannot be null or empty");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static byte[] GenerateSecureIV()
     {
-        var iv = new byte[BlockSize];
+        byte[] iv = new byte[BlockSize];
         try
         {
-            using var rng = RandomNumberGenerator.Create();
+            using RandomNumberGenerator rng = RandomNumberGenerator.Create();
             rng.GetBytes(iv);
             return iv;
         }
-        catch (Exception ex)
+        catch
         {
-            throw new CryptoOperationException("Failed to generate secure IV", ex);
+            for (int i = 0; i < iv.Length; i++)
+                iv[i] = (byte)(DateTime.UtcNow.Ticks >> (i % 8) * 8);
+
+            return iv;
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void GenerateSecureIV(Span<byte> iv)
     {
         if (iv.Length != BlockSize)
@@ -72,15 +78,17 @@ public static class Aes256
 
         try
         {
-            using var rng = RandomNumberGenerator.Create();
+            using RandomNumberGenerator rng = RandomNumberGenerator.Create();
             rng.GetBytes(iv);
         }
-        catch (Exception ex)
+        catch
         {
-            throw new CryptoOperationException("Failed to generate secure IV", ex);
+            for (int i = 0; i < iv.Length; i++)
+                iv[i] = (byte)(DateTime.UtcNow.Ticks >> (i % 8) * 8);
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void IncrementCounter(Span<byte> counter)
     {
         for (int i = counter.Length - 1; i >= 0; i--)
@@ -97,48 +105,24 @@ public static class Aes256
 
         if (Vector.IsHardwareAccelerated && data.Length >= Vector<byte>.Count)
         {
-            int i = 0;
             int vectorSize = Vector<byte>.Count;
 
-            for (; i <= data.Length - vectorSize; i += vectorSize)
+            for (int i = 0; i <= data.Length - vectorSize; i += vectorSize)
             {
-                var dataVec = new Vector<byte>(data[i..]);
-                var counterVec = new Vector<byte>(counter[i..]);
-                (dataVec ^ counterVec).CopyTo(data[i..]);
-            }
+                var dataSlice = data.Slice(i, vectorSize);
+                var counterSlice = counter.Slice(i, vectorSize);
 
-            // Xử lý các byte còn lại
-            for (; i < data.Length; i++)
-            {
-                Unsafe.Add(ref dataRef, i) ^= Unsafe.Add(ref counterRef, i);
+                var dataVec = new Vector<byte>(dataSlice);
+                var counterVec = new Vector<byte>(counterSlice);
+                (dataVec ^ counterVec).CopyTo(dataSlice);
             }
         }
         else
         {
-            // Fallback cho các hệ thống không hỗ trợ SIMD
             for (int i = 0; i < data.Length; i++)
             {
                 Unsafe.Add(ref dataRef, i) ^= Unsafe.Add(ref counterRef, i);
             }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void ProcessBlocksOptimized(Span<byte> data, Span<byte> counter, Span<byte> encryptedCounter, ICryptoTransform transform)
-    {
-        for (int i = 0; i < data.Length; i += Aes256.BlockSize)
-        {
-            int currentBlockSize = Math.Min(Aes256.BlockSize, data.Length - i);
-
-            transform.TransformBlock(
-                counter.ToArray(), 0, Aes256.BlockSize,
-                encryptedCounter.ToArray(), 0);
-
-            // XOR operation với SIMD khi có thể
-            var blockSpan = data.Slice(i, currentBlockSize);
-            Aes256.XorBlock(blockSpan, encryptedCounter[..currentBlockSize]);
-
-            Aes256.IncrementCounter(counter);
         }
     }
 }
