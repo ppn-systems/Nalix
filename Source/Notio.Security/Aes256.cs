@@ -1,4 +1,5 @@
 ﻿using Notio.Security.Exceptions;
+using Notio.Security.Mode;
 using System;
 using System.Buffers;
 using System.Numerics;
@@ -16,8 +17,26 @@ public static class Aes256
     internal const int KeySize = 32;    // AES-256 key size in bytes
     internal static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
+    public static class CtrMode
+    {
+        public static MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+        => AesCtrCipher.Encrypt(key, plaintext);
+
+        public static MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+            => AesCtrCipher.Decrypt(key, ciphertext);
+    }
+
+    public static class CfbMode
+    {
+        public static MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+        => AesCfbCipher.Encrypt(key, plaintext);
+
+        public static MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+            => AesCfbCipher.Decrypt(key, ciphertext);
+    }
+
     /// <summary>
-    /// Tạo một khóa AES 256-bit mới
+    /// Tạo một khóa AES 256-bit.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] GenerateKey()
@@ -52,26 +71,7 @@ public static class Aes256
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static byte[] GenerateSecureIV()
-    {
-        byte[] iv = new byte[BlockSize];
-        try
-        {
-            using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-            rng.GetBytes(iv);
-            return iv;
-        }
-        catch
-        {
-            for (int i = 0; i < iv.Length; i++)
-                iv[i] = (byte)(DateTime.UtcNow.Ticks >> (i % 8) * 8);
-
-            return iv;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void GenerateSecureIV(Span<byte> iv)
+    internal static void GenerateSecureIVInternal(Span<byte> iv)
     {
         if (iv.Length != BlockSize)
             throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
@@ -87,6 +87,19 @@ public static class Aes256
                 iv[i] = (byte)(DateTime.UtcNow.Ticks >> (i % 8) * 8);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static byte[] GenerateSecureIV()
+    {
+        byte[] iv = new byte[BlockSize];
+        GenerateSecureIVInternal(iv);
+        return iv;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void GenerateSecureIV(Span<byte> iv)
+        => GenerateSecureIVInternal(iv);
+    
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void IncrementCounter(Span<byte> counter)
@@ -109,11 +122,11 @@ public static class Aes256
 
             for (int i = 0; i <= data.Length - vectorSize; i += vectorSize)
             {
-                var dataSlice = data.Slice(i, vectorSize);
-                var counterSlice = counter.Slice(i, vectorSize);
+                Span<byte> dataSlice = data.Slice(i, vectorSize);
+                ReadOnlySpan<byte> counterSlice = counter.Slice(i, vectorSize);
 
-                var dataVec = new Vector<byte>(dataSlice);
-                var counterVec = new Vector<byte>(counterSlice);
+                Vector<byte> dataVec = new(dataSlice);
+                Vector<byte> counterVec = new(counterSlice);
                 (dataVec ^ counterVec).CopyTo(dataSlice);
             }
         }

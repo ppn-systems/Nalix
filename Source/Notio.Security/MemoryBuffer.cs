@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Buffers;
 
-namespace Notio.Security.Exceptions;
+namespace Notio.Security;
 
-public sealed class CryptoBuffer(IMemoryOwner<byte> owner, int length) : IDisposable
+public sealed class MemoryBuffer(IMemoryOwner<byte> owner, int length) : IDisposable
 {
     private readonly IMemoryOwner<byte> _owner = owner;
     private bool _disposed;
 
     public Memory<byte> Memory => _disposed
-        ? throw new ObjectDisposedException(nameof(CryptoBuffer))
+        ? throw new ObjectDisposedException(nameof(MemoryBuffer))
         : _owner.Memory;
 
     public int Length = length;

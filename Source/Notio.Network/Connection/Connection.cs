@@ -6,7 +6,6 @@ using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
 using Notio.Network.Connection.Args;
 using Notio.Security;
-using Notio.Security.Exceptions;
 using Notio.Shared.Memory.Cache;
 using System;
 using System.Linq;
@@ -221,18 +220,23 @@ public class Connection : IConnection, IDisposable
         }
     }
 
-    public void Send(byte[] data)
+    public void Send(ReadOnlySpan<byte> message)
     {
         try
         {
             if (_state == ConnectionState.Authenticated)
-                data = AesCTR.Encrypt(data, _aes256Key);
+            {
+                using MemoryBuffer memoryBuffer = Aes256.CtrMode.Encrypt(_aes256Key, message);
+                message = memoryBuffer.Memory.Span;
+            }
 
-            if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
-                _cacheOutgoingPacket.Add(data, data);
+            ReadOnlyMemory<byte> key = message[..5].ToArray();
+
+            if (!_cacheOutgoingPacket.TryGetValue(key, out ReadOnlyMemory<byte>? cachedData))
+                _cacheOutgoingPacket.Add(key, message.ToArray());
 
             // Gửi dữ liệu qua stream
-            _stream.Write(data);
+            _stream.Write(message);
         }
         catch (Exception ex)
         {
@@ -240,18 +244,18 @@ public class Connection : IConnection, IDisposable
         }
     }
 
-    public async Task SendAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
     {
         try
         {
             if (_state == ConnectionState.Authenticated)
-                data = AesCTR.Encrypt(_aes256Key, data).Memory.ToArray();          
+                message = Aes256.CtrMode.Encrypt(_aes256Key, message).Memory.ToArray();
 
-            if (!_cacheOutgoingPacket.TryGetValue(data, out byte[]? cachedData))
-                _cacheOutgoingPacket.Add(data, data);
+            if (!_cacheOutgoingPacket.TryGetValue(message, out ReadOnlyMemory<byte>? cachedData))
+                _cacheOutgoingPacket.Add(message, message);
 
             // Gửi dữ liệu qua stream
-            await _stream.WriteAsync(data, cancellationToken);
+            await _stream.WriteAsync(message, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -391,7 +395,7 @@ public class Connection : IConnection, IDisposable
                     case ConnectionState.Authenticated:
                         try
                         {
-                            byte[] decrypted = AesCTR.Decrypt(
+                            byte[] decrypted = Aes256.CtrMode.Decrypt(
                                 _aes256Key, _buffer.Take(totalBytesRead).ToArray()).Memory.ToArray();
 
                             _cacheIncomingPacket.Add(decrypted);

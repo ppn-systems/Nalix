@@ -1,31 +1,32 @@
-﻿using System;
+﻿using Notio.Security.Exceptions;
+using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using System.Collections.Generic;
-using Notio.Security.Exceptions;
-using System.Linq;
 
-namespace Notio.Security;
+namespace Notio.Security.Mode;
 
 /// <summary>
-/// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CTR (Counter)
+/// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CtrMode (Counter)
 /// </summary>
-public static unsafe class AesCTR
+internal static unsafe class AesCtrCipher
 {
     private static readonly int ProcessorCount = Environment.ProcessorCount;
-    private static readonly ThreadLocal<System.Security.Cryptography.Aes> AesInstanceCache = 
+
+    private static readonly ThreadLocal<System.Security.Cryptography.Aes> AesInstanceCache =
         new(() => System.Security.Cryptography.Aes.Create());
 
     /// <summary>
     /// Mã hóa dữ liệu với hỗ trợ xử lý song song
     /// </summary>
-    public static CryptoBuffer EncryptParallel(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    public static MemoryBuffer EncryptParallel(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         if (plaintext.Length >= Aes256.MinParallelSize)
         {
@@ -35,10 +36,10 @@ public static unsafe class AesCTR
     }
 
     /// <summary>
-    /// Mã hóa dữ liệu sử dụng AES-256 CTR mode, trả về kết quả trong CryptoBuffer
+    /// Mã hóa dữ liệu sử dụng AES-256 CtrMode mode, trả về kết quả trong MemoryBuffer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static unsafe CryptoBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    public static unsafe MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         Aes256.ValidateKey(key.ToArray());
 
@@ -53,12 +54,12 @@ public static unsafe class AesCTR
             fixed (void* keyPtr = key)
             {
                 Aes256.GenerateSecureIV(iv);
-                Unsafe.CopyBlock(resultPtr, Unsafe.AsPointer(ref MemoryMarshal.GetReference(iv)), (uint)Aes256.BlockSize);
+                Unsafe.CopyBlock(resultPtr, Unsafe.AsPointer(ref MemoryMarshal.GetReference(iv)), Aes256.BlockSize);
 
                 Unsafe.CopyBlock(
                     Unsafe.AsPointer(ref MemoryMarshal.GetReference(counter)),
                     Unsafe.AsPointer(ref MemoryMarshal.GetReference(iv)),
-                    (uint)Aes256.BlockSize
+                    Aes256.BlockSize
                 );
 
                 var aes = GetCachedAes(key);
@@ -72,7 +73,7 @@ public static unsafe class AesCTR
 
                 ProcessDataBlocksSimd(new Span<byte>(outputPtr, plaintext.Length), counter, encryptor);
 
-                return new CryptoBuffer(resultOwner, totalLength);
+                return new MemoryBuffer(resultOwner, totalLength);
             }
         }
         catch
@@ -85,10 +86,10 @@ public static unsafe class AesCTR
     }
 
     /// <summary>
-    /// Giải mã dữ liệu sử dụng AES-256 CTR mode, trả về kết quả trong CryptoBuffer
+    /// Giải mã dữ liệu sử dụng AES-256 CtrMode mode, trả về kết quả trong MemoryBuffer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static unsafe CryptoBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+    public static unsafe MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
     {
         if (ciphertext.Length <= Aes256.BlockSize)
             throw new ArgumentException("Ciphertext quá ngắn", nameof(ciphertext));
@@ -108,7 +109,7 @@ public static unsafe class AesCTR
                 Unsafe.CopyBlock(
                     Unsafe.AsPointer(ref MemoryMarshal.GetReference(counter)),
                     ciphertextPtr,
-                    (uint)Aes256.BlockSize
+                    Aes256.BlockSize
                 );
 
                 var aes = GetCachedAes(key);
@@ -122,7 +123,7 @@ public static unsafe class AesCTR
 
                 ProcessDataBlocksSimd(new Span<byte>(resultPtr, resultLength), counter, decryptor);
 
-                return new CryptoBuffer(resultOwner, resultLength);
+                return new MemoryBuffer(resultOwner, resultLength);
             }
         }
         catch
@@ -143,16 +144,16 @@ public static unsafe class AesCTR
         return aes;
     }
 
-    private static CryptoBuffer EncryptParallelImplementation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    private static MemoryBuffer EncryptParallelImplementation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         var keyArray = key.ToArray(); // Convert key to array outside the loop
-        var tasks = new List<Task<CryptoBuffer>>();
+        var tasks = new List<Task<MemoryBuffer>>();
         int blockSize = plaintext.Length / ProcessorCount;
 
         for (int i = 0; i < ProcessorCount; i++)
         {
             int start = i * blockSize;
-            int length = (i == ProcessorCount - 1) ? plaintext.Length - start : blockSize;
+            int length = i == ProcessorCount - 1 ? plaintext.Length - start : blockSize;
 
             var slice = plaintext.Slice(start, length).ToArray();
             tasks.Add(Task.Run(() => Encrypt(keyArray, slice)));
@@ -162,7 +163,7 @@ public static unsafe class AesCTR
         return CombineResults(tasks.Select(t => t.Result).ToArray());
     }
 
-    private static CryptoBuffer CombineResults(CryptoBuffer[] results)
+    private static MemoryBuffer CombineResults(MemoryBuffer[] results)
     {
         int totalLength = results.Sum(r => r.Length);
         IMemoryOwner<byte> combinedOwner = MemoryPool<byte>.Shared.Rent(totalLength);
@@ -175,7 +176,7 @@ public static unsafe class AesCTR
             result.Dispose();
         }
 
-        return new CryptoBuffer(combinedOwner, totalLength);
+        return new MemoryBuffer(combinedOwner, totalLength);
     }
 
     private static unsafe void ProcessDataBlocksSse2(Span<byte> data, Span<byte> counter, ICryptoTransform transform)
@@ -206,7 +207,7 @@ public static unsafe class AesCTR
                 }
 
                 if (offset < data.Length)
-                    ProcessDataBlocksScalar(data[offset..], counter, transform);              
+                    ProcessDataBlocksScalar(data[offset..], counter, transform);
             }
         }
         finally
@@ -241,7 +242,6 @@ public static unsafe class AesCTR
             Aes256.Pool.Return(encryptedBuffer);
         }
     }
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe void ProcessDataBlocksSimd(Span<byte> data, Span<byte> counter, ICryptoTransform transform)
@@ -278,17 +278,17 @@ public static unsafe class AesCTR
                     // Process 32 bytes at a time using AVX2
                     transform.TransformBlock(counterBuffer, 0, Aes256.BlockSize, encryptedBuffer, 0);
 
-                    Vector256<byte> dataVector = Avx2.LoadVector256(dataPtr + offset);
-                    Vector256<byte> counterVector = Avx2.LoadVector256(encryptedPtr);
+                    Vector256<byte> dataVector = Avx.LoadVector256(dataPtr + offset);
+                    Vector256<byte> counterVector = Avx.LoadVector256(encryptedPtr);
                     Vector256<byte> result = Avx2.Xor(dataVector, counterVector);
-                    Avx2.Store(dataPtr + offset, result);
+                    Avx.Store(dataPtr + offset, result);
 
                     Aes256.IncrementCounter(counterBuffer.AsSpan());
                     offset += 32;
                 }
 
                 if (offset < data.Length)
-                    ProcessDataBlocksScalar(data[offset..], counter, transform);             
+                    ProcessDataBlocksScalar(data[offset..], counter, transform);
             }
         }
         finally

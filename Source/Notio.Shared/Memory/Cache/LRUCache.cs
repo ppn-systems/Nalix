@@ -1,29 +1,29 @@
-﻿using Notio.Shared.Memory.Extensions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
 /// <summary>
 /// Represents a Least Recently Used (LRU) cache with a specified capacity.
 /// </summary>
-/// <param name="capacity">The maximum capacity of the cache.</param>
-public sealed class LRUCache(int capacity)
+/// <typeparam name="TKey">The type of the cache key.</typeparam>
+/// <typeparam name="TValue">The type of the cache value.</typeparam>
+public sealed class LRUCache<TKey, TValue>(int capacity) where TKey : notnull
 {
     private class CacheItem
     {
         /// <summary>
         /// Gets or sets the key of the cache item.
         /// </summary>
-        public byte[]? Key { get; set; }
+        public TKey? Key { get; set; }
 
         /// <summary>
         /// Gets or sets the value of the cache item.
         /// </summary>
-        public byte[]? Value { get; set; }
+        public TValue? Value { get; set; }
     }
 
     private readonly int _capacity = capacity;
-    private readonly Dictionary<byte[], LinkedListNode<CacheItem>> _cacheMap = new(new ByteArrayComparer());
+    private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap = new();
     private readonly LinkedList<CacheItem> _lruList = new();
 
     /// <summary>
@@ -31,28 +31,30 @@ public sealed class LRUCache(int capacity)
     /// </summary>
     /// <param name="key">The key of the item.</param>
     /// <param name="value">The value of the item.</param>
-    public void Add(byte[] key, byte[] value)
+    public void Add(TKey key, TValue value)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
+            // Remove the old node, update the value, and move it to the front
             _lruList.Remove(node);
             node.Value.Value = value;
         }
         else
         {
+            // If the cache is full, evict the least recently used item
             if (_cacheMap.Count >= _capacity)
             {
                 var lastNode = _lruList.Last;
                 if (lastNode != null)
                 {
                     _lruList.RemoveLast();
-
                     if (lastNode.Value.Key != null)
                         _cacheMap.Remove(lastNode.Value.Key);
                 }
             }
 
-            var newNode = new LinkedListNode<CacheItem>(new CacheItem { Key = key, Value = value });
+            // Add the new item to the front of the list and map
+            LinkedListNode<CacheItem> newNode = new(new CacheItem { Key = key, Value = value });
             _lruList.AddFirst(newNode);
             _cacheMap[key] = newNode;
         }
@@ -64,9 +66,9 @@ public sealed class LRUCache(int capacity)
     /// <param name="key">The key of the item to get.</param>
     /// <returns>The value associated with the specified key.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the key is not found in the cache.</exception>
-    public byte[] GetValue(byte[] key)
+    public TValue GetValue(TKey key)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
             // Move the node to the front to mark it as most recently used
             _lruList.Remove(node);
@@ -87,17 +89,17 @@ public sealed class LRUCache(int capacity)
     /// <param name="key">The key of the item to get.</param>
     /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; otherwise, null.</param>
     /// <returns>true if the key was found in the cache; otherwise, false.</returns>
-    public bool TryGetValue(byte[] key, out byte[]? value)
+    public bool TryGetValue(TKey key, out TValue value)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
             _lruList.Remove(node);
             _lruList.AddFirst(node);
-            value = node.Value.Value;
+            value = node.Value.Value!; 
             return true;
         }
 
-        value = null;
+        value = default!;
         return false;
     }
 
