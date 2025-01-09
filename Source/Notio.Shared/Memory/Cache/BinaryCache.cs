@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System;
 
 namespace Notio.Shared.Memory.Cache;
 
@@ -17,11 +17,12 @@ public sealed class BinaryCache(int capacity)
     /// </summary>
     /// <param name="key">Khóa của phần tử.</param>
     /// <param name="value">Giá trị của phần tử.</param>
-    public void Add(ReadOnlyMemory<byte> key, ReadOnlyMemory<byte> value)
+    public void Add(ReadOnlySpan<byte> key, ReadOnlyMemory<byte> value)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        ReadOnlyMemory<byte> memoryKey = key.ToArray();
+
+        if (_cacheMap.TryGetValue(memoryKey, out var node))
         {
-            // Cập nhật giá trị mới nếu khóa đã tồn tại
             node.Value = value;
             _usageOrder.Remove(node);
             _usageOrder.AddFirst(node);
@@ -31,10 +32,9 @@ public sealed class BinaryCache(int capacity)
             if (_cacheMap.Count >= _capacity)
                 EvictLeastUsedItem();
 
-            // Thêm phần tử mới
             var newNode = new LinkedListNode<ReadOnlyMemory<byte>>(value);
             _usageOrder.AddFirst(newNode);
-            _cacheMap[key] = newNode;
+            _cacheMap[memoryKey] = newNode;
         }
     }
 
@@ -44,11 +44,12 @@ public sealed class BinaryCache(int capacity)
     /// <param name="key">Khóa của phần tử.</param>
     /// <returns>Giá trị của phần tử nếu tìm thấy.</returns>
     /// <exception cref="KeyNotFoundException">Ném ngoại lệ nếu không tìm thấy khóa.</exception>
-    public ReadOnlyMemory<byte> GetValue(ReadOnlyMemory<byte> key)
+    public ReadOnlyMemory<byte> GetValue(ReadOnlySpan<byte> key)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        ReadOnlyMemory<byte> memoryKey = key.ToArray(); 
+
+        if (_cacheMap.TryGetValue(memoryKey, out var node))
         {
-            // Di chuyển node lên đầu danh sách để đánh dấu phần tử mới sử dụng
             _usageOrder.Remove(node);
             _usageOrder.AddFirst(node);
             return node.Value;
@@ -63,9 +64,11 @@ public sealed class BinaryCache(int capacity)
     /// <param name="key">Khóa của phần tử.</param>
     /// <param name="value">Giá trị của phần tử nếu tìm thấy.</param>
     /// <returns>Trả về true nếu tìm thấy, ngược lại trả về false.</returns>
-    public bool TryGetValue(ReadOnlyMemory<byte> key, out ReadOnlyMemory<byte>? value)
+    public bool TryGetValue(ReadOnlySpan<byte> key, out ReadOnlyMemory<byte>? value)
     {
-        if (_cacheMap.TryGetValue(key, out var node))
+        ReadOnlyMemory<byte> memoryKey = key.ToArray();
+
+        if (_cacheMap.TryGetValue(memoryKey, out var node))
         {
             value = node.Value;
             return true;
@@ -86,7 +89,6 @@ public sealed class BinaryCache(int capacity)
 
     private void EvictLeastUsedItem()
     {
-        // Loại bỏ phần tử ít sử dụng nhất (ở cuối danh sách)
         var lastNode = _usageOrder.Last!;
         _cacheMap.Remove(lastNode.Value);
         _usageOrder.RemoveLast();

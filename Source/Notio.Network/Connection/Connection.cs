@@ -230,12 +230,13 @@ public class Connection : IConnection, IDisposable
                 message = memoryBuffer.Memory.Span;
             }
 
-            ReadOnlyMemory<byte> key = message[..5].ToArray();
+            Span<byte> key = stackalloc byte[10];
+            message[..4].CopyTo(key);
+            message[(message.Length - 5)..].CopyTo(key);
 
             if (!_cacheOutgoingPacket.TryGetValue(key, out ReadOnlyMemory<byte>? cachedData))
                 _cacheOutgoingPacket.Add(key, message.ToArray());
 
-            // Gửi dữ liệu qua stream
             _stream.Write(message);
         }
         catch (Exception ex)
@@ -251,10 +252,13 @@ public class Connection : IConnection, IDisposable
             if (_state == ConnectionState.Authenticated)
                 message = Aes256.CtrMode.Encrypt(_aes256Key, message).Memory.ToArray();
 
-            if (!_cacheOutgoingPacket.TryGetValue(message, out ReadOnlyMemory<byte>? cachedData))
-                _cacheOutgoingPacket.Add(message, message);
+            Span<byte> key = stackalloc byte[10];
+            message.AsSpan(0, 4).CopyTo(key);
+            message.AsSpan(message.Length - 5).CopyTo(key);
 
-            // Gửi dữ liệu qua stream
+            if (!_cacheOutgoingPacket.TryGetValue(key, out ReadOnlyMemory<byte>? cachedData))
+                _cacheOutgoingPacket.Add(key, message);
+
             await _stream.WriteAsync(message, cancellationToken);
         }
         catch (Exception ex)
