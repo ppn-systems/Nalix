@@ -288,9 +288,6 @@ public sealed class PacketCatalogFactory
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when duplicate magic numbers are detected.
     /// </exception>
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
-        "Uses reflection and function pointers to bind static members. " +
-        "Mark packet types' static methods with DynamicDependency or keep them rooted for trimming/AOT.")]
     public PacketCatalog CreateCatalog()
     {
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
