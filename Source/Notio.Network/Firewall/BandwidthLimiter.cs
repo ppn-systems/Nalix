@@ -26,7 +26,7 @@ public sealed class BandwidthLimiter : IDisposable
 
     public BandwidthLimiter(FirewallConfig? networkConfig = null)
     {
-        _firewallConfig = networkConfig ?? ConfigManager.Instance.GetConfig<FirewallConfig>();
+        _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         // Kiểm tra cấu hình
         if (_firewallConfig.MaxUploadBytesPerSecond <= 0 || _firewallConfig.MaxDownloadBytesPerSecond <= 0)

@@ -7,20 +7,15 @@ namespace Notio.Shared.Configuration;
 /// <summary>
 /// Một singleton cung cấp quyền truy cập vào các container giá trị cấu hình.
 /// </summary>
-public sealed class ConfigManager
+public sealed class ConfigurationShared : SingletonAbs<ConfigurationShared>
 {
-    private readonly Dictionary<Type, ConfigContainer> _configContainerDict = [];
-    private readonly ConfigIniFile _iniFile;
+    private readonly Dictionary<Type, ConfigurationBinder> _configContainerDict = [];
+    private readonly ConfigurationIniFile _iniFile;
 
     /// <summary>
-    /// Cung cấp quyền truy cập vào instance của <see cref="ConfigManager"/>.
+    /// Khởi tạo một instance của <see cref="ConfigurationShared"/>.
     /// </summary>
-    public static ConfigManager Instance { get; } = new();
-
-    /// <summary>
-    /// Khởi tạo một instance của <see cref="ConfigManager"/>.
-    /// </summary>
-    private ConfigManager()
+    private ConfigurationShared() 
         => _iniFile = new(Path.Combine(DefaultDirectories.ConfigPath, "Configuration.ini"));
 
     /// <summary>
@@ -28,9 +23,9 @@ public sealed class ConfigManager
     /// </summary>
     /// <typeparam name="TClass">Kiểu của container cấu hình.</typeparam>
     /// <returns>Instance của kiểu <typeparamref name="TClass"/>.</returns>
-    public TClass GetConfig<TClass>() where TClass : ConfigContainer, new()
+    public TClass Get<TClass>() where TClass : ConfigurationBinder, new()
     {
-        if (!_configContainerDict.TryGetValue(typeof(TClass), out ConfigContainer? container))
+        if (!_configContainerDict.TryGetValue(typeof(TClass), out ConfigurationBinder? container))
         {
             container = new TClass();
             container.Initialize(_iniFile);

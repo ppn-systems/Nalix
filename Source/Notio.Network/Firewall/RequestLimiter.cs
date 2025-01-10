@@ -27,7 +27,7 @@ public sealed class RequestLimiter : IDisposable
 
     public RequestLimiter(FirewallConfig? networkConfig)
     {
-        _firewallConfig = networkConfig ?? ConfigManager.Instance.GetConfig<FirewallConfig>();
+        _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxAllowedRequests <= 0)
             throw new ArgumentException("MaxAllowedRequests must be greater than 0");

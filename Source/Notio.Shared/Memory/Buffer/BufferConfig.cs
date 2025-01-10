@@ -5,7 +5,7 @@ namespace Notio.Shared.Memory.Buffer;
 /// <summary>
 /// Configuration for buffer settings.
 /// </summary>
-public sealed class BufferConfig : ConfigContainer
+public sealed class BufferConfig : ConfigurationBinder
 {
     /// <summary>
     /// Tổng số lượng buffers được tạo.

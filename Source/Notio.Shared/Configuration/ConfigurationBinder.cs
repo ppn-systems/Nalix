@@ -9,13 +9,13 @@ namespace Notio.Shared.Configuration;
 /// <remarks>
 /// Các lớp triển khai lớp này nên có hậu tố Configuration trong tên của chúng (ví dụ, FooConfig). Tên phần và khóa của tệp ini được lấy từ tên lớp và thuộc tính.
 /// </remarks>
-public abstract class ConfigContainer
+public abstract class ConfigurationBinder
 {
     /// <summary>
-    /// Khởi tạo một phiên bản <see cref="ConfigContainer"/> từ <see cref="ConfigIniFile"/> được cung cấp bằng cách sử dụng reflection.
+    /// Khởi tạo một phiên bản <see cref="ConfigurationBinder"/> từ <see cref="ConfigurationIniFile"/> được cung cấp bằng cách sử dụng reflection.
     /// </summary>
     /// <param name="configFile">Tệp cấu hình ini được sử dụng để khởi tạo.</param>
-    internal void Initialize(ConfigIniFile configFile)
+    internal void Initialize(ConfigurationIniFile configFile)
     {
         Type type = GetType();
 
@@ -25,7 +25,7 @@ public abstract class ConfigContainer
 
         foreach (var property in type.GetProperties())
         {
-            if (property.IsDefined(typeof(ConfigIgnoreAttribute)))
+            if (property.IsDefined(typeof(ConfigurationIgnoreAttribute)))
                 continue;  // Bỏ qua các thuộc tính được chỉ định
 
             object? value = Type.GetTypeCode(property.PropertyType) switch

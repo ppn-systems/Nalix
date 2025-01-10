@@ -24,7 +24,7 @@ public sealed class ConnectionLimiter : IDisposable
 
     public ConnectionLimiter(FirewallConfig? networkConfig = null)
     {
-        _firewallConfig = networkConfig ?? ConfigManager.Instance.GetConfig<FirewallConfig>();
+        _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         // Validate configuration
         if (_firewallConfig.MaxConnectionsPerIpAddress <= 0)

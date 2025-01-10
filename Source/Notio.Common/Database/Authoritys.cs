@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Models;
+﻿namespace Notio.Common.Database;
 
 public enum Authoritys : byte
 {

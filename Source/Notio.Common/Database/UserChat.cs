@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Common.Models.Db;
+namespace Notio.Common.Database.Db;
 
 /// <summary>
 /// Đại diện cho mối quan hệ giữa người dùng và cuộc trò chuyện trong cơ sở dữ liệu.

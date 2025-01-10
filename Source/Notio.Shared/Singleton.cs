@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-namespace Notio.Infrastructure.Services;
+namespace Notio.Shared;
 
 /// <summary>
 /// Lớp Singleton dùng để quản lý và khởi tạo các instance duy nhất của các class.

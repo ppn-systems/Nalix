@@ -25,7 +25,7 @@ public sealed class BufferAllocator : IBufferPool
     /// Lấy cấu hình bộ đệm từ quản lý cấu hình hệ thống.
     /// </summary>
     /// <value>Cấu hình bộ đệm được thiết lập từ hệ thống.</value>
-    public BufferConfig BufferConfig { get; } = ConfigManager.Instance.GetConfig<BufferConfig>();
+    public BufferConfig BufferConfig { get; } = ConfigurationShared.Instance.Get<BufferConfig>();
 
     /// <summary>
     /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.

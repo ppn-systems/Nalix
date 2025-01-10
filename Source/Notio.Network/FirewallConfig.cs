@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Notio.Network;
 
-public class FirewallConfig : ConfigContainer
+public class FirewallConfig : ConfigurationBinder
 {
     // Cấu hình giới hạn băng thông
     [Range(1024, long.MaxValue)]
@@ -42,13 +42,13 @@ public class FirewallConfig : ConfigContainer
     public bool EnableMetrics { get; set; } = true;
 
     // Cấu hình mức độ giới hạn
-    [ConfigIgnore]
+    [ConfigurationIgnore]
     public BandwidthLimit BandwidthLimit { get; set; } = BandwidthLimit.Medium;
 
-    [ConfigIgnore]
+    [ConfigurationIgnore]
     public ConnectionLimit ConnectionLimit { get; set; } = ConnectionLimit.Medium;
 
-    [ConfigIgnore]
+    [ConfigurationIgnore]
     public RequestLimit RequestLimit { get; set; } = RequestLimit.Medium;
 
     // Phương thức để áp dụng cấu hình theo mức độ
