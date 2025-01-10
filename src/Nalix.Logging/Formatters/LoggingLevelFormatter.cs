@@ -30,7 +30,7 @@ internal static class LoggingLevelFormatter
         'D', 'B', 'U', 'G', '\0', // LogLevel.Debug       (2)
         'I', 'N', 'F', 'O', '\0', // LogLevel.Information (3)
         'W', 'A', 'R', 'N', '\0', // LogLevel.Warning     (4)
-        'F', 'A', 'I', 'L', '\0', // LogLevel.Error       (5)
+        'F', 'A', 'I', 'L', '\0', // LogLevel.ERROR       (5)
         'C', 'R', 'I', 'T', '\0', // LogLevel.Critical    (6)
         'N', 'O', 'N', 'E', '\0'  // LogLevel.None        (7)
     ];
@@ -46,7 +46,7 @@ internal static class LoggingLevelFormatter
         2, // Debug (2)
         3, // Information (3)
         4, // Warning (4)
-        5, // Error (5)
+        5, // ERROR (5)
         6, // Critical (6)
         7  // None (7)
     ];

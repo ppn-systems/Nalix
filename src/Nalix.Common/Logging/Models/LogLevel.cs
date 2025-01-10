@@ -42,7 +42,7 @@ public enum LogLevel : System.Byte
     Warning = 5,
 
     /// <summary>
-    /// Error-level logging.
+    /// ERROR-level logging.
     /// Indicates a failure in the current operation or request that may require attention.
     /// </summary>
     Error = 6,
