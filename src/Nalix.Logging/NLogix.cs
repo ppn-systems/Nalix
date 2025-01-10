@@ -54,9 +54,10 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void WriteLog(
-        LogLevel level, EventId eventId,
-        System.String message, System.Exception? exception = null)
-       => base.CreateLogEntry(level, eventId, message, exception);
+        LogLevel level,
+        EventId eventId,
+        System.String message,
+        System.Exception? exception = null) => base.CreateLogEntry(level, eventId, message, exception);
 
     #endregion Private Methods
 }
