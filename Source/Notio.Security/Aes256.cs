@@ -1,5 +1,5 @@
-﻿using Notio.Security.Exceptions;
-using Notio.Security.Mode;
+﻿using Notio.Cryptography.Exceptions;
+using Notio.Cryptography.Mode;
 using System;
 using System.Buffers;
 using System.Numerics;
@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
-namespace Notio.Security;
+namespace Notio.Cryptography;
 
 public static class Aes256
 {

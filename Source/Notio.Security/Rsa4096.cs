@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Notio.Security;
+namespace Notio.Cryptography;
 
 /// <summary>
 /// Lớp cung cấp các chức năng mã hóa và giải mã sử dụng thuật toán RSA với khóa 4096 bit.

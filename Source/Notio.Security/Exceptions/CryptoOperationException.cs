@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Security.Exceptions;
+namespace Notio.Cryptography.Exceptions;
 
 /// <summary>
 /// Exceptions xảy ra khi có lỗi trong quá trình mã hóa/giải mã

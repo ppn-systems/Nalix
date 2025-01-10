@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Security.Mode;
+namespace Notio.Cryptography.Mode;
 
 /// <summary>
 /// Lớp cung cấp chức năng mã hóa và giải mã AES-256 với chế độ CtrMode (Counter)

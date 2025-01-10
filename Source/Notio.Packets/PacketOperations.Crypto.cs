@@ -1,6 +1,6 @@
 ﻿using Notio.Packets.Enums;
 using Notio.Packets.Helpers;
-using Notio.Security;
+using Notio.Cryptography;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Packets;

@@ -2,7 +2,7 @@
 using System.Buffers;
 using System.Security.Cryptography;
 
-namespace Notio.Security.Mode;
+namespace Notio.Cryptography.Mode;
 
 internal static class AesCfbCipher
 {

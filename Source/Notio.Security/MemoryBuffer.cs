@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace Notio.Security;
+namespace Notio.Cryptography;
 
 public sealed class MemoryBuffer(IMemoryOwner<byte> owner, int length) : IDisposable
 {
