@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Notio.Common.Database;
 using Notio.Common.Database.Db;
 
 namespace Notio.Database;

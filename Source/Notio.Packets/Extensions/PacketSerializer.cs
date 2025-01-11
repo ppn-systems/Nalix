@@ -11,6 +11,9 @@ internal static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void WritePacketFast(Span<byte> buffer, in Packet packet)
     {
+        if (buffer.Length < PacketSize.Header + packet.Payload.Length)
+            throw new PacketException("Buffer size is too small to write the packet.");
+
         ref byte bufferStart = ref MemoryMarshal.GetReference(buffer);
         int totalSize = buffer.Length;
 
@@ -27,11 +30,15 @@ internal static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
+        if (data.Length < PacketSize.Header)
+            throw new PacketException("Data size is smaller than the minimum header size.");      
+
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
 
         short length = Unsafe.ReadUnaligned<short>(ref dataRef);
         if ((uint)length > data.Length)
-            ThrowHelper.ThrowInvalidLength();
+            throw new 
+                PacketException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
 
         // Read all fields at once using pointer arithmetic
         return new Packet

@@ -15,10 +15,10 @@ internal static unsafe class PacketSerializerUnsafe
     internal static void WritePacketUnsafe(byte* destination, in Packet packet)
     {
         if (destination == null)
-            throw new PacketException(nameof(destination));
+            throw new PacketException("Destination pointer is null.");
 
         if ((uint)packet.Payload.Length > ushort.MaxValue)
-            throw new PacketException("Payload is too large.");
+            throw new PacketException("Payload size exceeds maximum allowed length.");
 
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -48,17 +48,17 @@ internal static unsafe class PacketSerializerUnsafe
     internal static void ReadPacketUnsafe(byte* source, out Packet packet, int length)
     {
         if (source == null)
-            throw new PacketException(nameof(source));
+            throw new PacketException("Source pointer is null.");
 
         if (length < PacketSize.Header)
-            throw new PacketException("Invalid packet size.");
+            throw new PacketException("Packet size is smaller than the header size.");
 
         // Đọc độ dài gói tin an toàn hơn
         Span<byte> headerSpan = new(source, PacketSize.Header);
         short packetLength = BinaryPrimitives.ReadInt16LittleEndian(headerSpan);
 
         if ((uint)packetLength > length)
-            throw new Exception("Invalid packet size.");
+            throw new PacketException("Packet size exceeds the provided buffer length.");
 
         // Tính toán độ dài payload
         int payloadLength = packetLength - PacketSize.Header;
@@ -103,7 +103,7 @@ internal static unsafe class PacketSerializerUnsafe
             catch
             {
                 ArrayPool<byte>.Shared.Return(payloadArray);
-                throw;
+                throw new PacketException("Failed to read the packet payload.");
             }
         }
 

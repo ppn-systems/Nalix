@@ -5,7 +5,7 @@ namespace Notio.Shared;
 /// <summary>
 /// Generic thread-safe Singleton implementation using Lazy.
 /// </summary>
-public abstract class SingletonAbs<T> where T : class
+public abstract class SingletonInstance<T> where T : class
 {
     private static readonly Lazy<T> _instance = new(CreateInstance, true);
 
@@ -14,7 +14,7 @@ public abstract class SingletonAbs<T> where T : class
     /// <summary>
     /// Constructor bảo vệ để ngăn tạo instance bên ngoài.
     /// </summary>
-    protected SingletonAbs() { }
+    protected SingletonInstance() { }
 
     /// <summary>
     /// Tạo thể hiện của lớp Singleton.

@@ -8,16 +8,9 @@ namespace Notio.Shared.Memory.Pool;
 /// <summary>
 /// Cung cấp quyền truy cập an toàn trong môi trường đa luồng vào các pool chứa các instance của <see cref="IPoolable"/>.
 /// </summary>
-public sealed class ObjectPoolManager
+public sealed class ObjectPoolManager : SingletonInstance<ObjectPoolManager>
 {
     private readonly ConcurrentDictionary<Type, ObjectPool> _poolDict = new(); // Thread-safe storage for pools
-
-    /// <summary>
-    /// Singleton instance
-    /// </summary>
-    private static readonly Lazy<ObjectPoolManager> _instance = new(() => new ObjectPoolManager());
-
-    public static ObjectPoolManager Instance => _instance.Value;
 
     private ObjectPoolManager()
     { }

@@ -1,10 +1,7 @@
 ﻿using Notio.Packets.Extensions;
 using Notio.Packets.Metadata;
-using Notio.Shared.Memory.Buffer;
 using System;
-
-// using System.Buffers;
-using System.Diagnostics;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -18,20 +15,12 @@ namespace Notio.Packets;
 public static partial class PacketOperations
 {
     private const int MaxStackAlloc = 512;
-
-    private static BufferConfig BufferConfig => new()
-    {
-        TotalBuffers = 16,
-        BufferAllocations =
-        "1024,0.25; 2048,0.20; 4096,0.15; 8192,0.10; 16384,0.10; 32768,0.03; 65536,0.02"
-    };
-
-    // private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
-    private static readonly BufferAllocator Pool = new(BufferConfig);
+    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     /// <summary>
     /// Chuyển đổi Packet thành mảng byte.
     /// </summary>
+    /// <exception cref="PacketException">Ném lỗi khi payload vượt quá giới hạn.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToByteArray(this in Packet packet)
     {
@@ -40,7 +29,6 @@ public static partial class PacketOperations
 
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
-        // Tối ưu cho packets nhỏ bằng stackalloc
         if (totalSize <= MaxStackAlloc)
         {
             Span<byte> stackBuffer = stackalloc byte[totalSize];
@@ -48,39 +36,31 @@ public static partial class PacketOperations
             return stackBuffer.ToArray();
         }
 
-        // Sử dụng ArrayPool cho packets lớn
         byte[] rentedArray = Pool.Rent(totalSize);
         try
         {
             PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
-
-            if (rentedArray.Length == totalSize)
-                return rentedArray;
-
             return rentedArray.AsSpan(0, totalSize).ToArray();
         }
-        catch
+        finally
         {
-            Pool.Return(rentedArray);
-            throw;
+            Pool.Return(rentedArray, clearArray: true);
         }
     }
 
     /// <summary>
     /// Tạo Packet từ mảng byte.
     /// </summary>
+    /// <exception cref="PacketException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet FromByteArray(this ReadOnlySpan<byte> data)
     {
-        Debug.Assert(data.Length >= PacketSize.Header, "Data length must be at least header size");
-
         if (data.Length < PacketSize.Header)
-            throw new PacketException("Invalid length.");
+            throw new PacketException("Invalid length: data is smaller than header size.");
 
-        // Kiểm tra length trước khi đọc packet
         short length = MemoryMarshal.Read<short>(data);
         if (length < PacketSize.Header || length > data.Length)
-            throw new PacketException("Invalid length.");
+            throw new PacketException($"Invalid length: {length}.");
 
         return PacketSerializer.ReadPacketFast(data);
     }
@@ -88,20 +68,37 @@ public static partial class PacketOperations
     /// <summary>
     /// Chuyển đổi Packet thành chuỗi JSON.
     /// </summary>
-    public static string ToJson(this in Packet packet)
-        => JsonSerializer.Serialize(packet);
+    /// <exception cref="PacketException">Ném lỗi khi JSON serialization thất bại.</exception>
+    public static string ToJson(this in Packet packet, JsonSerializerOptions? options = null)
+    {
+        try
+        {
+            return JsonSerializer.Serialize(packet, options ?? new JsonSerializerOptions());
+        }
+        catch (Exception ex)
+        {
+            throw new PacketException("Failed to serialize Packet to JSON.", ex);
+        }
+    }
 
     /// <summary>
     /// Tạo Packet từ chuỗi JSON.
     /// </summary>
-    public static Packet FromJson(this string json)
+    /// <exception cref="PacketException">Ném lỗi khi JSON không hợp lệ hoặc không thể deserialization.</exception>
+    public static Packet FromJson(this string json, JsonSerializerOptions? options = null)
     {
-        Packet packet = JsonSerializer.Deserialize<Packet>(json);
-        if (packet.Equals(default))
+        if (string.IsNullOrWhiteSpace(json))
+            throw new PacketException("JSON string is null or empty.");
+
+        try
         {
-            throw new PacketException("Failed to deserialize Packet.");
+            Packet? packet = JsonSerializer.Deserialize<Packet>(json, options ?? new JsonSerializerOptions());
+            return packet ?? throw new PacketException("Deserialized packet is null.");
         }
-        return packet;
+        catch (Exception ex)
+        {
+            throw new PacketException("Failed to deserialize JSON to Packet.", ex);
+        }
     }
 
     /// <summary>
