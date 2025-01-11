@@ -1,10 +1,12 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
+using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
@@ -27,7 +29,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public RateLimitMiddleware()
     {
-        RateLimitOptions option = ConfigurationManager.Instance.Get<RateLimitOptions>();
+        TokenBucketOptions option = ConfigurationManager.Instance.Get<TokenBucketOptions>();
         this._limiter = new RequestLimiter(option);
     }
 
@@ -43,9 +45,20 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
-        if (!this._limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
+        System.String key = context.Connection.RemoteEndPoint.ToString() ?? "unknown";
+        RequestLimiter.LimitDecision decision = this._limiter.Check(key);
+
+        if (!decision.Allowed)
         {
-            _ = await context.Connection.Tcp.SendAsync("You have been rate limited.").ConfigureAwait(false);
+            await context.Connection.SendAsync(
+                ControlType.THROTTLE,
+                ReasonCode.RATE_LIMITED,
+                SuggestedAction.BACKOFF_RETRY,
+                flags: ControlFlags.SLOW_DOWN | ControlFlags.IS_TRANSIENT,
+                arg0: (System.UInt32)System.Math.Max(0, (decision.RetryAfterMs + 99) / 100), // steps of 100ms
+                arg1: 0, arg2: decision.Credit).ConfigureAwait(false);
+
+            return;
         }
 
         await next();

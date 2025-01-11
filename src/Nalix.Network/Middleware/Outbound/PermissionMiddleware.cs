@@ -1,9 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 
 namespace Nalix.Network.Middleware.Outbound;
@@ -26,8 +28,16 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            _ = await context.Connection.Tcp.SendAsync("Permission denied. You are not authorized to perform this action.")
-                                            .ConfigureAwait(false);
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: ReasonCode.UNAUTHENTICATED,
+                action: SuggestedAction.NONE,
+                flags: ControlFlags.NONE,
+                arg0: (System.Byte)context.Attributes.Permission.Level,
+                arg1: (System.Byte)context.Connection.Level,
+                arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
+
+            return;
         }
 
         await next();
