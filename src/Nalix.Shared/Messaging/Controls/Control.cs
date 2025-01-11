@@ -36,7 +36,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         + sizeof(System.Int64)   // Timestamp
         + sizeof(System.Int64)   // MonoTicks
         + sizeof(System.UInt32)  // SequenceId
-        + sizeof(ReasonCode); // ReasonCode
+        + sizeof(ReasonCode); // Reason
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
@@ -48,7 +48,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
-    public ReasonCode ReasonCode { get; set; }
+    public ReasonCode Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
@@ -76,7 +76,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;
-        this.ReasonCode = 0;
+        this.Reason = 0;
         this.Type = ControlType.NONE; // Default type, can be changed later
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
@@ -95,13 +95,13 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     public void Initialize(
         ControlType type,
         System.UInt32 sequenceId = 0,
-        System.UInt16 reasonCode = 0,
+        ReasonCode reasonCode = ReasonCode.NONE,
         TransportProtocol transport = TransportProtocol.TCP)
     {
         this.Type = type;
         this.Transport = transport;
         this.SequenceId = sequenceId;
-        this.ReasonCode = reasonCode;
+        this.Reason = reasonCode;
         this.MonoTicks = Clock.MonoTicksNow();
         this.Timestamp = Clock.UnixMillisecondsNow();
     }
@@ -139,7 +139,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;
-        this.ReasonCode = 0;
+        this.Reason = 0;
         this.Type = ControlType.NONE;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
@@ -149,5 +149,5 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
-        $"Tr={Transport}, Seq={SequenceId}, Rsn={ReasonCode}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
+        $"Tr={Transport}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }

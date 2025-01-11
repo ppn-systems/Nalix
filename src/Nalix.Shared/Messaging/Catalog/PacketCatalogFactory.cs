@@ -114,7 +114,8 @@ public sealed class PacketCatalogFactory
 
         // Control / handshake packets
         _ = this.RegisterPacket<Control>()
-                .RegisterPacket<Handshake>();
+                .RegisterPacket<Handshake>()
+                .RegisterPacket<Directive>();
     }
 
     /// <summary>

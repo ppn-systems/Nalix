@@ -66,5 +66,10 @@ public enum MagicNumbers : System.UInt32
     /// <summary>
     /// UTF-8 text packet with a maximum payload size of 1024 bytes.
     /// </summary>
-    Text1024 = 0x0000_A009
+    Text1024 = 0x0000_A009,
+
+    /// <summary>
+    /// Directive packet used for sending commands or instructions.
+    /// </summary>
+    Directive = 0x0000_A00A
 }

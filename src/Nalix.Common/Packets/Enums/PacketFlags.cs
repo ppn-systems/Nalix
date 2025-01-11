@@ -64,7 +64,7 @@ public enum PacketFlags : System.Byte
     // Ghi chú sử dụng cho PacketFlags
     // -----------------------------
 
-    // None
+    // NONE
     // Không có cờ nào được bật.
     // Dùng khi gói tin là đơn giản nhất, không mã hóa, không nén, không phân mảnh.
     // Thường dùng cho các gói dữ liệu mặc định hoặc test.
