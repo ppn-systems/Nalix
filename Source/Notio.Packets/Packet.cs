@@ -16,9 +16,10 @@ namespace Notio.Packets;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
 {
-    public const int MaxPacketSize = ushort.MaxValue;
-    private const int MaxInlinePayloadSize = 128;
-    private static readonly ArrayPool<byte> SharedPool = ArrayPool<byte>.Shared;
+    public const byte MaxInlinePayloadSize = 128;
+    public const ushort MaxPacketSize = ushort.MaxValue;
+
+    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     public int Length
     {
@@ -54,7 +55,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         }
         else
         {
-            var pooledArray = SharedPool.Rent(payload.Length);
+            var pooledArray = Pool.Rent(payload.Length);
             payload.Span.CopyTo(pooledArray);
             Payload = new ReadOnlyMemory<byte>(pooledArray, 0, payload.Length);
             _isPooled = true;
@@ -67,7 +68,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (_isPooled && Payload.Length > 0)
         {
             if (MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
-                SharedPool.Return(segment.Array);
+                Pool.Return(segment.Array);
         }
 
         GC.SuppressFinalize(this);

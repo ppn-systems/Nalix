@@ -23,12 +23,10 @@ public static partial class PacketOperations
         {
             // Ước tính kích thước ban đầu để tránh việc phải mở rộng buffer
             int estimatedCompressedSize = packet.Payload.Length / 2;
-            using var outputStream = new MemoryStream(estimatedCompressedSize);
+            using MemoryStream outputStream = new(estimatedCompressedSize);
 
             // Sử dụng using declaration để tự động dispose
-            using var gzipStream = new GZipStream(outputStream,
-                CompressionLevel.Optimal,
-                leaveOpen: true);
+            using GZipStream gzipStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true);
 
             // Sử dụng WriteAsync với ReadOnlyMemory để tối ưu
             gzipStream.Write(packet.Payload.Span);
@@ -62,10 +60,10 @@ public static partial class PacketOperations
         {
             // Ước tính kích thước giải nén để tối ưu bộ nhớ
             int estimatedDecompressedSize = packet.Payload.Length * 4;
-            using var inputStream = new MemoryStream(packet.Payload.ToArray());
-            using var outputStream = new MemoryStream(estimatedDecompressedSize);
+            using MemoryStream inputStream = new(packet.Payload.ToArray());
+            using MemoryStream outputStream = new(estimatedDecompressedSize);
 
-            using var gzipStream = new GZipStream(inputStream, CompressionMode.Decompress);
+            using GZipStream gzipStream = new(inputStream, CompressionMode.Decompress);
 
             // Sử dụng buffer được định nghĩa trước
             gzipStream.CopyTo(outputStream, Packet.MaxPacketSize / 2);

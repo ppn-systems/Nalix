@@ -67,38 +67,74 @@ public static partial class PacketOperations
     }
 
     /// <summary>
-    /// Chuyển đổi Packet thành chuỗi JSON.
+    /// Thử chuyển đổi Packet thành mảng byte.
     /// </summary>
-    /// <exception cref="PacketException">Ném lỗi khi JSON serialization thất bại.</exception>
-    public static string ToJson(this in Packet packet, JsonSerializerOptions? options = null)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryToByteArray(this in Packet packet, Span<byte> destination, out int bytesWritten)
     {
+        if (packet.Payload.Length > ushort.MaxValue)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        int totalSize = PacketSize.Header + packet.Payload.Length;
+        if (destination.Length < totalSize)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
         try
         {
-            return JsonSerializer.Serialize(packet, options ?? new JsonSerializerOptions());
+            PacketSerializer.WritePacketFast(destination[..totalSize], in packet);
+            bytesWritten = totalSize;
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            throw new PacketException("Failed to serialize Packet to JSON.", ex);
+            bytesWritten = 0;
+            return false;
         }
     }
 
     /// <summary>
-    /// Tạo Packet từ chuỗi JSON.
+    /// Thử tạo Packet từ mảng byte.
     /// </summary>
-    /// <exception cref="PacketException">Ném lỗi khi JSON không hợp lệ hoặc không thể deserialization.</exception>
-    public static Packet FromJson(this string json, JsonSerializerOptions? options = null)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryFromByteArray(ReadOnlySpan<byte> source, out Packet packet)
     {
-        if (string.IsNullOrWhiteSpace(json))
-            throw new PacketException("JSON string is null or empty.");
+        if (source.Length < PacketSize.Header)
+        {
+            packet = default;
+            return false;
+        }
 
         try
         {
-            Packet? packet = JsonSerializer.Deserialize<Packet>(json, options ?? new JsonSerializerOptions());
-            return packet ?? throw new PacketException("Deserialized packet is null.");
+            // Validate packet length
+            short length = MemoryMarshal.Read<short>(source);
+            if (length < PacketSize.Header || length > source.Length)
+            {
+                packet = default;
+                return false;
+            }
+
+            // Validate payload size
+            int payloadSize = length - PacketSize.Header;
+            if (payloadSize > ushort.MaxValue)
+            {
+                packet = default;
+                return false;
+            }
+
+            packet = PacketSerializer.ReadPacketFast(source[..length]);
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            throw new PacketException("Failed to deserialize JSON to Packet.", ex);
+            packet = default;
+            return false;
         }
     }
 
