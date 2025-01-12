@@ -45,11 +45,11 @@ public static partial class PacketOperations
     {
         // Tối ưu hóa sao chép Payload cho trường hợp không cần tạo mảng mới
         if (packet.Payload.Length <= Packet.MaxInlinePayloadSize)
-            return packet; 
-        
+            return packet;
+
         byte[] payloadCopy = ArrayPool<byte>.Shared.Rent(packet.Payload.Length);
         packet.Payload.Span.CopyTo(payloadCopy);
-        Packet newPacket = new(packet.Type, packet.Flags, packet.Command, 
+        Packet newPacket = new(packet.Type, packet.Flags, packet.Command,
             new ReadOnlyMemory<byte>(payloadCopy, 0, packet.Payload.Length));
 
         return newPacket;

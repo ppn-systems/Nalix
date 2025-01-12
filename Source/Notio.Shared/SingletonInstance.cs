@@ -14,7 +14,8 @@ public abstract class SingletonInstance<T> where T : class
     /// <summary>
     /// Constructor bảo vệ để ngăn tạo instance bên ngoài.
     /// </summary>
-    protected SingletonInstance() { }
+    protected SingletonInstance()
+    { }
 
     /// <summary>
     /// Tạo thể hiện của lớp Singleton.

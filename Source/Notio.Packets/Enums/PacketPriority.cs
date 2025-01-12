@@ -9,6 +9,6 @@ public enum PacketPriority : byte
 
     Low = 0x01,
     Medium = 0x02,
-    High = 0x03, 
+    High = 0x03,
     Urgent = 0x04
 }

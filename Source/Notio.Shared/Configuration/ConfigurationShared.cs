@@ -15,7 +15,7 @@ public sealed class ConfigurationShared : SingletonInstance<ConfigurationShared>
     /// <summary>
     /// Khởi tạo một instance của <see cref="ConfigurationShared"/>.
     /// </summary>
-    private ConfigurationShared() 
+    private ConfigurationShared()
         => _iniFile = new(Path.Combine(DefaultDirectories.ConfigPath, "Configuration.ini"));
 
     /// <summary>

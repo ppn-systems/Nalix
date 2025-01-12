@@ -40,7 +40,7 @@ internal static class AesCfbCipher
                             new Span<byte>(inputPtr, blockSize).ToArray(),
                             0,
                             blockSize,
-                            new Span<byte>(buffer, blockSize).ToArray(), 
+                            new Span<byte>(buffer, blockSize).ToArray(),
                             0
                         );
                     }
@@ -93,7 +93,7 @@ internal static class AesCfbCipher
                     result.Slice(i, blockSize).ToArray(),
                     0,
                     blockSize,
-                    buffer.ToArray(), 
+                    buffer.ToArray(),
                     0
                 );
 

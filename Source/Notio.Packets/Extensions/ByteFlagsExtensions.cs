@@ -10,13 +10,13 @@ public static class ByteFlagsExtensions
     /// <summary>
     /// Xác định liệu các flags dạng byte được chỉ định có chứa flag được chỉ định hay không.
     /// </summary>
-    public static bool HasFlag(this byte flags, PacketFlags flag) 
+    public static bool HasFlag(this byte flags, PacketFlags flag)
         => ((PacketFlags)flags).HasFlag(flag);
 
     /// <summary>
     /// Thêm flag được chỉ định vào các flags dạng byte.
     /// </summary>
-    public static byte AddFlag(this byte flags, PacketFlags flag) 
+    public static byte AddFlag(this byte flags, PacketFlags flag)
         => (byte)(flags | (byte)flag);
 
     /// <summary>
@@ -28,13 +28,13 @@ public static class ByteFlagsExtensions
     /// <summary>
     /// Xác định liệu các flags dạng byte có giá trị None hay không.
     /// </summary>
-    public static bool IsNone(this byte flags) 
+    public static bool IsNone(this byte flags)
         => flags == (byte)PacketFlags.None;
 
     /// <summary>
     /// Chuyển đổi các flags dạng byte thành chuỗi có thể đọc được.
     /// </summary>
-    public static string ToReadableString(this byte flags) 
+    public static string ToReadableString(this byte flags)
         => ((PacketFlags)flags).ToReadableString();
 
     /// <summary>

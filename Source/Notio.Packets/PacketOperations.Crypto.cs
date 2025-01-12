@@ -1,9 +1,9 @@
-﻿using Notio.Packets.Enums;
+﻿using Notio.Cryptography;
+using Notio.Packets.Enums;
+using Notio.Packets.Exceptions;
 using Notio.Packets.Extensions;
-using Notio.Cryptography;
 using System;
 using System.Runtime.CompilerServices;
-using Notio.Packets.Exceptions;
 
 namespace Notio.Packets;
 

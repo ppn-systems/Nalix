@@ -2,7 +2,7 @@
 
 public class StorageConfig
 {
-    public required string LocalStoragePath { get; set; }
-    public required string[] AllowedFileExtensions { get; set; }
-    public required string CloudStorageConnectionString { get; set; }
+    public string LocalStoragePath { get; set; }
+    public string[] AllowedFileExtensions { get; set; }
+    public string CloudStorageConnectionString { get; set; }
 }

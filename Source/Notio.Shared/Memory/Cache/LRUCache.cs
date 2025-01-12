@@ -95,7 +95,7 @@ public sealed class LRUCache<TKey, TValue>(int capacity) where TKey : notnull
         {
             _lruList.Remove(node);
             _lruList.AddFirst(node);
-            value = node.Value.Value!; 
+            value = node.Value.Value!;
             return true;
         }
 

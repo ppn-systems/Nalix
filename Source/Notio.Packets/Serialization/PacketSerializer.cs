@@ -32,13 +32,13 @@ internal static class PacketSerializer
     internal static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
-            throw new PacketException("Data size is smaller than the minimum header size.");      
+            throw new PacketException("Data size is smaller than the minimum header size.");
 
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
 
         short length = Unsafe.ReadUnaligned<short>(ref dataRef);
         if ((uint)length > data.Length)
-            throw new 
+            throw new
                 PacketException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
 
         // Read all fields at once using pointer arithmetic

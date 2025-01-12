@@ -1,11 +1,10 @@
 ﻿using Notio.Packets.Exceptions;
-using Notio.Packets.Serialization;
 using Notio.Packets.Metadata;
+using Notio.Packets.Serialization;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace Notio.Packets;
 

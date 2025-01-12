@@ -1,12 +1,11 @@
 ﻿// LocalStorageProvider.cs
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Notio.Infrastructure.Storage.Exceptions;
 using Notio.Infrastructure.Storage.Helpers;
 using Notio.Infrastructure.Storage.Interfaces;
 using Notio.Infrastructure.Storage.Models;
-using Notio.Infrastructure.Storage;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Notio.Infrastructure.Storage.Providers
 {
@@ -24,14 +23,13 @@ namespace Notio.Infrastructure.Storage.Providers
             // Đảm bảo thư mục tồn tại
             if (!Directory.Exists(_basePath))
                 Directory.CreateDirectory(_basePath);
-            
         }
 
         public async Task<FileMetadata> UploadAsync(Stream fileStream, string fileName)
         {
             ArgumentNullException.ThrowIfNull(fileStream);
 
-            if (string.IsNullOrEmpty(fileName)) 
+            if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentException("File name cannot be empty", nameof(fileName));
 
             try

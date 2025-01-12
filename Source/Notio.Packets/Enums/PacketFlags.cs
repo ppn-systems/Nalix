@@ -15,4 +15,5 @@ public enum PacketFlags : byte
     IsReliable = 0x10,              // Gói tin có độ tin cậy cao
     IsFragmented = 0x20,            // Gói tin đã bị phân mảnh
     IsStream = 0x40,                // Gói tin thuộc luồng dữ liệu liên tục
+    IsSigned = 0x80,                // Gói tin đã được ký
 }

@@ -1,8 +1,5 @@
-﻿using Notio.Packets.Serialization;
-using Notio.Packets.Metadata;
-using System;
+﻿using Notio.Packets.Metadata;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Notio.Packets;
 

@@ -1,10 +1,10 @@
 ﻿using Notio.Packets.Enums;
 using Notio.Packets.Exceptions;
 using Notio.Packets.Extensions;
-using System.IO.Compression;
-using System.IO;
-using System.Runtime.CompilerServices;
 using System;
+using System.IO;
+using System.IO.Compression;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Packets;
 

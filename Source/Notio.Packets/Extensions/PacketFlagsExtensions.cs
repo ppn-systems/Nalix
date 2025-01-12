@@ -10,31 +10,31 @@ public static class PacketFlagsExtensions
     /// <summary>
     /// Xác định liệu các flags được chỉ định có chứa flag được chỉ định hay không.
     /// </summary>
-    public static bool HasFlag(this PacketFlags flags, PacketFlags flag) 
+    public static bool HasFlag(this PacketFlags flags, PacketFlags flag)
         => flags.HasFlag(flag);
 
     /// <summary>
     /// Thêm flag được chỉ định vào các flags.
     /// </summary>
-    public static PacketFlags AddFlag(this PacketFlags flags, PacketFlags flag) 
+    public static PacketFlags AddFlag(this PacketFlags flags, PacketFlags flag)
         => flags | flag;
 
     /// <summary>
     /// Loại bỏ flag được chỉ định khỏi các flags.
     /// </summary>
-    public static PacketFlags RemoveFlag(this PacketFlags flags, PacketFlags flag) 
+    public static PacketFlags RemoveFlag(this PacketFlags flags, PacketFlags flag)
         => flags & ~flag;
 
     /// <summary>
     /// Xác định liệu các flags có giá trị None hay không.
     /// </summary>
-    public static bool IsNone(this PacketFlags flags) 
+    public static bool IsNone(this PacketFlags flags)
         => flags == PacketFlags.None;
 
     /// <summary>
     /// Chuyển đổi các flags thành chuỗi có thể đọc được.
     /// </summary>
-    public static string ToReadableString(this PacketFlags flags) 
+    public static string ToReadableString(this PacketFlags flags)
         => flags == PacketFlags.None ? "None" : flags.ToString();
 
     /// <summary>

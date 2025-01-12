@@ -7,6 +7,8 @@ namespace Notio.Infrastructure.Storage.Interfaces;
 public interface IStorageProvider
 {
     Task<FileMetadata> UploadAsync(Stream fileStream, string fileName);
+
     Task<Stream> DownloadAsync(string fileId);
+
     Task DeleteAsync(string fileId);
 }

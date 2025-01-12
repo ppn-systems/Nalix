@@ -10,6 +10,7 @@ public enum PacketType : byte
 
     // Primitive types
     Int = 0x01,
+
     Long = 0x02,
     Float = 0x03,
     Double = 0x04,
@@ -19,6 +20,7 @@ public enum PacketType : byte
 
     // Structured data
     Json = 0x0A,
+
     Xaml = 0x0B,
     Xml = 0x0C,
     Csv = 0x0D,
@@ -28,6 +30,7 @@ public enum PacketType : byte
 
     // Media types
     Binary = 0x14,
+
     File = 0x15,
     Image = 0x16,
     Video = 0x17,
@@ -38,10 +41,12 @@ public enum PacketType : byte
 
     // Encoded or compressed data
     Base64 = 0x1E,
+
     Compressed = 0x1F,
 
     // Miscellaneous
     Timestamp = 0x28,
+
     Uuid = 0x29,
     Dictionary = 0x2A,
 

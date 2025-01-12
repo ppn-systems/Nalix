@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
@@ -46,7 +46,7 @@ public sealed class BinaryCache(int capacity)
     /// <exception cref="KeyNotFoundException">Ném ngoại lệ nếu không tìm thấy khóa.</exception>
     public ReadOnlyMemory<byte> GetValue(ReadOnlySpan<byte> key)
     {
-        ReadOnlyMemory<byte> memoryKey = key.ToArray(); 
+        ReadOnlyMemory<byte> memoryKey = key.ToArray();
 
         if (_cacheMap.TryGetValue(memoryKey, out var node))
         {

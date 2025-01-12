@@ -1,4 +1,6 @@
-﻿using Notio.Packets.Metadata;
+﻿using Notio.Packets.Enums;
+using Notio.Packets.Extensions;
+using Notio.Packets.Metadata;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,21 +16,9 @@ public static partial class PacketOperations
     // Kích thước của chữ ký, sử dụng SHA256 (32 byte)
     private const short SignatureSize = 32;
 
-    /// <summary>
-    /// Ký gói dữ liệu với khóa bí mật.
-    /// Phương thức này sẽ tính toán chữ ký HMAC-SHA256 cho gói dữ liệu.
-    /// </summary>
-    /// <param name="packet">Gói dữ liệu cần được ký.</param>
-    /// <param name="key">Khóa bí mật để tạo chữ ký HMACSHA256.</param>
-    /// <returns>Gói dữ liệu đã được thêm chữ ký vào payload.</returns>
-    /// <exception cref="ArgumentNullException">Nếu <paramref name="key"/> là null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet SignPacket(this in Packet packet, byte[] key)
+    public static Packet SignPacket(this in Packet packet)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key), "Key cannot be null");
-
-        using HMACSHA256 hmac = new(key);
-
         int dataSize = PacketSize.Header + packet.Payload.Length;
         byte[] signature;
 
@@ -38,7 +28,7 @@ public static partial class PacketOperations
             {
                 Span<byte> stackBuffer = stackalloc byte[dataSize];
                 WriteDataToBuffer(stackBuffer, packet, packet.Payload);
-                signature = hmac.ComputeHash(stackBuffer.ToArray());
+                signature = SHA256.HashData(stackBuffer.ToArray());
                 return CreateSignedPacket(packet, signature);
             }
 
@@ -46,7 +36,7 @@ public static partial class PacketOperations
             try
             {
                 WriteDataToBuffer(dataToSign.AsSpan(0, dataSize), packet, packet.Payload);
-                signature = hmac.ComputeHash(dataToSign, 0, dataSize);
+                signature = SHA256.HashData(dataToSign.AsSpan(0, dataSize));
                 return CreateSignedPacket(packet, signature);
             }
             finally
@@ -60,26 +50,11 @@ public static partial class PacketOperations
         }
     }
 
-    /// <summary>
-    /// Xác minh tính hợp lệ của chữ ký trong gói dữ liệu.
-    /// Phương thức này sẽ kiểm tra chữ ký HMAC-SHA256 của gói dữ liệu để đảm bảo tính toàn vẹn của dữ liệu.
-    /// </summary>
-    /// <param name="packet">Gói dữ liệu cần xác minh chữ ký.</param>
-    /// <param name="key">Khóa bí mật dùng để kiểm tra chữ ký HMACSHA256.</param>
-    /// <returns>
-    /// Trả về <c>true</c> nếu chữ ký hợp lệ, <c>false</c> nếu chữ ký không khớp
-    /// hoặc gói không có chữ ký hợp lệ.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Nếu <paramref name="key"/> là null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool VerifyPacket(this in Packet packet, byte[] key)
+    public static bool VerifyPacket(this in Packet packet)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key), "Key cannot be null");
-
         if (packet.Payload.Length < SignatureSize)
-            return false;  // Không có chữ ký trong payload
-
-        using HMACSHA256 hmac = new(key);
+            return false;
 
         ReadOnlyMemory<byte> payloadWithoutSignature = packet.Payload[..^SignatureSize];
         ReadOnlyMemory<byte> receivedSignature = packet.Payload[^SignatureSize..];
@@ -89,12 +64,11 @@ public static partial class PacketOperations
 
         try
         {
-            // Kiểm tra kích thước và tính toán chữ ký từ dữ liệu
             if (dataSize <= MaxStackAlloc)
             {
                 Span<byte> stackBuffer = stackalloc byte[dataSize];
                 WriteDataToBuffer(stackBuffer, packet, payloadWithoutSignature);
-                computedSignature = hmac.ComputeHash(stackBuffer.ToArray());
+                computedSignature = SHA256.HashData(stackBuffer.ToArray());
                 return receivedSignature.Span.SequenceEqual(computedSignature);
             }
 
@@ -102,7 +76,7 @@ public static partial class PacketOperations
             try
             {
                 WriteDataToBuffer(dataToVerify.AsSpan(0, dataSize), packet, payloadWithoutSignature);
-                computedSignature = hmac.ComputeHash(dataToVerify, 0, dataSize);
+                computedSignature = SHA256.HashData(dataToVerify.AsSpan(0, dataSize));
                 return receivedSignature.Span.SequenceEqual(computedSignature);
             }
             finally
@@ -127,7 +101,7 @@ public static partial class PacketOperations
     {
         BitConverter.TryWriteBytes(buffer[0..2], packet.Length + SignatureSize);
         buffer[2] = packet.Type;
-        buffer[3] = packet.Flags;
+        buffer[3] = packet.Flags.AddFlag(PacketFlags.IsSigned);
         BitConverter.TryWriteBytes(buffer[4..6], packet.Command);
 
         // Ghi payload vào buffer

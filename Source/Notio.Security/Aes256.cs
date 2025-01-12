@@ -99,7 +99,6 @@ public static class Aes256
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void GenerateSecureIV(Span<byte> iv)
         => GenerateSecureIVInternal(iv);
-    
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void IncrementCounter(Span<byte> counter)
