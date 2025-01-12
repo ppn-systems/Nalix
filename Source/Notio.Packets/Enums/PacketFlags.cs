@@ -6,40 +6,13 @@
 [System.Flags]
 public enum PacketFlags : byte
 {
-    None = 0,
+    None = 0x00,                    // Không có cờ nào
 
-    /// <summary>
-    /// Đánh dấu rằng gói tin yêu cầu xác nhận (ACK - Acknowledgement).
-    /// </summary>
-    AckRequired = 1,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin đã được xác nhận (ACK).
-    /// </summary>
-    IsAcknowledged = 2,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin đã được nén.
-    /// </summary>
-    IsCompressed = 4,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin đã được mã hóa.
-    /// </summary>
-    IsEncrypted = 8,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin được gửi với độ tin cậy cao (Reliable).
-    /// </summary>
-    IsReliable = 16,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin đã bị phân mảnh (chia nhỏ thành các phần nhỏ hơn).
-    /// </summary>
-    IsFragmented = 32,
-
-    /// <summary>
-    /// Đánh dấu rằng gói tin thuộc một luồng dữ liệu liên tục (Streaming).
-    /// </summary>
-    IsStream = 64,
+    AckRequired = 0x01,             // Gói tin yêu cầu xác nhận
+    IsAcknowledged = 0x02,          // Gói tin đã được xác nhận
+    IsCompressed = 0x04,            // Gói tin đã được nén
+    IsEncrypted = 0x08,             // Gói tin đã được mã hóa
+    IsReliable = 0x10,              // Gói tin có độ tin cậy cao
+    IsFragmented = 0x20,            // Gói tin đã bị phân mảnh
+    IsStream = 0x40,                // Gói tin thuộc luồng dữ liệu liên tục
 }

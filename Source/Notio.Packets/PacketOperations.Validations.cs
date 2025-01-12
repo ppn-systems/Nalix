@@ -1,4 +1,4 @@
-﻿using Notio.Packets.Extensions;
+﻿using Notio.Packets.Serialization;
 using Notio.Packets.Metadata;
 using System;
 using System.Runtime.CompilerServices;

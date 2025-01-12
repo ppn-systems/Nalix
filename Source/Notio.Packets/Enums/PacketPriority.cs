@@ -5,8 +5,10 @@
 /// </summary>
 public enum PacketPriority : byte
 {
-    Low = 0,
-    Medium = 1,
-    High = 2,
-    Urgent = 3
+    None = 0x00,
+
+    Low = 0x01,
+    Medium = 0x02,
+    High = 0x03, 
+    Urgent = 0x04
 }

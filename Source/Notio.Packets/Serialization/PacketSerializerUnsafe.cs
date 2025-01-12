@@ -1,10 +1,11 @@
-﻿using Notio.Packets.Metadata;
+﻿using Notio.Packets.Exceptions;
+using Notio.Packets.Metadata;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Serialization;
 
 [SkipLocalsInit]
 internal static unsafe class PacketSerializerUnsafe
@@ -47,13 +48,10 @@ internal static unsafe class PacketSerializerUnsafe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ReadPacketUnsafe(byte* source, out Packet packet, int length)
     {
-        if (source == null)
-            throw new PacketException("Source pointer is null.");
+        if (source == null || length < PacketSize.Header)
+            throw new PacketException("Invalid packet source or insufficient length.");
 
-        if (length < PacketSize.Header)
-            throw new PacketException("Packet size is smaller than the header size.");
-
-        // Đọc độ dài gói tin an toàn hơn
+        // Đọc header
         Span<byte> headerSpan = new(source, PacketSize.Header);
         short packetLength = BinaryPrimitives.ReadInt16LittleEndian(headerSpan);
 
@@ -63,57 +61,47 @@ internal static unsafe class PacketSerializerUnsafe
         // Tính toán độ dài payload
         int payloadLength = packetLength - PacketSize.Header;
 
-        // Tối ưu hóa việc cấp phát bộ nhớ cho payload
-        byte[] payloadArray;
-        if (payloadLength <= MaxStackAllocSize)
-        {
-            Span<byte> stackBuffer = stackalloc byte[payloadLength];
-            fixed (byte* stackPtr = stackBuffer)
-            {
-                Buffer.MemoryCopy(
-                    source + PacketSize.Header,
-                    stackPtr,
-                    payloadLength,
-                    payloadLength
-                );
-            }
-            payloadArray = stackBuffer.ToArray();
-        }
-        else
-        {
-            // Sử dụng ArrayPool cho payload lớn
-            payloadArray = ArrayPool<byte>.Shared.Rent(payloadLength);
-            try
-            {
-                fixed (byte* payloadPtr = payloadArray)
-                {
-                    Buffer.MemoryCopy(
-                        source + PacketSize.Header,
-                        payloadPtr,
-                        payloadLength,
-                        payloadLength
-                    );
-                }
-                // Tạo bản sao để trả lại array pool
-                var finalArray = new byte[payloadLength];
-                Array.Copy(payloadArray, finalArray, payloadLength);
-                ArrayPool<byte>.Shared.Return(payloadArray);
-                payloadArray = finalArray;
-            }
-            catch
-            {
-                ArrayPool<byte>.Shared.Return(payloadArray);
-                throw new PacketException("Failed to read the packet payload.");
-            }
-        }
+        // Đọc payload
+        ReadOnlyMemory<byte> payloadMemory = ReadPayload(source + PacketSize.Header, payloadLength);
 
-        // Khởi tạo packet với tất cả thông tin
+        // Khởi tạo packet
         packet = new Packet
         (
             type: headerSpan[PacketOffset.Type],
             flags: headerSpan[PacketOffset.Flags],
             command: BinaryPrimitives.ReadInt16LittleEndian(headerSpan[PacketOffset.Command..]),
-            payload: new ReadOnlyMemory<byte>(payloadArray)
+            payload: payloadMemory
         );
+    }
+
+    private static ReadOnlyMemory<byte> ReadPayload(byte* payloadSource, int payloadLength)
+    {
+        if (payloadLength <= MaxStackAllocSize)
+        {
+            // Dùng stackalloc nếu payload nhỏ
+            Span<byte> stackBuffer = stackalloc byte[payloadLength];
+            fixed (byte* stackPtr = stackBuffer)
+            {
+                Buffer.MemoryCopy(payloadSource, stackPtr, payloadLength, payloadLength);
+            }
+            return stackBuffer.ToArray();
+        }
+        else
+        {
+            // Sử dụng ArrayPool nếu payload lớn
+            byte[] rentedArray = ArrayPool<byte>.Shared.Rent(payloadLength);
+            try
+            {
+                fixed (byte* rentedPtr = rentedArray)
+                {
+                    Buffer.MemoryCopy(payloadSource, rentedPtr, payloadLength, payloadLength);
+                }
+                return new ReadOnlyMemory<byte>(rentedArray, 0, payloadLength);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rentedArray);
+            }
+        }
     }
 }

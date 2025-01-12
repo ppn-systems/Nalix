@@ -1,4 +1,5 @@
 ﻿using Notio.Common.Memory;
+using Notio.Packets.Exceptions;
 using Notio.Packets.Metadata;
 using System;
 using System.Buffers;
@@ -15,6 +16,7 @@ namespace Notio.Packets;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
 {
+    public const int MaxPacketSize = ushort.MaxValue;
     private const int MaxInlinePayloadSize = 128;
     private static readonly ArrayPool<byte> SharedPool = ArrayPool<byte>.Shared;
 
@@ -36,6 +38,9 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(byte type, byte flags, short command, ReadOnlyMemory<byte> payload)
     {
+        if (payload.Length + PacketSize.Header > MaxPacketSize)
+            throw new PacketException("Packet size exceeds the 64KB limit.");
+
         Type = type;
         Flags = flags;
         Command = command;
