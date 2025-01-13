@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Common.Database.Db;
+namespace Notio.Database.Model;
 
 /// <summary>
 /// Đại diện cho người dùng trong cơ sở dữ liệu.

@@ -1,8 +1,7 @@
-﻿using Notio.Common.Database.Db;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Common.Database;
+namespace Notio.Database.Model;
 
 /// <summary>
 /// Đại diện cho cuộc trò chuyện trong cơ sở dữ liệu.
