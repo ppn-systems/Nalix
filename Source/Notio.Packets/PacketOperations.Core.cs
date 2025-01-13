@@ -44,7 +44,7 @@ public static partial class PacketOperations
         }
         finally
         {
-            Pool.Return(rentedArray, clearArray: true);
+            Pool.Return(rentedArray, true);
         }
     }
 
@@ -140,8 +140,7 @@ public static partial class PacketOperations
     /// <summary>
     /// Trả về chuỗi dễ đọc của Packet.
     /// </summary>
-    public static string ToString(this in Packet packet)
-        =>
+    public static string ToString(this in Packet packet) =>
         $"Type: {packet.Type}, " +
         $"Flags: {packet.Flags}, " +
         $"Command: {packet.Command}, " +

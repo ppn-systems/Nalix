@@ -1,4 +1,7 @@
-﻿using Notio.Packets.Metadata;
+﻿using Notio.Packets.Enums;
+using Notio.Packets.Exceptions;
+using Notio.Packets.Extensions;
+using Notio.Packets.Metadata;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Packets;
@@ -17,4 +20,14 @@ public static partial class PacketOperations
         return packet.Payload.Length <= ushort.MaxValue &&
                packet.Payload.Length + PacketSize.Header <= ushort.MaxValue;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ValidatePacketForCompression(this in Packet packet)
+    {
+        if (packet.Payload.IsEmpty)
+            throw new PacketException("Cannot compress an empty payload.");
+        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
+            throw new PacketException("Payload is encrypted and cannot be compressed.");
+    }
+
 }

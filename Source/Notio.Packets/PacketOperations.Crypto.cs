@@ -69,4 +69,48 @@ public static partial class PacketOperations
             throw new PacketException("Failed to decrypt the packet payload.", ex);
         }
     }
+
+    /// <summary>
+    /// Tries to encrypt the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be encrypted.</param>
+    /// <param name="key">The AES 256-bit key (32 bytes).</param>
+    /// <param name="encryptedPacket">The encrypted packet.</param>
+    /// <returns><c>true</c> if the payload was encrypted successfully; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryEncryptPayload(this Packet packet, byte[] key, out Packet encryptedPacket)
+    {
+        try
+        {
+            encryptedPacket = packet.EncryptPayload(key);
+            return true;
+        }
+        catch (PacketException)
+        {
+            encryptedPacket = default;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Tries to decrypt the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be decrypted.</param>
+    /// <param name="key">The AES 256-bit key (32 bytes).</param>
+    /// <param name="decryptedPacket">The decrypted packet.</param>
+    /// <returns><c>true</c> if the payload was decrypted successfully; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecryptPayload(this Packet packet, byte[] key, out Packet decryptedPacket)
+    {
+        try
+        {
+            decryptedPacket = packet.DecryptPayload(key);
+            return true;
+        }
+        catch (PacketException)
+        {
+            decryptedPacket = default;
+            return false;
+        }
+    }
 }

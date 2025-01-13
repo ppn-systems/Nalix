@@ -8,28 +8,31 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Packets;
 
+/// <summary>
+/// Provides operations for compressing and decompressing packets.
+/// </summary>
 public static partial class PacketOperations
 {
+    /// <summary>
+    /// Compresses the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be compressed.</param>
+    /// <returns>A new packet with the compressed payload.</returns>
+    /// <exception cref="PacketException">Thrown when an error occurs during compression.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet CompressPayload(this in Packet packet)
     {
-        if (packet.Payload.IsEmpty)
-            throw new PacketException("Cannot compress an empty payload.");
-
-        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PacketException("Payload is encrypted and cannot be compressed.");
+        packet.ValidatePacketForCompression();
 
         try
         {
-            // Ước tính kích thước ban đầu để tránh việc phải mở rộng buffer
-            int estimatedCompressedSize = packet.Payload.Length / 2;
+            int estimatedCompressedSize = Math.Max(128, packet.Payload.Length / 2);
             using MemoryStream outputStream = new(estimatedCompressedSize);
-
-            // Sử dụng using declaration để tự động dispose
-            using GZipStream gzipStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true);
-
-            // Sử dụng WriteAsync với ReadOnlyMemory để tối ưu
-            gzipStream.Write(packet.Payload.Span);
+            using (GZipStream gzipStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true))
+            {
+                gzipStream.Write(packet.Payload.Span);
+                gzipStream.Flush();
+            }
 
             return new Packet(
                 packet.Type,
@@ -44,29 +47,29 @@ public static partial class PacketOperations
         }
     }
 
+    /// <summary>
+    /// Decompresses the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be decompressed.</param>
+    /// <returns>A new packet with the decompressed payload.</returns>
+    /// <exception cref="PacketException">Thrown when an error occurs during decompression or if the payload is not marked as compressed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet DecompressPayload(this in Packet packet)
     {
-        if (packet.Payload.IsEmpty)
-            throw new PacketException("Cannot decompress an empty payload.");
+        packet.ValidatePacketForCompression();
 
         if (!packet.Flags.HasFlag(PacketFlags.IsCompressed))
             throw new PacketException("Payload is not marked as compressed.");
 
-        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PacketException("Payload is encrypted and cannot be decompressed.");
-
         try
         {
-            // Ước tính kích thước giải nén để tối ưu bộ nhớ
-            int estimatedDecompressedSize = packet.Payload.Length * 4;
+            int estimatedDecompressedSize = Math.Max(128, packet.Payload.Length * 4);
             using MemoryStream inputStream = new(packet.Payload.ToArray());
             using MemoryStream outputStream = new(estimatedDecompressedSize);
-
-            using GZipStream gzipStream = new(inputStream, CompressionMode.Decompress);
-
-            // Sử dụng buffer được định nghĩa trước
-            gzipStream.CopyTo(outputStream, Packet.MaxPacketSize / 2);
+            using (GZipStream gzipStream = new(inputStream, CompressionMode.Decompress))
+            {
+                gzipStream.CopyTo(outputStream, 8192);
+            }
 
             return new Packet(
                 packet.Type,
@@ -85,45 +88,45 @@ public static partial class PacketOperations
         }
     }
 
+    /// <summary>
+    /// Tries to perform an operation on the packet.
+    /// </summary>
+    /// <param name="packet">The packet on which the operation is to be performed.</param>
+    /// <param name="operation">The operation to be performed.</param>
+    /// <param name="result">The result of the operation.</param>
+    /// <returns><c>true</c> if the operation succeeded; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryCompressPayload(this in Packet packet, out Packet compressPayload)
+    public static bool TryCompress(this Packet packet, Func<Packet, Packet> operation, out Packet result)
     {
         try
         {
-            if (packet.Payload.IsEmpty)
-            {
-                compressPayload = default;
-                return false;
-            }
-
-            compressPayload = packet.CompressPayload();
+            result = operation(packet);
             return true;
         }
         catch (PacketException)
         {
-            compressPayload = default;
+            result = default;
             return false;
         }
     }
 
+    /// <summary>
+    /// Tries to compress the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be compressed.</param>
+    /// <param name="compressPayload">The compressed packet.</param>
+    /// <returns><c>true</c> if the payload was compressed successfully; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecompressPayload(this in Packet packet, out Packet deCompressPayload)
-    {
-        try
-        {
-            if (packet.Payload.IsEmpty)
-            {
-                deCompressPayload = default;
-                return false;
-            }
+    public static bool TryCompressPayload(this Packet packet, out Packet compressPayload)
+        => packet.TryCompress(p => p.CompressPayload(), out compressPayload);
 
-            deCompressPayload = packet.DecompressPayload();
-            return true;
-        }
-        catch (PacketException)
-        {
-            deCompressPayload = default;
-            return false;
-        }
-    }
+    /// <summary>
+    /// Tries to decompress the payload of the packet.
+    /// </summary>
+    /// <param name="packet">The packet whose payload is to be decompressed.</param>
+    /// <param name="deCompressPayload">The decompressed packet.</param>
+    /// <returns><c>true</c> if the payload was decompressed successfully; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecompressPayload(this Packet packet, out Packet deCompressPayload)
+        => packet.TryCompress(p => p.DecompressPayload(), out deCompressPayload);
 }
