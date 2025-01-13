@@ -2,6 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
@@ -23,7 +24,7 @@ public static class ConnectionExtensions
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> or <paramref name="limiter"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void EnforceLimiterOnClose(
+    internal static void EnforceLimiterOnClose(
         this IConnection connection,
         ConnectionLimiter limiter)
     {
@@ -50,7 +51,7 @@ public static class ConnectionExtensions
     /// <exception cref="System.ArgumentException">Thrown if the <paramref name="endPoint"/> type is not supported.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the IP address 
     /// cannot be resolved for a <see cref="System.Net.DnsEndPoint"/>.</exception>
-    public static System.Net.IPAddress ToIPAddress(this System.Net.EndPoint endPoint)
+    internal static System.Net.IPAddress ToIPAddress(this System.Net.EndPoint endPoint)
     {
         System.ArgumentNullException.ThrowIfNull(endPoint);
 
@@ -72,6 +73,9 @@ public static class ConnectionExtensions
     /// <param name="controlType">The type of control message to send.</param>
     /// <param name="reason">The reason code associated with the control message.</param>
     /// <param name="action">The suggested action for the recipient.</param>
+    /// <param name="sequenceId">
+    /// Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+    /// </param>
     /// <param name="flags">Optional control flags to include with the message.</param>
     /// <param name="arg0">Optional argument 0 for the directive (default is 0).</param>
     /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
@@ -82,14 +86,16 @@ public static class ConnectionExtensions
         ControlType controlType,
         ReasonCode reason,
         SuggestedAction action,
+        System.UInt32 sequenceId = 0,
         ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0,
         System.UInt32 arg1 = 0,
         System.UInt16 arg2 = 0)
     {
+        System.ArgumentNullException.ThrowIfNull(connection);
+
         ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         Directive pkt = pool.Get<Directive>();
-        System.Byte[] payload = [];
 
         try
         {
@@ -97,19 +103,78 @@ public static class ConnectionExtensions
                 controlType,
                 reason,
                 action,
-                sequenceId: 0,
+                sequenceId: sequenceId,
                 flags: flags,
                 arg0: arg0,
                 arg1: arg1,
                 arg2: arg2);
 
-            payload = pkt.Serialize();
+            System.Int32 len = pkt.Length;
+            System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len);
+            try
+            {
+                pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
+                _ = await connection.Tcp.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, len)).ConfigureAwait(false);
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
+            }
         }
         finally
         {
             pool.Return(pkt);
         }
-
-        _ = await connection.Tcp.SendAsync(payload).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Sends a control directive asynchronously over the connection (no correlation).
+    /// </summary>
+    public static System.Threading.Tasks.Task SendAsync(
+        this IConnection connection,
+        ControlType controlType,
+        ReasonCode reason,
+        SuggestedAction action,
+        ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0,
+        System.UInt32 arg1 = 0,
+        System.UInt16 arg2 = 0)
+        => SendAsync(
+            connection,
+            controlType,
+            reason,
+            action,
+            sequenceId: 0,
+            flags: flags,
+            arg0: arg0,
+            arg1: arg1,
+            arg2: arg2);
+
+    /// <summary>
+    /// Sends a control directive echoing the SequenceId from a sequenced request.
+    /// </summary>
+    public static System.Threading.Tasks.Task SendAsync(
+        this IConnection connection,
+        ControlType controlType,
+        ReasonCode reason,
+        SuggestedAction action,
+        IPacketSequenced request,
+        ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0,
+        System.UInt32 arg1 = 0,
+        System.UInt16 arg2 = 0)
+    {
+        System.ArgumentNullException.ThrowIfNull(request);
+        return SendAsync(
+            connection,
+            controlType,
+            reason,
+            action,
+            sequenceId: request.SequenceId,
+            flags: flags,
+            arg0: arg0,
+            arg1: arg1,
+            arg2: arg2);
+    }
+
 }

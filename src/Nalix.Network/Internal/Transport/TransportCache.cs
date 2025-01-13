@@ -43,11 +43,6 @@ internal sealed class TransportCache : System.IDisposable
     public event System.Action? PacketCached;
 
     /// <summary>
-    /// Gets the cache that stores recently sent (outgoing) packets.
-    /// </summary>
-    public readonly BinaryCache Outgoing;
-
-    /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
     public readonly FifoCache<System.ReadOnlyMemory<System.Byte>> Incoming;
@@ -56,24 +51,11 @@ internal sealed class TransportCache : System.IDisposable
 
     #region Constructors
 
-    public TransportCache()
-    {
-        this.Outgoing = new(Config.Outgoing);
-        this.Incoming = new(Config.Incoming);
-    }
+    public TransportCache() => this.Incoming = new(Config.Incoming);
 
     #endregion Constructors
 
     #region Public Methods
-
-    /// <summary>
-    /// Adds a sent packet to the outgoing cache.
-    /// A composite key is generated from the first and last 4 bytes of the packet.
-    /// </summary>
-    /// <param name="data">The packet data to cache.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void PushOutgoing(System.ReadOnlyMemory<System.Byte> data) => this.Outgoing.Add(HashToUInt64(data.Span), data);
 
     /// <summary>
     /// Adds a received packet to the incoming cache and triggers the <see cref="PacketCached"/> event.
@@ -94,10 +76,7 @@ internal sealed class TransportCache : System.IDisposable
     public void Dispose()
     {
         this.Incoming.Clear();
-        this.Outgoing.Clear();
-
         this.Incoming.Dispose();
-        this.Outgoing.Dispose();
     }
 
     #endregion Public Methods
