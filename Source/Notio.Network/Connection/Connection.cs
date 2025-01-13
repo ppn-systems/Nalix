@@ -364,7 +364,7 @@ public class Connection : IConnection, IDisposable
 
                 switch (_state)
                 {
-                    case ConnectionState.Connecting:
+                    case ConnectionState.Connecting:                     
                         break;
 
                     case ConnectionState.Connected:
@@ -384,12 +384,12 @@ public class Connection : IConnection, IDisposable
                             byte[] key = _rsa4096.Encrypt(_aes256Key);
                             await _stream.WriteAsync(key, _ctokens.Token);
 
-                            this.UpdateState(ConnectionState.Authenticated);
+                            this.UpdateState(ConnectionState.Connected);
                         }
                         catch (Exception ex)
                         {
-                            if (State == ConnectionState.Authenticated)
-                                this.UpdateState(ConnectionState.Connected);
+                            if (State == ConnectionState.Connected)
+                                this.UpdateState(ConnectionState.Connecting);
 
                             this.OnErrorEvent?.Invoke(this,
                                 new ConnectionErrorEventArgs(ConnectionError.AuthenticationError, ex.Message));
@@ -399,18 +399,8 @@ public class Connection : IConnection, IDisposable
                     case ConnectionState.Authenticated:
                         try
                         {
-                            byte[] decrypted = Aes256.CtrMode.Decrypt(
-                                _aes256Key, _buffer.Take(totalBytesRead).ToArray()).Memory.ToArray();
-
-                            _cacheIncomingPacket.Add(decrypted);
+                            _cacheIncomingPacket.Add(_buffer.Take(totalBytesRead).ToArray());
                             this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-                        }
-                        catch (CryptographicException ex)
-                        {
-                            this.UpdateState(ConnectionState.Connecting);
-
-                            this.OnErrorEvent?.Invoke(
-                                this, new ConnectionErrorEventArgs(ConnectionError.DecryptionError, ex.Message));
                         }
                         catch (Exception ex)
                         {
