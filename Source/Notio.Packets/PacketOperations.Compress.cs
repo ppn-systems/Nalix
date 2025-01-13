@@ -84,4 +84,46 @@ public static partial class PacketOperations
             throw new PacketException("Error occurred during payload decompression.", ex);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryCompressPayload(this in Packet packet, out Packet compressPayload)
+    {
+        try
+        {
+            if (packet.Payload.IsEmpty)
+            {
+                compressPayload = default;
+                return false;
+            }
+
+            compressPayload = packet.CompressPayload();
+            return true;
+        }
+        catch (PacketException)
+        {
+            compressPayload = default;
+            return false;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecompressPayload(this in Packet packet, out Packet deCompressPayload)
+    {
+        try
+        {
+            if (packet.Payload.IsEmpty)
+            {
+                deCompressPayload = default;
+                return false;
+            }
+
+            deCompressPayload = packet.DecompressPayload();
+            return true;
+        }
+        catch (PacketException)
+        {
+            deCompressPayload = default;
+            return false;
+        }
+    }
 }
