@@ -34,7 +34,7 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, PacketHandlerInvoker<TPacket>>> _compiledMethodCache = new();
+            System.UInt16, PXI<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -106,7 +106,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, PacketHandlerInvoker<TPacket>>
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, PXI<TPacket>>
         GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
@@ -138,7 +138,7 @@ internal sealed class PacketAnalyzer<
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<System.UInt16, PacketHandlerInvoker<TPacket>> compiled = new(methods.Length);
+            System.Collections.Generic.Dictionary<System.UInt16, PXI<TPacket>> compiled = new(methods.Length);
 
             foreach (var method in methods)
             {
@@ -155,7 +155,7 @@ internal sealed class PacketAnalyzer<
                         $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
                 }
 
-                PacketHandlerInvoker<TPacket> compiledMethod = CompileMethodAccessor(method);
+                PXI<TPacket> compiledMethod = CompileMethodAccessor(method);
                 compiled[opcodeAttr.OpCode] = compiledMethod;
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -174,7 +174,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>A compiled handler delegate.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static PacketHandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
+    private static PXI<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
         var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
@@ -232,7 +232,7 @@ internal sealed class PacketAnalyzer<
                        body, instanceParam, contextParam).Compile();
 
         var asyncWrapper = CreateAsyncWrapper(sync, method.ReturnType);
-        return new PacketHandlerInvoker<TPacket>(method, method.ReturnType, asyncWrapper);
+        return new PXI<TPacket>(method, method.ReturnType, asyncWrapper);
     }
 
     /// <summary>
