@@ -2,13 +2,26 @@
 using System.IO;
 using System.Linq;
 
-namespace Notio.Infrastructure.Storage.Helpers;
+namespace Notio.Database.Storage.Helpers;
 
+/// <summary>
+/// Cung cấp các phương thức trợ giúp liên quan đến tệp.
+/// </summary>
 public static class FileHelper
 {
+    /// <summary>
+    /// Lấy tên tệp tin an toàn bằng cách loại bỏ các ký tự không hợp lệ.
+    /// </summary>
+    /// <param name="fileName">Tên tệp tin ban đầu.</param>
+    /// <returns>Tên tệp tin an toàn.</returns>
     public static string GetSafeFileName(string fileName)
         => new(fileName.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray());
 
+    /// <summary>
+    /// Lấy loại nội dung (MIME type) của tệp tin dựa trên phần mở rộng.
+    /// </summary>
+    /// <param name="fileName">Tên tệp tin.</param>
+    /// <returns>Loại nội dung của tệp tin.</returns>
     public static string GetContentType(string fileName)
     {
         string extension = Path.GetExtension(fileName);
@@ -16,6 +29,9 @@ public static class FileHelper
         return GetMimeType(extension);
     }
 
+    /// <summary>
+    /// Từ điển chứa các phần mở rộng tệp tin và loại nội dung tương ứng.
+    /// </summary>
     private static readonly Dictionary<string, string> MimeTypes = new()
     {
         // Văn bản và tài liệu
@@ -91,6 +107,11 @@ public static class FileHelper
         {".unknown", "application/octet-stream"}
     };
 
+    /// <summary>
+    /// Lấy loại nội dung (MIME type) dựa trên phần mở rộng tệp tin.
+    /// </summary>
+    /// <param name="extension">Phần mở rộng của tệp tin.</param>
+    /// <returns>Loại nội dung tương ứng với phần mở rộng.</returns>
     private static string GetMimeType(string extension)
-        => MimeTypes.TryGetValue(extension, out string? mimeType) ? mimeType : "application/octet-stream";
+        => MimeTypes.TryGetValue(extension, out string mimeType) ? mimeType : "application/octet-stream";
 }

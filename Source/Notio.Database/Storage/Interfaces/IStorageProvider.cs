@@ -1,8 +1,8 @@
-﻿using Notio.Infrastructure.Storage.Models;
+﻿using Notio.Database.Storage.Models;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Notio.Infrastructure.Storage.Interfaces;
+namespace Notio.Database.Storage.Interfaces;
 
 public interface IStorageProvider
 {

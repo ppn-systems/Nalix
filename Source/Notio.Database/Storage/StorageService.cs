@@ -1,12 +1,12 @@
-﻿using Notio.Infrastructure.Storage.Exceptions;
-using Notio.Infrastructure.Storage.Interfaces;
-using Notio.Infrastructure.Storage.Models;
-using Notio.Infrastructure.Storage.Validators;
+﻿using Notio.Database.Storage.Exceptions;
+using Notio.Database.Storage.Interfaces;
+using Notio.Database.Storage.Models;
+using Notio.Database.Storage.Validators;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Notio.Infrastructure.Storage;
+namespace Notio.Database.Storage;
 
 public class StorageService(
     IStorageProvider storageProvider,

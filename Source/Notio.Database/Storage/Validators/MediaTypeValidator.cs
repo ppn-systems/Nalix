@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 
-namespace Notio.Infrastructure.Storage.Validators
+namespace Notio.Database.Storage.Validators
 {
     public class MediaTypeValidator(StorageConfig settings)
     {
