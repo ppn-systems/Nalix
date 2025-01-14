@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Common.Network.Args;
+namespace Notio.Common.Connection.Args;
 
 public interface IErrorEventArgs
 {

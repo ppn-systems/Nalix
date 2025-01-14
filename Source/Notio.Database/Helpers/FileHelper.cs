@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 
-namespace Notio.Database.Storage.Helpers;
+namespace Notio.Database.Helpers;
 
 /// <summary>
 /// Cung cấp các phương thức trợ giúp liên quan đến tệp.

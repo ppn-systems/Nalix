@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Database.Storage.Exceptions;
+namespace Notio.Database.Exceptions;
 
 public class StorageException : Exception
 {

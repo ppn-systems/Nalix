@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Memory;
-using Notio.Common.Network;
-using Notio.Common.Network.Args;
+using Notio.Common.Connection;
+using Notio.Common.Connection.Args;
 using Notio.Logging;
 using Notio.Network.Protocols;
 using System;
@@ -50,7 +50,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferA
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Network class
+        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Connection class
 
         connection.OnCloseEvent += this.OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;

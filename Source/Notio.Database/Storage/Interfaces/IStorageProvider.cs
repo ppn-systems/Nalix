@@ -1,4 +1,4 @@
-﻿using Notio.Database.Storage.Models;
+﻿using Notio.Database.Model;
 using System.IO;
 using System.Threading.Tasks;
 

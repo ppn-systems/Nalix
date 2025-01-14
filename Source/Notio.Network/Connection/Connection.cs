@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Memory;
-using Notio.Common.Network;
-using Notio.Common.Network.Args;
-using Notio.Common.Network.Enums;
+using Notio.Common.Connection;
+using Notio.Common.Connection.Args;
+using Notio.Common.Connection.Enums;
 using Notio.Cryptography;
 using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
@@ -10,7 +10,6 @@ using Notio.Shared.Memory.Cache;
 using System;
 using System.Linq;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,7 +40,7 @@ public class Connection : IConnection, IDisposable
     private CancellationTokenSource _ctokens;
 
     /// <summary>
-    /// Khởi tạo một đối tượng Network mới.
+    /// Khởi tạo một đối tượng Connection mới.
     /// </summary>
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
@@ -344,81 +343,88 @@ public class Connection : IConnection, IDisposable
             }
 
             if (size > _buffer.Length)
-                this.ResizeBuffer(size);
+                this.ResizeBuffer(Math.Max(_buffer.Length * 2, size));
 
             while (totalBytesRead < size)
             {
-                if (!_stream.CanRead) return;
-
-                var bytesRead = await _stream.ReadAsync(
-                    _buffer.AsMemory(totalBytesRead, size - totalBytesRead), _ctokens.Token);
-
+                int bytesRead = await _stream.ReadAsync(_buffer.AsMemory(totalBytesRead, size - totalBytesRead), _ctokens.Token);
                 if (bytesRead == 0) break;
-
                 totalBytesRead += bytesRead;
             }
 
             if (!_ctokens.Token.IsCancellationRequested)
             {
                 _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
-
-                switch (_state)
-                {
-                    case ConnectionState.Connecting:                     
-                        break;
-
-                    case ConnectionState.Connected:
-                        try
-                        {
-                            if (size < KEY_RSA_SIZE_BYTES) break;
-
-                            _rsa4096 = new Rsa4096(KEY_RSA_SIZE);
-                            _aes256Key = Aes256.GenerateKey();
-
-                            _rsa4096.ImportPublicKey(_buffer
-                                    .Skip(Math.Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
-                                    .Take(KEY_RSA_SIZE_BYTES)
-                                    .ToArray()
-                            );
-
-                            byte[] key = _rsa4096.Encrypt(_aes256Key);
-                            await _stream.WriteAsync(key, _ctokens.Token);
-
-                            this.UpdateState(ConnectionState.Connected);
-                        }
-                        catch (Exception ex)
-                        {
-                            if (State == ConnectionState.Connected)
-                                this.UpdateState(ConnectionState.Connecting);
-
-                            this.OnErrorEvent?.Invoke(this,
-                                new ConnectionErrorEventArgs(ConnectionError.AuthenticationError, ex.Message));
-                        }
-                        break;
-
-                    case ConnectionState.Authenticated:
-                        try
-                        {
-                            _cacheIncomingPacket.Add(_buffer.Take(totalBytesRead).ToArray());
-                            this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-                        }
-                        catch (Exception ex)
-                        {
-                            this.OnErrorEvent?.Invoke(
-                                this, new ConnectionErrorEventArgs(ConnectionError.DecryptionError, ex.Message));
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
             }
 
+            await this.HandleConnectionStateAsync(size, totalBytesRead);
             this.BeginReceive();
         }
         catch (Exception ex)
         {
             OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.ReadError, ex.Message));
         }
+    }
+
+    private async Task HandleConnectionStateAsync(ushort size, int totalBytesRead)
+    {
+        switch (_state)
+        {
+            case ConnectionState.Connecting:
+                break;
+
+            case ConnectionState.Connected:
+                await this.HandleConnectedState(totalBytesRead, size);
+                break;
+
+            case ConnectionState.Authenticated:
+                this.HandleAuthenticatedState(totalBytesRead);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private async Task HandleConnectedState(int totalBytesRead, ushort size)
+    {
+        try
+        {
+            if (size < KEY_RSA_SIZE_BYTES) return;
+
+            _rsa4096 = new Rsa4096(KEY_RSA_SIZE);
+            _aes256Key = Aes256.GenerateKey();
+            _rsa4096.ImportPublicKey(_buffer
+                .Skip(Math.Max(0, totalBytesRead - KEY_RSA_SIZE_BYTES))
+                .Take(KEY_RSA_SIZE_BYTES).ToArray());
+
+            byte[] key = _rsa4096.Encrypt(_aes256Key);
+            await _stream.WriteAsync(key, _ctokens.Token);
+
+            this.UpdateState(ConnectionState.Connected);
+        }
+        catch (Exception ex)
+        {
+            HandleError(ConnectionError.AuthenticationError, ex.Message);
+        }
+    }
+
+    private void HandleAuthenticatedState(int totalBytesRead)
+    {
+        try
+        {
+            _cacheIncomingPacket.Add(_buffer.Take(totalBytesRead).ToArray());
+            this.OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+        }
+        catch (Exception ex)
+        {
+            HandleError(ConnectionError.DecryptionError, ex.Message);
+        }
+    }
+
+    private void HandleError(ConnectionError error, string message)
+    {
+        this.OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(error, message));
+        this.UpdateState(ConnectionState.Connecting);
     }
 }

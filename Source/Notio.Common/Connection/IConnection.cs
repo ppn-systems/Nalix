@@ -1,10 +1,10 @@
-﻿using Notio.Common.Network.Args;
-using Notio.Common.Network.Enums;
+﻿using Notio.Common.Connection.Args;
+using Notio.Common.Connection.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Common.Network;
+namespace Notio.Common.Connection;
 
 /// <summary>
 /// Giao diện quản lý kết nối.

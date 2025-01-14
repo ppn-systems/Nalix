@@ -1,7 +1,7 @@
-﻿using Notio.Database.Storage.Exceptions;
-using Notio.Database.Storage.Helpers;
+﻿using Notio.Database.Exceptions;
+using Notio.Database.Helpers;
+using Notio.Database.Model;
 using Notio.Database.Storage.Interfaces;
-using Notio.Database.Storage.Models;
 using Notio.Logging;
 using System;
 using System.IO;

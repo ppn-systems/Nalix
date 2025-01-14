@@ -1,6 +1,6 @@
-﻿using Notio.Database.Storage.Exceptions;
+﻿using Notio.Database.Model;
+using Notio.Database.Exceptions;
 using Notio.Database.Storage.Interfaces;
-using Notio.Database.Storage.Models;
 using Notio.Database.Storage.Validators;
 using System;
 using System.IO;

@@ -7,7 +7,7 @@
 		<IsPublishable>false</IsPublishable>
 	</PropertyGroup>
 
-	<Import Project="$(SolutionDir)Notio.Settings.props" />
+	<Import Project="..\Notio.Settings.props" />
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	</PropertyGroup>
@@ -19,17 +19,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="Data\1.sql" />
-		<Compile Include="Data\0.sql" />
-		<Compile Include="Storage" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 
 </Project>
