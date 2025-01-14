@@ -18,16 +18,8 @@ internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TP
             return;
         }
 
-        try
-        {
-            TResult taskResult = await valueTask.ConfigureAwait(false);
-            await innerHandler.HandleAsync(taskResult, context)
-                              .ConfigureAwait(false);
-        }
-        catch (System.Exception ex)
-        {
-            context.SetProperty("HandlerException", ex);
-            throw;
-        }
+        TResult taskResult = await valueTask.ConfigureAwait(false);
+        await innerHandler.HandleAsync(taskResult, context)
+                          .ConfigureAwait(false);
     }
 }
