@@ -4,7 +4,7 @@ Bạn có thể sử dụng DbContext để thêm, cập nhật, xóa hoặc l�
 Thêm mới người dùng:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var newUser = new User
     {
@@ -22,7 +22,7 @@ using (var context = new AppDbContext(options))
 Thêm mới cuộc trò chuyện:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var newChat = new Chat
     {
@@ -37,7 +37,7 @@ using (var context = new AppDbContext(options))
 Gửi tin nhắn:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var message = new Message
     {
@@ -56,7 +56,7 @@ using (var context = new AppDbContext(options))
 Bạn có thể lấy danh sách tin nhắn theo cuộc trò chuyện:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var chatMessages = context.Messages
         .Where(m => m.ChatId == chatId)
@@ -70,7 +70,7 @@ using (var context = new AppDbContext(options))
 Thêm một người dùng vào cuộc trò chuyện:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var userChat = new UserChat
     {
@@ -86,7 +86,7 @@ using (var context = new AppDbContext(options))
 Gỡ bỏ người dùng khỏi cuộc trò chuyện:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var userChat = context.UserChats
         .FirstOrDefault(uc => uc.UserId == userId && uc.ChatId == chatId);
@@ -103,7 +103,7 @@ using (var context = new AppDbContext(options))
 Để thêm file đính kèm cho tin nhắn:
 
 ```csharp
-using (var context = new AppDbContext(options))
+using (var context = new NotioContext(options))
 {
     var attachment = new MessageAttachment
     {
