@@ -1,11 +1,10 @@
 ﻿using Notio.Network.Https.Attributes;
-using Notio.Network.Https.Model;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Https;
+namespace Notio.Network.Https.Model;
 
 public class NotioRouter
 {

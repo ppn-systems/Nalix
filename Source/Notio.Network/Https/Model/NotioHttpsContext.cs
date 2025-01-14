@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Network.Https;
+namespace Notio.Network.Https.Model;
 
 public class NotioHttpsContext(HttpListenerContext context)
 {

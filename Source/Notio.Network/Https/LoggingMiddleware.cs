@@ -1,4 +1,5 @@
 ﻿using Notio.Logging;
+using Notio.Network.Https.Model;
 using System;
 using System.Threading.Tasks;
 

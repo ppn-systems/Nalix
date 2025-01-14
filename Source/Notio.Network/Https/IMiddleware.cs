@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using Notio.Network.Https.Model;
+using System.Threading.Tasks;
 
 namespace Notio.Network.Https
 {

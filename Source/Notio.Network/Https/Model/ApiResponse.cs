@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Https;
+﻿namespace Notio.Network.Https.Model;
 
 public class ApiResponse
 {
