@@ -130,6 +130,17 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     }
 
     /// <summary>
+    /// Registers an instance of the specified type in the instance cache,
+    /// but only for the concrete class type (ignores interfaces).
+    /// </summary>
+    /// <typeparam name="T">The type of the instance to register.</typeparam>
+    /// <param name="instance">The instance to register.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public void RegisterForClassOnly<T>(T instance) where T : class => Register(instance, registerInterfaces: false);
+
+    /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
     /// </summary>
     /// <typeparam name="T">The type of instance to get or create.</typeparam>
