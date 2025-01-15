@@ -9,45 +9,47 @@ using System.Linq;
 namespace Nalix.Shared.Memory.Pooling;
 
 /// <summary>
-/// Manages buffers of various sizes with optimized allocation and deallocation.
+/// Manages buffers of various sizes with optimized allocation/deallocation and optional trimming.
 /// </summary>
 public sealed class BufferPoolManager : System.IDisposable
 {
-    #region Constants
+    #region Fields & Constants
 
-    private const System.Int32 MinimumIncrease = 4;
-    private const System.Int32 MaxBufferIncreaseLimit = 1024;
-
-    #endregion Constants
-
-    #region Fields
-
-    // Caches allocation patterns for better performance
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.String, (System.Int32, System.Double)[]> _allocationPatternCache;
 
     private readonly System.Int32 _totalBuffers;
     private readonly System.Boolean _enableTrimming;
-    private readonly BufferPoolCollection _poolManager = new();
+    private readonly System.Boolean _enableAnalytics;
+    private readonly System.Boolean _enableQueueCompaction;
+    private readonly System.Boolean _secureClear;
+    private readonly System.Boolean _fallbackToArrayPool;
+    private readonly System.Int32 _autoTuneOpThreshold;
+    private readonly System.Double _adaptiveGrowthFactor;
+    private readonly System.Double _maxMemoryPct;
+    private readonly System.Int32 _minIncrease;
+    private readonly System.Int32 _maxIncrease;
+    private readonly System.Int32 _trimIntervalMinutes;
+    private readonly System.Int32 _deepTrimIntervalMinutes;
+
     private readonly (System.Int32 BufferSize, System.Double Allocation)[] _bufferAllocations;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Int32> _suitablePoolSizeCache;
+
+    private readonly System.Buffers.ArrayPool<System.Byte> _fallbackArrayPool = System.Buffers.ArrayPool<System.Byte>.Shared;
+    private readonly BufferPoolCollection _poolManager;
 
     private System.Threading.Timer? _trimTimer;
     private System.Int32 _trimCycleCount;
     private System.Boolean _isInitialized;
 
-    #endregion Fields
+    #endregion Fields & Constants
 
     #region Properties
 
-    /// <summary>
-    /// Gets the largest buffer size from the buffer allocations list.
-    /// </summary>
+    /// <summary>Gets the largest buffer size from the buffer allocations list.</summary>
     public System.Int32 MaxBufferSize { get; }
 
-    /// <summary>
-    /// Gets the smallest buffer size from the buffer allocations list.
-    /// </summary>
+    /// <summary>Gets the smallest buffer size from the buffer allocations list.</summary>
     public System.Int32 MinBufferSize { get; }
 
     #endregion Properties
@@ -57,7 +59,7 @@ public sealed class BufferPoolManager : System.IDisposable
     static BufferPoolManager() => _allocationPatternCache = new();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with improved performance.
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
     /// </summary>
     public BufferPoolManager(BufferConfig? bufferConfig = null)
     {
@@ -67,74 +69,45 @@ public sealed class BufferPoolManager : System.IDisposable
 
         _totalBuffers = config.TotalBuffers;
         _enableTrimming = config.EnableMemoryTrimming;
+        _enableAnalytics = config.EnableAnalytics;
+        _enableQueueCompaction = config.EnableQueueCompaction;
+        _secureClear = config.SecureClear;
+        _fallbackToArrayPool = config.FallbackToArrayPool;
+        _autoTuneOpThreshold = config.AutoTuneOperationThreshold;
+        _adaptiveGrowthFactor = config.AdaptiveGrowthFactor;
+        _maxMemoryPct = config.MaxMemoryPercentage;
+        _minIncrease = config.MinimumIncrease;
+        _maxIncrease = config.MaxBufferIncreaseLimit;
+        _trimIntervalMinutes = config.TrimIntervalMinutes;
+        _deepTrimIntervalMinutes = config.DeepTrimIntervalMinutes;
 
-        // Parse allocations just once and cache them
         _bufferAllocations = ParseBufferAllocations(config.BufferAllocations);
 
-        // Caches min/max sizes to avoid LINQ in hot paths
         MinBufferSize = _bufferAllocations.Min(alloc => alloc.BufferSize);
         MaxBufferSize = _bufferAllocations.Max(alloc => alloc.BufferSize);
 
+        _poolManager = new BufferPoolCollection(secureClear: _secureClear, autoTuneThreshold: _autoTuneOpThreshold);
         _poolManager.EventShrink += ShrinkBufferPoolSize;
         _poolManager.EventIncrease += IncreaseBufferPoolSize;
 
         this.AllocateBuffers();
 
-        // Optional memory trimming timer
         if (_enableTrimming)
         {
             _trimTimer = new System.Threading.Timer(TrimExcessBuffers, null,
-                             System.TimeSpan.FromMinutes(1),
-                             System.TimeSpan.FromMinutes(5));
+                dueTime: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)),
+                period: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)));
         }
     }
 
     #endregion Constructors
 
-    #region APIs
+    #region Public API
 
     /// <summary>
-    /// Periodically trims excess buffers to reduce memory footprint
+    /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void TrimExcessBuffers(System.Object? state)
-    {
-        // Only run deep trimming every 6 cycles (30 minutes with default timer)
-        System.Boolean deepTrim = System.Threading.Interlocked.Increment(ref _trimCycleCount) % 6 == 0;
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(BufferPoolManager)}] Running automatic buffer trimming (Deep trim: {deepTrim})");
-
-        // TODO: Implement trimming logic based on buffer pool statistics
-    }
-
-    /// <summary>
-    /// Allocates buffers based on the configuration settings.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void AllocateBuffers()
-    {
-        if (_isInitialized)
-        {
-            throw new System.InvalidOperationException($"[{nameof(BufferPoolManager)}] Buffers already allocated.");
-        }
-
-        foreach (var (bufferSize, allocation) in _bufferAllocations)
-        {
-            System.Int32 capacity = System.Math.Max(1, (System.Int32)(_totalBuffers * allocation));
-            _poolManager.CreatePool(bufferSize, capacity);
-        }
-
-        _isInitialized = true;
-    }
-
-    /// <summary>
-    /// Rents a buffer of at least the requested size with optimized caching.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] Rent(System.Int32 size = 256)
     {
         // Fast path for exact matches to common sizes
@@ -143,7 +116,6 @@ public sealed class BufferPoolManager : System.IDisposable
             return _poolManager.RentBuffer(size);
         }
 
-        // Use size cache for frequent sizes
         if (_suitablePoolSizeCache.TryGetValue(size, out System.Int32 cachedPoolSize))
         {
             return _poolManager.RentBuffer(cachedPoolSize);
@@ -153,7 +125,6 @@ public sealed class BufferPoolManager : System.IDisposable
         {
             System.Byte[] buffer = _poolManager.RentBuffer(size);
 
-            // Update cache for this size if it's within reasonable limits
             if (size > 64 && size < 1_000_000 && _suitablePoolSizeCache.Count < 1000)
             {
                 _ = _suitablePoolSizeCache.TryAdd(size, buffer.Length);
@@ -163,20 +134,28 @@ public sealed class BufferPoolManager : System.IDisposable
         }
         catch (System.ArgumentException ex)
         {
+            // Size exceeds the largest pool; optionally fall back to ArrayPool to avoid crashing.
+            if (_fallbackToArrayPool)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Warn($"[{nameof(BufferPoolManager)}] Falling back to ArrayPool for size {size}: {ex.Message}");
+
+                return _fallbackArrayPool.Rent(size);
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(BufferPoolManager)}] Failed to rent buffer of size {size}: {ex.Message}");
+                .Error($"[{nameof(BufferPoolManager)}] Failed to rent buffer of size {size}: {ex.Message}");
             throw;
         }
     }
 
     /// <summary>
-    /// Returns the buffer to the appropriate pool with safety checks.
+    /// Returns the buffer to the appropriate pool with safety checks and fallback.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return(System.Byte[]? buffer)
     {
-        if (buffer == null)
+        if (buffer is null)
         {
             return;
         }
@@ -187,9 +166,23 @@ public sealed class BufferPoolManager : System.IDisposable
         }
         catch (System.ArgumentException ex)
         {
-            // Log but don't throw to avoid crashing application
+            // Buffer length does not map to any known pool (likely from fallback ArrayPool).
+            if (_fallbackToArrayPool)
+            {
+                // Clear on sensitive workloads if configured.
+                if (_secureClear)
+                {
+                    System.Array.Clear(buffer, 0, buffer.Length);
+                }
+
+                _fallbackArrayPool.Return(buffer, clearArray: false);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Debug($"[{nameof(BufferPoolManager)}] Returned fallback buffer of size {buffer.Length} to ArrayPool: {ex.Message}");
+                return;
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(BufferPoolManager)}] Failed to return buffer of size {buffer.Length}: {ex.Message}");
+                .Warn($"[{nameof(BufferPoolManager)}] Failed to return buffer of size {buffer.Length}: {ex.Message}");
         }
     }
 
@@ -198,7 +191,6 @@ public sealed class BufferPoolManager : System.IDisposable
     /// </summary>
     public System.Double GetAllocationForSize(System.Int32 size)
     {
-        // Optimize common cases with direct comparison
         if (size > MaxBufferSize)
         {
             return _bufferAllocations.Last().Allocation;
@@ -209,7 +201,6 @@ public sealed class BufferPoolManager : System.IDisposable
             return _bufferAllocations.First().Allocation;
         }
 
-        // Binary search implementation for better performance with many allocations
         System.Int32 left = 0;
         System.Int32 right = _bufferAllocations.Length - 1;
 
@@ -233,80 +224,91 @@ public sealed class BufferPoolManager : System.IDisposable
             }
         }
 
-        // If we're here, size is between two allocation sizes
-        // Return the allocation for the next larger buffer size
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
                                                 : _bufferAllocations.Last().Allocation;
     }
 
-    #endregion APIs
+    #endregion Public API
 
-    #region Private Methods
+    #region Private: Allocation & Trimming
 
     /// <summary>
-    /// Parses the buffer allocation settings with caching for repeated configurations.
+    /// Allocates buffers based on the configuration settings.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static (System.Int32, System.Double)[] ParseBufferAllocations(System.String bufferAllocationsString)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void AllocateBuffers()
     {
-        if (System.String.IsNullOrWhiteSpace(bufferAllocationsString))
+        if (_isInitialized)
         {
-            throw new System.ArgumentException(
-                $"[{nameof(BufferPoolManager)}] The input string must not be blank or contain only white spaces.",
-                nameof(bufferAllocationsString));
+            throw new System.InvalidOperationException($"[{nameof(BufferPoolManager)}] Buffers already allocated.");
         }
 
-        // Use cached allocations if available for this string
-        return _allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
+        foreach (var (bufferSize, allocation) in _bufferAllocations)
         {
-            try
-            {
-                var allocations = key
-                    .Split(';', System.StringSplitOptions.RemoveEmptyEntries)
-                    .Select(pair =>
-                    {
-                        System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
-                        return parts.Length != 2
-                            ? throw new System.FormatException(
-                                $"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'. " +
-                                $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').")
-                            : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
-                            ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Buffers allocation size must be greater than zero.")
-                            : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
-                            ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be between 0 and 1.")
-                            : (allocationSize, ratio);
-                    })
-                    .OrderBy(tuple => tuple.allocationSize)
-                    .ToArray();
+            System.Int32 capacity = System.Math.Max(1, (System.Int32)(_totalBuffers * allocation));
+            _poolManager.CreatePool(bufferSize, capacity);
+        }
 
-                // Validate total allocation doesn't exceed 1.0
-                System.Double totalAllocation = allocations.Sum(a => a.ratio);
-                return totalAllocation > 1.1
-                    ? throw new System.ArgumentException(
-                        $"[{nameof(BufferPoolManager)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0. " +
-                        "The sum of all allocations should be at most 1.0.")
-                    : ((System.Int32, System.Double)[])allocations;
-            }
-            catch (System.Exception ex) when (ex is
-                System.FormatException or System.ArgumentException or
-                System.OverflowException or System.ArgumentOutOfRangeException)
-            {
-                throw new System.ArgumentException(
-                    $"[{nameof(BufferPoolManager)}] The input string is malformed or contains invalid values. " +
-                    $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60'). ERROR: {ex.Message}");
-            }
-        });
+        _isInitialized = true;
     }
+
+    /// <summary>
+    /// Periodically trims excess buffers to reduce memory footprint.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void TrimExcessBuffers(System.Object? _)
+    {
+        System.Int32 cycle = System.Threading.Interlocked.Increment(ref _trimCycleCount);
+        System.Int32 deepEvery = System.Math.Max(1, _deepTrimIntervalMinutes / System.Math.Max(1, _trimIntervalMinutes));
+        System.Boolean deepTrim = (cycle % deepEvery) == 0;
+
+        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        logger?.Debug($"[{nameof(BufferPoolManager)}] Running automatic buffer trimming (Deep trim: {deepTrim})");
+
+        // 1) Memory budget check
+        System.Int64 totalAvailable = System.GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+        System.Int64 targetBudget = (System.Int64)(totalAvailable * _maxMemoryPct);
+
+        System.Int64 currentBudget = 0;
+        foreach (var pool in _poolManager.GetAllPools())
+        {
+            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            currentBudget += info.TotalBuffers * (System.Int64)info.BufferSize;
+        }
+
+        // 2) Shrink aggressively if above budget
+        System.Boolean overBudget = currentBudget > targetBudget;
+
+        foreach (var pool in _poolManager.GetAllPools())
+        {
+            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+
+            // Basic heuristic: prefer shrinking pools with high free ratio or low usage.
+            System.Double usage = info.GetUsageRatio();
+            System.Boolean candidateByFree = info.FreeBuffers >= (System.Int32)(info.TotalBuffers * 0.50); // aligns with CanShrink
+            System.Boolean candidateByOverBudget = overBudget || deepTrim;
+
+            if (candidateByFree || candidateByOverBudget)
+            {
+                // Use a capped shrink step to avoid oscillation.
+                System.Int32 shrinkStep = System.Math.Min(_maxIncrease, System.Math.Max(1, info.FreeBuffers - (System.Int32)(info.TotalBuffers * 0.5)));
+                if (shrinkStep > 0)
+                {
+                    pool.DecreaseCapacity(shrinkStep);
+                    logger?.Debug($"[{nameof(BufferPoolManager)}] Trimmed pool size={info.BufferSize} by {shrinkStep}, usage={usage:F2}.");
+                }
+            }
+        }
+    }
+
+    #endregion Private: Allocation & Trimming
+
+    #region Private: Resize Strategies
 
     /// <summary>
     /// Shrinks the buffer pool size using an optimized algorithm.
     /// </summary>
-    /// <param name="pool">The buffer pool to shrink.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -314,20 +316,14 @@ public sealed class BufferPoolManager : System.IDisposable
         System.Double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         System.Int32 targetBuffers = (System.Int32)(targetAllocation * _totalBuffers);
 
-        // At least 25% of original size to avoid excessive shrinking
         System.Int32 minimumBuffers = System.Math.Max(1, poolInfo.TotalBuffers >> 2);
-
         System.Int32 excessBuffers = poolInfo.FreeBuffers - targetBuffers;
-
-        // Push safety margin based on pool size to avoid frequent resizing
-        // Square root scaling for safety margin
         System.Int32 safetyMargin = (System.Int32)System.Math.Min(20, System.Math.Sqrt(minimumBuffers));
 
-        System.Int32 buffersToShrink = System.Math.Clamp(excessBuffers - safetyMargin, 0, 20);
+        System.Int32 buffersToShrink = System.Math.Clamp(excessBuffers - safetyMargin, 0, _maxIncrease);
 
         if (buffersToShrink > 0)
         {
-            // Use lightweight synchronization for better performance
             System.Boolean lockTaken = false;
             System.Threading.SpinLock spinLock = new(false);
 
@@ -335,15 +331,12 @@ public sealed class BufferPoolManager : System.IDisposable
             {
                 spinLock.Enter(ref lockTaken);
 
-                // Double-check after acquiring lock
                 if (pool.FreeBuffers > targetBuffers + safetyMargin)
                 {
                     pool.DecreaseCapacity(buffersToShrink);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(BufferPoolManager)}] Optimized buffer pool for size {poolInfo.BufferSize}, " +
-                                                  $"reduced by {buffersToShrink}, " +
-                                                  $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
+                        .Debug($"[{nameof(BufferPoolManager)}] Shrunk pool {poolInfo.BufferSize} by {buffersToShrink}.");
                 }
             }
             finally
@@ -359,36 +352,23 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Increases the buffer pool size using an optimized algorithm.
     /// </summary>
-    /// <param name="pool">The buffer pool to increase.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
-        // 25% threshold for adaptive resizing
-        System.Int32 threshold = System.Math.Max(1, poolInfo.TotalBuffers >> 2);
+        System.Int32 threshold = System.Math.Max(1, (System.Int32)(poolInfo.TotalBuffers * 0.25));
 
         if (poolInfo.FreeBuffers <= threshold)
         {
-            // Calculate optimal increase amount using power-of-two rounding
-            // This helps with memory alignment and predictable growth patterns
-            System.Int32 baseIncrease = System.Math.Max(MinimumIncrease, (System.Int32)System.Numerics.BitOperations
-                                                   .RoundUpToPowerOf2((System.UInt32)System.Math
-                                                   .Max(1, poolInfo.TotalBuffers >> 2))
-            );
+            System.Int32 baseIncreasePow2 = System.Math.Max(_minIncrease,
+                (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2(
+                    (System.UInt32)System.Math.Max(1, poolInfo.TotalBuffers >> 2)));
 
-            // Apply pool-specific scaling based on miss rate
-            System.Double missRatio = poolInfo.Misses / (System.Double)System.Math.Max(1, poolInfo.TotalBuffers);
-            System.Int32 scaledIncrease = missRatio > 0.5
-                ? baseIncrease * 2  // Double growth for high-demand pools
-                : baseIncrease;
+            System.Double missRatio = poolInfo.GetMissRate();
+            System.Int32 scaled = (System.Int32)System.Math.Ceiling(baseIncreasePow2 * (missRatio > 0.5 ? 2.0 : 1.0) * _adaptiveGrowthFactor);
 
-            // Limit the increase to avoid excessive memory usage
-            System.Int32 maxIncrease = System.Math.Min(
-                scaledIncrease,
-                MaxBufferIncreaseLimit
-            );
+            System.Int32 maxIncrease = System.Math.Min(scaled, _maxIncrease);
 
             System.Boolean lockTaken = false;
             System.Threading.SpinLock spinLock = new(false);
@@ -397,16 +377,12 @@ public sealed class BufferPoolManager : System.IDisposable
             {
                 spinLock.Enter(ref lockTaken);
 
-                // Double-check condition after lock to avoid race conditions
                 if (pool.FreeBuffers <= threshold)
                 {
                     pool.IncreaseCapacity(maxIncrease);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(BufferPoolManager)}] Optimized buffer pool for size {poolInfo.BufferSize}, " +
-                                                  $"added {maxIncrease} buffers, " +
-                                                  $"new capacity: {poolInfo.TotalBuffers + maxIncrease}, " +
-                                                  $"miss ratio: {missRatio:F2}.");
+                        .Debug($"[{nameof(BufferPoolManager)}] Increased pool {poolInfo.BufferSize} by {maxIncrease}, miss ratio={missRatio:F2}.");
                 }
             }
             finally
@@ -419,7 +395,52 @@ public sealed class BufferPoolManager : System.IDisposable
         }
     }
 
-    #endregion Private Methods
+    #endregion Private: Resize Strategies
+
+    #region Parsing
+
+    /// <summary>
+    /// Parses the buffer allocation settings with caching for repeated configurations.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static (System.Int32, System.Double)[] ParseBufferAllocations(System.String bufferAllocationsString)
+    {
+        return System.String.IsNullOrWhiteSpace(bufferAllocationsString)
+            ? throw new System.ArgumentException($"[{nameof(BufferPoolManager)}] The input string must not be blank.", nameof(bufferAllocationsString))
+            : _allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
+        {
+            try
+            {
+                var allocations = key
+                    .Split(';', System.StringSplitOptions.RemoveEmptyEntries)
+                    .Select(pair =>
+                    {
+                        System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+                        return parts.Length != 2
+                            ? throw new System.FormatException($"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'.")
+                            : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
+                            ? throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Size must be > 0.")
+                            : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
+                            ? throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].")
+                            : (allocationSize, ratio);
+                    })
+                    .OrderBy(tuple => tuple.allocationSize)
+                    .ToArray();
+
+                System.Double totalAllocation = allocations.Sum(a => a.ratio);
+                return totalAllocation > 1.1
+                    ? throw new System.ArgumentException($"[{nameof(BufferPoolManager)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
+                    : ((System.Int32, System.Double)[])allocations;
+            }
+            catch (System.Exception ex) when (ex is System.FormatException or System.ArgumentException or System.OverflowException or System.ArgumentOutOfRangeException)
+            {
+                throw new System.ArgumentException(
+                    $"[{nameof(BufferPoolManager)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
+            }
+        });
+    }
+
+    #endregion Parsing
 
     #region IDisposable
 
@@ -428,14 +449,10 @@ public sealed class BufferPoolManager : System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        // Stop the trimming timer if enabled
         _trimTimer?.Dispose();
         _trimTimer = null;
 
-        // Dispose optimization caches
         _suitablePoolSizeCache.Clear();
-
-        // Dispose the pool manager
         _poolManager.Dispose();
 
         System.GC.SuppressFinalize(this);

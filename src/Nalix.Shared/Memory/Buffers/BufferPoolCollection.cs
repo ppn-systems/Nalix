@@ -3,7 +3,7 @@
 namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
-/// Manages shared buffer pools.
+/// Manages shared buffer pools and emits resize signals based on observed usage.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerDisplay("Pools={_pools.Count}, Keys={_sortedKeys.Length}")]
@@ -16,11 +16,27 @@ public sealed class BufferPoolCollection : System.IDisposable
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferPoolShared> _pools;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferCounters> _adjustmentCounters;
 
+    private readonly System.Boolean _secureClear;
+    private readonly System.Int32 _autoTuneThreshold;
+
     private System.Int32[] _sortedKeys;
 
     #endregion Fields
 
-    #region Properties
+    #region Nested Types
+
+    /// <summary>
+    /// Thread-safe counters used to debounce resize events.
+    /// </summary>
+    private sealed class BufferCounters
+    {
+        public System.Int32 RentCounter;
+        public System.Int32 ReturnCounter;
+    }
+
+    #endregion Nested Types
+
+    #region Events
 
     /// <summary>
     /// Event triggered when buffer pool needs to increase capacity.
@@ -32,108 +48,51 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// </summary>
     public event System.Action<BufferPoolShared>? EventShrink;
 
-    #endregion Properties
+    #endregion Events
 
     #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolCollection"/> class.
     /// </summary>
-    public BufferPoolCollection()
+    /// <param name="secureClear">Whether buffers should be wiped to zero when returned/disposed.</param>
+    /// <param name="autoTuneThreshold">Trigger threshold (operations) for resize decisions.</param>
+    public BufferPoolCollection(System.Boolean secureClear, System.Int32 autoTuneThreshold)
     {
         _sortedKeys = [];
+        _secureClear = secureClear;
+        _autoTuneThreshold = System.Math.Max(10, autoTuneThreshold);
 
         _pools = new();
         _adjustmentCounters = new();
         _keysLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
     }
 
-    /// <summary>
-    /// Private structure to track buffer usage counters
-    /// </summary>
-    private unsafe struct BufferCounters
-    {
-        private fixed System.Int32 _counters[2]; // [rent, return]
-
-        public System.Int32 RentCounter
-        {
-            get
-            {
-                fixed (System.Int32* ptr = _counters)
-                {
-                    return ptr[0];
-                }
-            }
-            set
-            {
-                fixed (System.Int32* ptr = _counters)
-                {
-                    ptr[0] = value;
-                }
-            }
-        }
-
-        public System.Int32 ReturnCounter
-        {
-            get
-            {
-                fixed (System.Int32* ptr = _counters)
-                {
-                    return ptr[1];
-                }
-            }
-            set
-            {
-                fixed (System.Int32* ptr = _counters)
-                {
-                    ptr[1] = value;
-                }
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Int32 IncrementRent()
-        {
-            fixed (System.Int32* ptr = _counters)
-            {
-                return System.Threading.Interlocked.Increment(ref ptr[0]);
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Int32 IncrementReturn()
-        {
-            fixed (System.Int32* ptr = _counters)
-            {
-                return System.Threading.Interlocked.Increment(ref ptr[1]);
-            }
-        }
-    }
-
     #endregion Constructor
 
-    #region Public Methods
+    #region Pool Management
 
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CreatePool(System.Int32 bufferSize, System.Int32 initialCapacity)
     {
-        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
+        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _secureClear)))
         {
             this.UpdateSortedKeys();
         }
     }
 
     /// <summary>
-    /// Updates the sorted keys with proper locking
+    /// Returns a snapshot enumeration of all pools. The collection may change over time.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.IReadOnlyCollection<BufferPoolShared> GetAllPools() => (System.Collections.Generic.IReadOnlyCollection<BufferPoolShared>)_pools.Values;
+
+    /// <summary>
+    /// Updates the sorted keys with proper locking.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void UpdateSortedKeys()
     {
         _keysLock.EnterWriteLock();
@@ -147,11 +106,14 @@ public sealed class BufferPoolCollection : System.IDisposable
         }
     }
 
+    #endregion Pool Management
+
+    #region Rent/Return
+
     /// <summary>
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] RentBuffer(System.Int32 size)
     {
         System.Int32 poolSize = FindSuitablePoolSize(size);
@@ -160,14 +122,13 @@ public sealed class BufferPoolCollection : System.IDisposable
             throw new System.ArgumentException($"Requested buffer size ({size}) exceeds maximum available pool size.");
         }
 
-        if (!_pools.TryGetValue(poolSize, out var pool))
+        if (!_pools.TryGetValue(poolSize, out BufferPoolShared? pool))
         {
             throw new System.InvalidOperationException($"Pools for size {poolSize} is not available.");
         }
 
         System.Byte[] buffer = pool.AcquireBuffer();
 
-        // Check and trigger the event to increase capacity if needed
         if (AdjustCounter(poolSize, isRent: true))
         {
             EventIncrease?.Invoke(pool);
@@ -179,11 +140,10 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// <summary>
     /// Returns a buffer to the appropriate pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ReturnBuffer(System.Byte[]? buffer)
     {
-        if (buffer == null)
+        if (buffer is null)
         {
             return;
         }
@@ -195,75 +155,55 @@ public sealed class BufferPoolCollection : System.IDisposable
 
         pool.ReleaseBuffer(buffer);
 
-        // Check and trigger the event to shrink capacity if needed
         if (AdjustCounter(buffer.Length, isRent: false))
         {
             EventShrink?.Invoke(pool);
         }
     }
 
-    #endregion Public Methods
+    #endregion Rent/Return
 
-    #region Private Methods
+    #region Resize Debounce
 
     /// <summary>
-    /// Adjusts the rent and return counters with optimized logic.
+    /// Adjusts the rent and return counters and decides whether to fire a resize event.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Boolean AdjustCounter(System.Int32 poolSize, System.Boolean isRent)
     {
-        BufferCounters newCounters = default;
-        System.Boolean shouldTriggerEvent = false;
+        BufferCounters counters = _adjustmentCounters.GetOrAdd(poolSize, static _ => new BufferCounters());
 
-        _ = _adjustmentCounters.AddOrUpdate(
-            poolSize,
-            // Push function - when key doesn't exist
-            _ =>
+        if (isRent)
+        {
+            System.Int32 newValue = System.Threading.Interlocked.Increment(ref counters.RentCounter);
+            if (newValue >= _autoTuneThreshold)
             {
-                shouldTriggerEvent = true;
-                return isRent ? new BufferCounters { RentCounter = 1, ReturnCounter = 0 }
-                             : new BufferCounters { RentCounter = 0, ReturnCounter = 1 };
-            },
-            // Update function - when key exists
-            (_, current) =>
+                _ = System.Threading.Interlocked.Exchange(ref counters.RentCounter, 0);
+                return true;
+            }
+        }
+        else
+        {
+            System.Int32 newValue = System.Threading.Interlocked.Increment(ref counters.ReturnCounter);
+            if (newValue >= _autoTuneThreshold)
             {
-                newCounters = current;
+                _ = System.Threading.Interlocked.Exchange(ref counters.ReturnCounter, 0);
+                return true;
+            }
+        }
 
-                // Update appropriate counter
-                if (isRent)
-                {
-                    newCounters.RentCounter++;
-                    // Check if we've reached the threshold to trigger
-                    if (newCounters.RentCounter >= 10)
-                    {
-                        shouldTriggerEvent = true;
-                        newCounters.RentCounter = 0; // Reset counter
-                    }
-                }
-                else
-                {
-                    newCounters.ReturnCounter++;
-                    // Check if we've reached the threshold to trigger
-                    if (newCounters.ReturnCounter >= 10)
-                    {
-                        shouldTriggerEvent = true;
-                        newCounters.ReturnCounter = 0; // Reset counter
-                    }
-                }
-
-                return newCounters;
-            });
-
-        return shouldTriggerEvent;
+        return false;
     }
+
+    #endregion Resize Debounce
+
+    #region Lookup
 
     /// <summary>
     /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private unsafe System.Int32 FindSuitablePoolSize(System.Int32 size)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int32 FindSuitablePoolSize(System.Int32 size)
     {
         _keysLock.EnterReadLock();
         try
@@ -297,7 +237,7 @@ public sealed class BufferPoolCollection : System.IDisposable
         }
     }
 
-    #endregion Private Methods
+    #endregion Lookup
 
     #region IDisposable
 
@@ -306,11 +246,7 @@ public sealed class BufferPoolCollection : System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        // Dispose all pools in parallel for faster cleanup on large systems
-        _ = System.Threading.Tasks.Parallel.ForEach(_pools.Values, pool =>
-        {
-            pool.Dispose();
-        });
+        _ = System.Threading.Tasks.Parallel.ForEach(_pools.Values, pool => pool.Dispose());
 
         _pools.Clear();
         _adjustmentCounters.Clear();
@@ -318,7 +254,7 @@ public sealed class BufferPoolCollection : System.IDisposable
         _keysLock.EnterWriteLock();
         try
         {
-            _sortedKeys = [];
+            _sortedKeys = System.Array.Empty<System.Int32>();
         }
         finally
         {

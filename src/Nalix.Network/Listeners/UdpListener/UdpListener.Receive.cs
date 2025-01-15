@@ -59,8 +59,6 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^Identifier.Size..]);
-
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -68,6 +66,9 @@ public abstract partial class UdpListenerBase
                                            $"ConnectionHub is not registered in InstanceManager");
             return;
         }
+
+        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^Identifier.Size..]);
+
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
                                     .GetConnection(identifier) is not Connection.Connection connection)
         {
@@ -83,7 +84,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        connection.InjectIncoming(result.Buffer[..^7]);
+        connection.InjectIncoming(result.Buffer[..^Identifier.Size]);
     }
 
     private struct CallbackState
