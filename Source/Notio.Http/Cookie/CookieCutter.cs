@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Notio.Http.Cookie;
 using Notio.Http.Utils;
+using Notio.Http.Enums;
 
 namespace Notio.Http.Cookie;
 
@@ -90,7 +90,7 @@ public static class CookieCutter
     {
         if (cookie == null) return null;
 
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new();
         result.Append($"{cookie.Name}={cookie.Value}");
         if (cookie.Domain != null) result.Append($"; Domain={cookie.Domain}");
         if (cookie.Expires != null) result.Append($"; Expires={cookie.Expires:r}");
@@ -194,6 +194,12 @@ public static class CookieCutter
                 return false;
             }
         }
+
+        // it seems intuitive tht a non-empty path should start with /, but I can't find this in any spec
+        //if (!string.IsNullOrEmpty(Path) && !Path.OrdinalStartsWith("/")) {
+        //	reason = $"{Path} is not a valid Path. A non-empty Path must start with a / character.";
+        //	return false;
+        //}
 
         reason = "ok";
         return true;
@@ -302,4 +308,20 @@ public static class CookieCutter
 
         return false;
     }
+
+    // Possible future enhancement: https://github.com/tmenier/Flurl/issues/538
+    // This method works, but the feature still needs caching of some kind and an opt-in config setting.
+    //private static async Task<bool> IsPublicSuffixesAsync(string domain) {
+    //	using (var stream = await "https://publicsuffix.org/list/public_suffix_list.dat".GetStreamAsync())
+    //	using (var reader = new StreamReader(stream)) {
+    //		while (true) {
+    //			var line = await reader.ReadLineAsync();
+    //			if (line == null) break;
+    //			if (line.Trim() == "") continue;
+    //			if (line.OrdinalStartsWith("//")) continue;
+    //			if (line == domain) return true;
+    //		}
+    //	}
+    //	return false;
+    //}
 }

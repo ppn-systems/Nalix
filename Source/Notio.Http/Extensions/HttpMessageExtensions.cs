@@ -12,7 +12,7 @@ public static class HttpMessageExtensions
 {
     /// <summary>
     /// Set a header on this HttpRequestMessage (default), or its Content property if it's a known content-level header.
-    /// No validation. Overwrites any existing value(s) for the header. 
+    /// No validation. Overwrites any existing value(s) for the header.
     /// </summary>
     /// <param name="request">The HttpRequestMessage.</param>
     /// <param name="name">The header name.</param>
@@ -25,7 +25,7 @@ public static class HttpMessageExtensions
 
     /// <summary>
     /// Set a header on this HttpResponseMessage (default), or its Content property if it's a known content-level header.
-    /// No validation. Overwrites any existing value(s) for the header. 
+    /// No validation. Overwrites any existing value(s) for the header.
     /// </summary>
     /// <param name="response">The HttpResponseMessage.</param>
     /// <param name="name">The header name.</param>
@@ -70,6 +70,7 @@ public static class HttpMessageExtensions
                 if (value != null)
                     msg.Content.Headers.TryAddWithoutValidation(name, [value.ToInvariantString()]);
                 break;
+
             default:
                 // it's a request/response-level header
                 if (!name.OrdinalEquals("Set-Cookie", true)) // multiple set-cookie headers are allowed

@@ -1,9 +1,9 @@
-﻿using System.Linq;
+﻿using Notio.Http.Interfaces;
+using Notio.Http.Utils;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Http.Interfaces;
-using Notio.Http.Utils;
 
 namespace Notio.Http.Extensions;
 

@@ -9,10 +9,12 @@ public enum NullValueHandling
     /// Set as name without value in query string.
     /// </summary>
     NameOnly,
+
     /// <summary>
     /// Don't add to query string, remove any existing value.
     /// </summary>
     Remove,
+
     /// <summary>
     /// Don't add to query string, but leave any existing value unchanged.
     /// </summary>

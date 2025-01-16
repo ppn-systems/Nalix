@@ -1,8 +1,8 @@
-using System.Linq;
-using Notio.Http.Utils;
 using Notio.Http.Cookie;
 using Notio.Http.Extensions;
 using Notio.Http.Interfaces;
+using Notio.Http.Utils;
+using System.Linq;
 
 namespace Notio.Http.Extensions;
 

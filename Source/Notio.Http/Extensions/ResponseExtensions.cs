@@ -1,6 +1,5 @@
 ﻿using Notio.Http.Exceptions;
 using Notio.Http.Interfaces;
-using Notio.Http.Model;
 using System;
 using System.IO;
 using System.Threading.Tasks;

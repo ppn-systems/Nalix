@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Notio.Http.Enums;
+﻿namespace Notio.Http.Enums;
 
 /// <summary>
 /// Types of events raised by Flurl over the course of a call that can be handled via event handlers.

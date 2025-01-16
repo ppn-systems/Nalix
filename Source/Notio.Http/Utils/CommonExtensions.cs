@@ -27,7 +27,7 @@ public static class CommonExtensions
             : (IEnumerable<(string Key, object Value)>)(obj is string s ? StringToKV(s) :
             obj is IEnumerable e ? CollectionToKV(e) :
             ObjectToKV(obj));
-    
+
     /// <summary>
     /// Returns a string that represents the current object, using CultureInfo.InvariantCulture where possible.
     /// Dates are represented in IS0 8601.
