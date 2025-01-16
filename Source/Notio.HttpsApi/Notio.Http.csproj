@@ -23,4 +23,8 @@
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Model\" />
+	</ItemGroup>
+
 </Project>
