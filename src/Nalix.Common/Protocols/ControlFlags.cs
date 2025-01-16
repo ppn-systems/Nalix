@@ -1,7 +1,7 @@
 ﻿namespace Nalix.Common.Protocols;
 
 /// <summary>
-/// Control flags providing additional context for control messages.
+/// CONTROL flags providing additional context for control messages.
 /// </summary>
 [System.Flags]
 public enum ControlFlags : System.Byte

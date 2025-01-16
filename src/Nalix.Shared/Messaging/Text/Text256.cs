@@ -18,10 +18,10 @@ namespace Nalix.Shared.Messaging.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(FrameMagic.Text256)]
+[MagicNumber(FrameMagic.TEXT256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Text256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("TEXT256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompressor<Text256>
 {
     /// <inheritdoc/>
@@ -48,7 +48,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Text256;
+        MagicNumber = (System.UInt32)FrameMagic.TEXT256;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -137,6 +137,6 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"Text256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        => $"TEXT256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
            $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

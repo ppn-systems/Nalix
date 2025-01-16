@@ -17,7 +17,7 @@ public enum ReasonCode : System.UInt16
     NONE = 0,
 
     /// <summary>
-    /// Unknown or unspecified error.
+    /// UNKNOWN or unspecified error.
     /// </summary>
     UNKNOWN = 1,
 

@@ -17,8 +17,8 @@ namespace Nalix.Shared.Messaging.Controls;
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[MagicNumber(FrameMagic.Directive)]
-[System.Diagnostics.DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
+[MagicNumber(FrameMagic.DIRECTIVE)]
+[System.Diagnostics.DebuggerDisplay("DIRECTIVE Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
     /// <inheritdoc/>
@@ -29,7 +29,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         + sizeof(ControlType)       // Type (ControlType)
         + sizeof(ReasonCode)        // Reason (Reason)
         + sizeof(SuggestedAction)   // Action (SuggestedAction)
-        + sizeof(ControlFlags)      // Flags (Control)
+        + sizeof(ControlFlags)      // Flags (CONTROL)
         + sizeof(System.UInt32)     // Arg0
         + sizeof(System.UInt32)     // Arg1
         + sizeof(System.UInt16);    // Arg2
@@ -41,7 +41,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
     public System.UInt32 SequenceId { get; set; }
 
     /// <summary>
-    /// Directive type (shared ControlType). Example: NACK, THROTTLE, REDIRECT, NOTICE.
+    /// DIRECTIVE type (shared ControlType). Example: NACK, THROTTLE, REDIRECT, NOTICE.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
     public ControlType Type { get; set; }
@@ -88,7 +88,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         Priority = PacketPriority.Urgent;
         Transport = TransportProtocol.TCP;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Directive;
+        MagicNumber = (System.UInt32)FrameMagic.DIRECTIVE;
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
 
         System.Int32 read = LiteSerializer.Deserialize(buffer, ref pkt);
         return read == 0
-            ? throw new System.InvalidOperationException("Failed to deserialize Directive: empty read.") : pkt;
+            ? throw new System.InvalidOperationException("Failed to deserialize DIRECTIVE: empty read.") : pkt;
     }
 
     /// <inheritdoc/>
