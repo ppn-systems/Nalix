@@ -1,22 +1,22 @@
-﻿using Notio.Network.Https.Attributes;
-using Notio.Network.Https.Model;
-using Notio.Network.Https;
+﻿using Notio.Network.Http.Attributes;
+using Notio.Network.Http;
 using System.Threading.Tasks;
+using Notio.Common.Model;
 
 namespace Notio.HttpsApi;
 
 [ApiController]
-public class UserController : NotioHttpsController
+public class UserController : HttpController
 {
-    [HttpsRoute("/api/tets", "GET")]
-    public static async Task<ApiResponse> GetUsers(NotioHttpsContext context)
+    [HttpRoute("/api/tets", "GET")]
+    public static async Task<HttpResult> GetUsers(HttpContext context)
     {
         var users = new[] { new { Id = 1, Name = "Test" } };
         return await Ok(users);
     }
 
-    [HttpsRoute("/api/tets", "POST")]
-    public static async Task<ApiResponse> CreateUser(NotioHttpsContext context)
+    [HttpRoute("/api/tets", "POST")]
+    public static async Task<HttpResult> CreateUser(HttpContext context)
     {
         // Xử lý tạo user
         return await Ok(new { Id = 1 });

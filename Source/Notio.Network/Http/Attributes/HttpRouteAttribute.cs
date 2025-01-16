@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace Notio.Network.Https.Attributes;
+namespace Notio.Network.Http.Attributes;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class HttpsRouteAttribute(string path, string method = "GET") : Attribute
+public sealed class HttpRouteAttribute(string path, string method = "GET") : Attribute
 {
     public string Path { get; } = path;
     public string Method { get; } = method.ToUpper();

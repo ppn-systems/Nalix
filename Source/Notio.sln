@@ -29,7 +29,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Database", "Notio.Dat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Packets", "Notio.Packets\Notio.Packets.csproj", "{11498769-178D-4904-9DEF-9FC37B349797}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.HttpsApi", "Notio.HttpsApi\Notio.HttpsApi.csproj", "{61353C21-033B-4695-AD0A-287980FDCF90}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.HttpApi", "Notio.HttpsApi\Notio.HttpApi.csproj", "{61353C21-033B-4695-AD0A-287980FDCF90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

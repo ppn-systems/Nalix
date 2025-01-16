@@ -1,6 +1,6 @@
-﻿using Notio.Network.Https.Attributes;
-using Notio.Network.Https;
-using Notio.Network.Https.Model;
+﻿using Notio.Network.Http.Attributes;
+using Notio.Network.Http;
+using Notio.Network.Http.Model;
 using System;
 using System.Threading.Tasks;
 
@@ -10,7 +10,7 @@ class Program
 {
     static async Task Main()
     {
-        var server = new NotioHttpServer("http://localhost:8080/");
+        var server = new HttpServer("http://localhost:8080/");
 
         // Đăng ký middleware
         server.UseMiddleware<LoggingMiddleware>();

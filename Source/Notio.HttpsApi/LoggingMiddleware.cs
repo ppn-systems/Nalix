@@ -1,13 +1,14 @@
-﻿using Notio.Logging;
-using Notio.Network.Https.Model;
+﻿using Notio.Common.Http;
+using Notio.Common.Model;
+using Notio.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Https
+namespace Notio.Network.Http
 {
     public class LoggingMiddleware : IMiddleware
     {
-        public async Task InvokeAsync(NotioHttpsContext context)
+        public async Task InvokeAsync(HttpContext context)
         {
             var startTime = DateTime.UtcNow;
 
