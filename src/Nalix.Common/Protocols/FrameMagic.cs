@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Enums;
+namespace Nalix.Common.Protocols;
 
 /// <summary>
 /// Defines reserved <c>MagicNumber</c> values used internally by the framework
@@ -15,7 +15,7 @@ namespace Nalix.Common.Enums;
 /// e.g., <c>0x0100_0000</c> and above for application-level protocols.
 /// </para>
 /// </summary>
-public enum MagicNumbers : System.UInt32
+public enum FrameMagic : System.UInt32
 {
     /// <summary>
     /// No magic number assigned.

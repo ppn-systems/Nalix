@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Time;
@@ -20,7 +19,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(MagicNumbers.Control)]
+[MagicNumber(FrameMagic.Control)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Control OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -82,7 +81,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Priority = PacketPriority.Urgent;
         this.Transport = TransportProtocol.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
-        this.MagicNumber = (System.UInt32)MagicNumbers.Control;
+        this.MagicNumber = (System.UInt32)FrameMagic.Control;
     }
 
     /// <summary>
