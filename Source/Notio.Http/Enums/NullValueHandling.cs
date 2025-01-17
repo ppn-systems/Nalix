@@ -1,4 +1,4 @@
-﻿namespace Notio.Http.Utils;
+﻿namespace Notio.Http.Enums;
 
 /// <summary>
 /// Describes how to handle null values in query parameters.

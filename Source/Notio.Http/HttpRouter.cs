@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Model;
-using Notio.Network.Http.Attributes;
+using Notio.Http.Attributes;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Http;
+namespace Notio.Http;
 
 /// <summary>
 /// Handles routing of HTTP requests to registered controllers and their methods.

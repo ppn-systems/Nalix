@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Notio.Http.Enums;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 

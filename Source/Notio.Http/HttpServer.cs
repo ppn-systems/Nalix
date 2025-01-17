@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Http;
+namespace Notio.Http;
 
 public class HttpServer : IDisposable
 {
@@ -26,7 +26,7 @@ public class HttpServer : IDisposable
         _router = new HttpRouter();
         _listener = new HttpListener();
         _listener.Prefixes.Add(url);
-        _cts = new CancellationTokenSource();  
+        _cts = new CancellationTokenSource();
     }
 
     public void RegisterController<T>() where T : HttpController, new()

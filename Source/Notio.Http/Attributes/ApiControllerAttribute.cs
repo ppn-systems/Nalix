@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Network.Http.Attributes;
+namespace Notio.Http.Attributes;
 
 /// <summary>
 /// Marks a class as an API Controller for routing purposes.

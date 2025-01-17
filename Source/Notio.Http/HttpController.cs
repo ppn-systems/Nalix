@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Model;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Http;
+namespace Notio.Http;
 
 public abstract class HttpController
 {
@@ -10,7 +10,7 @@ public abstract class HttpController
     /// </summary>
     /// <param name="data">Dữ liệu phản hồi.</param>
     /// <returns>Kết quả HTTP thành công.</returns>
-    protected static Task<HttpResult> Ok(object? data = null)
+    protected static Task<HttpResult> Ok(object data = null)
         => Task.FromResult(HttpResult.Ok(data));
 
     /// <summary>

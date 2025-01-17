@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Network.Http.Attributes;
+namespace Notio.Http.Attributes;
 
 /// <summary>
 /// Specifies authorization requirements for a method.
@@ -11,7 +11,7 @@ namespace Notio.Network.Http.Attributes;
 /// <param name="roles">Roles required for authorization.</param>
 /// <param name="permissions">Permissions required for authorization.</param>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class AuthorizeAttribute(string[]? roles = null, string[]? permissions = null) : Attribute
+public sealed class AuthorizeAttribute(string[] roles = null, string[] permissions = null) : Attribute
 {
     /// <summary>
     /// List of required roles for authorization.

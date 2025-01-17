@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Notio.Http.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.CodeDom.Compiler;
 
 namespace Notio.Http.Utils;
 
@@ -254,7 +254,7 @@ public class Url
         if (segments.Length == 0)
             yield break;
 
-        // skip first and/or last segment if either empty, but not any in between. "///" should return 2 empty segments for example. 
+        // skip first and/or last segment if either empty, but not any in between. "///" should return 2 empty segments for example.
         var start = segments.First().Length > 0 ? 0 : 1;
         var count = segments.Length - (segments.Last().Length > 0 ? 0 : 1);
 

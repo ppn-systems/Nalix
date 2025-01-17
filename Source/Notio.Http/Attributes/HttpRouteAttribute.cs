@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Network.Http.Attributes;
+namespace Notio.Http.Attributes;
 
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class HttpRouteAttribute(string path, string method = "GET") : Attribute
