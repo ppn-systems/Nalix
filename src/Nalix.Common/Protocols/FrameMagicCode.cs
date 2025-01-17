@@ -15,12 +15,12 @@ namespace Nalix.Common.Protocols;
 /// e.g., <c>0x0100_0000</c> and above for application-level protocols.
 /// </para>
 /// </summary>
-public enum FrameMagic : System.UInt32
+public enum FrameMagicCode : System.UInt32
 {
     /// <summary>
     /// No magic number assigned.
     /// </summary>
-    UNKNOWN = 0x0000_A000,
+    NONE = 0x0000_A000,
 
     /// <summary>
     /// Represents the handshake process used to establish a connection or

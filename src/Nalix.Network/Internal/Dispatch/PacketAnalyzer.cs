@@ -149,10 +149,10 @@ internal sealed class PacketAnalyzer<
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                         .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                               $"Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "UNKNOWN"}");
+                               $"Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "NONE"}");
 
                     throw new System.InvalidOperationException(
-                        $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "UNKNOWN"}.");
+                        $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "NONE"}.");
                 }
 
                 PXI<TPacket> compiledMethod = CompileMethodAccessor(method);

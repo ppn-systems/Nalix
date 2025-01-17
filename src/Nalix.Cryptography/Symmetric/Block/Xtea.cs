@@ -276,7 +276,7 @@ public static class Xtea
     /// <param name="v0">First 32-bit word</param>
     /// <param name="v1">Second 32-bit word</param>
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe void EncryptBlock(
@@ -301,7 +301,7 @@ public static class Xtea
     /// <param name="v0">First 32-bit word</param>
     /// <param name="v1">Second 32-bit word</param>
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe void DecryptBlock(

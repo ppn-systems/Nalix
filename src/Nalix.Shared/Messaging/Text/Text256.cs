@@ -18,7 +18,7 @@ namespace Nalix.Shared.Messaging.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(FrameMagic.TEXT256)]
+[MagicNumber(FrameMagicCode.TEXT256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -46,9 +46,9 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
         Flags = PacketFlags.None;
         Content = System.String.Empty;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.NONE;
+        Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.TEXT256;
+        MagicNumber = (System.UInt32)FrameMagicCode.TEXT256;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -56,7 +56,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
     /// <param name="transport">The target transport protocol.</param>
     public void Initialize(
         System.String content,
-        TransportProtocol transport = TransportProtocol.TCP)
+        ProtocolType transport = ProtocolType.TCP)
     {
         if (content.Length > DynamicSize)
         {
@@ -132,7 +132,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
         this.Flags = PacketFlags.None;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.NONE;
+        this.Transport = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>

@@ -118,7 +118,7 @@ public static class HeaderExtensions
     }
 
     /// <summary>
-    /// Reads the <see cref="TransportProtocol"/> at offset 8.
+    /// Reads the <see cref="ProtocolType"/> at offset 8.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The transport protocol.</returns>
@@ -127,11 +127,11 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TransportProtocol ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
+    public static ProtocolType ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
         var offs = (System.Int32)PacketHeaderOffset.Transport;
         CheckSize(buffer, offs, sizeof(System.Byte));
-        return (TransportProtocol)buffer[offs];
+        return (ProtocolType)buffer[offs];
     }
 
     #endregion
@@ -183,7 +183,7 @@ public static class HeaderExtensions
     public static PacketPriority ReadPriorityLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadPriorityLE();
 
     /// <summary>
-    /// Reads the <see cref="TransportProtocol"/> from a <see cref="System.Byte"/> array.
+    /// Reads the <see cref="ProtocolType"/> from a <see cref="System.Byte"/> array.
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The transport protocol.</returns>
@@ -191,7 +191,7 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TransportProtocol ReadTransportLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadTransportLE();
+    public static ProtocolType ReadTransportLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadTransportLE();
 
     #endregion
 

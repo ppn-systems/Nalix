@@ -19,7 +19,7 @@ public static class PacketConstants
     /// <item><see cref="System.UInt16"/> Length</item>
     /// <item><see cref="System.UInt32"/> MagicNumber</item>
     /// <item><see cref="PacketPriority"/></item>
-    /// <item><see cref="TransportProtocol"/></item>
+    /// <item><see cref="ProtocolType"/></item>
     /// </list>
     /// </summary>
     public const System.Byte HeaderSize =
@@ -28,7 +28,7 @@ public static class PacketConstants
         sizeof(System.UInt16) +  // Length
         sizeof(System.UInt32) +  // MagicNumber
         sizeof(PacketPriority) +
-        sizeof(TransportProtocol);
+        sizeof(ProtocolType);
 
     /// <summary>
     /// The default operation code value for packets.

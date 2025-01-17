@@ -194,7 +194,7 @@ public sealed class PacketDispatchChannel
             System.String head = System.Convert.ToHexString(raw[..System.Math.Min(16, len)]);
             Logger?.Warn(
                 $"[{nameof(PacketDispatchChannel)}] " +
-                $"UNKNOWN packet. Remote={connection.RemoteEndPoint}, Len={len}, Magic=0x{magic:X8}, Head={head}. Dropped.");
+                $"NONE packet. Remote={connection.RemoteEndPoint}, Len={len}, Magic=0x{magic:X8}, Head={head}. Dropped.");
             return;
         }
 

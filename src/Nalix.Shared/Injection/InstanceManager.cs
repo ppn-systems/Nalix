@@ -78,7 +78,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     }
 
     /// <summary>
-    /// Gets the TransportProtocol of cached instances.
+    /// Gets the ProtocolType of cached instances.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
     public System.Int32 CachedInstanceCount => _instanceCache.Count;

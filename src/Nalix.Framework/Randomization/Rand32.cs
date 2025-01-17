@@ -9,7 +9,7 @@ namespace Nalix.Framework.Randomization;
 /// This class wraps a low-level random number generator (SeededRandom)
 /// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
-/// <param name="seed">The seed to initialize the random TransportProtocol generator.</param>
+/// <param name="seed">The seed to initialize the random ProtocolType generator.</param>
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -34,12 +34,12 @@ public sealed class Rand32(System.Int32 seed)
     private System.String DebuggerDisplay => $"Rand32[Seed={_seed}]";
 
     /// <summary>
-    /// Current seed value for the random TransportProtocol generator.
+    /// Current seed value for the random ProtocolType generator.
     /// </summary>
     private System.Int32 _seed = seed;
 
     /// <summary>
-    /// Random TransportProtocol generator instance.
+    /// Random ProtocolType generator instance.
     /// </summary>
     private readonly SeededRandom _rand = new((System.UInt32)seed);
 
@@ -59,7 +59,7 @@ public sealed class Rand32(System.Int32 seed)
     #region APIs
 
     /// <summary>
-    /// Resets the seed for the random TransportProtocol generator.
+    /// Resets the seed for the random ProtocolType generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -150,7 +150,7 @@ public sealed class Rand32(System.Int32 seed)
     }
 
     /// <summary>
-    /// Generates a random floating-point TransportProtocol in the range [0.0f, 1.0f].
+    /// Generates a random floating-point ProtocolType in the range [0.0f, 1.0f].
     /// </summary>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -159,7 +159,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat() => _rand.GetFloat();
 
     /// <summary>
-    /// Generates a random floating-point TransportProtocol in the range [0.0f, max).
+    /// Generates a random floating-point ProtocolType in the range [0.0f, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
@@ -169,7 +169,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat(System.Single max) => NextFloat() * max;
 
     /// <summary>
-    /// Generates a random floating-point TransportProtocol in the range [min, max).
+    /// Generates a random floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -180,7 +180,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
 
     /// <summary>
-    /// Generates a random double-precision floating-point TransportProtocol in the range [0.0, 1.0].
+    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
     /// </summary>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -189,7 +189,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Double NextDouble() => _rand.GetDouble();
 
     /// <summary>
-    /// Generates a random double-precision floating-point TransportProtocol in the range [0.0, max).
+    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
@@ -199,7 +199,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Double NextDouble(System.Double max) => NextDouble() * max;
 
     /// <summary>
-    /// Generates a random double-precision floating-point TransportProtocol in the range [min, max).
+    /// Generates a random double-precision floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -298,7 +298,7 @@ public sealed class Rand32(System.Int32 seed)
     public void NextBytes(System.Span<System.Byte> buffer) => _rand.NextBytes(buffer);
 
     /// <summary>
-    /// Returns a string representation of the random TransportProtocol generator state.
+    /// Returns a string representation of the random ProtocolType generator state.
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
     public override System.String ToString() => $"Rand32[Seed={_seed}]";

@@ -19,7 +19,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagic.CONTROL)]
+[MagicNumber(FrameMagicCode.CONTROL)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -35,7 +35,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         + sizeof(System.Int64)   // Timestamp
         + sizeof(System.Int64)   // MonoTicks
         + sizeof(System.UInt32)  // SequenceId
-        + sizeof(ReasonCode); // Reason
+        + sizeof(ProtocolCode); // Reason
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
@@ -47,7 +47,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
-    public ReasonCode Reason { get; set; }
+    public ProtocolCode Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
@@ -79,9 +79,9 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Type = ControlType.NONE; // Default type, can be changed later
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = TransportProtocol.NONE;
+        this.Transport = ProtocolType.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
-        this.MagicNumber = (System.UInt32)FrameMagic.CONTROL;
+        this.MagicNumber = (System.UInt32)FrameMagicCode.CONTROL;
     }
 
     /// <summary>
@@ -94,8 +94,8 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     public void Initialize(
         ControlType type,
         System.UInt32 sequenceId = 0,
-        ReasonCode reasonCode = ReasonCode.NONE,
-        TransportProtocol transport = TransportProtocol.TCP)
+        ProtocolCode reasonCode = ProtocolCode.NONE,
+        ProtocolType transport = ProtocolType.TCP)
     {
         this.Type = type;
         this.Transport = transport;
@@ -110,7 +110,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// </summary>
     /// <param name="type">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.TCP) => Initialize(type, 0, 0, transport);
+    public void Initialize(ControlType type, ProtocolType transport = ProtocolType.TCP) => Initialize(type, 0, 0, transport);
 
     /// <summary>
     /// Deserializes a <see cref="Binary128"/> from the specified buffer.
@@ -142,7 +142,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Type = ControlType.NONE;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = TransportProtocol.NONE;
+        this.Transport = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>

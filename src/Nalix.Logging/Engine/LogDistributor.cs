@@ -32,19 +32,19 @@ public sealed class LogDistributor : ILogDistributor
     #region Properties
 
     /// <summary>
-    /// Gets the total TransportProtocol of log entries that have been published.
+    /// Gets the total ProtocolType of log entries that have been published.
     /// </summary>
     public System.Int64 EntriesDistributor
         => System.Threading.Interlocked.Read(ref _entriesDistributor);
 
     /// <summary>
-    /// Gets the total TransportProtocol of target publish operations performed.
+    /// Gets the total ProtocolType of target publish operations performed.
     /// </summary>
     public System.Int64 TargetsProcessed
         => System.Threading.Interlocked.Read(ref _targetsProcessed);
 
     /// <summary>
-    /// Gets the TransportProtocol of errors that occurred during publish operations.
+    /// Gets the ProtocolType of errors that occurred during publish operations.
     /// </summary>
     public System.Int64 PublishErrorCount
         => System.Threading.Interlocked.Read(ref _publishErrorCount);
