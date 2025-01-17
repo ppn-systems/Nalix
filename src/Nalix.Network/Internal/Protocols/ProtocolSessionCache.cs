@@ -14,7 +14,7 @@ namespace Nalix.Network.Internal.Transport;
 /// <summary>
 /// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
-internal sealed class TransportCache : System.IDisposable
+internal sealed class ProtocolSessionCache : System.IDisposable
 {
     #region Fields
 
@@ -51,7 +51,7 @@ internal sealed class TransportCache : System.IDisposable
 
     #region Constructors
 
-    public TransportCache() => this.Incoming = new(Config.Incoming);
+    public ProtocolSessionCache() => this.Incoming = new(Config.Incoming);
 
     #endregion Constructors
 
@@ -70,7 +70,7 @@ internal sealed class TransportCache : System.IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by this <see cref="TransportCache"/> instance.
+    /// Releases all resources used by this <see cref="ProtocolSessionCache"/> instance.
     /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
     public void Dispose()
@@ -89,7 +89,7 @@ internal sealed class TransportCache : System.IDisposable
         const System.UInt64 s = 0xc70f6907UL;
         const System.UInt64 m = 0xc6a4a7935bd1e995UL;
 
-        System.UInt64 h = s ^ ((System.UInt64)data.Length * m);
+        System.UInt64 h = s ^ (System.UInt64)data.Length * m;
 
         fixed (System.Byte* pBase = data)
         {
@@ -123,7 +123,7 @@ internal sealed class TransportCache : System.IDisposable
                 System.UInt64 k = 0;
                 for (System.Int32 i = 0; i < len; i++)
                 {
-                    k |= (System.UInt64)p[i] << (8 * i);
+                    k |= (System.UInt64)p[i] << 8 * i;
                 }
 
                 h ^= k;
