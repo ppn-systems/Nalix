@@ -71,5 +71,10 @@ public enum FrameMagicCode : System.UInt32
     /// <summary>
     /// DIRECTIVE packet used for sending commands or instructions.
     /// </summary>
-    DIRECTIVE = 0x0000_A00A
+    DIRECTIVE = 0x0000_A00A,
+
+    /// <summary>
+    /// Time synchronization packet used for aligning clocks between systems.
+    /// </summary>
+    TIME_SYNC = 0x0000_A00B,
 }
