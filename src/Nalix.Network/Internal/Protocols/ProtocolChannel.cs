@@ -4,8 +4,8 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
 #if DEBUG
@@ -358,14 +358,14 @@ internal class ProtocolChannel(
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.ReadOnlyMemory<System.Byte> PopIncoming()
+    public BufferLease? PopIncoming()
     {
-        if (this._cache.Incoming.TryPop(out System.ReadOnlyMemory<System.Byte> data))
+        if (this._cache.Incoming.TryPop(out BufferLease? data))
         {
             return data;
         }
 
-        return System.ReadOnlyMemory<System.Byte>.Empty; // Avoid null
+        return null; // Avoid null
     }
 
     /// <summary>
@@ -382,7 +382,7 @@ internal class ProtocolChannel(
         }
 
         this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        this._cache.PushIncoming(new System.ReadOnlyMemory<System.Byte>(data));
+        this._cache.PushIncoming(BufferLease.CopyFrom(data));
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -578,8 +578,9 @@ internal class ProtocolChannel(
 #endif
                 this._cache.LastPingTime = Clock.UnixMillisecondsNow();
 
-                this._cache.PushIncoming(System.MemoryExtensions
-                           .AsMemory(this._buffer, 2, size - 2));
+                this._cache.PushIncoming(BufferLease
+                           .CopyFrom(System.MemoryExtensions
+                           .AsSpan(this._buffer, 2, size - 2)));
             }
             else
             {

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Caching;
 using Nalix.Common.Security.Abstractions;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
@@ -31,7 +32,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the incoming packet of data.
     /// </summary>
-    System.ReadOnlyMemory<System.Byte> IncomingPacket { get; }
+    IBufferLease IncomingPacket { get; }
 
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.

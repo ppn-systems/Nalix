@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 
@@ -20,7 +21,7 @@ namespace Nalix.Network.Abstractions;
 public interface IPacketDispatch<TPacket> where TPacket : IPacket
 {
     /// <summary>
-    /// Handles an incoming packet represented as a <see cref="System.Byte"/> array.
+    /// Handles an incoming packet represented as a <see cref="IBufferLease"/> array.
     /// </summary>
     /// <param name="packet">
     /// The byte array containing the raw packet data, or <see langword="null"/> to indicate no data.
@@ -28,29 +29,7 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(System.Byte[]? packet, IConnection connection);
-
-    /// <summary>
-    /// Handles an incoming packet represented as a <see cref="System.ReadOnlyMemory{T}"/> of <see cref="System.Byte"/>.
-    /// </summary>
-    /// <param name="packet">
-    /// The memory buffer containing the raw packet data, or <see langword="null"/> to indicate no data.
-    /// </param>
-    /// <param name="connection">
-    /// The connection from which the packet was received.
-    /// </param>
-    void HandlePacket(System.ReadOnlyMemory<System.Byte>? packet, IConnection connection);
-
-    /// <summary>
-    /// Handles an incoming packet represented as a <see cref="System.ReadOnlySpan{T}"/> of <see cref="System.Byte"/>.
-    /// </summary>
-    /// <param name="packet">
-    /// The span containing the raw packet data.
-    /// </param>
-    /// <param name="connection">
-    /// The connection from which the packet was received.
-    /// </param>
-    void HandlePacket(in System.ReadOnlySpan<System.Byte> packet, IConnection connection);
+    void HandlePacket(IBufferLease? packet, IConnection connection);
 
     /// <summary>
     /// Handles a fully deserialized packet instance.
