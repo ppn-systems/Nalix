@@ -1,7 +1,8 @@
 ﻿using Notio.Common.Connection.Args;
+using Notio.Network.Protocols;
 using System;
 
-namespace Notio.Network.Protocols;
+namespace Notio.Application.Main;
 
 public class LoginProtocol : Protocol
 {

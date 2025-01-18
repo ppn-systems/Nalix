@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Common.Model;
+namespace Notio.Http.Core;
 
 /// <summary>
 /// Represents an HTTP context.
 /// </summary>
 public class HttpContext(HttpListenerContext context)
 {
-
     /// <summary>
     /// Gets the HTTP listener request.
     /// </summary>

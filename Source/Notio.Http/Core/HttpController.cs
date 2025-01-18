@@ -1,7 +1,6 @@
-﻿using Notio.Common.Model;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace Notio.Http;
+namespace Notio.Http.Core;
 
 public abstract class HttpController
 {

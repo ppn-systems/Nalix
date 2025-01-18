@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Notio.Common.Model;
+namespace Notio.Http.Core;
 
 public record HttpResult(
     int StatusCode,
@@ -18,7 +18,7 @@ public record HttpResult(
         => new(201, data, Message: message);
 
     public static HttpResult Fail(string error, string message = "Request failed")
-        => new(400, Error: error, Message: message); 
+        => new(400, Error: error, Message: message);
 
     public static HttpResult BadRequest(string error, string message = "Bad request")
         => new(400, Error: error, Message: message);

@@ -4,9 +4,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace Notio.Network.Firewall;
+namespace Notio.Http.Security;
 
-public class JwtAuthenticator(string secretKey, string issuer, string audience)
+public class JwtService(string secretKey, string issuer, string audience)
 {
     private readonly string _issuer = issuer;
     private readonly string _audience = audience;
@@ -33,20 +33,18 @@ public class JwtAuthenticator(string secretKey, string issuer, string audience)
     {
         try
         {
-            string[] parts = token.Split('.');
+            var parts = token.Split('.');
             if (parts.Length != 3) return false;
 
-            byte[] computedSignature = _hmac.ComputeHash(Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}"));
-            string computedSignatureBase64 = Convert.ToBase64String(computedSignature);
+            var computedSignature = _hmac.ComputeHash(Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}"));
+            var computedSignatureBase64 = Convert.ToBase64String(computedSignature);
 
             if (computedSignatureBase64 != parts[2]) return false;
 
-            string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+            var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
             var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson);
 
-            if (payload == null || !payload.TryGetValue("exp", out object? value)) return false;
-
-            long exp = Convert.ToInt64(value);
+            var exp = Convert.ToInt64(payload["exp"]);
             if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) return false;
 
             return true;

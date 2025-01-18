@@ -1,5 +1,5 @@
-﻿using Notio.Common.Http;
-using Notio.Common.Model;
+﻿using Notio.Http.Core;
+using Notio.Http.Middleware;
 using Notio.Logging;
 using System;
 using System.Collections.Generic;

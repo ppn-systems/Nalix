@@ -1,5 +1,5 @@
-﻿using Notio.Common.Model;
-using Notio.Http.Attributes;
+﻿using Notio.Http.Attributes;
+using Notio.Http.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -22,16 +22,16 @@ public class HttpRouter
     {
         var controllerType = typeof(T);
 
-        // Ensure the controller is decorated with ApiControllerAttribute
-        if (!controllerType.IsDefined(typeof(ApiControllerAttribute), false))
-            throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ApiControllerAttribute].");
+        // Ensure the controller is decorated with ControllerAttribute
+        if (!controllerType.IsDefined(typeof(ControllerAttribute), false))
+            throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ControllerAttribute].");
 
         var controllerInstance = new T();
         var methods = controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
 
         foreach (var method in methods)
         {
-            var routeAttribute = method.GetCustomAttribute<HttpRouteAttribute>();
+            var routeAttribute = method.GetCustomAttribute<RouteAttribute>();
             if (routeAttribute == null) continue;
 
             string routeKey = $"{routeAttribute.Method}:{routeAttribute.Path}";

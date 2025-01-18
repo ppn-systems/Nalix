@@ -1,4 +1,5 @@
-﻿using Notio.Logging;
+﻿using Notio.Common.Firewall;
+using Notio.Logging;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -12,17 +13,19 @@ namespace Notio.Network.Firewall;
 /// <summary>
 /// Lớp xử lý giới hạn tốc độ yêu cầu với các tính năng nâng cao về hiệu suất và bảo mật
 /// </summary>
-public sealed class RequestLimiter : IDisposable
+public sealed class RequestLimiter : IDisposable, IRateLimiter
 {
     private readonly record struct RequestData(Queue<DateTime> Requests, DateTime? BlockedUntil);
 
     private readonly int _maxAllowedRequests;
     private readonly int _lockoutDurationSeconds;
+
+    private readonly Timer _cleanupTimer;
     private readonly TimeSpan _timeWindowDuration;
     private readonly FirewallConfig _firewallConfig;
-    private readonly ConcurrentDictionary<string, RequestData> _ipData;
-    private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
+    private readonly ConcurrentDictionary<string, RequestData> _ipData;
+
     private bool _disposed;
 
     public RequestLimiter(FirewallConfig? networkConfig)
@@ -59,7 +62,7 @@ public sealed class RequestLimiter : IDisposable
     /// <param name="endPoint">Địa chỉ IP cần kiểm tra</param>
     /// <returns>true nếu yêu cầu được chấp nhận, false nếu bị từ chối</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the object is disposed</exception>
-    public bool IsAllowed(string endPoint)
+    public bool CheckLimit(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
 
