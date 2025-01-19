@@ -11,6 +11,7 @@ public class CryptoOperationException : Exception
     {
     }
 
-    public CryptoOperationException(string message, Exception innerException)
-        : base(message, innerException) { }
+    public CryptoOperationException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
 }

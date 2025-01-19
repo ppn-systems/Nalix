@@ -1,5 +1,5 @@
-﻿using System.Threading.Tasks;
-using Notio.Http.Core;
+﻿using Notio.Http.Core;
+using System.Threading.Tasks;
 
 namespace Notio.Http.Middleware;
 

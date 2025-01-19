@@ -1,5 +1,5 @@
-﻿using Notio.Database.Model;
-using Notio.Database.Exceptions;
+﻿using Notio.Common.Exceptions;
+using Notio.Database.Model;
 using Notio.Database.Storage.Interfaces;
 using Notio.Database.Storage.Validators;
 using System;
@@ -21,7 +21,7 @@ public class StorageService(
         {
             if (!_mediaTypeValidator.IsValidFile(fileName))
             {
-                throw new StorageException($"File type not allowed: {Path.GetExtension(fileName)}");
+                throw new DatabaseException($"File type not allowed: {Path.GetExtension(fileName)}");
             }
 
             var metadata = await _storageProvider.UploadAsync(fileStream, fileName);
@@ -29,7 +29,7 @@ public class StorageService(
         }
         catch (Exception ex)
         {
-            throw new StorageException("Error uploading file", ex);
+            throw new DatabaseException("Error uploading file", ex);
         }
     }
 
@@ -41,7 +41,7 @@ public class StorageService(
         }
         catch (Exception ex)
         {
-            throw new StorageException("Error downloading file", ex);
+            throw new DatabaseException("Error downloading file", ex);
         }
     }
 
@@ -53,7 +53,7 @@ public class StorageService(
         }
         catch (Exception ex)
         {
-            throw new StorageException("Error deleting file", ex);
+            throw new DatabaseException("Error deleting file", ex);
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using Notio.Common.Memory;
-using Notio.Common.Connection;
+﻿using Notio.Common.Connection;
 using Notio.Common.Connection.Args;
 using Notio.Common.Connection.Enums;
+using Notio.Common.Memory;
 using Notio.Cryptography;
 using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
@@ -225,7 +225,7 @@ public class Connection : IConnection, IDisposable
         {
             if (_state == ConnectionState.Authenticated)
             {
-                using MemoryBuffer memoryBuffer = Aes256.CtrMode.Encrypt(_aes256Key, message);
+                using var memoryBuffer = Aes256.CtrMode.Encrypt(_aes256Key, message);
                 message = memoryBuffer.Memory.Span;
             }
 

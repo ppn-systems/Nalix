@@ -27,7 +27,7 @@ public static partial class PacketOperations
 
         try
         {
-            using MemoryBuffer encrypted = Aes256.CtrMode.Encrypt(key, packet.Payload.Span);
+            using var encrypted = Aes256.CtrMode.Encrypt(key, packet.Payload.Span);
             return new Packet(
                 packet.Type,
                 packet.Flags.AddFlag(PacketFlags.IsEncrypted),
@@ -56,7 +56,7 @@ public static partial class PacketOperations
 
         try
         {
-            using MemoryBuffer decrypted = Aes256.CtrMode.Decrypt(key, packet.Payload.Span);
+            using var decrypted = Aes256.CtrMode.Decrypt(key, packet.Payload.Span);
             return new Packet(
                 packet.Type,
                 packet.Flags.RemoveFlag(PacketFlags.IsEncrypted),

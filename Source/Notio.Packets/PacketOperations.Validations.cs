@@ -1,5 +1,5 @@
-﻿using Notio.Packets.Enums;
-using Notio.Packets.Exceptions;
+﻿using Notio.Common.Exceptions;
+using Notio.Packets.Enums;
 using Notio.Packets.Extensions;
 using Notio.Packets.Metadata;
 using System.Runtime.CompilerServices;
@@ -29,5 +29,4 @@ public static partial class PacketOperations
         if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
             throw new PacketException("Payload is encrypted and cannot be compressed.");
     }
-
 }

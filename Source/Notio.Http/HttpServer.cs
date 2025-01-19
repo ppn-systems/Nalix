@@ -31,10 +31,9 @@ public class HttpServer : IDisposable
 
     public void RegisterController<T>() where T : HttpController, new()
         => _router.RegisterController<T>();
-    
 
     public void UseMiddleware<T>() where T : IMiddleware, new()
-        => _middleware.Add(new T()); 
+        => _middleware.Add(new T());
 
     public async Task StartAsync()
     {

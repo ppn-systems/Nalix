@@ -41,7 +41,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     public static UniqueId NewId(TypeId type = TypeId.Generic, ushort machineId = 0)
     {
         byte[] randomBytes = new byte[4];
-        Random.Shared.NextBytes(randomBytes);
+        System.Random.Shared.NextBytes(randomBytes);
 
         uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
         uint timestamp = (uint)(Clock.UnixTime.Milliseconds & 0xFFFFFFFF);

@@ -4,12 +4,14 @@ public enum HttpStatusCode : short
 {
     // Informational 1xx
     Continue = 100,
+
     SwitchingProtocols = 101,
     Processing = 102,
     EarlyHints = 103,
 
     // Success 2xx
     Ok = 200,
+
     Created = 201,
     Accepted = 202,
     NonAuthoritativeInformation = 203,
@@ -22,6 +24,7 @@ public enum HttpStatusCode : short
 
     // Redirection 3xx
     MultipleChoices = 300,
+
     MovedPermanently = 301,
     Found = 302,
     SeeOther = 303,
@@ -34,6 +37,7 @@ public enum HttpStatusCode : short
 
     // Client Fail 4xx
     BadRequest = 400,
+
     Unauthorized = 401,
     PaymentRequired = 402,
     Forbidden = 403,
@@ -65,6 +69,7 @@ public enum HttpStatusCode : short
 
     // Server Fail 5xx
     InternalError = 500,
+
     NotImplemented = 501,
     BadGateway = 502,
     ServiceUnavailable = 503,

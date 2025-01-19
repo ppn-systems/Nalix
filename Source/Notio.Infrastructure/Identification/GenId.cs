@@ -35,6 +35,7 @@ public sealed class GenId
     }
 
     private static readonly Lazy<GenId> _instance = new(() => new GenId(TypeId.System));
+    private static readonly System.Random _random = new();
     private static readonly Lock _syncRoot = new();
     private readonly ushort _machineId;
     private readonly Lock _lockObject = new();
@@ -50,10 +51,7 @@ public sealed class GenId
     /// </summary>
     public ulong Value => _id;
 
-    static GenId()
-    {
-        _instance = new Lazy<GenId>(() => new GenId(TypeId.System));
-    }
+    static GenId() => _instance = new Lazy<GenId>(() => new GenId(TypeId.System));
 
     private GenId(TypeId type, ushort machineId = 0, DateTime? epoch = null)
     {
@@ -252,7 +250,7 @@ public sealed class GenId
         }
         catch
         {
-            return (ushort)Random.Shared.Next(0, (int)GenIdConfig.MACHINE_MASK);
+            return (ushort)_random.Next(0, (int)GenIdConfig.MACHINE_MASK);
         }
     }
 

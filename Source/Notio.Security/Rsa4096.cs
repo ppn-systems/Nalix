@@ -36,7 +36,6 @@ public class Rsa4096
     /// <param name="publicKeyBytes">Mảng byte chứa khóa công khai.</param>
     public void ImportPublicKey(byte[] publicKeyBytes)
         => _rsa.ImportRSAPublicKey(new ReadOnlySpan<byte>(publicKeyBytes), out _);
-    
 
     /// <summary>
     /// Xuất khóa công khai dưới dạng mảng byte.
@@ -50,7 +49,7 @@ public class Rsa4096
     /// <param name="plaintext">Mảng byte chứa dữ liệu cần mã hóa.</param>
     /// <returns>Mảng byte chứa dữ liệu đã được mã hóa.</returns>
     public byte[] Encrypt(byte[] plaintext)
-        => _rsa.Encrypt(plaintext, RSAEncryptionPadding.OaepSHA256); 
+        => _rsa.Encrypt(plaintext, RSAEncryptionPadding.OaepSHA256);
 
     /// <summary>
     /// Giải mã dữ liệu đã mã hóa bằng khóa bí mật.

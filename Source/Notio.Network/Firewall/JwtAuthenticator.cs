@@ -1,4 +1,4 @@
-﻿using Notio.Network.Exceptions;
+﻿using Notio.Common.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -15,9 +15,9 @@ public class JwtAuthenticator
 
     public JwtAuthenticator(string secretKey, string issuer, string audience)
     {
-        if (string.IsNullOrWhiteSpace(secretKey)) throw new FirewallExceptions("Secret key cannot be null or empty.", nameof(secretKey));
-        if (string.IsNullOrWhiteSpace(issuer)) throw new FirewallExceptions("Issuer cannot be null or empty.", nameof(issuer));
-        if (string.IsNullOrWhiteSpace(audience)) throw new FirewallExceptions("Audience cannot be null or empty.", nameof(audience));
+        if (string.IsNullOrWhiteSpace(secretKey)) throw new FirewallException("Secret key cannot be null or empty.", nameof(secretKey));
+        if (string.IsNullOrWhiteSpace(issuer)) throw new FirewallException("Issuer cannot be null or empty.", nameof(issuer));
+        if (string.IsNullOrWhiteSpace(audience)) throw new FirewallException("Audience cannot be null or empty.", nameof(audience));
 
         _issuer = issuer;
         _audience = audience;
