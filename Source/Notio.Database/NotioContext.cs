@@ -13,10 +13,10 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        ModelConfiguration.ConfigureUserEntity(modelBuilder);
-        ModelConfiguration.ConfigureChatEntity(modelBuilder);
-        ModelConfiguration.ConfigureMessageEntity(modelBuilder);
-        ModelConfiguration.ConfigureUserChatEntity(modelBuilder);
-        ModelConfiguration.ConfigureMessageAttachmentEntity(modelBuilder);
+        ModelConfiguration.UserEntity(modelBuilder);
+        ModelConfiguration.ChatEntity(modelBuilder);
+        ModelConfiguration.MessageEntity(modelBuilder);
+        ModelConfiguration.UserChatEntity(modelBuilder);
+        ModelConfiguration.MessageAttachmentEntity(modelBuilder);
     }
 }

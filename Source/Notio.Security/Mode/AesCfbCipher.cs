@@ -6,7 +6,7 @@ namespace Notio.Cryptography.Mode;
 
 internal static class AesCfbCipher
 {
-    public static MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    public static Aes256.MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         Aes256.ValidateKey(key);
         Aes256.ValidateInput(plaintext, nameof(plaintext));
@@ -49,7 +49,7 @@ internal static class AesCfbCipher
                 }
             }
 
-            return new MemoryBuffer(resultOwner, iv.Length + plaintext.Length);
+            return new Aes256.MemoryBuffer(resultOwner, iv.Length + plaintext.Length);
         }
         catch
         {
@@ -58,7 +58,7 @@ internal static class AesCfbCipher
         }
     }
 
-    public static MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+    public static Aes256.MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
     {
         Aes256.ValidateKey(key);
         Aes256.ValidateInput(ciphertext, nameof(ciphertext));
@@ -100,7 +100,7 @@ internal static class AesCfbCipher
                 buffer[..blockSize].CopyTo(result.Slice(i, blockSize));
             }
 
-            return new MemoryBuffer(resultOwner, ciphertext.Length - Aes256.BlockSize);
+            return new Aes256.MemoryBuffer(resultOwner, ciphertext.Length - Aes256.BlockSize);
         }
         catch
         {
@@ -111,7 +111,7 @@ internal static class AesCfbCipher
 
     private static Aes CreateAesCFB(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv)
     {
-        var aes = Aes.Create();
+        Aes aes = Aes.Create();
         aes.Key = key.ToArray();
         aes.IV = iv.ToArray();
         aes.Mode = CipherMode.CFB;

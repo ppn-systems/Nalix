@@ -1,6 +1,6 @@
-﻿using Notio.Cryptography;
+﻿using Notio.Common.Exceptions;
+using Notio.Cryptography;
 using Notio.Packets.Enums;
-using Notio.Packets.Exceptions;
 using Notio.Packets.Extensions;
 using System;
 using System.Runtime.CompilerServices;

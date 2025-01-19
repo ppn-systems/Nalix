@@ -1,4 +1,4 @@
-﻿using Notio.Database.Exceptions;
+﻿using Notio.Common.Exceptions;
 using Notio.Database.Helpers;
 using Notio.Database.Model;
 using Notio.Database.Storage.Interfaces;
@@ -38,7 +38,7 @@ namespace Notio.Database.Storage.Providers
         /// <param name="fileName">Tên tệp tin.</param>
         /// <returns>Siêu dữ liệu của tệp tin đã tải lên.</returns>
         /// <exception cref="ArgumentException">Ném lỗi khi tên tệp tin rỗng.</exception>
-        /// <exception cref="StorageException">Ném lỗi khi xảy ra lỗi trong quá trình tải lên.</exception>
+        /// <exception cref="DatabaseException">Ném lỗi khi xảy ra lỗi trong quá trình tải lên.</exception>
         public async Task<FileMetadata> UploadAsync(Stream fileStream, string fileName)
         {
             ArgumentNullException.ThrowIfNull(fileStream);
@@ -83,7 +83,7 @@ namespace Notio.Database.Storage.Providers
             catch (Exception ex)
             {
                 NotioLog.Instance.Error($"Error uploading file: {fileName}", ex);
-                throw new StorageException($"Error uploading file: {fileName}", ex);
+                throw new DatabaseException($"Error uploading file: {fileName}", ex);
             }
         }
 
@@ -93,7 +93,7 @@ namespace Notio.Database.Storage.Providers
         /// <param name="fileId">ID của tệp tin.</param>
         /// <returns>Luồng của tệp tin đã tải về.</returns>
         /// <exception cref="ArgumentException">Ném lỗi khi ID tệp tin rỗng.</exception>
-        /// <exception cref="StorageException">Ném lỗi khi xảy ra lỗi trong quá trình tải về.</exception>
+        /// <exception cref="DatabaseException">Ném lỗi khi xảy ra lỗi trong quá trình tải về.</exception>
         public Task<Stream> DownloadAsync(string fileId)
         {
             if (string.IsNullOrEmpty(fileId))
@@ -105,7 +105,7 @@ namespace Notio.Database.Storage.Providers
                 if (!File.Exists(filePath))
                 {
                     NotioLog.Instance.Warn($"File not found: {fileId}");
-                    throw new StorageException($"File not found: {fileId}");
+                    throw new DatabaseException($"File not found: {fileId}");
                 }
 
                 // Mở file để đọc
@@ -113,10 +113,10 @@ namespace Notio.Database.Storage.Providers
                 NotioLog.Instance.Info($"File downloaded successfully. ID: {fileId}");
                 return Task.FromResult<Stream>(stream);
             }
-            catch (Exception ex) when (ex is not StorageException)
+            catch (Exception ex) when (ex is not DatabaseException)
             {
                 NotioLog.Instance.Error($"Error downloading file: {fileId}", ex);
-                throw new StorageException($"Error downloading file: {fileId}", ex);
+                throw new DatabaseException($"Error downloading file: {fileId}", ex);
             }
         }
 
@@ -126,7 +126,7 @@ namespace Notio.Database.Storage.Providers
         /// <param name="fileId">ID của tệp tin.</param>
         /// <returns>Một <see cref="Task"/> đại diện cho thao tác không đồng bộ.</returns>
         /// <exception cref="ArgumentException">Ném lỗi khi ID tệp tin rỗng.</exception>
-        /// <exception cref="StorageException">Ném lỗi khi xảy ra lỗi trong quá trình xóa.</exception>
+        /// <exception cref="DatabaseException">Ném lỗi khi xảy ra lỗi trong quá trình xóa.</exception>
         public Task DeleteAsync(string fileId)
         {
             if (string.IsNullOrEmpty(fileId))
@@ -148,7 +148,7 @@ namespace Notio.Database.Storage.Providers
             catch (Exception ex)
             {
                 NotioLog.Instance.Error($"Error deleting file: {fileId}", ex);
-                throw new StorageException($"Error deleting file: {fileId}", ex);
+                throw new DatabaseException($"Error deleting file: {fileId}", ex);
             }
 
             return Task.CompletedTask;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Packets.Exceptions;
+namespace Notio.Common.Exceptions;
 
 /// <summary>
 /// Ngoại lệ tùy chỉnh cho các lỗi liên quan đến packet.

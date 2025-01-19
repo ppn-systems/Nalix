@@ -25,7 +25,7 @@ internal static unsafe class AesCtrCipher
     /// <summary>
     /// Mã hóa dữ liệu với hỗ trợ xử lý song song
     /// </summary>
-    public static MemoryBuffer EncryptParallel(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    public static Aes256.MemoryBuffer EncryptParallel(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         if (plaintext.Length >= Aes256.MinParallelSize)
         {
@@ -38,7 +38,7 @@ internal static unsafe class AesCtrCipher
     /// Mã hóa dữ liệu sử dụng AES-256 CtrMode mode, trả về kết quả trong MemoryBuffer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static unsafe MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    public static unsafe Aes256.MemoryBuffer Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         Aes256.ValidateKey(key.ToArray());
 
@@ -72,7 +72,7 @@ internal static unsafe class AesCtrCipher
 
                 ProcessDataBlocksSimd(new Span<byte>(outputPtr, plaintext.Length), counter, encryptor);
 
-                return new MemoryBuffer(resultOwner, totalLength);
+                return new Aes256.MemoryBuffer(resultOwner, totalLength);
             }
         }
         catch
@@ -88,7 +88,7 @@ internal static unsafe class AesCtrCipher
     /// Giải mã dữ liệu sử dụng AES-256 CtrMode mode, trả về kết quả trong MemoryBuffer
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static unsafe MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+    public static unsafe Aes256.MemoryBuffer Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
     {
         if (ciphertext.Length <= Aes256.BlockSize)
             throw new ArgumentException("Ciphertext quá ngắn", nameof(ciphertext));
@@ -122,7 +122,7 @@ internal static unsafe class AesCtrCipher
 
                 ProcessDataBlocksSimd(new Span<byte>(resultPtr, resultLength), counter, decryptor);
 
-                return new MemoryBuffer(resultOwner, resultLength);
+                return new Aes256.MemoryBuffer(resultOwner, resultLength);
             }
         }
         catch
@@ -143,10 +143,10 @@ internal static unsafe class AesCtrCipher
         return aes;
     }
 
-    private static MemoryBuffer EncryptParallelImplementation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+    private static Aes256.MemoryBuffer EncryptParallelImplementation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
     {
         var keyArray = key.ToArray(); // Convert key to array outside the loop
-        var tasks = new List<Task<MemoryBuffer>>();
+        var tasks = new List<Task<Aes256.MemoryBuffer>>();
         int blockSize = plaintext.Length / ProcessorCount;
 
         for (int i = 0; i < ProcessorCount; i++)
@@ -162,7 +162,7 @@ internal static unsafe class AesCtrCipher
         return CombineResults(tasks.Select(t => t.Result).ToArray());
     }
 
-    private static MemoryBuffer CombineResults(MemoryBuffer[] results)
+    private static Aes256.MemoryBuffer CombineResults(Aes256.MemoryBuffer[] results)
     {
         int totalLength = results.Sum(r => r.Length);
         IMemoryOwner<byte> combinedOwner = MemoryPool<byte>.Shared.Rent(totalLength);
@@ -175,7 +175,7 @@ internal static unsafe class AesCtrCipher
             result.Dispose();
         }
 
-        return new MemoryBuffer(combinedOwner, totalLength);
+        return new Aes256.MemoryBuffer(combinedOwner, totalLength);
     }
 
     private static unsafe void ProcessDataBlocksSse2(Span<byte> data, Span<byte> counter, ICryptoTransform transform)

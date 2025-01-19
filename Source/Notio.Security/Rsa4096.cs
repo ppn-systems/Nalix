@@ -35,18 +35,14 @@ public class Rsa4096
     /// </summary>
     /// <param name="publicKeyBytes">Mảng byte chứa khóa công khai.</param>
     public void ImportPublicKey(byte[] publicKeyBytes)
-    {
-        _rsa.ImportRSAPublicKey(new ReadOnlySpan<byte>(publicKeyBytes), out _);
-    }
+        => _rsa.ImportRSAPublicKey(new ReadOnlySpan<byte>(publicKeyBytes), out _);
+    
 
     /// <summary>
     /// Xuất khóa công khai dưới dạng mảng byte.
     /// </summary>
     /// <returns>Mảng byte chứa khóa công khai.</returns>
-    public byte[] ExportPublicKey()
-    {
-        return _rsa.ExportRSAPublicKey();
-    }
+    public byte[] ExportPublicKey() => _rsa.ExportRSAPublicKey();
 
     /// <summary>
     /// Mã hóa văn bản bằng khóa công khai.
@@ -54,10 +50,7 @@ public class Rsa4096
     /// <param name="plaintext">Mảng byte chứa dữ liệu cần mã hóa.</param>
     /// <returns>Mảng byte chứa dữ liệu đã được mã hóa.</returns>
     public byte[] Encrypt(byte[] plaintext)
-    {
-        // Sử dụng OAEP padding thay cho PKCS1
-        return _rsa.Encrypt(plaintext, RSAEncryptionPadding.OaepSHA256);
-    }
+        => _rsa.Encrypt(plaintext, RSAEncryptionPadding.OaepSHA256); 
 
     /// <summary>
     /// Giải mã dữ liệu đã mã hóa bằng khóa bí mật.
@@ -65,15 +58,10 @@ public class Rsa4096
     /// <param name="ciphertext">Mảng byte chứa dữ liệu đã mã hóa.</param>
     /// <returns>Mảng byte đã được giải mã.</returns>
     public byte[] Decrypt(byte[] ciphertext)
-    {
-        return _rsa.Decrypt(ciphertext, RSAEncryptionPadding.OaepSHA256);
-    }
+        => _rsa.Decrypt(ciphertext, RSAEncryptionPadding.OaepSHA256);
 
     /// <summary>
     /// Giải phóng tài nguyên được sử dụng bởi RSA.
     /// </summary>
-    public void Dispose()
-    {
-        _rsa.Dispose();
-    }
+    public void Dispose() => _rsa.Dispose();
 }

@@ -1,5 +1,5 @@
-﻿using Notio.Packets.Enums;
-using Notio.Packets.Exceptions;
+﻿using Notio.Common.Exceptions;
+using Notio.Packets.Enums;
 using Notio.Packets.Extensions;
 using System;
 using System.IO;

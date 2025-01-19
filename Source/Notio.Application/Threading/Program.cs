@@ -11,12 +11,11 @@ public class Program
         // Khởi tạo hệ thống logging
         NotioLog.Instance.Initialize();
 
-        // Cấu hình DbContextOptions cho SQLite mà không sử dụng DI
-        var optionsBuilder = new DbContextOptionsBuilder<NotioContext>();
+        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
         optionsBuilder.UseSqlite("Data Source=notio.db");
 
         // Khởi tạo NotioContext với options
-        var dbContext = new NotioContext(optionsBuilder.Options);
+        NotioContext dbContext = new(optionsBuilder.Options);
 
         // Làm việc với dbContext ở đây nếu cần (ví dụ: thao tác với cơ sở dữ liệu)
 

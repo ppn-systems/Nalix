@@ -4,7 +4,7 @@ namespace Notio.Database.Model;
 
 public static class ModelConfiguration
 {
-    public static void ConfigureUserEntity(ModelBuilder modelBuilder)
+    public static void UserEntity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>(entity =>
         {
@@ -19,7 +19,7 @@ public static class ModelConfiguration
         });
     }
 
-    public static void ConfigureChatEntity(ModelBuilder modelBuilder)
+    public static void ChatEntity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Chat>(entity =>
         {
@@ -29,7 +29,7 @@ public static class ModelConfiguration
         });
     }
 
-    public static void ConfigureUserChatEntity(ModelBuilder modelBuilder)
+    public static void UserChatEntity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserChat>(entity =>
         {
@@ -46,7 +46,7 @@ public static class ModelConfiguration
         });
     }
 
-    public static void ConfigureMessageEntity(ModelBuilder modelBuilder)
+    public static void MessageEntity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Message>(entity =>
         {
@@ -64,7 +64,7 @@ public static class ModelConfiguration
         });
     }
 
-    public static void ConfigureMessageAttachmentEntity(ModelBuilder modelBuilder)
+    public static void MessageAttachmentEntity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<MessageAttachment>(entity =>
         {
