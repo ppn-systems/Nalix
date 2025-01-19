@@ -10,7 +10,7 @@
 		<StartupObject>Notio.Application.Threading.Program</StartupObject>
 	</PropertyGroup>
 
-	<Import Project="..\Notio.Settings.props" />
+	<Import Project="..\Notio.Build.props" />
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 	</PropertyGroup>
