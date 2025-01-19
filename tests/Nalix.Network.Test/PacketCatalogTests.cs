@@ -1,9 +1,9 @@
 ﻿using Nalix.Common.Caching;
-using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
+using Nalix.Common.Protocols;
 using Nalix.Shared.Messaging.Catalog;
 using System;
 using System.Collections.Frozen;
@@ -17,7 +17,7 @@ namespace Nalix.Network.Tests;
 /// </summary>
 public sealed class PacketCatalogTests
 {
-    private sealed class DummyPacket : IPacket
+    private sealed class DummyPacket : IPacket, IPoolable
     {
         UInt16 IPacket.Length => throw new NotImplementedException();
 
@@ -29,7 +29,7 @@ public sealed class PacketCatalogTests
 
         PacketPriority IPacket.Priority => throw new NotImplementedException();
 
-        TransportProtocol IPacket.Transport => throw new NotImplementedException();
+        ProtocolType IPacket.Transport => throw new NotImplementedException();
 
         void IPoolable.ResetForPool() => throw new NotImplementedException();
         Byte[] IPacket.Serialize() => throw new NotImplementedException();
