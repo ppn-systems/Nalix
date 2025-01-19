@@ -110,7 +110,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
+                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop started ep={_socket.RemoteEndPoint}");
 #endif
 
         System.Threading.CancellationTokenSource linked =
