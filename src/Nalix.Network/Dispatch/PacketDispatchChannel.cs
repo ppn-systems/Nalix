@@ -173,6 +173,7 @@ public sealed class PacketDispatchChannel
             $"Deserialized {packet.GetType().Name} from {connection.RemoteEndPoint}. Len={len}, Magic=0x{magic:X8}.");
 
         // 5) Dispatch to typed handler
+        raw.Dispose(); // raw buffer no longer needed
         this.HandlePacket(packet, connection);
     }
 
