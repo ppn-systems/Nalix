@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Notio.Common.Firewall;
+using System;
 using System.Collections.Generic;
 
 namespace Notio.Network.Firewall;
 
-public class RateLimiter(int maxTokens, TimeSpan refillInterval, int tokensPerRefill)
+public class RateLimiter(int maxTokens, TimeSpan refillInterval, int tokensPerRefill) : IRateLimiter
 {
     private class TokenBucket
     {
@@ -11,7 +12,7 @@ public class RateLimiter(int maxTokens, TimeSpan refillInterval, int tokensPerRe
         public DateTime LastRefill { get; set; }
     }
 
-    private readonly Dictionary<string, TokenBucket> _buckets = new();
+    private readonly Dictionary<string, TokenBucket> _buckets = [];
     private readonly int _maxTokens = maxTokens;
     private readonly TimeSpan _refillInterval = refillInterval;
     private readonly int _tokensPerRefill = tokensPerRefill;

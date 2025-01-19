@@ -1,5 +1,6 @@
 ﻿using Notio.Common.Firewall;
 using Notio.Logging;
+using Notio.Network.Exceptions;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -21,9 +22,9 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
     private readonly int _lockoutDurationSeconds;
 
     private readonly Timer _cleanupTimer;
+    private readonly SemaphoreSlim _cleanupLock;
     private readonly TimeSpan _timeWindowDuration;
     private readonly FirewallConfig _firewallConfig;
-    private readonly SemaphoreSlim _cleanupLock;
     private readonly ConcurrentDictionary<string, RequestData> _ipData;
 
     private bool _disposed;
@@ -33,13 +34,13 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxAllowedRequests <= 0)
-            throw new ArgumentException("MaxAllowedRequests must be greater than 0");
+            throw new FirewallExceptions("MaxAllowedRequests must be greater than 0");
 
         if (_firewallConfig.LockoutDurationSeconds <= 0)
-            throw new ArgumentException("LockoutDurationSeconds must be greater than 0");
+            throw new FirewallExceptions("LockoutDurationSeconds must be greater than 0");
 
         if (_firewallConfig.TimeWindowInMilliseconds <= 0)
-            throw new ArgumentException("TimeWindowInMilliseconds must be greater than 0");
+            throw new FirewallExceptions("TimeWindowInMilliseconds must be greater than 0");
 
         _maxAllowedRequests = _firewallConfig.MaxAllowedRequests;
         _lockoutDurationSeconds = _firewallConfig.LockoutDurationSeconds;
@@ -67,7 +68,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new FirewallExceptions("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         var currentTime = DateTime.UtcNow;
 

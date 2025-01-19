@@ -24,4 +24,8 @@
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Security\" />
+	</ItemGroup>
+
 </Project>

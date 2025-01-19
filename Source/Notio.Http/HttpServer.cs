@@ -44,12 +44,12 @@ public class HttpServer : IDisposable
         try
         {
             _listener.Start();
-            NotioLog.Instance.Info("Server is running...");
+            NotioLog.Instance.Info("HTTP server is running...");
             await HandleRequestsAsync(_cts.Token);
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error("Error starting server", ex);
+            NotioLog.Instance.Error("Fail starting server", ex);
             throw;
         }
     }
@@ -69,7 +69,7 @@ public class HttpServer : IDisposable
             }
             catch (Exception ex)
             {
-                NotioLog.Instance.Error("Error handling request", ex);
+                NotioLog.Instance.Error("Fail handling request", ex);
             }
         }
     }
@@ -78,13 +78,15 @@ public class HttpServer : IDisposable
     {
         var context = new HttpContext(listenerContext);
 
+        // var method = Enum.Parse<HttpMethod>(listenerContext.Request.HttpMethod, true);
+
         try
         {
+            // NotioLog.Instance.Info($"Request received: {context.Request.HttpMethod} {context.Request.Url}");
+
             // Execute middleware
             foreach (var middleware in _middleware)
-            {
                 await middleware.InvokeAsync(context);
-            }
 
             // Process route
             var response = await _router.RouteAsync(context);
@@ -94,18 +96,18 @@ public class HttpServer : IDisposable
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error("Error processing request", ex);
+            NotioLog.Instance.Error("Fail processing request", ex);
             context.Response.StatusCode = 500;
-            await WriteResponseAsync(context.Response, HttpResult.Fail("Internal server error"));
+            await WriteResponseAsync(context.Response, HttpResponse.Fail("Internal server error"));
         }
     }
 
-    private static async Task WriteResponseAsync(HttpListenerResponse response, HttpResult apiResponse)
+    private static async Task WriteResponseAsync(HttpListenerResponse response, HttpResponse apiResponse)
     {
         try
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(apiResponse);
-            var buffer = Encoding.UTF8.GetBytes(json);
+            string json = System.Text.Json.JsonSerializer.Serialize(apiResponse);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
 
             response.ContentType = "application/json";
             response.ContentLength64 = buffer.Length;

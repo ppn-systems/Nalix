@@ -14,7 +14,7 @@ public class MiddlewarePipeline
     {
         if (_middlewares.Count > 0)
         {
-            var first = _middlewares[0];
+            MiddlewareBase first = _middlewares[0];
             for (int i = 0; i < _middlewares.Count - 1; i++)
             {
                 _middlewares[i].SetNext(_middlewares[i + 1]);

@@ -31,8 +31,4 @@
 		<ProjectReference Include="..\Notio.Infrastructure\Notio.Infrastructure.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Http\" />
-	</ItemGroup>
-
 </Project>

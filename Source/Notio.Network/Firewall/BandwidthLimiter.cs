@@ -1,4 +1,5 @@
 ﻿using Notio.Logging;
+using Notio.Network.Exceptions;
 using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
@@ -63,9 +64,9 @@ public sealed class BandwidthLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new FirewallExceptions("EndPoint cannot be null or whitespace", nameof(endPoint));
         if (byteCount <= 0)
-            throw new ArgumentException("Byte count must be greater than 0", nameof(byteCount));
+            throw new FirewallExceptions("Byte count must be greater than 0", nameof(byteCount));
 
         var throttle = _throttles.GetOrAdd(endPoint, _ => new SemaphoreSlim(_uploadLimit.BurstSize));
 
@@ -119,9 +120,9 @@ public sealed class BandwidthLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new FirewallExceptions("EndPoint cannot be null or whitespace", nameof(endPoint));
         if (byteCount <= 0)
-            throw new ArgumentException("Byte count must be greater than 0", nameof(byteCount));
+            throw new FirewallExceptions("Byte count must be greater than 0", nameof(byteCount));
 
         SemaphoreSlim throttle = _throttles.GetOrAdd(endPoint, _ => new SemaphoreSlim(_downloadLimit.BurstSize));
 
@@ -175,7 +176,7 @@ public sealed class BandwidthLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new FirewallExceptions("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         var stats = _stats.GetValueOrDefault(endPoint);
         return (stats.BytesSent, stats.BytesReceived, stats.LastActivityTime);

@@ -12,7 +12,7 @@ namespace Notio.Http;
 /// </summary>
 public class HttpRouter
 {
-    private readonly ConcurrentDictionary<string, Func<HttpContext, Task<HttpResult>>> _routeHandlers = new();
+    private readonly ConcurrentDictionary<string, Func<HttpContext, Task<HttpResponse>>> _routeHandlers = new();
 
     /// <summary>
     /// Registers a controller and its routes to the router.
@@ -48,10 +48,10 @@ public class HttpRouter
 
                 // Invoke the method and return the result
                 var result = method.Invoke(controllerInstance, [context]);
-                if (result is Task<HttpResult> taskResult)
+                if (result is Task<HttpResponse> taskResult)
                     return await taskResult;
 
-                throw new InvalidOperationException($"Method {method.Name} in {controllerType.Name} must return Task<HttpResult>.");
+                throw new InvalidOperationException($"Method {method.Name} in {controllerType.Name} must return Task<HttpResponse>.");
             };
         }
     }
@@ -61,7 +61,7 @@ public class HttpRouter
     /// </summary>
     /// <param name="context">The HTTP context containing the request and response.</param>
     /// <returns>The result of processing the route.</returns>
-    public async Task<HttpResult> RouteAsync(HttpContext context)
+    public async Task<HttpResponse> RouteAsync(HttpContext context)
     {
         string routeKey = $"{context.Request.HttpMethod}:{context.Request.Url?.AbsolutePath}";
 
@@ -70,6 +70,6 @@ public class HttpRouter
             return await handler(context);
         }
 
-        return HttpResult.Fail("Route not found");
+        return HttpResponse.Fail("Route not found");
     }
 }
