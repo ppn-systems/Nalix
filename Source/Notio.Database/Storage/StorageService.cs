@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Database.Model;
+using Notio.Database.Entities;
 using Notio.Database.Storage.Interfaces;
 using Notio.Database.Storage.Validators;
 using System;

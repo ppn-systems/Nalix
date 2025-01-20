@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Database.Model;
+namespace Notio.Database.Entities;
 
 /// <summary>
 /// Đại diện cho siêu dữ liệu của tệp tin trong cơ sở dữ liệu lưu trữ.

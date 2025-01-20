@@ -6,6 +6,7 @@ using Notio.Http.Middleware;
 using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
+using Notio.Test.Network;
 using System.Threading.Tasks;
 
 namespace Notio.Application.Threading;
@@ -14,6 +15,10 @@ public static class Program
 {
     public static async Task Main()
     {
+        JwtAuthenticatorTests.Main();
+
+        System.Console.ReadKey();
+
         // Khởi tạo hệ thống logging
         NotioLog.Instance.Initialize(cfg =>
         {

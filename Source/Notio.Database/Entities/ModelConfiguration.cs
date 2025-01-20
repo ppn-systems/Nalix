@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Notio.Database.Model;
+namespace Notio.Database.Entities;
 
 public static class ModelConfiguration
 {

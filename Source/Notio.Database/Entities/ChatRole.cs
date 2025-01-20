@@ -1,4 +1,4 @@
-﻿namespace Notio.Database.Model;
+﻿namespace Notio.Database.Entities;
 
 /// <summary>
 /// Vai trò trong cuộc trò chuyện.

@@ -1,4 +1,4 @@
-﻿using Notio.Database.Model;
+﻿using Notio.Database.Entities;
 using System.IO;
 using System.Threading.Tasks;
 

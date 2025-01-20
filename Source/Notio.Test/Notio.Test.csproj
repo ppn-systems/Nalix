@@ -1,9 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<OutputType>Library</OutputType>
+		<Platforms>AnyCPU</Platforms>
+		<IsPublishable>false</IsPublishable>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
+	<Import Project="..\Notio.Build.props" />
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<Optimize>true</Optimize>
+		<Deterministic>true</Deterministic>
+		<UseCompression>true</UseCompression>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
+	</ItemGroup>
+	
 </Project>

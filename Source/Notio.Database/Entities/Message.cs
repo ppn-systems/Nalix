@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Database.Model;
+namespace Notio.Database.Entities;
 
 /// <summary>
 /// Đại diện cho tin nhắn trong cơ sở dữ liệu.

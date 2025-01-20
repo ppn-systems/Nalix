@@ -237,6 +237,8 @@ public class Connection : IConnection, IDisposable
                 _cacheOutgoingPacket.Add(key, message.ToArray());
 
             _stream.Write(message);
+
+            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
         {
@@ -259,6 +261,8 @@ public class Connection : IConnection, IDisposable
                 _cacheOutgoingPacket.Add(key, message);
 
             await _stream.WriteAsync(message, cancellationToken);
+
+            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
         {

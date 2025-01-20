@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Database.Model;
+namespace Notio.Database.Entities;
 
 /// <summary>
 /// Đại diện cho file đính kèm trong tin nhắn trong cơ sở dữ liệu.

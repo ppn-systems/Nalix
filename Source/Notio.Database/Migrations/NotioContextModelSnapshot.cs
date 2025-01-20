@@ -12,7 +12,7 @@ partial class NotioContextModelSnapshot : ModelSnapshot
     {
         modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
-        modelBuilder.Entity("Notio.Database.Model.Chat", b =>
+        modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
             {
                 b.Property<long>("ChatId")
                     .ValueGeneratedOnAdd()
@@ -38,7 +38,7 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.ToTable("Chats");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.Message", b =>
+        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
             {
                 b.Property<long>("MessageId")
                     .ValueGeneratedOnAdd()
@@ -74,7 +74,7 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.ToTable("Messages");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.MessageAttachment", b =>
+        modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
             {
                 b.Property<long>("AttachmentId")
                     .ValueGeneratedOnAdd()
@@ -108,7 +108,7 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.ToTable("MessageAttachments");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.User", b =>
+        modelBuilder.Entity("Notio.Database.Entities.User", b =>
             {
                 b.Property<long>("UserId")
                     .ValueGeneratedOnAdd()
@@ -156,7 +156,7 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.ToTable("Users");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.UserChat", b =>
+        modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
             {
                 b.Property<long>("UserId")
                     .HasColumnType("INTEGER");
@@ -180,15 +180,15 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.ToTable("UserChats");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.Message", b =>
+        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
             {
-                b.HasOne("Notio.Database.Model.Chat", "Chat")
+                b.HasOne("Notio.Database.Entities.Chat", "Chat")
                     .WithMany("Messages")
                     .HasForeignKey("ChatId")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
 
-                b.HasOne("Notio.Database.Model.User", "Sender")
+                b.HasOne("Notio.Database.Entities.User", "Sender")
                     .WithMany("SentMessages")
                     .HasForeignKey("SenderId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -199,9 +199,9 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.Navigation("Sender");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.MessageAttachment", b =>
+        modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
             {
-                b.HasOne("Notio.Database.Model.Message", "Message")
+                b.HasOne("Notio.Database.Entities.Message", "Message")
                     .WithMany("Attachments")
                     .HasForeignKey("MessageId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -210,15 +210,15 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.Navigation("Message");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.UserChat", b =>
+        modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
             {
-                b.HasOne("Notio.Database.Model.Chat", "Chat")
+                b.HasOne("Notio.Database.Entities.Chat", "Chat")
                     .WithMany("UserChats")
                     .HasForeignKey("ChatId")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
 
-                b.HasOne("Notio.Database.Model.User", "User")
+                b.HasOne("Notio.Database.Entities.User", "User")
                     .WithMany("UserChats")
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
@@ -229,19 +229,19 @@ partial class NotioContextModelSnapshot : ModelSnapshot
                 b.Navigation("User");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.Chat", b =>
+        modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
             {
                 b.Navigation("Messages");
 
                 b.Navigation("UserChats");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.Message", b =>
+        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
             {
                 b.Navigation("Attachments");
             });
 
-        modelBuilder.Entity("Notio.Database.Model.User", b =>
+        modelBuilder.Entity("Notio.Database.Entities.User", b =>
             {
                 b.Navigation("SentMessages");
 

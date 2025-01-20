@@ -1,4 +1,4 @@
-﻿using Notio.Database.Model;
+﻿using Notio.Database.Entities;
 using Notio.Http.Enums;
 using System.Threading.Tasks;
 

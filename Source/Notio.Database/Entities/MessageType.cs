@@ -1,4 +1,4 @@
-﻿namespace Notio.Database.Model;
+﻿namespace Notio.Database.Entities;
 
 /// <summary>
 /// Loại tin nhắn.

@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Notio.Database;
 
-public class NotioContextFactory : IDesignTimeDbContextFactory<NotioContext>
+public sealed class NotioContextFactory 
+    : IDesignTimeDbContextFactory<NotioContext>
 {
     public NotioContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<NotioContext>();
+        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
         optionsBuilder.UseSqlite("Data Source=notio.db");
 
         return new NotioContext(optionsBuilder.Options);
