@@ -61,6 +61,11 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
     /// </summary>
+    public BufferPoolManager() : this(bufferConfig: null) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
+    /// </summary>
     public BufferPoolManager(BufferConfig? bufferConfig = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
