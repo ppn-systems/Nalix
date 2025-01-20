@@ -2,10 +2,13 @@
 
 public enum HttpMethod : byte
 {
-    GET,
-    POST,
-    PUT,
-    DELETE,
-    PATCH,
-    HEAD
+    Ignore,
+    Auto,
+    Post,
+    Get,
+    Head,
+    Put,
+    Delete,
+    Patch,
+    Options
 }

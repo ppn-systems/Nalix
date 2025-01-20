@@ -1,10 +1,13 @@
 ﻿using Notio.Http.Core;
-using Notio.Http.Enums;
 using Notio.Http.Middleware;
 using Notio.Logging;
+using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,28 +16,57 @@ namespace Notio.Http;
 
 public class HttpServer : IDisposable
 {
-    private readonly HttpListener _listener;
     private readonly HttpRouter _router;
+    private readonly HttpConfig _httpConfig;
+    private readonly HttpListener _listener;
     private readonly CancellationTokenSource _cts;
     private readonly List<IMiddleware> _middleware;
 
-    public HttpServer(string url)
+    public HttpServer(HttpConfig config = null)
     {
-        if (string.IsNullOrWhiteSpace(url))
-            throw new ArgumentException("URL cannot be null or empty.", nameof(url));
+        _httpConfig = config ?? ConfigurationShared.Instance.Get<HttpConfig>();
 
-        _middleware = new List<IMiddleware>();
+        if (string.IsNullOrWhiteSpace(_httpConfig.UniformResourceLocator))
+            throw new ArgumentException("URL cannot be null or empty.", nameof(config));
+
+        _middleware = [];
         _router = new HttpRouter();
-        _listener = new HttpListener();
-        _listener.Prefixes.Add(url);
         _cts = new CancellationTokenSource();
+        _listener = new HttpListener { IgnoreWriteExceptions = true };
+
+        if (_httpConfig.RequireHttps)
+        {
+            if (string.IsNullOrWhiteSpace(_httpConfig.CertPemFilePath) 
+                || string.IsNullOrWhiteSpace(_httpConfig.CertificatePassword))
+                throw new 
+                    ArgumentException("CertPemFilePath and CertificatePassword must be provided when RequireHttps is enabled.");
+
+            if (!File.Exists(_httpConfig.CertPemFilePath))
+                throw new FileNotFoundException("Certificate file not found.", _httpConfig.CertPemFilePath);
+
+            if (!File.Exists(_httpConfig.KeyPemFilePath))
+                throw new FileNotFoundException("Key file not found.", _httpConfig.KeyPemFilePath);
+
+            try
+            {
+                X509Certificate2.CreateFromPemFile(
+                    _httpConfig.CertPemFilePath,
+                    _httpConfig.KeyPemFilePath
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to load certificate from PEM files.", ex);
+            }
+        }
+
+        _listener.Prefixes.Add($"{_httpConfig.UniformResourceLocator}:{_httpConfig.Port}/");
     }
 
-    public void RegisterController<T>() where T : HttpController, new()
-        => _router.RegisterController<T>();
+    public void UseMiddleware(IMiddleware middleware) => _middleware.Add(middleware);
 
-    public void UseMiddleware<T>() where T : IMiddleware, new()
-        => _middleware.Add(new T());
+    public void RegisterController<T>() 
+        where T : HttpController, new() => _router.RegisterController<T>();
 
     public async Task StartAsync()
     {
@@ -61,11 +93,11 @@ public class HttpServer : IDisposable
                 var request = context.Request;
 
                 // Logging request details
-                Console.WriteLine($"""
+                NotioLog.Instance.Info($"""
                 Request Info:
                 - URL: {request.Url.AbsolutePath}
                 - Method: {request.HttpMethod}
-                - Headers: {string.Join(", ", request.Headers.AllKeys)}
+                - Headers: {string.Join(Environment.NewLine, request.Headers.AllKeys.Select(key => $"{key}: {request.Headers[key]}"))}
                 """);
 
                 await ProcessRequestAsync(context);
@@ -83,13 +115,10 @@ public class HttpServer : IDisposable
 
     private async Task ProcessRequestAsync(HttpListenerContext listenerContext)
     {
-        var context = new HttpContext(listenerContext);
-        var method = Enum.Parse<HttpMethod>(listenerContext.Request.HttpMethod, true);
+        HttpContext context = new(listenerContext);
 
         try
         {
-            NotioLog.Instance.Info($"Received {method} request for {context.Request.Url}");
-
             // Execute middleware
             foreach (var middleware in _middleware)
                 await middleware.InvokeAsync(context);

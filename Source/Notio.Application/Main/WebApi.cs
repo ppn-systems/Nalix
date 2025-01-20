@@ -9,11 +9,7 @@ namespace Notio.Application.Main;
 [ApiController]
 internal class WebApi : HttpController
 {
-    [Route("/api", HttpMethod.GET)]
+    [Route("/api", HttpMethod.Get)]
     public static async Task<HttpResponse> GetMessage(HttpContext _)
-        => await Ok("Hello, world!");
-
-    [Route("api", HttpMethod.GET)]
-    public static async Task<HttpResponse> GetMessages(HttpContext _)
-        => await Ok("Hello, world!");
+        => await Ok("Hello, world! con heo");
 }

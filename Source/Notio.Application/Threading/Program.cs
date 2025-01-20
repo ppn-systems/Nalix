@@ -2,6 +2,7 @@
 using Notio.Application.Main;
 using Notio.Database;
 using Notio.Http;
+using Notio.Http.Middleware;
 using Notio.Logging;
 using System.Threading.Tasks;
 
@@ -21,9 +22,18 @@ public static class Program
         NotioContext dbContext = new(optionsBuilder.Options);
 
         // Làm việc với dbContext ở đây nếu cần (ví dụ: thao tác với cơ sở dữ liệu)
-        HttpServer httpServer = new("http://localhost:5000/");
+        HttpServer httpServer = new(new HttpConfig { });
 
         httpServer.RegisterController<WebApi>();
+
+        CorsMiddleware corsMiddleware = new(
+            allowedOrigins: ["https://example.com"],
+            allowedMethods: ["Get", "Post"],
+            allowedHeaders: ["Content-Type", "Authorization"]
+        );
+
+        httpServer.UseMiddleware(new RateLimitingMiddleware());
+        httpServer.UseMiddleware(corsMiddleware);
 
         await httpServer.StartAsync();
 

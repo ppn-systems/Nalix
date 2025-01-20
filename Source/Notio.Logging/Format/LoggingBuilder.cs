@@ -12,10 +12,7 @@ internal static class LoggingBuilder
     private const int DefaultBufferSize = 256;
     private const char OpenBracket = '[';
     private const char CloseBracket = ']';
-    private const char Separator = '\t';
-    private const char Dash = '-';
-    private const char Colon = ':';
-
+    private const string DefaultSeparator = "   -   ";
     private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -25,36 +22,41 @@ internal static class LoggingBuilder
         LoggingLevel logLevel,
         in EventId eventId,
         string message,
-        Exception? exception)
+        Exception? exception,
+        string separator = DefaultSeparator,
+        string? customTimestampFormat = null)
     {
         // Estimate buffer size to minimize reallocations
         int estimatedLength = CalculateEstimatedLength(message, eventId, exception);
         EnsureCapacity(builder, estimatedLength);
 
-        AppendTimestamp(builder, timeStamp);
-        AppendSeparator(builder);
+        AppendTimestamp(builder, timeStamp, customTimestampFormat);
+        AppendSeparator(builder, separator);
         AppendLogLevel(builder, logLevel);
-        AppendSeparator(builder);
+        AppendSeparator(builder, separator);
 
         if (eventId.Id != 0)
         {
             AppendEventId(builder, eventId);
-            AppendSeparator(builder);
+            AppendSeparator(builder, separator);
         }
 
         AppendMessage(builder, message);
 
         if (exception is not null)
         {
-            AppendException(builder, exception);
+            AppendException(builder, exception, separator);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendTimestamp(StringBuilder builder, in DateTime timeStamp)
+    private static void AppendTimestamp(StringBuilder builder, in DateTime timeStamp, string? format)
     {
-        Span<char> dateBuffer = stackalloc char[23]; // yyyy-MM-dd HH:mm:ss.fff
-        if (timeStamp.TryFormat(dateBuffer, out int charsWritten, "yyyy-MM-dd HH:mm:ss.fff"))
+        // Default to "yyyy-MM-dd HH:mm:ss.fff" if no custom format is provided
+        string timestampFormat = format ?? "yyyy-MM-dd HH:mm:ss.fff";
+        Span<char> dateBuffer = stackalloc char[timestampFormat.Length + 10];
+
+        if (timeStamp.TryFormat(dateBuffer, out int charsWritten, timestampFormat))
         {
             builder.Append(OpenBracket)
                    .Append(dateBuffer[..charsWritten])
@@ -63,10 +65,8 @@ internal static class LoggingBuilder
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendSeparator(StringBuilder builder) =>
-        builder.Append(Separator)
-               .Append(Dash)
-               .Append(Separator);
+    private static void AppendSeparator(StringBuilder builder, string separator) =>
+        builder.Append(separator);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AppendLogLevel(StringBuilder builder, LoggingLevel logLevel) =>
@@ -82,7 +82,7 @@ internal static class LoggingBuilder
         if (eventId.Name is not null)
         {
             builder.Append(eventId.Id)
-                   .Append(Colon)
+                   .Append(':')
                    .Append(eventId.Name);
         }
         else
@@ -100,10 +100,8 @@ internal static class LoggingBuilder
                .Append(CloseBracket);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendException(StringBuilder builder, Exception exception) =>
-        builder.Append(Separator)
-               .Append(Dash)
-               .Append(Separator)
+    private static void AppendException(StringBuilder builder, Exception exception, string separator) =>
+        builder.Append(separator)
                .AppendLine()
                .Append(exception);
 

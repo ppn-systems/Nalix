@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Notio.Network;
 
-public class FirewallConfig : ConfigurationBinder
+public sealed class FirewallConfig : ConfigurationBinder
 {
     // Cấu hình giới hạn băng thông
     [Range(1024, long.MaxValue)]
