@@ -39,19 +39,32 @@ internal class HttpRouter
             if (_routeHandlers.ContainsKey(routeKey))
                 throw new InvalidOperationException($"Duplicate route found: {routeKey}");
 
+            Console.WriteLine($"Registering route: {routeKey} for method: {method.Name}");
+
             _routeHandlers[routeKey] = async context =>
             {
                 // Validate method parameters
                 var parameters = method.GetParameters();
                 if (parameters.Length != 1 || parameters[0].ParameterType != typeof(HttpContext))
-                    throw new InvalidOperationException($"Method {method.Name} in {controllerType.Name} must accept a single HttpContext parameter.");
+                    throw new 
+                    InvalidOperationException($"Method {method.Name} in {controllerType.Name} must accept a single HttpContext parameter.");
 
-                // Invoke the method and return the result
-                var result = method.Invoke(controllerInstance, [context]);
-                if (result is Task<HttpResponse> taskResult)
-                    return await taskResult;
+                try
+                {
+                    // Invoke the method and return the result
+                    var result = method.Invoke(controllerInstance, [context]);
+                    if (result is Task<HttpResponse> taskResult)
+                        return await taskResult;
 
-                throw new InvalidOperationException($"Method {method.Name} in {controllerType.Name} must return Task<HttpResponse>.");
+                    throw new 
+                    InvalidOperationException($"Method {method.Name} in {controllerType.Name} must return Task<HttpResponse>.");
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception (if necessary) or rethrow it
+                    throw new 
+                    InvalidOperationException($"Error invoking method {method.Name} in {controllerType.Name}: {ex.Message}", ex);
+                }
             };
         }
     }
@@ -65,8 +78,12 @@ internal class HttpRouter
     {
         string routeKey = $"{context.Request.HttpMethod}:{context.Request.Url?.AbsolutePath}";
 
-        if (_routeHandlers.TryGetValue(routeKey, out var handler))
+        Console.WriteLine($"Routing request: {routeKey}");
+
+        if (_routeHandlers.TryGetValue(routeKey, out Func<HttpContext, Task<HttpResponse>> handler))
+        {
             return await handler(context);
+        }
         else
         {
             return await Task.FromResult(new HttpResponse

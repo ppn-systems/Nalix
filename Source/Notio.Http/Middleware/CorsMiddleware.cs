@@ -12,7 +12,7 @@ public sealed class CorsMiddleware(
     string[] allowedHeaders = null) : MiddlewareBase
 {
     private readonly string[] _allowedOrigins = allowedOrigins ?? ["*"];
-    private readonly string[] _allowedMethods = allowedMethods ?? ["Get", "Post", "PUT", "DELETE", "OPTIONS"];
+    private readonly string[] _allowedMethods = allowedMethods ?? ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
     private readonly string[] _allowedHeaders = allowedHeaders ?? ["Content-Type", "Authorization"];
 
     protected override Task HandleAsync(HttpContext context)

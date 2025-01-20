@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Notio.Http.Middleware;
 
-public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinutes = 15) : MiddlewareBase, IMiddleware
+public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinutes = 15) : MiddlewareBase
 {
     private readonly Dictionary<string, (int Count, DateTime Window)> _requests = [];
     private readonly int _maxRequests = maxRequests;

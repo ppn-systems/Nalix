@@ -89,15 +89,14 @@ public class HttpServer : IDisposable
         {
             try
             {
-                var context = await _listener.GetContextAsync();
-                var request = context.Request;
+                HttpListenerContext context = await _listener.GetContextAsync();
 
                 // Logging request details
-                NotioLog.Instance.Info($"""
+                NotioLog.Instance.Trace($"""
                 Request Info:
-                - URL: {request.Url.AbsolutePath}
-                - Method: {request.HttpMethod}
-                - Headers: {string.Join(Environment.NewLine, request.Headers.AllKeys.Select(key => $"{key}: {request.Headers[key]}"))}
+                - URL: {context.Request.Url.AbsolutePath}
+                - Method: {context.Request.HttpMethod}
+                - Headers: {string.Join(Environment.NewLine, context.Request.Headers.AllKeys.Select(key => $"{key}: {context.Request.Headers[key]}"))}
                 """);
 
                 await ProcessRequestAsync(context);
@@ -124,7 +123,7 @@ public class HttpServer : IDisposable
                 await middleware.InvokeAsync(context);
 
             // Process route
-            var response = await _router.RouteAsync(context);
+            HttpResponse response = await _router.RouteAsync(context);
 
             // Write response
             await WriteResponseAsync(context.Response, response);
