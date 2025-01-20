@@ -53,7 +53,8 @@ public class JwtAuthenticator
 
     public bool ValidateToken(string token)
     {
-        if (string.IsNullOrWhiteSpace(token)) return false;
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
 
         try
         {
@@ -63,21 +64,47 @@ public class JwtAuthenticator
             // Validate Signature
             byte[] computedSignature = _hmac.ComputeHash(Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}"));
             string computedSignatureBase64 = Convert.ToBase64String(computedSignature);
+
             if (computedSignatureBase64 != parts[2]) return false;
 
             // Validate Payload
             string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
-            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson);
-            if (payload == null || !payload.TryGetValue("exp", out object? expValue)) return false;
+            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson);
 
-            long exp = Convert.ToInt64(expValue);
-            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) return false;
+            if (payload == null || !payload.TryGetValue("exp", out JsonElement expValue)) return false;       
+
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > expValue.GetInt64()) return false;
 
             return true;
         }
         catch
         {
             return false;
+        }
+    }
+
+
+    public static Dictionary<string, object> DecodeToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new FirewallException("Token cannot be null or empty.", nameof(token));
+
+        try
+        {
+            string[] parts = token.Split('.');
+            if (parts.Length != 3)
+                throw new FirewallException("Invalid token format.", nameof(token));
+
+            // Decode Payload
+            string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson) 
+                ?? throw new FirewallException("Invalid payload in token.", nameof(token));
+
+            return payload;
+        }
+        catch (Exception ex)
+        {
+            throw new FirewallException("Failed to decode token.", ex);
         }
     }
 }

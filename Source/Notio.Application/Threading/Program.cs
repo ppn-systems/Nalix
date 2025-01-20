@@ -15,27 +15,7 @@ public static class Program
 {
     public static async Task Main()
     {
-        JwtAuthenticatorTests.Main();
-
-        System.Console.ReadKey();
-
-        // Khởi tạo hệ thống logging
-        NotioLog.Instance.Initialize(cfg =>
-        {
-            cfg.SetMinLevel(LoggingLevel.Debug)
-               .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
-               .AddTarget(new ConsoleTarget());
-        });
-
-        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-        optionsBuilder.UseSqlite("Data Source=notio.db");
-
-        // Khởi tạo NotioContext với options
-        NotioContext dbContext = new(optionsBuilder.Options);
-
-        // Làm việc với dbContext ở đây nếu cần (ví dụ: thao tác với cơ sở dữ liệu)
-
-        //
+        Program.Initialize();
 
         HttpServer httpServer = new(new HttpConfig { });
 
@@ -54,6 +34,26 @@ public static class Program
         await httpServer.StartAsync();
 
         System.Console.ReadKey();
+    }
+
+    internal static void MethodTest()
+        => JwtAuthenticatorTests.Main();
+    
+
+    internal static void Initialize()
+    {
+        // Khởi tạo hệ thống logging
+        NotioLog.Instance.Initialize(cfg =>
+        {
+            cfg.SetMinLevel(LoggingLevel.Debug)
+               .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
+               .AddTarget(new ConsoleTarget());
+        });
+
+        // Khởi tạo NotioContext với options
+        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
+        optionsBuilder.UseSqlite("Data Source=notio.db");
+        NotioContext dbContext = new(optionsBuilder.Options);
 
         // Đảm bảo giải phóng các tài nguyên khi không cần nữa
         dbContext.Dispose();
