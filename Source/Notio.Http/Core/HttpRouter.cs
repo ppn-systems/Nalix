@@ -1,16 +1,16 @@
 ﻿using Notio.Http.Attributes;
-using Notio.Http.Core;
+using Notio.Http.Enums;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Http;
+namespace Notio.Http.Core;
 
 /// <summary>
 /// Handles routing of HTTP requests to registered controllers and their methods.
 /// </summary>
-public class HttpRouter
+internal class HttpRouter
 {
     private readonly ConcurrentDictionary<string, Func<HttpContext, Task<HttpResponse>>> _routeHandlers = new();
 
@@ -20,18 +20,18 @@ public class HttpRouter
     /// <typeparam name="T">The type of the controller to register.</typeparam>
     public void RegisterController<T>() where T : HttpController, new()
     {
-        var controllerType = typeof(T);
+        Type controllerType = typeof(T);
 
         // Ensure the controller is decorated with ApiControllerAttribute
         if (!controllerType.IsDefined(typeof(ApiControllerAttribute), false))
             throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ApiControllerAttribute].");
 
-        var controllerInstance = new T();
-        var methods = controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        T controllerInstance = new();
+        MethodInfo[] methods = controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
 
-        foreach (var method in methods)
+        foreach (MethodInfo method in methods)
         {
-            var routeAttribute = method.GetCustomAttribute<RouteAttribute>();
+            RouteAttribute routeAttribute = method.GetCustomAttribute<RouteAttribute>();
             if (routeAttribute == null) continue;
 
             string routeKey = $"{routeAttribute.Method}:{routeAttribute.Path}";
@@ -66,10 +66,16 @@ public class HttpRouter
         string routeKey = $"{context.Request.HttpMethod}:{context.Request.Url?.AbsolutePath}";
 
         if (_routeHandlers.TryGetValue(routeKey, out var handler))
-        {
             return await handler(context);
+        else
+        {
+            return await Task.FromResult(new HttpResponse
+            (
+                HttpStatusCode.NotFound,
+                null,
+                "Route not found",
+                $"No route matches path: {context.Request.Url?.AbsolutePath} and method: {context.Request.HttpMethod}"
+            ));
         }
-
-        return HttpResponse.Fail("Route not found");
     }
 }

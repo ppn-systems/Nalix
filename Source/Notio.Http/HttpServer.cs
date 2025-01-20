@@ -1,4 +1,5 @@
 ﻿using Notio.Http.Core;
+using Notio.Http.Enums;
 using Notio.Http.Middleware;
 using Notio.Logging;
 using System;
@@ -22,7 +23,7 @@ public class HttpServer : IDisposable
         if (string.IsNullOrWhiteSpace(url))
             throw new ArgumentException("URL cannot be null or empty.", nameof(url));
 
-        _middleware = [];
+        _middleware = new List<IMiddleware>();
         _router = new HttpRouter();
         _listener = new HttpListener();
         _listener.Prefixes.Add(url);
@@ -57,15 +58,25 @@ public class HttpServer : IDisposable
             try
             {
                 var context = await _listener.GetContextAsync();
-                _ = ProcessRequestAsync(context);
+                var request = context.Request;
+
+                // Logging request details
+                Console.WriteLine($"""
+                Request Info:
+                - URL: {request.Url.AbsolutePath}
+                - Method: {request.HttpMethod}
+                - Headers: {string.Join(", ", request.Headers.AllKeys)}
+                """);
+
+                await ProcessRequestAsync(context);
             }
             catch (HttpListenerException) when (cancellationToken.IsCancellationRequested)
             {
-                // Lỗi xảy ra khi server dừng
+                // Error when server is stopped
             }
             catch (Exception ex)
             {
-                NotioLog.Instance.Error("Fail handling request", ex);
+                NotioLog.Instance.Error("Error handling request", ex);
             }
         }
     }
@@ -73,12 +84,11 @@ public class HttpServer : IDisposable
     private async Task ProcessRequestAsync(HttpListenerContext listenerContext)
     {
         var context = new HttpContext(listenerContext);
-
-        // var method = Enum.Parse<HttpMethod>(listenerContext.Request.HttpMethod, true);
+        var method = Enum.Parse<HttpMethod>(listenerContext.Request.HttpMethod, true);
 
         try
         {
-            // NotioLog.Instance.Info($"Request received: {context.Request.HttpMethod} {context.Request.Url}");
+            NotioLog.Instance.Info($"Received {method} request for {context.Request.Url}");
 
             // Execute middleware
             foreach (var middleware in _middleware)
@@ -92,9 +102,16 @@ public class HttpServer : IDisposable
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error("Fail processing request", ex);
-            context.Response.StatusCode = 500;
-            await WriteResponseAsync(context.Response, HttpResponse.Fail("Internal server error"));
+            NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);
+            context.Response.StatusCode = (int)Enums.HttpStatusCode.InternalError;
+
+            // Respond with error response
+            await WriteResponseAsync(context.Response, new HttpResponse(
+                Enums.HttpStatusCode.InternalError, // StatusCode
+                null,                               // Data
+                "Internal server error",            // Error message
+                $"Internal error processing {context.Request.Url?.AbsolutePath}" // Custom message
+            ));
         }
     }
 
