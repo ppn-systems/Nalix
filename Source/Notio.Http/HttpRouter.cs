@@ -22,9 +22,9 @@ public class HttpRouter
     {
         var controllerType = typeof(T);
 
-        // Ensure the controller is decorated with ControllerAttribute
-        if (!controllerType.IsDefined(typeof(ControllerAttribute), false))
-            throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ControllerAttribute].");
+        // Ensure the controller is decorated with ApiControllerAttribute
+        if (!controllerType.IsDefined(typeof(ApiControllerAttribute), false))
+            throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ApiControllerAttribute].");
 
         var controllerInstance = new T();
         var methods = controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
