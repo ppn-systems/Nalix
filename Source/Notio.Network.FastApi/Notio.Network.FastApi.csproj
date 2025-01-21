@@ -5,7 +5,6 @@
 		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
@@ -20,9 +19,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
-		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Routing\" />
 	</ItemGroup>
 
 </Project>

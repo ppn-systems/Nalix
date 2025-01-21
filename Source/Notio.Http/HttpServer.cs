@@ -22,6 +22,8 @@ public class HttpServer : IDisposable
     private readonly CancellationTokenSource _cts;
     private readonly List<IMiddleware> _middleware;
 
+    public object HttpConfig { get; set; }
+
     public HttpServer(HttpConfig config = null)
     {
         _httpConfig = config ?? ConfigurationShared.Instance.Get<HttpConfig>();
@@ -131,14 +133,14 @@ public class HttpServer : IDisposable
         catch (Exception ex)
         {
             NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);
-            context.Response.StatusCode = (int)Enums.HttpStatusCode.InternalError;
+            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
             // Respond with error response
             await WriteResponseAsync(context.Response, new HttpResponse(
-                Enums.HttpStatusCode.InternalError, // StatusCode
+                HttpStatusCode.InternalServerError, // StatusCode
                 null,                               // Data
-                "Internal server error",            // Error message
-                $"Internal error processing {context.Request.Url?.AbsolutePath}" // Custom message
+                $"Internal error processing {context.Request.Url?.AbsolutePath}",// Error message
+                null // Custom message
             ));
         }
     }

@@ -1,7 +1,7 @@
 ﻿using Notio.Http.Attributes;
-using Notio.Http.Enums;
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -34,12 +34,10 @@ internal class HttpRouter
             RouteAttribute routeAttribute = method.GetCustomAttribute<RouteAttribute>();
             if (routeAttribute == null) continue;
 
-            string routeKey = $"{routeAttribute.Method}:{routeAttribute.Path}";
+            string routeKey = $"{routeAttribute.Method.ToString().ToUpper()}:{routeAttribute.Path}";
 
             if (_routeHandlers.ContainsKey(routeKey))
                 throw new InvalidOperationException($"Duplicate route found: {routeKey}");
-
-            Console.WriteLine($"Registering route: {routeKey} for method: {method.Name}");
 
             _routeHandlers[routeKey] = async context =>
             {
@@ -76,14 +74,9 @@ internal class HttpRouter
     /// <returns>The result of processing the route.</returns>
     public async Task<HttpResponse> RouteAsync(HttpContext context)
     {
-        string routeKey = $"{context.Request.HttpMethod}:{context.Request.Url?.AbsolutePath}";
-
-        Console.WriteLine($"Routing request: {routeKey}");
-
-        if (_routeHandlers.TryGetValue(routeKey, out Func<HttpContext, Task<HttpResponse>> handler))
-        {
+        if (_routeHandlers.TryGetValue($"{context.Request.HttpMethod.ToUpper()}:{context.Request.Url?.AbsolutePath}",
+            out Func<HttpContext, Task<HttpResponse>> handler)) 
             return await handler(context);
-        }
         else
         {
             return await Task.FromResult(new HttpResponse

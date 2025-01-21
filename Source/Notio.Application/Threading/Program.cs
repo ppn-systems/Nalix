@@ -17,7 +17,11 @@ public static class Program
     {
         Program.Initialize();
 
-        HttpServer httpServer = new(new HttpConfig { });
+        HttpServer httpServer = new(new HttpConfig 
+        {
+            UniformResourceLocator = "http://+",
+            Port = 5000
+        });
 
         httpServer.RegisterController<MainController>();
         httpServer.RegisterController<AuthController>();
@@ -39,7 +43,6 @@ public static class Program
     internal static void MethodTest()
         => JwtAuthenticatorTests.Main();
     
-
     internal static void Initialize()
     {
         // Khởi tạo hệ thống logging

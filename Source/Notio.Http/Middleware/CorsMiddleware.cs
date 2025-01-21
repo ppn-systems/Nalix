@@ -1,5 +1,4 @@
 ﻿using Notio.Http.Core;
-using Notio.Http.Enums;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +29,7 @@ public sealed class CorsMiddleware(
 
         if (context.Request.HttpMethod == "OPTIONS")
         {
-            response.StatusCode = (int)HttpStatusCode.NoContent;
+            response.StatusCode = (int)System.Net.HttpStatusCode.NoContent;
             return Task.CompletedTask;
         }
 

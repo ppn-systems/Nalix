@@ -1,5 +1,4 @@
-﻿using Notio.Database.Entities;
-using Notio.Http.Enums;
+﻿using System.Net;
 using System.Threading.Tasks;
 
 namespace Notio.Http.Core;
@@ -14,7 +13,7 @@ public abstract class HttpController
     protected static Task<HttpResponse> Ok(object data = null)
     {
         return Task.FromResult(new HttpResponse(
-            HttpStatusCode.Ok,   // StatusCode
+            HttpStatusCode.OK,   // StatusCode
             data,                // Data (null nếu không có dữ liệu trả về)
             null,                // Error (chứa thông báo lỗi)
             null                 // Message (có thể để null nếu không có thông báo chi tiết)

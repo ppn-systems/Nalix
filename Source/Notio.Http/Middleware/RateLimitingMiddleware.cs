@@ -1,5 +1,4 @@
 ﻿using Notio.Http.Core;
-using Notio.Http.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +26,7 @@ public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinu
                     _requests[ip] = (1, now);
                 else if (data.Count >= _maxRequests)
                 {
-                    context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+                    context.Response.StatusCode = (int)System.Net.HttpStatusCode.TooManyRequests;
                     throw new HttpRequestException("Rate limit exceeded");
                 }
                 else

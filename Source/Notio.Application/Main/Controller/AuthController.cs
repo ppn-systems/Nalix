@@ -6,7 +6,8 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System;
-using Notio.Http.Enums;
+using System.Net;
+using System.Net.Http;
 
 [ApiController]
 internal class AuthController : HttpController
@@ -34,7 +35,7 @@ internal class AuthController : HttpController
     }
 
     // Đăng nhập API (cung cấp token JWT)
-    [Route("/api/login", HttpMethod.POST)]
+    [Route("/api/login", HttpMethodType.POST)]
     public async Task<HttpResponse> Login(HttpContext context)
     {
         using var reader = new StreamReader(context.Request.InputStream);
@@ -58,7 +59,7 @@ internal class AuthController : HttpController
             string token = _jwtAuthenticator.GenerateToken(claims, TimeSpan.FromHours(1));
 
             return new HttpResponse(
-                HttpStatusCode.Ok,
+                HttpStatusCode.OK,
                 new { Token = token },
                 null,
                 null
@@ -74,7 +75,7 @@ internal class AuthController : HttpController
     }
 
     // API để cấp lại token mới
-    [Route("/api/refresh-token", HttpMethod.POST)]
+    [Route("/api/refresh-token", HttpMethodType.POST)]
     public async Task<HttpResponse> RefreshToken(HttpContext context)
     {
         using var reader = new StreamReader(context.Request.InputStream);
@@ -104,14 +105,14 @@ internal class AuthController : HttpController
 
             string newToken = _jwtAuthenticator.GenerateToken(newClaims, TimeSpan.FromHours(1));
 
-            return new HttpResponse(HttpStatusCode.Ok, new { Token = newToken }, null, null);
+            return new HttpResponse(HttpStatusCode.OK, new { Token = newToken }, null, null);
         }
 
         return new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token claims", null);
     }
 
     // API bảo vệ (yêu cầu JWT hợp lệ với role "admin")
-    [Route("/api/protected", HttpMethod.GET)]
+    [Route("/api/protected", HttpMethodType.GET)]
     public Task<HttpResponse> ProtectedEndpoint(HttpContext context)
     {
         if (context.Request.Headers["Authorization"] is string authorizationHeader && authorizationHeader.StartsWith("Bearer "))
@@ -131,22 +132,16 @@ internal class AuthController : HttpController
                 {
                     if (userRole == "admin")
                     {
-                        return Task.FromResult(new HttpResponse(HttpStatusCode.Ok, new { Username = username, Role = userRole }, null, null));
+                        return Task.FromResult(new HttpResponse(HttpStatusCode.OK, new { Username = username, Role = userRole }, null, null));
                     }
-                    else
-                    {
-                        return Task.FromResult(new HttpResponse(HttpStatusCode.Forbidden, null, "Access denied: Insufficient privileges", null));
-                    }
+
+                    return Task.FromResult(new HttpResponse(HttpStatusCode.Forbidden, null, "Access denied: Insufficient privileges", null));
                 }
-                else
-                {
-                    return Task.FromResult(new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token", null));
-                }
-            }
-            else
-            {
+
                 return Task.FromResult(new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token", null));
             }
+            
+            return Task.FromResult(new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token", null));
         }
 
         return Task.FromResult(new HttpResponse(HttpStatusCode.BadRequest, null, "Authorization header missing", null));

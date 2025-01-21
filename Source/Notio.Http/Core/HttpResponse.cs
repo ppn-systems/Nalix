@@ -1,12 +1,13 @@
-﻿using Notio.Http.Enums;
+﻿using System.Net;
 
 namespace Notio.Http.Core;
 
 public record HttpResponse(
     HttpStatusCode StatusCode,
-    object Data = null,
+    object Data = default,
     string Error = null,
     string Message = null)
 {
-    public bool Success => StatusCode is >= HttpStatusCode.Ok and < HttpStatusCode.End;
+    // Tự động tính trạng thái thành công
+    public bool Success => StatusCode >= HttpStatusCode.OK && StatusCode < HttpStatusCode.MultipleChoices;
 }
