@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Notio.Http.Core;
@@ -12,17 +13,16 @@ namespace Notio.Http.Core;
 /// </summary>
 internal class HttpRouter
 {
-    private readonly ConcurrentDictionary<string, Func<HttpContext, Task<HttpResponse>>> _routeHandlers = new();
+    private readonly ConcurrentDictionary<string, Func<HttpContext, Task>> _routeHandlers = new();
 
     /// <summary>
     /// Registers a controller and its routes to the router.
     /// </summary>
     /// <typeparam name="T">The type of the controller to register.</typeparam>
-    public void RegisterController<T>() where T : HttpController, new()
+    public void RegisterController<T>() where T : class, new()
     {
         Type controllerType = typeof(T);
 
-        // Ensure the controller is decorated with ApiControllerAttribute
         if (!controllerType.IsDefined(typeof(ApiControllerAttribute), false))
             throw new InvalidOperationException($"Controller {controllerType.Name} must be decorated with [ApiControllerAttribute].");
 
@@ -41,27 +41,19 @@ internal class HttpRouter
 
             _routeHandlers[routeKey] = async context =>
             {
-                // Validate method parameters
                 var parameters = method.GetParameters();
                 if (parameters.Length != 1 || parameters[0].ParameterType != typeof(HttpContext))
-                    throw new 
-                    InvalidOperationException($"Method {method.Name} in {controllerType.Name} must accept a single HttpContext parameter.");
+                    throw new InvalidOperationException(
+                        $"Method {method.Name} in {controllerType.Name} must accept a single HttpContext parameter.");
 
                 try
                 {
-                    // Invoke the method and return the result
-                    var result = method.Invoke(controllerInstance, [context]);
-                    if (result is Task<HttpResponse> taskResult)
-                        return await taskResult;
-
-                    throw new 
-                    InvalidOperationException($"Method {method.Name} in {controllerType.Name} must return Task<HttpResponse>.");
+                    await (Task)method.Invoke(controllerInstance, new object[] { context });
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception (if necessary) or rethrow it
-                    throw new 
-                    InvalidOperationException($"Error invoking method {method.Name} in {controllerType.Name}: {ex.Message}", ex);
+                    throw new InvalidOperationException(
+                        $"Error invoking method {method.Name} in {controllerType.Name}: {ex.Message}", ex);
                 }
             };
         }
@@ -72,20 +64,31 @@ internal class HttpRouter
     /// </summary>
     /// <param name="context">The HTTP context containing the request and response.</param>
     /// <returns>The result of processing the route.</returns>
-    public async Task<HttpResponse> RouteAsync(HttpContext context)
+    public async Task RouteAsync(HttpContext context)
     {
-        if (_routeHandlers.TryGetValue($"{context.Request.HttpMethod.ToUpper()}:{context.Request.Url?.AbsolutePath}",
-            out Func<HttpContext, Task<HttpResponse>> handler)) 
-            return await handler(context);
+        if (_routeHandlers.TryGetValue(
+            $"{context.Request.HttpMethod.ToUpper()}:{context.Request.Url?.AbsolutePath}",
+            out Func<HttpContext, Task> handler))
+        {
+            await handler(context);
+        }
         else
         {
-            return await Task.FromResult(new HttpResponse
-            (
-                HttpStatusCode.NotFound,
-                null,
-                "Route not found",
-                $"No route matches path: {context.Request.Url?.AbsolutePath} and method: {context.Request.HttpMethod}"
-            ));
+            object notFoundResponse = new
+            {
+                StatusCode = (int)HttpStatusCode.NotFound,
+                Error = "Route not found",
+                Message = $"No route matches path: {context.Request.Url?.AbsolutePath} and method: {context.Request.HttpMethod}"
+            };
+
+            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            string json = System.Text.Json.JsonSerializer.Serialize(notFoundResponse);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+
+            context.Response.ContentType = "application/json";
+            context.Response.ContentLength64 = buffer.Length;
+            await context.Response.OutputStream.WriteAsync(buffer.AsMemory());
+            context.Response.OutputStream.Close();
         }
     }
 }

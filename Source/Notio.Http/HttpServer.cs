@@ -4,10 +4,8 @@ using Notio.Logging;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,41 +32,20 @@ public class HttpServer : IDisposable
         _middleware = [];
         _router = new HttpRouter();
         _cts = new CancellationTokenSource();
-        _listener = new HttpListener { IgnoreWriteExceptions = true };
 
-        if (_httpConfig.RequireHttps)
+        _listener = new HttpListener
         {
-            if (string.IsNullOrWhiteSpace(_httpConfig.CertPemFilePath) 
-                || string.IsNullOrWhiteSpace(_httpConfig.CertificatePassword))
-                throw new 
-                    ArgumentException("CertPemFilePath and CertificatePassword must be provided when RequireHttps is enabled.");
+            IgnoreWriteExceptions = true
+        };
 
-            if (!File.Exists(_httpConfig.CertPemFilePath))
-                throw new FileNotFoundException("Certificate file not found.", _httpConfig.CertPemFilePath);
-
-            if (!File.Exists(_httpConfig.KeyPemFilePath))
-                throw new FileNotFoundException("Key file not found.", _httpConfig.KeyPemFilePath);
-
-            try
-            {
-                X509Certificate2.CreateFromPemFile(
-                    _httpConfig.CertPemFilePath,
-                    _httpConfig.KeyPemFilePath
-                );
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to load certificate from PEM files.", ex);
-            }
-        }
-
-        _listener.Prefixes.Add($"{_httpConfig.UniformResourceLocator}:{_httpConfig.Port}/");
+        _listener.Prefixes.Add(_httpConfig.UniformResourceLocator);
     }
 
     public void UseMiddleware(IMiddleware middleware) => _middleware.Add(middleware);
 
-    public void RegisterController<T>() 
-        where T : HttpController, new() => _router.RegisterController<T>();
+    public void RegisterController<T>()
+        where T : class, new() 
+        => _router.RegisterController<T>();
 
     public async Task StartAsync()
     {
@@ -93,7 +70,6 @@ public class HttpServer : IDisposable
             {
                 HttpListenerContext context = await _listener.GetContextAsync();
 
-                // Logging request details
                 NotioLog.Instance.Trace($"""
                 Request Info:
                 - URL: {context.Request.Url.AbsolutePath}
@@ -120,46 +96,25 @@ public class HttpServer : IDisposable
 
         try
         {
-            // Execute middleware
             foreach (var middleware in _middleware)
                 await middleware.InvokeAsync(context);
 
-            // Process route
-            HttpResponse response = await _router.RouteAsync(context);
-
-            // Write response
-            await WriteResponseAsync(context.Response, response);
+            await _router.RouteAsync(context);
         }
         catch (Exception ex)
         {
             NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);
+
+            var errorResponse = new
+            {
+                StatusCode = (int)HttpStatusCode.InternalServerError,
+                Error = $"Internal error processing {context.Request.Url?.AbsolutePath}",
+                ex.Message
+            };
+
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-            // Respond with error response
-            await WriteResponseAsync(context.Response, new HttpResponse(
-                HttpStatusCode.InternalServerError, // StatusCode
-                null,                               // Data
-                $"Internal error processing {context.Request.Url?.AbsolutePath}",// Error message
-                null // Custom message
-            ));
-        }
-    }
-
-    private static async Task WriteResponseAsync(HttpListenerResponse response, HttpResponse apiResponse)
-    {
-        try
-        {
-            string json = System.Text.Json.JsonSerializer.Serialize(apiResponse);
-            byte[] buffer = Encoding.UTF8.GetBytes(json);
-
-            response.ContentType = "application/json";
-            response.ContentLength64 = buffer.Length;
-
-            await response.OutputStream.WriteAsync(buffer.AsMemory());
-        }
-        finally
-        {
-            response.OutputStream.Close();
+            await context.Response.WriteJsonResponseAsync(errorResponse);
         }
     }
 

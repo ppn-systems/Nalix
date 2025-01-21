@@ -1,149 +1,126 @@
 ﻿using Notio.Http.Attributes;
 using Notio.Http.Core;
 using Notio.Network.Firewall;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System;
 using System.Net;
-using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+using static Notio.Http.HttpExtensions;
 
 [ApiController]
-internal class AuthController : HttpController
+internal sealed class AuthController
 {
-    public class RefreshTokenRequest
-    {
-        public string? RefreshToken { get; set; }
-    }
+    private const string ADMIN_USERNAME = "admin";
+    private const string ADMIN_PASSWORD = "password";
+    private const string ADMIN_ROLE = "admin";
+    private const string USER_ROLE = "user";
+    private const string AUTH_SCHEME = "Bearer ";
 
-    public class LoginRequest
-    {
-        public string? Username { get; set; }
-        public string? Password { get; set; }
-    }
+    private record struct LoginRequest(string? Username, string? Password);
+    private record struct RefreshTokenRequest(string? RefreshToken);
+    private record struct TokenResponse(string Token);
+    private record struct UserInfoResponse(string Username, string Role);
 
-    private readonly JwtAuthenticator _jwtAuthenticator;
+    private readonly JwtAuthenticator _jwtAuthenticator = new(
+        secretKey: "your_secret_key",
+        issuer: "your_issuer",
+        audience: "your_audience");
 
-    public AuthController()
-    {
-        // Khởi tạo JwtAuthenticator với các giá trị cố định
-        string secretKey = "your_secret_key";
-        string issuer = "your_issuer";
-        string audience = "your_audience";
-        _jwtAuthenticator = new JwtAuthenticator(secretKey, issuer, audience);
-    }
+    private TokenResponse GenerateTokenResponse(string username, string role) =>
+        new(_jwtAuthenticator.GenerateToken(
+            new()
+            {
+                ["sub"] = username,
+                ["role"] = role
+            },
+            TimeSpan.FromHours(1)));
 
-    // Đăng nhập API (cung cấp token JWT)
     [Route("/api/login", HttpMethodType.POST)]
-    public async Task<HttpResponse> Login(HttpContext context)
+    public async Task Login(HttpContext context)
     {
-        using var reader = new StreamReader(context.Request.InputStream);
-        var body = await reader.ReadToEndAsync();
+        var request = await context.Request.InputStream.DeserializeRequestAsync<LoginRequest>();
 
-        var credentials = JsonSerializer.Deserialize<LoginRequest>(body);
-
-        if (credentials == null || string.IsNullOrWhiteSpace(credentials.Username) || string.IsNullOrWhiteSpace(credentials.Password))
+        var response = request switch
         {
-            return new HttpResponse(HttpStatusCode.BadRequest, null, "Missing username or password", null);
-        }
+            { Username: null or "", Password: null or "" } =>
+                new ApiResponse<TokenResponse>(HttpStatusCode.BadRequest, Error: "Missing credentials"),
 
-        if (credentials.Username == "admin" && credentials.Password == "password")
-        {
-            var claims = new Dictionary<string, object>
-            {
-                { "sub", credentials.Username },
-                { "role", "user" }
-            };
+            { Username: ADMIN_USERNAME, Password: ADMIN_PASSWORD } =>
+                new ApiResponse<TokenResponse>(HttpStatusCode.OK, GenerateTokenResponse(ADMIN_USERNAME, USER_ROLE)),
 
-            string token = _jwtAuthenticator.GenerateToken(claims, TimeSpan.FromHours(1));
+            _ => new ApiResponse<TokenResponse>(HttpStatusCode.Unauthorized, Error: "Invalid credentials")
+        };
 
-            return new HttpResponse(
-                HttpStatusCode.OK,
-                new { Token = token },
-                null,
-                null
-            );
-        }
-
-        return new HttpResponse(
-            HttpStatusCode.Unauthorized,
-            null,
-            "Invalid credentials",
-            null
-        );
+        await context.Response.SendResponseAsync(response);
     }
 
-    // API để cấp lại token mới
     [Route("/api/refresh-token", HttpMethodType.POST)]
-    public async Task<HttpResponse> RefreshToken(HttpContext context)
+    public async Task RefreshToken(HttpContext context)
     {
-        using var reader = new StreamReader(context.Request.InputStream);
-        var body = await reader.ReadToEndAsync();
+        var request = await context.Request.InputStream.DeserializeRequestAsync<RefreshTokenRequest>();
 
-        RefreshTokenRequest? request = JsonSerializer.Deserialize<RefreshTokenRequest>(body);
-
-        if (request == null || string.IsNullOrWhiteSpace(request.RefreshToken))
-            return new HttpResponse(HttpStatusCode.BadRequest, null, "Missing refresh token", null);
-
-        // Kiểm tra tính hợp lệ của refresh token
-        bool isValid = _jwtAuthenticator.ValidateToken(request.RefreshToken);
-        if (!isValid)
-            return new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid refresh token", null);
-
-        // Nếu refresh token hợp lệ, cấp lại token mới
-        var claims = JwtAuthenticator.DecodeToken(request.RefreshToken);
-
-        if (claims.TryGetValue("sub", out object? sub) &&
-            claims.TryGetValue("role", out object? role))
+        if (request is not { RefreshToken: { } token } || !_jwtAuthenticator.ValidateToken(token))
         {
-            var newClaims = new Dictionary<string, object>
-            {
-                { "sub", sub },
-                { "role", role }
-            };
-
-            string newToken = _jwtAuthenticator.GenerateToken(newClaims, TimeSpan.FromHours(1));
-
-            return new HttpResponse(HttpStatusCode.OK, new { Token = newToken }, null, null);
+            await context.Response.SendResponseAsync(
+                new ApiResponse<TokenResponse>(HttpStatusCode.Unauthorized, Error: "Invalid refresh token"));
+            return;
         }
 
-        return new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token claims", null);
+        var claims = JwtAuthenticator.DecodeToken(token);
+        if (!claims.TryGetValue("sub", out var sub) || !claims.TryGetValue("role", out var role))
+        {
+            await context.Response.SendResponseAsync(
+                new ApiResponse<TokenResponse>(HttpStatusCode.Unauthorized, Error: "Invalid token claims"));
+            return;
+        }
+
+        await context.Response.SendResponseAsync(
+            new ApiResponse<TokenResponse>(
+                HttpStatusCode.OK,
+                GenerateTokenResponse(sub.ToString()!, role.ToString()!)));
     }
 
-    // API bảo vệ (yêu cầu JWT hợp lệ với role "admin")
     [Route("/api/protected", HttpMethodType.GET)]
-    public Task<HttpResponse> ProtectedEndpoint(HttpContext context)
+    public async Task ProtectedEndpoint(HttpContext context)
     {
-        if (context.Request.Headers["Authorization"] is string authorizationHeader && authorizationHeader.StartsWith("Bearer "))
+        var authHeader = context.Request.Headers["Authorization"];
+
+        if (!authHeader?.StartsWith(AUTH_SCHEME) ?? true)
         {
-            string token = authorizationHeader[7..];
-
-            bool isValid = _jwtAuthenticator.ValidateToken(token);
-            Console.WriteLine($"Token is valid: {isValid}");
-
-            if (isValid)
-            {
-                var claims = JwtAuthenticator.DecodeToken(token);
-                Console.WriteLine($"Claims: {JsonSerializer.Serialize(claims)}");
-
-                if (claims.TryGetValue("sub", out var sub) && sub is string username &&
-                    claims.TryGetValue("role", out var role) && role is string userRole)
-                {
-                    if (userRole == "admin")
-                    {
-                        return Task.FromResult(new HttpResponse(HttpStatusCode.OK, new { Username = username, Role = userRole }, null, null));
-                    }
-
-                    return Task.FromResult(new HttpResponse(HttpStatusCode.Forbidden, null, "Access denied: Insufficient privileges", null));
-                }
-
-                return Task.FromResult(new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token", null));
-            }
-            
-            return Task.FromResult(new HttpResponse(HttpStatusCode.Unauthorized, null, "Invalid token", null));
+            await context.Response.SendResponseAsync(
+                new ApiResponse<UserInfoResponse>(HttpStatusCode.BadRequest, Error: "Missing authorization header"));
+            return;
         }
 
-        return Task.FromResult(new HttpResponse(HttpStatusCode.BadRequest, null, "Authorization header missing", null));
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith(AUTH_SCHEME))
+        {
+            await context.Response.SendResponseAsync(
+                new ApiResponse<UserInfoResponse>(HttpStatusCode.BadRequest, Error: "Missing authorization header"));
+            return;
+        }
+
+        string token = authHeader[AUTH_SCHEME.Length..];
+
+        if (!_jwtAuthenticator.ValidateToken(token))
+        {
+            await context.Response.SendResponseAsync(
+                new ApiResponse<UserInfoResponse>(HttpStatusCode.Unauthorized, Error: "Invalid token"));
+            return;
+        }
+
+        var claims = JwtAuthenticator.DecodeToken(token);
+        if (!claims.TryGetValue("sub", out var username) ||
+            !claims.TryGetValue("role", out var role) ||
+            role?.ToString() != ADMIN_ROLE)
+        {
+            await context.Response.SendResponseAsync(
+                new ApiResponse<UserInfoResponse>(HttpStatusCode.Forbidden, Error: "Insufficient privileges"));
+            return;
+        }
+
+        await context.Response.SendResponseAsync(
+            new ApiResponse<UserInfoResponse>(
+                HttpStatusCode.OK,
+                new UserInfoResponse(username.ToString()!, role.ToString()!)));
     }
 }
