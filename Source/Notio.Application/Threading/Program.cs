@@ -5,7 +5,6 @@ using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
 using Notio.Network.Http;
-using Notio.Network.Http.Middleware;
 using Notio.Testing.Network;
 using System.Threading.Tasks;
 
@@ -27,8 +26,7 @@ public static class Program
         System.Console.ReadKey();
     }
 
-    internal static void MethodTest()
-        => JwtAuthenticatorTests.Main();
+    internal static void MethodTest() => JwtTokenTests.Main();
     
     internal static void Initialize()
     {

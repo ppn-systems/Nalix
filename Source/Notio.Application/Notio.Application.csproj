@@ -22,7 +22,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Test\Notio.Testing.csproj" />
+		<ProjectReference Include="..\Notio.Testing\Notio.Testing.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
 		<ProjectReference Include="..\Notio.Database\Notio.Database.csproj" />

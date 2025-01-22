@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using Notio.Network.Firewall;
+using Notio.Network.Security;
 using Notio.Common.Exceptions;
 
 namespace Notio.Testing.Network;
 
-public sealed class JwtAuthenticatorTests
+public sealed class JwtTokenTests
 {
     private const string SecretKey = "supersecretkey123";
     private const string Issuer = "testIssuer";
@@ -29,7 +29,7 @@ public sealed class JwtAuthenticatorTests
     {
         try
         {
-            _ = new JwtAuthenticator(null!, Issuer, Audience);
+            _ = new JwtToken(null!, Issuer, Audience);
             Console.WriteLine("Testing failed: No exception for null secret key.");
         }
         catch (FirewallException)
@@ -39,7 +39,7 @@ public sealed class JwtAuthenticatorTests
 
         try
         {
-            _ = new JwtAuthenticator("", Issuer, Audience);
+            _ = new JwtToken("", Issuer, Audience);
             Console.WriteLine("Testing failed: No exception for empty secret key.");
         }
         catch (FirewallException)
@@ -52,7 +52,7 @@ public sealed class JwtAuthenticatorTests
     {
         try
         {
-            _ = new JwtAuthenticator(SecretKey, null!, Audience);
+            _ = new JwtToken(SecretKey, null!, Audience);
             Console.WriteLine("Testing failed: No exception for null issuer.");
         }
         catch (FirewallException)
@@ -62,7 +62,7 @@ public sealed class JwtAuthenticatorTests
 
         try
         {
-            _ = new JwtAuthenticator(SecretKey, "", Audience);
+            _ = new JwtToken(SecretKey, "", Audience);
             Console.WriteLine("Testing failed: No exception for empty issuer.");
         }
         catch (FirewallException)
@@ -75,7 +75,7 @@ public sealed class JwtAuthenticatorTests
     {
         try
         {
-            _ = new JwtAuthenticator(SecretKey, Issuer, null!);
+            _ = new JwtToken(SecretKey, Issuer, null!);
             Console.WriteLine("Testing failed: No exception for null audience.");
         }
         catch (FirewallException)
@@ -85,7 +85,7 @@ public sealed class JwtAuthenticatorTests
 
         try
         {
-            _ = new JwtAuthenticator(SecretKey, Issuer, "");
+            _ = new JwtToken(SecretKey, Issuer, "");
             Console.WriteLine("Testing failed: No exception for empty audience.");
         }
         catch (FirewallException)
@@ -97,7 +97,7 @@ public sealed class JwtAuthenticatorTests
     public static void GenerateTokenShouldReturnValidToken()
     {
         // Arrange
-        var authenticator = new JwtAuthenticator(SecretKey, Issuer, Audience);
+        var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
         TimeSpan expiration = TimeSpan.FromMinutes(5);
 
@@ -118,13 +118,13 @@ public sealed class JwtAuthenticatorTests
     public static void ValidateTokenShouldReturnTrueForValidToken()
     {
         // Arrange
-        var authenticator = new JwtAuthenticator(SecretKey, Issuer, Audience);
+        var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
         TimeSpan expiration = TimeSpan.FromMinutes(5);
         string token = authenticator.GenerateToken(claims, expiration);
 
         // Act
-        bool isValid = authenticator.ValidateToken(token);
+        bool isValid = authenticator.ValidateToken(token, out _);
 
         // Assert
         if (isValid)
@@ -140,7 +140,7 @@ public sealed class JwtAuthenticatorTests
     public static void ValidateTokenShouldReturnFalseForInvalidSignature()
     {
         // Arrange
-        var authenticator = new JwtAuthenticator(SecretKey, Issuer, Audience);
+        var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
         TimeSpan expiration = TimeSpan.FromMinutes(5);
         string token = authenticator.GenerateToken(claims, expiration);
@@ -149,7 +149,7 @@ public sealed class JwtAuthenticatorTests
         string tamperedToken = string.Concat(token.AsSpan(0, token.LastIndexOf('.') + 1), "tampered");
 
         // Act
-        bool isValid = authenticator.ValidateToken(tamperedToken);
+        bool isValid = authenticator.ValidateToken(tamperedToken, out _);
 
         // Assert
         if (!isValid)
@@ -165,13 +165,13 @@ public sealed class JwtAuthenticatorTests
     public static void ValidateTokenShouldReturnFalseForExpiredToken()
     {
         // Arrange
-        var authenticator = new JwtAuthenticator(SecretKey, Issuer, Audience);
+        var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
         TimeSpan expiration = TimeSpan.FromSeconds(-1); // Expired token
         string token = authenticator.GenerateToken(claims, expiration);
 
         // Act
-        bool isValid = authenticator.ValidateToken(token);
+        bool isValid = authenticator.ValidateToken(token, out _);
 
         // Assert
         if (!isValid)
@@ -187,11 +187,11 @@ public sealed class JwtAuthenticatorTests
     public static void ValidateTokenShouldReturnFalseForMalformedToken()
     {
         // Arrange
-        var authenticator = new JwtAuthenticator(SecretKey, Issuer, Audience);
+        var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         string malformedToken = "invalid.token.format";
 
         // Act
-        bool isValid = authenticator.ValidateToken(malformedToken);
+        bool isValid = authenticator.ValidateToken(malformedToken, out _);
 
         // Assert
         if (!isValid)

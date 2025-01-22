@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Infrastructure", "Not
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Common", "Notio.Common\Notio.Common.csproj", "{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Cryptography", "Notio.Security\Notio.Cryptography.csproj", "{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Cryptography", "Notio.Cryptography\Notio.Cryptography.csproj", "{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Database", "Notio.Database\Notio.Database.csproj", "{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}"
 EndProject

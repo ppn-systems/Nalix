@@ -44,7 +44,7 @@ internal sealed class AuthController
         }
 
         var token = authHeader[AUTH_SCHEME.Length..];
-        if (!_jwtAuthenticator.ValidateToken(token))
+        if (!_jwtAuthenticator.ValidateToken(token, out _))
         {
             await context.Response.WriteErrorResponseAsync(HttpStatusCode.Unauthorized, "Invalid token");
             return new AuthenticationResponse(false, Error: "Invalid token");
@@ -86,7 +86,7 @@ internal sealed class AuthController
     {
         var request = await context.Request.InputStream.DeserializeRequestAsync<RefreshTokenRequest>();
 
-        if (request is not { RefreshToken: { } token } || !_jwtAuthenticator.ValidateToken(token))
+        if (request is not { RefreshToken: { } token } || !_jwtAuthenticator.ValidateToken(token, out _))
         {
             await context.Response.WriteErrorResponseAsync(HttpStatusCode.Unauthorized, "Invalid refresh token");
             return;
