@@ -164,7 +164,13 @@ public class HttpListener : IDisposable, IHttpListener
         finally
         {
             stopwatch.Stop();
-            _logger.Debug($"Request processed in {stopwatch.ElapsedMilliseconds}ms: {context.Request.HttpMethod} {context.Request.Url?.PathAndQuery}");
+
+            // Sanitize inputs to prevent log forging
+            string safeHttpMethod = context.Request.HttpMethod ?? "Unknown";
+            string safeUrl = context.Request.Url?.PathAndQuery?.Replace("\n", "").Replace("\r", "") ?? "Unknown URL";
+
+            _logger.Debug($"Request processed in {stopwatch.ElapsedMilliseconds}ms: {safeHttpMethod} {safeUrl}");
+
             context.Response.Close();
         }
     }

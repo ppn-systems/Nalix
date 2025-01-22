@@ -51,14 +51,13 @@ public sealed class NotioLog : LoggingEngine, ILogger
     /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
-
     /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, message);
+        => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
-        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{memberName}] {message}");
+        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug<TClass>(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
@@ -92,4 +91,9 @@ public sealed class NotioLog : LoggingEngine, ILogger
     /// <inheritdoc />
     public void Fatal(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message, exception);
+
+    // Sanitize log message to prevent log forging
+    private static string SanitizeLogMessage(string message)
+        // Remove potentially dangerous characters (e.g., newlines or control characters)
+        => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
 }

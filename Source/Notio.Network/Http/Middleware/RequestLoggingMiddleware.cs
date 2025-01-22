@@ -15,12 +15,14 @@ public class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
     {
         _stopwatch.Restart();
 
-        // Log request
+        string safeHttpMethod = context.Request.HttpMethod ?? "Unknown";
+        string safeUrl = context.Request.Url?.PathAndQuery?.Replace("\n", "").Replace("\r", "") ?? "Unknown URL";
+
         _logger.Trace($"""
-        Incoming Request:
-        {context.Request.HttpMethod} {context.Request.Url?.PathAndQuery}
-        Remote IP: {context.Request.RemoteEndPoint.Address}
-        Headers: {string.Join(", ", context.Request.Headers.AllKeys.Select(k => $"{k}: {context.Request.Headers[k]}"))}
+        Completed Request:
+        {safeHttpMethod} {safeUrl}
+        Status Code: {context.Response.StatusCode}
+        Duration: {_stopwatch.ElapsedMilliseconds}ms
         """);
 
         try
@@ -35,7 +37,7 @@ public class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
             // Log response
             _logger.Trace($"""
             Completed Request:
-            {context.Request.HttpMethod} {context.Request.Url?.PathAndQuery}
+            {safeHttpMethod} {safeUrl}
             Status Code: {context.Response.StatusCode}
             Duration: {_stopwatch.ElapsedMilliseconds}ms
             """);
