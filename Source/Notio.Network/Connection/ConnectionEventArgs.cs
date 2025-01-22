@@ -8,7 +8,7 @@ namespace Notio.Network.Connection.Args;
 /// Đại diện cho các sự kiện kết nối và cung cấp dữ liệu sự kiện.
 /// </summary>
 public class ConnectionEventArgs(Connection connection)
-    : EventArgs, IConnctEventArgs
+    : EventArgs, IConnectEventArgs
 {
     /// <summary>
     /// Kết nối liên quan đến sự kiện.

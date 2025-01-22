@@ -1,61 +1,67 @@
 ﻿namespace Notio.Common.Connection.Enums;
 
 /// <summary>
-/// Các loại lỗi có thể xảy ra khi kết nối.
+/// Represents the types of errors that can occur during a connection.
 /// </summary>
 public enum ConnectionError
 {
     /// <summary>
-    /// Lỗi không xác định.
+    /// An undefined error.
     /// </summary>
     Undefined,
 
     /// <summary>
-    /// Lỗi khi đọc dữ liệu.
+    /// Error occurred while reading data.
     /// </summary>
     ReadError,
 
     /// <summary>
-    /// Lỗi khi gửi dữ liệu.
+    /// Error occurred while sending data.
     /// </summary>
     SendError,
 
     /// <summary>
-    /// Lỗi kết nối mạng.
+    /// Network connection error.
     /// </summary>
     NetworkError,
 
     /// <summary>
-    /// Lỗi mã hóa.
+    /// Encryption error.
     /// </summary>
     EncryptionError,
 
+    /// <summary>
+    /// Decryption error.
+    /// </summary>
     DecryptionError,
 
     /// <summary>
-    /// Dữ liệu không khớp.
+    /// Mismatch in data.
     /// </summary>
     DataMismatch,
 
     /// <summary>
-    /// Dữ liệu quá lớn.
+    /// Data size is too large.
     /// </summary>
     DataTooLarge,
 
     /// <summary>
-    /// Kết nối bị ngắt.
+    /// Connection was lost.
     /// </summary>
     ConnectionLost,
 
     /// <summary>
-    /// Lỗi xác thực.
+    /// Authentication error.
     /// </summary>
     AuthenticationError,
 
     /// <summary>
-    /// Lỗi khi đóng kết nối.
+    /// Error occurred while closing the connection.
     /// </summary>
     CloseError,
 
+    /// <summary>
+    /// The stream was closed.
+    /// </summary>
     StreamClosed
 }

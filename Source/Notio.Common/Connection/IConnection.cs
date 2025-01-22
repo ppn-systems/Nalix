@@ -7,75 +7,97 @@ using System.Threading.Tasks;
 namespace Notio.Common.Connection;
 
 /// <summary>
-/// Giao diện quản lý kết nối.
+/// Represents an interface for managing a network connection.
 /// </summary>
 public interface IConnection : IDisposable
 {
+    /// <summary>
+    /// Gets the unique identifier for the connection.
+    /// </summary>
     string Id { get; }
+
+    /// <summary>
+    /// Gets the incoming packet of data.
+    /// </summary>
     byte[] IncomingPacket { get; }
 
     /// <summary>
-    /// Khóa mã hóa tin nhắn
+    /// Gets the encryption key used for securing communication.
     /// </summary>
     byte[] EncryptionKey { get; }
 
     /// <summary>
-    /// Trạng thái kết nối
-    /// </summary>
-    ConnectionState State { get; }
-
-    /// <summary>
-    /// Địa chỉ kết nối
+    /// Gets the remote endpoint address associated with the connection.
     /// </summary>
     string RemoteEndPoint { get; }
 
     /// <summary>
-    /// Thời điểm kết nối
+    /// Gets the current state of the connection.
+    /// </summary>
+    ConnectionState State { get; }
+
+    /// <summary>
+    /// Gets the timestamp indicating when the connection was established.
     /// </summary>
     DateTimeOffset Timestamp { get; }
 
     /// <summary>
-    /// Sự kiện xử lý nhận dữ liệu.
+    /// Occurs when the connection is closed.
     /// </summary>
-    event EventHandler<IConnctEventArgs> OnProcessEvent;
+    event EventHandler<IConnectEventArgs> OnCloseEvent;
 
     /// <summary>
-    /// Sự kiện ngắt kết nối.
+    /// Occurs when data is received and processed.
     /// </summary>
-    event EventHandler<IConnctEventArgs> OnCloseEvent;
+    event EventHandler<IConnectEventArgs> OnProcessEvent;
 
     /// <summary>
-    /// Sự kiện sau khi xử lý dữ liệu xong.
+    /// Occurs after data has been successfully processed.
     /// </summary>
-    event EventHandler<IConnctEventArgs> OnPostProcessEvent;
+    event EventHandler<IConnectEventArgs> OnPostProcessEvent;
 
     /// <summary>
-    /// Sự kiện thông báo lỗi kết nối.
+    /// Starts receiving data from the connection.
     /// </summary>
-    event EventHandler<IErrorEventArgs> OnErrorEvent;
-
-    /// <summary>
-    /// Bắt đầu lắng nghe tin nhắn
-    /// </summary>
+    /// <param name="cancellationToken">
+    /// A token to cancel the receiving operation.
+    /// </param>
+    /// <remarks>
+    /// Call this method to initiate listening for incoming data on the connection.
+    /// </remarks>
     void BeginReceive(CancellationToken cancellationToken = default);
 
-    // <summary>
-    /// Kết thúc lắng nghe tin nhắn
+    /// <summary>
+    /// Closes the connection and releases all associated resources.
     /// </summary>
+    /// <remarks>
+    /// Ensures that both the socket and associated streams are properly closed.
+    /// </remarks>
     void Close();
 
     /// <summary>
-    /// Gửi tin nhắn
+    /// Sends a message synchronously over the connection.
     /// </summary>
+    /// <param name="message">The message to send.</param>
     void Send(ReadOnlySpan<byte> message);
 
     /// <summary>
-    /// Gửi tin nhắn
+    /// Sends a message asynchronously over the connection.
     /// </summary>
+    /// <param name="message">The data to send.</param>
+    /// <param name="cancellationToken">A token to cancel the sending operation.</param>
+    /// <returns>A task that represents the asynchronous sending operation.</returns>
+    /// <remarks>
+    /// If the connection has been authenticated, the data will be encrypted before sending.
+    /// </remarks>
     Task SendAsync(byte[] message, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Ngắt kết nối
+    /// Disconnects the connection safely with an optional reason.
     /// </summary>
+    /// <param name="reason">An optional string providing the reason for disconnection.</param>
+    /// <remarks>
+    /// Use this method to terminate the connection gracefully.
+    /// </remarks>
     void Disconnect(string reason = null);
 }

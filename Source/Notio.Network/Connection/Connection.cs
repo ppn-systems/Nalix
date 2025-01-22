@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Connection.Args;
 using Notio.Common.Connection.Enums;
+using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Cryptography;
 using Notio.Infrastructure.Identification;
 using Notio.Infrastructure.Time;
-using Notio.Network.Connection.Args;
 using Notio.Shared.Memory.Cache;
 using System;
 using System.Linq;
@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Connection;
 
-public class Connection : IConnection, IDisposable
+public sealed class Connection : IConnection, IDisposable
 {
     private const byte HEADER_LENGHT = 2;
     private const short KEY_RSA_SIZE = 4096;
@@ -23,6 +23,7 @@ public class Connection : IConnection, IDisposable
 
     private readonly UniqueId _id;
     private readonly Socket _socket;
+    private readonly ILogger? _logger;
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
     private readonly BinaryCache _cacheOutgoingPacket;
@@ -44,9 +45,10 @@ public class Connection : IConnection, IDisposable
     /// </summary>
     /// <param name="socket">Socket kết nối.</param>
     /// <param name="bufferAllocator">Bộ cấp phát bộ nhớ đệm.</param>
-    public Connection(Socket socket, IBufferPool bufferAllocator)
+    public Connection(Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _socket = socket;
+        _logger = logger;
         _receiveLock = new Lock();
         _stream = new NetworkStream(socket);
         _bufferAllocator = bufferAllocator;
@@ -64,29 +66,28 @@ public class Connection : IConnection, IDisposable
         _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
     }
 
-    /// <summary>
-    /// Thời gian kết nối.
-    /// </summary>
-    public DateTimeOffset Timestamp => _connectedTimestamp;
-
-    /// <summary>
-    /// Khóa mã hóa AES 256.
-    /// </summary>
-    public byte[] EncryptionKey => _aes256Key;
-
-    /// <summary>
-    /// Thời gian ping cuối cùng.
-    /// </summary>
-    public long LastPingTime => _lastPingTime;
-
-    /// <summary>
-    /// Id.
-    /// </summary>
+    /// <inheritdoc />
     public string Id => _id.ToString(true);
 
-    /// <summary>
-    /// Điểm cuối từ xa của kết nối.
-    /// </summary>
+    /// <inheritdoc />
+    public byte[] EncryptionKey => _aes256Key;
+
+    /// <inheritdoc />
+    public long LastPingTime => _lastPingTime;
+
+    /// <inheritdoc />
+    public event EventHandler<IConnectEventArgs>? OnCloseEvent;
+
+    /// <inheritdoc />
+    public event EventHandler<IConnectEventArgs>? OnProcessEvent;
+
+    /// <inheritdoc />
+    public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+
+    /// <inheritdoc />
+    public DateTimeOffset Timestamp => _connectedTimestamp;
+
+    /// <inheritdoc />
     public string RemoteEndPoint
     {
         get
@@ -98,22 +99,19 @@ public class Connection : IConnection, IDisposable
         }
     }
 
-    /// <summary>
-    /// Gói tin đến.
-    /// </summary>
-    public byte[] IncomingPacket
+    /// <inheritdoc />
+    public byte[]? IncomingPacket
     {
         get
         {
             if (_cacheIncomingPacket.Count > 0)
                 return _cacheIncomingPacket.GetValue();
-            return [];
+            else 
+                return null;
         }
     }
 
-    /// <summary>
-    /// Trạng thái kết nối.
-    /// </summary>
+    /// <inheritdoc />
     public ConnectionState State
     {
         get
@@ -129,14 +127,6 @@ public class Connection : IConnection, IDisposable
             }
         }
     }
-
-    public event EventHandler<IErrorEventArgs>? OnErrorEvent;
-
-    public event EventHandler<IConnctEventArgs>? OnProcessEvent;
-
-    public event EventHandler<IConnctEventArgs>? OnCloseEvent;
-
-    public event EventHandler<IConnctEventArgs>? OnPostProcessEvent;
 
     /// <summary>
     /// Bắt đầu nhận dữ liệu không đồng bộ.
@@ -167,12 +157,12 @@ public class Connection : IConnection, IDisposable
         }
         catch (ObjectDisposedException ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.StreamClosed, ex.Message));
+            _logger?.Error(ex);
             return;
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.ReadError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -197,8 +187,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            // Log lỗi.
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -211,11 +200,11 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
+            _logger?.Error(ex);
         }
         finally
         {
-            _state = ConnectionState.Disconnected;
+            this.UpdateState(ConnectionState.Disconnected);
         }
     }
 
@@ -242,7 +231,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.SendError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -266,7 +255,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.SendError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -284,7 +273,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
+            _logger?.Error(ex);
         }
         finally
         {
@@ -305,7 +294,7 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.CloseError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -341,8 +330,8 @@ public class Connection : IConnection, IDisposable
 
             if (size > _bufferAllocator.MaxBufferSize)
             {
-                OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.DataTooLarge,
-                    $"Data length ({size} bytes) exceeds the maximum allowed buffer size ({_bufferAllocator.MaxBufferSize} bytes)."));
+                _logger?.Error($"Data length ({size} bytes) " +
+                    $"exceeds the maximum allowed buffer size ({_bufferAllocator.MaxBufferSize} bytes).");
                 return;
             }
 
@@ -357,16 +346,14 @@ public class Connection : IConnection, IDisposable
             }
 
             if (!_ctokens.Token.IsCancellationRequested)
-            {
                 _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
-            }
 
             await this.HandleConnectionStateAsync(size, totalBytesRead);
             this.BeginReceive();
         }
         catch (Exception ex)
         {
-            OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(ConnectionError.ReadError, ex.Message));
+            _logger?.Error(ex);
         }
     }
 
@@ -409,7 +396,8 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            HandleError(ConnectionError.AuthenticationError, ex.Message);
+            _logger?.Error(ex);
+            this.UpdateState(ConnectionState.Connecting);
         }
     }
 
@@ -422,13 +410,8 @@ public class Connection : IConnection, IDisposable
         }
         catch (Exception ex)
         {
-            HandleError(ConnectionError.DecryptionError, ex.Message);
+            _logger?.Error(ex);
+            this.UpdateState(ConnectionState.Connecting);
         }
-    }
-
-    private void HandleError(ConnectionError error, string message)
-    {
-        this.OnErrorEvent?.Invoke(this, new ConnectionErrorEventArgs(error, message));
-        this.UpdateState(ConnectionState.Connecting);
     }
 }

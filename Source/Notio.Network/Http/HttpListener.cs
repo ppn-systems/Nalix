@@ -25,7 +25,7 @@ public interface IHttpListener
     Task StopAsync();
 }
 
-public class HttpListener : IDisposable, IHttpListener
+public sealed class HttpListener : IDisposable, IHttpListener
 {
     private readonly NotioLog _logger;
     private readonly HttpRouter _router;

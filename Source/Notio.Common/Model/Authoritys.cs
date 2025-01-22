@@ -1,25 +1,27 @@
 ﻿namespace Notio.Common.Model;
 
+/// <summary>
+/// Represents different authority levels of users in the system.
+/// </summary>
 public enum Authoritys : byte
 {
     /// <summary>
-    /// Người dùng chưa đăng nhập hoặc đăng ký.
+    /// User is either not logged in or has not registered.
     /// </summary>
     Guests = 0,
 
     /// <summary>
-    /// Người dùng đã đăng ký tiêu chuẩn với quyền truy cập cơ bản.
+    /// User has completed basic registration with standard access privileges.
     /// </summary>
     User = 1,
 
     /// <summary>
-    /// Người dùng có quyền hạn tăng cao, có thể quản lý nội dung,
-    /// quản lý người dùng hoặc truy cập các tính năng cụ thể.
+    /// User has elevated privileges, capable of managing content, users, or accessing specific features.
     /// </summary>
     Supervisor = 2,
 
     /// <summary>
-    /// Quản trị viên.
+    /// User is an administrator with full access and control.
     /// </summary>
     Administrator = 3
 }

@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Notio.Application.Main.Controller;
+namespace Notio.Application.Http;
 
 [ApiController]
 internal class MainController
@@ -53,7 +53,7 @@ internal class MainController
                 OS = Environment.OSVersion.ToString(),
                 Framework = Environment.Version.ToString(),
                 Environment.MachineName,
-                Uptime = $"{(DateTime.Now - Process.GetCurrentProcess().StartTime):hh\\:mm\\:ss}"
+                Uptime = $"{DateTime.Now - Process.GetCurrentProcess().StartTime:hh\\:mm\\:ss}"
             }
         );
 }

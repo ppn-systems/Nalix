@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public class ExceptionHandlingMiddleware(NotioLog logger) : MiddlewareBase
+public sealed class ExceptionHandlingMiddleware(NotioLog logger) : MiddlewareBase
 {
     private readonly NotioLog _logger = logger;
 

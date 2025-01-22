@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Firewall;
-using Notio.Logging;
+using Notio.Common.Logging;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -21,6 +21,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
     private readonly int _maxAllowedRequests;
     private readonly int _lockoutDurationSeconds;
 
+    private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
     private readonly TimeSpan _timeWindowDuration;
@@ -29,8 +30,9 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
 
     private bool _disposed;
 
-    public RequestLimiter(FirewallConfig? networkConfig)
+    public RequestLimiter(FirewallConfig? networkConfig, ILogger? logger = null)
     {
+        _logger = logger;
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxAllowedRequests <= 0)
@@ -79,7 +81,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         ).BlockedUntil?.CompareTo(currentTime) <= 0;
 
         if (_firewallConfig.EnableMetrics)
-            NotioLog.Instance.Meta($"{endPoint}|{status}|{currentTime.Minute}ms");
+            _logger?.Meta($"{endPoint}|{status}|{currentTime.Minute}ms");
 
         return status;
     }

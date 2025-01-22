@@ -85,6 +85,10 @@ public sealed class NotioLog : LoggingEngine, ILogger
         => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
 
     /// <inheritdoc />
+    public void Error(string message, EventId? eventId = null)
+        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message);
+
+    /// <inheritdoc />
     public void Fatal(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message);
 

@@ -6,7 +6,7 @@ namespace Notio.Network.Http;
 /// <summary>
 /// Represents an HTTP context.
 /// </summary>
-public class HttpContext(HttpListenerContext context)
+public sealed class HttpContext(HttpListenerContext context)
 {
     /// <summary>
     /// Gets the HTTP listener request.

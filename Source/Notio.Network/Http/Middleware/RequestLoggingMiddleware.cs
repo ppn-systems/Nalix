@@ -1,12 +1,11 @@
 ﻿using Notio.Logging;
 using Notio.Network.Http.Core;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
+public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
 {
     private readonly NotioLog _logger = logger;
     private readonly Stopwatch _stopwatch = new();

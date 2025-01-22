@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Notio.Network.Security;
 
-public class JwtToken
+public sealed class JwtToken
 {
     private readonly string _issuer;
     private readonly string _audience;

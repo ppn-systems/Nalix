@@ -44,6 +44,11 @@ public interface ILogger
     void Warn(string message, EventId? eventId = null);
 
     /// <summary>
+    /// Logs an error with message.
+    /// </summary>
+    public void Error(string message, EventId? eventId = null);
+
+    /// <summary>
     /// Logs an error with exception.
     /// </summary>
     void Error(Exception exception, EventId? eventId = null);

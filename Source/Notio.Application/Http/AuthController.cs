@@ -5,6 +5,8 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 
+namespace Notio.Application.Http;
+
 [ApiController]
 internal sealed class AuthController
 {

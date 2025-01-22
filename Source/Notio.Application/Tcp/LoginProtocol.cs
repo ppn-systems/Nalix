@@ -2,11 +2,11 @@
 using Notio.Network.Protocols;
 using System;
 
-namespace Notio.Application.Main;
+namespace Notio.Application.Tcp;
 
 public class LoginProtocol : Protocol
 {
-    public override void ProcessMessage(object sender, IConnctEventArgs connection)
+    public override void ProcessMessage(object sender, IConnectEventArgs connection)
     {
         throw new NotImplementedException();
     }

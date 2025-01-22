@@ -10,7 +10,7 @@ namespace Notio.Network.Http;
 /// <summary>
 /// Handles routing of HTTP requests to registered controllers and their methods.
 /// </summary>
-internal class HttpRouter
+internal sealed class HttpRouter
 {
     private readonly ConcurrentDictionary<string, Func<HttpContext, Task>> _routeHandlers = new();
 

@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Logging;
+using Notio.Common.Logging;
 using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
@@ -15,6 +15,7 @@ namespace Notio.Network.Firewall;
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
 {
+    private readonly ILogger? _logger;
     private readonly FirewallConfig _firewallConfig;
     private readonly ConcurrentDictionary<string, ConnectionInfo> _connectionInfo;
     private readonly Timer _cleanupTimer;
@@ -22,8 +23,9 @@ public sealed class ConnectionLimiter : IDisposable
     private readonly int _maxConnectionsPerIp;
     private bool _disposed;
 
-    public ConnectionLimiter(FirewallConfig? networkConfig = null)
+    public ConnectionLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
     {
+        _logger = logger;
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxConnectionsPerIpAddress <= 0)
@@ -52,7 +54,7 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime currentDate = now.Date;
 
         if (_firewallConfig.EnableMetrics)
-            NotioLog.Instance.Trace($"{endPoint}|New");
+            _logger?.Trace($"{endPoint}|New");
 
         return _connectionInfo.AddOrUpdate(
             endPoint,
@@ -64,7 +66,7 @@ public sealed class ConnectionLimiter : IDisposable
                 if (stats.CurrentConnections >= _maxConnectionsPerIp)
                 {
                     if (_firewallConfig.EnableLogging)
-                        NotioLog.Instance.Trace($"Connection limit exceeded for IP: {endPoint}");
+                        _logger?.Trace($"Connection limit exceeded for IP: {endPoint}");
                     return stats;
                 }
 
@@ -86,7 +88,7 @@ public sealed class ConnectionLimiter : IDisposable
             throw new FirewallException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         if (_firewallConfig.EnableMetrics)
-            NotioLog.Instance.Trace($"{endPoint}|Closed");
+            _logger?.Trace($"{endPoint}|Closed");
 
         return _connectionInfo.AddOrUpdate(
             endPoint,
@@ -128,7 +130,7 @@ public sealed class ConnectionLimiter : IDisposable
                     keysToRemove.Add(ip);
 
                     if (_firewallConfig.EnableLogging)
-                        NotioLog.Instance.Trace($"Removing stale connection data for IP: {ip}");
+                        _logger?.Trace($"Removing stale connection data for IP: {ip}");
                 }
             }
 
@@ -138,7 +140,7 @@ public sealed class ConnectionLimiter : IDisposable
         catch (Exception ex)
         {
             if (_firewallConfig.EnableLogging)
-                NotioLog.Instance.Trace($"Error during connection cleanup: {ex.Message}");
+                _logger?.Error($"Error during connection cleanup: {ex.Message}");
         }
         finally
         {
@@ -171,7 +173,7 @@ public sealed class ConnectionLimiter : IDisposable
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Trace($"Dispose error: {ex.Message}");
+            _logger?.Error($"Dispose error: {ex.Message}");
         }
     }
 }

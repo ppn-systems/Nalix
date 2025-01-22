@@ -1,27 +1,27 @@
 ﻿namespace Notio.Common.Connection.Enums;
 
 /// <summary>
-/// Trạng thái kết nối.
+/// Represents the state of a connection.
 /// </summary>
 public enum ConnectionState
 {
     /// <summary>
-    /// Đang kết nối.
+    /// The connection is in the process of being established.
     /// </summary>
     Connecting,
 
     /// <summary>
-    /// Đã kết nối.
+    /// The connection has been successfully established.
     /// </summary>
     Connected,
 
     /// <summary>
-    /// Đã xác thực.
+    /// The connection has been authenticated.
     /// </summary>
     Authenticated,
 
     /// <summary>
-    /// Kết nối đã bị ngắt.
+    /// The connection has been disconnected.
     /// </summary>
     Disconnected,
 }

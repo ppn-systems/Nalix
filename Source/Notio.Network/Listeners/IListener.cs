@@ -3,18 +3,18 @@
 namespace Notio.Network.Listeners;
 
 /// <summary>
-/// Giao diện dành cho các lớp lắng nghe mạng.
+/// Interface for network listener classes.
 /// </summary>
 internal interface IListener
 {
     /// <summary>
-    /// Bắt đầu lắng nghe với một CancellationToken để có thể hủy quá trình nếu cần.
+    /// Starts listening for network connections using a CancellationToken for optional cancellation.
     /// </summary>
-    /// <param name="cancellationToken">CancellationToken dùng để hủy lắng nghe.</param>
+    /// <param name="cancellationToken">A CancellationToken used to cancel the listening process.</param>
     void BeginListening(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Kết thúc quá trình lắng nghe.
+    /// Stops the listening process.
     /// </summary>
     void EndListening();
 }

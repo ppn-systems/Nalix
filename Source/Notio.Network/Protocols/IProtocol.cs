@@ -4,33 +4,32 @@ using Notio.Common.Connection.Args;
 namespace Notio.Network.Protocols;
 
 /// <summary>
-/// Giao diện đại diện cho một giao thức mạng.
+/// Interface representing a network protocol.
 /// </summary>
 public interface IProtocol
 {
     /// <summary>
-    /// Nhận giá trị chỉ ra liệu giao thức có nên giữ kết nối mở sau khi nhận được một gói tin hay không.
+    /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.
     /// </summary>
     bool KeepConnectionOpen { get; }
 
     /// <summary>
-    /// Xử lý một kết nối mới.
+    /// Handles a new connection.
     /// </summary>
-    /// <param name="connection">Kết nối.</param>
-    /// <param name="ar">Kết quả của việc kết nối.</param>
+    /// <param name="connection">The connection.</param>
     void OnAccept(IConnection connection);
 
     /// <summary>
-    /// Xử lý một tin nhắn đến từ kết nối.
+    /// Processes an incoming message from the connection.
     /// </summary>
-    /// <param name="sender">Nguồn gốc của sự kiện.</param>
-    /// <param name="args">Tham số của sự kiện kết nối.</param>
-    void ProcessMessage(object sender, IConnctEventArgs args);
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="args">The connection event arguments.</param>
+    void ProcessMessage(object sender, IConnectEventArgs args);
 
     /// <summary>
-    /// Chạy sau khi xử lý một tin nhắn từ kết nối.
+    /// Executes after processing a message from the connection.
     /// </summary>
-    /// <param name="sender">Nguồn gốc của sự kiện.</param>
-    /// <param name="args">Tham số của sự kiện kết nối.</param>
-    void PostProcessMessage(object sender, IConnctEventArgs args);
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="args">The connection event arguments.</param>
+    void PostProcessMessage(object sender, IConnectEventArgs args);
 }

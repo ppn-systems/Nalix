@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Connection.Args;
+using Notio.Common.Logging;
 using Notio.Common.Memory;
-using Notio.Logging;
 using Notio.Network.Protocols;
 using System;
 using System.Net;
@@ -11,10 +11,11 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferAllocator)
+public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferAllocator, ILogger? logger)
     : TcpListener(IPAddress.Any, port), IListener
 {
     private readonly int _port = port;
+    private readonly ILogger? _logger = logger;
     private readonly IProtocol _protocol = protocol;
     private readonly IBufferPool _bufferAllocator = bufferAllocator;
 
@@ -28,12 +29,12 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferA
             }
             catch (SocketException ex)
             {
-                NotioLog.Instance.Error($"Could not start {_protocol} on port {_port}", ex);
+                _logger?.Error($"Could not start {_protocol} on port {_port}", ex);
                 Environment.Exit(1);
                 return;
             }
 
-            NotioLog.Instance.Info($"{_protocol} is online on port {_port}");
+            _logger?.Info($"{_protocol} is online on port {_port}");
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -50,7 +51,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferA
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Connection.Connection connection = new(socket, _bufferAllocator); // Fully qualify the Connection class
+        Connection.Connection connection = new(socket, _bufferAllocator, _logger); // Fully qualify the Connection class
 
         connection.OnCloseEvent += this.OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;
@@ -58,7 +59,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferA
         return connection;
     }
 
-    private void OnConnectionClose(object? sender, IConnctEventArgs args)
+    private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
         // De-subscribe to this event first.
         args.Connection.OnCloseEvent -= this.OnConnectionClose!;

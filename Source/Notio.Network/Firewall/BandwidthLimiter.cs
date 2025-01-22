@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Logging;
+using Notio.Common.Logging;
 using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
@@ -22,11 +22,13 @@ public sealed class BandwidthLimiter : IDisposable
     private readonly DataRateLimit _uploadLimit;
     private readonly TimeSpan _resetInterval;
     private readonly Timer _resetTimer;
+    private readonly ILogger? _logger;
 
     private bool _disposed;
 
-    public BandwidthLimiter(FirewallConfig? networkConfig = null)
+    public BandwidthLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
     {
+        _logger = logger;
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         // Kiểm tra cấu hình
@@ -75,7 +77,7 @@ public sealed class BandwidthLimiter : IDisposable
             if (!await throttle.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken))
             {
                 if (_firewallConfig.EnableLogging)
-                    NotioLog.Instance.Trace($"Upload throttled for IP: {endPoint}");
+                    _logger?.Trace($"Upload throttled for IP: {endPoint}");
 
                 return false;
             }
@@ -89,7 +91,7 @@ public sealed class BandwidthLimiter : IDisposable
                     if (newTotal > _uploadLimit.BytesPerSecond)
                     {
                         if (_firewallConfig.EnableLogging)
-                            NotioLog.Instance.Trace($"Upload limit exceeded for IP: {endPoint}");
+                            _logger?.Trace($"Upload limit exceeded for IP: {endPoint}");
 
                         return current;
                     }
@@ -102,7 +104,7 @@ public sealed class BandwidthLimiter : IDisposable
             );
 
             if (_firewallConfig.EnableMetrics)
-                NotioLog.Instance.Meta($"{endPoint}|{stats.BytesSent}|Upload");
+                _logger?.Meta($"{endPoint}|{stats.BytesSent}|Upload");
 
             return stats.BytesSent <= _uploadLimit.BytesPerSecond;
         }
@@ -131,7 +133,7 @@ public sealed class BandwidthLimiter : IDisposable
             if (!await throttle.WaitAsync(TimeSpan.FromSeconds(1), cancellationToken))
             {
                 if (_firewallConfig.EnableLogging)
-                    NotioLog.Instance.Trace($"Download throttled for IP: {endPoint}");
+                    _logger?.Trace($"Download throttled for IP: {endPoint}");
 
                 return false;
             }
@@ -145,7 +147,7 @@ public sealed class BandwidthLimiter : IDisposable
                     if (newTotal > _downloadLimit.BytesPerSecond)
                     {
                         if (_firewallConfig.EnableLogging)
-                            NotioLog.Instance.Trace($"Download limit exceeded for IP: {endPoint}");
+                            _logger?.Trace($"Download limit exceeded for IP: {endPoint}");
 
                         return current;
                     }
@@ -158,7 +160,7 @@ public sealed class BandwidthLimiter : IDisposable
             );
 
             if (_firewallConfig.EnableMetrics)
-                NotioLog.Instance.Meta($"{endPoint}|{stats.BytesReceived}|Download");
+                _logger?.Meta($"{endPoint}|{stats.BytesReceived}|Download");
 
             return stats.BytesReceived <= _downloadLimit.BytesPerSecond;
         }

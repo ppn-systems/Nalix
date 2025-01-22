@@ -29,7 +29,7 @@ public abstract class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">Nguồn gốc của sự kiện.</param>
     /// <param name="args">Tham số của sự kiện kết nối.</param>
-    public void PostProcessMessage(object sender, IConnctEventArgs args)
+    public void PostProcessMessage(object sender, IConnectEventArgs args)
     {
         if (!KeepConnectionOpen) args.Connection.Disconnect();
     }
@@ -39,5 +39,5 @@ public abstract class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">Nguồn gốc của sự kiện.</param>
     /// <param name="connection">Tham số của sự kiện kết nối.</param>
-    public abstract void ProcessMessage(object sender, IConnctEventArgs connection);
+    public abstract void ProcessMessage(object sender, IConnectEventArgs connection);
 }
