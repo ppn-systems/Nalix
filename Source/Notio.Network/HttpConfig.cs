@@ -12,7 +12,18 @@ public sealed class HttpConfig : ConfigurationBinder
     /// Gets the server's base URL.
     /// Default is "http://localhost:8080/".
     /// </summary>
-    public string UniformResourceLocator { get; set; } = "http://localhost:8080/";
+    public string Prefixes { get; set; } = "http://localhost:8080/";
+
+    public int MaxConcurrentRequests = 100;
+
+    /* CorsOptions */
+    public string[] AllowedOrigins { get; set; } = ["*"];
+    public string[] AllowedMethods { get; set; } = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
+    public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
+
+    /* RateLimitingOptions */
+    public int MaxRequests { get; set; } = 100;
+    public int WindowMinutes { get; set; } = 15;
 
     /// <summary>
     /// Gets the expiration time for cached responses.

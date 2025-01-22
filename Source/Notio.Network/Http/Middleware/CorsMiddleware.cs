@@ -1,17 +1,15 @@
-﻿using System;
+﻿using Notio.Network.Http.Core;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public sealed class CorsMiddleware(
-    string[]? allowedOrigins = null,
-    string[]? allowedMethods = null,
-    string[]? allowedHeaders = null) : MiddlewareBase
+public sealed class CorsMiddleware(HttpConfig? httpConfig = null) : MiddlewareBase
 {
-    private readonly string[] _allowedOrigins = allowedOrigins ?? ["*"];
-    private readonly string[] _allowedMethods = allowedMethods ?? ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
-    private readonly string[] _allowedHeaders = allowedHeaders ?? ["Content-Type", "Authorization"];
+    private readonly string[] _allowedOrigins = httpConfig?.AllowedOrigins ?? ["*"];
+    private readonly string[] _allowedMethods = httpConfig?.AllowedMethods ?? ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
+    private readonly string[] _allowedHeaders = httpConfig?.AllowedHeaders ?? ["Content-Type", "Authorization"];
 
     protected override Task HandleAsync(HttpContext context)
     {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Network.Http.Core;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -6,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinutes = 15) 
+public sealed class RateLimitingMiddleware(HttpConfig? httpConfig = null)
     : MiddlewareBase
 {
-    private readonly int _maxRequests = maxRequests;
-    private readonly TimeSpan _window = TimeSpan.FromMinutes(windowMinutes);
+    private readonly int _maxRequests = httpConfig?.MaxRequests ?? 100;
+    private readonly TimeSpan _window = TimeSpan.FromMinutes(httpConfig?.WindowMinutes ?? 15);
     private readonly Dictionary<string, (int Count, DateTime Window)> _requests = [];
 
     protected override Task HandleAsync(HttpContext context)

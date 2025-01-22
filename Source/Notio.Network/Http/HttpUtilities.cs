@@ -9,7 +9,7 @@ namespace Notio.Network.Http;
 
 public static class HttpUtilities
 {
-    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    internal static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
@@ -17,7 +17,7 @@ public static class HttpUtilities
     };
 
     // Gửi phản hồi JSON (Chung cho cả dữ liệu thành công và lỗi)
-    private static async Task WriteJsonResponseAsyncInternal<T>(
+    internal static async Task WriteJsonResponseAsyncInternal<T>(
         this HttpListenerResponse response,
         HttpStatusCode statusCode,
         T data)

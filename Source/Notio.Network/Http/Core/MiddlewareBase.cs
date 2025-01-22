@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Notio.Network.Http.Middleware;
+namespace Notio.Network.Http.Core;
 
 /// <summary>
 /// Defines middleware that can be added to the application's request pipeline.

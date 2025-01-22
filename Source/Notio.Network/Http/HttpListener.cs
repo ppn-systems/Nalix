@@ -1,66 +1,107 @@
 ﻿using Notio.Logging;
+using Notio.Network.Http.Core;
+using Notio.Network.Http.Exceptions;
 using Notio.Network.Http.Middleware;
 using Notio.Shared.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Http;
 
-public class HttpListener : IDisposable
+public interface IHttpListener
 {
+    IHttpListener UseMiddleware<T>() where T : MiddlewareBase, new();
+
+    IHttpListener UseMiddleware(MiddlewareBase middleware);
+
+    IHttpListener RegisterController<T>() where T : class, new();
+
+    Task StartAsync(CancellationToken cancellationToken = default);
+
+    Task StopAsync();
+}
+
+public class HttpListener : IDisposable, IHttpListener
+{
+    private readonly NotioLog _logger;
     private readonly HttpRouter _router;
     private readonly HttpConfig _httpConfig;
-    private readonly System.Net.HttpListener _listener;
+    private readonly MiddlewarePipeline _pipeline;
     private readonly CancellationTokenSource _cts;
-    private readonly List<IMiddleware> _middleware;
+    private readonly SemaphoreSlim _requestSemaphore;
+    private readonly System.Net.HttpListener _listener;
 
-    public HttpListener(HttpConfig? config = null)
+    public HttpListener(
+        HttpConfig? config = null,
+        NotioLog? logger = null)
     {
+        _logger = logger ?? NotioLog.Instance;
         _httpConfig = config ?? ConfigurationShared.Instance.Get<HttpConfig>();
 
-        if (string.IsNullOrWhiteSpace(_httpConfig.UniformResourceLocator))
+        if (string.IsNullOrWhiteSpace(_httpConfig.Prefixes))
             throw new ArgumentException("URL cannot be null or empty.", nameof(config));
 
-        _middleware = [];
         _router = new HttpRouter();
+        _pipeline = new MiddlewarePipeline();
         _cts = new CancellationTokenSource();
+        _requestSemaphore = new SemaphoreSlim(_httpConfig.MaxConcurrentRequests);
 
         _listener = new System.Net.HttpListener
         {
             IgnoreWriteExceptions = true
         };
 
-        _listener.Prefixes.Add(_httpConfig.UniformResourceLocator);
+        _listener.Prefixes.Add(_httpConfig.Prefixes);
+
+        if (config == null)
+            this.ConfigureDefaultMiddleware();
+    }
+
+    private void ConfigureDefaultMiddleware()
+    {
+        // Thêm middleware mặc định với cấu hình từ config
+        _pipeline.AddMiddleware(new CorsMiddleware(_httpConfig));
+        _pipeline.AddMiddleware(new RequestLoggingMiddleware(_logger));
+        _pipeline.AddMiddleware(new RateLimitingMiddleware(_httpConfig));
+        _pipeline.AddMiddleware(new ExceptionHandlingMiddleware(_logger));
     }
 
     // Cho phép thêm Middleware dễ dàng
-    public void UseMiddleware(IMiddleware middleware)
+    public IHttpListener UseMiddleware<T>() where T : MiddlewareBase, new()
     {
-        _middleware.Add(middleware);
+        _pipeline.AddMiddleware(new T());
+        return this;
     }
 
-    public void RegisterController<T>()
-        where T : class, new()
+    public IHttpListener UseMiddleware(MiddlewareBase middleware)
+    {
+        _pipeline.AddMiddleware(middleware);
+        return this;
+    }
+
+    public IHttpListener RegisterController<T>() where T : class, new()
     {
         _router.RegisterController<T>();
+        return this;
     }
 
     // Khởi động server và bắt đầu xử lý yêu cầu
-    public async Task StartAsync()
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             _listener.Start();
-            NotioLog.Instance.Info("HTTP server is running...");
-            await HandleRequestsAsync(_cts.Token);
+            _logger.Info($"HTTP server is running on {string.Join(", ", _httpConfig.Prefixes)}");
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+            await HandleRequestsAsync(linkedCts.Token);
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error("Failed to start server", ex);
+            _logger.Error("Failed to start server", ex);
             throw;
         }
     }
@@ -71,24 +112,35 @@ public class HttpListener : IDisposable
         {
             try
             {
-                var context = await _listener.GetContextAsync();
+                await _requestSemaphore.WaitAsync(cancellationToken);
 
-                NotioLog.Instance.Trace($"""
-                Request Info:
-                - URL: {context.Request.Url?.AbsolutePath}
-                - Method: {context.Request.HttpMethod}
-                - Headers: {string.Join(Environment.NewLine, context.Request.Headers.AllKeys.Select(key => $"{key}: {context.Request.Headers[key]}"))}
-                """);
-
-                await this.ProcessRequestAsync(context);
+                var contextTask = _listener.GetContextAsync();
+                if (await Task.WhenAny(contextTask, Task.Delay(TimeSpan.FromSeconds(30), cancellationToken)) == contextTask)
+                {
+                    var context = await contextTask;
+                    _ = ProcessRequestAsync(context)
+                        .ContinueWith(t =>
+                        {
+                            _requestSemaphore.Release();
+                            if (t.IsFaulted)
+                            {
+                                _logger.Error("Unhandled error in request processing", t.Exception);
+                            }
+                        }, TaskScheduler.Current);
+                }
+                else
+                {
+                    _requestSemaphore.Release();
+                }
             }
-            catch (HttpListenerException) when (cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // Catch exception khi server bị dừng
+                break;
             }
             catch (Exception ex)
             {
-                NotioLog.Instance.Error("Error handling request", ex);
+                _logger.Error("Error accepting request", ex);
+                await Task.Delay(1000, cancellationToken); // Prevent tight loop on persistent errors
             }
         }
     }
@@ -96,44 +148,59 @@ public class HttpListener : IDisposable
     private async Task ProcessRequestAsync(HttpListenerContext listenerContext)
     {
         var context = new HttpContext(listenerContext);
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            // Xử lý middleware trước khi routing
-            foreach (IMiddleware middleware in _middleware)
-                await middleware.InvokeAsync(context);
-
-            // Gọi router để xử lý
+            await _pipeline.ExecuteAsync(context);
             await _router.RouteAsync(context);
         }
         catch (Exception ex)
         {
-            // Log lỗi chi tiết và trả về phản hồi lỗi
-            NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);
-
-            var errorResponse = new
-            {
-                Error = $"Internal error processing {context.Request.Url?.AbsolutePath}",
-                ex.Message
-            };
-
-            await context.Response.WriteJsonResponseAsync(HttpStatusCode.InternalServerError, errorResponse);
+            _logger.Error($"Error processing request: {ex.Message}", ex);
+            await HandleErrorResponse(context, ex);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _logger.Debug($"Request processed in {stopwatch.ElapsedMilliseconds}ms: {context.Request.HttpMethod} {context.Request.Url?.PathAndQuery}");
+            context.Response.Close();
         }
     }
 
-    // Dừng server
-    public void Stop()
+    private static async Task HandleErrorResponse(HttpContext context, Exception ex)
+    {
+        var statusCode = ex switch
+        {
+            ValidationException => HttpStatusCode.BadRequest,
+            UnauthorizedException => HttpStatusCode.Unauthorized,
+            NotFoundException => HttpStatusCode.NotFound,
+            _ => HttpStatusCode.InternalServerError
+        };
+
+        object error = new
+        {
+            StatusCode = (int)statusCode,
+            Details = ex is BaseException baseEx ? baseEx.Details : null,
+            ex.Message
+        };
+
+        await context.Response.WriteErrorResponseAsync(statusCode, error);
+    }
+
+    public async Task StopAsync()
     {
         _cts.Cancel();
         _listener.Stop();
-        NotioLog.Instance.Info("Server has been stopped.");
+        await Task.WhenAll(_pipeline.ShutdownAsync());
+        _logger.Info("Server has been stopped.");
     }
 
-    // Giải phóng tài nguyên
     public void Dispose()
     {
         _cts.Cancel();
         _listener.Close();
+        _requestSemaphore.Dispose();
         _cts.Dispose();
         GC.SuppressFinalize(this);
     }

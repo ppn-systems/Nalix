@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Http.Middleware;
+namespace Notio.Network.Http.Core;
 
 public class MiddlewarePipeline
 {
@@ -20,5 +20,9 @@ public class MiddlewarePipeline
             }
             await first.InvokeAsync(context);
         }
+    }
+
+    public async Task ShutdownAsync()
+    {
     }
 }

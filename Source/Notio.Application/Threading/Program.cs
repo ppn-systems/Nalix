@@ -6,7 +6,7 @@ using Notio.Logging.Enums;
 using Notio.Logging.Targets;
 using Notio.Network.Http;
 using Notio.Network.Http.Middleware;
-using Notio.Test.Network;
+using Notio.Testing.Network;
 using System.Threading.Tasks;
 
 namespace Notio.Application.Threading;
@@ -21,15 +21,6 @@ public static class Program
 
         httpServer.RegisterController<MainController>();
         httpServer.RegisterController<AuthController>();
-
-        CorsMiddleware corsMiddleware = new(
-            allowedOrigins: ["*"],
-            allowedMethods: ["GET", "POST"],
-            allowedHeaders: ["Content-Type", "Authorization"]
-        );
-
-        httpServer.UseMiddleware(new RateLimitingMiddleware());
-        httpServer.UseMiddleware(corsMiddleware);
 
         await httpServer.StartAsync();
 

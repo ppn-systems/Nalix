@@ -1,9 +1,9 @@
 ﻿using Notio.Network.Firewall;
-using System.Net;
-using System.Threading.Tasks;
-using System;
 using Notio.Network.Http;
 using Notio.Network.Http.Attributes;
+using System;
+using System.Net;
+using System.Threading.Tasks;
 
 [ApiController]
 internal sealed class AuthController
@@ -73,7 +73,7 @@ internal sealed class AuthController
 
         if (request.Username == ADMIN_USERNAME && request.Password == ADMIN_PASSWORD)
         {
-            await context.Response.WriteJsonResponseAsync(HttpStatusCode.OK, 
+            await context.Response.WriteJsonResponseAsync(HttpStatusCode.OK,
                 GenerateTokenResponse(ADMIN_USERNAME, ADMIN_ROLE));
             return;
         }

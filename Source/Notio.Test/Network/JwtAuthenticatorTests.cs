@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Notio.Network.Firewall;
 using Notio.Common.Exceptions;
 
-namespace Notio.Test.Network;
+namespace Notio.Testing.Network;
 
 public sealed class JwtAuthenticatorTests
 {
@@ -30,21 +30,21 @@ public sealed class JwtAuthenticatorTests
         try
         {
             _ = new JwtAuthenticator(null!, Issuer, Audience);
-            Console.WriteLine("Test failed: No exception for null secret key.");
+            Console.WriteLine("Testing failed: No exception for null secret key.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for null secret key.");
+            Console.WriteLine("Testing passed: Exception for null secret key.");
         }
 
         try
         {
             _ = new JwtAuthenticator("", Issuer, Audience);
-            Console.WriteLine("Test failed: No exception for empty secret key.");
+            Console.WriteLine("Testing failed: No exception for empty secret key.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for empty secret key.");
+            Console.WriteLine("Testing passed: Exception for empty secret key.");
         }
     }
 
@@ -53,21 +53,21 @@ public sealed class JwtAuthenticatorTests
         try
         {
             _ = new JwtAuthenticator(SecretKey, null!, Audience);
-            Console.WriteLine("Test failed: No exception for null issuer.");
+            Console.WriteLine("Testing failed: No exception for null issuer.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for null issuer.");
+            Console.WriteLine("Testing passed: Exception for null issuer.");
         }
 
         try
         {
             _ = new JwtAuthenticator(SecretKey, "", Audience);
-            Console.WriteLine("Test failed: No exception for empty issuer.");
+            Console.WriteLine("Testing failed: No exception for empty issuer.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for empty issuer.");
+            Console.WriteLine("Testing passed: Exception for empty issuer.");
         }
     }
 
@@ -76,21 +76,21 @@ public sealed class JwtAuthenticatorTests
         try
         {
             _ = new JwtAuthenticator(SecretKey, Issuer, null!);
-            Console.WriteLine("Test failed: No exception for null audience.");
+            Console.WriteLine("Testing failed: No exception for null audience.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for null audience.");
+            Console.WriteLine("Testing passed: Exception for null audience.");
         }
 
         try
         {
             _ = new JwtAuthenticator(SecretKey, Issuer, "");
-            Console.WriteLine("Test failed: No exception for empty audience.");
+            Console.WriteLine("Testing failed: No exception for empty audience.");
         }
         catch (FirewallException)
         {
-            Console.WriteLine("Test passed: Exception for empty audience.");
+            Console.WriteLine("Testing passed: Exception for empty audience.");
         }
     }
 
@@ -107,11 +107,11 @@ public sealed class JwtAuthenticatorTests
         // Assert
         if (!string.IsNullOrWhiteSpace(token) && token.Split('.').Length == 3)
         {
-            Console.WriteLine("Test passed: Valid token generated.");
+            Console.WriteLine("Testing passed: Valid token generated.");
         }
         else
         {
-            Console.WriteLine("Test failed: Invalid token generated.");
+            Console.WriteLine("Testing failed: Invalid token generated.");
         }
     }
 
@@ -129,11 +129,11 @@ public sealed class JwtAuthenticatorTests
         // Assert
         if (isValid)
         {
-            Console.WriteLine("Test passed: Token is valid.");
+            Console.WriteLine("Testing passed: Token is valid.");
         }
         else
         {
-            Console.WriteLine("Test failed: Token is invalid.");
+            Console.WriteLine("Testing failed: Token is invalid.");
         }
     }
 
@@ -154,11 +154,11 @@ public sealed class JwtAuthenticatorTests
         // Assert
         if (!isValid)
         {
-            Console.WriteLine("Test passed: Token with invalid signature is recognized.");
+            Console.WriteLine("Testing passed: Token with invalid signature is recognized.");
         }
         else
         {
-            Console.WriteLine("Test failed: Token with invalid signature is not recognized.");
+            Console.WriteLine("Testing failed: Token with invalid signature is not recognized.");
         }
     }
 
@@ -176,11 +176,11 @@ public sealed class JwtAuthenticatorTests
         // Assert
         if (!isValid)
         {
-            Console.WriteLine("Test passed: Expired token is recognized.");
+            Console.WriteLine("Testing passed: Expired token is recognized.");
         }
         else
         {
-            Console.WriteLine("Test failed: Expired token is not recognized.");
+            Console.WriteLine("Testing failed: Expired token is not recognized.");
         }
     }
 
@@ -196,11 +196,11 @@ public sealed class JwtAuthenticatorTests
         // Assert
         if (!isValid)
         {
-            Console.WriteLine("Test passed: Malformed token is recognized.");
+            Console.WriteLine("Testing passed: Malformed token is recognized.");
         }
         else
         {
-            Console.WriteLine("Test failed: Malformed token is not recognized.");
+            Console.WriteLine("Testing failed: Malformed token is not recognized.");
         }
     }
 }
