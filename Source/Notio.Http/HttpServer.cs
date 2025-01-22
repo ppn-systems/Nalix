@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Notio.Http;
 
@@ -103,18 +104,14 @@ public class HttpServer : IDisposable
         }
         catch (Exception ex)
         {
-            NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);
+            NotioLog.Instance.Error($"Error processing request: {ex.Message}", ex);            
 
-            var errorResponse = new
-            {
-                StatusCode = (int)HttpStatusCode.InternalServerError,
-                Error = $"Internal error processing {context.Request.Url?.AbsolutePath}",
-                ex.Message
-            };
-
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-
-            await context.Response.WriteJsonResponseAsync(errorResponse);
+            await context.Response.WriteJsonResponseAsync(HttpStatusCode.InternalServerError,
+                new {
+                    Error = $"Internal error processing {context.Request.Url?.AbsolutePath}",
+                    ex.Message
+                }
+            );
         }
     }
 

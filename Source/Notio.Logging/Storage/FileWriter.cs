@@ -43,13 +43,31 @@ internal class FileWriter
         string logFilePath = this.GetBaseLogFileName();
         Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
 
-        _logFileStream = new FileStream(logFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
-        _logFileStream.Seek(0, append ? SeekOrigin.End : SeekOrigin.Begin);
+        // Nếu append là true, tiếp tục nối vào cuối tệp
+        // Nếu append là false, tạo tệp mới từ đầu
+        _logFileStream = new FileStream(logFilePath, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.Read);
 
-        if (!append)
-            _logFileStream.SetLength(0);
+        _logFileWriter = new StreamWriter(_logFileStream)
+        {
+            AutoFlush = true // Đảm bảo ghi liền vào tệp khi cần
+        };
 
-        _logFileWriter = new StreamWriter(_logFileStream);
+        // Nếu tệp vượt quá kích thước tối đa, cần tạo tệp mới
+        if (_logFileStream.Length >= _fileLogProvider.MaxFileSize && append)
+        {
+            this.CreateNewLogFileDirectory();
+        }
+    }
+
+
+    /// <summary>
+    /// Tạo thư mục tệp log mới.
+    /// </summary>
+    private void CreateNewLogFileDirectory()
+    {
+        // Khi tệp hiện tại quá lớn, tạo tệp mới trong thư mục log.
+        string newFileName = this.GenerateUniqueLogFileName();
+        this.UseNewLogFile(Path.Combine(_fileLogProvider.LogDirectory, newFileName));
     }
 
     private string GenerateUniqueLogFileName()
@@ -69,15 +87,6 @@ internal class FileWriter
         }
 
         return newFileName;
-    }
-
-    /// <summary>
-    /// Tạo thư mục tệp log mới.
-    /// </summary>
-    private void CreateNewLogFileDirectory()
-    {
-        string newFileName = this.GenerateUniqueLogFileName();
-        this.UseNewLogFile(Path.Combine(_fileLogProvider.LogDirectory, newFileName));
     }
 
     /// <summary>

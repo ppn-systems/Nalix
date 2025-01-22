@@ -13,6 +13,9 @@ public class FileLoggerOptions
     /// </summary>
     public bool Append { get; set; } = true;
 
+    /// <summary>
+    /// Giới hạn kích thước tối đa của một tệp log.
+    /// </summary>
     public int MaxFileSize = 10 * 1024 * 1024;
 
     /// <summary>
@@ -21,7 +24,7 @@ public class FileLoggerOptions
     /// <remarks>
     /// Nếu giới hạn kích thước tệp được đặt, logger sẽ tạo tệp mới khi đạt giới hạn.
     /// </remarks>
-    public long FileSizeLimitBytes { get; set; } = 3;
+    public int FileSizeLimitBytes { get; set; } = 3;
 
     /// <summary>
     /// Mức ghi log tối thiểu cho bộ ghi log tệp tin.

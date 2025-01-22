@@ -3,12 +3,12 @@ using Notio.Logging.Interfaces;
 using System;
 using System.IO;
 
-namespace Notio.Logging.Engine;
+namespace Notio.Logging;
 
 /// <summary>
 /// Xây dựng cấu hình logging.
 /// </summary>
-public class LoggingConfig
+public sealed class NotioLogConfig
 {
     private static readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private readonly ILoggingPublisher _publisher;
@@ -26,30 +26,30 @@ public class LoggingConfig
     /// <summary>
     /// Tên file lưu trữ nhật ký mặc định.
     /// </summary>
-    public string LogFileName { get; private set; } = "Notio";
+    public string LogFileName { get; private set; } = "Logging-Notio";
 
     /// <summary>
-    /// Khởi tạo một <see cref="LoggingConfig"/> mới.
+    /// Khởi tạo một <see cref="NotioLogConfig"/> mới.
     /// </summary>
     /// <param name="publisher">Đối tượng <see cref="ILoggingPublisher"/> để xuất bản các thông điệp logging.</param>
-    internal LoggingConfig(ILoggingPublisher publisher) => _publisher = publisher;
+    internal NotioLogConfig(ILoggingPublisher publisher) => _publisher = publisher;
 
     /// <summary>
-    /// Thêm cấu hình mặc định cho LoggingConfig.
+    /// Thêm cấu hình mặc định cho NotioLogConfig.
     /// </summary>
     /// <param name="configure">Hành động cấu hình mặc định.</param>
-    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
-    public LoggingConfig ConfigureDefaults(Func<LoggingConfig, LoggingConfig> configure)
+    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    public NotioLogConfig ConfigureDefaults(Func<NotioLogConfig, NotioLogConfig> configure)
         => configure(this);
 
     /// <summary>
     /// Thêm mục tiêu logging.
     /// </summary>
     /// <param name="target">Đối tượng <see cref="ILoggingTarget"/> để thêm vào.</param>
-    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
-    public LoggingConfig AddTarget(ILoggingTarget target)
+    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    public NotioLogConfig AddTarget(ILoggingTarget target)
     {
-        this.IsDefaults = false;
+        IsDefaults = false;
 
         _publisher.AddTarget(target);
         return this;
@@ -59,10 +59,10 @@ public class LoggingConfig
     /// Thiết lập mức độ logging tối thiểu.
     /// </summary>
     /// <param name="level">Mức độ <see cref="LoggingLevel"/> tối thiểu.</param>
-    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
-    public LoggingConfig SetMinLevel(LoggingLevel level)
+    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    public NotioLogConfig SetMinLevel(LoggingLevel level)
     {
-        this.IsDefaults = false;
+        IsDefaults = false;
 
         NotioLog.Instance.MinimumLevel = level;
         return this;
@@ -72,8 +72,8 @@ public class LoggingConfig
     /// Thiết lập đường dẫn thư mục lưu trữ nhật ký.
     /// </summary>
     /// <param name="directory">Đường dẫn thư mục mới.</param>
-    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
-    public LoggingConfig SetLogDirectory(string directory)
+    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    public NotioLogConfig SetLogDirectory(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory))
             throw new ArgumentException("Invalid directory.", nameof(directory));
@@ -81,7 +81,7 @@ public class LoggingConfig
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
 
-        this.IsDefaults = false;
+        IsDefaults = false;
 
         LogDirectory = directory;
         return this;
@@ -91,13 +91,13 @@ public class LoggingConfig
     /// Thiết lập tên file lưu trữ nhật ký.
     /// </summary>
     /// <param name="fileName">Tên file mới.</param>
-    /// <returns>Đối tượng <see cref="LoggingConfig"/> hiện tại.</returns>
-    public LoggingConfig SetLogFileName(string fileName)
+    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    public NotioLogConfig SetLogFileName(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentException("Invalid file name.", nameof(fileName));
 
-        this.IsDefaults = false;
+        IsDefaults = false;
 
         LogFileName = fileName;
         return this;

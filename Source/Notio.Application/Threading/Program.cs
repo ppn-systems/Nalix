@@ -17,11 +17,14 @@ public static class Program
     {
         Program.Initialize();
 
-        HttpServer httpServer = new(new HttpConfig 
+        for (int i = 0; i < 100000; i++)
         {
-            UniformResourceLocator = "http://+",
-            Port = 5000
-        });
+            NotioLog.Instance.Warn("This is a warning message.");
+            NotioLog.Instance.Info("This is an information message.");
+            NotioLog.Instance.Error(new System.Exception("This is an error message."));
+        }
+
+        HttpServer httpServer = new();
 
         httpServer.RegisterController<MainController>();
         httpServer.RegisterController<AuthController>();
@@ -48,7 +51,7 @@ public static class Program
         // Khởi tạo hệ thống logging
         NotioLog.Instance.Initialize(cfg =>
         {
-            cfg.SetMinLevel(LoggingLevel.Debug)
+            cfg.SetMinLevel(LoggingLevel.Meta)
                .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
                .AddTarget(new ConsoleTarget());
         });

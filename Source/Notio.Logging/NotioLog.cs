@@ -20,14 +20,14 @@ public sealed class NotioLog : LoggingEngine
     /// <summary>
     /// Initializes the logging system with optional configuration.
     /// </summary>
-    public void Initialize(Action<LoggingConfig>? configure = null)
+    public void Initialize(Action<NotioLogConfig>? configure = null)
     {
         if (_isInitialized)
             throw new InvalidOperationException("Logging has already been initialized.");
 
         _isInitialized = true;
 
-        LoggingConfig builder = new(base.Publisher);
+        NotioLogConfig builder = new(base.Publisher);
         configure?.Invoke(builder);
 
         if (builder.IsDefaults)

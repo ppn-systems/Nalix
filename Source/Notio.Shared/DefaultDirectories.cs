@@ -43,7 +43,7 @@ public static class DefaultDirectories
     /// </summary>
     static DefaultDirectories()
     {
-        EnsureDirectoriesExist(LogsPath, DataPath);
+        EnsureDirectoriesExist(LogsPath, DataPath, ConfigPath, TempPath, MetricPath);
     }
 
     /// <summary>

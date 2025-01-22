@@ -10,9 +10,9 @@ public sealed class HttpConfig : ConfigurationBinder
 {
     /// <summary>
     /// Gets the server's base URL.
-    /// Default is "http://localhost:8080".
+    /// Default is "http://localhost:8080/".
     /// </summary>
-    public string UniformResourceLocator { get; set; } = "http://localhost:8080";
+    public string UniformResourceLocator { get; set; } = "http://localhost:8080/";
 
     /// <summary>
     /// Gets the expiration time for cached responses.
