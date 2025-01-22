@@ -59,7 +59,6 @@ internal class FileWriter
         }
     }
 
-
     /// <summary>
     /// Tạo thư mục tệp log mới.
     /// </summary>

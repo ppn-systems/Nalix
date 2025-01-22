@@ -4,42 +4,50 @@ using System.IO;
 namespace Notio.Shared;
 
 /// <summary>
-/// Lớp cấu hình các đường dẫn mặc định cho ứng dụng.
+/// Class that defines default directories for the application.
 /// </summary>
 public static class DefaultDirectories
 {
-    /// <summary>
-    /// Đường dẫn gốc của ứng dụng.
-    /// </summary>
-    public static readonly string BasePath = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+    private static readonly Lazy<string> _basePath = new(() => AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
+    private static readonly Lazy<string> _logsPath = new(() => Path.Combine(BasePath, "Logs"));
+    private static readonly Lazy<string> _dataPath = new(() => Path.Combine(BasePath, "Data"));
+    private static readonly Lazy<string> _configPath = new(() => Path.Combine(BasePath, "Config"));
+    private static readonly Lazy<string> _tempPath = new(() => Path.Combine(DataPath, "Temp"));
+    private static readonly Lazy<string> _metricPath = new(() => Path.Combine(DataPath, "Metrics"));
 
     /// <summary>
-    /// Đường dẫn lưu trữ file log.
+    /// The base directory of the application.
     /// </summary>
-    public static readonly string LogsPath = Path.Combine(BasePath, "Logs");
+    public static string BasePath => _basePath.Value;
 
     /// <summary>
-    /// Đường dẫn lưu trữ dữ liệu.
+    /// Directory for storing log files.
     /// </summary>
-    public static readonly string DataPath = Path.Combine(BasePath, "Data");
+    public static string LogsPath => _logsPath.Value;
 
     /// <summary>
-    /// Đường dẫn lưu trữ tệp cấu hình hệ thống.
+    /// Directory for storing application data files.
     /// </summary>
-    public static readonly string ConfigPath = Path.Combine(BasePath, "Config");
+    public static string DataPath => _dataPath.Value;
 
     /// <summary>
-    /// Đường dẫn lưu trữ tệp tạm thời.
+    /// Directory for storing system configuration files.
     /// </summary>
-    public static readonly string TempPath = Path.Combine(DataPath, "Temp");
+    public static string ConfigPath => _configPath.Value;
 
     /// <summary>
-    /// Đường dẫn lưu trữ tệp số liệu.
+    /// Directory for storing temporary files.
     /// </summary>
-    public static readonly string MetricPath = Path.Combine(DataPath, "Metrics");
+    public static string TempPath => _tempPath.Value;
 
     /// <summary>
-    /// Khởi tạo các thư mục mặc định.
+    /// Directory for storing metric-related files.
+    /// </summary>
+    public static string MetricPath => _metricPath.Value;
+
+    /// <summary>
+    /// Static constructor to initialize the default directories.
+    /// Ensures that all necessary directories are created.
     /// </summary>
     static DefaultDirectories()
     {
@@ -47,20 +55,23 @@ public static class DefaultDirectories
     }
 
     /// <summary>
-    /// Đảm bảo các thư mục tồn tại, nếu chưa thì tạo mới.
+    /// Ensures that the specified directories exist. Creates them if they do not exist.
     /// </summary>
-    /// <param name="paths">Danh sách các đường dẫn cần kiểm tra.</param>
+    /// <param name="paths">An array of directory paths to verify and create if necessary.</param>
     private static void EnsureDirectoriesExist(params string[] paths)
     {
-        foreach (var path in paths)
+        foreach (string path in paths)
         {
             try
             {
                 Directory.CreateDirectory(path);
+
+                // Debug
+                // Console.WriteLine($"Directory verified/created: {path}");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Unable to create folders: {path}", ex);
+                throw new InvalidOperationException($"Unable to create directory: {path}", ex);
             }
         }
     }

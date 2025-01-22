@@ -1,4 +1,5 @@
-﻿using Notio.Common.Memory;
+﻿using Notio.Common.Logging;
+using Notio.Common.Memory;
 using Notio.Shared.Configuration;
 using System;
 using System.Linq;
@@ -8,13 +9,14 @@ using System.Threading;
 namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Quản lý các bộ đệm có nhiều kích thước khác nhau.
+/// Manages buffers of various sizes and handles dynamic buffer allocation and deallocation.
 /// </summary>
 public sealed class BufferAllocator : IBufferPool
 {
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
 
+    private readonly ILogger? _logger;
     private readonly int _totalBuffers;
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly BufferManager _poolManager = new();
@@ -22,31 +24,26 @@ public sealed class BufferAllocator : IBufferPool
     private bool _isInitialized;
 
     /// <summary>
-    /// Lấy cấu hình bộ đệm từ quản lý cấu hình hệ thống.
+    /// Gets the buffer configuration from the system configuration manager.
     /// </summary>
-    /// <value>Cấu hình bộ đệm được thiết lập từ hệ thống.</value>
+    /// <value>The buffer configuration set from the system.</value>
     public BufferConfig BufferConfig { get; } = ConfigurationShared.Instance.Get<BufferConfig>();
 
     /// <summary>
-    /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.
+    /// Gets the largest buffer size from the buffer allocations list.
     /// </summary>
     public int MaxBufferSize => _bufferAllocations.Max(alloc => alloc.BufferSize);
 
     /// <summary>
-    /// Sự kiện theo dõi.
+    /// Initializes a new instance of the <see cref="BufferAllocator"/> class with buffer allocation settings and total buffer count.
     /// </summary>
-    public event Action<string>? TraceOccurred;
-
-    /// <summary>
-    /// Khởi tạo một thể hiện mới của lớp <see cref="BufferAllocator"/> với các cấu hình phân bổ bộ đệm và tổng số bộ đệm.
-    /// </summary>
-    public BufferAllocator(BufferConfig? bufferConfig = null)
+    /// <param name="bufferConfig">The buffer configuration to use. If null, the default configuration is used.</param>
+    public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
         if (bufferConfig is not null)
-        {
             BufferConfig = bufferConfig;
-        }
 
+        _logger = logger;
         _totalBuffers = BufferConfig.TotalBuffers;
         _bufferAllocations = ParseBufferAllocations(BufferConfig.BufferAllocations);
 
@@ -57,9 +54,9 @@ public sealed class BufferAllocator : IBufferPool
     }
 
     /// <summary>
-    /// Cấp phát các bộ đệm dựa trên cấu hình.
+    /// Allocates buffers based on the configuration settings.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Ném ra nếu bộ đệm đã được cấp phát.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if buffers have already been allocated.</exception>
     private void AllocateBuffers()
     {
         if (_isInitialized) throw new InvalidOperationException("Buffers already allocated.");
@@ -74,24 +71,24 @@ public sealed class BufferAllocator : IBufferPool
     }
 
     /// <summary>
-    /// Thuê một bộ đệm có ít nhất kích thước yêu cầu.
+    /// Rents a buffer of at least the requested size.
     /// </summary>
-    /// <param name="size">Kích thước của bộ đệm cần thuê, mặc định là 1024.</param>
-    /// <returns>Một mảng byte của bộ đệm.</returns>
+    /// <param name="size">The size of the buffer to rent. Default is 1024.</param>
+    /// <returns>A byte array representing the rented buffer.</returns>
     public byte[] Rent(int size = 1024) => _poolManager.RentBuffer(size);
 
     /// <summary>
-    /// Trả lại bộ đệm về bộ đệm thích hợp.
+    /// Returns the buffer to the appropriate pool.
     /// </summary>
-    /// <param name="buffer">Bộ đệm để trả lại.</param>
+    /// <param name="buffer">The buffer to return.</param>
     public void Return(byte[] buffer) => _poolManager.ReturnBuffer(buffer);
 
     /// <summary>
-    /// Lấy tỷ lệ phân bổ cho kích thước bộ đệm cho trước.
+    /// Gets the allocation ratio for a given buffer size.
     /// </summary>
-    /// <param name="size">Kích thước của bộ đệm.</param>
-    /// <returns>Tỷ lệ phân bổ của kích thước bộ đệm.</returns>
-    /// <exception cref="ArgumentException">Ném ra nếu không tìm thấy phân bổ cho kích thước bộ đệm.</exception>
+    /// <param name="size">The size of the buffer.</param>
+    /// <returns>The allocation ratio for the given buffer size.</returns>
+    /// <exception cref="ArgumentException">Thrown if no allocation ratio is found for the given buffer size.</exception>
     public double GetAllocationForSize(int size)
     {
         foreach (var (bufferSize, allocation) in _bufferAllocations.OrderBy(alloc => alloc.BufferSize))
@@ -103,6 +100,12 @@ public sealed class BufferAllocator : IBufferPool
         throw new ArgumentException($"No allocation found for size: {size}");
     }
 
+    /// <summary>
+    /// Parses the buffer allocation settings from a configuration string.
+    /// </summary>
+    /// <param name="bufferAllocationsString">The buffer allocations string in the format '<size>,<ratio>;...'</param>
+    /// <returns>An array of tuples representing the buffer size and allocation ratio.</returns>
+    /// <exception cref="ArgumentException">Thrown if the input string is malformed.</exception>
     private static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)
     {
         if (string.IsNullOrWhiteSpace(bufferAllocationsString))
@@ -157,8 +160,9 @@ public sealed class BufferAllocator : IBufferPool
     }
 
     /// <summary>
-    /// Giảm dung lượng bộ đệm với thuật toán tối ưu.
+    /// Shrinks the buffer pool size using an optimal algorithm.
     /// </summary>
+    /// <param name="pool">The buffer pool to shrink.</param>
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
@@ -186,7 +190,7 @@ public sealed class BufferAllocator : IBufferPool
                 spinLock.Enter(ref lockTaken);
                 pool.DecreaseCapacity(buffersToShrink);
 
-                TraceOccurred?.Invoke(
+                _logger?.Info(
                     $"Shrank buffer pool for size {poolInfo.BufferSize}, " +
                     $"reduced by {buffersToShrink}, " +
                     $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
@@ -198,15 +202,16 @@ public sealed class BufferAllocator : IBufferPool
         }
         else
         {
-            TraceOccurred?.Invoke(
+            _logger?.Info(
                 $"No buffers were shrunk for pool size {poolInfo.BufferSize}. " +
                 $"Current capacity is optimal.");
         }
     }
 
     /// <summary>
-    /// Tăng dung lượng bộ đệm với thuật toán tối ưu.
+    /// Increases the buffer pool size using an optimal algorithm.
     /// </summary>
+    /// <param name="pool">The buffer pool to increase.</param>
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
@@ -215,13 +220,13 @@ public sealed class BufferAllocator : IBufferPool
 
         if (poolInfo.FreeBuffers <= threshold)
         {
-            // Tối ưu phép tính increaseBy
+            // Optimized increase calculation
             int baseIncrease = (int)Math.Max(
                 MinimumIncrease,
                 BitOperations.RoundUpToPowerOf2((uint)poolInfo.TotalBuffers) >> 2
             );
 
-            // Giới hạn tăng trưởng để tránh OOM
+            // Limit the increase to avoid OOM
             int maxIncrease = Math.Min(
                 baseIncrease,
                 MaxBufferIncreaseLimit
@@ -238,7 +243,7 @@ public sealed class BufferAllocator : IBufferPool
                 {
                     pool.IncreaseCapacity(maxIncrease);
 
-                    TraceOccurred?.Invoke(
+                    _logger?.Info(
                         $"Increased buffer pool for size {poolInfo.BufferSize}, " +
                         $"added {maxIncrease}, " +
                         $"new capacity: {poolInfo.TotalBuffers + maxIncrease}.");
@@ -252,7 +257,7 @@ public sealed class BufferAllocator : IBufferPool
         else
         {
             // Logging
-            TraceOccurred?.Invoke(
+            _logger?.Info(
                 $"No increase needed for pool size {poolInfo.BufferSize}. " +
                 $"Free buffers: {poolInfo.FreeBuffers}, " +
                 $"threshold: {threshold}.");
@@ -260,7 +265,7 @@ public sealed class BufferAllocator : IBufferPool
     }
 
     /// <summary>
-    /// Giải phóng tất cả các tài nguyên của các pool bộ đệm.
+    /// Releases all resources of the buffer pools.
     /// </summary>
     public void Dispose() => _poolManager.Dispose();
 }

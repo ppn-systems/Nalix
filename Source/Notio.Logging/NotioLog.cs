@@ -1,13 +1,13 @@
-﻿using Notio.Logging.Engine;
+﻿using Notio.Common.Logging;
+using Notio.Logging.Engine;
 using Notio.Logging.Enums;
-using Notio.Logging.Metadata;
 using Notio.Logging.Targets;
 using System;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Logging;
 
-public sealed class NotioLog : LoggingEngine
+public sealed class NotioLog : LoggingEngine, ILogger
 {
     private bool _isInitialized;
     private static readonly Lazy<NotioLog> _instance = new(() => new());
@@ -48,70 +48,48 @@ public sealed class NotioLog : LoggingEngine
     public void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
        => base.CreateLogEntry(level, eventId, message, exception);
 
-    /// <summary>
-    /// Logs metadata information.
-    /// </summary>
+    /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
 
-    /// <summary>
-    /// Logs trace information.
-    /// </summary>
+    /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, message);
 
-    /// <summary>
-    /// Logs debug information.
-    /// </summary>
+    /// <inheritdoc />
     public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
         => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{memberName}] {message}");
 
-    /// <summary>
-    /// Logs debug information for a specific class.
-    /// </summary>
+    /// <inheritdoc />
     public void Debug<TClass>(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
         where TClass : class
         => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
 
-    /// <summary>
-    /// Logs information.
-    /// </summary>
+    /// <inheritdoc />
     public void Info(string format, params object[] args)
         => WriteLog(LoggingLevel.Information, EventId.Empty, string.Format(format, args));
 
-    /// <summary>
-    /// Logs information.
-    /// </summary>
+    /// <inheritdoc />
     public void Info(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Information, eventId ?? EventId.Empty, message);
 
-    /// <summary>
-    /// Logs a warning message.
-    /// </summary>
+    /// <inheritdoc />
     public void Warn(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Warning, eventId ?? EventId.Empty, message);
 
-    /// <summary>
-    /// Logs an error with exception.
-    /// </summary>
+    /// <inheritdoc />
     public void Error(Exception exception, EventId? eventId = null)
         => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
 
-    /// <summary>
-    /// Logs an error with message and exception.
-    /// </summary>
+    /// <inheritdoc />
     public void Error(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
 
-    /// <summary>
-    /// Logs a critical error message.
-    /// </summary>
+    /// <inheritdoc />
     public void Fatal(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message);
 
-    /// <summary>
-    /// Logs a critical error with message and exception.
-    /// </summary>
+    /// <inheritdoc />
     public void Fatal(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message, exception);
 }

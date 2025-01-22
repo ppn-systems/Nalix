@@ -18,4 +18,8 @@
 		<Deterministic>true</Deterministic>
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+	</ItemGroup>
 </Project>

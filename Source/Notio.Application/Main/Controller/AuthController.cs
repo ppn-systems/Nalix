@@ -1,6 +1,6 @@
-﻿using Notio.Network.Firewall;
-using Notio.Network.Http;
+﻿using Notio.Network.Http;
 using Notio.Network.Http.Attributes;
+using Notio.Network.Security;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -20,7 +20,7 @@ internal sealed class AuthController
     private record struct UserInfoResponse(string Username, string Role);
     private record struct AuthenticationResponse(bool IsAuthenticated, string? Username = null, string? Role = null, string? Error = null);
 
-    private readonly JwtAuthenticator _jwtAuthenticator = new(
+    private readonly JwtToken _jwtAuthenticator = new(
         secretKey: "your_secret_key",
         issuer: "your_issuer",
         audience: "your_audience");
@@ -50,7 +50,7 @@ internal sealed class AuthController
             return new AuthenticationResponse(false, Error: "Invalid token");
         }
 
-        var claims = JwtAuthenticator.DecodeToken(token);
+        var claims = JwtToken.DecodeToken(token);
         if (!claims.TryGetValue("sub", out var sub) || !claims.TryGetValue("role", out var roleClaim))
         {
             await context.Response.WriteErrorResponseAsync(HttpStatusCode.Unauthorized, "Invalid token claims");
@@ -92,7 +92,7 @@ internal sealed class AuthController
             return;
         }
 
-        var claims = JwtAuthenticator.DecodeToken(token);
+        var claims = JwtToken.DecodeToken(token);
         if (!claims.TryGetValue("sub", out var sub) || !claims.TryGetValue("role", out var role))
         {
             await context.Response.WriteErrorResponseAsync(HttpStatusCode.Unauthorized, "Invalid token claims");

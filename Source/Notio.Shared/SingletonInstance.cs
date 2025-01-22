@@ -3,23 +3,32 @@
 namespace Notio.Shared;
 
 /// <summary>
-/// Generic thread-safe Singleton implementation using Lazy.
+/// A generic thread-safe Singleton implementation using <see cref="Lazy{T}"/>.
 /// </summary>
+/// <typeparam name="T">The type of the Singleton class.</typeparam>
 public abstract class SingletonInstance<T> where T : class
 {
     private static readonly Lazy<T> _instance = new(CreateInstance, true);
 
+    /// <summary>
+    /// Gets the single instance of the <typeparamref name="T"/> class.
+    /// </summary>
     public static T Instance => _instance.Value;
 
     /// <summary>
-    /// Constructor bảo vệ để ngăn tạo instance bên ngoài.
+    /// A protected constructor to prevent direct instantiation from outside the class.
     /// </summary>
     protected SingletonInstance()
     { }
 
     /// <summary>
-    /// Tạo thể hiện của lớp Singleton.
+    /// Creates an instance of the Singleton class.
     /// </summary>
+    /// <returns>The single instance of <typeparamref name="T"/>.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the instance cannot be created, typically due to the type <typeparamref name="T"/> 
+    /// not having a parameterless or protected constructor.
+    /// </exception>
     private static T CreateInstance()
     {
         return Activator.CreateInstance(typeof(T), nonPublic: true) as T

@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 namespace Notio.Shared;
 
 /// <summary>
-/// Lớp Singleton dùng để quản lý và khởi tạo các instance duy nhất của các class.
+/// The Singleton class is used to manage and initialize unique instances of classes.
 /// </summary>
 public static class Singleton
 {
@@ -13,8 +13,10 @@ public static class Singleton
     private static readonly ConcurrentDictionary<Type, Func<object>> _factories = new();
 
     /// <summary>
-    /// Đăng ký một instance của lớp.
+    /// Registers an instance of a class.
     /// </summary>
+    /// <param name="instance">The instance of the class to register.</param>
+    /// <param name="allowOverwrite">If true, allows overwriting existing registrations.</param>
     public static void Register<TClass>(TClass instance, bool allowOverwrite = false)
         where TClass : class
     {
@@ -34,8 +36,9 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Đăng ký một interface với một lớp triển khai sử dụng lazy loading.
+    /// Registers an interface with an implementation class using lazy loading.
     /// </summary>
+    /// <param name="factory">A factory function to create an instance of the implementation.</param>
     public static void Register<TInterface, TImplementation>(Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
     {
@@ -54,19 +57,21 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Lấy hoặc tạo instance đã đăng ký của một lớp.
+    /// Resolves or creates a registered instance of a class.
     /// </summary>
+    /// <param name="createIfNotExists">If true, creates the instance if not already registered.</param>
+    /// <returns>The instance of the class.</returns>
     public static TClass? Resolve<TClass>(bool createIfNotExists = true) where TClass : class
     {
         Type type = typeof(TClass);
 
-        // Kiểm tra instance đã đăng ký
+        // Check if the instance is already registered
         if (_services.TryGetValue(type, out var lazyService))
         {
             return (TClass)lazyService.Value;
         }
 
-        // Kiểm tra factory đã đăng ký
+        // Check if a factory is registered
         if (_factories.TryGetValue(type, out var factory))
         {
             Lazy<object> lazyInstance = new(() => factory(), isThreadSafe: true);
@@ -74,7 +79,7 @@ public static class Singleton
             return (TClass)lazyInstance.Value;
         }
 
-        // Kiểm tra mapping interface-implementation
+        // Check for interface-to-implementation mapping
         if (_typeMapping.TryGetValue(type, out Type? implementationType))
         {
             if (!_services.TryGetValue(implementationType, out var lazyImpl))
@@ -116,8 +121,9 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Kiểm tra xem một type đã được đăng ký chưa
+    /// Checks if a type is registered.
     /// </summary>
+    /// <returns>True if the type is registered, otherwise false.</returns>
     public static bool IsRegistered<TClass>() where TClass : class
     {
         Type type = typeof(TClass);
@@ -127,7 +133,7 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Xóa đăng ký của một type cụ thể
+    /// Removes the registration of a specific type.
     /// </summary>
     public static void Remove<TClass>() where TClass : class
     {
@@ -138,7 +144,7 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Xóa tất cả các đăng ký.
+    /// Clears all registrations.
     /// </summary>
     public static void Clear()
     {

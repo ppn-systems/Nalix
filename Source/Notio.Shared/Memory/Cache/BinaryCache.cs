@@ -4,19 +4,24 @@ using System.Collections.Generic;
 namespace Notio.Shared.Memory.Cache;
 
 /// <summary>
-/// Khởi tạo một bộ nhớ cache với dung lượng xác định.
+/// Initializes a cache with a specified capacity.
 /// </summary>
-public sealed class BinaryCache(int capacity)
+public sealed class BinaryCache
 {
-    private readonly int _capacity = capacity;
+    private readonly int _capacity;
     private readonly LinkedList<ReadOnlyMemory<byte>> _usageOrder = new();
-    private readonly Dictionary<ReadOnlyMemory<byte>, LinkedListNode<ReadOnlyMemory<byte>>> _cacheMap = [];
+    private readonly Dictionary<ReadOnlyMemory<byte>, LinkedListNode<ReadOnlyMemory<byte>>> _cacheMap = new();
+
+    public BinaryCache(int capacity)
+    {
+        _capacity = capacity;
+    }
 
     /// <summary>
-    /// Thêm một phần tử vào bộ nhớ cache.
+    /// Adds an item to the cache.
     /// </summary>
-    /// <param name="key">Khóa của phần tử.</param>
-    /// <param name="value">Giá trị của phần tử.</param>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="value">The value of the item.</param>
     public void Add(ReadOnlySpan<byte> key, ReadOnlyMemory<byte> value)
     {
         ReadOnlyMemory<byte> memoryKey = key.ToArray();
@@ -39,11 +44,11 @@ public sealed class BinaryCache(int capacity)
     }
 
     /// <summary>
-    /// Lấy giá trị từ bộ nhớ cache với khóa cho trước.
+    /// Retrieves the value from the cache by the given key.
     /// </summary>
-    /// <param name="key">Khóa của phần tử.</param>
-    /// <returns>Giá trị của phần tử nếu tìm thấy.</returns>
-    /// <exception cref="KeyNotFoundException">Ném ngoại lệ nếu không tìm thấy khóa.</exception>
+    /// <param name="key">The key of the item.</param>
+    /// <returns>The value of the item if found.</returns>
+    /// <exception cref="KeyNotFoundException">Throws an exception if the key is not found.</exception>
     public ReadOnlyMemory<byte> GetValue(ReadOnlySpan<byte> key)
     {
         ReadOnlyMemory<byte> memoryKey = key.ToArray();
@@ -59,11 +64,11 @@ public sealed class BinaryCache(int capacity)
     }
 
     /// <summary>
-    /// Thử lấy giá trị từ bộ nhớ cache với khóa cho trước.
+    /// Tries to retrieve the value from the cache by the given key.
     /// </summary>
-    /// <param name="key">Khóa của phần tử.</param>
-    /// <param name="value">Giá trị của phần tử nếu tìm thấy.</param>
-    /// <returns>Trả về true nếu tìm thấy, ngược lại trả về false.</returns>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="value">The value of the item if found.</param>
+    /// <returns>Returns true if found, otherwise false.</returns>
     public bool TryGetValue(ReadOnlySpan<byte> key, out ReadOnlyMemory<byte>? value)
     {
         ReadOnlyMemory<byte> memoryKey = key.ToArray();
@@ -79,7 +84,7 @@ public sealed class BinaryCache(int capacity)
     }
 
     /// <summary>
-    /// Hủy toàn bộ bộ nhớ cache.
+    /// Clears the entire cache.
     /// </summary>
     public void Clear()
     {

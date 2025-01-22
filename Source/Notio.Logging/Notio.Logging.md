@@ -8,7 +8,7 @@ using Notio.Logging;
 ```
 ## Class Signature
 ```csharp
-public sealed class NotioLog : LoggingEngine
+public sealed class NotioLog : LoggingEngine, ILogger
 ```
 ## Properties
 

@@ -5,7 +5,7 @@ using System.Linq;
 namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Quản lý các pool của các bộ đệm dùng chung.
+/// Manages shared buffer pools.
 /// </summary>
 public sealed class BufferManager : IDisposable
 {
@@ -14,35 +14,35 @@ public sealed class BufferManager : IDisposable
     private int[] _sortedKeys = [];
 
     /// <summary>
-    /// Sự kiện kích hoạt khi cần tăng dung lượng bộ đệm.
+    /// Event triggered when buffer pool needs to increase capacity.
     /// </summary>
     public event Action<BufferPoolShared>? EventIncrease;
 
     /// <summary>
-    /// Sự kiện kích hoạt khi cần giảm dung lượng bộ đệm.
+    /// Event triggered when buffer pool needs to decrease capacity.
     /// </summary>
     public event Action<BufferPoolShared>? EventShrink;
 
     /// <summary>
-    /// Tạo một pool bộ đệm mới với kích thước và dung lượng ban đầu cho trước.
+    /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    /// <param name="bufferSize">Kích thước của mỗi bộ đệm trong pool.</param>
-    /// <param name="initialCapacity">Số lượng bộ đệm ban đầu để cấp phát.</param>
+    /// <param name="bufferSize">The size of each buffer in the pool.</param>
+    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
     public void CreatePool(int bufferSize, int initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
         {
-            // Cập nhật danh sách kích thước đã sắp xếp
+            // Update the sorted list of pool sizes
             _sortedKeys = [.. _pools.Keys.OrderBy(k => k)];
         }
     }
 
     /// <summary>
-    /// Thuê một bộ đệm có ít nhất kích thước yêu cầu.
+    /// Rents a buffer that is at least the requested size.
     /// </summary>
-    /// <param name="size">Kích thước của bộ đệm cần thuê.</param>
-    /// <returns>Một mảng byte của bộ đệm.</returns>
-    /// <exception cref="ArgumentException">Ném ra nếu kích thước bộ đệm yêu cầu vượt quá kích thước pool có sẵn.</exception>
+    /// <param name="size">The size of the buffer to rent.</param>
+    /// <returns>A byte array representing the buffer.</returns>
+    /// <exception cref="ArgumentException">Thrown if the requested buffer size exceeds the available pool size.</exception>
     public byte[] RentBuffer(int size)
     {
         int poolSize = FindSuitablePoolSize(size);
@@ -52,7 +52,7 @@ public sealed class BufferManager : IDisposable
         BufferPoolShared pool = _pools[poolSize];
         byte[] buffer = pool.AcquireBuffer();
 
-        // Kiểm tra và kích hoạt sự kiện tăng dung lượng
+        // Check and trigger the event to increase capacity
         if (AdjustCounter(poolSize, isRent: true))
             EventIncrease?.Invoke(pool);
 
@@ -60,10 +60,10 @@ public sealed class BufferManager : IDisposable
     }
 
     /// <summary>
-    /// Trả lại bộ đệm về pool thích hợp.
+    /// Returns a buffer to the appropriate pool.
     /// </summary>
-    /// <param name="buffer">Bộ đệm để trả lại.</param>
-    /// <exception cref="ArgumentException">Ném ra nếu kích thước bộ đệm không hợp lệ.</exception>
+    /// <param name="buffer">The buffer to return.</param>
+    /// <exception cref="ArgumentException">Thrown if the buffer size is invalid.</exception>
     public void ReturnBuffer(byte[] buffer)
     {
         if (buffer == null || !_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
@@ -71,17 +71,17 @@ public sealed class BufferManager : IDisposable
 
         pool.ReleaseBuffer(buffer);
 
-        // Kiểm tra và kích hoạt sự kiện giảm dung lượng
+        // Check and trigger the event to shrink capacity
         if (AdjustCounter(buffer.Length, isRent: false))
             EventShrink?.Invoke(pool);
     }
 
     /// <summary>
-    /// Điều chỉnh bộ đếm thuê và trả bộ đệm, đồng thời kiểm tra xem có nên kích hoạt sự kiện tăng/giảm dung lượng hay không.
+    /// Adjusts the rent and return counters, and checks whether to trigger the increase or shrink capacity events.
     /// </summary>
-    /// <param name="poolSize">Kích thước của pool.</param>
-    /// <param name="isRent">Xác định xem là hành động thuê hay trả bộ đệm.</param>
-    /// <returns>True nếu nên kích hoạt sự kiện, ngược lại False.</returns>
+    /// <param name="poolSize">The size of the pool.</param>
+    /// <param name="isRent">Indicates whether it is a rent or return action.</param>
+    /// <returns>True if an event should be triggered, otherwise false.</returns>
     private bool AdjustCounter(int poolSize, bool isRent)
     {
         return _adjustmentCounters.AddOrUpdate(poolSize,
@@ -102,10 +102,10 @@ public sealed class BufferManager : IDisposable
     }
 
     /// <summary>
-    /// Tìm kích thước pool phù hợp nhất dựa trên kích thước yêu cầu.
+    /// Finds the most suitable pool size based on the requested size.
     /// </summary>
-    /// <param name="size">Kích thước yêu cầu.</param>
-    /// <returns>Kích thước của pool phù hợp.</returns>
+    /// <param name="size">The requested size.</param>
+    /// <returns>The size of the most suitable pool.</returns>
     private int FindSuitablePoolSize(int size)
     {
         foreach (var key in _sortedKeys)
@@ -118,7 +118,7 @@ public sealed class BufferManager : IDisposable
     }
 
     /// <summary>
-    /// Giải phóng tất cả các tài nguyên của các pool bộ đệm.
+    /// Releases all resources used by the buffer pools.
     /// </summary>
     public void Dispose()
     {

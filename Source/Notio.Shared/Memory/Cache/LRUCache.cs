@@ -23,7 +23,7 @@ public sealed class LRUCache<TKey, TValue>(int capacity) where TKey : notnull
     }
 
     private readonly int _capacity = capacity;
-    private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap = new();
+    private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap = [];
     private readonly LinkedList<CacheItem> _lruList = new();
 
     /// <summary>

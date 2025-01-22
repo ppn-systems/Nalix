@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Notio.Common.Exceptions;
+using System.Collections.Generic;
 
 namespace Notio.Network.Http.Exceptions;
 

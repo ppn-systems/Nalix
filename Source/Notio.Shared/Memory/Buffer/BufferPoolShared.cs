@@ -7,7 +7,7 @@ using System.Threading;
 namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Quản lý một pool của các bộ đệm dùng chung.
+/// Manages a pool of shared buffers.
 /// </summary>
 public sealed class BufferPoolShared : IDisposable
 {
@@ -23,20 +23,20 @@ public sealed class BufferPoolShared : IDisposable
     private int _misses;
 
     /// <summary>
-    /// Tổng số lượng bộ đệm trong pool.
+    /// The total number of buffers in the pool.
     /// </summary>
     public int TotalBuffers => _totalBuffers;
 
     /// <summary>
-    /// Số lượng bộ đệm rảnh trong pool.
+    /// The number of free buffers in the pool.
     /// </summary>
     public int FreeBuffers => _freeBuffers.Count;
 
     /// <summary>
-    /// Khởi tạo một thể hiện mới của lớp <see cref="BufferPoolShared"/>.
+    /// Initializes a new instance of the <see cref="BufferPoolShared"/> class.
     /// </summary>
-    /// <param name="bufferSize">Kích thước của mỗi bộ đệm trong pool.</param>
-    /// <param name="initialCapacity">Số lượng bộ đệm ban đầu để cấp phát.</param>
+    /// <param name="bufferSize">The size of each buffer in the pool.</param>
+    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
     private BufferPoolShared(int bufferSize, int initialCapacity)
     {
         _bufferSize = bufferSize;
@@ -52,20 +52,20 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Lấy hoặc tạo một pool bộ đệm chung cho kích thước bộ đệm chỉ định.
+    /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
-    /// <param name="bufferSize">Kích thước của mỗi bộ đệm trong pool.</param>
-    /// <param name="initialCapacity">Số lượng bộ đệm ban đầu để cấp phát.</param>
-    /// <returns>Đối tượng <see cref="BufferPoolShared"/> cho kích thước bộ đệm chỉ định.</returns>
+    /// <param name="bufferSize">The size of each buffer in the pool.</param>
+    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
+    /// <returns>A <see cref="BufferPoolShared"/> object for the specified buffer size.</returns>
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
     {
         return _pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
     }
 
     /// <summary>
-    /// Lấy một bộ đệm từ pool.
+    /// Acquires a buffer from the pool.
     /// </summary>
-    /// <returns>Một mảng byte của bộ đệm.</returns>
+    /// <returns>A byte array representing the buffer.</returns>
     public byte[] AcquireBuffer()
     {
         if (_freeBuffers.TryDequeue(out var buffer))
@@ -80,9 +80,9 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Trả lại một bộ đệm vào pool.
+    /// Releases a buffer back into the pool.
     /// </summary>
-    /// <param name="buffer">Bộ đệm để trả lại.</param>
+    /// <param name="buffer">The buffer to release.</param>
     public void ReleaseBuffer(byte[] buffer)
     {
         if (buffer == null || buffer.Length != _bufferSize)
@@ -94,14 +94,14 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Tăng dung lượng pool bằng cách thêm các bộ đệm.
+    /// Increases the capacity of the pool by adding buffers.
     /// </summary>
-    /// <param name="additionalCapacity">Số lượng bộ đệm thêm vào.</param>
+    /// <param name="additionalCapacity">The number of buffers to add.</param>
     public void IncreaseCapacity(int additionalCapacity)
     {
         if (additionalCapacity <= 0)
         {
-            throw new ArgumentException("The additional quantity must be greater than no.");
+            throw new ArgumentException("The additional quantity must be greater than zero.");
         }
 
         var buffersToAdd = new List<byte[]>(additionalCapacity);
@@ -119,9 +119,9 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Giảm dung lượng pool bằng cách loại bỏ các bộ đệm.
+    /// Decreases the capacity of the pool by removing buffers.
     /// </summary>
-    /// <param name="capacityToRemove">Số lượng bộ đệm để loại bỏ.</param>
+    /// <param name="capacityToRemove">The number of buffers to remove.</param>
     public void DecreaseCapacity(int capacityToRemove)
     {
         if (capacityToRemove <= 0)
@@ -144,9 +144,9 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Lấy thông tin về pool bộ đệm và lưu trữ thông tin này trong một field private.
+    /// Gets information about the buffer pool and stores it in a private field.
     /// </summary>
-    /// <returns>Tham chiếu chỉ đọc tới BufferInfo.</returns>
+    /// <returns>A read-only reference to a <see cref="BufferInfo"/> object.</returns>
     public BufferInfo GetPoolInfo()
     {
         return new BufferInfo
@@ -159,12 +159,12 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Lấy thông tin về pool bộ đệm và lưu trữ thông tin này trong một field private.
+    /// Gets information about the buffer pool and stores it in a private field.
     /// </summary>
-    /// <returns>Tham chiếu chỉ đọc tới BufferInfo.</returns>
+    /// <returns>A read-only reference to a <see cref="BufferInfo"/> object.</returns>
     public ref readonly BufferInfo GetPoolInfoRef()
     {
-        // FifoCache thông tin pool trong một field private
+        // Cache the pool info in a private field (FIFO cache)
         _poolInfo = new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,
@@ -177,7 +177,7 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Giải phóng pool bộ đệm và trả lại tất cả các bộ đệm vào pool mảng.
+    /// Releases the buffer pool and returns all buffers to the array pool.
     /// </summary>
     public void Dispose()
     {
@@ -186,9 +186,9 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Thực hiện giải phóng tài nguyên.
+    /// Performs the actual resource cleanup.
     /// </summary>
-    /// <param name="disposing">Chỉ định liệu việc giải phóng có được gọi từ Dispose hay không.</param>
+    /// <param name="disposing">Indicates whether cleanup is being called from Dispose.</param>
     private void Dispose(bool disposing)
     {
         if (_disposed) return;
@@ -199,7 +199,7 @@ public sealed class BufferPoolShared : IDisposable
 
             if (disposing)
             {
-                // Giải phóng tài nguyên được quản lý
+                // Release managed resources
                 while (_freeBuffers.TryDequeue(out var buffer))
                 {
                     _arrayPool.Return(buffer);
@@ -213,7 +213,7 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Finalizer (chỉ sử dụng nếu cần giải phóng tài nguyên không được quản lý).
+    /// Finalizer (only used if unmanaged resources need to be released).
     /// </summary>
     ~BufferPoolShared()
     {

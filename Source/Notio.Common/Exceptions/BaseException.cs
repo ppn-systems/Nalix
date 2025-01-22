@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Network.Http.Exceptions;
+namespace Notio.Common.Exceptions;
 
 public abstract class BaseException : Exception
 {

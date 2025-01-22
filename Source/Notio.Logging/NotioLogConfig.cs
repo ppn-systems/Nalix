@@ -6,7 +6,7 @@ using System.IO;
 namespace Notio.Logging;
 
 /// <summary>
-/// Xây dựng cấu hình logging.
+/// Configures logging settings for the application.
 /// </summary>
 public sealed class NotioLogConfig
 {
@@ -14,39 +14,39 @@ public sealed class NotioLogConfig
     private readonly ILoggingPublisher _publisher;
 
     /// <summary>
-    /// Cho biết có sử dụng cấu hình mặc định hay không.
+    /// Indicates whether the default configuration is being used.
     /// </summary>
     internal bool IsDefaults { get; private set; } = true;
 
     /// <summary>
-    /// Đường dẫn thư mục lưu trữ nhật ký.
+    /// Gets the directory path where log files are stored.
     /// </summary>
     public string LogDirectory { get; private set; } = Path.Combine(_baseDirectory, "Logs");
 
     /// <summary>
-    /// Tên file lưu trữ nhật ký mặc định.
+    /// Gets the default log file name.
     /// </summary>
     public string LogFileName { get; private set; } = "Logging-Notio";
 
     /// <summary>
-    /// Khởi tạo một <see cref="NotioLogConfig"/> mới.
+    /// Initializes a new instance of the <see cref="NotioLogConfig"/> class.
     /// </summary>
-    /// <param name="publisher">Đối tượng <see cref="ILoggingPublisher"/> để xuất bản các thông điệp logging.</param>
+    /// <param name="publisher">The <see cref="ILoggingPublisher"/> instance for publishing log messages.</param>
     internal NotioLogConfig(ILoggingPublisher publisher) => _publisher = publisher;
 
     /// <summary>
-    /// Thêm cấu hình mặc định cho NotioLogConfig.
+    /// Applies default configuration settings to the logging configuration.
     /// </summary>
-    /// <param name="configure">Hành động cấu hình mặc định.</param>
-    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    /// <param name="configure">The default configuration action.</param>
+    /// <returns>The current <see cref="NotioLogConfig"/> instance.</returns>
     public NotioLogConfig ConfigureDefaults(Func<NotioLogConfig, NotioLogConfig> configure)
         => configure(this);
 
     /// <summary>
-    /// Thêm mục tiêu logging.
+    /// Adds a logging target to the configuration.
     /// </summary>
-    /// <param name="target">Đối tượng <see cref="ILoggingTarget"/> để thêm vào.</param>
-    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    /// <param name="target">The <see cref="ILoggingTarget"/> to be added.</param>
+    /// <returns>The current <see cref="NotioLogConfig"/> instance.</returns>
     public NotioLogConfig AddTarget(ILoggingTarget target)
     {
         IsDefaults = false;
@@ -56,10 +56,10 @@ public sealed class NotioLogConfig
     }
 
     /// <summary>
-    /// Thiết lập mức độ logging tối thiểu.
+    /// Sets the minimum logging level.
     /// </summary>
-    /// <param name="level">Mức độ <see cref="LoggingLevel"/> tối thiểu.</param>
-    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    /// <param name="level">The minimum <see cref="LoggingLevel"/>.</param>
+    /// <returns>The current <see cref="NotioLogConfig"/> instance.</returns>
     public NotioLogConfig SetMinLevel(LoggingLevel level)
     {
         IsDefaults = false;
@@ -69,10 +69,11 @@ public sealed class NotioLogConfig
     }
 
     /// <summary>
-    /// Thiết lập đường dẫn thư mục lưu trữ nhật ký.
+    /// Sets the directory path for storing log files.
     /// </summary>
-    /// <param name="directory">Đường dẫn thư mục mới.</param>
-    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    /// <param name="directory">The new directory path.</param>
+    /// <returns>The current <see cref="NotioLogConfig"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when the directory path is invalid.</exception>
     public NotioLogConfig SetLogDirectory(string directory)
     {
         if (string.IsNullOrWhiteSpace(directory))
@@ -88,10 +89,11 @@ public sealed class NotioLogConfig
     }
 
     /// <summary>
-    /// Thiết lập tên file lưu trữ nhật ký.
+    /// Sets the name of the log file.
     /// </summary>
-    /// <param name="fileName">Tên file mới.</param>
-    /// <returns>Đối tượng <see cref="NotioLogConfig"/> hiện tại.</returns>
+    /// <param name="fileName">The new log file name.</param>
+    /// <returns>The current <see cref="NotioLogConfig"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when the file name is invalid.</exception>
     public NotioLogConfig SetLogFileName(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))

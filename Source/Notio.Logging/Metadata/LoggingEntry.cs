@@ -1,4 +1,5 @@
-﻿using Notio.Logging.Enums;
+﻿using Notio.Common.Logging;
+using Notio.Logging.Enums;
 
 namespace Notio.Logging.Metadata;
 
