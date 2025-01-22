@@ -1,7 +1,6 @@
-﻿using Notio.Http.Core;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace Notio.Http.Middleware;
+namespace Notio.Network.Http.Middleware;
 
 /// <summary>
 /// Defines middleware that can be added to the application's request pipeline.
@@ -18,7 +17,7 @@ public interface IMiddleware
 
 public abstract class MiddlewareBase : IMiddleware
 {
-    private MiddlewareBase _next;
+    private MiddlewareBase? _next;
 
     public void SetNext(MiddlewareBase next) => _next = next;
 

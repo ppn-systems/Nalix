@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Http.Core;
+namespace Notio.Network.Http;
 
 /// <summary>
 /// Represents an HTTP context.

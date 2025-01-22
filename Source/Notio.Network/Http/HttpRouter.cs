@@ -1,12 +1,11 @@
-﻿using Notio.Http.Attributes;
+﻿using Notio.Network.Http.Attributes;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Notio.Http.Core;
+namespace Notio.Network.Http;
 
 /// <summary>
 /// Handles routing of HTTP requests to registered controllers and their methods.
@@ -31,7 +30,7 @@ internal class HttpRouter
 
         foreach (MethodInfo method in methods)
         {
-            RouteAttribute routeAttribute = method.GetCustomAttribute<RouteAttribute>();
+            RouteAttribute? routeAttribute = method.GetCustomAttribute<RouteAttribute>();
             if (routeAttribute == null) continue;
 
             string routeKey = $"{routeAttribute.Method.ToString().ToUpper()}:{routeAttribute.Path}";
@@ -48,7 +47,15 @@ internal class HttpRouter
 
                 try
                 {
-                    await (Task)method.Invoke(controllerInstance, new object[] { context });
+                    if (method.Invoke(controllerInstance, [context]) is Task task)
+                    {
+                        await task;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            $"Method {method.Name} in {controllerType.Name} did not return a Task.");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -66,9 +73,9 @@ internal class HttpRouter
     /// <returns>The result of processing the route.</returns>
     public async Task RouteAsync(HttpContext context)
     {
-        if (_routeHandlers.TryGetValue(
-            $"{context.Request.HttpMethod.ToUpper()}:{context.Request.Url?.AbsolutePath}",
-            out Func<HttpContext, Task> handler))
+        string routeKey = $"{context.Request.HttpMethod.ToUpper()}:{context.Request.Url?.AbsolutePath}";
+
+        if (routeKey != null && _routeHandlers.TryGetValue(routeKey, out Func<HttpContext, Task>? handler))
         {
             await handler(context);
         }
@@ -81,14 +88,7 @@ internal class HttpRouter
                 Message = $"No route matches path: {context.Request.Url?.AbsolutePath} and method: {context.Request.HttpMethod}"
             };
 
-            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-            string json = System.Text.Json.JsonSerializer.Serialize(notFoundResponse);
-            byte[] buffer = Encoding.UTF8.GetBytes(json);
-
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            await context.Response.OutputStream.WriteAsync(buffer.AsMemory());
-            context.Response.OutputStream.Close();
+            await context.Response.WriteErrorResponseAsync(HttpStatusCode.NotFound, notFoundResponse);
         }
     }
 }

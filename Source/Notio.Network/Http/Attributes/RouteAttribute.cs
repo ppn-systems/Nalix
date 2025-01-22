@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Http.Attributes;
+namespace Notio.Network.Http.Attributes;
 
 public enum HttpMethodType
 {

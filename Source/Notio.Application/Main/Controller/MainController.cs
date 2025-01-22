@@ -1,5 +1,5 @@
-﻿using Notio.Http.Attributes;
-using Notio.Http.Core;
+﻿using Notio.Network.Http;
+using Notio.Network.Http.Attributes;
 using System;
 using System.Diagnostics;
 using System.Net;

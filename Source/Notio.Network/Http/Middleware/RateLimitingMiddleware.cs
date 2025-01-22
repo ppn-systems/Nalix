@@ -1,17 +1,17 @@
-﻿using Notio.Http.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Notio.Http.Middleware;
+namespace Notio.Network.Http.Middleware;
 
-public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinutes = 15) : MiddlewareBase
+public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinutes = 15) 
+    : MiddlewareBase
 {
-    private readonly Dictionary<string, (int Count, DateTime Window)> _requests = [];
     private readonly int _maxRequests = maxRequests;
     private readonly TimeSpan _window = TimeSpan.FromMinutes(windowMinutes);
+    private readonly Dictionary<string, (int Count, DateTime Window)> _requests = [];
 
     protected override Task HandleAsync(HttpContext context)
     {
@@ -33,7 +33,7 @@ public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinu
                     _requests[ip] = (data.Count + 1, data.Window);
             }
             else
-                _requests[ip] = (1, now);       
+                _requests[ip] = (1, now);
         }
 
         if (Random.Shared.Next(100) < 10) CleanupOldEntries();
@@ -47,7 +47,7 @@ public sealed class RateLimitingMiddleware(int maxRequests = 100, int windowMinu
         lock (_requests)
         {
             var oldEntries = _requests.Where(kvp => now - kvp.Value.Window > _window).Select(kvp => kvp.Key).ToList();
-            foreach (var key in oldEntries) _requests.Remove(key);    
+            foreach (var key in oldEntries) _requests.Remove(key);
         }
     }
 }

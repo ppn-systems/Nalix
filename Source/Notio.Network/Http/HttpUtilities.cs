@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Notio.Http.Core;
+namespace Notio.Network.Http;
 
 public static class HttpUtilities
 {
@@ -16,8 +16,8 @@ public static class HttpUtilities
         WriteIndented = false
     };
 
-    // Gửi phản hồi JSON đơn giản
-    public static async Task WriteJsonResponseAsync<T>(
+    // Gửi phản hồi JSON (Chung cho cả dữ liệu thành công và lỗi)
+    private static async Task WriteJsonResponseAsyncInternal<T>(
         this HttpListenerResponse response,
         HttpStatusCode statusCode,
         T data)
@@ -33,33 +33,55 @@ public static class HttpUtilities
 
             await response.OutputStream.WriteAsync(buffer.AsMemory());
         }
+        catch (Exception ex)
+        {
+            // Log exception nếu cần thiết.
+            response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            await response.WriteJsonResponseAsync(
+                HttpStatusCode.InternalServerError,
+                new { Error = ex.Message }
+            );
+        }
         finally
         {
             response.OutputStream.Close();
         }
     }
 
-    // Gửi phản hồi lỗi
-    public static async Task WriteErrorResponseAsync(
+    // Gửi phản hồi JSON thành công
+    public static Task WriteJsonResponseAsync<T>(
+        this HttpListenerResponse response,
+        HttpStatusCode statusCode,
+        T data)
+        => response.WriteJsonResponseAsyncInternal(statusCode, data);
+
+    // Gửi phản hồi lỗi với JSON
+    public static Task WriteErrorResponseAsync<T>(
+        this HttpListenerResponse response,
+        HttpStatusCode statusCode,
+        T data)
+        => response.WriteJsonResponseAsyncInternal(statusCode, data);
+
+    // Gửi phản hồi lỗi với thông báo chuỗi
+    public static Task WriteErrorResponseAsync(
         this HttpListenerResponse response,
         HttpStatusCode statusCode,
         string errorMessage)
-    {
-        await response.WriteJsonResponseAsync(
+        => response.WriteJsonResponseAsync(
             statusCode,
             new { Error = errorMessage }
         );
-    }
 
     // Deserialize JSON từ luồng yêu cầu
-    public static async Task<T> DeserializeRequestAsync<T>(this Stream inputStream)
+    public static async Task<T?> DeserializeRequestAsync<T>(this Stream inputStream)
     {
         try
         {
             return await JsonSerializer.DeserializeAsync<T>(inputStream, DefaultJsonOptions);
         }
-        catch
+        catch (Exception)
         {
+            // Log exception nếu cần thiết.
             return default;
         }
     }

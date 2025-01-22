@@ -1,9 +1,9 @@
-﻿using Notio.Http.Attributes;
-using Notio.Http.Core;
-using Notio.Network.Firewall;
+﻿using Notio.Network.Firewall;
 using System.Net;
 using System.Threading.Tasks;
 using System;
+using Notio.Network.Http;
+using Notio.Network.Http.Attributes;
 
 [ApiController]
 internal sealed class AuthController

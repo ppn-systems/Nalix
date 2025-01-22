@@ -1,7 +1,7 @@
 ﻿using Notio.Shared.Configuration;
 using System;
 
-namespace Notio.Http;
+namespace Notio.Network;
 
 /// <summary>
 /// Configuration settings for the HTTP server.

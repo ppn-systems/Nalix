@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Application.Main.Controller;
 using Notio.Database;
-using Notio.Http;
-using Notio.Http.Middleware;
 using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
+using Notio.Network.Http;
+using Notio.Network.Http.Middleware;
 using Notio.Test.Network;
 using System.Threading.Tasks;
 
@@ -17,14 +17,7 @@ public static class Program
     {
         Program.Initialize();
 
-        for (int i = 0; i < 100000; i++)
-        {
-            NotioLog.Instance.Warn("This is a warning message.");
-            NotioLog.Instance.Info("This is an information message.");
-            NotioLog.Instance.Error(new System.Exception("This is an error message."));
-        }
-
-        HttpServer httpServer = new();
+        HttpListener httpServer = new();
 
         httpServer.RegisterController<MainController>();
         httpServer.RegisterController<AuthController>();
@@ -51,7 +44,7 @@ public static class Program
         // Khởi tạo hệ thống logging
         NotioLog.Instance.Initialize(cfg =>
         {
-            cfg.SetMinLevel(LoggingLevel.Meta)
+            cfg.SetMinLevel(LoggingLevel.None)
                .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
                .AddTarget(new ConsoleTarget());
         });

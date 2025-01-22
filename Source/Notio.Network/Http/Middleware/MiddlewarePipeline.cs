@@ -1,8 +1,7 @@
-﻿using Notio.Http.Core;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Notio.Http.Middleware;
+namespace Notio.Network.Http.Middleware;
 
 public class MiddlewarePipeline
 {
