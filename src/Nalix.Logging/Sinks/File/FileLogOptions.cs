@@ -96,14 +96,6 @@ public sealed class FileLogOptions
     }
 
     /// <summary>
-    /// Gets or sets the directory where log files will be stored.
-    /// </summary>
-    /// <remarks>
-    /// If the directory doesn't exist, it will be created when logging starts.
-    /// </remarks>
-    public System.String LogDirectory { get; set; } = Directories.LogsDirectory;
-
-    /// <summary>
     /// Gets or sets the interval at which log entries are flushed to disk.
     /// </summary>
     /// <remarks>
@@ -159,7 +151,7 @@ public sealed class FileLogOptions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String GetFullLogFilePath() => System.IO.Path.Combine(LogDirectory, LogFileName);
+    public System.String GetFullLogFilePath() => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
 
     #endregion Methods
 }
