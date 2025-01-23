@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Exceptions;
+using Notio.Packets.Internal.Serialization;
 using Notio.Packets.Metadata;
-using Notio.Packets.Serialization;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Packets;
+namespace Notio.Packets.Extensions;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.
@@ -54,6 +54,23 @@ public static partial class PacketOperations
     /// <exception cref="PacketException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet FromByteArray(this ReadOnlySpan<byte> data)
+    {
+        if (data.Length < PacketSize.Header)
+            throw new PacketException("Invalid length: data is smaller than header size.");
+
+        short length = MemoryMarshal.Read<short>(data);
+        if (length < PacketSize.Header || length > data.Length)
+            throw new PacketException($"Invalid length: {length}.");
+
+        return PacketSerializer.ReadPacketFast(data);
+    }
+
+    /// <summary>
+    /// Tạo Packet từ mảng byte.
+    /// </summary>
+    /// <exception cref="PacketException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Packet FromByteArray(this byte[] data)
     {
         if (data.Length < PacketSize.Header)
             throw new PacketException("Invalid length: data is smaller than header size.");

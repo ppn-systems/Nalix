@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Cryptography;
 using Notio.Packets.Enums;
-using Notio.Packets.Extensions;
+using Notio.Packets.Extensions.Flags;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets;
+namespace Notio.Packets.Extensions;
 
 /// <summary>
 /// Cung cấp các phương thức mã hóa và giải mã Payload cho Packet.
@@ -18,12 +18,23 @@ public static partial class PacketOperations
     /// <param name="packet">Gói tin cần mã hóa.</param>
     /// <param name="key">Khóa AES 256-bit (32 byte).</param>
     /// <returns>Packet mới với Payload đã được mã hóa.</returns>
-    /// <exception cref="PacketException">Ném lỗi nếu khóa không hợp lệ hoặc mã hóa thất bại.</exception>
+    /// <exception cref="PacketException">
+    /// Ném lỗi nếu khóa không hợp lệ, payload rỗng, hoặc mã hóa thất bại.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet EncryptPayload(this in Packet packet, byte[] key)
     {
         if (key == null || key.Length != 32)
             throw new PacketException("Encryption key must be a 256-bit (32-byte) array.");
+
+        if (packet.Payload.IsEmpty)
+            throw new PacketException("Payload is empty and cannot be encrypted.");
+
+        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
+            throw new PacketException("Payload is already encrypted.");
+
+        if (packet.Flags.HasFlag(PacketFlags.IsSigned))
+            throw new PacketException("Payload is signed. Please remove the signature before encryption.");
 
         try
         {
@@ -47,12 +58,23 @@ public static partial class PacketOperations
     /// <param name="packet">Gói tin cần giải mã.</param>
     /// <param name="key">Khóa AES 256-bit (32 byte).</param>
     /// <returns>Packet mới với Payload đã được giải mã.</returns>
-    /// <exception cref="PacketException">Ném lỗi nếu khóa không hợp lệ hoặc giải mã thất bại.</exception>
+    /// <exception cref="PacketException">
+    /// Ném lỗi nếu khóa không hợp lệ, payload rỗng, hoặc giải mã thất bại.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet DecryptPayload(this in Packet packet, byte[] key)
     {
         if (key == null || key.Length != 32)
             throw new PacketException("Decryption key must be a 256-bit (32-byte) array.");
+
+        if (packet.Payload.IsEmpty)
+            throw new PacketException("Payload is empty and cannot be decrypted.");
+
+        if (!packet.Flags.HasFlag(PacketFlags.IsEncrypted))
+            throw new PacketException("Payload is not encrypted and cannot be decrypted.");
+
+        if (packet.Flags.HasFlag(PacketFlags.IsSigned))
+            throw new PacketException("The payload has been signed. Please remove the signature before decrypting.");
 
         try
         {
@@ -71,12 +93,12 @@ public static partial class PacketOperations
     }
 
     /// <summary>
-    /// Tries to encrypt the payload of the packet.
+    /// Thử mã hóa Payload của Packet.
     /// </summary>
-    /// <param name="packet">The packet whose payload is to be encrypted.</param>
-    /// <param name="key">The AES 256-bit key (32 bytes).</param>
-    /// <param name="encryptedPacket">The encrypted packet.</param>
-    /// <returns><c>true</c> if the payload was encrypted successfully; otherwise, <c>false</c>.</returns>
+    /// <param name="packet">Gói tin cần mã hóa.</param>
+    /// <param name="key">Khóa AES 256-bit (32 byte).</param>
+    /// <param name="encryptedPacket">Gói tin mới với Payload đã được mã hóa.</param>
+    /// <returns><c>true</c> nếu mã hóa thành công; ngược lại, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryEncryptPayload(this Packet packet, byte[] key, out Packet encryptedPacket)
     {
@@ -93,12 +115,12 @@ public static partial class PacketOperations
     }
 
     /// <summary>
-    /// Tries to decrypt the payload of the packet.
+    /// Thử giải mã Payload của Packet.
     /// </summary>
-    /// <param name="packet">The packet whose payload is to be decrypted.</param>
-    /// <param name="key">The AES 256-bit key (32 bytes).</param>
-    /// <param name="decryptedPacket">The decrypted packet.</param>
-    /// <returns><c>true</c> if the payload was decrypted successfully; otherwise, <c>false</c>.</returns>
+    /// <param name="packet">Gói tin cần giải mã.</param>
+    /// <param name="key">Khóa AES 256-bit (32 byte).</param>
+    /// <param name="decryptedPacket">Gói tin mới với Payload đã được giải mã.</param>
+    /// <returns><c>true</c> nếu giải mã thành công; ngược lại, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryDecryptPayload(this Packet packet, byte[] key, out Packet decryptedPacket)
     {

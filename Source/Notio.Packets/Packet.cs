@@ -16,12 +16,11 @@ namespace Notio.Packets;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
 {
-    private readonly bool _isPooled;
-
-    public const byte MaxInlinePayloadSize = 128;
+    public const ushort MinPacketSize = 256;
     public const ushort MaxPacketSize = ushort.MaxValue;
 
-    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
+    private readonly bool _isPooled;
+    private static readonly ArrayPool<byte> _pool = ArrayPool<byte>.Shared;
 
     /// <summary>
     /// Lấy tổng chiều dài của gói tin bao gồm tiêu đề và tải trọng.
@@ -66,7 +65,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         Flags = flags;
         Command = command;
 
-        if (payload.Length <= MaxInlinePayloadSize)
+        if (payload.Length <= MinPacketSize)
         {
             var inlineArray = new byte[payload.Length];
             payload.Span.CopyTo(inlineArray);
@@ -75,7 +74,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         }
         else
         {
-            var pooledArray = Pool.Rent(payload.Length);
+            var pooledArray = _pool.Rent(payload.Length);
             payload.Span.CopyTo(pooledArray);
             Payload = new ReadOnlyMemory<byte>(pooledArray, 0, payload.Length);
             _isPooled = true;
@@ -109,15 +108,29 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (Type != other.Type || Flags != other.Flags || Command != other.Command)
             return false;
 
-        // Tối ưu cho tải trọng nhỏ
         if (Payload.Length != other.Payload.Length)
             return false;
 
-        if (Payload.Length <= sizeof(ulong))
-            return MemoryMarshal.Read<ulong>(Payload.Span) ==
-                   MemoryMarshal.Read<ulong>(other.Payload.Span);
+        // Xử lý tối ưu cho tải trọng nhỏ
+        if (Payload.Length > 0 && Payload.Length <= sizeof(ulong))
+        {
+            ulong payload1 = 0;
+            ulong payload2 = 0;
 
-        // So sánh SIMD cho các tải trọng lớn hơn
+            // Đảm bảo chỉ đọc dữ liệu trong phạm vi an toàn
+            Span<byte> buffer1 = stackalloc byte[sizeof(ulong)];
+            Span<byte> buffer2 = stackalloc byte[sizeof(ulong)];
+
+            Payload.Span.CopyTo(buffer1);
+            other.Payload.Span.CopyTo(buffer2);
+
+            payload1 = MemoryMarshal.Read<ulong>(buffer1);
+            payload2 = MemoryMarshal.Read<ulong>(buffer2);
+
+            return payload1 == payload2;
+        }
+
+        // Xử lý SIMD cho tải trọng lớn hơn
         if (Vector128.IsHardwareAccelerated && Payload.Length >= Vector128<byte>.Count)
             return MemoryCompareVectorized(Payload.Span, other.Payload.Span);
 
@@ -201,7 +214,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (_isPooled && Payload.Length > 0)
         {
             if (MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
-                Pool.Return(segment.Array);
+                _pool.Return(segment.Array);
         }
 
         GC.SuppressFinalize(this);

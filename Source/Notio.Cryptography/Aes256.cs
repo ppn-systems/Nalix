@@ -4,7 +4,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace Notio.Cryptography;
@@ -216,43 +215,15 @@ public static class Aes256
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void IncrementCounter(Span<byte> counter)
     {
-        for (int i = counter.Length - 1; i >= 0; i--)
-        {
-            if (++counter[i] != 0) break;
-        }
-    }
+        // Sử dụng BigInteger để tăng counter một cách an toàn
+        BigInteger counterValue = new(counter.ToArray(), true, true);
+        counterValue++;
+        byte[] newCounterBytes = counterValue.ToByteArray(true, true);
 
-    /// <summary>
-    /// XORs a data block with a counter value.
-    /// </summary>
-    /// <param name="data">The data block to modify.</param>
-    /// <param name="counter">The counter value to XOR with the data.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void XorBlock(Span<byte> data, ReadOnlySpan<byte> counter)
-    {
-        ref byte dataRef = ref MemoryMarshal.GetReference(data);
-        ref byte counterRef = ref MemoryMarshal.GetReference(counter);
+        // Đảm bảo độ dài counter không đổi
+        if (newCounterBytes.Length > counter.Length)
+            newCounterBytes = newCounterBytes[..counter.Length];
 
-        if (Vector.IsHardwareAccelerated && data.Length >= Vector<byte>.Count)
-        {
-            int vectorSize = Vector<byte>.Count;
-
-            for (int i = 0; i <= data.Length - vectorSize; i += vectorSize)
-            {
-                Span<byte> dataSlice = data.Slice(i, vectorSize);
-                ReadOnlySpan<byte> counterSlice = counter.Slice(i, vectorSize);
-
-                Vector<byte> dataVec = new(dataSlice);
-                Vector<byte> counterVec = new(counterSlice);
-                (dataVec ^ counterVec).CopyTo(dataSlice);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < data.Length; i++)
-            {
-                Unsafe.Add(ref dataRef, i) ^= Unsafe.Add(ref counterRef, i);
-            }
-        }
+        newCounterBytes.CopyTo(counter);
     }
 }

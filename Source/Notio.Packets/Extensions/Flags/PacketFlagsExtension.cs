@@ -1,11 +1,11 @@
 ﻿using Notio.Packets.Enums;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Extensions.Flags;
 
 /// <summary>
 /// Cung cấp các phương thức hỗ trợ cho PacketFlags.
 /// </summary>
-public static class PacketFlagsExtensions
+public static class PacketFlagsExtension
 {
     /// <summary>
     /// Xác định liệu các flags được chỉ định có chứa flag được chỉ định hay không.

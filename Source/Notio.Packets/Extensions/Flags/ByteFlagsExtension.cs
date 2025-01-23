@@ -1,11 +1,11 @@
 ﻿using Notio.Packets.Enums;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Extensions.Flags;
 
 /// <summary>
 /// Cung cấp các phương thức hỗ trợ cho byte flags.
 /// </summary>
-public static class ByteFlagsExtensions
+public static class ByteFlagsExtension
 {
     /// <summary>
     /// Xác định liệu các flags dạng byte được chỉ định có chứa flag được chỉ định hay không.

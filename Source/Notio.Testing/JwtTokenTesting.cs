@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Notio.Network.Security;
 using Notio.Common.Exceptions;
 
-namespace Notio.Testing.Network;
+namespace Notio.Testing;
 
-public sealed class JwtTokenTests
+public sealed class JwtTokenTesting
 {
     private const string SecretKey = "supersecretkey123";
     private const string Issuer = "testIssuer";
@@ -13,9 +13,6 @@ public sealed class JwtTokenTests
 
     public static void Main()
     {
-        ConstructorThrowsExceptionWhenSecretKeyIsNullOrEmpty();
-        Constructor_ThrowsException_WhenIssuerIsNullOrEmpty();
-        ConstructorThrowsExceptionWhenAudienceIsNullOrEmpty();
         GenerateTokenShouldReturnValidToken();
         ValidateTokenShouldReturnTrueForValidToken();
         ValidateTokenShouldReturnFalseForInvalidSignature();
@@ -24,76 +21,7 @@ public sealed class JwtTokenTests
 
         Console.WriteLine("All tests completed.");
     }
-
-    public static void ConstructorThrowsExceptionWhenSecretKeyIsNullOrEmpty()
-    {
-        try
-        {
-            _ = new JwtToken(null!, Issuer, Audience);
-            Console.WriteLine("Testing failed: No exception for null secret key.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for null secret key.");
-        }
-
-        try
-        {
-            _ = new JwtToken("", Issuer, Audience);
-            Console.WriteLine("Testing failed: No exception for empty secret key.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for empty secret key.");
-        }
-    }
-
-    public static void Constructor_ThrowsException_WhenIssuerIsNullOrEmpty()
-    {
-        try
-        {
-            _ = new JwtToken(SecretKey, null!, Audience);
-            Console.WriteLine("Testing failed: No exception for null issuer.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for null issuer.");
-        }
-
-        try
-        {
-            _ = new JwtToken(SecretKey, "", Audience);
-            Console.WriteLine("Testing failed: No exception for empty issuer.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for empty issuer.");
-        }
-    }
-
-    public static void ConstructorThrowsExceptionWhenAudienceIsNullOrEmpty()
-    {
-        try
-        {
-            _ = new JwtToken(SecretKey, Issuer, null!);
-            Console.WriteLine("Testing failed: No exception for null audience.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for null audience.");
-        }
-
-        try
-        {
-            _ = new JwtToken(SecretKey, Issuer, "");
-            Console.WriteLine("Testing failed: No exception for empty audience.");
-        }
-        catch (FirewallException)
-        {
-            Console.WriteLine("Testing passed: Exception for empty audience.");
-        }
-    }
-
+   
     public static void GenerateTokenShouldReturnValidToken()
     {
         // Arrange

@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Serialization;
+namespace Notio.Packets.Internal.Serialization;
 
 [SkipLocalsInit]
 internal static unsafe class PacketSerializerUnsafe

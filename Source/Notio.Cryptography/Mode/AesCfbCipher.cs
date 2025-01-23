@@ -27,29 +27,31 @@ internal static class AesCfbCipher
 
             plaintext.CopyTo(plaintextSpan);
 
+            int paddingLength = Aes256.BlockSize - (plaintext.Length % Aes256.BlockSize);
+            byte[] padding = new byte[paddingLength];
+            new Random().NextBytes(padding); // Random padding for encryption
+
+            plaintextSpan = plaintextSpan[..(plaintext.Length + paddingLength)];
+            padding.CopyTo(plaintextSpan[plaintext.Length..]);
+
             unsafe
             {
                 byte* buffer = stackalloc byte[Aes256.BlockSize];
-                for (int i = 0; i < plaintext.Length; i += Aes256.BlockSize)
+                for (int i = 0; i < plaintextSpan.Length; i += Aes256.BlockSize)
                 {
-                    int blockSize = Math.Min(Aes256.BlockSize, plaintext.Length - i);
-
-                    fixed (byte* inputPtr = plaintextSpan.Slice(i, blockSize))
+                    fixed (byte* inputPtr = plaintextSpan.Slice(i, Aes256.BlockSize))
                     {
                         encryptor.TransformBlock(
-                            new Span<byte>(inputPtr, blockSize).ToArray(),
-                            0,
-                            blockSize,
-                            new Span<byte>(buffer, blockSize).ToArray(),
-                            0
+                            new Span<byte>(inputPtr, Aes256.BlockSize).ToArray(), 0, Aes256.BlockSize,
+                            new Span<byte>(buffer, Aes256.BlockSize).ToArray(), 0
                         );
                     }
 
-                    new Span<byte>(buffer, blockSize).CopyTo(plaintextSpan.Slice(i, blockSize));
+                    new Span<byte>(buffer, Aes256.BlockSize).CopyTo(plaintextSpan.Slice(i, Aes256.BlockSize));
                 }
             }
 
-            return new Aes256.MemoryBuffer(resultOwner, iv.Length + plaintext.Length);
+            return new Aes256.MemoryBuffer(resultOwner, iv.Length + plaintextSpan.Length);
         }
         catch
         {
@@ -68,7 +70,6 @@ internal static class AesCfbCipher
             throw new ArgumentException("Ciphertext quá ngắn", nameof(ciphertext));
         }
 
-        // Lấy IV từ ciphertext
         Span<byte> iv = stackalloc byte[Aes256.BlockSize];
         ciphertext[..Aes256.BlockSize].CopyTo(iv);
 
@@ -90,17 +91,16 @@ internal static class AesCfbCipher
                 int blockSize = Math.Min(Aes256.BlockSize, encryptedSpan.Length - i);
 
                 decryptor.TransformBlock(
-                    result.Slice(i, blockSize).ToArray(),
-                    0,
-                    blockSize,
-                    buffer.ToArray(),
-                    0
+                    result.Slice(i, blockSize).ToArray(), 0,
+                    blockSize, buffer.ToArray(), 0
                 );
 
                 buffer[..blockSize].CopyTo(result.Slice(i, blockSize));
             }
 
-            return new Aes256.MemoryBuffer(resultOwner, ciphertext.Length - Aes256.BlockSize);
+            // Remove padding
+            int paddingLength = Aes256.BlockSize - (encryptedSpan.Length % Aes256.BlockSize);
+            return new Aes256.MemoryBuffer(resultOwner, ciphertext.Length - Aes256.BlockSize - paddingLength);
         }
         catch
         {

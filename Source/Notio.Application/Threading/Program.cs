@@ -5,7 +5,7 @@ using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
 using Notio.Network.Http;
-using Notio.Testing.Network;
+using Notio.Testing;
 using System.Threading.Tasks;
 
 namespace Notio.Application.Threading;
@@ -14,19 +14,28 @@ public static class Program
 {
     public static async Task Main()
     {
-        Program.Initialize();
+        MethodTest();
 
-        HttpListener httpServer = new();
+        //System.Console.ReadKey();
 
-        httpServer.RegisterController<MainController>();
-        httpServer.RegisterController<AuthController>();
+        //Program.Initialize();
 
-        await httpServer.StartAsync();
+        //HttpListener httpServer = new();
 
-        System.Console.ReadKey();
+        //httpServer.RegisterController<MainController>();
+        //httpServer.RegisterController<AuthController>();
+
+        //await httpServer.StartAsync();
+
+        //System.Console.ReadKey();
     }
 
-    internal static void MethodTest() => JwtTokenTests.Main();
+    internal static void MethodTest()
+    {
+        // JwtTokenTesting.Main();
+        PacketTesting.Main();
+    }
+        
     
     internal static void Initialize()
     {

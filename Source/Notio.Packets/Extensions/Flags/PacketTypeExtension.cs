@@ -1,9 +1,9 @@
 ﻿using Notio.Packets.Enums;
 using System;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Extensions.Flags;
 
-public static class PacketTypeExtensions
+public static class PacketTypeExtension
 {
     /// <summary>
     /// Determines if the packet type is media-related.

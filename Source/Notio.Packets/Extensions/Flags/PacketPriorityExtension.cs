@@ -1,12 +1,12 @@
 ﻿using Notio.Packets.Enums;
 using System;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Extensions.Flags;
 
 /// <summary>
 /// Provides helper methods for the PacketPriority enum.
 /// </summary>
-public static class PacketPriorityExtensions
+public static class PacketPriorityExtension
 {
     /// <summary>
     /// Determines if the priority is urgent.

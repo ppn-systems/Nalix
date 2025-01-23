@@ -4,7 +4,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Packets.Serialization;
+namespace Notio.Packets.Internal.Serialization;
 
 [SkipLocalsInit]
 internal static class PacketSerializer

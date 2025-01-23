@@ -2,7 +2,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets;
+namespace Notio.Packets.Extensions;
 
 public static partial class PacketOperations
 {
@@ -44,7 +44,7 @@ public static partial class PacketOperations
     public static Packet CloneOptimized(this in Packet packet)
     {
         // Tối ưu hóa sao chép Payload cho trường hợp không cần tạo mảng mới
-        if (packet.Payload.Length <= Packet.MaxInlinePayloadSize)
+        if (packet.Payload.Length <= Packet.MinPacketSize)
             return packet;
 
         byte[] payloadCopy = ArrayPool<byte>.Shared.Rent(packet.Payload.Length);
