@@ -26,7 +26,7 @@ public abstract class SingletonInstance<T> where T : class
     /// </summary>
     /// <returns>The single instance of <typeparamref name="T"/>.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown if the instance cannot be created, typically due to the type <typeparamref name="T"/> 
+    /// Thrown if the instance cannot be created, typically due to the type <typeparamref name="T"/>
     /// not having a parameterless or protected constructor.
     /// </exception>
     private static T CreateInstance()

@@ -53,7 +53,7 @@ public static partial class PacketOperations
         }
         catch (Exception ex)
         {
-            throw new PacketException("Failed to encrypt the packet payload.", 
+            throw new PacketException("Failed to encrypt the packet payload.",
                 (int)PacketErrorCode.EncryptionFailed, ex);
         }
     }
@@ -71,19 +71,19 @@ public static partial class PacketOperations
     public static Packet DecryptPayload(this in Packet packet, byte[] key)
     {
         if (key == null || key.Length != 32)
-            throw new PacketException("Decryption key must be a 256-bit (32-byte) array.", 
+            throw new PacketException("Decryption key must be a 256-bit (32-byte) array.",
                 (int)PacketErrorCode.InvalidKey);
 
         if (packet.Payload.IsEmpty)
-            throw new PacketException("Payload is empty and cannot be decrypted.", 
+            throw new PacketException("Payload is empty and cannot be decrypted.",
                 (int)PacketErrorCode.EmptyPayload);
 
         if (!packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PacketException("Payload is not encrypted and cannot be decrypted.", 
+            throw new PacketException("Payload is not encrypted and cannot be decrypted.",
                 (int)PacketErrorCode.AlreadyEncrypted);
 
         if (packet.Flags.HasFlag(PacketFlags.IsSigned))
-            throw new PacketException("The payload has been signed. Please remove the signature before decrypting.", 
+            throw new PacketException("The payload has been signed. Please remove the signature before decrypting.",
                 (int)PacketErrorCode.AlreadySigned);
 
         try
@@ -99,7 +99,7 @@ public static partial class PacketOperations
         }
         catch (Exception ex)
         {
-            throw new PacketException("Failed to decrypt the packet payload.", 
+            throw new PacketException("Failed to decrypt the packet payload.",
                 (int)PacketErrorCode.DecryptionFailed, ex);
         }
     }

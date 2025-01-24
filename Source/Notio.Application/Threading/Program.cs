@@ -1,10 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Notio.Application.Http;
 using Notio.Database;
 using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
-using Notio.Network.Http;
 using Notio.Testing;
 using System.Threading.Tasks;
 
@@ -36,8 +34,7 @@ public static class Program
         // JwtTokenTesting.Main();
         // PacketTesting.Main();
     }
-        
-    
+
     internal static void Initialize()
     {
         // Khởi tạo hệ thống logging

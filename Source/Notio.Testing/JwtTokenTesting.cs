@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Notio.Network.Security;
+using System;
 using System.Collections.Generic;
-using Notio.Network.Security;
 
 namespace Notio.Testing;
 

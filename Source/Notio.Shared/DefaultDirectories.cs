@@ -52,8 +52,8 @@ public static class DefaultDirectories
     static DefaultDirectories()
     {
         EnsureDirectoriesExist(
-            LogsPath, DataPath, 
-            ConfigPath, TempPath, 
+            LogsPath, DataPath,
+            ConfigPath, TempPath,
             MetricPath
         );
     }

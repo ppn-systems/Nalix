@@ -106,7 +106,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             if (_cacheIncomingPacket.Count > 0)
                 return _cacheIncomingPacket.GetValue();
-            else 
+            else
                 return null;
         }
     }

@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Notio.Cryptography;
+using System;
 using System.Text;
-using Notio.Cryptography;
 
 namespace Notio.Testing;
 

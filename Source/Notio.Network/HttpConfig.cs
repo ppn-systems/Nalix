@@ -21,6 +21,7 @@ public sealed class HttpConfig : ConfigurationBinder
     public int MaxConcurrentRequests = 100;
 
     /* CorsOptions */
+
     /// <summary>
     /// Gets or sets the allowed origins for cross-origin requests.
     /// Default is ["*"].
@@ -40,6 +41,7 @@ public sealed class HttpConfig : ConfigurationBinder
     public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
 
     /* RateLimitingOptions */
+
     /// <summary>
     /// Gets or sets the maximum number of requests allowed in a given window.
     /// Default is 100.

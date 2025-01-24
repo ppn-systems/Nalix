@@ -9,7 +9,7 @@ public class AesCbcMode
     {
         using var aesAlg = Aes.Create();
         aesAlg.Key = key.Span.ToArray();
-        aesAlg.GenerateIV(); 
+        aesAlg.GenerateIV();
         aesAlg.Mode = CipherMode.CBC;
         aesAlg.Padding = PaddingMode.PKCS7;
 
@@ -30,7 +30,7 @@ public class AesCbcMode
         aesAlg.Mode = CipherMode.CBC;
         aesAlg.Padding = PaddingMode.PKCS7;
 
-        var iv = cipherText[..(aesAlg.BlockSize / 8)].Span; 
+        var iv = cipherText[..(aesAlg.BlockSize / 8)].Span;
         aesAlg.IV = iv.ToArray();
 
         using var decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);

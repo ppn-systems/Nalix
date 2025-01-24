@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Database.Helpers;
 using Notio.Database.Entities;
+using Notio.Database.Helpers;
 using Notio.Database.Storage.Interfaces;
 using Notio.Logging;
 using System;

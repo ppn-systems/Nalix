@@ -12,8 +12,8 @@ internal class AesCtrMode
         aes.Mode = CipherMode.ECB;
         aes.Padding = PaddingMode.None;
 
-        var counter = new byte[aes.BlockSize / 8]; 
-        aes.GenerateIV(); 
+        var counter = new byte[aes.BlockSize / 8];
+        aes.GenerateIV();
 
         using var encryptor = aes.CreateEncryptor(aes.Key, null);
 
@@ -23,7 +23,7 @@ internal class AesCtrMode
         int offset = 0;
         while (offset < plainText.Length)
         {
-            encryptor.TransformBlock(counter, 0, counter.Length, buffer, 0);  
+            encryptor.TransformBlock(counter, 0, counter.Length, buffer, 0);
 
             int blockSize = Math.Min(aes.BlockSize / 8, plainText.Length - offset);
             for (int i = 0; i < blockSize; i++)
@@ -31,7 +31,7 @@ internal class AesCtrMode
                 encrypted[offset + i] = (byte)(plainText.Span[offset + i] ^ buffer[i]);
             }
 
-            IncrementCounter(counter);  
+            IncrementCounter(counter);
 
             offset += blockSize;
         }
@@ -61,7 +61,7 @@ internal class AesCtrMode
         int offset = 0;
         while (offset < cipherData.Length)
         {
-            decryptor.TransformBlock(counter, 0, counter.Length, buffer, 0); 
+            decryptor.TransformBlock(counter, 0, counter.Length, buffer, 0);
 
             int blockSize = Math.Min(aes.BlockSize / 8, cipherData.Length - offset);
             for (int i = 0; i < blockSize; i++)
@@ -69,7 +69,7 @@ internal class AesCtrMode
                 decrypted[offset + i] = (byte)(cipherData.Span[offset + i] ^ buffer[i]);
             }
 
-            IncrementCounter(counter); 
+            IncrementCounter(counter);
 
             offset += blockSize;
         }

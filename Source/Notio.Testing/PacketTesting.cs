@@ -1,5 +1,5 @@
-﻿using Notio.Packets.Utilities;
-using Notio.Packets;
+﻿using Notio.Packets;
+using Notio.Packets.Utilities;
 using System;
 
 namespace Notio.Testing;
@@ -34,7 +34,7 @@ public class PacketTesting
         }
     }
 
-    static void TestPacketInitialization()
+    private static void TestPacketInitialization()
     {
         byte type = 1;
         byte flags = 2;
@@ -47,7 +47,7 @@ public class PacketTesting
             : "TestPacketInitialization: Failed");
     }
 
-    static void TestPacketEquality()
+    private static void TestPacketEquality()
     {
         var packet1 = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
         var packet2 = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
@@ -57,7 +57,7 @@ public class PacketTesting
             : "TestPacketEquality: Failed");
     }
 
-    static void TestPacketWithPayload()
+    private static void TestPacketWithPayload()
     {
         var newPayload = new byte[] { 10, 11, 12 };
         var packet = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
@@ -68,7 +68,7 @@ public class PacketTesting
             : "TestPacketWithPayload: Failed");
     }
 
-    static void TestPacketDispose()
+    private static void TestPacketDispose()
     {
         try
         {
@@ -84,7 +84,7 @@ public class PacketTesting
         }
     }
 
-    static void TestPacketCompress()
+    private static void TestPacketCompress()
     {
         Packet packet = new(1, 0x00, 2, 100, PacketTesting.payload);
 
@@ -96,7 +96,7 @@ public class PacketTesting
             : "TestPacketCompress: Failed");
     }
 
-    static void TestPacketArray()
+    private static void TestPacketArray()
     {
         Packet packet = new(1, 0x00, 2, 100, PacketTesting.payload);
 
@@ -108,7 +108,7 @@ public class PacketTesting
             : "TestPacketArray: Failed");
     }
 
-    static void TestPacketSign()
+    private static void TestPacketSign()
     {
         var packet = new Packet(0x00, 0x00, 0x00, 0x00, PacketTesting.payload);
 

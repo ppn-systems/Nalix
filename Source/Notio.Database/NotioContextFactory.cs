@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Notio.Database;
 
-public sealed class NotioContextFactory 
+public sealed class NotioContextFactory
     : IDesignTimeDbContextFactory<NotioContext>
 {
     public NotioContext CreateDbContext(string[] args)

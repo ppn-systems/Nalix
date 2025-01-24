@@ -8,9 +8,9 @@ public class SecurityException : BaseException
     {
     }
 
-    public SecurityException(string message, string paramName) 
-        : base($"{message} Parameter: {paramName}") 
-    { 
+    public SecurityException(string message, string paramName)
+        : base($"{message} Parameter: {paramName}")
+    {
     }
 
     public SecurityException(string message, Exception innerException)

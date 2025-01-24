@@ -51,6 +51,7 @@ public sealed class NotioLog : LoggingEngine, ILogger
     /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
+
     /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
