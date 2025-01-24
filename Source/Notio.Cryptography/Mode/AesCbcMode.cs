@@ -3,42 +3,66 @@ using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Mode;
 
-public class AesCbcMode
+internal static class AesCbcMode
 {
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
+    private static Aes AesCbc(ReadOnlyMemory<byte> key)
     {
-        using var aesAlg = Aes.Create();
-        aesAlg.Key = key.Span.ToArray();
-        aesAlg.GenerateIV();
+        var aesAlg = Aes.Create();
+        aesAlg.Key = key.ToArray();
         aesAlg.Mode = CipherMode.CBC;
         aesAlg.Padding = PaddingMode.PKCS7;
+        return aesAlg;
+    }
 
-        using var encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-        var encrypted = new byte[aesAlg.IV.Length + plainText.Length];
+    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
+    {
+        if (plainText.IsEmpty)
+            throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));
+        if (key.Length != Aes256.KeySize)
+            throw new ArgumentException($"Key must be {Aes256.KeySize} bytes long", nameof(key));
 
-        aesAlg.IV.CopyTo(encrypted, 0);
-        var encryptedBytes = encryptor.TransformFinalBlock(plainText.Span.ToArray(), 0, plainText.Length);
-        encryptedBytes.CopyTo(encrypted, aesAlg.IV.Length);
+        try
+        {
+            using var aesAlg = AesCbc(key);
+            aesAlg.GenerateIV();
 
-        return encrypted;
+            using ICryptoTransform encryptor = aesAlg.CreateEncryptor();
+            byte[] encryptedBytes = encryptor.TransformFinalBlock(plainText.ToArray(), 0, plainText.Length);
+
+            byte[] result = new byte[Aes256.IvSize + encryptedBytes.Length];
+            aesAlg.IV.CopyTo(result, 0);
+            encryptedBytes.CopyTo(result, Aes256.IvSize);
+
+            return result;
+        }
+        catch (CryptographicException ex)
+        {
+            throw new InvalidOperationException("Encryption failed", ex);
+        }
     }
 
     public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> cipherText, ReadOnlyMemory<byte> key)
     {
-        using var aesAlg = Aes.Create();
-        aesAlg.Key = key.Span.ToArray();
-        aesAlg.Mode = CipherMode.CBC;
-        aesAlg.Padding = PaddingMode.PKCS7;
+        if (cipherText.Length < Aes256.IvSize)
+            throw new ArgumentException("Ciphertext too short", nameof(cipherText));
+        if (key.Length != Aes256.KeySize)
+            throw new ArgumentException($"Key must be {Aes256.KeySize} bytes long", nameof(key));
 
-        var iv = cipherText[..(aesAlg.BlockSize / 8)].Span;
-        aesAlg.IV = iv.ToArray();
+        try
+        {
+            using var aesAlg = AesCbc(key);
 
-        using var decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+            byte[] iv = cipherText[..Aes256.IvSize].ToArray();
+            byte[] encryptedData = cipherText[Aes256.IvSize..].ToArray();
 
-        var decrypted = new byte[cipherText.Length - aesAlg.BlockSize / 8];
+            aesAlg.IV = iv;
+            using ICryptoTransform decryptor = aesAlg.CreateDecryptor();
 
-        decryptor.TransformBlock(cipherText[(aesAlg.BlockSize / 8)..].Span.ToArray(), 0, cipherText.Length - aesAlg.BlockSize / 8, decrypted, 0);
-
-        return decrypted;
+            return decryptor.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new InvalidOperationException("Decryption failed", ex);
+        }
     }
 }

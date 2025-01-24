@@ -11,8 +11,10 @@ namespace Notio.Cryptography;
 /// </summary>
 public static class Aes256
 {
+    public const int IvSize = 16;  // 128-bit IV
     public const int KeySize = 32;    // AES-256 key size in bytes
     public const int BlockSize = 16;  // AES block size in bytes
+    public const int BlockSizeBits = 128;
 
     /// <summary>
     /// Generates a new AES-256 encryption key.
