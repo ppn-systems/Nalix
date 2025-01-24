@@ -20,6 +20,11 @@ public static class PacketSize
     /// </summary>
     public const int Flags = sizeof(byte);
 
+    // <summary>
+    /// Kích thước thành phần ưu tiên.
+    /// </summary>
+    public const int Priority = sizeof(byte);
+
     /// <summary>
     /// Kích thước thành phần lệnh.
     /// </summary>
@@ -28,5 +33,5 @@ public static class PacketSize
     /// <summary>
     /// Tổng kích thước tiêu đề.
     /// </summary>
-    public const int Header = Length + Type + Flags + Command;
+    public const int Header = Length + Type + Flags + Priority + Command;
 }

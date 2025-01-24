@@ -21,9 +21,14 @@ public static class PacketOffset
     public const int Flags = Type + PacketSize.Type;
 
     /// <summary>
+    /// Offset của thành phần ưu tiên.
+    /// </summary>
+    public const int Priority = Flags + PacketSize.Flags;
+
+    /// <summary>
     /// Offset của thành phần lệnh.
     /// </summary>
-    public const int Command = Flags + PacketSize.Flags;
+    public const int Command = Priority + PacketSize.Priority;
 
     /// <summary>
     /// Offset của phần dữ liệu.

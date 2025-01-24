@@ -16,7 +16,7 @@ public static partial class PacketOperations
         byte[] payloadCopy = new byte[packet.Payload.Length];
         packet.Payload.Span.CopyTo(payloadCopy);
 
-        return new Packet(packet.Type, packet.Flags, packet.Command, payloadCopy);
+        return new Packet(packet.Type, packet.Flags, packet.Priority, packet.Command, payloadCopy);
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public static partial class PacketOperations
 
         byte[] payloadCopy = ArrayPool<byte>.Shared.Rent(packet.Payload.Length);
         packet.Payload.Span.CopyTo(payloadCopy);
-        Packet newPacket = new(packet.Type, packet.Flags, packet.Command,
+        Packet newPacket = new(packet.Type, packet.Flags, packet.Priority, packet.Command,
             new ReadOnlyMemory<byte>(payloadCopy, 0, packet.Payload.Length));
 
         return newPacket;

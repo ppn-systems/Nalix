@@ -46,6 +46,7 @@ public static partial class PacketOperations
             return new Packet(
                 packet.Type,
                 packet.Flags.AddFlag(PacketFlags.IsEncrypted),
+                packet.Priority,
                 packet.Command,
                 encrypted.Memory
             );
@@ -91,6 +92,7 @@ public static partial class PacketOperations
             return new Packet(
                 packet.Type,
                 packet.Flags.RemoveFlag(PacketFlags.IsEncrypted),
+                packet.Priority,
                 packet.Command,
                 decrypted.Memory
             );

@@ -37,6 +37,7 @@ public static partial class PacketOperations
             return new Packet(
                 packet.Type,
                 packet.Flags.AddFlag(PacketFlags.IsCompressed),
+                packet.Priority,
                 packet.Command,
                 outputStream.ToArray()
             );
@@ -74,6 +75,7 @@ public static partial class PacketOperations
             return new Packet(
                 packet.Type,
                 packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
+                packet.Priority,
                 packet.Command,
                 outputStream.ToArray()
             );

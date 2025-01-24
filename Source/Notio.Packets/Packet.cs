@@ -38,6 +38,11 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     public byte Flags { get; }
 
     /// <summary>
+    /// Lấy độ ưu tiên của gói tin.
+    /// </summary>
+    public byte Priority { get; }
+
+    /// <summary>
     /// Lấy lệnh liên quan đến gói tin.
     /// </summary>
     public short Command { get; }
@@ -56,7 +61,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <param name="payload">Tải trọng của gói tin.</param>
     /// <exception cref="PacketException">Ném ra nếu kích thước gói tin vượt quá giới hạn 64KB.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(byte type, byte flags, short command, ReadOnlyMemory<byte> payload)
+    public Packet(byte type, byte flags, byte priority, short command, ReadOnlyMemory<byte> payload)
     {
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PacketException("The packet size exceeds the 64KB limit.");
@@ -64,6 +69,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         Type = type;
         Flags = flags;
         Command = command;
+        Priority = priority;
 
         if (payload.Length <= MinPacketSize)
         {
@@ -88,7 +94,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <returns>Một gói mới với tải trọng cập nhật.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithPayload(ReadOnlyMemory<byte> newPayload) =>
-        new(Type, Flags, Command, newPayload);
+        new(Type, Flags, Priority, Command, newPayload);
 
     /// <summary>
     /// Đặt lại gói tin, chuẩn bị nó cho việc tái sử dụng bởi bộ nhớ đệm.

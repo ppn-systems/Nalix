@@ -21,8 +21,8 @@ public static partial class PacketOperations
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <see cref="Packet"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet Create(byte type, byte flags, short command, ReadOnlyMemory<byte> payload)
-        => new(type, flags, command, payload);
+    public static Packet Create(byte type, byte flags, byte priority, short command, ReadOnlyMemory<byte> payload)
+        => new(type, flags, priority, command, payload);
 
     /// <summary>
     /// Retrieves a Packet instance from the pool.

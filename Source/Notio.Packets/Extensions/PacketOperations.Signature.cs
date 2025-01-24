@@ -44,6 +44,7 @@ public static partial class PacketOperations
             return new Packet(
                 packet.Type,
                 packet.Flags.AddFlag(PacketFlags.IsSigned),
+                packet.Priority,
                 packet.Command,
                 newPayload
             );
@@ -112,6 +113,7 @@ public static partial class PacketOperations
         return new Packet(
             packet.Type,
             packet.Flags.RemoveFlag(PacketFlags.IsSigned),
+            packet.Priority,
             packet.Command,
             packet.Payload[..^SignatureSize]
         );

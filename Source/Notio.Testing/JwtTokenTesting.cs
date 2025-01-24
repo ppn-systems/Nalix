@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Notio.Network.Security;
-using Notio.Common.Exceptions;
 
 namespace Notio.Testing;
 
@@ -13,122 +12,90 @@ public sealed class JwtTokenTesting
 
     public static void Main()
     {
-        GenerateTokenShouldReturnValidToken();
-        ValidateTokenShouldReturnTrueForValidToken();
-        ValidateTokenShouldReturnFalseForInvalidSignature();
-        ValidateTokenShouldReturnFalseForExpiredToken();
-        ValidateTokenShouldReturnFalseForMalformedToken();
+        var tests = new Action[]
+        {
+            GenerateTokenShouldReturnValidToken,
+            ValidateTokenShouldReturnTrueForValidToken,
+            ValidateTokenShouldReturnFalseForInvalidSignature,
+            ValidateTokenShouldReturnFalseForExpiredToken,
+            ValidateTokenShouldReturnFalseForMalformedToken
+        };
+
+        foreach (var test in tests)
+        {
+            try
+            {
+                test.Invoke();
+                Console.WriteLine($"{test.Method.Name}: Passed");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{test.Method.Name}: Failed - {ex.Message}");
+            }
+        }
 
         Console.WriteLine("All tests completed.");
     }
-   
-    public static void GenerateTokenShouldReturnValidToken()
+
+    private static void GenerateTokenShouldReturnValidToken()
     {
-        // Arrange
         var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
-        TimeSpan expiration = TimeSpan.FromMinutes(5);
 
-        // Act
-        string token = authenticator.GenerateToken(claims, expiration);
+        string token = authenticator.GenerateToken(claims, TimeSpan.FromMinutes(5));
 
-        // Assert
-        if (!string.IsNullOrWhiteSpace(token) && token.Split('.').Length == 3)
+        if (string.IsNullOrWhiteSpace(token) || token.Split('.').Length != 3)
         {
-            Console.WriteLine("Testing passed: Valid token generated.");
-        }
-        else
-        {
-            Console.WriteLine("Testing failed: Invalid token generated.");
+            throw new Exception("Invalid token generated.");
         }
     }
 
-    public static void ValidateTokenShouldReturnTrueForValidToken()
+    private static void ValidateTokenShouldReturnTrueForValidToken()
     {
-        // Arrange
         var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
-        TimeSpan expiration = TimeSpan.FromMinutes(5);
-        string token = authenticator.GenerateToken(claims, expiration);
+        string token = authenticator.GenerateToken(claims, TimeSpan.FromMinutes(5));
 
-        // Act
-        bool isValid = authenticator.ValidateToken(token, out _);
-
-        // Assert
-        if (isValid)
+        if (!authenticator.ValidateToken(token, out _))
         {
-            Console.WriteLine("Testing passed: Token is valid.");
-        }
-        else
-        {
-            Console.WriteLine("Testing failed: Token is invalid.");
+            throw new Exception("Token validation failed.");
         }
     }
 
-    public static void ValidateTokenShouldReturnFalseForInvalidSignature()
+    private static void ValidateTokenShouldReturnFalseForInvalidSignature()
     {
-        // Arrange
         var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
-        TimeSpan expiration = TimeSpan.FromMinutes(5);
-        string token = authenticator.GenerateToken(claims, expiration);
+        string token = authenticator.GenerateToken(claims, TimeSpan.FromMinutes(5));
 
-        // Tamper with token signature
         string tamperedToken = string.Concat(token.AsSpan(0, token.LastIndexOf('.') + 1), "tampered");
 
-        // Act
-        bool isValid = authenticator.ValidateToken(tamperedToken, out _);
-
-        // Assert
-        if (!isValid)
+        if (authenticator.ValidateToken(tamperedToken, out _))
         {
-            Console.WriteLine("Testing passed: Token with invalid signature is recognized.");
-        }
-        else
-        {
-            Console.WriteLine("Testing failed: Token with invalid signature is not recognized.");
+            throw new Exception("Invalid signature not recognized.");
         }
     }
 
-    public static void ValidateTokenShouldReturnFalseForExpiredToken()
+    private static void ValidateTokenShouldReturnFalseForExpiredToken()
     {
-        // Arrange
         var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         var claims = new Dictionary<string, object> { { "userId", 12345 } };
-        TimeSpan expiration = TimeSpan.FromSeconds(-1); // Expired token
-        string token = authenticator.GenerateToken(claims, expiration);
+        string token = authenticator.GenerateToken(claims, TimeSpan.FromSeconds(-1));
 
-        // Act
-        bool isValid = authenticator.ValidateToken(token, out _);
-
-        // Assert
-        if (!isValid)
+        if (authenticator.ValidateToken(token, out _))
         {
-            Console.WriteLine("Testing passed: Expired token is recognized.");
-        }
-        else
-        {
-            Console.WriteLine("Testing failed: Expired token is not recognized.");
+            throw new Exception("Expired token not recognized.");
         }
     }
 
-    public static void ValidateTokenShouldReturnFalseForMalformedToken()
+    private static void ValidateTokenShouldReturnFalseForMalformedToken()
     {
-        // Arrange
         var authenticator = new JwtToken(SecretKey, Issuer, Audience);
         string malformedToken = "invalid.token.format";
 
-        // Act
-        bool isValid = authenticator.ValidateToken(malformedToken, out _);
-
-        // Assert
-        if (!isValid)
+        if (authenticator.ValidateToken(malformedToken, out _))
         {
-            Console.WriteLine("Testing passed: Malformed token is recognized.");
-        }
-        else
-        {
-            Console.WriteLine("Testing failed: Malformed token is not recognized.");
+            throw new Exception("Malformed token not recognized.");
         }
     }
 }

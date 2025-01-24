@@ -44,10 +44,11 @@ internal static class PacketSerializer
         // Read all fields at once using pointer arithmetic
         return new Packet
         (
+            payload: data[PacketSize.Header..length].ToArray(),
             type: Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Type)),
             flags: Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Flags)),
             command: Unsafe.ReadUnaligned<short>(ref Unsafe.Add(ref dataRef, PacketOffset.Command)),
-            payload: data[PacketSize.Header..length].ToArray()
+            priority: Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Priority))    
         );
     }
 }

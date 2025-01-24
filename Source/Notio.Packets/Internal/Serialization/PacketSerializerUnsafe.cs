@@ -69,6 +69,7 @@ internal static unsafe class PacketSerializerUnsafe
         (
             type: headerSpan[PacketOffset.Type],
             flags: headerSpan[PacketOffset.Flags],
+            priority: headerSpan[PacketOffset.Priority],
             command: BinaryPrimitives.ReadInt16LittleEndian(headerSpan[PacketOffset.Command..]),
             payload: payloadMemory
         );
