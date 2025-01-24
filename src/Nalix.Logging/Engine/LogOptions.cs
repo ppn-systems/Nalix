@@ -30,7 +30,7 @@ public sealed class LogOptions : System.IDisposable
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    public LogLevel MinLevel { get; set; } = LogLevel.Trace;
+    public LogLevel MinLevel { get; set; } = LogLevel.Meta;
 
     /// <summary>
     /// Gets or sets whether to include machine name in log entries.
