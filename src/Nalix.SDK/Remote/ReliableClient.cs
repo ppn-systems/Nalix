@@ -312,9 +312,9 @@ public sealed class ReliableClient : IReliableClient
                 async (ctx, ct) =>
                 {
                     // configuration
-                    const System.Int32 maxBatchBytes = 64 * 1024; // 64 KB
-                    const System.Int32 maxBatchCount = 64;
                     const System.Int32 batchDelayMs = 1; // optional small delay to accumulate more packets
+                    const System.Int32 maxBatchCount = 64;
+                    const System.Int32 maxBatchBytes = 64 * 1024; // 64 KB
 
                     var reader = _sendChannel.Reader;
 
@@ -429,7 +429,7 @@ public sealed class ReliableClient : IReliableClient
         }
 
         // Serialize and enqueue to send channel (bounded). This will apply backpressure when full.
-        var mem = packet.Serialize();
+        System.Byte[] mem = packet.Serialize();
 
         // Validate size
         if (mem.Length > PacketConstants.PacketSizeLimit)
@@ -443,7 +443,7 @@ public sealed class ReliableClient : IReliableClient
     }
 
     /// <inheritdoc/>
-    public System.Threading.Tasks.Task SendRawAsync(System.ReadOnlyMemory<System.Byte> bytes, System.Threading.CancellationToken ct = default)
+    public System.Threading.Tasks.Task SendAsync(System.ReadOnlyMemory<System.Byte> bytes, System.Threading.CancellationToken ct = default)
     {
         if (_sendChannel is null)
         {
@@ -484,18 +484,38 @@ public sealed class ReliableClient : IReliableClient
 
         this.DEEP_CLOSE();
 
-        try { _stream?.Dispose(); } catch { /* swallow */ }
-        try { _client?.Close(); } catch { /* swallow */ }
+        try
+        {
+            _stream?.Dispose();
+        }
+        catch { /* swallow */ }
+        try
+        {
+            _client?.Close();
+        }
+        catch { /* swallow */ }
 
         _outbound = null;
         _inbound = null;
 
         // Complete channels to unblock workers
-        try { _ = (_recvChannel?.Writer.TryComplete()); } catch { }
-        try { _ = (_sendChannel?.Writer.TryComplete()); } catch { }
+        try
+        {
+            _ = (_recvChannel?.Writer.TryComplete());
+        }
+        catch { }
+        try
+        {
+            _ = (_sendChannel?.Writer.TryComplete());
+        }
+        catch { }
 
         // Dispose dispatcher if owned
-        try { Dispatcher?.Dispose(); } catch { }
+        try
+        {
+            Dispatcher?.Dispose();
+        }
+        catch { }
 
         // Notify once on explicit disconnect as well
         if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -600,12 +620,24 @@ public sealed class ReliableClient : IReliableClient
 
     private void DEEP_CLOSE()
     {
-        try { _stream?.Dispose(); } catch { /* ignore */ }
+        try
+        {
+            _stream?.Dispose();
+        }
+        catch { /* ignore */ }
         _stream = null;
 
-        try { ABORTIVE_CLOSE(_client?.Client); } catch { /* ignore */ }
+        try
+        {
+            ABORTIVE_CLOSE(_client?.Client);
+        }
+        catch { /* ignore */ }
 
-        try { _client?.Dispose(); } catch { /* ignore */ }
+        try
+        {
+            _client?.Dispose();
+        }
+        catch { /* ignore */ }
         _client = null;
 
         _outbound = null;
@@ -614,7 +646,7 @@ public sealed class ReliableClient : IReliableClient
 
     private static void SAFE_INVOKE(System.Action evt, ILogger log)
     {
-        var d = evt;
+        System.Action d = evt;
         if (d is null)
         {
             return;
@@ -622,21 +654,35 @@ public sealed class ReliableClient : IReliableClient
 
         foreach (System.Action h in d.GetInvocationList().Cast<System.Action>())
         {
-            try { h(); } catch (System.Exception ex) { log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}"); }
+            try
+            {
+                h();
+            }
+            catch (System.Exception ex)
+            {
+                log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}");
+            }
         }
     }
 
     private static void SAFE_INVOKE<T>(System.Action<T> evt, T arg, ILogger log)
     {
-        var d = evt; if (d is null)
+        System.Action<T> d = evt;
+        if (d is null)
         {
             return;
         }
 
         foreach (System.Action<T> h in d.GetInvocationList().Cast<System.Action<T>>())
         {
-            try { h(arg); }
-            catch (System.Exception ex) { log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}"); }
+            try
+            {
+                h(arg);
+            }
+            catch (System.Exception ex)
+            {
+                log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}");
+            }
         }
     }
 
