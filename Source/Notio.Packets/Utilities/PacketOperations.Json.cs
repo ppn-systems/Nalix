@@ -2,7 +2,7 @@
 using System;
 using System.Text.Json;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.

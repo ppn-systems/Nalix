@@ -1,4 +1,4 @@
-﻿using Notio.Packets.Extensions;
+﻿using Notio.Packets.Utilities;
 using Notio.Packets;
 using System;
 

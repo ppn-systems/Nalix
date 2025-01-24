@@ -2,7 +2,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 public static partial class PacketOperations
 {

@@ -1,10 +1,10 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Packets.Enums;
-using Notio.Packets.Extensions.Flags;
+using Notio.Packets.Extensions;
 using Notio.Packets.Metadata;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.

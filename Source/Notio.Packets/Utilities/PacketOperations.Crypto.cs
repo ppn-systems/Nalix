@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Cryptography;
 using Notio.Packets.Enums;
-using Notio.Packets.Extensions.Flags;
+using Notio.Packets.Extensions;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 /// <summary>
 /// Cung cấp các phương thức mã hóa và giải mã Payload cho Packet.
@@ -42,13 +42,13 @@ public static partial class PacketOperations
 
         try
         {
-            using var encrypted = Aes256.CtrMode.Encrypt(key, packet.Payload.Span);
+            ReadOnlyMemory<byte> encrypted = Aes256.GcmMode.Encrypt(packet.Payload, key);
             return new Packet(
                 packet.Type,
                 packet.Flags.AddFlag(PacketFlags.IsEncrypted),
                 packet.Priority,
                 packet.Command,
-                encrypted.Memory
+                encrypted
             );
         }
         catch (Exception ex)
@@ -88,13 +88,13 @@ public static partial class PacketOperations
 
         try
         {
-            using var decrypted = Aes256.CtrMode.Decrypt(key, packet.Payload.Span);
+            ReadOnlyMemory<byte> decrypted = Aes256.GcmMode.Decrypt(packet.Payload, key);
             return new Packet(
                 packet.Type,
                 packet.Flags.RemoveFlag(PacketFlags.IsEncrypted),
                 packet.Priority,
                 packet.Command,
-                decrypted.Memory
+                decrypted
             );
         }
         catch (Exception ex)

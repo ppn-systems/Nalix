@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.

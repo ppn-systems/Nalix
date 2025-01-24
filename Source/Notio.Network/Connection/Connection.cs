@@ -214,8 +214,8 @@ public sealed class Connection : IConnection, IDisposable
         {
             if (_state == ConnectionState.Authenticated)
             {
-                using var memoryBuffer = Aes256.CtrMode.Encrypt(_aes256Key, message);
-                message = memoryBuffer.Memory.Span;
+                ReadOnlyMemory<byte> memoryBuffer = Aes256.GcmMode.Encrypt(message.ToArray(), _aes256Key);
+                message = memoryBuffer.Span;
             }
 
             Span<byte> key = stackalloc byte[10];
@@ -240,7 +240,7 @@ public sealed class Connection : IConnection, IDisposable
         try
         {
             if (_state == ConnectionState.Authenticated)
-                message = Aes256.CtrMode.Encrypt(_aes256Key, message).Memory.ToArray();
+                message = Aes256.GcmMode.Encrypt(message, _aes256Key).ToArray();
 
             Span<byte> key = stackalloc byte[10];
             message.AsSpan(0, 4).CopyTo(key);

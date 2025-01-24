@@ -1,11 +1,11 @@
 ﻿using Notio.Packets.Enums;
-using Notio.Packets.Extensions.Flags;
+using Notio.Packets.Extensions;
 using Notio.Packets.Metadata;
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace Notio.Packets.Extensions;
+namespace Notio.Packets.Utilities;
 
 /// <summary>
 /// Lớp tĩnh <c>PacketSignature</c> cung cấp các phương thức để ký và xác minh gói dữ liệu.

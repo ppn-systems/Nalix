@@ -51,7 +51,11 @@ public static class DefaultDirectories
     /// </summary>
     static DefaultDirectories()
     {
-        EnsureDirectoriesExist(LogsPath, DataPath, ConfigPath, TempPath, MetricPath);
+        EnsureDirectoriesExist(
+            LogsPath, DataPath, 
+            ConfigPath, TempPath, 
+            MetricPath
+        );
     }
 
     /// <summary>
@@ -65,9 +69,6 @@ public static class DefaultDirectories
             try
             {
                 Directory.CreateDirectory(path);
-
-                // Debug
-                // Console.WriteLine($"Directory verified/created: {path}");
             }
             catch (Exception ex)
             {
