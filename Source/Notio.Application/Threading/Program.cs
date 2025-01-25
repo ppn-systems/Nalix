@@ -12,9 +12,9 @@ namespace Notio.Application.Threading;
 
 public static class Program
 {
-    public static void Main()
+    public static async Task Main()
     {
-        MethodTest();
+        // MethodTest();
 
         //System.Console.ReadKey();
 
@@ -25,9 +25,9 @@ public static class Program
         httpServer.RegisterController<MainController>();
         httpServer.RegisterController<AuthController>();
 
-        // await httpServer.StartAsync();
+        await httpServer.StartAsync();
 
-        //System.Console.ReadKey();
+        System.Console.ReadKey();
     }
 
     internal static void MethodTest()

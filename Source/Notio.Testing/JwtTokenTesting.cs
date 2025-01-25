@@ -33,8 +33,6 @@ public sealed class JwtTokenTesting
                 Console.WriteLine($"{test.Method.Name}: Failed - {ex.Message}");
             }
         }
-
-        Console.WriteLine("All tests completed.");
     }
 
     private static void GenerateTokenShouldReturnValidToken()
