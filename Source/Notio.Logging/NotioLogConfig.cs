@@ -1,9 +1,10 @@
-﻿using Notio.Logging.Enums;
-using Notio.Logging.Interfaces;
+﻿using Notio.Logging.Engine;
+using Notio.Logging.Enums;
+using Notio.Logging.Targets;
 using System;
 using System.IO;
 
-namespace Notio.Logging.Engine;
+namespace Notio.Logging;
 
 /// <summary>
 /// Configures logging settings for the application.

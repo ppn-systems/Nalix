@@ -1,7 +1,7 @@
 ﻿using Notio.Logging.Metadata;
 using System;
 
-namespace Notio.Logging.Interfaces;
+namespace Notio.Logging.Format;
 
 /// <summary>
 /// Giao diện định nghĩa trình định dạng cho các thông điệp nhật ký.

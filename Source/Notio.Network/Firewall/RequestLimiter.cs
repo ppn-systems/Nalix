@@ -1,6 +1,7 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Firewall;
 using Notio.Common.Logging;
+using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -16,14 +17,11 @@ namespace Notio.Network.Firewall;
 /// </summary>
 public sealed class RequestLimiter : IDisposable, IRateLimiter
 {
-    private readonly record struct RequestData(Queue<DateTime> Requests, DateTime? BlockedUntil);
-
-    private readonly int _maxAllowedRequests;
-    private readonly int _lockoutDurationSeconds;
-
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
+    private readonly int _maxAllowedRequests;
     private readonly SemaphoreSlim _cleanupLock;
+    private readonly int _lockoutDurationSeconds;
     private readonly TimeSpan _timeWindowDuration;
     private readonly FirewallConfig _firewallConfig;
     private readonly ConcurrentDictionary<string, RequestData> _ipData;

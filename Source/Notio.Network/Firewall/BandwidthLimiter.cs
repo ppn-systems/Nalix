@@ -15,14 +15,14 @@ namespace Notio.Network.Firewall;
 /// </summary>
 public sealed class BandwidthLimiter : IDisposable
 {
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _throttles;
-    private readonly ConcurrentDictionary<string, BandwidthInfo> _stats;
-    private readonly FirewallConfig _firewallConfig;
-    private readonly DataRateLimit _downloadLimit;
-    private readonly DataRateLimit _uploadLimit;
-    private readonly TimeSpan _resetInterval;
-    private readonly Timer _resetTimer;
     private readonly ILogger? _logger;
+    private readonly Timer _resetTimer;
+    private readonly TimeSpan _resetInterval;
+    private readonly DataRateLimit _uploadLimit;
+    private readonly DataRateLimit _downloadLimit;
+    private readonly FirewallConfig _firewallConfig;
+    private readonly ConcurrentDictionary<string, BandwidthInfo> _stats;
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _throttles;
 
     private bool _disposed;
 

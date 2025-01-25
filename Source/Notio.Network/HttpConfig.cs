@@ -20,26 +20,6 @@ public sealed class HttpConfig : ConfigurationBinder
     /// </summary>
     public int MaxConcurrentRequests = 100;
 
-    /* CorsOptions */
-
-    /// <summary>
-    /// Gets or sets the allowed origins for cross-origin requests.
-    /// Default is ["*"].
-    /// </summary>
-    public string[] AllowedOrigins { get; set; } = ["*"];
-
-    /// <summary>
-    /// Gets or sets the allowed HTTP methods for cross-origin requests.
-    /// Default is ["GET", "POST", "PUT", "DELETE", "OPTIONS"].
-    /// </summary>
-    public string[] AllowedMethods { get; set; } = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
-
-    /// <summary>
-    /// Gets or sets the allowed HTTP headers for cross-origin requests.
-    /// Default is ["Content-Type", "Authorization"].
-    /// </summary>
-    public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
-
     /* RateLimitingOptions */
 
     /// <summary>
@@ -53,6 +33,29 @@ public sealed class HttpConfig : ConfigurationBinder
     /// Default is 15 minutes.
     /// </summary>
     public int WindowMinutes { get; set; } = 15;
+
+    /* CorsOptions */
+
+    /// <summary>
+    /// Gets or sets the allowed origins for cross-origin requests.
+    /// Default is ["*"].
+    /// </summary>
+    [ConfigurationIgnore]
+    public string[] AllowedOrigins { get; set; } = ["*"];
+
+    /// <summary>
+    /// Gets or sets the allowed HTTP methods for cross-origin requests.
+    /// Default is ["GET", "POST", "PUT", "DELETE", "OPTIONS"].
+    /// </summary>
+    [ConfigurationIgnore]
+    public string[] AllowedMethods { get; set; } = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
+
+    /// <summary>
+    /// Gets or sets the allowed HTTP headers for cross-origin requests.
+    /// Default is ["Content-Type", "Authorization"].
+    /// </summary>
+    [ConfigurationIgnore]
+    public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
 
     /// <summary>
     /// Gets the expiration time for cached responses.

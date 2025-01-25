@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Notio.Application.Http;
 using Notio.Database;
 using Notio.Logging;
 using Notio.Logging.Enums;
 using Notio.Logging.Targets;
+using Notio.Network.Http;
 using Notio.Testing;
 using System.Threading.Tasks;
 
@@ -10,20 +12,20 @@ namespace Notio.Application.Threading;
 
 public static class Program
 {
-    public static async Task Main()
+    public static void Main()
     {
         MethodTest();
 
         //System.Console.ReadKey();
 
-        //Program.Initialize();
+        Program.Initialize();
 
-        //HttpListener httpServer = new();
+        HttpListener httpServer = new();
 
-        //httpServer.RegisterController<MainController>();
-        //httpServer.RegisterController<AuthController>();
+        httpServer.RegisterController<MainController>();
+        httpServer.RegisterController<AuthController>();
 
-        //await httpServer.StartAsync();
+        // await httpServer.StartAsync();
 
         //System.Console.ReadKey();
     }
@@ -31,8 +33,8 @@ public static class Program
     internal static void MethodTest()
     {
         Aes256Testing.Main();
-        // JwtTokenTesting.Main();
-        // PacketTesting.Main();
+        JwtTokenTesting.Main();
+        PacketTesting.Main();
     }
 
     internal static void Initialize()

@@ -16,11 +16,12 @@ namespace Notio.Network.Firewall;
 public sealed class ConnectionLimiter : IDisposable
 {
     private readonly ILogger? _logger;
+    private readonly Timer _cleanupTimer;
+    private readonly int _maxConnectionsPerIp;
+    private readonly SemaphoreSlim _cleanupLock;
     private readonly FirewallConfig _firewallConfig;
     private readonly ConcurrentDictionary<string, ConnectionInfo> _connectionInfo;
-    private readonly Timer _cleanupTimer;
-    private readonly SemaphoreSlim _cleanupLock;
-    private readonly int _maxConnectionsPerIp;
+
     private bool _disposed;
 
     public ConnectionLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
