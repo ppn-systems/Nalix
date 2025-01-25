@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Mode;
@@ -13,50 +12,36 @@ internal static class AesCtrMode
         if (key.Length != 32)
             throw new ArgumentException("Key must be 32 bytes long", nameof(key));
 
-        try
+        using Aes aes = Aes.Create();
+        aes.Key = key.ToArray();
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
+
+        Span<byte> nonce = stackalloc byte[Aes256.BlockSize];
+        RandomNumberGenerator.Fill(nonce);
+
+        using ICryptoTransform encryptor = aes.CreateEncryptor();
+        Span<byte> encrypted = new byte[plainText.Length];
+        Span<byte> counter = stackalloc byte[Aes256.BlockSize];
+        Span<byte> keyStream = stackalloc byte[Aes256.BlockSize];
+        nonce.CopyTo(counter);
+
+        for (int offset = 0; offset < plainText.Length; offset += Aes256.BlockSize)
         {
-            using var aes = Aes.Create();
-            aes.Key = key.ToArray();
-            aes.Mode = CipherMode.ECB;
-            aes.Padding = PaddingMode.None;
+            encryptor.TransformBlock(counter.ToArray(), 0, Aes256.BlockSize, keyStream.ToArray(), 0);
+            int blockSize = Math.Min(Aes256.BlockSize, plainText.Length - offset);
 
-            var nonce = new byte[aes.BlockSize / 8];
-            RandomNumberGenerator.Fill(nonce);
+            for (int i = 0; i < blockSize; i++)
+                encrypted[offset + i] = (byte)(plainText.Span[offset + i] ^ keyStream[i]);
 
-            Console.WriteLine($"Nonce (Encrypt): {BitConverter.ToString(nonce)}");
-
-            using var encryptor = aes.CreateEncryptor();
-            var encrypted = new byte[plainText.Length];
-            var counter = (byte[])nonce.Clone();
-
-            for (int offset = 0; offset < plainText.Length; offset += aes.BlockSize / 8)
-            {
-                var keyStream = new byte[aes.BlockSize / 8];
-                encryptor.TransformBlock(counter, 0, counter.Length, keyStream, 0);
-                int blockSize = Math.Min(aes.BlockSize / 8, plainText.Length - offset);
-
-                for (int i = 0; i < blockSize; i++)
-                {
-                    encrypted[offset + i] = (byte)(plainText.Span[offset + i] ^ keyStream[i]);
-                }
-
-                Console.WriteLine($"Plaintext Block: {BitConverter.ToString(plainText.Span.Slice(offset, blockSize).ToArray())}");
-                Console.WriteLine($"Ciphertext Block: {BitConverter.ToString(encrypted.Skip(offset).Take(blockSize).ToArray())}");
-
-                IncrementCounter(counter);
-            }
-
-            var result = new byte[nonce.Length + encrypted.Length];
-            nonce.CopyTo(result, 0);
-            encrypted.CopyTo(result, nonce.Length);
-
-            Console.WriteLine($"Encrypted Text Length: {result.Length}");
-            return result;
+            IncrementCounter(counter);
         }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Encryption failed", ex);
-        }
+
+        byte[] result = new byte[nonce.Length + encrypted.Length];
+        nonce.CopyTo(result);
+        encrypted.CopyTo(result.AsSpan(nonce.Length));
+
+        return result;
     }
 
     public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> cipherText, ReadOnlyMemory<byte> key)
@@ -66,54 +51,39 @@ internal static class AesCtrMode
         if (key.Length != 32)
             throw new ArgumentException("Key must be 32 bytes long", nameof(key));
 
-        try
+        using Aes aes = Aes.Create();
+        aes.Key = key.ToArray();
+        aes.Mode = CipherMode.ECB;
+        aes.Padding = PaddingMode.None;
+
+        ReadOnlySpan<byte> nonce = cipherText[..Aes256.BlockSize].Span;
+        ReadOnlySpan<byte> cipherData = cipherText[Aes256.BlockSize..].Span;
+
+        using ICryptoTransform decryptor = aes.CreateDecryptor();
+        Span<byte> decrypted = new byte[cipherData.Length];
+        Span<byte> counter = stackalloc byte[Aes256.BlockSize];
+        Span<byte> keyStream = stackalloc byte[Aes256.BlockSize];
+        nonce.CopyTo(counter);
+
+        for (int offset = 0; offset < cipherData.Length; offset += Aes256.BlockSize)
         {
-            using var aes = Aes.Create();
-            aes.Key = key.ToArray();
-            aes.Mode = CipherMode.ECB;
-            aes.Padding = PaddingMode.None;
+            decryptor.TransformBlock(counter.ToArray(), 0, Aes256.BlockSize, keyStream.ToArray(), 0);
+            int blockSize = Math.Min(Aes256.BlockSize, cipherData.Length - offset);
 
-            var nonce = cipherText[..Aes256.BlockSize].ToArray();
-            var cipherData = cipherText[Aes256.BlockSize..];
+            for (int i = 0; i < blockSize; i++)
+                decrypted[offset + i] = (byte)(cipherData[offset + i] ^ keyStream[i]);
 
-            Console.WriteLine($"Nonce (Decrypt): {BitConverter.ToString(nonce)}");
-
-            using var decryptor = aes.CreateDecryptor();
-            var decrypted = new byte[cipherData.Length];
-            var counter = (byte[])nonce.Clone();
-
-            for (int offset = 0; offset < cipherData.Length; offset += aes.BlockSize / 8)
-            {
-                var keyStream = new byte[aes.BlockSize / 8];
-                decryptor.TransformBlock(counter, 0, counter.Length, keyStream, 0);
-                int blockSize = Math.Min(aes.BlockSize / 8, cipherData.Length - offset);
-
-                for (int i = 0; i < blockSize; i++)
-                {
-                    decrypted[offset + i] = (byte)(cipherData.Span[offset + i] ^ keyStream[i]);
-                }
-
-                Console.WriteLine($"Ciphertext Block: {BitConverter.ToString(cipherData.Span.Slice(offset, blockSize).ToArray())}");
-                Console.WriteLine($"Decrypted Block: {BitConverter.ToString(decrypted.Skip(offset).Take(blockSize).ToArray())}");
-
-                IncrementCounter(counter);
-            }
-
-            Console.WriteLine($"Decrypted Text Length: {decrypted.Length}");
-            return decrypted;
+            IncrementCounter(counter);
         }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Decryption failed", ex);
-        }
+
+        return decrypted.ToArray();
     }
 
-    private static void IncrementCounter(byte[] counter)
+    private static void IncrementCounter(Span<byte> counter)
     {
         for (int i = counter.Length - 1; i >= 0; i--)
         {
-            counter[i]++;
-            if (counter[i] != 0)
+            if (++counter[i] != 0)
                 break;
         }
     }

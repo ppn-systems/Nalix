@@ -1,7 +1,5 @@
 ﻿using Notio.Cryptography;
 using System;
-using System.Drawing;
-using System.Text;
 
 namespace Notio.Testing;
 
@@ -14,7 +12,7 @@ public static class Aes256Testing
             TestCbcEncryptionDecryption,
             TestGcmEncryptionDecryption,
             TestCtrEncryptionDecryption,
-            //TestDifferentInputSizes
+            TestDifferentInputSizes
         };
 
         foreach (var test in tests)
@@ -34,59 +32,38 @@ public static class Aes256Testing
     private static void TestCbcEncryptionDecryption()
     {
         var key = Aes256.GenerateKey();
-        var originalText = GenerateRandomBytes(5000);
+        var originalBytes = GenerateRandomBytes(5000);
 
-        var encrypted = Aes256.CbcMode.Encrypt(originalText, key);
+        var encrypted = Aes256.CbcMode.Encrypt(originalBytes, key);
         var decrypted = Aes256.CbcMode.Decrypt(encrypted, key);
 
-        if (!originalText.AsSpan().SequenceEqual(decrypted.Span))
+        if (!originalBytes.AsSpan().SequenceEqual(decrypted.Span))
             throw new Exception("CBC Decryption failed");
     }
 
     private static void TestGcmEncryptionDecryption()
     {
         var key = Aes256.GenerateKey();
-        var originalText = GenerateRandomBytes(5000);
+        var originalBytes = GenerateRandomBytes(5000);
 
-        var encrypted = Aes256.GcmMode.Encrypt(originalText, key);
+        var encrypted = Aes256.GcmMode.Encrypt(originalBytes, key);
         var decrypted = Aes256.GcmMode.Decrypt(encrypted, key);
 
-        if (!originalText.AsSpan().SequenceEqual(decrypted.Span))
+        if (!originalBytes.AsSpan().SequenceEqual(decrypted.Span))
             throw new Exception("GCM Decryption failed");
     }
 
     private static void TestCtrEncryptionDecryption()
     {
-        try
+        var key = Aes256.GenerateKey();
+        var originalBytes = GenerateRandomBytes(500);
+
+        var encrypted = Aes256.CtrMode.Encrypt(originalBytes, key);
+        var decrypted = Aes256.CtrMode.Decrypt(encrypted, key);
+
+        if (!originalBytes.AsSpan().SequenceEqual(decrypted.Span))
         {
-            var key = Aes256.GenerateKey();
-            var originalText = GenerateRandomBytes(50);
-            Console.WriteLine("Original text length: " + originalText.Length);
-
-            var encrypted = Aes256.CtrMode.Encrypt(originalText, key);
-            Console.WriteLine("Encrypted text length: " + encrypted.Length);
-
-            var decrypted = Aes256.CtrMode.Decrypt(encrypted, key);
-            Console.WriteLine("Decrypted text length: " + decrypted.Length);
-
-            // In chi tiết để so sánh
-            Console.WriteLine("Original text (hex):");
-            Console.WriteLine(BitConverter.ToString(originalText));
-
-            Console.WriteLine("Decrypted text (hex):");
-            Console.WriteLine(BitConverter.ToString(decrypted.ToArray()));
-
-            if (!originalText.AsSpan().SequenceEqual(decrypted.Span))
-            {
-                throw new Exception("CTR Decryption failed: Mismatch between original and decrypted data.");
-            }
-
-            Console.WriteLine("CTR Encryption/Decryption test passed.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"TestCtrEncryptionDecryption: Failed - {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
+            throw new Exception("CTR Decryption failed");
         }
     }
 
@@ -97,19 +74,19 @@ public static class Aes256Testing
 
         foreach (var size in testSizes)
         {
-            byte[] originalText = GenerateRandomBytes(size);
+            byte[] originalBytes = GenerateRandomBytes(size);
 
-            ReadOnlyMemory<byte> cbcEncrypted = Aes256.CbcMode.Encrypt(originalText, key);
+            ReadOnlyMemory<byte> cbcEncrypted = Aes256.CbcMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> cbcDecrypted = Aes256.CbcMode.Decrypt(cbcEncrypted, key);
 
-            ReadOnlyMemory<byte> gcmEncrypted = Aes256.GcmMode.Encrypt(originalText, key);
+            ReadOnlyMemory<byte> gcmEncrypted = Aes256.GcmMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> gcmDecrypted = Aes256.GcmMode.Decrypt(gcmEncrypted, key);
 
-            ReadOnlyMemory<byte> ctrEncrypted = Aes256.CtrMode.Encrypt(originalText, key);
+            ReadOnlyMemory<byte> ctrEncrypted = Aes256.CtrMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> ctrDecrypted = Aes256.CtrMode.Decrypt(ctrEncrypted, key);
-            if (!originalText.AsSpan().SequenceEqual(cbcDecrypted.Span) ||
-                !originalText.AsSpan().SequenceEqual(gcmDecrypted.Span) ||
-                !originalText.AsSpan().SequenceEqual(ctrDecrypted.Span))
+            if (!originalBytes.AsSpan().SequenceEqual(cbcDecrypted.Span) ||
+                !originalBytes.AsSpan().SequenceEqual(gcmDecrypted.Span) ||
+                !originalBytes.AsSpan().SequenceEqual(ctrDecrypted.Span))
             {
                 throw new Exception($"Decryption failed for input size {size}");
             }
