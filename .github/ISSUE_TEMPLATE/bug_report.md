@@ -1,4 +1,5 @@
 ---
+
 name: Bug Report
 about: Report a bug to help us improve
 title: ''
@@ -7,40 +8,71 @@ assignees: ''
 
 ---
 
-**IMPORTANT: DO NOT USE ISSUES FOR QUESTIONS**
-
-> Please note that issues submitted without using the provided issue template may be closed as `invalid`. This is not meant to be rude but to keep the issue list organized and useful for everyone.
+> [!IMPORTANT]  
+> **DO NOT USE ISSUES FOR QUESTIONS**.  
+> Issues submitted without using this template may be closed as `invalid`. This helps keep the issue list organized and actionable.
 
 ---
 
 **Remove everything above this line when submitting your issue.**
 
-## Bug Description
-Please describe the bug clearly and concisely.
-> For example, use a tool like [RequestBin](https://requestbin.com) to compare working and non-working requests.
+## 🐛 Bug Description
 
-## Steps to Reproduce
-Provide the steps to reproduce the bug, ideally using a code snippet.  
-If you made it work using Postman, Swagger, or any other client, please post the non-working request as well.
-
-## Expected Behavior
-Describe what you expected to happen.  
-If you have a working example (for example, using Postman, Swagger, etc.), please include that request.
-
-> You can use [RequestBin](https://requestbin.com/r) to create a public request bin and share the link here.
-
-## Stack Trace
-If you get an exception, copy and paste the full stack trace here.
-
-## Environment (Please complete the following information):
-- **OS**: [e.g. macOS, Windows, Linux]
-- **.NET Version**: [e.g. .NET 9]
-- **App Version**: [e.g. 0.0.84]
-
-## Additional Context
-Add any additional context about the problem here.  
-For example, steps you've tried to fix it or any other relevant information.
+Provide a clear and concise description of the bug.  
+> For example, use tools like [RequestBin](https://requestbin.com) to compare working and non-working requests.
 
 ---
 
-Thank you for reporting the issue. We'll review it and get back to you as soon as possible.
+## 🛠 Steps to Reproduce
+
+1. Step 1: Describe the first step.
+2. Step 2: Describe the second step.
+3. Step 3: Describe the third step.
+
+**Code Snippet (if applicable):**
+
+```csharp
+// Add a minimal code example to reproduce the issue
+ExampleClass example = new();
+example.DoSomething();
+```
+
+## ✅ Expected Behavior
+
+Describe what you expected to happen.
+If you have a working example (e.g., using Postman, Swagger, etc.), please include it here.
+
+> You can use [RequestBin](https://requestbin.com) to create a public request bin and share the link.
+
+## ❌ Actual Behavior
+
+Describe what actually happened instead of the expected behavior.  
+Include any error messages, logs, or unexpected outcomes.
+
+## 📜 Stack Trace
+
+If you encountered an exception, paste the full stack trace here:
+
+```shell
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at Namespace.Class.Method() in FilePath.cs:line 123
+```
+
+## 🌍 Environment
+
+- **OS**: [e.g., macOS Ventura, Windows 11, Ubuntu 22.04]
+- **.NET Version**: [e.g., .NET 9 Preview]
+- **App Version**: [e.g., 0.1.20]
+
+## 📂 Additional Context
+
+Add any additional context about the problem here.
+For example:
+
+- Steps you've tried to fix the issue.
+- Screenshots or videos demonstrating the issue.
+- Links to related issues or pull requests.
+
+---
+
+*Thank you for reporting the issue! We'll review it and get back to you as soon as possible.*
