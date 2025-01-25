@@ -3,7 +3,7 @@ using Notio.Logging.Interfaces;
 using System;
 using System.IO;
 
-namespace Notio.Logging;
+namespace Notio.Logging.Engine;
 
 /// <summary>
 /// Configures logging settings for the application.
