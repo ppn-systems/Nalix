@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Firewall.Enums;
+﻿namespace Notio.Network.Enums;
 
 public enum BandwidthLimit
 {

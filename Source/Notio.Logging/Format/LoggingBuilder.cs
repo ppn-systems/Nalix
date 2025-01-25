@@ -1,5 +1,5 @@
-﻿using Notio.Common.Logging;
-using Notio.Logging.Enums;
+﻿using Notio.Common.Enums;
+using Notio.Common.Logging;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;

@@ -1,10 +1,10 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Packets.Internal.Serialization;
+namespace Notio.Packets.Serialization;
 
 [SkipLocalsInit]
 internal static class PacketSerializer

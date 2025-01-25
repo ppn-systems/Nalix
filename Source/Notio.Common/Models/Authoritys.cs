@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Model;
+﻿namespace Notio.Common.Models;
 
 /// <summary>
 /// Represents different authority levels of users in the system.

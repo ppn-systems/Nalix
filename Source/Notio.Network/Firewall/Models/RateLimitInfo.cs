@@ -1,9 +1,9 @@
-﻿namespace Notio.Network.Firewall.Metadata;
+﻿namespace Notio.Network.Firewall.Models;
 
 /// <summary>
 /// Represents a data rate limit configuration, including maximum transfer rate and burst size.
 /// </summary>
-internal readonly record struct DataRateLimit(
+internal readonly record struct RateLimitInfo(
     /// <summary>
     /// The allowed data transfer rate in bytes per second.
     /// </summary>

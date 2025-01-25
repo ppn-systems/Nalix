@@ -1,4 +1,4 @@
-﻿using Notio.Logging.Metadata;
+﻿using Notio.Common.Models;
 using System;
 
 namespace Notio.Logging.Format;

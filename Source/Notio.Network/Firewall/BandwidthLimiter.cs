@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
+using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -18,8 +18,8 @@ public sealed class BandwidthLimiter : IDisposable
     private readonly ILogger? _logger;
     private readonly Timer _resetTimer;
     private readonly TimeSpan _resetInterval;
-    private readonly DataRateLimit _uploadLimit;
-    private readonly DataRateLimit _downloadLimit;
+    private readonly RateLimitInfo _uploadLimit;
+    private readonly RateLimitInfo _downloadLimit;
     private readonly FirewallConfig _firewallConfig;
     private readonly ConcurrentDictionary<string, BandwidthInfo> _stats;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _throttles;
@@ -35,12 +35,12 @@ public sealed class BandwidthLimiter : IDisposable
         if (_firewallConfig.MaxUploadBytesPerSecond <= 0 || _firewallConfig.MaxDownloadBytesPerSecond <= 0)
             throw new ArgumentException("Bandwidth limits must be greater than 0");
 
-        _uploadLimit = new DataRateLimit(
+        _uploadLimit = new RateLimitInfo(
             _firewallConfig.MaxUploadBytesPerSecond,
             _firewallConfig.UploadBurstSize
         );
 
-        _downloadLimit = new DataRateLimit(
+        _downloadLimit = new RateLimitInfo(
             _firewallConfig.MaxDownloadBytesPerSecond,
             _firewallConfig.DownloadBurstSize
         );

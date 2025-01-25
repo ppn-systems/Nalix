@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Firewall;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
+using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -24,7 +24,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
     private readonly int _lockoutDurationSeconds;
     private readonly TimeSpan _timeWindowDuration;
     private readonly FirewallConfig _firewallConfig;
-    private readonly ConcurrentDictionary<string, RequestData> _ipData;
+    private readonly ConcurrentDictionary<string, RequestDataInfo> _ipData;
 
     private bool _disposed;
 
@@ -45,7 +45,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         _maxAllowedRequests = _firewallConfig.MaxAllowedRequests;
         _lockoutDurationSeconds = _firewallConfig.LockoutDurationSeconds;
         _timeWindowDuration = TimeSpan.FromMilliseconds(_firewallConfig.TimeWindowInMilliseconds);
-        _ipData = new ConcurrentDictionary<string, RequestData>();
+        _ipData = new ConcurrentDictionary<string, RequestDataInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 
         // Khởi tạo timer để tự động dọn dẹp
@@ -74,7 +74,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
 
         bool status = _ipData.AddOrUpdate(
             endPoint,
-            _ => new RequestData(new Queue<DateTime>([currentTime]), null),
+            _ => new RequestDataInfo(new Queue<DateTime>([currentTime]), null),
             (_, data) => ProcessRequest(data, currentTime)
         ).BlockedUntil?.CompareTo(currentTime) <= 0;
 
@@ -84,7 +84,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         return status;
     }
 
-    private RequestData ProcessRequest(RequestData data, DateTime currentTime)
+    private RequestDataInfo ProcessRequest(RequestDataInfo data, DateTime currentTime)
     {
         var (requests, blockedUntil) = data;
 
@@ -98,10 +98,10 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
 
         // Kiểm tra và cập nhật trạng thái
         if (requests.Count >= _maxAllowedRequests)
-            return new RequestData(requests, currentTime.AddSeconds(_lockoutDurationSeconds));
+            return new RequestDataInfo(requests, currentTime.AddSeconds(_lockoutDurationSeconds));
 
         requests.Enqueue(currentTime);
-        return new RequestData(requests, null);
+        return new RequestDataInfo(requests, null);
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
                 if (cleanedRequests.Count == 0 && (!data.BlockedUntil.HasValue || currentTime > data.BlockedUntil.Value))
                     keysToRemove.Add(ip);
                 else
-                    _ipData.TryUpdate(ip, new RequestData(cleanedRequests, data.BlockedUntil), data);
+                    _ipData.TryUpdate(ip, new RequestDataInfo(cleanedRequests, data.BlockedUntil), data);
             }
 
             foreach (var key in keysToRemove)

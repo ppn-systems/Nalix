@@ -1,6 +1,6 @@
 ﻿using Notio.Packets.Enums;
 using Notio.Packets.Extensions;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;

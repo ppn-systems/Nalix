@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Packets.Internal.Serialization;
+namespace Notio.Packets.Serialization;
 
 [SkipLocalsInit]
 internal static unsafe class PacketSerializerUnsafe

@@ -1,9 +1,9 @@
-﻿namespace Notio.Network.Firewall.Metadata;
+﻿namespace Notio.Network.Firewall.Models;
 
 /// <summary>
 /// Represents the data of a request, including the history of request timestamps and optional block expiration time.
 /// </summary>
-internal readonly record struct RequestData(
+internal readonly record struct RequestDataInfo(
     /// <summary>
     /// A queue of timestamps representing the times of incoming requests.
     /// </summary>

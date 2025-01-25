@@ -1,4 +1,4 @@
-﻿namespace Notio.Logging.Enums;
+﻿namespace Notio.Common.Enums;
 
 /// <summary>
 /// Đại diện cho các mức độ nghiêm trọng của một thông điệp nhật ký.

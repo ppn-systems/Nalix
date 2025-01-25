@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Connection.Args;
+﻿namespace Notio.Common.Connection;
 
 /// <summary>
 /// Interface representing event arguments for connection-related events.

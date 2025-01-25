@@ -1,6 +1,4 @@
-﻿using Notio.Logging.Targets;
-
-namespace Notio.Logging.Engine;
+﻿namespace Notio.Common.Logging;
 
 /// <summary>
 /// Định nghĩa giao diện cho nhà xuất bản nhật ký.

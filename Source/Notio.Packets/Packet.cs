@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Memory;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
 using System;
 using System.Buffers;
 using System.Diagnostics;

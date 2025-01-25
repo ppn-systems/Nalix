@@ -1,5 +1,4 @@
 ﻿using Notio.Common.Connection;
-using Notio.Common.Connection.Args;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Network.Protocols;

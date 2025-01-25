@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection.Args;
+﻿using Notio.Common.Connection;
 using Notio.Network.Protocols;
 using System;
 

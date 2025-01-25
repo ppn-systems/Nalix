@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Packets.Internal.Serialization;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
+using Notio.Packets.Serialization;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;

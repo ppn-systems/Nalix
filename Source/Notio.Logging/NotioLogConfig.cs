@@ -1,6 +1,5 @@
-﻿using Notio.Logging.Engine;
-using Notio.Logging.Enums;
-using Notio.Logging.Targets;
+﻿using Notio.Common.Enums;
+using Notio.Common.Logging;
 using System;
 using System.IO;
 

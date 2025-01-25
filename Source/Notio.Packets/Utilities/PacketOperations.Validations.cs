@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Packets.Enums;
 using Notio.Packets.Extensions;
-using Notio.Packets.Metadata;
+using Notio.Packets.Models;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Packets.Utilities;

@@ -1,5 +1,6 @@
-﻿using Notio.Logging.Format;
-using Notio.Logging.Metadata;
+﻿using Notio.Common.Logging;
+using Notio.Common.Models;
+using Notio.Logging.Format;
 using Notio.Logging.Storage;
 using System;
 

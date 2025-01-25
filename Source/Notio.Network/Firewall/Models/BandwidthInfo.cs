@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Firewall.Metadata;
+﻿namespace Notio.Network.Firewall.Models;
 
 /// <summary>
 /// Represents bandwidth information for monitoring network activity.

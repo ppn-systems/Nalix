@@ -1,5 +1,5 @@
-﻿using Notio.Logging.Metadata;
-using Notio.Logging.Targets;
+﻿using Notio.Common.Logging;
+using Notio.Common.Models;
 using System;
 using System.Collections.Generic;
 

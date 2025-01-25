@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Firewall.Metadata;
+﻿namespace Notio.Network.Firewall.Models;
 
 /// <summary>
 /// Represents connection-related information for monitoring and managing network traffic.

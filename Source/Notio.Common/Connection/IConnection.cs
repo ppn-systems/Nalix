@@ -1,5 +1,4 @@
-﻿using Notio.Common.Connection.Args;
-using Notio.Common.Connection.Enums;
+﻿using Notio.Common.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

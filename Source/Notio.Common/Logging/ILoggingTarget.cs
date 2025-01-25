@@ -1,6 +1,6 @@
-﻿using Notio.Logging.Metadata;
+﻿using Notio.Common.Models;
 
-namespace Notio.Logging.Targets;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Định nghĩa giao diện cho mục tiêu xử lý nhật ký.
