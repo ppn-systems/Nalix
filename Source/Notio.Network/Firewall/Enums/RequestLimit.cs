@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Enums;
+﻿namespace Notio.Network.Firewall.Enums;
 
 public enum RequestLimit
 {

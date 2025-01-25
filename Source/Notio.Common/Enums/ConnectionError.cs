@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Connection.Enums;
+﻿namespace Notio.Common.Enums;
 
 /// <summary>
 /// Represents the types of errors that can occur during a connection.
