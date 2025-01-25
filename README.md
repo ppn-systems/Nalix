@@ -1,4 +1,4 @@
-# Notio
+# <img alt="Notio Icon" src="Resource/Notio.ico" height="100px" width="auto"> **Notio**
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Notio)
 

@@ -9,7 +9,7 @@ public static class FileMetadataService
     public static void WriteMetadata(string filePath, FileMetadata metadata, string content)
     {
         // Chuyển metadata thành chuỗi JSON
-        string metadataLine = $"{metadata.OriginalExtension}|{metadata.User}|{metadata.Password}|{metadata.CreatedDate:yyyy-MM-dd HH:mm:ss}";
+        string metadataLine = $"{metadata.OriginalExtension}|{metadata.User}|{metadata.CreatedDate:yyyy-MM-dd HH:mm:ss}";
 
         // Ghi metadata vào line 0 và nội dung vào các dòng tiếp theo
         using var writer = new StreamWriter(filePath);
