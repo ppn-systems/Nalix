@@ -64,8 +64,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.UInt32)current.Flags,
-                    arg2: 0).ConfigureAwait(false);
+                    arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
 
                 return;
             }
@@ -84,8 +83,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
-                        arg1: (System.UInt32)current.Flags,
-                        arg2: 0).ConfigureAwait(false);
+                        arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
 
                     return;
                 }
@@ -106,8 +104,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
-                        arg1: (System.UInt32)current.Flags,
-                        arg2: 0).ConfigureAwait(false);
+                        arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
 
                     return;
                 }
@@ -140,8 +137,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,
-                arg1: (System.Byte)current.Flags,
-                arg2: 0).ConfigureAwait(false);
+                arg1: (System.Byte)current.Flags, arg2: 0).ConfigureAwait(false);
 
             return;
         }
