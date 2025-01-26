@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Notio.FileStorage.Config;
 
-public class InDiskConfig : IFileStorageSetting<InDiskConfig>
+public class InDiskConfig : IFileStorageConfig<InDiskConfig>
 {
     public string StorageFolder { get; }
     public IFileGenerator Generator { get; private set; }

@@ -50,6 +50,24 @@ internal class MimeTypePattern(byte[] pattern, ushort offset = 0)
     }
 
     /// <summary>
+    /// Calculate the pattern match score
+    /// </summary>
+    public int MatchScore(byte[] data)
+    {
+        if (data == null || data.Length < Offset + Bytes.Length)
+            return 0;
+
+        int score = 0;
+        for (int i = 0; i < Bytes.Length; i++)
+        {
+            if (data[Offset + i] != Bytes[i]) break;
+            score++;
+        }
+
+        return score == Bytes.Length ? score : 0; // Chỉ trả về điểm khi khớp hoàn toàn
+    }
+
+    /// <summary>
     /// Checks if the given data matches the pattern.
     /// </summary>
     /// <param name="data">The data to compare with the pattern.</param>

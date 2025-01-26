@@ -30,4 +30,11 @@ public interface IMimeTypeResolver
     /// <param name="data">The byte array representing the file content.</param>
     /// <returns>A string representing the file extension, including the dot (e.g., ".txt").</returns>
     string GetExtension(byte[] data);
+
+    /// <summary>
+    /// Checks if a specific MIME type is supported.
+    /// </summary>
+    /// <param name="mimeType">The MIME type to check.</param>
+    /// <returns><c>true</c> if the MIME type is supported; otherwise, <c>false</c>.</returns>
+    bool IsSupported(string mimeType);
 }
