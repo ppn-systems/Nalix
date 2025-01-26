@@ -1,4 +1,9 @@
-﻿using System;
+﻿using Notio.FileStorage.FileFormats;
+using Notio.FileStorage.Interfaces;
+using Notio.FileStorage.Models;
+using Notio.Shared.Extensions;
+
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -6,10 +11,6 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Notio.FileStorage.FileFormats;
-using Notio.FileStorage.Interfaces;
-using Notio.FileStorage.Models;
-using Notio.Shared.Extensions;
 
 namespace Notio.FileStorage.Multipart;
 

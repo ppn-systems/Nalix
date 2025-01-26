@@ -1,6 +1,6 @@
 ﻿using Notio.Testing;
-using System.Threading.Tasks;
 using System;
+using System.Threading.Tasks;
 
 namespace Notio.Application.Threading;
 

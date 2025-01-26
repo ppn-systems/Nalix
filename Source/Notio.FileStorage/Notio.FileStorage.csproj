@@ -19,4 +19,8 @@
 		<UseCompression>true</UseCompression>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+	</ItemGroup>
+
 </Project>

@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Notio.FileStorage.FileFormats;
+using Notio.FileStorage.Interfaces;
+using Notio.FileStorage.Models;
+using Notio.FileStorage.Settings;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using Notio.FileStorage.FileFormats;
-using Notio.FileStorage.Interfaces;
-using Notio.FileStorage.Models;
 
-namespace Notio.FileStorage.InMemory;
+namespace Notio.FileStorage.Local;
 
 public class InMemoryStorage : IFileStorageAsync
 {

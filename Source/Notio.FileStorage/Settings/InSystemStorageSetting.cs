@@ -3,7 +3,7 @@ using Notio.FileStorage.MimeTypes;
 using System;
 using System.IO;
 
-namespace Notio.FileStorage.InSystem;
+namespace Notio.FileStorage.Settings;
 
 public class InSystemStorageSetting : IFileStorageSetting<InSystemStorageSetting>
 {
@@ -11,12 +11,22 @@ public class InSystemStorageSetting : IFileStorageSetting<InSystemStorageSetting
     public IFileGenerator Generator { get; private set; }
 
     public bool IsGenerationEnabled
-    { get { return Generator is null == false; } }
+    {
+        get
+        {
+            return Generator is null == false;
+        }
+    }
 
     public IMimeTypeResolver MimeTypeResolver { get; private set; }
 
     public bool IsMimeTypeResolverEnabled
-    { get { return MimeTypeResolver is null == false; } }
+    {
+        get
+        {
+            return MimeTypeResolver is null == false;
+        }
+    }
 
     public InSystemStorageSetting(string storageFolder)
     {

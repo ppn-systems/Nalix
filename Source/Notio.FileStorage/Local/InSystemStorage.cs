@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Notio.FileStorage;
+namespace Notio.FileStorage.Local;
 
 public class InSystemStorage : IFileStorage
 {

@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
-using Notio.FileStorage.FileFormats;
+﻿using Notio.FileStorage.FileFormats;
 using Notio.FileStorage.Generator;
+
+using System.Collections.Generic;
 
 namespace Notio.FileStorage.Interfaces;
 
