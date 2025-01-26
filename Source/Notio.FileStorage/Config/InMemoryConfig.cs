@@ -4,7 +4,7 @@ using System;
 
 namespace Notio.FileStorage.Config;
 
-public class InMemoryConfig : IFileStorageSetting<InMemoryConfig>
+public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
 {
     public IFileGenerator Generator { get; private set; }
     public IMimeTypeResolver MimeTypeResolver { get; private set; }
