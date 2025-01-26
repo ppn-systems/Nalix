@@ -25,6 +25,7 @@ public sealed partial class Connection : IConnection
     private readonly FramedSocketChannel _cstream;
     private readonly System.Threading.Lock _lock;
 
+    private System.Int32 _closeSignaled;
     private System.Boolean _disposed;
     private System.Byte[] _encryptionKey;
 
@@ -45,14 +46,12 @@ public sealed partial class Connection : IConnection
     {
         _lock = new System.Threading.Lock();
 
-        ConnectionEventArgs args = new(this);
-
         _disposed = false;
         _encryptionKey = [];
 
         _cstream = new FramedSocketChannel(socket);
-        _cstream.SetCallback(OnCloseEventBridge, this, args);
-        _cstream.Cache.SetCallback(OnProcessEventBridge, this, args);
+        _cstream.SetCallback(OnCloseEventBridge, this, new ConnectionEventArgs(this));
+        _cstream.Cache.SetCallback(OnProcessEventBridge, this, new ConnectionEventArgs(this));
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Identifier.NewId(IdentifierType.Session);
@@ -232,6 +231,30 @@ public sealed partial class Connection : IConnection
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void RaiseClosedOnce(Connection sender, IConnectEventArgs e)
+    {
+        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
+        {
+            return;
+        }
+
+        System.EventHandler<IConnectEventArgs>? handler = _onCloseEvent;
+        if (handler != null)
+        {
+            try
+            {
+                handler(sender, e);
+            }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(Connection)}] OnCloseEvent handler threw: {ex}");
+            }
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -243,15 +266,13 @@ public sealed partial class Connection : IConnection
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
     {
-        if (sender is not Connection self)
+        if (sender is Connection connection)
         {
-            return;
+            this.RaiseClosedOnce(connection, e);
         }
-
-        self._onCloseEvent?.Invoke(self, e);
     }
 
     #endregion Event Bridges
