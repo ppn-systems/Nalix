@@ -14,7 +14,7 @@ public class FileTarget(ILoggingFormatter loggerFormatter, string directory, str
     public readonly FileLoggerProvider LoggerPrv = new(directory, filename);
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public FileTarget(string directory, string filename) : this(new LoggingFormatter(), directory, filename)
+    public FileTarget(string directory, string filename) : this(new LoggingFormatter(false), directory, filename)
     {
     }
 

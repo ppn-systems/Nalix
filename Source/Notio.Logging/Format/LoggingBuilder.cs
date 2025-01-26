@@ -5,124 +5,180 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Notio.Logging.Format;
-
-internal static class LoggingBuilder
+namespace Notio.Logging.Format
 {
-    private const int DefaultBufferSize = 256;
-    private const char OpenBracket = '[';
-    private const char CloseBracket = ']';
-    private const string DefaultSeparator = "   -   ";
-    private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void BuildLog(
-        StringBuilder builder,
-        in DateTime timeStamp,
-        LoggingLevel logLevel,
-        in EventId eventId,
-        string message,
-        Exception? exception,
-        string separator = DefaultSeparator,
-        string? customTimestampFormat = null)
+    internal static class LoggingBuilder
     {
-        // Estimate buffer size to minimize reallocations
-        int estimatedLength = CalculateEstimatedLength(message, eventId, exception);
-        EnsureCapacity(builder, estimatedLength);
+        private const int DefaultBufferSize = 60;
+        private const char OpenBracket = '[';
+        private const char CloseBracket = ']';
+        private const char DefaultSpaceSeparator = ' ';
+        private const char DefaultDashSeparator = '-';
+        private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
 
-        AppendTimestamp(builder, timeStamp, customTimestampFormat);
-        AppendSeparator(builder, separator);
-        AppendLogLevel(builder, logLevel);
-        AppendSeparator(builder, separator);
-
-        if (eventId.Id != 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void BuildLog(
+            StringBuilder builder,
+            in DateTime timeStamp,
+            LoggingLevel logLevel,
+            in EventId eventId,
+            string message,
+            Exception? exception,
+            bool useColor = false,
+            string? customTimestampFormat = null)
         {
-            AppendEventId(builder, eventId);
-            AppendSeparator(builder, separator);
+            // Estimate buffer size to minimize reallocations
+            int estimatedLength = CalculateEstimatedLength(message, eventId, exception, useColor);
+            EnsureCapacity(builder, estimatedLength);
+
+            AppendTimestamp(builder, timeStamp, customTimestampFormat, useColor);
+            AppendEventId(builder, eventId, useColor);
+            AppendLogLevel(builder, logLevel, useColor);
+            AppendMessage(builder, message, useColor);
+            AppendException(builder, exception, useColor);
         }
 
-        AppendMessage(builder, message);
-
-        if (exception is not null)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendTimestamp(StringBuilder builder, in DateTime timeStamp, string? format, bool useColor)
         {
-            AppendException(builder, exception, separator);
-        }
-    }
+            string timestampFormat = format ?? "yyyy-MM-dd HH:mm:ss.fff";
+            Span<char> dateBuffer = stackalloc char[timestampFormat.Length + 10];
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendTimestamp(StringBuilder builder, in DateTime timeStamp, string? format)
-    {
-        // Default to "yyyy-MM-dd HH:mm:ss.fff" if no custom format is provided
-        string timestampFormat = format ?? "yyyy-MM-dd HH:mm:ss.fff";
-        Span<char> dateBuffer = stackalloc char[timestampFormat.Length + 10];
-
-        if (timeStamp.TryFormat(dateBuffer, out int charsWritten, timestampFormat))
-        {
-            builder.Append(OpenBracket)
-                   .Append(dateBuffer[..charsWritten])
-                   .Append(CloseBracket);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendSeparator(StringBuilder builder, string separator) =>
-        builder.Append(separator);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendLogLevel(StringBuilder builder, LoggingLevel logLevel) =>
-        builder.Append(OpenBracket)
-               .Append(LoggingLevelFormatter.GetShortLogLevel(logLevel))
-               .Append(CloseBracket);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendEventId(StringBuilder builder, in EventId eventId)
-    {
-        builder.Append(OpenBracket);
-
-        if (eventId.Name is not null)
-        {
-            builder.Append(eventId.Id)
-                   .Append(':')
-                   .Append(eventId.Name);
-        }
-        else
-        {
-            builder.Append(eventId.Id);
+            if (timeStamp.TryFormat(dateBuffer, out int charsWritten, timestampFormat))
+            {
+                if (useColor)
+                {
+                    builder.Append(OpenBracket)
+                           .Append(ColorAnsi.Blue)
+                           .Append(dateBuffer[..charsWritten])
+                           .Append(ColorAnsi.White)
+                           .Append(CloseBracket);
+                }
+                else
+                {
+                    builder.Append(OpenBracket)
+                           .Append(dateBuffer[..charsWritten])
+                           .Append(CloseBracket);
+                }
+            }
         }
 
-        builder.Append(CloseBracket);
-    }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendLogLevel(StringBuilder builder, LoggingLevel logLevel, bool useColor)
+        {
+            if (useColor)
+            {
+                builder.Append(DefaultSpaceSeparator)
+                       .Append(OpenBracket)
+                       .Append(ColorAnsi.GetColorCode(logLevel))
+                       .Append(LoggingLevelFormatter.GetShortLogLevelString(logLevel))
+                       .Append(ColorAnsi.White)
+                       .Append(CloseBracket);
+            }
+            else
+            {
+                builder.Append(DefaultSpaceSeparator)
+                       .Append(OpenBracket)
+                       .Append(LoggingLevelFormatter.GetShortLogLevel(logLevel))
+                       .Append(CloseBracket);
+            }
+        }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendMessage(StringBuilder builder, string message) =>
-        builder.Append(OpenBracket)
-               .Append(message)
-               .Append(CloseBracket);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendEventId(StringBuilder builder, in EventId eventId, bool useColor)
+        {
+            if (eventId.Id == 0) return;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendException(StringBuilder builder, Exception exception, string separator) =>
-        builder.Append(separator)
-               .AppendLine()
-               .Append(exception);
+            builder.Append(DefaultSpaceSeparator)
+                   .Append(OpenBracket);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CalculateEstimatedLength(string message, in EventId eventId, Exception? exception)
-    {
-        int length = DefaultBufferSize + message.Length;
+            if (eventId.Name is not null)
+            {
+                if (useColor)
+                {
+                    builder.Append(ColorAnsi.Blue)
+                           .Append(eventId.Id)
+                           .Append(':')
+                           .Append(eventId.Name)
+                           .Append(ColorAnsi.White);
+                }
+                else
+                {
+                    builder.Append(eventId.Id)
+                           .Append(':')
+                           .Append(eventId.Name);
+                }
+            }
+            else
+            {
+                builder.Append(eventId.Id);
+            }
 
-        if (eventId.Name is not null)
-            length += eventId.Name.Length;
+            builder.Append(CloseBracket);
+        }
 
-        if (exception is not null)
-            length += exception.ToString().Length;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendMessage(StringBuilder builder, string message, bool useColor)
+        {
+            builder.Append(DefaultSpaceSeparator)
+                   .Append(DefaultDashSeparator)
+                   .Append(DefaultSpaceSeparator);
 
-        return length;
-    }
+            if (useColor)
+            {
+                builder.Append(ColorAnsi.DarkGray)
+                       .Append(message)
+                       .Append(ColorAnsi.White);
+            }
+            else
+            {
+                builder.Append(message);
+            }
+        }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EnsureCapacity(StringBuilder builder, int capacity)
-    {
-        if (builder.Capacity < capacity)
-            builder.EnsureCapacity(capacity);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void AppendException(StringBuilder builder, Exception? exception, bool useColor)
+        {
+            if (exception is null) return;
+
+            builder.Append(DefaultSpaceSeparator)
+                   .Append(DefaultDashSeparator)
+                   .Append(DefaultSpaceSeparator)
+                   .AppendLine();
+
+            if (useColor)
+            {
+                builder.Append(ColorAnsi.Red)
+                       .Append(exception)
+                       .Append(ColorAnsi.White);
+            }
+            else
+            {
+                builder.Append(exception);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int CalculateEstimatedLength(string message, in EventId eventId, Exception? exception, bool useColor)
+        {
+            int length = message.Length;
+
+            if (eventId.Name is not null)
+                length += eventId.Name.Length + 4; // Bao gồm ':' và dấu ngoặc vuông
+
+            if (exception is not null)
+                length += exception.ToString().Length + 2;
+
+            if (useColor) length += 30;
+
+            return length + DefaultBufferSize;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void EnsureCapacity(StringBuilder builder, int capacity)
+        {
+            if (builder.Capacity < capacity)
+                builder.EnsureCapacity(capacity);
+        }
     }
 }

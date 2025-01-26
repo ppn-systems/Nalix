@@ -9,18 +9,14 @@ namespace Notio.Logging.Format;
 /// <summary>
 /// Lớp LoggingFormatter cung cấp các phương thức để định dạng log đầu ra.
 /// </summary>
-public class LoggingFormatter : ILoggingFormatter
+public class LoggingFormatter(bool color = false) : ILoggingFormatter
 {
+    private readonly bool _color = color;
+
     /// <summary>
     /// Instance singleton của <see cref="LoggingFormatter"/> có thể tái sử dụng.
     /// </summary>
     internal static readonly LoggingFormatter Instance = new();
-
-    /// <summary>
-    /// Khởi tạo một instance mới của <see cref="LoggingFormatter"/>.
-    /// </summary>
-    public LoggingFormatter()
-    { }
 
     /// <summary>
     /// Định dạng một thông điệp log với timestamp, cấp độ log, ID sự kiện, thông điệp và ngoại lệ.
@@ -47,13 +43,13 @@ public class LoggingFormatter : ILoggingFormatter
     /// <example>
     /// string log = LoggingFormatter.FormatLogEntry(DateTime.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
-    public static string FormatLogEntry(
+    public string FormatLogEntry(
         DateTime timeStamp, LoggingLevel logLevel, EventId eventId,
         string message, Exception? exception)
     {
         StringBuilder logBuilder = new();
 
-        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception);
+        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _color);
 
         return logBuilder.ToString();
     }

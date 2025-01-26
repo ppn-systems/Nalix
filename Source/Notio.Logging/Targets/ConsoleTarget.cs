@@ -17,7 +17,7 @@ public sealed class ConsoleTarget(ILoggingFormatter loggerFormatter) : ILoggingT
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
-    public ConsoleTarget() : this(new LoggingFormatter())
+    public ConsoleTarget() : this(new LoggingFormatter(true))
     {
     }
 
@@ -26,36 +26,5 @@ public sealed class ConsoleTarget(ILoggingFormatter loggerFormatter) : ILoggingT
     /// </summary>
     /// <param name="logMessage">Thông điệp log cần xuất.</param>
     public void Publish(LoggingEntry logMessage)
-    {
-        try
-        {
-            // Lấy màu tương ứng với mức log
-            SetForegroundColor(logMessage.LogLevel);
-            Console.WriteLine(_loggerFormatter.FormatLog(logMessage, DateTime.Now));
-        }
-        finally
-        {
-            Console.ResetColor(); // Đảm bảo reset màu sau khi in
-        }
-    }
-
-    /// <summary>
-    /// Đặt màu sắc cho mức độ log.
-    /// </summary>
-    /// <param name="level">Mức độ log cần đặt màu sắc.</param>
-    private static void SetForegroundColor(LoggingLevel level)
-    {
-        var color = level switch
-        {
-            LoggingLevel.Trace => ConsoleColor.Gray,
-            LoggingLevel.Information => ConsoleColor.White,
-            LoggingLevel.Debug => ConsoleColor.Green,
-            LoggingLevel.Warning => ConsoleColor.Yellow,
-            LoggingLevel.Error => ConsoleColor.Magenta,
-            LoggingLevel.Critical => ConsoleColor.Red,
-            LoggingLevel.None => ConsoleColor.Cyan,
-            _ => ConsoleColor.White, // Mặc định
-        };
-        Console.ForegroundColor = color;
-    }
+        => Console.WriteLine(_loggerFormatter.FormatLog(logMessage, DateTime.Now));
 }

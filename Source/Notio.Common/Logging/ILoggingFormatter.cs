@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Models;
 using System;
 
-namespace Notio.Logging.Format;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Giao diện định nghĩa trình định dạng cho các thông điệp nhật ký.

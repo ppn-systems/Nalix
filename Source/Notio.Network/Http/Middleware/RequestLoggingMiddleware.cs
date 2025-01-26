@@ -17,12 +17,10 @@ public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
         string safeHttpMethod = context.Request.HttpMethod ?? "Unknown";
         string safeUrl = context.Request.Url?.PathAndQuery?.Replace("\n", "").Replace("\r", "") ?? "Unknown URL";
 
-        _logger.Trace($"""
-        Completed Request:
-        {safeHttpMethod} {safeUrl}
-        Status Code: {context.Response.StatusCode}
-        Duration: {_stopwatch.ElapsedMilliseconds}ms
-        """);
+        _logger.Trace(
+            $"Completed Request: {safeHttpMethod} {safeUrl} - " +
+            $"Status: {context.Response.StatusCode} | " +
+            $"Duration: {_stopwatch.ElapsedMilliseconds}ms");
 
         try
         {
@@ -34,12 +32,10 @@ public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
             _stopwatch.Stop();
 
             // Log response
-            _logger.Trace($"""
-            Completed Request:
-            {safeHttpMethod} {safeUrl}
-            Status Code: {context.Response.StatusCode}
-            Duration: {_stopwatch.ElapsedMilliseconds}ms
-            """);
+            _logger.Trace(
+                $"Completed Request: {safeHttpMethod} {safeUrl} - " +
+                $"Status: {context.Response.StatusCode} | " +
+                $"Duration: {_stopwatch.ElapsedMilliseconds}ms");
         }
     }
 }

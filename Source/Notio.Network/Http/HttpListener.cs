@@ -188,7 +188,6 @@ public sealed class HttpListener : IDisposable, IHttpListener
         object error = new
         {
             StatusCode = (int)statusCode,
-            Details = ex is BaseException baseEx ? baseEx.Details : null,
             ex.Message
         };
 

@@ -28,8 +28,7 @@ public static class FileMetadataService
         {
             OriginalExtension = metadataParts[0],
             User = metadataParts[1],
-            Password = metadataParts[2],
-            CreatedDate = DateTime.Parse(metadataParts[3])
+            CreatedDate = DateTime.Parse(metadataParts[2])
         };
 
         // Đọc nội dung gốc từ các dòng tiếp theo

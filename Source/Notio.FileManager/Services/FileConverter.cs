@@ -6,7 +6,7 @@ namespace Notio.FileManager.Services
 {
     public static class FileConverter
     {
-        public static void ConvertToNotio(string filePath, string user, string password)
+        public static void ConvertToNotio(string filePath, string user)
         {
             if (!File.Exists(filePath))
                 throw new FileNotFoundException("File not found.", filePath);
@@ -18,7 +18,6 @@ namespace Notio.FileManager.Services
             {
                 OriginalExtension = originalExtension,
                 User = user,
-                Password = password,
                 CreatedDate = DateTime.Now
             };
 

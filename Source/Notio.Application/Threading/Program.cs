@@ -1,12 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Notio.Application.Http;
-using Notio.Common.Enums;
-using Notio.Database;
-using Notio.Logging;
-using Notio.Logging.Targets;
-using Notio.Network.Http;
-using Notio.Testing;
+﻿using Notio.Testing;
 using System.Threading.Tasks;
+using System;
 
 namespace Notio.Application.Threading;
 
@@ -14,45 +8,31 @@ public static class Program
 {
     public static async Task Main()
     {
-        // MethodTest();
+        // Chạy unit tests (nếu cần)
+        // RunUnitTests();
 
-        //System.Console.ReadKey();
+        // Khởi tạo cấu hình
+        AppConfig.InitializeConsole();
+        AppConfig.InitializeLogging();
 
-        Program.Initialize();
+        // Khởi tạo database context
+        using (var dbContext = AppConfig.InitializeDatabase())
+        {
+            // Đảm bảo giải phóng tài nguyên khi không cần nữa
+        }
 
-        HttpListener httpServer = new();
-
-        httpServer.RegisterController<MainController>();
-        httpServer.RegisterController<AuthController>();
+        // Khởi tạo và chạy HTTP server
+        var httpServer = AppConfig.InitializeHttpServer();
 
         await httpServer.StartAsync();
 
-        System.Console.ReadKey();
+        Console.ReadKey();
     }
 
-    internal static void MethodTest()
+    internal static void RunUnitTests()
     {
         Aes256Testing.Main();
         JwtTokenTesting.Main();
         PacketTesting.Main();
-    }
-
-    internal static void Initialize()
-    {
-        // Khởi tạo hệ thống logging
-        NotioLog.Instance.Initialize(cfg =>
-        {
-            cfg.SetMinLevel(LoggingLevel.None)
-               .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
-               .AddTarget(new ConsoleTarget());
-        });
-
-        // Khởi tạo NotioContext với options
-        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-        optionsBuilder.UseSqlite("Data Source=notio.db");
-        NotioContext dbContext = new(optionsBuilder.Options);
-
-        // Đảm bảo giải phóng các tài nguyên khi không cần nữa
-        dbContext.Dispose();
     }
 }

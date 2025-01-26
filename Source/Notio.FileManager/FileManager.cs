@@ -4,8 +4,8 @@ namespace Notio.FileManager;
 
 public static class FileManager
 {
-    public static void ConvertFileToNotio(string filePath, string user, string password)
-        => FileConverter.ConvertToNotio(filePath, user, password);
+    public static void ConvertFileToNotio(string filePath, string user)
+        => FileConverter.ConvertToNotio(filePath, user);
 
     public static void RestoreFileFromNotio(string notioFilePath)
         => FileConverter.RestoreFromNotio(notioFilePath);
