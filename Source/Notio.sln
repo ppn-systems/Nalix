@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Packets", "Notio.Pack
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Testing", "Notio.Testing\Notio.Testing.csproj", "{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.FileManager", "Notio.FileManager\Notio.FileManager.csproj", "{FF9582AC-4348-454D-B6BF-DF046F0A919B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.FileStorage", "Notio.FileStorage\Notio.FileStorage.csproj", "{FF9582AC-4348-454D-B6BF-DF046F0A919B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
