@@ -1,7 +1,10 @@
-﻿using Notio.FileStorage.FileFormats;
+﻿using Notio.FileStorage.Config;
+using Notio.FileStorage.FileFormats;
+using Notio.FileStorage.Generator;
 using Notio.FileStorage.Interfaces;
+using Notio.FileStorage.MimeTypes;
 using Notio.FileStorage.Models;
-using Notio.FileStorage.Settings;
+using Notio.Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,15 +12,19 @@ using System.Linq;
 
 namespace Notio.FileStorage.Local;
 
-public class InSystemStorage : IFileStorage
+public class InDiskStorage : IFileStorage
 {
-    private readonly InSystemStorageSetting storageSettings;
+    private readonly InDiskConfig _storageConfig;
 
-    public InSystemStorage(InSystemStorageSetting storageSettings)
+    public InDiskStorage(InDiskConfig storageSettings)
     {
         if (storageSettings is null == true) throw new ArgumentNullException(nameof(storageSettings));
-        this.storageSettings = storageSettings;
+        this._storageConfig = storageSettings;
     }
+
+    public InDiskStorage() => _storageConfig = new InDiskConfig(DefaultDirectories.StoragePath)
+        .UseFileGenerator(new FileGenerator())
+        .UseMimeTypeResolver(new MimeTypeResolver());
 
     public void Upload(string fileName, byte[] data, IEnumerable<FileMeta> metaInfo, string format = "original")
     {
@@ -30,13 +37,13 @@ public class InSystemStorage : IFileStorage
         if (metaInfo is null == true)
             throw new ArgumentNullException(nameof(metaInfo));
 
-        if (fileName.Contains('.') == false && storageSettings.IsMimeTypeResolverEnabled)
+        if (fileName.Contains('.') == false && _storageConfig.IsMimeTypeResolverEnabled)
         {
-            var fileExtension = storageSettings.MimeTypeResolver.GetExtension(data);
+            var fileExtension = _storageConfig.MimeTypeResolver.GetExtension(data);
             fileName += fileExtension;
         }
 
-        var filePath = Path.Combine(storageSettings.StorageFolder, format, fileName);
+        var filePath = Path.Combine(_storageConfig.StorageFolder, format, fileName);
         var fileInfo = new FileInfo(filePath);
 
         if (!fileInfo.Directory.Exists)
@@ -53,16 +60,16 @@ public class InSystemStorage : IFileStorage
 
         if (string.IsNullOrEmpty(uri))
         {
-            if (storageSettings.IsGenerationEnabled == true)
+            if (_storageConfig.IsGenerationEnabled == true)
             {
-                var file = storageSettings.Generator.Generate(Download(fileName).Data, format);
+                var file = _storageConfig.Generator.Generate(Download(fileName).Data, format);
                 return new LocalFile(file.Data, fileName);
             }
 
-            if (storageSettings.IsGenerationEnabled == false && format != Original.FormatName)
-                throw new FileNotFoundException($"File {Path.Combine(storageSettings.StorageFolder, format, fileName)} not found. Plugin in {typeof(IFileGenerator)} to generate it.");
+            if (_storageConfig.IsGenerationEnabled == false && format != Original.FormatName)
+                throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageFolder, format, fileName)} not found. Plugin in {typeof(IFileGenerator)} to generate it.");
 
-            throw new FileNotFoundException($"File {Path.Combine(storageSettings.StorageFolder, format, fileName)} not found");
+            throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageFolder, format, fileName)} not found");
         }
 
         var fileBytes = File.ReadAllBytes(uri);
@@ -76,7 +83,7 @@ public class InSystemStorage : IFileStorage
     {
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
 
-        var directoryPath = Path.Combine(storageSettings.StorageFolder, format);
+        var directoryPath = Path.Combine(_storageConfig.StorageFolder, format);
         var directoryInfo = new DirectoryInfo(directoryPath);
         FileInfo[] files = directoryInfo.GetFiles();
         var found = files.SingleOrDefault(x => x.Name.Equals(fileName, StringComparison.InvariantCultureIgnoreCase));
@@ -92,7 +99,7 @@ public class InSystemStorage : IFileStorage
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentNullException(nameof(fileName));
 
-        var directoryPath = Path.Combine(storageSettings.StorageFolder, format);
+        var directoryPath = Path.Combine(_storageConfig.StorageFolder, format);
         var directoryInfo = new DirectoryInfo(directoryPath);
         FileInfo[] files = directoryInfo.GetFiles();
         var found = files.SingleOrDefault(x => x.Name.Equals(fileName, StringComparison.InvariantCultureIgnoreCase));
@@ -107,7 +114,7 @@ public class InSystemStorage : IFileStorage
 
     public void Delete(string fileName)
     {
-        foreach (var format in storageSettings.Generator.Formats)
+        foreach (var format in _storageConfig.Generator.Formats)
         {
             var uri = GetFileUri(fileName, format.Name);
 

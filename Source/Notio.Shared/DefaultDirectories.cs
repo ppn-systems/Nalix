@@ -13,7 +13,7 @@ public static class DefaultDirectories
     private static readonly Lazy<string> _dataPath = new(() => Path.Combine(BasePath, "Data"));
     private static readonly Lazy<string> _configPath = new(() => Path.Combine(BasePath, "Config"));
     private static readonly Lazy<string> _tempPath = new(() => Path.Combine(DataPath, "Temp"));
-    private static readonly Lazy<string> _metricPath = new(() => Path.Combine(DataPath, "Metrics"));
+    private static readonly Lazy<string> _storagePath = new(() => Path.Combine(DataPath, "Storage"));
 
     /// <summary>
     /// The base directory of the application.
@@ -43,7 +43,7 @@ public static class DefaultDirectories
     /// <summary>
     /// Directory for storing metric-related files.
     /// </summary>
-    public static string MetricPath => _metricPath.Value;
+    public static string StoragePath => _storagePath.Value;
 
     /// <summary>
     /// Static constructor to initialize the default directories.
@@ -54,7 +54,7 @@ public static class DefaultDirectories
         EnsureDirectoriesExist(
             LogsPath, DataPath,
             ConfigPath, TempPath,
-            MetricPath
+            StoragePath
         );
     }
 

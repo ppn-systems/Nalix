@@ -1,7 +1,10 @@
-﻿using Notio.FileStorage.FileFormats;
+﻿using Notio.FileStorage.Config;
+using Notio.FileStorage.FileFormats;
+using Notio.FileStorage.Generator;
 using Notio.FileStorage.Interfaces;
+using Notio.FileStorage.MimeTypes;
 using Notio.FileStorage.Models;
-using Notio.FileStorage.Settings;
+using Notio.Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,14 +14,18 @@ namespace Notio.FileStorage.Local;
 
 public class InMemoryStorage : IFileStorageAsync
 {
-    private readonly Dictionary<string, InMemoryFile> storage = [];
-    private readonly InMemoryStorageSetting storageSettings;
+    private readonly InMemoryConfig _storageConfig;
+    private readonly Dictionary<string, InMemoryFile> _storage = [];
 
-    public InMemoryStorage(InMemoryStorageSetting storageSettings)
+    public InMemoryStorage(InMemoryConfig storageConfig)
     {
-        ArgumentNullException.ThrowIfNull(storageSettings);
-        this.storageSettings = storageSettings;
+        ArgumentNullException.ThrowIfNull(storageConfig);
+        this._storageConfig = storageConfig;
     }
+
+    public InMemoryStorage() => _storageConfig = new InMemoryConfig()
+        .UseFileGenerator(new FileGenerator())
+        .UseMimeTypeResolver(new MimeTypeResolver());
 
     public async Task<IFile> DownloadAsync(string fileName, string format = "original")
     {
@@ -29,20 +36,20 @@ public class InMemoryStorage : IFileStorageAsync
 
         if (string.IsNullOrEmpty(uri))
         {
-            if (storageSettings.IsGenerationEnabled == true)
+            if (_storageConfig.IsGenerationEnabled == true)
             {
                 var downloadResult = await DownloadAsync(fileName).ConfigureAwait(false);
-                var file = storageSettings.Generator.Generate(downloadResult.Data, format);
+                var file = _storageConfig.Generator.Generate(downloadResult.Data, format);
                 return new LocalFile(file.Data, fileName);
             }
 
-            if (storageSettings.IsGenerationEnabled == false && format != Original.FormatName)
+            if (_storageConfig.IsGenerationEnabled == false && format != Original.FormatName)
                 throw new FileNotFoundException($"File {key} not found. Plugin in {typeof(IFileGenerator)} to generate it.");
 
             throw new FileNotFoundException($"File {key} not found");
         }
 
-        var fileBytes = storage[key].Data;
+        var fileBytes = _storage[key].Data;
 
         return new LocalFile(fileBytes, fileName);
     }
@@ -50,13 +57,13 @@ public class InMemoryStorage : IFileStorageAsync
     public Task<bool> FileExistsAsync(string fileName, string format = "original")
     {
         var key = GetKey(fileName, format);
-        return Task.FromResult(storage.ContainsKey(key));
+        return Task.FromResult(_storage.ContainsKey(key));
     }
 
     public Task<string> GetFileUriAsync(string fileName, string format = "original")
     {
         var key = GetKey(fileName, format);
-        return Task.FromResult(storage.ContainsKey(key) ? key : string.Empty);
+        return Task.FromResult(_storage.ContainsKey(key) ? key : string.Empty);
     }
 
     public Stream GetStream(string fileName, IEnumerable<FileMeta> metaInfo, string format = "original")
@@ -76,22 +83,22 @@ public class InMemoryStorage : IFileStorageAsync
         foreach (var meta in metaInfo)
             metaDictionary.Add(Uri.EscapeDataString(meta.Key), Uri.EscapeDataString(meta.Value));
 
-        string contentType = storageSettings.MimeTypeResolver.GetMimeType(data);
+        string contentType = _storageConfig.MimeTypeResolver.GetMimeType(data);
 
         var file = new InMemoryFile(data, metaDictionary, contentType);
 
-        if (!storage.TryAdd(key, file))
-            storage[key] = file;
+        if (!_storage.TryAdd(key, file))
+            _storage[key] = file;
         return Task.CompletedTask;
     }
 
     public Task DeleteAsync(string fileName)
     {
-        foreach (var format in storageSettings.Generator.Formats)
+        foreach (var format in _storageConfig.Generator.Formats)
         {
             var key = GetKey(fileName, format.Name);
 
-            storage.Remove(key);
+            _storage.Remove(key);
         }
 
         return Task.CompletedTask;

@@ -1,14 +1,13 @@
 ﻿using Notio.FileStorage.Interfaces;
 using Notio.FileStorage.MimeTypes;
 using System;
-using System.IO;
 
-namespace Notio.FileStorage.Settings;
+namespace Notio.FileStorage.Config;
 
-public class InSystemStorageSetting : IFileStorageSetting<InSystemStorageSetting>
+public class InMemoryConfig : IFileStorageSetting<InMemoryConfig>
 {
-    public string StorageFolder { get; private set; }
     public IFileGenerator Generator { get; private set; }
+    public IMimeTypeResolver MimeTypeResolver { get; private set; }
 
     public bool IsGenerationEnabled
     {
@@ -18,8 +17,6 @@ public class InSystemStorageSetting : IFileStorageSetting<InSystemStorageSetting
         }
     }
 
-    public IMimeTypeResolver MimeTypeResolver { get; private set; }
-
     public bool IsMimeTypeResolverEnabled
     {
         get
@@ -28,22 +25,14 @@ public class InSystemStorageSetting : IFileStorageSetting<InSystemStorageSetting
         }
     }
 
-    public InSystemStorageSetting(string storageFolder)
-    {
-        if (Directory.Exists(storageFolder) == false)
-            Directory.CreateDirectory(storageFolder);
-
-        StorageFolder = storageFolder;
-    }
-
-    public InSystemStorageSetting UseFileGenerator(IFileGenerator generator)
+    public InMemoryConfig UseFileGenerator(IFileGenerator generator)
     {
         if (generator is null == true) throw new ArgumentNullException(nameof(generator));
         Generator = generator;
         return this;
     }
 
-    public InSystemStorageSetting UseMimeTypeResolver(IMimeTypeResolver resolver)
+    public InMemoryConfig UseMimeTypeResolver(IMimeTypeResolver resolver)
     {
         if (resolver is null == true) throw new ArgumentNullException(nameof(resolver));
         MimeTypeResolver = resolver;
