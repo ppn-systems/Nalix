@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Notio.FileStorage.FileFormats;
+using Notio.FileStorage.Interfaces;
+using Notio.FileStorage.Models;
+using Notio.FileStorage.Settings;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Notio.FileStorage.FileFormats;
-using Notio.FileStorage.Interfaces;
-using Notio.FileStorage.Models;
 
-namespace Notio.FileStorage.InSystem;
+namespace Notio.FileStorage;
 
 public class InSystemStorage : IFileStorage
 {

@@ -1,9 +1,8 @@
-﻿using Notio.FileStorage.InSystem;
-using Notio.FileStorage.Interfaces;
+﻿using Notio.FileStorage.Interfaces;
 using Notio.FileStorage.MimeTypes;
 using System;
 
-namespace Notio.FileStorage.InMemory;
+namespace Notio.FileStorage.Settings;
 
 public class InMemoryStorageSetting : IFileStorageSetting<InMemoryStorageSetting>
 {
