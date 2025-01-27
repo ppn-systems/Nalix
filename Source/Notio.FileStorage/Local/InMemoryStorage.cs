@@ -4,7 +4,6 @@ using Notio.FileStorage.Generator;
 using Notio.FileStorage.Interfaces;
 using Notio.FileStorage.MimeTypes;
 using Notio.FileStorage.Models;
-using Notio.Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;

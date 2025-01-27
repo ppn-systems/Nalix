@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace Notio.FileStorage.Interfaces;
+namespace Notio.FileStorage;
 
 public interface IStreamProvider
 {

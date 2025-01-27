@@ -43,7 +43,7 @@ public class InDiskStorage : IFileStorage
             fileName += fileExtension;
         }
 
-        var filePath = Path.Combine(_storageConfig.StorageFolder, format, fileName);
+        var filePath = Path.Combine(_storageConfig.StorageLocation, format, fileName);
         var fileInfo = new FileInfo(filePath);
 
         if (!fileInfo.Directory.Exists)
@@ -67,9 +67,9 @@ public class InDiskStorage : IFileStorage
             }
 
             if (_storageConfig.IsGenerationEnabled == false && format != Original.FormatName)
-                throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageFolder, format, fileName)} not found. Plugin in {typeof(IFileGenerator)} to generate it.");
+                throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageLocation, format, fileName)} not found. Plugin in {typeof(IFileGenerator)} to generate it.");
 
-            throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageFolder, format, fileName)} not found");
+            throw new FileNotFoundException($"File {Path.Combine(_storageConfig.StorageLocation, format, fileName)} not found");
         }
 
         var fileBytes = File.ReadAllBytes(uri);
@@ -83,7 +83,7 @@ public class InDiskStorage : IFileStorage
     {
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
 
-        var directoryPath = Path.Combine(_storageConfig.StorageFolder, format);
+        var directoryPath = Path.Combine(_storageConfig.StorageLocation, format);
         var directoryInfo = new DirectoryInfo(directoryPath);
         FileInfo[] files = directoryInfo.GetFiles();
         var found = files.SingleOrDefault(x => x.Name.Equals(fileName, StringComparison.InvariantCultureIgnoreCase));
@@ -99,7 +99,7 @@ public class InDiskStorage : IFileStorage
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentNullException(nameof(fileName));
 
-        var directoryPath = Path.Combine(_storageConfig.StorageFolder, format);
+        var directoryPath = Path.Combine(_storageConfig.StorageLocation, format);
         var directoryInfo = new DirectoryInfo(directoryPath);
         FileInfo[] files = directoryInfo.GetFiles();
         var found = files.SingleOrDefault(x => x.Name.Equals(fileName, StringComparison.InvariantCultureIgnoreCase));

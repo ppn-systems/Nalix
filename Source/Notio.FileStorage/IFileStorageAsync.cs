@@ -1,9 +1,8 @@
 ﻿using Notio.FileStorage.Models;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
 
-namespace Notio.FileStorage.Interfaces;
+namespace Notio.FileStorage;
 
 /// <summary>
 /// Defines the asynchronous contract for file storage operations.
