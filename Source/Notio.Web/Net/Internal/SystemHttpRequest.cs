@@ -23,7 +23,7 @@ public class SystemHttpRequest : IHttpRequest
     public SystemHttpRequest(System.Net.HttpListenerContext context)
     {
         _request = context.Request;
-        _ = Enum.TryParse<HttpVerbs>(_request.HttpMethod.Trim(), true, out var verb);
+        _ = Enum.TryParse<HttpVerbs>(_request.HttpMethod.Trim(), true, out HttpVerbs verb);
         HttpVerb = verb;
         Cookies = new SystemCookieCollection(_request.Cookies);
         LocalEndPoint = _request.LocalEndPoint!;
@@ -73,7 +73,7 @@ public class SystemHttpRequest : IHttpRequest
                 return WebServer.DefaultEncoding;
             }
 
-            var charSet = HeaderUtility.GetCharset(ContentType);
+            string? charSet = HeaderUtility.GetCharset(ContentType);
             if (string.IsNullOrEmpty(charSet))
             {
                 return WebServer.DefaultEncoding;

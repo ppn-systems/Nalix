@@ -1,7 +1,6 @@
 ﻿using Notio.Web.Http;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,13 +30,22 @@ internal class SystemHttpListener(System.Net.HttpListener httpListener) : IHttpL
     public string Name { get; } = "Microsoft HTTP Listener";
 
     /// <inheritdoc />
-    public void Start() => _httpListener.Start();
+    public void Start()
+    {
+        _httpListener.Start();
+    }
 
     /// <inheritdoc />
-    public void Stop() => _httpListener.Stop();
+    public void Stop()
+    {
+        _httpListener.Stop();
+    }
 
     /// <inheritdoc />
-    public void AddPrefix(string urlPrefix) => _httpListener.Prefixes.Add(urlPrefix);
+    public void AddPrefix(string urlPrefix)
+    {
+        _httpListener.Prefixes.Add(urlPrefix);
+    }
 
     /// <inheritdoc />
     public async Task<IHttpContextImpl> GetContextAsync(CancellationToken cancellationToken)
@@ -62,5 +70,8 @@ internal class SystemHttpListener(System.Net.HttpListener httpListener) : IHttpL
         return new SystemHttpContext(context);
     }
 
-    void IDisposable.Dispose() => ((IDisposable)_httpListener)?.Dispose();
+    void IDisposable.Dispose()
+    {
+        ((IDisposable)_httpListener)?.Dispose();
+    }
 }

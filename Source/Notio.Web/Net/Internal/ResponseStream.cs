@@ -56,12 +56,12 @@ internal class ResponseStream : Stream
         }
 
         byte[] bytes;
-        var ms = GetHeaders(false);
-        var chunked = _response.SendChunked;
+        MemoryStream? ms = GetHeaders(false);
+        bool chunked = _response.SendChunked;
 
         if (ms != null)
         {
-            var start = ms.Position; // After the possible preamble for the encoding
+            long start = ms.Position; // After the possible preamble for the encoding
             ms.Position = ms.Length;
             if (chunked)
             {
@@ -69,7 +69,7 @@ internal class ResponseStream : Stream
                 ms.Write(bytes, 0, bytes.Length);
             }
 
-            var newCount = Math.Min(count, 16384 - (int)ms.Position + (int)start);
+            int newCount = Math.Min(count, 16384 - (int)ms.Position + (int)start);
             ms.Write(buffer, offset, newCount);
             count -= newCount;
             offset += newCount;
@@ -95,13 +95,22 @@ internal class ResponseStream : Stream
     }
 
     /// <inheritdoc />
-    public override int Read([In, Out] byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override int Read([In, Out] byte[] buffer, int offset, int count)
+    {
+        throw new NotSupportedException();
+    }
 
     /// <inheritdoc />
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        throw new NotSupportedException();
+    }
 
     /// <inheritdoc />
-    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void SetLength(long value)
+    {
+        throw new NotSupportedException();
+    }
 
     internal void InternalWrite(byte[] buffer, int offset, int count)
     {
@@ -136,8 +145,8 @@ internal class ResponseStream : Stream
             return;
         }
 
-        using var ms = GetHeaders(true);
-        var chunked = _response.SendChunked;
+        using MemoryStream? ms = GetHeaders(true);
+        bool chunked = _response.SendChunked;
 
         if (_stream.CanWrite)
         {
@@ -146,7 +155,7 @@ internal class ResponseStream : Stream
                 byte[] bytes;
                 if (ms != null)
                 {
-                    var start = ms.Position;
+                    long start = ms.Position;
                     if (chunked && !_trailerSent)
                     {
                         bytes = GetChunkSizeBytes(0, true);
@@ -177,7 +186,10 @@ internal class ResponseStream : Stream
         _response.Close();
     }
 
-    private static byte[] GetChunkSizeBytes(int size, bool final) => WebServer.DefaultEncoding.GetBytes($"{size:x}\r\n{(final ? "\r\n" : string.Empty)}");
+    private static byte[] GetChunkSizeBytes(int size, bool final)
+    {
+        return WebServer.DefaultEncoding.GetBytes($"{size:x}\r\n{(final ? "\r\n" : string.Empty)}");
+    }
 
     private MemoryStream? GetHeaders(bool closing)
     {

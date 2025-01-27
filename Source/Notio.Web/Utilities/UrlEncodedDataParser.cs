@@ -34,13 +34,15 @@ public static class UrlEncodedDataParser
     /// <returns>A <see cref="NameValueCollection" /> containing the parsed data.</returns>
     public static NameValueCollection Parse(string source, bool groupFlags, bool mutableResult = true)
     {
-        var result = new LockableNameValueCollection();
+        LockableNameValueCollection result = [];
 
         // Verify there is data to parse; otherwise, return an empty collection.
         if (string.IsNullOrEmpty(source))
         {
             if (!mutableResult)
+            {
                 result.MakeReadOnly();
+            }
 
             return result;
         }
@@ -53,9 +55,11 @@ public static class UrlEncodedDataParser
                 key = WebUtility.UrlDecode(key);
 
                 // Discard bracketed index (used e.g. by PHP)
-                var bracketPos = key.IndexOf("[", StringComparison.Ordinal);
+                int bracketPos = key.IndexOf("[", StringComparison.Ordinal);
                 if (bracketPos > 0)
-                    key = key.Substring(0, bracketPos);
+                {
+                    key = key[..bracketPos];
+                }
             }
 
             // Decode the value.
@@ -67,21 +71,25 @@ public static class UrlEncodedDataParser
 
         // Skip the initial question mark,
         // in case source is the Query property of a Uri.
-        var kvpPos = source[0] == '?' ? 1 : 0;
-        var length = source.Length;
+        int kvpPos = source[0] == '?' ? 1 : 0;
+        int length = source.Length;
         while (kvpPos < length)
         {
-            var separatorPos = kvpPos;
-            var equalPos = -1;
+            int separatorPos = kvpPos;
+            int equalPos = -1;
 
             while (separatorPos < length)
             {
-                var c = source[separatorPos];
+                char c = source[separatorPos];
                 if (c == '&')
+                {
                     break;
+                }
 
                 if (c == '=' && equalPos < 0)
+                {
                     equalPos = separatorPos;
+                }
 
                 separatorPos++;
             }
@@ -93,17 +101,17 @@ public static class UrlEncodedDataParser
             {
                 if (groupFlags)
                 {
-                    AddKeyValuePair(null, source.Substring(kvpPos, separatorPos - kvpPos));
+                    AddKeyValuePair(null, source[kvpPos..separatorPos]);
                 }
                 else
                 {
-                    AddKeyValuePair(source.Substring(kvpPos, separatorPos - kvpPos), string.Empty);
+                    AddKeyValuePair(source[kvpPos..separatorPos], string.Empty);
                 }
             }
             else
             {
                 AddKeyValuePair(
-                    source.Substring(kvpPos, equalPos - kvpPos),
+                    source[kvpPos..equalPos],
                     source.Substring(equalPos + 1, separatorPos - equalPos - 1));
             }
 
@@ -120,7 +128,9 @@ public static class UrlEncodedDataParser
         }
 
         if (!mutableResult)
+        {
             result.MakeReadOnly();
+        }
 
         return result;
     }

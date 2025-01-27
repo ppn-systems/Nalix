@@ -5,10 +5,8 @@ namespace Notio.Web.WebSockets
     /// <summary>
     /// The exception that is thrown when a WebSocket gets a fatal error.
     /// </summary>
-#pragma warning disable CA1032 // Implement standard exception constructors - this class doesn't need public constructors.
 
     public class WebSocketException : Exception
-#pragma warning restore CA1032
     {
         internal WebSocketException(string? message = null)
             : this(CloseStatusCode.Abnormal, message)
@@ -36,18 +34,21 @@ namespace Notio.Web.WebSockets
         /// </value>
         public CloseStatusCode Code { get; }
 
-        internal static string GetMessage(CloseStatusCode code) => code switch
+        internal static string GetMessage(CloseStatusCode code)
         {
-            CloseStatusCode.ProtocolError => "A WebSocket protocol error has occurred.",
-            CloseStatusCode.UnsupportedData => "Unsupported data has been received.",
-            CloseStatusCode.Abnormal => "An exception has occurred.",
-            CloseStatusCode.InvalidData => "Invalid data has been received.",
-            CloseStatusCode.PolicyViolation => "A policy violation has occurred.",
-            CloseStatusCode.TooBig => "A too big message has been received.",
-            CloseStatusCode.MandatoryExtension => "WebSocket client didn't receive expected extension(s).",
-            CloseStatusCode.ServerError => "WebSocket server got an internal error.",
-            CloseStatusCode.TlsHandshakeFailure => "An error has occurred during a TLS handshake.",
-            _ => string.Empty
-        };
+            return code switch
+            {
+                CloseStatusCode.ProtocolError => "A WebSocket protocol error has occurred.",
+                CloseStatusCode.UnsupportedData => "Unsupported data has been received.",
+                CloseStatusCode.Abnormal => "An exception has occurred.",
+                CloseStatusCode.InvalidData => "Invalid data has been received.",
+                CloseStatusCode.PolicyViolation => "A policy violation has occurred.",
+                CloseStatusCode.TooBig => "A too big message has been received.",
+                CloseStatusCode.MandatoryExtension => "WebSocket client didn't receive expected extension(s).",
+                CloseStatusCode.ServerError => "WebSocket server got an internal error.",
+                CloseStatusCode.TlsHandshakeFailure => "An error has occurred during a TLS handshake.",
+                _ => string.Empty
+            };
+        }
     }
 }

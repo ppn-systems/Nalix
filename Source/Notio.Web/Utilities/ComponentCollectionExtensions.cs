@@ -15,5 +15,8 @@ public static class ComponentCollectionExtensions
     /// <param name="component">The component to add.</param>
     /// <exception cref="NullReferenceException"><paramref name="this" /> is <see langword="null" />.</exception>
     /// <seealso cref="IComponentCollection{T}.Add" />
-    public static void Add<T>(this IComponentCollection<T> @this, T component) => @this.Add(null, component);
+    public static void Add<T>(this IComponentCollection<T> @this, T component)
+    {
+        @this.Add(null, component);
+    }
 }

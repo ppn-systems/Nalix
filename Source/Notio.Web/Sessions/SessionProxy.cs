@@ -97,7 +97,9 @@ namespace Notio.Web.Sessions
             EnsureSessionExists();
 
             if (_session == null)
+            {
                 return;
+            }
 
             _sessionManager!.Delete(_context, _session.Id);
             _session = null;
@@ -107,14 +109,19 @@ namespace Notio.Web.Sessions
         public void Regenerate()
         {
             if (_session != null)
+            {
                 _sessionManager!.Delete(_context, _session.Id);
+            }
 
             EnsureSessionManagerExists();
             _session = _sessionManager!.Create(_context);
         }
 
         /// <inheritdoc/>
-        public void Clear() => _session?.Clear();
+        public void Clear()
+        {
+            _session?.Clear();
+        }
 
         /// <inheritdoc/>
         public bool ContainsKey(string key)
@@ -147,19 +154,25 @@ namespace Notio.Web.Sessions
         private void EnsureSessionManagerExists()
         {
             if (_sessionManager == null)
+            {
                 throw new InvalidOperationException("No session manager registered in the web server.");
+            }
         }
 
         private void EnsureSessionExists()
         {
             if (_session != null)
+            {
                 return;
+            }
 
             EnsureSessionManagerExists();
             _session = _sessionManager!.Create(_context);
 
             if (_onCloseRegistered)
+            {
                 return;
+            }
 
             _context.OnClose(_sessionManager.OnContextClose);
             _onCloseRegistered = true;

@@ -1,8 +1,6 @@
-﻿using Notio.Net.Internal;
-using Notio.Web.Enums;
+﻿using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.Net.Internal;
-using Notio.Web.WebSockets;
 using Swan;
 using Swan.Logging;
 using System;
@@ -66,10 +64,16 @@ namespace Notio.Web.WebSockets.Internal
         internal bool InContinuation { get; private set; }
 
         /// <inheritdoc />
-        public Task SendAsync(byte[] buffer, bool isText, CancellationToken cancellationToken) => SendAsync(buffer, isText ? Opcode.Text : Opcode.Binary, cancellationToken);
+        public Task SendAsync(byte[] buffer, bool isText, CancellationToken cancellationToken)
+        {
+            return SendAsync(buffer, isText ? Opcode.Text : Opcode.Binary, cancellationToken);
+        }
 
         /// <inheritdoc />
-        public Task CloseAsync(CancellationToken cancellationToken = default) => CloseAsync(CloseStatusCode.Normal, cancellationToken: cancellationToken);
+        public Task CloseAsync(CancellationToken cancellationToken = default)
+        {
+            return CloseAsync(CloseStatusCode.Normal, cancellationToken: cancellationToken);
+        }
 
         /// <inheritdoc />
         public Task CloseAsync(
@@ -115,7 +119,7 @@ namespace Notio.Web.WebSockets.Internal
                 return InternalCloseAsync(cancellationToken: cancellationToken);
             }
 
-            var send = !IsOpcodeReserved(code);
+            bool send = !IsOpcodeReserved(code);
             return InternalCloseAsync(new PayloadData((ushort)code, reason), send, send, cancellationToken);
         }
 
@@ -126,7 +130,10 @@ namespace Notio.Web.WebSockets.Internal
         /// <c>true</c> if the <see cref="WebSocket"/> receives a pong to this ping in a time;
         /// otherwise, <c>false</c>.
         /// </returns>
-        public Task<bool> PingAsync() => PingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+        public Task<bool> PingAsync()
+        {
+            return PingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+        }
 
         /// <summary>
         /// Sends a ping with the specified <paramref name="message"/> using the WebSocket connection.
@@ -145,7 +152,7 @@ namespace Notio.Web.WebSockets.Internal
                 return PingAsync();
             }
 
-            var data = Encoding.UTF8.GetBytes(message);
+            byte[] data = Encoding.UTF8.GetBytes(message);
 
             if (data.Length <= 125)
             {
@@ -167,18 +174,16 @@ namespace Notio.Web.WebSockets.Internal
         /// A task that represents the asynchronous of send
         /// binary data using websocket.
         /// </returns>
-#pragma warning disable CA1801 // Unused parameter
 
         public async Task SendAsync(byte[] data, Opcode opcode, CancellationToken cancellationToken = default)
-#pragma warning restore CA1801
         {
             if (_readyState != WebSocketState.Open)
             {
                 throw new WebSocketException(CloseStatusCode.Normal, $"This operation isn\'t available in: {_readyState}");
             }
 
-            using var stream = new WebSocketStream(data, opcode, Compression);
-            foreach (var frame in stream.GetFrames())
+            using WebSocketStream stream = new(data, opcode, Compression);
+            foreach (WebSocketFrame frame in stream.GetFrames())
             {
                 await Send(frame).ConfigureAwait(false);
             }
@@ -197,30 +202,28 @@ namespace Notio.Web.WebSockets.Internal
             {
                 const string Guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-                var buff = new StringBuilder(clientKey, 64).Append(Guid);
-#pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms
-                using var sha1 = SHA1.Create();
+                StringBuilder buff = new StringBuilder(clientKey, 64).Append(Guid);
+                using SHA1 sha1 = SHA1.Create();
                 return Convert.ToBase64String(sha1.ComputeHash(Encoding.UTF8.GetBytes(buff.ToString())));
-#pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
             }
 
-            var requestHeaders = httpContext.Request.Headers;
+            System.Collections.Specialized.NameValueCollection requestHeaders = httpContext.Request.Headers;
 
-            var webSocketKey = requestHeaders[HttpHeaderNames.SecWebSocketKey];
+            string? webSocketKey = requestHeaders[HttpHeaderNames.SecWebSocketKey];
 
             if (string.IsNullOrEmpty(webSocketKey))
             {
                 throw new WebSocketException(CloseStatusCode.ProtocolError, $"Includes no {HttpHeaderNames.SecWebSocketKey} header, or it has an invalid value.");
             }
 
-            var webSocketVersion = requestHeaders[HttpHeaderNames.SecWebSocketVersion];
+            string? webSocketVersion = requestHeaders[HttpHeaderNames.SecWebSocketVersion];
 
-            if (webSocketVersion == null || webSocketVersion != SupportedVersion)
+            if (webSocketVersion is null or not SupportedVersion)
             {
                 throw new WebSocketException(CloseStatusCode.ProtocolError, $"Includes no {HttpHeaderNames.SecWebSocketVersion} header, or it has an invalid value.");
             }
 
-            var handshakeResponse = new WebSocketHandshakeResponse(httpContext);
+            WebSocketHandshakeResponse handshakeResponse = new(httpContext);
 
             handshakeResponse.Headers[HttpHeaderNames.SecWebSocketAccept] = CreateResponseKey(webSocketKey);
 
@@ -229,13 +232,13 @@ namespace Notio.Web.WebSockets.Internal
                 handshakeResponse.Headers[HttpHeaderNames.SecWebSocketProtocol] = acceptedProtocol;
             }
 
-            var bytes = Encoding.UTF8.GetBytes(handshakeResponse.ToString());
+            byte[] bytes = Encoding.UTF8.GetBytes(handshakeResponse.ToString());
             await httpContext.Connection.Stream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
 
             // Signal the original response that headers have been sent.
             httpContext.HttpListenerResponse.HeadersSent = true;
 
-            var socket = new WebSocket(httpContext.Connection);
+            WebSocket socket = new(httpContext.Connection);
             socket.Open();
             return socket;
         }
@@ -246,22 +249,23 @@ namespace Notio.Web.WebSockets.Internal
             {
                 return false;
             }
-
-            await _stream.WriteAsync(frameAsBytes, 0, frameAsBytes.Length).ConfigureAwait(false);
+            if (_stream != null)
+            {
+                await _stream.WriteAsync(frameAsBytes).ConfigureAwait(false);
+            }
 
             return _receivePong != null && _receivePong.WaitOne(timeout);
         }
 
         private static bool IsOpcodeReserved(CloseStatusCode code)
-            => code == CloseStatusCode.Undefined
-            || code == CloseStatusCode.NoStatus
-            || code == CloseStatusCode.Abnormal
-            || code == CloseStatusCode.TlsHandshakeFailure;
-
-#pragma warning disable CA1801 // Unused parameter
+        {
+            return code is CloseStatusCode.Undefined
+                    or CloseStatusCode.NoStatus
+                    or CloseStatusCode.Abnormal
+                    or CloseStatusCode.TlsHandshakeFailure;
+        }
 
         private void Dispose(bool disposing)
-#pragma warning restore CA1801
         {
             try
             {
@@ -281,7 +285,7 @@ namespace Notio.Web.WebSockets.Internal
         {
             lock (_stateSyncRoot)
             {
-                if (_readyState == WebSocketState.CloseReceived || _readyState == WebSocketState.CloseSent)
+                if (_readyState is WebSocketState.CloseReceived or WebSocketState.CloseSent)
                 {
                     "The closing is already in progress.".Trace(nameof(InternalCloseAsync));
                     return;
@@ -301,7 +305,7 @@ namespace Notio.Web.WebSockets.Internal
 
             "Begin closing the connection.".Trace(nameof(InternalCloseAsync));
 
-            var bytes = send ? WebSocketFrame.CreateCloseFrame(payloadData).ToArray() : null;
+            byte[]? bytes = send ? WebSocketFrame.CreateCloseFrame(payloadData).ToArray() : null;
             await CloseHandshakeAsync(bytes, receive, cancellationToken).ConfigureAwait(false);
             ReleaseResources();
 
@@ -318,11 +322,11 @@ namespace Notio.Web.WebSockets.Internal
             bool receive,
             CancellationToken cancellationToken)
         {
-            var sent = frameAsBytes != null;
+            bool sent = frameAsBytes != null;
 
-            if (sent)
+            if (sent && _stream != null)
             {
-                await _stream.WriteAsync(frameAsBytes, 0, frameAsBytes.Length, cancellationToken).ConfigureAwait(false);
+                await _stream.WriteAsync(frameAsBytes, cancellationToken).ConfigureAwait(false);
             }
 
             if (receive && sent)
@@ -332,10 +336,14 @@ namespace Notio.Web.WebSockets.Internal
         }
 
         private void Fatal(string message, Exception? exception = null)
-            => Fatal(message, (exception as WebSocketException)?.Code ?? CloseStatusCode.Abnormal);
+        {
+            Fatal(message, (exception as WebSocketException)?.Code ?? CloseStatusCode.Abnormal);
+        }
 
         private void Fatal(string message, CloseStatusCode code)
-            => InternalCloseAsync(new PayloadData((ushort)code, message), !IsOpcodeReserved(code), false).Await();
+        {
+            InternalCloseAsync(new PayloadData((ushort)code, message), !IsOpcodeReserved(code), false).Await();
+        }
 
         private void Message()
         {
@@ -346,17 +354,20 @@ namespace Notio.Web.WebSockets.Internal
 
             _inMessage = true;
 
-            if (_messageEventQueue.TryDequeue(out var e))
+            if (_messageEventQueue.TryDequeue(out MessageEventArgs? e))
             {
                 Messages(e);
             }
         }
 
-        private void Messages(MessageEventArgs e)
+        private void Messages(MessageEventArgs? e)
         {
             try
             {
-                OnMessage?.Invoke(this, e);
+                if (e is not null)
+                {
+                    OnMessage?.Invoke(this, e);
+                }
             }
             catch (Exception ex)
             {
@@ -377,7 +388,7 @@ namespace Notio.Web.WebSockets.Internal
             _inMessage = true;
             StartReceiving();
 
-            if (!_messageEventQueue.TryDequeue(out var e) || _readyState != WebSocketState.Open)
+            if (!_messageEventQueue.TryDequeue(out MessageEventArgs? e) || _readyState != WebSocketState.Open)
             {
                 _inMessage = false;
                 return;
@@ -386,13 +397,16 @@ namespace Notio.Web.WebSockets.Internal
             Messages(e);
         }
 
-        private Task ProcessCloseFrame(WebSocketFrame frame) => InternalCloseAsync(frame.PayloadData, !frame.PayloadData.HasReservedCode, false);
+        private Task ProcessCloseFrame(WebSocketFrame frame)
+        {
+            return InternalCloseAsync(frame.PayloadData, !frame.PayloadData.HasReservedCode, false);
+        }
 
         private async Task ProcessDataFrame(WebSocketFrame frame)
         {
             if (frame.IsCompressed)
             {
-                using var ms = await frame.PayloadData.ApplicationData.CompressAsync(Compression, false, CancellationToken.None).ConfigureAwait(false);
+                using MemoryStream ms = await frame.PayloadData.ApplicationData.CompressAsync(Compression, false, CancellationToken.None).ConfigureAwait(false);
 
                 _messageEventQueue.Enqueue(new MessageEventArgs(frame.Opcode, ms.ToArray()));
             }
@@ -416,13 +430,16 @@ namespace Notio.Web.WebSockets.Internal
                 InContinuation = true;
             }
 
-            _fragmentsBuffer.AddPayload(frame.PayloadData.ApplicationData);
+            _fragmentsBuffer?.AddPayload(frame.PayloadData.ApplicationData);
 
             if (frame.Fin == Fin.Final)
             {
                 using (_fragmentsBuffer)
                 {
-                    _messageEventQueue.Enqueue(await _fragmentsBuffer.GetMessage(Compression).ConfigureAwait(false));
+                    if (_fragmentsBuffer != null)
+                    {
+                        _messageEventQueue.Enqueue(await _fragmentsBuffer.GetMessage(Compression).ConfigureAwait(false));
+                    }
                 }
 
                 _fragmentsBuffer = null;
@@ -520,8 +537,11 @@ namespace Notio.Web.WebSockets.Internal
                 }
             }
 
-            var frameAsBytes = frame.ToArray();
-            return _stream.WriteAsync(frameAsBytes, 0, frameAsBytes.Length);
+            byte[] frameAsBytes = frame.ToArray();
+
+            return _stream is not null
+                ? _stream.WriteAsync(frameAsBytes, 0, frameAsBytes.Length)
+                : throw new InvalidOperationException("Stream is null.");
         }
 
         private void StartReceiving()
@@ -534,7 +554,7 @@ namespace Notio.Web.WebSockets.Internal
             _exitReceiving = new AutoResetEvent(false);
             _receivePong = new AutoResetEvent(false);
 
-            var frameStream = new WebSocketFrameStream(_stream);
+            WebSocketFrameStream frameStream = new(_stream);
 
             _ = Task.Run(async () =>
             {
@@ -542,14 +562,14 @@ namespace Notio.Web.WebSockets.Internal
                 {
                     try
                     {
-                        var frame = await frameStream.ReadFrameAsync(this).ConfigureAwait(false);
+                        WebSocketFrame? frame = await frameStream.ReadFrameAsync(this).ConfigureAwait(false);
 
                         if (frame == null)
                         {
                             return;
                         }
 
-                        var result = await ProcessReceivedFrame(frame).ConfigureAwait(false);
+                        bool result = await ProcessReceivedFrame(frame).ConfigureAwait(false);
 
                         if (!result || _readyState == WebSocketState.Closed)
                         {

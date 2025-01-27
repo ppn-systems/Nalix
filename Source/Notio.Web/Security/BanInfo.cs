@@ -10,7 +10,7 @@ namespace Notio.Web.Security
         /// <summary>
         /// Gets or sets the banned IP address.
         /// </summary>
-        public IPAddress IPAddress { get; set; }
+        public required IPAddress IPAddress { get; set; }
 
         /// <summary>
         /// Gets or sets the expiration time of the ban.

@@ -7,7 +7,7 @@ internal sealed class ListenerPrefix
 {
     public ListenerPrefix(string uri)
     {
-        var defaultPort = 80;
+        int defaultPort = 80;
 
         if (uri.StartsWith("https://", StringComparison.Ordinal))
         {
@@ -15,35 +15,35 @@ internal sealed class ListenerPrefix
             Secure = true;
         }
 
-        var length = uri.Length;
-        var startHost = uri.IndexOf(':') + 3;
+        int length = uri.Length;
+        int startHost = uri.IndexOf(':') + 3;
 
         if (startHost >= length)
         {
             throw new ArgumentException("No host specified.");
         }
 
-        var colon = uri.LastIndexOf(':');
+        int colon = uri.LastIndexOf(':');
         int root;
 
         if (colon > 0)
         {
-            Host = uri.Substring(startHost, colon - startHost);
+            Host = uri[startHost..colon];
             root = uri.IndexOf('/', colon, length - colon);
             Port = int.Parse(uri.Substring(colon + 1, root - colon - 1), CultureInfo.InvariantCulture);
         }
         else
         {
             root = uri.IndexOf('/', startHost, length - startHost);
-            Host = uri.Substring(startHost, root - startHost);
+            Host = uri[startHost..root];
             Port = defaultPort;
         }
 
-        Path = uri.Substring(root);
+        Path = uri[root..];
 
         if (Path.Length != 1)
         {
-            Path = Path.Substring(0, Path.Length - 1);
+            Path = Path[..^1];
         }
     }
 
@@ -69,15 +69,15 @@ internal sealed class ListenerPrefix
             throw new ArgumentException("Only 'http' and 'https' schemes are supported.");
         }
 
-        var length = uri.Length;
-        var startHost = uri.IndexOf(':') + 3;
+        int length = uri.Length;
+        int startHost = uri.IndexOf(':') + 3;
 
         if (startHost >= length)
         {
             throw new ArgumentException("No host specified.");
         }
 
-        var colon = uri.Substring(startHost).IndexOf(':') > 0 ? uri.LastIndexOf(':') : -1;
+        int colon = uri[startHost..].IndexOf(':') > 0 ? uri.LastIndexOf(':') : -1;
 
         if (startHost == colon)
         {
@@ -93,7 +93,7 @@ internal sealed class ListenerPrefix
                 throw new ArgumentException("No path specified.");
             }
 
-            if (!int.TryParse(uri.Substring(colon + 1, root - colon - 1), out var p) || p <= 0 || p >= 65536)
+            if (!int.TryParse(uri.Substring(colon + 1, root - colon - 1), out int p) || p <= 0 || p >= 65536)
             {
                 throw new ArgumentException("Invalid port.");
             }
@@ -107,13 +107,19 @@ internal sealed class ListenerPrefix
             }
         }
 
-        if (uri[uri.Length - 1] != '/')
+        if (uri[^1] != '/')
         {
             throw new ArgumentException("The prefix must end with '/'");
         }
     }
 
-    public bool IsValid() => Path.IndexOf('%') == -1 && Path.IndexOf("//", StringComparison.Ordinal) == -1;
+    public bool IsValid()
+    {
+        return Path.IndexOf('%') == -1 && Path.IndexOf("//", StringComparison.Ordinal) == -1;
+    }
 
-    public override string ToString() => $"{Host}:{Port} ({(Secure ? "Secure" : "Insecure")}";
+    public override string ToString()
+    {
+        return $"{Host}:{Port} ({(Secure ? "Secure" : "Insecure")}";
+    }
 }

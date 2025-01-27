@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Http;
+using Notio.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,7 +32,7 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
     }
 
     /// <inheritdoc />
-    public override sealed bool IsFinalHandler => false;
+    public sealed override bool IsFinalHandler => false;
 
     /// <summary>
     /// Gets the authentication realm.
@@ -39,13 +40,13 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
     public string Realm { get; }
 
     /// <inheritdoc />
-    protected override sealed async Task OnRequestAsync(IHttpContext context)
+    protected sealed override async Task OnRequestAsync(IHttpContext context)
     {
         async Task<bool> IsAuthenticatedAsync()
         {
             try
             {
-                var (userName, password) = GetCredentials(context.Request);
+                (string userName, string password) = GetCredentials(context.Request);
                 return await VerifyCredentialsAsync(context.RequestedPath, userName, password, context.CancellationToken)
                     .ConfigureAwait(false);
             }
@@ -59,7 +60,9 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
         context.Response.Headers.Set(HttpHeaderNames.WWWAuthenticate, _wwwAuthenticateHeaderValue);
 
         if (!await IsAuthenticatedAsync().ConfigureAwait(false))
+        {
             throw HttpException.Unauthorized();
+        }
     }
 
     /// <summary>
@@ -76,27 +79,31 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
 
     private static (string UserName, string Password) GetCredentials(IHttpRequest request)
     {
-        var authHeader = request.Headers[HttpHeaderNames.Authorization];
+        string? authHeader = request.Headers[HttpHeaderNames.Authorization];
 
         if (authHeader == null)
+        {
             return default;
+        }
 
         if (!authHeader.StartsWith("basic ", StringComparison.OrdinalIgnoreCase))
+        {
             return default;
+        }
 
         string credentials;
         try
         {
-            credentials = WebServer.DefaultEncoding.GetString(Convert.FromBase64String(authHeader.Substring(6).Trim()));
+            credentials = WebServer.DefaultEncoding.GetString(Convert.FromBase64String(authHeader[6..].Trim()));
         }
         catch (FormatException)
         {
             return default;
         }
 
-        var separatorPos = credentials.IndexOf(':');
+        int separatorPos = credentials.IndexOf(':');
         return separatorPos < 0
             ? (credentials, string.Empty)
-            : (credentials.Substring(0, separatorPos), credentials.Substring(separatorPos + 1));
+            : (credentials[..separatorPos], credentials[(separatorPos + 1)..]);
     }
 }

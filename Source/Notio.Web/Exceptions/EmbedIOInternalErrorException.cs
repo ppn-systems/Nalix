@@ -8,9 +8,8 @@ using System.Runtime.Serialization;
  * Use the methods in Notio.Internal.SelfCheck instead.
  */
 
-namespace Notio.Web
+namespace Notio.Web.Exceptions
 {
-#pragma warning disable SA1642 // Constructor summary documentation should begin with standard text
 
     /// <summary>
     /// <para>The exception that is thrown by Notio's internal diagnostic checks to signal a condition
@@ -61,6 +60,4 @@ namespace Notio.Web
         {
         }
     }
-
-#pragma warning restore SA1642
 }

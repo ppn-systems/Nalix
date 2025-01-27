@@ -1,5 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web.Authentication;
+﻿using Notio.Web.Authentication;
 using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.Routing;
@@ -71,7 +70,10 @@ internal sealed class SystemHttpContext : IHttpContextImpl
 
     public MimeTypeProviderStack MimeTypeProviders { get; } = new MimeTypeProviderStack();
 
-    public void SetHandled() => IsHandled = true;
+    public void SetHandled()
+    {
+        IsHandled = true;
+    }
 
     public void OnClose(Action<IHttpContext> callback)
     {
@@ -90,7 +92,7 @@ internal sealed class SystemHttpContext : IHttpContextImpl
         TimeSpan keepAliveInterval,
         CancellationToken cancellationToken)
     {
-        var context = await _context.AcceptWebSocketAsync(
+        System.Net.WebSockets.HttpListenerWebSocketContext context = await _context.AcceptWebSocketAsync(
             acceptedProtocol.NullIfEmpty(), // Empty string would throw; use null to signify "no subprotocol" here.
             receiveBufferSize,
             keepAliveInterval)
@@ -105,7 +107,7 @@ internal sealed class SystemHttpContext : IHttpContextImpl
         // Always close the response stream no matter what.
         Response.Close();
 
-        foreach (var callback in _closeCallbacks)
+        foreach (Action<IHttpContext> callback in _closeCallbacks)
         {
             try
             {
@@ -119,8 +121,12 @@ internal sealed class SystemHttpContext : IHttpContextImpl
     }
 
     public string GetMimeType(string extension)
-        => MimeTypeProviders.GetMimeType(extension);
+    {
+        return MimeTypeProviders.GetMimeType(extension);
+    }
 
     public bool TryDetermineCompression(string mimeType, out bool preferCompression)
-        => MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
+    {
+        return MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
+    }
 }

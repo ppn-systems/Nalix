@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Web.WebModule;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,10 +37,14 @@ public class BasicAuthenticationModule : BasicAuthenticationModuleBase
 
     /// <inheritdoc />
     protected override Task<bool> VerifyCredentialsAsync(string path, string userName, string password, CancellationToken cancellationToken)
-        => Task.FromResult(VerifyCredentialsInternal(userName, password));
+    {
+        return Task.FromResult(VerifyCredentialsInternal(userName, password));
+    }
 
     private bool VerifyCredentialsInternal(string userName, string password)
-        => userName != null
-        && Accounts.TryGetValue(userName, out var storedPassword)
-        && string.Equals(password, storedPassword, StringComparison.Ordinal);
+    {
+        return userName != null
+            && Accounts.TryGetValue(userName, out string? storedPassword)
+            && string.Equals(password, storedPassword, StringComparison.Ordinal);
+    }
 }

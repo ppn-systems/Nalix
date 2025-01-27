@@ -1,5 +1,4 @@
-﻿using Notio.Web;
-using Notio.Web.Utilities;
+﻿using Notio.Web.Utilities;
 using Swan.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -16,9 +15,9 @@ namespace Notio.Web.Security
     /// <seealso cref="ConfiguredObject" />
     public class IPBanningConfiguration : ConfiguredObject, IDisposable
     {
-        private readonly List<IIPBanningCriterion> _criterions = new List<IIPBanningCriterion>();
-        private readonly ConcurrentDictionary<IPAddress, BanInfo> _blacklistDictionary = new ConcurrentDictionary<IPAddress, BanInfo>();
-        private readonly ConcurrentBag<IPAddress> _whiteListBag = new ConcurrentBag<IPAddress>();
+        private readonly List<IIPBanningCriterion> _criterions = [];
+        private readonly ConcurrentDictionary<IPAddress, BanInfo> _blacklistDictionary = new();
+        private readonly ConcurrentBag<IPAddress> _whiteListBag = [];
         private readonly int _banTime;
         private bool _disposed;
 
@@ -48,8 +47,10 @@ namespace Notio.Web.Security
         /// </summary>
         /// <param name="address">The address.</param>
         /// <returns><c>true</c> if the Criterion should continue, otherwise <c>false</c>.</returns>
-        public bool ShouldContinue(IPAddress address) =>
-            !_whiteListBag.Contains(address) || !_blacklistDictionary.ContainsKey(address);
+        public bool ShouldContinue(IPAddress address)
+        {
+            return !_whiteListBag.Contains(address) || !_blacklistDictionary.ContainsKey(address);
+        }
 
         /// <summary>
         /// Purges this instance.
@@ -58,7 +59,7 @@ namespace Notio.Web.Security
         {
             PurgeBlackList();
 
-            foreach (var criterion in _criterions)
+            foreach (IIPBanningCriterion criterion in _criterions)
             {
                 criterion.PurgeData();
             }
@@ -72,20 +73,27 @@ namespace Notio.Web.Security
         public async Task CheckClient(IPAddress clientAddress)
         {
             if (_whiteListBag.Contains(clientAddress))
-                return;
-
-            foreach (var criterion in _criterions)
             {
-                var result = await criterion.ValidateIPAddress(clientAddress).ConfigureAwait(false);
+                return;
+            }
 
-                if (!result) continue;
+            foreach (IIPBanningCriterion criterion in _criterions)
+            {
+                bool result = await criterion.ValidateIPAddress(clientAddress).ConfigureAwait(false);
 
-                TryBanIP(clientAddress, false);
+                if (!result)
+                {
+                    continue;
+                }
+
+                _ = TryBanIP(clientAddress, false);
                 break;
             }
 
             if (_blacklistDictionary.ContainsKey(clientAddress))
+            {
                 throw HttpException.Forbidden();
+            }
         }
 
         /// <inheritdoc />
@@ -98,23 +106,28 @@ namespace Notio.Web.Security
         internal async Task AddToWhitelistAsync(IEnumerable<string>? whitelist)
         {
             if (whitelist?.Any() != true)
-                return;
-
-            foreach (var whiteAddress in whitelist)
             {
-                var parsedAddresses = await IPParser.ParseAsync(whiteAddress).ConfigureAwait(false);
-                foreach (var address in parsedAddresses.Where(x => !_whiteListBag.Contains(x)))
+                return;
+            }
+
+            foreach (string whiteAddress in whitelist)
+            {
+                IEnumerable<IPAddress> parsedAddresses = await IPParser.ParseAsync(whiteAddress).ConfigureAwait(false);
+                foreach (IPAddress? address in parsedAddresses.Where(x => !_whiteListBag.Contains(x)))
                 {
                     _whiteListBag.Add(address);
                 }
             }
         }
 
-        internal void Lock() => LockConfiguration();
+        internal void Lock()
+        {
+            LockConfiguration();
+        }
 
         internal bool TryRemoveBlackList(IPAddress address)
         {
-            foreach (var criterion in _criterions)
+            foreach (IIPBanningCriterion criterion in _criterions)
             {
                 criterion.ClearIPAddress(address);
             }
@@ -132,7 +145,7 @@ namespace Notio.Web.Security
         {
             try
             {
-                _blacklistDictionary.AddOrUpdate(address,
+                _ = _blacklistDictionary.AddOrUpdate(address,
                     k =>
                         new BanInfo
                         {
@@ -163,7 +176,9 @@ namespace Notio.Web.Security
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
+            {
                 return;
+            }
 
             if (disposing)
             {
@@ -178,11 +193,13 @@ namespace Notio.Web.Security
 
         private void PurgeBlackList()
         {
-            foreach (var k in _blacklistDictionary.Keys)
+            foreach (IPAddress k in _blacklistDictionary.Keys)
             {
-                if (_blacklistDictionary.TryGetValue(k, out var info) &&
+                if (_blacklistDictionary.TryGetValue(k, out BanInfo? info) &&
                     DateTime.Now.Ticks > info.ExpiresAt)
-                    _blacklistDictionary.TryRemove(k, out _);
+                {
+                    _ = _blacklistDictionary.TryRemove(k, out _);
+                }
             }
         }
     }

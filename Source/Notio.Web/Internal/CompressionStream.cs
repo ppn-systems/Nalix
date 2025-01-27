@@ -51,18 +51,35 @@ internal class CompressionStream : Stream
         set => throw SeekingNotSupported();
     }
 
-    public override void Flush() => _target.Flush();
+    public override void Flush()
+    {
+        _target.Flush();
+    }
 
-    public override Task FlushAsync(CancellationToken cancellationToken) => _target.FlushAsync(cancellationToken);
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        return _target.FlushAsync(cancellationToken);
+    }
 
-    public override int Read(byte[] buffer, int offset, int count) => throw ReadingNotSupported();
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        throw ReadingNotSupported();
+    }
 
-    public override int ReadByte() => throw ReadingNotSupported();
+    public override int ReadByte()
+    {
+        throw ReadingNotSupported();
+    }
 
     public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
-        => throw ReadingNotSupported();
+    {
+        throw ReadingNotSupported();
+    }
 
-    public override int EndRead(IAsyncResult asyncResult) => throw ReadingNotSupported();
+    public override int EndRead(IAsyncResult asyncResult)
+    {
+        throw ReadingNotSupported();
+    }
 
     public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
@@ -70,11 +87,19 @@ internal class CompressionStream : Stream
     }
 
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
-        => throw ReadingNotSupported();
+    {
+        throw ReadingNotSupported();
+    }
 
-    public override long Seek(long offset, SeekOrigin origin) => throw SeekingNotSupported();
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        throw SeekingNotSupported();
+    }
 
-    public override void SetLength(long value) => throw SeekingNotSupported();
+    public override void SetLength(long value)
+    {
+        throw SeekingNotSupported();
+    }
 
     public override void Write(byte[] buffer, int offset, int count)
     {
@@ -89,16 +114,18 @@ internal class CompressionStream : Stream
     }
 
     public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
-        => _target.BeginWrite(
-            buffer,
-            offset,
-            count,
-            ar =>
-            {
-                UncompressedLength += count;
-                callback?.Invoke(ar);
-            },
-            state);
+    {
+        return _target.BeginWrite(
+                buffer,
+                offset,
+                count,
+                ar =>
+                {
+                    UncompressedLength += count;
+                    callback?.Invoke(ar);
+                },
+                state);
+    }
 
     public override void EndWrite(IAsyncResult asyncResult)
     {
@@ -121,7 +148,13 @@ internal class CompressionStream : Stream
         base.Dispose(disposing);
     }
 
-    private static NotSupportedException ReadingNotSupported() => new("This stream does not support reading.");
+    private static NotSupportedException ReadingNotSupported()
+    {
+        return new("This stream does not support reading.");
+    }
 
-    private static NotSupportedException SeekingNotSupported() => new("This stream does not support seeking.");
+    private static NotSupportedException SeekingNotSupported()
+    {
+        return new("This stream does not support seeking.");
+    }
 }

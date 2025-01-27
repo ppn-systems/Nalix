@@ -32,19 +32,24 @@ internal sealed partial class HttpConnection : IDisposable
 
     public HttpConnection(Socket sock, EndPointListener epl)
     {
-        _sock = sock;
-        _epl = epl;
+        _sock = sock ?? throw new ArgumentNullException(nameof(sock));
+        _epl = epl ?? throw new ArgumentNullException(nameof(epl));
         IsSecure = epl.Secure;
-        LocalEndPoint = (IPEndPoint)sock.LocalEndPoint;
-        RemoteEndPoint = (IPEndPoint)sock.RemoteEndPoint;
+        LocalEndPoint = (IPEndPoint)(sock.LocalEndPoint ?? throw new InvalidOperationException("LocalEndPoint is null"));
+        RemoteEndPoint = (IPEndPoint)(sock.RemoteEndPoint ?? throw new InvalidOperationException("RemoteEndPoint is null"));
 
         Stream = new NetworkStream(sock, false);
         if (IsSecure)
         {
-            var sslStream = new SslStream(Stream, true);
+            SslStream sslStream = new(Stream, true);
 
             try
             {
+                if (epl.Listener.Certificate == null)
+                {
+                    throw new InvalidOperationException("Server certificate is null");
+                }
+
                 sslStream.AuthenticateAsServer(epl.Listener.Certificate);
             }
             catch
@@ -99,7 +104,7 @@ internal sealed partial class HttpConnection : IDisposable
 
             _ = _timer.Change(_sTimeout, Timeout.Infinite);
 
-            var data = await Stream.ReadAsync(_buffer, 0, BufferSize).ConfigureAwait(false);
+            int data = await Stream.ReadAsync(_buffer, 0, BufferSize).ConfigureAwait(false);
             await OnReadInternal(data).ConfigureAwait(false);
         }
         catch
@@ -112,10 +117,15 @@ internal sealed partial class HttpConnection : IDisposable
 
     public RequestStream GetRequestStream(long contentLength)
     {
-        if (_iStream == null)
+        if (_iStream is null)
         {
-            var buffer = _ms.ToArray();
-            var length = (int)_ms.Length;
+            if (_ms is null)
+            {
+                throw new InvalidOperationException("MemoryStream is null");
+            }
+
+            byte[] buffer = _ms.ToArray();
+            int length = (int)_ms.Length;
             _ms = null;
 
             _iStream = new RequestStream(Stream, buffer, _position, length - _position, contentLength);
@@ -124,11 +134,20 @@ internal sealed partial class HttpConnection : IDisposable
         return _iStream;
     }
 
-    public ResponseStream GetResponseStream() => _oStream ??= new ResponseStream(Stream, _context.HttpListenerResponse, _context.Listener?.IgnoreWriteExceptions ?? true);
+    public ResponseStream GetResponseStream()
+    {
+        return _oStream ??= new ResponseStream(Stream, _context.HttpListenerResponse, _context.Listener?.IgnoreWriteExceptions ?? true);
+    }
 
-    internal void SetError(string message) => _errorMessage = message;
+    internal void SetError(string message)
+    {
+        _errorMessage = message;
+    }
 
-    internal void ForceClose() => Close(true);
+    internal void ForceClose()
+    {
+        Close(true);
+    }
 
     internal void Close(bool forceClose = false)
     {
@@ -159,7 +178,7 @@ internal sealed partial class HttpConnection : IDisposable
             }
         }
 
-        using (var s = _sock)
+        using (Socket s = _sock)
         {
             _sock = null;
             try
@@ -189,7 +208,7 @@ internal sealed partial class HttpConnection : IDisposable
         _context = new HttpListenerContext(this);
     }
 
-    private void OnTimeout(object unused)
+    private void OnTimeout(object? unused)
     {
         CloseSocket();
         Unbind();
@@ -206,7 +225,12 @@ internal sealed partial class HttpConnection : IDisposable
         {
             try
             {
-                await _ms.WriteAsync(_buffer, 0, offset).ConfigureAwait(false);
+                if (_ms is null)
+                {
+                    throw new InvalidOperationException("MemoryStream is null");
+                }
+
+                await _ms.WriteAsync(_buffer.AsMemory(0, offset)).ConfigureAwait(false);
                 if (_ms.Length > 32768)
                 {
                     Close(true);
@@ -240,20 +264,20 @@ internal sealed partial class HttpConnection : IDisposable
                     return;
                 }
 
-                var listener = _context.Listener;
+                HttpListener? listener = _context.Listener;
                 if (_lastListener != listener)
                 {
                     RemoveConnection();
-                    listener.AddConnection(this);
+                    listener?.AddConnection(this);
                     _lastListener = listener;
                 }
 
                 _contextBound = true;
-                listener.RegisterContext(_context);
+                listener?.RegisterContext(_context);
                 return;
             }
 
-            offset = await Stream.ReadAsync(_buffer, 0, BufferSize).ConfigureAwait(false);
+            offset = await Stream.ReadAsync(_buffer.AsMemory(0, BufferSize)).ConfigureAwait(false);
         }
     }
 
@@ -273,9 +297,9 @@ internal sealed partial class HttpConnection : IDisposable
     // false -> need more input
     private bool ProcessInput(MemoryStream ms)
     {
-        var buffer = ms.ToArray();
-        var len = (int)ms.Length;
-        var used = 0;
+        byte[] buffer = ms.ToArray();
+        int len = (int)ms.Length;
+        int used = 0;
 
         while (true)
         {
@@ -350,12 +374,12 @@ internal sealed partial class HttpConnection : IDisposable
     {
         _currentLine ??= new StringBuilder(128);
 
-        var last = offset + len;
+        int last = offset + len;
         used = 0;
-        for (var i = offset; i < last && _lineState != LineState.Lf; i++)
+        for (int i = offset; i < last && _lineState != LineState.Lf; i++)
         {
             used++;
-            var b = buffer[i];
+            byte b = buffer[i];
 
             switch (b)
             {
@@ -379,7 +403,7 @@ internal sealed partial class HttpConnection : IDisposable
         }
 
         _lineState = LineState.None;
-        var result = _currentLine.ToString();
+        string result = _currentLine.ToString();
         _currentLine.Length = 0;
         return result;
     }
@@ -391,7 +415,7 @@ internal sealed partial class HttpConnection : IDisposable
             return;
         }
 
-        _epl.UnbindContext(_context);
+        EndPointListener.UnbindContext(_context);
         _contextBound = false;
     }
 

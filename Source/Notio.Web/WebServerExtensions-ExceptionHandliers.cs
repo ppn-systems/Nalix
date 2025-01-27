@@ -1,8 +1,7 @@
-﻿using Notio.Web;
-using Notio.Web.Exceptions;
+﻿using Notio.Web.Exceptions;
 using System;
 
-namespace Notio;
+namespace Notio.Web;
 
 public static partial class WebServerExtensions
 {

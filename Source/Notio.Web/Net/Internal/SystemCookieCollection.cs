@@ -36,20 +36,38 @@ internal sealed class SystemCookieCollection : ICookieCollection
     public Cookie? this[string name] => _collection[name];
 
     /// <inheritdoc />
-    IEnumerator<Cookie> IEnumerable<Cookie>.GetEnumerator() => _collection.OfType<Cookie>().GetEnumerator();
+    IEnumerator<Cookie> IEnumerable<Cookie>.GetEnumerator()
+    {
+        return _collection.OfType<Cookie>().GetEnumerator();
+    }
 
     /// <inheritdoc />
-    public IEnumerator GetEnumerator() => _collection.GetEnumerator();
+    public IEnumerator GetEnumerator()
+    {
+        return _collection.GetEnumerator();
+    }
 
     /// <inheritdoc />
-    public void CopyTo(Array array, int index) => _collection.CopyTo(array, index);
+    public void CopyTo(Array array, int index)
+    {
+        _collection.CopyTo(array, index);
+    }
 
     /// <inheritdoc />
-    public void CopyTo(Cookie[] array, int index) => _collection.CopyTo(array, index);
+    public void CopyTo(Cookie[] array, int index)
+    {
+        _collection.CopyTo(array, index);
+    }
 
     /// <inheritdoc />
-    public void Add(Cookie cookie) => _collection.Add(cookie);
+    public void Add(Cookie cookie)
+    {
+        _collection.Add(cookie);
+    }
 
     /// <inheritdoc />
-    public bool Contains(Cookie cookie) => _collection.OfType<Cookie>().Contains(cookie);
+    public bool Contains(Cookie cookie)
+    {
+        return _collection.OfType<Cookie>().Contains(cookie);
+    }
 }

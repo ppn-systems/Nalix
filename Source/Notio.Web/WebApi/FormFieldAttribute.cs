@@ -1,6 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web;
-using Notio.Web.Utilities;
+﻿using Notio.Web.Utilities;
 using Swan;
 using System;
 using System.Linq;
@@ -114,28 +112,26 @@ namespace Notio.Web.WebApi
             WebApiController controller,
             string parameterName)
         {
-            var data = await controller.HttpContext.GetRequestFormDataAsync()
+            System.Collections.Specialized.NameValueCollection data = await controller.HttpContext.GetRequestFormDataAsync()
                 .ConfigureAwait(false);
 
-            var fieldName = FieldName ?? parameterName;
-            if (!data.ContainsKey(fieldName) && BadRequestIfMissing)
-                throw HttpException.BadRequest($"Missing form field {fieldName}.");
-
-            return data.GetValues(fieldName)?.LastOrDefault();
+            string fieldName = FieldName ?? parameterName;
+            return !data.ContainsKey(fieldName) && BadRequestIfMissing
+                ? throw HttpException.BadRequest($"Missing form field {fieldName}.")
+                : (data.GetValues(fieldName)?.LastOrDefault());
         }
 
         async Task<string[]?> IRequestDataAttribute<WebApiController, string[]>.GetRequestDataAsync(
             WebApiController controller,
             string parameterName)
         {
-            var data = await controller.HttpContext.GetRequestFormDataAsync()
+            System.Collections.Specialized.NameValueCollection data = await controller.HttpContext.GetRequestFormDataAsync()
                 .ConfigureAwait(false);
 
-            var fieldName = FieldName ?? parameterName;
-            if (!data.ContainsKey(fieldName) && BadRequestIfMissing)
-                throw HttpException.BadRequest($"Missing form field {fieldName}.");
-
-            return data.GetValues(fieldName) ?? [];
+            string fieldName = FieldName ?? parameterName;
+            return !data.ContainsKey(fieldName) && BadRequestIfMissing
+                ? throw HttpException.BadRequest($"Missing form field {fieldName}.")
+                : data.GetValues(fieldName) ?? [];
         }
 
         async Task<object?> IRequestDataAttribute<WebApiController>.GetRequestDataAsync(
@@ -143,31 +139,30 @@ namespace Notio.Web.WebApi
             Type type,
             string parameterName)
         {
-            var data = await controller.HttpContext.GetRequestFormDataAsync()
+            System.Collections.Specialized.NameValueCollection data = await controller.HttpContext.GetRequestFormDataAsync()
                 .ConfigureAwait(false);
 
-            var fieldName = FieldName ?? parameterName;
+            string fieldName = FieldName ?? parameterName;
             if (!data.ContainsKey(fieldName) && BadRequestIfMissing)
+            {
                 throw HttpException.BadRequest($"Missing form field {fieldName}.");
+            }
 
             if (type.IsArray)
             {
-                var fieldValues = data.GetValues(fieldName) ?? Array.Empty<string>();
-                if (!FromString.TryConvertTo(type, fieldValues, out var result))
-                    throw HttpException.BadRequest($"Cannot convert field {fieldName} to an array of {type.GetElementType()?.Name}.");
-
-                return result;
+                string[] fieldValues = data.GetValues(fieldName) ?? Array.Empty<string>();
+                return !FromString.TryConvertTo(type, fieldValues, out object? result)
+                    ? throw HttpException.BadRequest($"Cannot convert field {fieldName} to an array of {type.GetElementType()?.Name}.")
+                    : result;
             }
             else
             {
-                var fieldValue = data.GetValues(fieldName)?.LastOrDefault();
-                if (fieldValue == null)
-                    return type.IsValueType ? Activator.CreateInstance(type) : null;
-
-                if (!FromString.TryConvertTo(type, fieldValue, out var result))
-                    throw HttpException.BadRequest($"Cannot convert field {fieldName} to {type.Name}.");
-
-                return result;
+                string? fieldValue = data.GetValues(fieldName)?.LastOrDefault();
+                return fieldValue == null
+                    ? type.IsValueType ? Activator.CreateInstance(type) : null
+                    : !FromString.TryConvertTo(type, fieldValue, out object? result)
+                    ? throw HttpException.BadRequest($"Cannot convert field {fieldName} to {type.Name}.")
+                    : result;
             }
         }
     }

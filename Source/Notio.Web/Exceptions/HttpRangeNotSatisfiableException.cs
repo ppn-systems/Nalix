@@ -43,6 +43,8 @@ public class HttpRangeNotSatisfiableException : HttpException
         //                        SHOULD generate a Content-Range header field specifying
         //                        the current length of the selected representation."
         if (ContentLength.HasValue)
+        {
             context.Response.Headers.Set(HttpHeaderNames.ContentRange, $"bytes */{ContentLength.Value}");
+        }
     }
 }

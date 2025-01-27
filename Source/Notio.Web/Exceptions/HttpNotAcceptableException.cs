@@ -48,6 +48,8 @@ public class HttpNotAcceptableException : HttpException
     public override void PrepareResponse(IHttpContext context)
     {
         if (Vary != null)
+        {
             context.Response.Headers.Add(HttpHeaderNames.Vary, Vary);
+        }
     }
 }

@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using Notio.Web.Http;
+using System.Threading.Tasks;
 
-namespace Notio.Web
+namespace Notio.Web.Response
 {
     /// <summary>
     /// A callback used to serialize data to a HTTP response.

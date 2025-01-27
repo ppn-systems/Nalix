@@ -1,5 +1,4 @@
-﻿using Notio.Web.WebSockets;
-using Swan;
+﻿using Swan;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -19,16 +18,21 @@ namespace Notio.Web.WebSockets.Internal
 
         internal async Task<WebSocketFrame?> ReadFrameAsync(WebSocket webSocket)
         {
-            if (_stream == null) return null;
+            if (_stream == null)
+            {
+                return null;
+            }
 
-            var frame = ProcessHeader(await _stream.ReadBytesAsync(2).ConfigureAwait(false));
+            WebSocketFrame frame = ProcessHeader(await _stream.ReadBytesAsync(2).ConfigureAwait(false));
 
             await ReadExtendedPayloadLengthAsync(frame).ConfigureAwait(false);
             await ReadMaskingKeyAsync(frame).ConfigureAwait(false);
             await ReadPayloadDataAsync(frame).ConfigureAwait(false);
 
             if (_unmask)
+            {
                 frame.Unmask();
+            }
 
             frame.Validate(webSocket);
 
@@ -37,51 +41,58 @@ namespace Notio.Web.WebSockets.Internal
             return frame;
         }
 
-        private static bool IsOpcodeData(byte opcode) => opcode == 0x1 || opcode == 0x2;
+        private static bool IsOpcodeData(byte opcode)
+        {
+            return opcode is 0x1 or 0x2;
+        }
 
-        private static bool IsOpcodeControl(byte opcode) => opcode > 0x7 && opcode < 0x10;
+        private static bool IsOpcodeControl(byte opcode)
+        {
+            return opcode is > 0x7 and < 0x10;
+        }
 
         private static WebSocketFrame ProcessHeader(byte[] header)
         {
             if (header.Length != 2)
+            {
                 throw new WebSocketException("The header of a frame cannot be read from the stream.");
+            }
 
             // FIN
-            var fin = (header[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
+            Fin fin = (header[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
 
             // RSV1
-            var rsv1 = (header[0] & 0x40) == 0x40 ? Rsv.On : Rsv.Off;
+            Rsv rsv1 = (header[0] & 0x40) == 0x40 ? Rsv.On : Rsv.Off;
 
             // RSV2
-            var rsv2 = (header[0] & 0x20) == 0x20 ? Rsv.On : Rsv.Off;
+            Rsv rsv2 = (header[0] & 0x20) == 0x20 ? Rsv.On : Rsv.Off;
 
             // RSV3
-            var rsv3 = (header[0] & 0x10) == 0x10 ? Rsv.On : Rsv.Off;
+            Rsv rsv3 = (header[0] & 0x10) == 0x10 ? Rsv.On : Rsv.Off;
 
             // Opcode
-            var opcode = (byte)(header[0] & 0x0f);
+            byte opcode = (byte)(header[0] & 0x0f);
 
             // MASK
-            var mask = (header[1] & 0x80) == 0x80 ? Mask.On : Mask.Off;
+            Mask mask = (header[1] & 0x80) == 0x80 ? Mask.On : Mask.Off;
 
             // Payload Length
-            var payloadLen = (byte)(header[1] & 0x7f);
+            byte payloadLen = (byte)(header[1] & 0x7f);
 
-            var err = !Enum.IsDefined(typeof(Opcode), opcode) ? "An unsupported opcode."
+            string? err = !Enum.IsDefined(typeof(Opcode), opcode) ? "An unsupported opcode."
             : !IsOpcodeData(opcode) && rsv1 == Rsv.On ? "A non data frame is compressed."
             : IsOpcodeControl(opcode) && fin == Fin.More ? "A control frame is fragmented."
             : IsOpcodeControl(opcode) && payloadLen > 125 ? "A control frame has a long payload length."
             : null;
 
-            if (err != null)
-                throw new WebSocketException(CloseStatusCode.ProtocolError, err);
-
-            return new WebSocketFrame(fin, rsv1, rsv2, rsv3, (Opcode)opcode, mask, payloadLen);
+            return err != null
+                ? throw new WebSocketException(CloseStatusCode.ProtocolError, err)
+                : new WebSocketFrame(fin, rsv1, rsv2, rsv3, (Opcode)opcode, mask, payloadLen);
         }
 
         private async Task ReadExtendedPayloadLengthAsync(WebSocketFrame frame)
         {
-            var len = frame.ExtendedPayloadLengthCount;
+            int len = frame.ExtendedPayloadLengthCount;
 
             if (len == 0)
             {
@@ -89,7 +100,7 @@ namespace Notio.Web.WebSockets.Internal
                 return;
             }
 
-            var bytes = await _stream.ReadBytesAsync(len).ConfigureAwait(false);
+            byte[] bytes = await _stream.ReadBytesAsync(len).ConfigureAwait(false);
 
             if (bytes.Length != len)
             {
@@ -102,7 +113,7 @@ namespace Notio.Web.WebSockets.Internal
 
         private async Task ReadMaskingKeyAsync(WebSocketFrame frame)
         {
-            var len = frame.IsMasked ? 4 : 0;
+            int len = frame.IsMasked ? 4 : 0;
 
             if (len == 0)
             {
@@ -110,7 +121,7 @@ namespace Notio.Web.WebSockets.Internal
                 return;
             }
 
-            var bytes = await _stream.ReadBytesAsync(len).ConfigureAwait(false);
+            byte[] bytes = await _stream.ReadBytesAsync(len).ConfigureAwait(false);
             if (bytes.Length != len)
             {
                 throw new WebSocketException(
@@ -122,7 +133,7 @@ namespace Notio.Web.WebSockets.Internal
 
         private async Task ReadPayloadDataAsync(WebSocketFrame frame)
         {
-            var len = frame.FullPayloadLength;
+            ulong len = frame.FullPayloadLength;
             if (len == 0)
             {
                 frame.PayloadData = new PayloadData();
@@ -131,9 +142,11 @@ namespace Notio.Web.WebSockets.Internal
             }
 
             if (len > PayloadData.MaxLength)
+            {
                 throw new WebSocketException(CloseStatusCode.TooBig, "A frame has a long payload length.");
+            }
 
-            var bytes = frame.PayloadLength < 127
+            byte[] bytes = frame.PayloadLength < 127
                 ? await _stream.ReadBytesAsync((int)len).ConfigureAwait(false)
                 : await _stream.ReadBytesAsync((int)len, 1024).ConfigureAwait(false);
 

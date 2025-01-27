@@ -37,12 +37,17 @@ public class DisposableComponentCollection<T> : ComponentCollection<T>, IDisposa
     /// </param>
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposing) return;
+        if (!disposing)
+        {
+            return;
+        }
 
-        foreach (var component in this)
+        foreach (T? component in this)
         {
             if (component is IDisposable disposable)
+            {
                 disposable.Dispose();
+            }
         }
     }
 }

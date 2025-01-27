@@ -2,7 +2,7 @@
 using Notio.Web.Utilities;
 using System;
 
-namespace Notio.Web.Exceptions;
+namespace Notio.Web.Extensions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IHttpResponse"/>.
@@ -16,7 +16,7 @@ public static class HttpResponseExtensions
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static void DisableCaching(this IHttpResponse @this)
     {
-        var headers = @this.Headers;
+        System.Net.WebHeaderCollection headers = @this.Headers;
         headers.Set(HttpHeaderNames.Expires, "Sat, 26 Jul 1997 05:00:00 GMT");
         headers.Set(HttpHeaderNames.LastModified, HttpDate.Format(DateTime.UtcNow));
         headers.Set(HttpHeaderNames.CacheControl, "no-store, no-cache, must-revalidate");
@@ -32,8 +32,10 @@ public static class HttpResponseExtensions
     /// <exception cref="ArgumentException">There is no standard status description for <paramref name="statusCode"/>.</exception>
     public static void SetEmptyResponse(this IHttpResponse @this, int statusCode)
     {
-        if (!HttpStatusDescription.TryGet(statusCode, out var statusDescription))
+        if (!HttpStatusDescription.TryGet(statusCode, out string? statusDescription))
+        {
             throw new ArgumentException("Status code has no standard description.", nameof(statusCode));
+        }
 
         @this.StatusCode = statusCode;
         @this.StatusDescription = statusDescription;

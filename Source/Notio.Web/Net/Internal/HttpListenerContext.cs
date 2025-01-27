@@ -1,5 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web.Authentication;
+﻿using Notio.Web.Authentication;
 using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.Routing;
@@ -79,7 +78,10 @@ internal sealed class HttpListenerContext : IHttpContextImpl
 
     internal HttpConnection Connection { get; }
 
-    public void SetHandled() => IsHandled = true;
+    public void SetHandled()
+    {
+        IsHandled = true;
+    }
 
     public void OnClose(Action<IHttpContext> callback)
     {
@@ -98,7 +100,7 @@ internal sealed class HttpListenerContext : IHttpContextImpl
         // Always close the response stream no matter what.
         Response.Close();
 
-        foreach (var callback in _closeCallbacks)
+        foreach (Action<IHttpContext> callback in _closeCallbacks)
         {
             try
             {
@@ -118,13 +120,17 @@ internal sealed class HttpListenerContext : IHttpContextImpl
         TimeSpan keepAliveInterval,
         CancellationToken cancellationToken)
     {
-        var webSocket = await WebSocket.AcceptAsync(this, acceptedProtocol).ConfigureAwait(false);
+        WebSocket webSocket = await WebSocket.AcceptAsync(this, acceptedProtocol).ConfigureAwait(false);
         return new WebSocketContext(this, WebSocket.SupportedVersion, requestedProtocols, acceptedProtocol, webSocket, cancellationToken);
     }
 
     public string GetMimeType(string extension)
-        => MimeTypeProviders.GetMimeType(extension);
+    {
+        return MimeTypeProviders.GetMimeType(extension);
+    }
 
     public bool TryDetermineCompression(string mimeType, out bool preferCompression)
-        => MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
+    {
+        return MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
+    }
 }

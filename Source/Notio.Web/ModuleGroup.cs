@@ -1,6 +1,8 @@
-﻿using Notio.Web.Internal;
+﻿using Notio.Web.Http;
+using Notio.Web.Internal;
 using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,7 +26,7 @@ namespace Notio.Web;
 public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMimeTypeCustomizer
 {
     private readonly WebModuleCollection _modules;
-    private readonly MimeTypeCustomizer _mimeTypeCustomizer = new MimeTypeCustomizer();
+    private readonly MimeTypeCustomizer _mimeTypeCustomizer = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ModuleGroup" /> class.
@@ -63,22 +65,32 @@ public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMim
     }
 
     string IMimeTypeProvider.GetMimeType(string extension)
-        => _mimeTypeCustomizer.GetMimeType(extension);
+    {
+        return _mimeTypeCustomizer.GetMimeType(extension);
+    }
 
     bool IMimeTypeProvider.TryDetermineCompression(string mimeType, out bool preferCompression)
-        => _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
+    {
+        return _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
+    }
 
     /// <inheritdoc />
     public void AddCustomMimeType(string extension, string mimeType)
-        => _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
+    {
+        _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
+    }
 
     /// <inheritdoc />
     public void PreferCompression(string mimeType, bool preferCompression)
-        => _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
+    {
+        _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
+    }
 
     /// <inheritdoc />
     protected override Task OnRequestAsync(IHttpContext context)
-        => _modules.DispatchRequestAsync(context);
+    {
+        return _modules.DispatchRequestAsync(context);
+    }
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.
@@ -88,7 +100,9 @@ public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMim
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing)
+        {
             return;
+        }
 
         _modules.Dispose();
     }

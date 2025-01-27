@@ -1,5 +1,4 @@
-﻿using Notio.Web.WebSockets;
-using Swan;
+﻿using Swan;
 using System;
 
 namespace Notio.Web.WebSockets.Internal
@@ -33,7 +32,9 @@ namespace Notio.Web.WebSockets.Internal
         internal MessageEventArgs(Opcode opcode, byte[] rawData)
         {
             if ((ulong)rawData.Length > PayloadData.MaxLength)
+            {
                 throw new WebSocketException(CloseStatusCode.TooBig);
+            }
 
             Opcode = opcode;
             _rawData = rawData;
@@ -100,7 +101,9 @@ namespace Notio.Web.WebSockets.Internal
         private void SetData()
         {
             if (_dataSet)
+            {
                 return;
+            }
 
             if (Opcode == Opcode.Binary)
             {

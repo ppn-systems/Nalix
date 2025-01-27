@@ -44,21 +44,21 @@ public static class QValueListExtensions
         // acceptable by default unless specifically excluded by the
         // Accept - Encoding field stating either "identity;q=0" or "*;q=0"
         // without a more specific entry for "identity".
-        if (!preferCompression && (!@this.TryGetWeight(CompressionMethodNames.None, out var weight) || weight > 0))
+        if (!preferCompression && (!@this.TryGetWeight(CompressionMethodNames.None, out int weight) || weight > 0))
         {
             compressionMethod = CompressionMethod.None;
             compressionMethodName = CompressionMethodNames.None;
             return true;
         }
 
-        var acceptableMethods = preferCompression
+        CompressionMethod[] acceptableMethods = preferCompression
             ? [CompressionMethod.Gzip, CompressionMethod.Deflate, CompressionMethod.None]
             : new[] { CompressionMethod.None, CompressionMethod.Gzip, CompressionMethod.Deflate };
-        var acceptableMethodNames = preferCompression
+        string[] acceptableMethodNames = preferCompression
             ? [CompressionMethodNames.Gzip, CompressionMethodNames.Deflate, CompressionMethodNames.None]
             : new[] { CompressionMethodNames.None, CompressionMethodNames.Gzip, CompressionMethodNames.Deflate };
 
-        var acceptableMethodIndex = @this.FindPreferredIndex(acceptableMethodNames);
+        int acceptableMethodIndex = @this.FindPreferredIndex(acceptableMethodNames);
         if (acceptableMethodIndex < 0)
         {
             compressionMethod = default;

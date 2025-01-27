@@ -1,31 +1,31 @@
-﻿using System;
+﻿using Notio.Web.Enums;
+using System;
 
-namespace Notio.Web
+namespace Notio.Web;
+
+/// <summary>
+/// Represents event arguments whenever the state of a web server changes.
+/// </summary>
+public class WebServerStateChangedEventArgs : EventArgs
 {
     /// <summary>
-    /// Represents event arguments whenever the state of a web server changes.
+    /// Initializes a new instance of the <see cref="WebServerStateChangedEventArgs"/> class.
     /// </summary>
-    public class WebServerStateChangedEventArgs : EventArgs
+    /// <param name="oldState">The old state.</param>
+    /// <param name="newState">The new state.</param>
+    public WebServerStateChangedEventArgs(WebServerState oldState, WebServerState newState)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebServerStateChangedEventArgs"/> class.
-        /// </summary>
-        /// <param name="oldState">The old state.</param>
-        /// <param name="newState">The new state.</param>
-        public WebServerStateChangedEventArgs(WebServerState oldState, WebServerState newState)
-        {
-            OldState = oldState;
-            NewState = newState;
-        }
-
-        /// <summary>
-        /// Gets the state to which the application service changed.
-        /// </summary>
-        public WebServerState NewState { get; }
-
-        /// <summary>
-        /// Gets the old state.
-        /// </summary>
-        public WebServerState OldState { get; }
+        OldState = oldState;
+        NewState = newState;
     }
+
+    /// <summary>
+    /// Gets the state to which the application service changed.
+    /// </summary>
+    public WebServerState NewState { get; }
+
+    /// <summary>
+    /// Gets the old state.
+    /// </summary>
+    public WebServerState OldState { get; }
 }

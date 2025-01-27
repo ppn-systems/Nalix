@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Enums;
+using Notio.Web.Utilities;
 using System;
 using System.Text;
 
@@ -8,7 +9,7 @@ internal static class EntityTag
 {
     public static string Compute(DateTime lastModifiedUtc, long length, CompressionMethod compressionMethod)
     {
-        var sb = new StringBuilder()
+        StringBuilder sb = new StringBuilder()
             .Append('"')
             .Append(Base64Utility.LongToBase64(lastModifiedUtc.Ticks))
             .Append(Base64Utility.LongToBase64(length));
@@ -16,11 +17,11 @@ internal static class EntityTag
         switch (compressionMethod)
         {
             case CompressionMethod.Deflate:
-                sb.Append('-').Append(CompressionMethodNames.Deflate);
+                _ = sb.Append('-').Append(CompressionMethodNames.Deflate);
                 break;
 
             case CompressionMethod.Gzip:
-                sb.Append('-').Append(CompressionMethodNames.Gzip);
+                _ = sb.Append('-').Append(CompressionMethodNames.Gzip);
                 break;
         }
 

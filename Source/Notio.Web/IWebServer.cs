@@ -1,6 +1,8 @@
-﻿using Notio.Web.Exceptions;
+﻿using Notio.Web.Enums;
+using Notio.Web.Exceptions;
 using Notio.Web.MimeTypes;
 using Notio.Web.Sessions;
+using Notio.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

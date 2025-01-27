@@ -1,4 +1,5 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Web.Http;
+using Notio.Web.Utilities;
 using Swan;
 using System;
 
@@ -24,6 +25,8 @@ public static partial class HttpContextExtensions
     /// <paramref name="this"/> does not implement <see cref="IHttpContextImpl"/>.
     /// </exception>
     public static IHttpContextImpl GetImplementation(this IHttpContext @this)
-        => Validate.NotNull(nameof(@this), @this) as IHttpContextImpl
-        ?? throw SelfCheck.Failure($"{@this.GetType().FullName} does not implement {nameof(IHttpContextImpl)}.");
+    {
+        return Validate.NotNull(nameof(@this), @this) as IHttpContextImpl
+            ?? throw SelfCheck.Failure($"{@this.GetType().FullName} does not implement {nameof(IHttpContextImpl)}.");
+    }
 }

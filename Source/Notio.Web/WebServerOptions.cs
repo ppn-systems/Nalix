@@ -20,9 +20,9 @@ public sealed class WebServerOptions : WebServerOptionsBase
 {
     private const string NetShLogSource = "NetSh";
 
-    private readonly List<string> _urlPrefixes = new List<string>();
+    private readonly List<string> _urlPrefixes = [];
 
-    private HttpListenerMode _mode = HttpListenerMode.EmbedIO;
+    private HttpListenerMode _mode = HttpListenerMode.Notio;
 
     private X509Certificate2? _certificate;
 
@@ -64,13 +64,9 @@ public sealed class WebServerOptions : WebServerOptionsBase
     /// and this instance's configuration is locked.</exception>
     public X509Certificate2? Certificate
     {
-        get
-        {
-            if (AutoRegisterCertificate)
-                return TryRegisterCertificate() ? _certificate : null;
-
-            return _certificate ?? (AutoLoadCertificate ? LoadCertificate() : null);
-        }
+        get => AutoRegisterCertificate
+                ? TryRegisterCertificate() ? _certificate : null
+                : _certificate ?? (AutoLoadCertificate ? LoadCertificate() : null);
         set
         {
             EnsureConfigurationNotLocked();
@@ -111,7 +107,9 @@ public sealed class WebServerOptions : WebServerOptionsBase
         {
             EnsureConfigurationNotLocked();
             if (value && SwanRuntime.OS != Swan.OperatingSystem.Windows)
+            {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
+            }
 
             _autoLoadCertificate = value;
         }
@@ -132,7 +130,9 @@ public sealed class WebServerOptions : WebServerOptionsBase
         {
             EnsureConfigurationNotLocked();
             if (value && SwanRuntime.OS != Swan.OperatingSystem.Windows)
+            {
                 throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
+            }
 
             _autoRegisterCertificate = value;
         }
@@ -187,7 +187,9 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
         urlPrefix = Validate.NotNullOrEmpty(nameof(urlPrefix), urlPrefix);
         if (_urlPrefixes.Contains(urlPrefix))
+        {
             throw new ArgumentException("URL prefix is already registered.", nameof(urlPrefix));
+        }
 
         _urlPrefixes.Add(urlPrefix);
     }
@@ -195,35 +197,50 @@ public sealed class WebServerOptions : WebServerOptionsBase
     private X509Certificate2? LoadCertificate()
     {
         if (SwanRuntime.OS != Swan.OperatingSystem.Windows)
+        {
             return null;
+        }
 
-        if (!string.IsNullOrWhiteSpace(_certificateThumbprint)) return GetCertificate(_certificateThumbprint);
+        if (!string.IsNullOrWhiteSpace(_certificateThumbprint))
+        {
+            return GetCertificate(_certificateThumbprint);
+        }
 
-        using var netsh = GetNetsh("show");
+        using Process netsh = GetNetsh("show");
 
         string? thumbprint = null;
 
         netsh.ErrorDataReceived += (s, e) =>
         {
-            if (string.IsNullOrWhiteSpace(e.Data)) return;
+            if (string.IsNullOrWhiteSpace(e.Data))
+            {
+                return;
+            }
 
             e.Data.Error(NetShLogSource);
         };
 
         netsh.OutputDataReceived += (s, e) =>
         {
-            if (string.IsNullOrWhiteSpace(e.Data)) return;
+            if (string.IsNullOrWhiteSpace(e.Data))
+            {
+                return;
+            }
 
             e.Data.Debug(NetShLogSource);
 
-            var line = e.Data.Trim();
+            string line = e.Data.Trim();
 
             if (line.StartsWith("Certificate Hash") && line.IndexOf(":", StringComparison.Ordinal) > -1)
+            {
                 thumbprint = line.Split(':')[1].Trim();
+            }
         };
 
         if (!netsh.Start())
+        {
             return null;
+        }
 
         netsh.BeginOutputReadLine();
         netsh.BeginErrorReadLine();
@@ -237,11 +254,13 @@ public sealed class WebServerOptions : WebServerOptionsBase
     private X509Certificate2? GetCertificate(string? thumbprint = null)
     {
         if (string.IsNullOrEmpty(thumbprint ?? _certificateThumbprint))
+        {
             return null;
+        }
 
-        using var store = new X509Store(StoreName, StoreLocation);
+        using X509Store store = new(StoreName, StoreLocation);
         store.Open(OpenFlags.ReadOnly);
-        var signingCert = store.Certificates.Find(
+        X509Certificate2Collection signingCert = store.Certificates.Find(
             X509FindType.FindByThumbprint,
             thumbprint ?? _certificateThumbprint!,
             false);
@@ -251,9 +270,11 @@ public sealed class WebServerOptions : WebServerOptionsBase
     private bool AddCertificateToStore()
     {
         if (_certificate == null)
+        {
             throw new InvalidOperationException("Certificate cannot be null when adding to store.");
+        }
 
-        using var store = new X509Store(StoreName, StoreLocation);
+        using X509Store store = new(StoreName, StoreLocation);
         try
         {
             store.Open(OpenFlags.ReadWrite);
@@ -269,10 +290,14 @@ public sealed class WebServerOptions : WebServerOptionsBase
     private bool TryRegisterCertificate()
     {
         if (SwanRuntime.OS != Swan.OperatingSystem.Windows)
+        {
             return false;
+        }
 
         if (_certificate == null)
+        {
             throw new InvalidOperationException("A certificate is required to AutoRegister");
+        }
 
         if (GetCertificate(_certificate.Thumbprint) == null && !AddCertificateToStore())
         {
@@ -280,15 +305,18 @@ public sealed class WebServerOptions : WebServerOptionsBase
                 "The provided certificate cannot be added to the default store, add it manually");
         }
 
-        using var netsh = GetNetsh("add", $"certhash={_certificate.Thumbprint} appid={{adaa04bb-8b63-4073-a12f-d6f8c0b4383f}}");
+        using Process netsh = GetNetsh("add", $"certhash={_certificate.Thumbprint} appid={{adaa04bb-8b63-4073-a12f-d6f8c0b4383f}}");
 
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
 
         void PushLine(object sender, DataReceivedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(e.Data)) return;
+            if (string.IsNullOrWhiteSpace(e.Data))
+            {
+                return;
+            }
 
-            sb.AppendLine(e.Data);
+            _ = sb.AppendLine(e.Data);
             e.Data.Error(NetShLogSource);
         }
 
@@ -296,7 +324,10 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
         netsh.ErrorDataReceived += PushLine;
 
-        if (!netsh.Start()) return false;
+        if (!netsh.Start())
+        {
+            return false;
+        }
 
         netsh.BeginOutputReadLine();
         netsh.BeginErrorReadLine();
@@ -307,30 +338,35 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private int GetSslPort()
     {
-        var port = 443;
+        int port = 443;
 
-        foreach (var url in UrlPrefixes.Where(x =>
+        foreach (string? url in UrlPrefixes.Where(x =>
             x.StartsWith("https:", StringComparison.OrdinalIgnoreCase)))
         {
-            var match = Regex.Match(url, @":(\d+)");
+            Match match = Regex.Match(url, @":(\d+)");
 
             if (match.Success && int.TryParse(match.Groups[1].Value, out port))
+            {
                 break;
+            }
         }
 
         return port;
     }
 
-    private Process GetNetsh(string verb, string options = "") => new Process
+    private Process GetNetsh(string verb, string options = "")
     {
-        StartInfo = new ProcessStartInfo
+        return new()
         {
-            FileName = "netsh",
-            CreateNoWindow = true,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            Arguments = $"http {verb} sslcert ipport=0.0.0.0:{GetSslPort()} {options}",
-        },
-    };
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "netsh",
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                Arguments = $"http {verb} sslcert ipport=0.0.0.0:{GetSslPort()} {options}",
+            },
+        };
+    }
 }

@@ -30,12 +30,12 @@ namespace Notio.Web.Net.Internal
 
             _sock.Bind(_endpoint);
             _sock.Listen(500);
-            var args = new SocketAsyncEventArgs { UserToken = this };
-            args.Completed += OnAccept;
+            SocketAsyncEventArgs args = new() { UserToken = this };
+            args.Completed += OnAccept!;
             Socket? dummy = null;
             Accept(_sock, args, ref dummy);
-            _prefixes = new Dictionary<ListenerPrefix, HttpListener>();
-            _unregistered = new Dictionary<HttpConnection, HttpConnection>();
+            _prefixes = [];
+            _unregistered = [];
         }
 
         internal HttpListener Listener { get; }
@@ -44,8 +44,8 @@ namespace Notio.Web.Net.Internal
 
         public bool BindContext(HttpListenerContext context)
         {
-            var req = context.Request;
-            var listener = SearchListener(req.Url, out var prefix);
+            Http.IHttpRequest req = context.Request;
+            HttpListener? listener = SearchListener(req.Url, out ListenerPrefix? prefix);
 
             if (listener == null)
             {
@@ -57,7 +57,10 @@ namespace Notio.Web.Net.Internal
             return true;
         }
 
-        public void UnbindContext(HttpListenerContext context) => context.Listener.UnregisterContext(context);
+        public static void UnbindContext(HttpListenerContext context)
+        {
+            context.Listener?.UnregisterContext(context);
+        }
 
         public void Dispose()
         {
@@ -71,7 +74,7 @@ namespace Notio.Web.Net.Internal
                 _unregistered.Clear();
             }
 
-            foreach (var c in connections)
+            foreach (HttpConnection c in connections)
             {
                 c.Dispose();
             }
@@ -89,7 +92,7 @@ namespace Notio.Web.Net.Internal
                     current = _unhandled;
 
                     // TODO: Should we clone the items?
-                    future = current?.ToList() ?? new List<ListenerPrefix>();
+                    future = current?.ToList() ?? [];
                     prefix.Listener = listener;
                     AddSpecial(future, prefix);
                 }
@@ -103,7 +106,7 @@ namespace Notio.Web.Net.Internal
                 do
                 {
                     current = _all;
-                    future = current?.ToList() ?? new List<ListenerPrefix>();
+                    future = current?.ToList() ?? [];
                     prefix.Listener = listener;
                     AddSpecial(future, prefix);
                 }
@@ -142,7 +145,7 @@ namespace Notio.Web.Net.Internal
                 do
                 {
                     current = _unhandled;
-                    future = current?.ToList() ?? new List<ListenerPrefix>();
+                    future = current?.ToList() ?? [];
                     if (!RemoveSpecial(future, prefix))
                     {
                         break; // Prefix not found
@@ -159,7 +162,7 @@ namespace Notio.Web.Net.Internal
                 do
                 {
                     current = _all;
-                    future = current?.ToList() ?? new List<ListenerPrefix>();
+                    future = current?.ToList() ?? [];
                     if (!RemoveSpecial(future, prefix))
                     {
                         break; // Prefix not found
@@ -176,7 +179,7 @@ namespace Notio.Web.Net.Internal
             do
             {
                 prefs = _prefixes;
-                var prefixKey = _prefixes.Keys.FirstOrDefault(p => p.Path == prefix.Path);
+                ListenerPrefix? prefixKey = _prefixes.Keys.FirstOrDefault(p => p.Path == prefix.Path);
 
                 if (prefixKey is null)
                 {
@@ -237,7 +240,8 @@ namespace Notio.Web.Net.Internal
                 accepted = args.AcceptSocket;
             }
 
-            var epl = (EndPointListener)args.UserToken;
+            if (args.UserToken is not EndPointListener epl)
+                return;
 
             Accept(epl._sock, args, ref accepted);
             if (accepted == null)
@@ -269,7 +273,10 @@ namespace Notio.Web.Net.Internal
             _ = conn.BeginReadRequest();
         }
 
-        private static void OnAccept(object sender, SocketAsyncEventArgs e) => ProcessAccept(e);
+        private static void OnAccept(object sender, SocketAsyncEventArgs e)
+        {
+            ProcessAccept(e);
+        }
 
         private static HttpListener? MatchFromList(string path, List<ListenerPrefix>? list, out ListenerPrefix? prefix)
         {
@@ -280,9 +287,9 @@ namespace Notio.Web.Net.Internal
             }
 
             HttpListener? bestMatch = null;
-            var bestLength = -1;
+            int bestLength = -1;
 
-            foreach (var p in list)
+            foreach (ListenerPrefix p in list)
             {
                 if (p.Path.Length < bestLength || !path.StartsWith(p.Path, StringComparison.Ordinal))
                 {
@@ -319,8 +326,8 @@ namespace Notio.Web.Net.Internal
                 return false;
             }
 
-            var c = coll.Count;
-            for (var i = 0; i < c; i++)
+            int c = coll.Count;
+            for (int i = 0; i < c; i++)
             {
                 if (coll[i].Path != prefix.Path)
                 {
@@ -342,19 +349,19 @@ namespace Notio.Web.Net.Internal
                 return null;
             }
 
-            var host = uri.Host;
-            var port = uri.Port;
-            var path = WebUtility.UrlDecode(uri.AbsolutePath);
-            var pathSlash = path[path.Length - 1] == '/' ? path : path + "/";
+            string host = uri.Host;
+            int port = uri.Port;
+            string path = WebUtility.UrlDecode(uri.AbsolutePath);
+            string pathSlash = path[^1] == '/' ? path : path + "/";
 
             HttpListener? bestMatch = null;
-            var bestLength = -1;
+            int bestLength = -1;
 
             if (!string.IsNullOrEmpty(host))
             {
-                var result = _prefixes;
+                Dictionary<ListenerPrefix, HttpListener> result = _prefixes;
 
-                foreach (var p in result.Keys)
+                foreach (ListenerPrefix p in result.Keys)
                 {
                     if (p.Path.Length < bestLength)
                     {
@@ -382,7 +389,7 @@ namespace Notio.Web.Net.Internal
                 }
             }
 
-            var list = _unhandled;
+            List<ListenerPrefix>? list = _unhandled;
             bestMatch = MatchFromList(path, list, out prefix);
             if (path != pathSlash && bestMatch == null)
             {
@@ -411,7 +418,7 @@ namespace Notio.Web.Net.Internal
                 return;
             }
 
-            var list = _unhandled;
+            List<ListenerPrefix>? list = _unhandled;
             if (list != null && list.Count > 0)
             {
                 return;

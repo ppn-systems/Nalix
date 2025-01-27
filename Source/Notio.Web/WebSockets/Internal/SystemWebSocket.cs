@@ -1,5 +1,4 @@
-﻿using Notio.Web.WebSockets;
-using System;
+﻿using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,39 +29,50 @@ namespace Notio.Web.WebSockets.Internal
 
         /// <inheritdoc />
         public Task SendAsync(byte[] buffer, bool isText, CancellationToken cancellationToken = default)
-            => UnderlyingWebSocket.SendAsync(
-                new ArraySegment<byte>(buffer),
-                isText ? WebSocketMessageType.Text : WebSocketMessageType.Binary,
-                true,
-                cancellationToken);
+        {
+            return UnderlyingWebSocket.SendAsync(
+                        new ArraySegment<byte>(buffer),
+                        isText ? WebSocketMessageType.Text : WebSocketMessageType.Binary,
+                        true,
+                        cancellationToken);
+        }
 
         /// <inheritdoc />
-        public Task CloseAsync(CancellationToken cancellationToken = default) =>
-            UnderlyingWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
+        public Task CloseAsync(CancellationToken cancellationToken = default)
+        {
+            return UnderlyingWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
+        }
 
         /// <inheritdoc />
-        public Task CloseAsync(CloseStatusCode code, string? comment = null, CancellationToken cancellationToken = default) =>
-            UnderlyingWebSocket.CloseAsync(MapCloseStatus(code), comment ?? string.Empty, cancellationToken);
+        public Task CloseAsync(CloseStatusCode code, string? comment = null, CancellationToken cancellationToken = default)
+        {
+            return UnderlyingWebSocket.CloseAsync(MapCloseStatus(code), comment ?? string.Empty, cancellationToken);
+        }
 
         private void Dispose(bool disposing)
         {
             if (!disposing)
+            {
                 return;
+            }
 
             UnderlyingWebSocket.Dispose();
         }
 
-        private WebSocketCloseStatus MapCloseStatus(CloseStatusCode code) => code switch
+        private WebSocketCloseStatus MapCloseStatus(CloseStatusCode code)
         {
-            CloseStatusCode.Normal => WebSocketCloseStatus.NormalClosure,
-            CloseStatusCode.ProtocolError => WebSocketCloseStatus.ProtocolError,
-            CloseStatusCode.InvalidData => WebSocketCloseStatus.InvalidPayloadData,
-            CloseStatusCode.UnsupportedData => WebSocketCloseStatus.InvalidPayloadData,
-            CloseStatusCode.PolicyViolation => WebSocketCloseStatus.PolicyViolation,
-            CloseStatusCode.TooBig => WebSocketCloseStatus.MessageTooBig,
-            CloseStatusCode.MandatoryExtension => WebSocketCloseStatus.MandatoryExtension,
-            CloseStatusCode.ServerError => WebSocketCloseStatus.InternalServerError,
-            _ => throw new ArgumentOutOfRangeException(nameof(code), code, null)
-        };
+            return code switch
+            {
+                CloseStatusCode.Normal => WebSocketCloseStatus.NormalClosure,
+                CloseStatusCode.ProtocolError => WebSocketCloseStatus.ProtocolError,
+                CloseStatusCode.InvalidData => WebSocketCloseStatus.InvalidPayloadData,
+                CloseStatusCode.UnsupportedData => WebSocketCloseStatus.InvalidPayloadData,
+                CloseStatusCode.PolicyViolation => WebSocketCloseStatus.PolicyViolation,
+                CloseStatusCode.TooBig => WebSocketCloseStatus.MessageTooBig,
+                CloseStatusCode.MandatoryExtension => WebSocketCloseStatus.MandatoryExtension,
+                CloseStatusCode.ServerError => WebSocketCloseStatus.InternalServerError,
+                _ => throw new ArgumentOutOfRangeException(nameof(code), code, null)
+            };
+        }
     }
 }

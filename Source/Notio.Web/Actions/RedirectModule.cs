@@ -1,5 +1,6 @@
 ﻿using Notio.Web.Http;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -64,9 +65,11 @@ public class RedirectModule : WebModuleBase
     {
         RedirectUrl = Validate.Url(nameof(redirectUrl), redirectUrl);
 
-        var status = (int)statusCode;
-        if (status < 300 || status > 399)
+        int status = (int)statusCode;
+        if (status is < 300 or > 399)
+        {
             throw new ArgumentException("Status code does not imply a redirection.", nameof(statusCode));
+        }
 
         StatusCode = statusCode;
         _shouldRedirect = useCallback ? Validate.NotNull(nameof(shouldRedirect), shouldRedirect) : null;

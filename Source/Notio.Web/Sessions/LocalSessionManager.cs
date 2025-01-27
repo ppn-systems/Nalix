@@ -1,5 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web.Http;
+﻿using Notio.Web.Http;
 using Notio.Web.Sessions;
 using Notio.Web.Utilities;
 using System;
@@ -184,7 +183,7 @@ public partial class LocalSessionManager : ISessionManager
     {
         ConfigurationLocked = true;
 
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {
@@ -204,9 +203,9 @@ public partial class LocalSessionManager : ISessionManager
     /// <inheritdoc />
     public ISession Create(IHttpContext context)
     {
-        var id = context.Request.Cookies.FirstOrDefault(IsSessionCookie)?.Value.Trim();
+        string? id = context.Request.Cookies.FirstOrDefault(IsSessionCookie)?.Value.Trim();
 
-        SessionImpl session;
+        SessionImpl? session;
         lock (_sessions)
         {
             if (!string.IsNullOrEmpty(id) && _sessions.TryGetValue(id!, out session))
@@ -217,7 +216,7 @@ public partial class LocalSessionManager : ISessionManager
             {
                 id = UniqueIdGenerator.GetNext();
                 session = new SessionImpl(id, SessionDuration);
-                _sessions.TryAdd(id, session);
+                _ = _sessions.TryAdd(id, session);
             }
         }
 
@@ -231,8 +230,10 @@ public partial class LocalSessionManager : ISessionManager
     {
         lock (_sessions)
         {
-            if (_sessions.TryGetValue(id, out var session))
+            if (_sessions.TryGetValue(id, out SessionImpl? session))
+            {
                 session.EndUse(() => _sessions.TryRemove(id, out _));
+            }
         }
 
         context.Request.Cookies.Add(BuildSessionCookie(string.Empty));
@@ -243,12 +244,14 @@ public partial class LocalSessionManager : ISessionManager
     public void OnContextClose(IHttpContext context)
     {
         if (!context.Session.Exists)
+        {
             return;
+        }
 
-        var id = context.Session.Id;
+        string id = context.Session.Id;
         lock (_sessions)
         {
-            if (_sessions.TryGetValue(id, out var session))
+            if (_sessions.TryGetValue(id, out SessionImpl? session))
             {
                 session.EndUse(() => _sessions.TryRemove(id, out _));
             }
@@ -258,16 +261,20 @@ public partial class LocalSessionManager : ISessionManager
     private void EnsureConfigurationNotLocked()
     {
         if (ConfigurationLocked)
+        {
             throw new InvalidOperationException($"Cannot configure a {nameof(LocalSessionManager)} once it has been started.");
+        }
     }
 
     private bool IsSessionCookie(Cookie cookie)
-        => cookie.Name.Equals(CookieName, StringComparison.OrdinalIgnoreCase)
-         && !cookie.Expired;
+    {
+        return cookie.Name.Equals(CookieName, StringComparison.OrdinalIgnoreCase)
+             && !cookie.Expired;
+    }
 
     private Cookie BuildSessionCookie(string? id)
     {
-        var cookie = new Cookie(CookieName, id, CookiePath)
+        Cookie cookie = new(CookieName, id, CookiePath)
         {
             HttpOnly = CookieHttpOnly,
         };
@@ -288,17 +295,22 @@ public partial class LocalSessionManager : ISessionManager
             ids = [.. _sessions.Keys];
         }
 
-        foreach (var id in ids)
+        foreach (string id in ids)
         {
             lock (_sessions)
             {
-                if (!_sessions.TryGetValue(id, out var session))
+                if (!_sessions.TryGetValue(id, out SessionImpl? session))
+                {
                     return;
+                }
 
                 session.UnregisterIfNeeded(() => _sessions.TryRemove(id, out _));
             }
         }
     }
 
-    private string GetSessionId(IHttpContext context) => context.Request.Cookies.FirstOrDefault(IsSessionCookie)?.Value.Trim() ?? string.Empty;
+    private string GetSessionId(IHttpContext context)
+    {
+        return context.Request.Cookies.FirstOrDefault(IsSessionCookie)?.Value.Trim() ?? string.Empty;
+    }
 }

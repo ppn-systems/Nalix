@@ -19,14 +19,14 @@ namespace Notio.Web.WebSockets.Internal
             CancellationToken cancellationToken)
         {
             @this.Position = 0;
-            var targetStream = new MemoryStream();
+            MemoryStream targetStream = new();
 
             switch (method)
             {
                 case CompressionMethod.Deflate:
                     if (compress)
                     {
-                        using var compressor = new DeflateStream(targetStream, CompressionMode.Compress, true);
+                        using DeflateStream compressor = new(targetStream, CompressionMode.Compress, true);
                         await @this.CopyToAsync(compressor, 1024, cancellationToken).ConfigureAwait(false);
                         await @this.CopyToAsync(compressor).ConfigureAwait(false);
 
@@ -36,7 +36,7 @@ namespace Notio.Web.WebSockets.Internal
                     }
                     else
                     {
-                        using var compressor = new DeflateStream(@this, CompressionMode.Decompress);
+                        using DeflateStream compressor = new(@this, CompressionMode.Decompress);
                         await compressor.CopyToAsync(targetStream).ConfigureAwait(false);
                     }
 
@@ -45,12 +45,12 @@ namespace Notio.Web.WebSockets.Internal
                 case CompressionMethod.Gzip:
                     if (compress)
                     {
-                        using var compressor = new GZipStream(targetStream, CompressionMode.Compress, true);
+                        using GZipStream compressor = new(targetStream, CompressionMode.Compress, true);
                         await @this.CopyToAsync(compressor).ConfigureAwait(false);
                     }
                     else
                     {
-                        using var compressor = new GZipStream(@this, CompressionMode.Decompress);
+                        using GZipStream compressor = new(@this, CompressionMode.Decompress);
                         await compressor.CopyToAsync(targetStream).ConfigureAwait(false);
                     }
 

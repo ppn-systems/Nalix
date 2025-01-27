@@ -38,7 +38,9 @@ namespace Notio.Web.Files
             try
             {
                 if (!IsImmutable)
+                {
                     _watcher = new FileSystemWatcher(FileSystemPath);
+                }
             }
             catch (PlatformNotSupportedException)
             {
@@ -87,11 +89,10 @@ namespace Notio.Web.Files
         /// <inheritdoc />
         public MappedResourceInfo? MapUrlPath(string urlPath, IMimeTypeProvider mimeTypeProvider)
         {
-            urlPath = urlPath.Substring(1); // Drop the initial slash
+            urlPath = urlPath[1..]; // Drop the initial slash
             string localPath;
 
             // Disable CA1031 as there's little we can do if IsPathRooted or GetFullPath fails.
-#pragma warning disable CA1031
             try
             {
                 // Unescape the url before continue
@@ -108,7 +109,9 @@ namespace Notio.Web.Files
                 // can never start with a slash; however, loading one more class from Swan
                 // just to check the OS type would probably outweigh calling IsPathRooted.
                 if (Path.IsPathRooted(urlPath))
+                {
                     return null;
+                }
 
                 // Convert the relative URL path to a relative filesystem path
                 // (practically a no-op under Unix-like operating systems)
@@ -127,29 +130,31 @@ namespace Notio.Web.Files
                 // bail out in this case too, as the path would not exist on disk anyway.
                 return null;
             }
-#pragma warning restore CA1031
 
             // As a final precaution, check that the resulting local path
             // is inside the folder intended to be served.
             if (!localPath.StartsWith(FileSystemPath, StringComparison.Ordinal))
+            {
                 return null;
+            }
 
-            if (File.Exists(localPath))
-                return GetMappedFileInfo(mimeTypeProvider, localPath);
-
-            if (Directory.Exists(localPath))
-                return GetMappedDirectoryInfo(localPath);
-
-            return null;
+            return File.Exists(localPath)
+                ? GetMappedFileInfo(mimeTypeProvider, localPath)
+                : Directory.Exists(localPath) ? GetMappedDirectoryInfo(localPath) : null;
         }
 
         /// <inheritdoc />
-        public Stream OpenFile(string path) => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        public Stream OpenFile(string path)
+        {
+            return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        }
 
         /// <inheritdoc />
         public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider)
-            => new DirectoryInfo(path).EnumerateFileSystemInfos()
-                .Select(fsi => GetMappedResourceInfo(mimeTypeProvider, fsi));
+        {
+            return new DirectoryInfo(path).EnumerateFileSystemInfos()
+                        .Select(fsi => GetMappedResourceInfo(mimeTypeProvider, fsi));
+        }
 
         /// <summary>
         /// Releases unmanaged and - optionally - managed resources.
@@ -168,36 +173,52 @@ namespace Notio.Web.Files
                 _watcher.Renamed -= Watcher_Renamed;
 
                 if (disposing)
+                {
                     _watcher.Dispose();
+                }
             }
         }
 
         private static MappedResourceInfo GetMappedFileInfo(IMimeTypeProvider mimeTypeProvider, string localPath)
-            => GetMappedFileInfo(mimeTypeProvider, new FileInfo(localPath));
+        {
+            return GetMappedFileInfo(mimeTypeProvider, new FileInfo(localPath));
+        }
 
         private static MappedResourceInfo GetMappedFileInfo(IMimeTypeProvider mimeTypeProvider, FileInfo info)
-            => MappedResourceInfo.ForFile(
-                info.FullName,
-                info.Name,
-                info.LastWriteTimeUtc,
-                info.Length,
-                mimeTypeProvider.GetMimeType(info.Extension));
+        {
+            return MappedResourceInfo.ForFile(
+                        info.FullName,
+                        info.Name,
+                        info.LastWriteTimeUtc,
+                        info.Length,
+                        mimeTypeProvider.GetMimeType(info.Extension));
+        }
 
         private static MappedResourceInfo GetMappedDirectoryInfo(string localPath)
-            => GetMappedDirectoryInfo(new DirectoryInfo(localPath));
+        {
+            return GetMappedDirectoryInfo(new DirectoryInfo(localPath));
+        }
 
         private static MappedResourceInfo GetMappedDirectoryInfo(DirectoryInfo info)
-            => MappedResourceInfo.ForDirectory(info.FullName, info.Name, info.LastWriteTimeUtc);
+        {
+            return MappedResourceInfo.ForDirectory(info.FullName, info.Name, info.LastWriteTimeUtc);
+        }
 
         private static MappedResourceInfo GetMappedResourceInfo(IMimeTypeProvider mimeTypeProvider, FileSystemInfo info)
-            => info is DirectoryInfo directoryInfo
-                ? GetMappedDirectoryInfo(directoryInfo)
-                : GetMappedFileInfo(mimeTypeProvider, (FileInfo)info);
+        {
+            return info is DirectoryInfo directoryInfo
+                        ? GetMappedDirectoryInfo(directoryInfo)
+                        : GetMappedFileInfo(mimeTypeProvider, (FileInfo)info);
+        }
 
         private void Watcher_ChangedOrDeleted(object sender, FileSystemEventArgs e)
-            => ResourceChanged?.Invoke(e.FullPath);
+        {
+            ResourceChanged?.Invoke(e.FullPath);
+        }
 
         private void Watcher_Renamed(object sender, RenamedEventArgs e)
-            => ResourceChanged?.Invoke(e.OldFullPath);
+        {
+            ResourceChanged?.Invoke(e.OldFullPath);
+        }
     }
 }

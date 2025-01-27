@@ -8,8 +8,8 @@ namespace Notio.Files
     {
         internal class Section
         {
-            private readonly object _syncRoot = new object();
-            private readonly Dictionary<string, FileCacheItem> _items = new Dictionary<string, FileCacheItem>(StringComparer.Ordinal);
+            private readonly object _syncRoot = new();
+            private readonly Dictionary<string, FileCacheItem> _items = new(StringComparer.Ordinal);
             private long _totalSize;
             private string? _oldestKey;
             private string? _newestKey;
@@ -38,12 +38,15 @@ namespace Notio.Files
                 }
             }
 
-            public bool TryGet(string path, out FileCacheItem item)
+            public bool TryGet(string path, out FileCacheItem? item)
             {
                 lock (_syncRoot)
                 {
                     if (!_items.TryGetValue(path, out item))
+                    {
+                        item = null;
                         return false;
+                    }
 
                     RefreshItemCore(path, item);
                     return true;
@@ -100,7 +103,9 @@ namespace Notio.Files
                 item.LastUsedAt = TimeBase.ElapsedTicks;
 
                 if (_newestKey != null)
+                {
                     _items[_newestKey].NextKey = path;
+                }
 
                 _newestKey = path;
 
@@ -111,25 +116,35 @@ namespace Notio.Files
             // Removes an item.
             private void RemoveItemCore(string path)
             {
-                if (!_items.TryGetValue(path, out var item))
+                if (!_items.TryGetValue(path, out FileCacheItem? item))
+                {
                     return;
+                }
 
                 if (_oldestKey == path)
+                {
                     _oldestKey = item.NextKey;
+                }
 
                 if (_newestKey == path)
+                {
                     _newestKey = item.PreviousKey;
+                }
 
                 if (item.PreviousKey != null)
+                {
                     _items[item.PreviousKey].NextKey = item.NextKey;
+                }
 
                 if (item.NextKey != null)
+                {
                     _items[item.NextKey].PreviousKey = item.PreviousKey;
+                }
 
                 item.PreviousKey = null;
                 item.NextKey = null;
 
-                _items.Remove(path);
+                _ = _items.Remove(path);
                 _totalSize -= item.SizeInCache;
             }
 
@@ -137,22 +152,28 @@ namespace Notio.Files
             // returns size of removed item.
             private long RemoveLeastRecentItemCore()
             {
-                var path = _oldestKey;
+                string? path = _oldestKey;
                 if (path == null)
+                {
                     return 0;
+                }
 
-                var item = _items[path];
+                FileCacheItem item = _items[path];
 
                 if ((_oldestKey = item.NextKey) != null)
+                {
                     _items[_oldestKey].PreviousKey = null;
+                }
 
                 if (_newestKey == path)
+                {
                     _newestKey = null;
+                }
 
                 item.PreviousKey = null;
                 item.NextKey = null;
 
-                _items.Remove(path);
+                _ = _items.Remove(path);
                 _totalSize -= item.SizeInCache;
                 return item.SizeInCache;
             }
@@ -163,16 +184,24 @@ namespace Notio.Files
                 item.LastUsedAt = TimeBase.ElapsedTicks;
 
                 if (_newestKey == path)
+                {
                     return;
+                }
 
                 if (_oldestKey == path)
+                {
                     _oldestKey = item.NextKey;
+                }
 
                 if (item.PreviousKey != null)
+                {
                     _items[item.PreviousKey].NextKey = item.NextKey;
+                }
 
                 if (item.NextKey != null)
+                {
                     _items[item.NextKey].PreviousKey = item.PreviousKey;
+                }
 
                 item.PreviousKey = _newestKey;
                 item.NextKey = null;

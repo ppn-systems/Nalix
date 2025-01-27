@@ -17,6 +17,8 @@ namespace Notio.Web.WebApi
     {
         /// <inheritdoc />
         public Task<NameValueCollection?> GetRequestDataAsync(WebApiController controller, string parameterName)
-            => Task.FromResult(controller.HttpContext.GetRequestQueryData());
+        {
+            return Task.FromResult<NameValueCollection?>(controller.HttpContext.GetRequestQueryData());
+        }
     }
 }

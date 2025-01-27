@@ -21,19 +21,20 @@ public static class NameValueCollectionExtensions
     /// with their values.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static Dictionary<string, object?> ToDictionary(this NameValueCollection @this)
-        => @this.Keys.Cast<string>().ToDictionary(key => key, key =>
-        {
-            var values = @this.GetValues(key);
-            if (values == null)
-                return null;
-
-            return values.Length switch
+    {
+        return @this.Keys.Cast<string>().ToDictionary(key => key, key =>
             {
-                0 => null,
-                1 => values[0],
-                _ => (object)values
-            };
-        });
+                string[]? values = @this.GetValues(key);
+                return values == null
+                    ? null
+                    : values.Length switch
+                    {
+                        0 => null,
+                        1 => values[0],
+                        _ => (object)values
+                    };
+            });
+    }
 
     /// <summary>
     /// Converts a <see cref="NameValueCollection"/> to a dictionary of strings.
@@ -43,7 +44,9 @@ public static class NameValueCollectionExtensions
     /// with their values (or comma-separated lists in case of multiple values).</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static Dictionary<string, string> ToStringDictionary(this NameValueCollection @this)
-        => @this.Keys.Cast<string>().ToDictionary(key => key, key => @this.Get(key) ?? string.Empty);
+    {
+        return @this.Keys.Cast<string>().ToDictionary(key => key, key => @this.Get(key) ?? string.Empty);
+    }
 
     /// <summary>
     /// Converts a <see cref="NameValueCollection"/> to a dictionary of arrays of strings.
@@ -53,7 +56,9 @@ public static class NameValueCollectionExtensions
     /// with arrays of their values.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static Dictionary<string, string[]> ToArrayDictionary(this NameValueCollection @this)
-        => @this.Keys.Cast<string>().ToDictionary(key => key, key => @this.GetValues(key) ?? []);
+    {
+        return @this.Keys.Cast<string>().ToDictionary(key => key, key => @this.GetValues(key) ?? []);
+    }
 
     /// <summary>
     /// Determines whether a <see cref="NameValueCollection"/> contains one or more values
@@ -66,7 +71,9 @@ public static class NameValueCollectionExtensions
     /// </returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static bool ContainsKey(this NameValueCollection @this, string key)
-        => @this.Keys.Cast<string>().Contains(key);
+    {
+        return @this.Keys.Cast<string>().Contains(key);
+    }
 
     /// <summary>
     /// Determines whether a <see cref="NameValueCollection"/> contains one or more values
@@ -84,7 +91,9 @@ public static class NameValueCollectionExtensions
     /// <remarks>White space is trimmed from the start and end of each value before comparison.</remarks>
     /// <seealso cref="Contains(NameValueCollection,string,string,StringComparison)"/>
     public static bool Contains(this NameValueCollection @this, string name, string value)
-        => @this.Contains(name, value, StringComparison.OrdinalIgnoreCase);
+    {
+        return @this.Contains(name, value, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Determines whether a <see cref="NameValueCollection"/> contains one or more values

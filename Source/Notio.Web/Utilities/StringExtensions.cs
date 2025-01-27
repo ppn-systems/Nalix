@@ -17,7 +17,10 @@ public static class StringExtensions
     /// <returns>An array whose elements contain the substrings in <paramref name="this"/> that are delimited
     /// by one or more characters in <paramref name="delimiters"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
-    public static string[] SplitByAny(this string @this, params char[] delimiters) => @this.Split(delimiters);
+    public static string[] SplitByAny(this string @this, params char[] delimiters)
+    {
+        return @this.Split(delimiters);
+    }
 
     /// <summary>Splits a string into substrings, using the comma (<c>,</c>) character as a delimiter.
     /// The returned array includes empty array elements if two or more commas are found in <paramref name="this"/>.</summary>
@@ -25,7 +28,10 @@ public static class StringExtensions
     /// <returns>An array whose elements contain the substrings in <paramref name="this"/> that are delimited by commas.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <seealso cref="SplitByComma(string,StringSplitOptions)"/>
-    public static string[] SplitByComma(this string @this) => @this.Split(CommaSplitChars);
+    public static string[] SplitByComma(this string @this)
+    {
+        return @this.Split(CommaSplitChars);
+    }
 
     /// <summary>Splits a string into substrings, using the comma (<c>,</c>) character as a delimiter.
     /// You can specify whether the substrings include empty array elements.</summary>
@@ -39,8 +45,10 @@ public static class StringExtensions
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="options">options</paramref> is not one of the <see cref="StringSplitOptions"/> values.</exception>
     /// <seealso cref="SplitByComma(string)"/>
-    public static string[] SplitByComma(this string @this, StringSplitOptions options) =>
-        @this.Split(CommaSplitChars, options);
+    public static string[] SplitByComma(this string @this, StringSplitOptions options)
+    {
+        return @this.Split(CommaSplitChars, options);
+    }
 
     /// <summary>
     /// Ensures that a <see cref="string"/> is never empty,
@@ -50,5 +58,7 @@ public static class StringExtensions
     /// <returns>If <paramref name="this"/> is the empty string, <see langword="null"/>;
     /// otherwise, <paramref name="this."/></returns>
     public static string? NullIfEmpty(this string @this)
-        => string.IsNullOrEmpty(@this) ? null : @this;
+    {
+        return string.IsNullOrEmpty(@this) ? null : @this;
+    }
 }

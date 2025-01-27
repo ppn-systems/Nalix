@@ -1,6 +1,6 @@
-﻿using Notio.Utilities;
-using Notio.Web.Extensions;
+﻿using Notio.Web.Extensions;
 using Notio.Web.Http;
+using Notio.Web.Utilities;
 using System;
 using System.Net;
 
@@ -25,8 +25,10 @@ public static partial class HttpContextExtensions
     {
         location = Validate.Url(nameof(location), location, @this.Request.Url);
 
-        if (statusCode < 300 || statusCode > 399)
+        if (statusCode is < 300 or > 399)
+        {
             throw new ArgumentException("Redirect status code is not valid.", nameof(statusCode));
+        }
 
         @this.Response.SetEmptyResponse(statusCode);
         @this.Response.Headers[HttpHeaderNames.Location] = location;

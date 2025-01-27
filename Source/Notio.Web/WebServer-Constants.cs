@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Notio;
+namespace Notio.Web;
 
 public partial class WebServer
 {

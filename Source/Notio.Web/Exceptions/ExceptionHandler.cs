@@ -1,5 +1,6 @@
 ﻿using Notio.Web.Extensions;
 using Notio.Web.Http;
+using Notio.Web.WebModule;
 using Swan.Logging;
 using System;
 using System.Net;
@@ -51,10 +52,8 @@ namespace Notio.Web.Exceptions
         /// <param name="context">An <see cref="IHttpContext" /> interface representing the context of the request.</param>
         /// <param name="exception">The unhandled exception.</param>
         /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
-#pragma warning disable CA1801 // Unused parameter
 
         public static Task EmptyResponse(IHttpContext context, Exception exception)
-#pragma warning restore CA1801
         {
             context.Response.SetEmptyResponse((int)HttpStatusCode.InternalServerError);
             return Task.CompletedTask;
@@ -101,30 +100,34 @@ namespace Notio.Web.Exceptions
         /// <param name="exception">The unhandled exception.</param>
         /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
         public static Task HtmlResponse(IHttpContext context, Exception exception)
-            => context.SendStandardHtmlAsync(
-                (int)HttpStatusCode.InternalServerError,
-                text =>
-                {
-                    text.Write("<p>The server has encountered an error and was not able to process your request.</p>");
-                    text.Write("<p>Please contact the server administrator");
+        {
+            return context.SendStandardHtmlAsync(
+                        (int)HttpStatusCode.InternalServerError,
+                        text =>
+                        {
+                            text.Write("<p>The server has encountered an error and was not able to process your request.</p>");
+                            text.Write("<p>Please contact the server administrator");
 
-                    if (!string.IsNullOrEmpty(ContactInformation))
-                        text.Write(" ({0})", HttpUtility.HtmlEncode(ContactInformation));
+                            if (!string.IsNullOrEmpty(ContactInformation))
+                            {
+                                text.Write(" ({0})", HttpUtility.HtmlEncode(ContactInformation));
+                            }
 
-                    text.Write(", informing them of the time this error occurred and the action(s) you performed that resulted in this error.</p>");
-                    text.Write("<p>The following information may help them in finding out what happened and restoring full functionality.</p>");
-                    text.Write(
-                        "<p><strong>Exception type:</strong> {0}<p><strong>Message:</strong> {1}",
-                        HttpUtility.HtmlEncode(exception.GetType().FullName ?? "<unknown>"),
-                        HttpUtility.HtmlEncode(exception.Message));
+                            text.Write(", informing them of the time this error occurred and the action(s) you performed that resulted in this error.</p>");
+                            text.Write("<p>The following information may help them in finding out what happened and restoring full functionality.</p>");
+                            text.Write(
+                                "<p><strong>Exception type:</strong> {0}<p><strong>Message:</strong> {1}",
+                                HttpUtility.HtmlEncode(exception.GetType().FullName ?? "<unknown>"),
+                                HttpUtility.HtmlEncode(exception.Message));
 
-                    if (IncludeStackTraces)
-                    {
-                        text.Write(
-                            "</p><p><strong>Stack trace:</strong></p><br><pre>{0}</pre>",
-                            HttpUtility.HtmlEncode(exception.StackTrace));
-                    }
-                });
+                            if (IncludeStackTraces)
+                            {
+                                text.Write(
+                                    "</p><p><strong>Stack trace:</strong></p><br><pre>{0}</pre>",
+                                    HttpUtility.HtmlEncode(exception.StackTrace));
+                            }
+                        });
+        }
 
         internal static async Task Handle(string logSource, IHttpContext context, Exception exception, ExceptionHandlerCallback? handler, HttpExceptionHandlerCallback? httpHandler)
         {
@@ -154,7 +157,9 @@ namespace Notio.Web.Exceptions
             catch (Exception httpException) when (httpException is IHttpException httpException1)
             {
                 if (httpHandler == null)
+                {
                     throw;
+                }
 
                 await httpHandler(context, httpException1).ConfigureAwait(false);
             }

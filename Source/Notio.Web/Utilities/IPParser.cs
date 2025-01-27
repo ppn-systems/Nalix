@@ -21,10 +21,14 @@ public static class IPParser
     public static async Task<IEnumerable<IPAddress>> ParseAsync(string address)
     {
         if (address == null)
+        {
             return [];
+        }
 
-        if (IPAddress.TryParse(address, out var ip))
+        if (IPAddress.TryParse(address, out IPAddress? ip))
+        {
             return [ip];
+        }
 
         try
         {
@@ -39,10 +43,7 @@ public static class IPParser
             // Ignore
         }
 
-        if (IsCidrNotation(address))
-            return ParseCidrNotation(address);
-
-        return IsSimpleIPRange(address) ? TryParseSimpleIPRange(address) : [];
+        return IsCidrNotation(address) ? ParseCidrNotation(address) : IsSimpleIPRange(address) ? TryParseSimpleIPRange(address) : [];
     }
 
     /// <summary>
@@ -55,20 +56,21 @@ public static class IPParser
     public static bool IsCidrNotation(string range)
     {
         if (string.IsNullOrWhiteSpace(range))
+        {
             return false;
+        }
 
-        var parts = range.Split('/');
+        string[] parts = range.Split('/');
         if (parts.Length != 2)
+        {
             return false;
+        }
 
-        var prefix = parts[0];
-        var prefixLen = parts[1];
+        string prefix = parts[0];
+        string prefixLen = parts[1];
 
-        var prefixParts = prefix.Split('.');
-        if (prefixParts.Length != 4)
-            return false;
-
-        return byte.TryParse(prefixLen, out var len) && len <= 32;
+        string[] prefixParts = prefix.Split('.');
+        return prefixParts.Length == 4 && byte.TryParse(prefixLen, out byte len) && len <= 32;
     }
 
     /// <summary>
@@ -79,44 +81,52 @@ public static class IPParser
     public static IEnumerable<IPAddress> ParseCidrNotation(string range)
     {
         if (!IsCidrNotation(range))
+        {
             return [];
+        }
 
-        var parts = range.Split('/');
-        var prefix = parts[0];
+        string[] parts = range.Split('/');
+        string prefix = parts[0];
 
-        if (!byte.TryParse(parts[1], out var prefixLen))
+        if (!byte.TryParse(parts[1], out byte prefixLen))
+        {
             return [];
+        }
 
-        var prefixParts = prefix.Split('.');
+        string[] prefixParts = prefix.Split('.');
         if (prefixParts.Select(x => byte.TryParse(x, out _)).Any(x => !x))
+        {
             return [];
+        }
 
         uint ip = 0;
-        for (var i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             ip <<= 8;
             ip += uint.Parse(prefixParts[i], NumberFormatInfo.InvariantInfo);
         }
 
-        var shiftBits = (byte)(32 - prefixLen);
-        var ip1 = ip >> shiftBits << shiftBits;
+        byte shiftBits = (byte)(32 - prefixLen);
+        uint ip1 = ip >> shiftBits << shiftBits;
 
         if ((ip1 & ip) != ip1) // Check correct subnet address
+        {
             return [];
+        }
 
-        var ip2 = ip1 >> shiftBits;
-        for (var k = 0; k < shiftBits; k++)
+        uint ip2 = ip1 >> shiftBits;
+        for (int k = 0; k < shiftBits; k++)
         {
             ip2 = (ip2 << 1) + 1;
         }
 
-        var beginIP = new byte[4];
-        var endIP = new byte[4];
+        byte[] beginIP = new byte[4];
+        byte[] endIP = new byte[4];
 
-        for (var i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
-            beginIP[i] = (byte)(ip1 >> (3 - i) * 8 & 255);
-            endIP[i] = (byte)(ip2 >> (3 - i) * 8 & 255);
+            beginIP[i] = (byte)((ip1 >> ((3 - i) * 8)) & 255);
+            endIP[i] = (byte)((ip2 >> ((3 - i) * 8)) & 255);
         }
 
         return GetAllIPAddresses(beginIP, endIP);
@@ -132,21 +142,29 @@ public static class IPParser
     public static bool IsSimpleIPRange(string range)
     {
         if (string.IsNullOrWhiteSpace(range))
-            return false;
-
-        var parts = range.Split('.');
-        if (parts.Length != 4)
-            return false;
-
-        foreach (var part in parts)
         {
-            var rangeParts = part.Split('-');
-            if (rangeParts.Length < 1 || rangeParts.Length > 2)
+            return false;
+        }
+
+        string[] parts = range.Split('.');
+        if (parts.Length != 4)
+        {
+            return false;
+        }
+
+        foreach (string part in parts)
+        {
+            string[] rangeParts = part.Split('-');
+            if (rangeParts.Length is < 1 or > 2)
+            {
                 return false;
+            }
 
             if (!byte.TryParse(rangeParts[0], out _) ||
-                rangeParts.Length > 1 && !byte.TryParse(rangeParts[1], out _))
+                (rangeParts.Length > 1 && !byte.TryParse(rangeParts[1], out _)))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -160,15 +178,17 @@ public static class IPParser
     public static IEnumerable<IPAddress> TryParseSimpleIPRange(string range)
     {
         if (!IsSimpleIPRange(range))
-            return [];
-
-        var beginIP = new byte[4];
-        var endIP = new byte[4];
-
-        var parts = range.Split('.');
-        for (var i = 0; i < 4; i++)
         {
-            var rangeParts = parts[i].Split('-');
+            return [];
+        }
+
+        byte[] beginIP = new byte[4];
+        byte[] endIP = new byte[4];
+
+        string[] parts = range.Split('.');
+        for (int i = 0; i < 4; i++)
+        {
+            string[] rangeParts = parts[i].Split('-');
             beginIP[i] = byte.Parse(rangeParts[0], NumberFormatInfo.InvariantInfo);
             endIP[i] = rangeParts.Length == 1 ? beginIP[i] : byte.Parse(rangeParts[1], NumberFormatInfo.InvariantInfo);
         }
@@ -178,17 +198,21 @@ public static class IPParser
 
     private static List<IPAddress> GetAllIPAddresses(byte[] beginIP, byte[] endIP)
     {
-        for (var i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             if (endIP[i] < beginIP[i])
+            {
                 return [];
+            }
         }
 
-        var capacity = 1;
-        for (var i = 0; i < 4; i++)
+        int capacity = 1;
+        for (int i = 0; i < 4; i++)
+        {
             capacity *= endIP[i] - beginIP[i] + 1;
+        }
 
-        var ips = new List<IPAddress>(capacity);
+        List<IPAddress> ips = new(capacity);
         for (int i0 = beginIP[0]; i0 <= endIP[0]; i0++)
         {
             for (int i1 = beginIP[1]; i1 <= endIP[1]; i1++)

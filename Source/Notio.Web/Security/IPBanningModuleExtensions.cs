@@ -31,8 +31,10 @@
         ///     <paramref name="this"/> with a fail regex criterion configured.
         /// </returns>
         public static TModule WithRegexRules<TModule>(this TModule @this, params string[] value)
-            where TModule : IPBanningModule =>
-        @this.WithRegexRules(IPBanningRegexCriterion.DefaultMaxMatchCount, IPBanningRegexCriterion.DefaultSecondsMatchingPeriod, value);
+            where TModule : IPBanningModule
+        {
+            return @this.WithRegexRules(IPBanningRegexCriterion.DefaultMaxMatchCount, IPBanningRegexCriterion.DefaultSecondsMatchingPeriod, value);
+        }
 
         /// <summary>
         /// Add a collection of Regex to match the log messages against as a criterion for banning IP addresses.

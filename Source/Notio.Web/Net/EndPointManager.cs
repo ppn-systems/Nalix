@@ -25,11 +25,11 @@ public static class EndPointManager
 
     internal static void AddListener(HttpListener listener)
     {
-        var added = new List<string>();
+        List<string> added = [];
 
         try
         {
-            foreach (var prefix in listener.Prefixes)
+            foreach (string prefix in listener.Prefixes)
             {
                 AddPrefix(prefix, listener);
                 added.Add(prefix);
@@ -39,7 +39,7 @@ public static class EndPointManager
         {
             ex.Log(nameof(AddListener));
 
-            foreach (var prefix in added)
+            foreach (string prefix in added)
             {
                 RemovePrefix(prefix, listener);
             }
@@ -50,7 +50,7 @@ public static class EndPointManager
 
     internal static void RemoveEndPoint(EndPointListener epl, IPEndPoint ep)
     {
-        if (IPToEndpoints.TryGetValue(ep.Address, out var p))
+        if (IPToEndpoints.TryGetValue(ep.Address, out ConcurrentDictionary<int, EndPointListener>? p))
         {
             if (p.TryRemove(ep.Port, out _) && p.IsEmpty)
             {
@@ -63,7 +63,7 @@ public static class EndPointManager
 
     internal static void RemoveListener(HttpListener listener)
     {
-        foreach (var prefix in listener.Prefixes)
+        foreach (string prefix in listener.Prefixes)
         {
             RemovePrefix(prefix, listener);
         }
@@ -71,7 +71,7 @@ public static class EndPointManager
 
     internal static void AddPrefix(string p, HttpListener listener)
     {
-        var lp = new ListenerPrefix(p);
+        ListenerPrefix lp = new(p);
 
         if (!lp.IsValid())
         {
@@ -79,33 +79,33 @@ public static class EndPointManager
         }
 
         // listens on all the interfaces if host name cannot be parsed by IPAddress.
-        var epl = GetEpListener(lp.Host, lp.Port, listener, lp.Secure);
+        EndPointListener epl = GetEpListener(lp.Host, lp.Port, listener, lp.Secure);
         epl.AddPrefix(lp, listener);
     }
 
     private static EndPointListener GetEpListener(string host, int port, HttpListener listener, bool secure = false)
     {
-        var address = ResolveAddress(host);
+        IPAddress address = ResolveAddress(host);
 
-        var p = IPToEndpoints.GetOrAdd(address, x => new ConcurrentDictionary<int, EndPointListener>());
+        ConcurrentDictionary<int, EndPointListener> p = IPToEndpoints.GetOrAdd(address, x => new ConcurrentDictionary<int, EndPointListener>());
         return p.GetOrAdd(port, x => new EndPointListener(listener, address, x, secure));
     }
 
     private static IPAddress ResolveAddress(string host)
     {
-        if (host == "*" || host == "+" || host == "0.0.0.0")
+        if (host is "*" or "+" or "0.0.0.0")
         {
             return UseIpv6 ? IPAddress.IPv6Any : IPAddress.Any;
         }
 
-        if (IPAddress.TryParse(host, out var address))
+        if (IPAddress.TryParse(host, out IPAddress? address))
         {
             return address;
         }
 
         try
         {
-            var hostEntry = new IPHostEntry
+            IPHostEntry hostEntry = new()
             {
                 HostName = host,
                 AddressList = Dns.GetHostAddresses(host),
@@ -123,14 +123,14 @@ public static class EndPointManager
     {
         try
         {
-            var lp = new ListenerPrefix(prefix);
+            ListenerPrefix lp = new(prefix);
 
             if (!lp.IsValid())
             {
                 return;
             }
 
-            var epl = GetEpListener(lp.Host, lp.Port, listener, lp.Secure);
+            EndPointListener epl = GetEpListener(lp.Host, lp.Port, listener, lp.Secure);
             epl.RemovePrefix(lp);
         }
         catch (SocketException)

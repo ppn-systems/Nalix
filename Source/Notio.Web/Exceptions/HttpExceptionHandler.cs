@@ -1,6 +1,8 @@
-﻿using Notio.Utilities;
+﻿using Notio.Web.Extensions;
 using Notio.Web.Http;
 using Notio.Web.Response;
+using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using Swan.Logging;
 using System;
 using System.Net;
@@ -8,7 +10,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Notio.Web;
+namespace Notio.Web.Exceptions;
 
 /// <summary>
 /// Provides standard handlers for HTTP exceptions at both module and server level.
@@ -35,11 +37,11 @@ public static class HttpExceptionHandler
     /// <param name="context">An <see cref="IHttpContext" /> interface representing the context of the request.</param>
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
-#pragma warning disable CA1801 // Unused parameter
 
     public static Task EmptyResponse(IHttpContext context, IHttpException httpException)
-#pragma warning restore CA1801
-        => Task.CompletedTask;
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// <para>Sends a HTTP exception's <see cref="IHttpException.Message">Message</see> property
@@ -50,7 +52,9 @@ public static class HttpExceptionHandler
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
     public static Task PlainTextResponse(IHttpContext context, IHttpException httpException)
-        => context.SendStringAsync(httpException.Message ?? string.Empty, MimeType.PlainText, WebServer.DefaultEncoding);
+    {
+        return context.SendStringAsync(httpException.Message ?? string.Empty, MimeType.PlainText, WebServer.DefaultEncoding);
+    }
 
     /// <summary>
     /// <para>Sends a response with a HTML payload
@@ -63,29 +67,33 @@ public static class HttpExceptionHandler
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
     public static Task HtmlResponse(IHttpContext context, IHttpException httpException)
-        => context.SendStandardHtmlAsync(
-            httpException.StatusCode,
-            text =>
-            {
-                text.Write(
-                    "<p><strong>Exception type:</strong> {0}<p><strong>Message:</strong> {1}",
-                    HttpUtility.HtmlEncode(httpException.GetType().FullName ?? "<unknown>"),
-                    HttpUtility.HtmlEncode(httpException.Message));
-
-                text.Write("<hr><p>If this error is completely unexpected to you, and you think you should not seeing this page, please contact the server administrator");
-
-                if (!string.IsNullOrEmpty(ExceptionHandler.ContactInformation))
-                    text.Write(" ({0})", HttpUtility.HtmlEncode(ExceptionHandler.ContactInformation));
-
-                text.Write(", informing them of the time this error occurred and the action(s) you performed that resulted in this error.</p>");
-
-                if (ExceptionHandler.IncludeStackTraces)
+    {
+        return context.SendStandardHtmlAsync(
+                httpException.StatusCode,
+                text =>
                 {
                     text.Write(
-                        "</p><p><strong>Stack trace:</strong></p><br><pre>{0}</pre>",
-                        HttpUtility.HtmlEncode(httpException.StackTrace));
-                }
-            });
+                        "<p><strong>Exception type:</strong> {0}<p><strong>Message:</strong> {1}",
+                        HttpUtility.HtmlEncode(httpException.GetType().FullName ?? "<unknown>"),
+                        HttpUtility.HtmlEncode(httpException.Message));
+
+                    text.Write("<hr><p>If this error is completely unexpected to you, and you think you should not seeing this page, please contact the server administrator");
+
+                    if (!string.IsNullOrEmpty(ExceptionHandler.ContactInformation))
+                    {
+                        text.Write(" ({0})", HttpUtility.HtmlEncode(ExceptionHandler.ContactInformation));
+                    }
+
+                    text.Write(", informing them of the time this error occurred and the action(s) you performed that resulted in this error.</p>");
+
+                    if (ExceptionHandler.IncludeStackTraces)
+                    {
+                        text.Write(
+                            "</p><p><strong>Stack trace:</strong></p><br><pre>{0}</pre>",
+                            HttpUtility.HtmlEncode(httpException.StackTrace));
+                    }
+                });
+    }
 
     /// <summary>
     /// <para>Gets a <see cref="HttpExceptionHandlerCallback" /> that will serialize a HTTP exception's
@@ -96,7 +104,7 @@ public static class HttpExceptionHandler
     /// <exception cref="ArgumentNullException"><paramref name="serializerCallback"/> is <see langword="null"/>.</exception>
     public static HttpExceptionHandlerCallback DataResponse(ResponseSerializerCallback serializerCallback)
     {
-        Validate.NotNull(nameof(serializerCallback), serializerCallback);
+        _ = Validate.NotNull(nameof(serializerCallback), serializerCallback);
 
         return (context, httpException) => serializerCallback(context, httpException.DataObject);
     }
@@ -112,7 +120,7 @@ public static class HttpExceptionHandler
     /// <exception cref="ArgumentNullException"><paramref name="serializerCallback"/> is <see langword="null"/>.</exception>
     public static HttpExceptionHandlerCallback FullDataResponse(ResponseSerializerCallback serializerCallback)
     {
-        Validate.NotNull(nameof(serializerCallback), serializerCallback);
+        _ = Validate.NotNull(nameof(serializerCallback), serializerCallback);
 
         return (context, httpException) => serializerCallback(context, new
         {
@@ -123,7 +131,7 @@ public static class HttpExceptionHandler
 
     internal static async Task Handle(string logSource, IHttpContext context, Exception exception, HttpExceptionHandlerCallback? handler)
     {
-        if (handler == null || !(exception is IHttpException httpException))
+        if (handler == null || exception is not IHttpException httpException)
         {
             ExceptionDispatchInfo.Capture(exception).Throw();
             return;

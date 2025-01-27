@@ -1,4 +1,4 @@
-﻿namespace Notio.Web
+﻿namespace Notio.Web.Enums
 {
     // NOTE TO CONTRIBUTORS:
     // =====================

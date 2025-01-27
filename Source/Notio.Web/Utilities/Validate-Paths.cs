@@ -1,5 +1,4 @@
-﻿using Notio.Web.Utilities;
-using System;
+﻿using System;
 using System.IO;
 using System.Security;
 
@@ -28,11 +27,8 @@ public static partial class Validate
     /// <seealso cref="UrlPath.Normalize"/>
     public static string UrlPath(string argumentName, string value, bool isBasePath)
     {
-        var exception = Web.Utilities.UrlPath.ValidateInternal(argumentName, value);
-        if (exception != null)
-            throw exception;
-
-        return Web.Utilities.UrlPath.Normalize(value, isBasePath);
+        Exception? exception = Web.Utilities.UrlPath.ValidateInternal(argumentName, value);
+        return exception != null ? throw exception : Web.Utilities.UrlPath.Normalize(value, isBasePath);
     }
 
     /// <summary>
@@ -56,16 +52,24 @@ public static partial class Validate
     public static string LocalPath(string argumentName, string value, bool getFullPath)
     {
         if (value == null)
+        {
             throw new ArgumentNullException(argumentName);
+        }
 
         if (value.Length == 0)
+        {
             throw new ArgumentException("Local path is empty.", argumentName);
+        }
 
         if (string.IsNullOrWhiteSpace(value))
+        {
             throw new ArgumentException("Local path contains only white space.", argumentName);
+        }
 
         if (value.IndexOfAny(InvalidLocalPathChars) >= 0)
+        {
             throw new ArgumentException("Local path contains one or more invalid characters.", argumentName);
+        }
 
         if (getFullPath)
         {
@@ -73,7 +77,7 @@ public static partial class Validate
             {
                 value = Path.GetFullPath(value);
             }
-            catch (Exception e) when (e is ArgumentException || e is SecurityException || e is NotSupportedException || e is PathTooLongException)
+            catch (Exception e) when (e is ArgumentException or SecurityException or NotSupportedException or PathTooLongException)
             {
                 throw new ArgumentException("Could not get the full local path.", argumentName, e);
             }
@@ -84,9 +88,9 @@ public static partial class Validate
 
     private static char[] GetInvalidLocalPathChars()
     {
-        var systemChars = Path.GetInvalidPathChars();
-        var p = systemChars.Length;
-        var result = new char[p + 2];
+        char[] systemChars = Path.GetInvalidPathChars();
+        int p = systemChars.Length;
+        char[] result = new char[p + 2];
         Array.Copy(systemChars, result, p);
         result[p++] = '*';
         result[p] = '?';

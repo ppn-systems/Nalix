@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 /// <summary>
 /// <para>Provides standard HTTP status descriptions.</para>
@@ -98,7 +98,10 @@ public static class HttpStatusDescription
     /// otherwise, <see langword="false"/>.</returns>
     /// <seealso cref="TryGet(int,out string)"/>
     /// <seealso cref="Get(HttpStatusCode)"/>
-    public static bool TryGet(HttpStatusCode code, out string description) => Dictionary.TryGetValue((int)code, out description!);
+    public static bool TryGet(HttpStatusCode code, out string description)
+    {
+        return Dictionary.TryGetValue((int)code, out description!);
+    }
 
     /// <summary>
     /// Attempts to get the standard status description for a HTTP status code
@@ -114,7 +117,10 @@ public static class HttpStatusDescription
     /// otherwise, <see langword="false"/>.</returns>
     /// <seealso cref="TryGet(HttpStatusCode,out string)"/>
     /// <seealso cref="Get(int)"/>
-    public static bool TryGet(int code, out string description) => Dictionary.TryGetValue(code, out description!);
+    public static bool TryGet(int code, out string description)
+    {
+        return Dictionary.TryGetValue(code, out description!);
+    }
 
     /// <summary>
     /// Returns the standard status description for a <see cref="HttpStatusCode"/>.
@@ -125,7 +131,7 @@ public static class HttpStatusDescription
     /// if it was found, or <see langword="null"/> if it was not found.</returns>
     public static string? Get(HttpStatusCode code)
     {
-        Dictionary.TryGetValue((int)code, out var description);
+        _ = Dictionary.TryGetValue((int)code, out string? description);
         return description;
     }
 
@@ -139,7 +145,7 @@ public static class HttpStatusDescription
     /// if it was found, or <see langword="null"/> if it was not found.</returns>
     public static string? Get(int code)
     {
-        Dictionary.TryGetValue(code, out var description);
+        _ = Dictionary.TryGetValue(code, out string? description);
         return description;
     }
 }

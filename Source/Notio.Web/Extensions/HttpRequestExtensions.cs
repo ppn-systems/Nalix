@@ -1,4 +1,6 @@
-﻿using Notio.Web.Exceptions;
+﻿using Notio.Web.Enums;
+using Notio.Web.Exceptions;
+using Notio.Web.Extensions;
 using Notio.Web.Http;
 using Notio.Web.Utilities;
 using System;
@@ -7,7 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 
-namespace Notio.Web.Exceptions;
+namespace Notio.Web.Extensions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IHttpRequest"/>.
@@ -29,7 +31,7 @@ public static class HttpRequestExtensions
     /// </returns>
     public static string SafeGetRemoteEndpointStr(this IHttpRequest @this)
     {
-        var endPoint = @this?.RemoteEndPoint;
+        IPEndPoint? endPoint = @this?.RemoteEndPoint;
         return endPoint == null
             ? "<null>"
             : $"{endPoint.Address?.ToString() ?? "<???>"}:{endPoint.Port.ToString(CultureInfo.InvariantCulture)}";
@@ -66,9 +68,9 @@ public static class HttpRequestExtensions
     out CompressionMethod compressionMethod,
     out Action<IHttpResponse> prepareResponse)
     {
-        var headerValues = @this.Headers.GetValues(HttpHeaderNames.AcceptEncoding) ?? [];
-        var acceptedEncodings = new QValueList(true, headerValues);
-        if (!acceptedEncodings.TryNegotiateContentEncoding(preferCompression, out compressionMethod, out var compressionMethodName))
+        string[] headerValues = @this.Headers.GetValues(HttpHeaderNames.AcceptEncoding) ?? [];
+        QValueList acceptedEncodings = new(true, headerValues);
+        if (!acceptedEncodings.TryNegotiateContentEncoding(preferCompression, out compressionMethod, out string? compressionMethodName))
         {
             prepareResponse = r => throw HttpException.NotAcceptable(HttpHeaderNames.AcceptEncoding);
             return false;
@@ -109,7 +111,7 @@ public static class HttpRequestExtensions
     /// </remarks>
     public static bool CheckIfNoneMatch(this IHttpRequest @this, string entityTag, out bool headerExists)
     {
-        var values = @this.Headers.GetValues(HttpHeaderNames.IfNoneMatch);
+        string[]? values = @this.Headers.GetValues(HttpHeaderNames.IfNoneMatch);
         if (values == null)
         {
             headerExists = false;
@@ -143,7 +145,7 @@ public static class HttpRequestExtensions
     /// <see langword="false"/> otherwise.</returns>
     public static bool CheckIfModifiedSince(this IHttpRequest @this, DateTime lastModifiedUtc, out bool headerExists)
     {
-        var value = @this.Headers.Get(HttpHeaderNames.IfModifiedSince);
+        string? value = @this.Headers.Get(HttpHeaderNames.IfModifiedSince);
         if (value == null)
         {
             headerExists = false;
@@ -151,7 +153,7 @@ public static class HttpRequestExtensions
         }
 
         headerExists = true;
-        return HttpDate.TryParse(value, out var dateTime)
+        return HttpDate.TryParse(value, out DateTimeOffset dateTime)
             && dateTime.UtcDateTime >= lastModifiedUtc;
     }
 
@@ -218,12 +220,16 @@ public static class HttpRequestExtensions
         // RFC7233, Section 3.1:
         // "A server MUST ignore a Range header field received with a request method other than GET."
         if (@this.HttpVerb != HttpVerbs.Get)
+        {
             return false;
+        }
 
         // No Range header, no partial content.
-        var rangeHeader = @this.Headers.Get(HttpHeaderNames.Range);
+        string? rangeHeader = @this.Headers.Get(HttpHeaderNames.Range);
         if (rangeHeader == null)
+        {
             return false;
+        }
 
         // Ignore the Range header if there is no If-Range header
         // or if the If-Range header specifies a non-matching validator.
@@ -235,31 +241,38 @@ public static class HttpRequestExtensions
         //                       including when the validator is an HTTP-date, differs from the
         //                       "earlier than or equal to" comparison used when evaluating an
         //                       If-Unmodified-Since conditional."
-        var ifRange = @this.Headers.Get(HttpHeaderNames.IfRange)?.Trim();
+        string? ifRange = @this.Headers.Get(HttpHeaderNames.IfRange)?.Trim();
         if (ifRange != null && ifRange != entityTag)
         {
-            if (!HttpDate.TryParse(ifRange, out var rangeDate))
+            if (!HttpDate.TryParse(ifRange, out DateTimeOffset rangeDate))
+            {
                 return false;
+            }
 
             if (rangeDate.UtcDateTime != lastModifiedUtc)
+            {
                 return false;
+            }
         }
 
         // Ignore the Range request header if it cannot be parsed successfully.
-        if (!RangeHeaderValue.TryParse(rangeHeader, out var range))
+        if (!RangeHeaderValue.TryParse(rangeHeader, out RangeHeaderValue? range))
+        {
             return false;
+        }
 
         // Notio does not support multipart/byteranges responses (yet),
         // thus ignore range requests that specify one range.
         if (range.Ranges.Count != 1)
+        {
             return false;
+        }
 
-        var firstRange = range.Ranges.First();
+        RangeItemHeaderValue firstRange = range.Ranges.First();
         start = firstRange.From ?? 0L;
         upperBound = firstRange.To ?? contentLength - 1;
-        if (start >= contentLength || upperBound < start || upperBound >= contentLength)
-            throw HttpException.RangeNotSatisfiable(contentLength);
-
-        return true;
+        return start >= contentLength || upperBound < start || upperBound >= contentLength
+            ? throw HttpException.RangeNotSatisfiable(contentLength)
+            : true;
     }
 }

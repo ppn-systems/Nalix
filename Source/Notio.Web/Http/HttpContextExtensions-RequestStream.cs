@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Http;
+using Notio.Web.Utilities;
 using Swan.Logging;
 using System.IO;
 using System.IO.Compression;
@@ -20,19 +21,25 @@ public static partial class HttpContextExtensions
     /// <seealso cref="WebServerOptionsBase.SupportCompressedRequests"/>
     public static Stream OpenRequestStream(this IHttpContext @this)
     {
-        var stream = @this.Request.InputStream;
+        Stream stream = @this.Request.InputStream;
 
-        var encoding = @this.Request.Headers[HttpHeaderNames.ContentEncoding]?.Trim();
+        string? encoding = @this.Request.Headers[HttpHeaderNames.ContentEncoding]?.Trim();
         switch (encoding)
         {
             case CompressionMethodNames.Gzip:
                 if (@this.SupportCompressedRequests)
+                {
                     return new GZipStream(stream, CompressionMode.Decompress);
+                }
+
                 break;
 
             case CompressionMethodNames.Deflate:
                 if (@this.SupportCompressedRequests)
+                {
                     return new DeflateStream(stream, CompressionMode.Decompress);
+                }
+
                 break;
 
             case CompressionMethodNames.None:
@@ -58,5 +65,7 @@ public static partial class HttpContextExtensions
     /// <seealso cref="OpenRequestStream"/>
     /// <seealso cref="WebServerOptionsBase.SupportCompressedRequests"/>
     public static TextReader OpenRequestText(this IHttpContext @this)
-        => new StreamReader(OpenRequestStream(@this), @this.Request.ContentEncoding);
+    {
+        return new StreamReader(OpenRequestStream(@this), @this.Request.ContentEncoding);
+    }
 }

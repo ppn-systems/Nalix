@@ -9,21 +9,25 @@ namespace Notio.Web.Internal
         public static byte[]? ConvertCompression(byte[] source, CompressionMethod sourceMethod, CompressionMethod targetMethod)
         {
             if (source == null)
+            {
                 return null;
+            }
 
             if (sourceMethod == targetMethod)
+            {
                 return source;
+            }
 
             switch (sourceMethod)
             {
                 case CompressionMethod.Deflate:
-                    using (var sourceStream = new MemoryStream(source, false))
+                    using (MemoryStream sourceStream = new(source, false))
                     {
-                        using var decompressionStream = new DeflateStream(sourceStream, CompressionMode.Decompress, true);
-                        using var targetStream = new MemoryStream();
+                        using DeflateStream decompressionStream = new(sourceStream, CompressionMode.Decompress, true);
+                        using MemoryStream targetStream = new();
                         if (targetMethod == CompressionMethod.Gzip)
                         {
-                            using var compressionStream = new GZipStream(targetStream, CompressionMode.Compress, true);
+                            using GZipStream compressionStream = new(targetStream, CompressionMode.Compress, true);
                             decompressionStream.CopyTo(compressionStream);
                         }
                         else
@@ -35,14 +39,14 @@ namespace Notio.Web.Internal
                     }
 
                 case CompressionMethod.Gzip:
-                    using (var sourceStream = new MemoryStream(source, false))
+                    using (MemoryStream sourceStream = new(source, false))
                     {
-                        using var decompressionStream = new GZipStream(sourceStream, CompressionMode.Decompress, true);
-                        using var targetStream = new MemoryStream();
+                        using GZipStream decompressionStream = new(sourceStream, CompressionMode.Decompress, true);
+                        using MemoryStream targetStream = new();
                         if (targetMethod == CompressionMethod.Deflate)
                         {
-                            using var compressionStream = new DeflateStream(targetStream, CompressionMode.Compress, true);
-                            decompressionStream.CopyToAsync(compressionStream);
+                            using DeflateStream compressionStream = new(targetStream, CompressionMode.Compress, true);
+                            _ = decompressionStream.CopyToAsync(compressionStream);
                         }
                         else
                         {
@@ -53,20 +57,24 @@ namespace Notio.Web.Internal
                     }
 
                 default:
-                    using (var sourceStream = new MemoryStream(source, false))
+                    using (MemoryStream sourceStream = new(source, false))
                     {
-                        using var targetStream = new MemoryStream();
+                        using MemoryStream targetStream = new();
                         switch (targetMethod)
                         {
                             case CompressionMethod.Deflate:
-                                using (var compressionStream = new DeflateStream(targetStream, CompressionMode.Compress, true))
+                                using (DeflateStream compressionStream = new(targetStream, CompressionMode.Compress, true))
+                                {
                                     sourceStream.CopyTo(compressionStream);
+                                }
 
                                 break;
 
                             case CompressionMethod.Gzip:
-                                using (var compressionStream = new GZipStream(targetStream, CompressionMode.Compress, true))
+                                using (GZipStream compressionStream = new(targetStream, CompressionMode.Compress, true))
+                                {
                                     sourceStream.CopyTo(compressionStream);
+                                }
 
                                 break;
 

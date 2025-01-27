@@ -22,7 +22,7 @@ internal class WebSocketHandshakeResponse
         Headers[HttpHeaderNames.Upgrade] = "websocket";
         Headers[HttpHeaderNames.Connection] = "Upgrade";
 
-        foreach (var cookie in context.Request.Cookies)
+        foreach (Cookie cookie in context.Request.Cookies)
         {
             Headers.Add("Set-Cookie", cookie.ToString());
         }
@@ -38,10 +38,10 @@ internal class WebSocketHandshakeResponse
 
     public override string ToString()
     {
-        var output = new StringBuilder(64)
+        StringBuilder output = new StringBuilder(64)
             .AppendFormat(CultureInfo.InvariantCulture, "HTTP/{0} {1} {2}\r\n", ProtocolVersion, StatusCode, Reason);
 
-        foreach (var key in Headers.AllKeys)
+        foreach (string? key in Headers.AllKeys)
         {
             _ = output.AppendFormat(CultureInfo.InvariantCulture, "{0}: {1}\r\n", key, Headers[key]);
         }

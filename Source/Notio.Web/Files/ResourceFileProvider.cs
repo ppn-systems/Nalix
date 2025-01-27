@@ -58,14 +58,16 @@ namespace Notio.Web.Files
         /// <inheritdoc />
         public MappedResourceInfo? MapUrlPath(string urlPath, IMimeTypeProvider mimeTypeProvider)
         {
-            var resourceName = PathPrefix + urlPath.Replace('/', '.');
+            string resourceName = PathPrefix + urlPath.Replace('/', '.');
 
             long size;
             try
             {
-                using var stream = Assembly.GetManifestResourceStream(resourceName);
+                using Stream? stream = Assembly.GetManifestResourceStream(resourceName);
                 if (stream == null || stream == Stream.Null)
+                {
                     return null;
+                }
 
                 size = stream.Length;
             }
@@ -74,8 +76,8 @@ namespace Notio.Web.Files
                 return null;
             }
 
-            var lastSlashPos = urlPath.LastIndexOf('/');
-            var name = urlPath.Substring(lastSlashPos + 1);
+            int lastSlashPos = urlPath.LastIndexOf('/');
+            string name = urlPath[(lastSlashPos + 1)..];
 
             return MappedResourceInfo.ForFile(
                 resourceName,
@@ -86,10 +88,15 @@ namespace Notio.Web.Files
         }
 
         /// <inheritdoc />
-        public Stream OpenFile(string path) => Assembly.GetManifestResourceStream(path);
+        public Stream OpenFile(string path)
+        {
+            return Assembly.GetManifestResourceStream(path) ?? Stream.Null;
+        }
 
         /// <inheritdoc />
         public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider)
-            => Enumerable.Empty<MappedResourceInfo>();
+        {
+            return [];
+        }
     }
 }

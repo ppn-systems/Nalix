@@ -17,7 +17,7 @@ namespace Notio.Web.Security
         /// </summary>
         public const int DefaultMaxRequestsPerSecond = 50;
 
-        private static readonly ConcurrentDictionary<IPAddress, ConcurrentBag<long>> Requests = new ConcurrentDictionary<IPAddress, ConcurrentBag<long>>();
+        private static readonly ConcurrentDictionary<IPAddress, ConcurrentBag<long>> Requests = new();
 
         private readonly int _maxRequestsPerSecond;
 
@@ -39,12 +39,12 @@ namespace Notio.Web.Security
         /// <inheritdoc />
         public Task<bool> ValidateIPAddress(IPAddress address)
         {
-            Requests.GetOrAdd(address, new ConcurrentBag<long>()).Add(DateTime.Now.Ticks);
+            Requests.GetOrAdd(address, []).Add(DateTime.Now.Ticks);
 
-            var lastSecond = DateTime.Now.AddSeconds(-1).Ticks;
-            var lastMinute = DateTime.Now.AddMinutes(-1).Ticks;
+            long lastSecond = DateTime.Now.AddSeconds(-1).Ticks;
+            long lastMinute = DateTime.Now.AddMinutes(-1).Ticks;
 
-            var shouldBan = Requests.TryGetValue(address, out var attempts) &&
+            bool shouldBan = Requests.TryGetValue(address, out ConcurrentBag<long>? attempts) &&
                 (attempts.Count(x => x >= lastSecond) >= _maxRequestsPerSecond ||
                  attempts.Count(x => x >= lastMinute) / 60 >= _maxRequestsPerSecond);
 
@@ -52,23 +52,32 @@ namespace Notio.Web.Security
         }
 
         /// <inheritdoc />
-        public void ClearIPAddress(IPAddress address) =>
-            Requests.TryRemove(address, out _);
+        public void ClearIPAddress(IPAddress address)
+        {
+            _ = Requests.TryRemove(address, out _);
+        }
 
         /// <inheritdoc />
         public void PurgeData()
         {
-            var minTime = DateTime.Now.AddMinutes(-1).Ticks;
+            long minTime = DateTime.Now.AddMinutes(-1).Ticks;
 
-            foreach (var k in Requests.Keys)
+            foreach (IPAddress k in Requests.Keys)
             {
-                if (!Requests.TryGetValue(k, out var requests)) continue;
+                if (!Requests.TryGetValue(k, out ConcurrentBag<long>? requests))
+                {
+                    continue;
+                }
 
-                var recentRequests = new ConcurrentBag<long>(requests.Where(x => x >= minTime));
+                ConcurrentBag<long> recentRequests = new(requests.Where(x => x >= minTime));
                 if (!recentRequests.Any())
-                    Requests.TryRemove(k, out _);
+                {
+                    _ = Requests.TryRemove(k, out _);
+                }
                 else
-                    Requests.AddOrUpdate(k, recentRequests, (x, y) => recentRequests);
+                {
+                    _ = Requests.AddOrUpdate(k, recentRequests, (x, y) => recentRequests);
+                }
             }
         }
 
@@ -81,7 +90,11 @@ namespace Notio.Web.Security
 
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             if (disposing)
             {
                 Requests.Clear();

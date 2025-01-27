@@ -17,7 +17,9 @@ public static partial class Validate
     /// <exception cref="ArgumentNullException"><paramref name="value"/> is <see langword="null"/>.</exception>
     public static T NotNull<T>(string argumentName, T? value)
         where T : class
-        => value ?? throw new ArgumentNullException(argumentName);
+    {
+        return value ?? throw new ArgumentNullException(argumentName);
+    }
 
     /// <summary>
     /// Ensures that a <see langword="string"/> argument is neither <see langword="null"/> nor the empty string.
@@ -29,13 +31,9 @@ public static partial class Validate
     /// <exception cref="ArgumentException"><paramref name="value"/> is the empty string.</exception>
     public static string NotNullOrEmpty(string argumentName, string? value)
     {
-        if (value == null)
-            throw new ArgumentNullException(argumentName);
-
-        if (value.Length == 0)
-            throw new ArgumentException("String is empty.", argumentName);
-
-        return value;
+        return value == null
+            ? throw new ArgumentNullException(argumentName)
+            : value.Length == 0 ? throw new ArgumentException("String is empty.", argumentName) : value;
     }
 
     /// <summary>
@@ -70,10 +68,9 @@ public static partial class Validate
             throw new ArgumentException("URL is not valid.", argumentName, e);
         }
 
-        if (enforceHttp && uri.IsAbsoluteUri && uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-            throw new ArgumentException("URL scheme is neither HTTP nor HTTPS.", argumentName);
-
-        return uri.ToString();
+        return enforceHttp && uri.IsAbsoluteUri && uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps
+            ? throw new ArgumentException("URL scheme is neither HTTP nor HTTPS.", argumentName)
+            : uri.ToString();
     }
 
     /// <summary>
@@ -104,7 +101,9 @@ public static partial class Validate
     public static string Url(string argumentName, string value, Uri baseUri, bool enforceHttp = false)
     {
         if (!NotNull(nameof(baseUri), baseUri).IsAbsoluteUri)
+        {
             throw new ArgumentException("Base URI is not an absolute URI.", nameof(baseUri));
+        }
 
         Uri uri;
         try
@@ -116,9 +115,8 @@ public static partial class Validate
             throw new ArgumentException("URL is not valid.", argumentName, e);
         }
 
-        if (enforceHttp && uri.IsAbsoluteUri && uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-            throw new ArgumentException("URL scheme is neither HTTP nor HTTPS.", argumentName);
-
-        return uri.ToString();
+        return enforceHttp && uri.IsAbsoluteUri && uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps
+            ? throw new ArgumentException("URL scheme is neither HTTP nor HTTPS.", argumentName)
+            : uri.ToString();
     }
 }

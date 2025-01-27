@@ -1,5 +1,5 @@
-﻿using Notio.Utilities;
-using Notio.Web.MimeTypes;
+﻿using Notio.Web.MimeTypes;
+using Notio.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -65,22 +65,23 @@ public class ZipFileProvider(Stream stream, bool leaveOpen = false) : IDisposabl
     public MappedResourceInfo? MapUrlPath(string urlPath, IMimeTypeProvider mimeTypeProvider)
     {
         if (urlPath.Length == 1)
+        {
             return null;
+        }
 
         urlPath = Uri.UnescapeDataString(urlPath);
 
-        var entry = _zipArchive.GetEntry(urlPath.Substring(1));
+        ZipArchiveEntry? entry = _zipArchive.GetEntry(urlPath[1..]);
         if (entry == null)
-            return null;
-
-        var destFileName = Path.GetFullPath(Path.Combine("/", entry.FullName));
-        var fullDestDirPath = Path.GetFullPath("/" + Path.DirectorySeparatorChar);
-        if (!destFileName.StartsWith(fullDestDirPath))
         {
-            throw new InvalidOperationException("Entry is outside the target dir: " + destFileName);
+            return null;
         }
 
-        return MappedResourceInfo.ForFile(
+        string destFileName = Path.GetFullPath(Path.Combine("/", entry.FullName));
+        string fullDestDirPath = Path.GetFullPath("/" + Path.DirectorySeparatorChar);
+        return !destFileName.StartsWith(fullDestDirPath)
+            ? throw new InvalidOperationException("Entry is outside the target dir: " + destFileName)
+            : MappedResourceInfo.ForFile(
             destFileName,
             entry.Name,
             entry.LastWriteTime.DateTime,
@@ -90,10 +91,15 @@ public class ZipFileProvider(Stream stream, bool leaveOpen = false) : IDisposabl
 
     /// <inheritdoc />
     public Stream OpenFile(string path)
-        => _zipArchive.GetEntry(path)?.Open() ?? throw new FileNotFoundException($"\"{path}\" cannot be found in Zip archive.");
+    {
+        return _zipArchive.GetEntry(path)?.Open() ?? throw new FileNotFoundException($"\"{path}\" cannot be found in Zip archive.");
+    }
 
     /// <inheritdoc />
-    public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider) => [];
+    public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider)
+    {
+        return [];
+    }
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.
@@ -103,7 +109,9 @@ public class ZipFileProvider(Stream stream, bool leaveOpen = false) : IDisposabl
     protected virtual void Dispose(bool disposing)
     {
         if (!disposing)
+        {
             return;
+        }
 
         _zipArchive.Dispose();
     }

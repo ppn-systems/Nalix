@@ -1,4 +1,4 @@
-﻿namespace Notio.Web;
+﻿namespace Notio.Web.Enums;
 
 /// <summary>
 /// Defines the HTTP listeners available for use in a <see cref="WebServer"/>.
@@ -9,7 +9,7 @@ public enum HttpListenerMode
     /// Use Notio's internal HTTP listener implementation,
     /// based on Mono's <c>System.Net.HttpListener</c>.
     /// </summary>
-    EmbedIO,
+    Notio,
 
     /// <summary>
     /// Use the <see cref="System.Net.HttpListener"/> class

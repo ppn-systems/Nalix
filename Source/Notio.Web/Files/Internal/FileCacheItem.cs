@@ -7,8 +7,6 @@ namespace Notio.Web.Files.Internal
 {
     internal sealed class FileCacheItem
     {
-#pragma warning disable SA1401 // Field should be private - performance is a stronger concern here.
-
         // These fields create a sort of linked list of items
         // inside the cache's dictionary.
         // Their purpose is to keep track of items
@@ -17,7 +15,6 @@ namespace Notio.Web.Files.Internal
 
         internal string? NextKey;
         internal long LastUsedAt;
-#pragma warning restore SA1401
 
         // Size of a pointer in bytes
         private static readonly long SizeOfPointer = Environment.Is64BitProcess ? 8 : 4;
@@ -48,7 +45,7 @@ namespace Notio.Web.Files.Internal
         //     - if the result is not a multiple of 16, round it up to next multiple of 16
         private static readonly long SizeOfItem = Environment.Is64BitProcess ? 96 : 128;
 
-        private readonly object _syncRoot = new object();
+        private readonly object _syncRoot = new();
 
         // Used to update total size of section.
         // Weak reference avoids circularity.
@@ -91,15 +88,27 @@ namespace Notio.Web.Files.Internal
             switch (compressionMethod)
             {
                 case CompressionMethod.Deflate:
-                    if (_deflatedContent != null) return _deflatedContent;
+                    if (_deflatedContent != null)
+                    {
+                        return _deflatedContent;
+                    }
+
                     break;
 
                 case CompressionMethod.Gzip:
-                    if (_gzippedContent != null) return _gzippedContent;
+                    if (_gzippedContent != null)
+                    {
+                        return _gzippedContent;
+                    }
+
                     break;
 
                 default:
-                    if (_uncompressedContent != null) return _uncompressedContent;
+                    if (_uncompressedContent != null)
+                    {
+                        return _uncompressedContent;
+                    }
+
                     break;
             }
 
@@ -152,10 +161,12 @@ namespace Notio.Web.Files.Internal
                 }
             }
 
-            var sizeDelta = GetSizeOf(content) - GetSizeOf(oldContent);
+            long sizeDelta = GetSizeOf(content) - GetSizeOf(oldContent);
             SizeInCache += sizeDelta;
-            if (_section.TryGetTarget(out var section))
+            if (_section.TryGetTarget(out FileCache.Section? section))
+            {
                 section.UpdateTotalSize(sizeDelta);
+            }
 
             return content;
         }
@@ -163,11 +174,14 @@ namespace Notio.Web.Files.Internal
         // Round up to a multiple of 16
         private static long RoundUpTo16(long n)
         {
-            var remainder = n % 16;
+            long remainder = n % 16;
             return remainder > 0 ? n + (16 - remainder) : n;
         }
 
         // The size of a byte array is 3 * SizeOfPointer + 1 (size of byte) * Length
-        private static long GetSizeOf(byte[]? arr) => arr == null ? 0 : RoundUpTo16(3 * SizeOfPointer) + arr.Length;
+        private static long GetSizeOf(byte[]? arr)
+        {
+            return arr == null ? 0 : RoundUpTo16(3 * SizeOfPointer) + arr.Length;
+        }
     }
 }

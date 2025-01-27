@@ -1,5 +1,6 @@
 ﻿using Notio.Web.Response;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using System;
 using System.Threading.Tasks;
 
@@ -51,7 +52,9 @@ namespace Notio.Web.WebApi
         /// <seealso cref="WebApiModuleBase.RegisterControllerType{TController}()"/>
         public void RegisterController<TController>()
             where TController : WebApiController, new()
-            => RegisterControllerType(typeof(TController));
+        {
+            RegisterControllerType(typeof(TController));
+        }
 
         /// <summary>
         /// <para>Registers a controller type using a factory method.</para>
@@ -65,7 +68,9 @@ namespace Notio.Web.WebApi
         /// <seealso cref="WebApiModuleBase.RegisterControllerType{TController}(Func{TController})"/>
         public void RegisterController<TController>(Func<TController> factory)
             where TController : WebApiController
-            => RegisterControllerType(typeof(TController), factory);
+        {
+            RegisterControllerType(typeof(TController), factory);
+        }
 
         /// <summary>
         /// <para>Registers a controller type using a constructor.</para>
@@ -77,7 +82,9 @@ namespace Notio.Web.WebApi
         /// <seealso cref="RegisterController{TController}()"/>
         /// <seealso cref="WebApiModuleBase.RegisterControllerType(Type)"/>
         public void RegisterController(Type controllerType)
-            => RegisterControllerType(controllerType);
+        {
+            RegisterControllerType(controllerType);
+        }
 
         /// <summary>
         /// <para>Registers a controller type using a factory method.</para>
@@ -90,6 +97,8 @@ namespace Notio.Web.WebApi
         /// <seealso cref="RegisterController{TController}(Func{TController})"/>
         /// <seealso cref="WebApiModuleBase.RegisterControllerType(Type,Func{WebApiController})"/>
         public void RegisterController(Type controllerType, Func<WebApiController> factory)
-            => RegisterControllerType(controllerType, factory);
+        {
+            RegisterControllerType(controllerType, factory);
+        }
     }
 }

@@ -26,7 +26,7 @@ public static class BasicAuthenticationModuleExtensions
     /// </remarks>
     public static BasicAuthenticationModule WithAccount(this BasicAuthenticationModule @this, string userName, string password)
     {
-        @this.Accounts.AddOrUpdate(userName, password, (_, __) => password);
+        _ = @this.Accounts.AddOrUpdate(userName, password, (_, __) => password);
 
         return @this;
     }

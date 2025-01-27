@@ -1,9 +1,10 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Web.Http;
+using Notio.Web.Utilities;
 using Swan.Formatters;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web
+namespace Notio.Web.Response
 {
     /// <summary>
     /// Provides standard response serializer callbacks.
@@ -42,13 +43,15 @@ namespace Notio.Web
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
         public static ResponseSerializerCallback Json(JsonSerializerCase jsonSerializerCase)
-            => async (context, data) =>
-            {
-                context.Response.ContentType = MimeType.Json;
-                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                await ChunkedEncodingBaseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
-                    .ConfigureAwait(false);
-            };
+        {
+            return async (context, data) =>
+                    {
+                        context.Response.ContentType = MimeType.Json;
+                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
+                        await ChunkedEncodingBaseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
+                            .ConfigureAwait(false);
+                    };
+        }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
@@ -82,14 +85,16 @@ namespace Notio.Web
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
         public static ResponseSerializerCallback Json(bool bufferResponse)
-            => async (context, data) =>
-            {
-                context.Response.ContentType = MimeType.Json;
-                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                var baseSerializer = None(bufferResponse);
-                await baseSerializer(context, Swan.Formatters.Json.Serialize(data))
-                    .ConfigureAwait(false);
-            };
+        {
+            return async (context, data) =>
+                    {
+                        context.Response.ContentType = MimeType.Json;
+                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
+                        ResponseSerializerCallback baseSerializer = None(bufferResponse);
+                        await baseSerializer(context, Swan.Formatters.Json.Serialize(data))
+                            .ConfigureAwait(false);
+                    };
+        }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
@@ -102,14 +107,16 @@ namespace Notio.Web
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
         public static ResponseSerializerCallback Json(bool bufferResponse, JsonSerializerCase jsonSerializerCase)
-            => async (context, data) =>
-            {
-                context.Response.ContentType = MimeType.Json;
-                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                var baseSerializer = None(bufferResponse);
-                await baseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
-                    .ConfigureAwait(false);
-            };
+        {
+            return async (context, data) =>
+                    {
+                        context.Response.ContentType = MimeType.Json;
+                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
+                        ResponseSerializerCallback baseSerializer = None(bufferResponse);
+                        await baseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
+                            .ConfigureAwait(false);
+                    };
+        }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
@@ -132,7 +139,7 @@ namespace Notio.Web
             {
                 context.Response.ContentType = MimeType.Json;
                 context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                var baseSerializer = None(bufferResponse);
+                ResponseSerializerCallback baseSerializer = None(bufferResponse);
                 await baseSerializer(context, Swan.Formatters.Json.Serialize(data, serializerOptions))
                     .ConfigureAwait(false);
             };
@@ -153,35 +160,39 @@ namespace Notio.Web
         /// <para>Strings (and other types converted to strings) are sent with the encoding specified by <see cref="IHttpResponse.ContentEncoding"/>.</para>
         /// </remarks>
         public static ResponseSerializerCallback None(bool bufferResponse)
-            => bufferResponse ? BufferingBaseSerializer : ChunkedEncodingBaseSerializer;
+        {
+            return bufferResponse ? BufferingBaseSerializer : ChunkedEncodingBaseSerializer;
+        }
 
         private static ResponseSerializerCallback GetBaseSerializer(bool bufferResponse)
-            => async (context, data) =>
-            {
-                if (data is null)
-                {
-                    return;
-                }
+        {
+            return async (context, data) =>
+                    {
+                        if (data is null)
+                        {
+                            return;
+                        }
 
-                var isBinaryResponse = data is byte[];
+                        bool isBinaryResponse = data is byte[];
 
-                if (!context.TryDetermineCompression(context.Response.ContentType, out var preferCompression))
-                {
-                    preferCompression = true;
-                }
+                        if (!context.TryDetermineCompression(context.Response.ContentType, out bool preferCompression))
+                        {
+                            preferCompression = true;
+                        }
 
-                if (isBinaryResponse)
-                {
-                    var responseBytes = (byte[])data;
-                    using var stream = context.OpenResponseStream(bufferResponse, preferCompression);
-                    await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
-                }
-                else
-                {
-                    var responseString = data is string stringData ? stringData : data.ToString() ?? string.Empty;
-                    using var text = context.OpenResponseText(context.Response.ContentEncoding, bufferResponse, preferCompression);
-                    await text.WriteAsync(responseString).ConfigureAwait(false);
-                }
-            };
+                        if (isBinaryResponse)
+                        {
+                            byte[] responseBytes = (byte[])data;
+                            using System.IO.Stream stream = context.OpenResponseStream(bufferResponse, preferCompression);
+                            await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            string responseString = data is string stringData ? stringData : data.ToString() ?? string.Empty;
+                            using System.IO.TextWriter text = context.OpenResponseText(context.Response.ContentEncoding, bufferResponse, preferCompression);
+                            await text.WriteAsync(responseString).ConfigureAwait(false);
+                        }
+                    };
+        }
     }
 }

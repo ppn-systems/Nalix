@@ -1,5 +1,4 @@
-﻿using Notio.Web.WebSockets;
-using System;
+﻿using System;
 
 namespace Notio.Web.WebSockets.Internal
 {
@@ -11,7 +10,9 @@ namespace Notio.Web.WebSockets.Internal
         internal WebSocketReceiveResult(int count, Opcode code)
         {
             if (count < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
 
             Count = count;
             EndOfMessage = code == Opcode.Close;

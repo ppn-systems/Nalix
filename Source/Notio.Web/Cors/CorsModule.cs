@@ -1,7 +1,7 @@
-﻿using Notio.Utilities;
-using Notio.Web.Enums;
+﻿using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -69,7 +69,7 @@ public class CorsModule : WebModuleBase
     /// <inheritdoc />
     protected override Task OnRequestAsync(IHttpContext context)
     {
-        var isOptions = context.Request.HttpVerb == HttpVerbs.Options;
+        bool isOptions = context.Request.HttpVerb == HttpVerbs.Options;
 
         // If we allow all we don't need to filter
         if (_origins == All && _headers == All && _methods == All)
@@ -85,13 +85,17 @@ public class CorsModule : WebModuleBase
             return Task.CompletedTask;
         }
 
-        var currentOrigin = context.Request.Headers[HttpHeaderNames.Origin];
+        string? currentOrigin = context.Request.Headers[HttpHeaderNames.Origin];
 
         if (string.IsNullOrWhiteSpace(currentOrigin) && context.Request.IsLocal)
+        {
             return Task.CompletedTask;
+        }
 
         if (_origins == All)
+        {
             return Task.CompletedTask;
+        }
 
         if (_validOrigins.Contains(currentOrigin))
         {
@@ -109,23 +113,27 @@ public class CorsModule : WebModuleBase
 
     private void ValidateHttpOptions(IHttpContext context)
     {
-        var requestHeadersHeader = context.Request.Headers[HttpHeaderNames.AccessControlRequestHeaders];
+        string? requestHeadersHeader = context.Request.Headers[HttpHeaderNames.AccessControlRequestHeaders];
         if (!string.IsNullOrWhiteSpace(requestHeadersHeader))
         {
             // TODO: Remove unwanted headers from request
             context.Response.Headers.Set(HttpHeaderNames.AccessControlAllowHeaders, requestHeadersHeader);
         }
 
-        var requestMethodHeader = context.Request.Headers[HttpHeaderNames.AccessControlRequestMethod];
+        string? requestMethodHeader = context.Request.Headers[HttpHeaderNames.AccessControlRequestMethod];
         if (string.IsNullOrWhiteSpace(requestMethodHeader))
+        {
             return;
+        }
 
-        var currentMethods = requestMethodHeader.ToLowerInvariant()
+        System.Collections.Generic.IEnumerable<string> currentMethods = requestMethodHeader.ToLowerInvariant()
             .SplitByComma(StringSplitOptions.RemoveEmptyEntries)
             .Select(x => x.Trim());
 
         if (_methods != All && !currentMethods.Any(_validMethods.Contains))
+        {
             throw HttpException.BadRequest();
+        }
 
         context.Response.Headers.Set(HttpHeaderNames.AccessControlAllowMethods, requestMethodHeader);
     }

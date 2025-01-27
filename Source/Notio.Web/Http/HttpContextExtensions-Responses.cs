@@ -1,6 +1,6 @@
-﻿using Notio.Utilities;
-using Notio.Web.Http;
+﻿using Notio.Web.Http;
 using Notio.Web.Response;
+using Notio.Web.Utilities;
 using System;
 using System.IO;
 using System.Text;
@@ -42,7 +42,7 @@ public static partial class HttpContextExtensions
             @this.Response.ContentEncoding = encoding;
         }
 
-        using var text = @this.OpenResponseText(encoding);
+        using TextWriter text = @this.OpenResponseText(encoding);
         await text.WriteAsync(content).ConfigureAwait(false);
     }
 
@@ -56,7 +56,9 @@ public static partial class HttpContextExtensions
     /// <exception cref="ArgumentException">There is no standard status description for <paramref name="statusCode"/>.</exception>
     /// <seealso cref="SendStandardHtmlAsync(IHttpContext,int,Action{TextWriter})"/>
     public static Task SendStandardHtmlAsync(this IHttpContext @this, int statusCode)
-        => SendStandardHtmlAsync(@this, statusCode, null);
+    {
+        return SendStandardHtmlAsync(@this, statusCode, null);
+    }
 
     /// <summary>
     /// Asynchronously sends a standard HTML response for the specified status code.
@@ -75,14 +77,16 @@ public static partial class HttpContextExtensions
         int statusCode,
         Action<TextWriter>? writeAdditionalHtml)
     {
-        if (!HttpStatusDescription.TryGet(statusCode, out var statusDescription))
+        if (!HttpStatusDescription.TryGet(statusCode, out string? statusDescription))
+        {
             throw new ArgumentException("Status code has no standard description.", nameof(statusCode));
+        }
 
         @this.Response.StatusCode = statusCode;
         @this.Response.StatusDescription = statusDescription;
         @this.Response.ContentType = MimeType.Html;
         @this.Response.ContentEncoding = WebServer.DefaultEncoding;
-        using (var text = @this.OpenResponseText(WebServer.DefaultEncoding))
+        using (TextWriter text = @this.OpenResponseText(WebServer.DefaultEncoding))
         {
             text.Write(StandardHtmlHeaderFormat, statusCode, statusDescription, WebServer.DefaultEncoding.WebName);
             writeAdditionalHtml?.Invoke(text);
@@ -104,7 +108,9 @@ public static partial class HttpContextExtensions
     /// <seealso cref="SendDataAsync(IHttpContext,ResponseSerializerCallback,object)"/>
     /// <seealso cref="ResponseSerializer.Default"/>
     public static Task SendDataAsync(this IHttpContext @this, object data)
-        => ResponseSerializer.Default(@this, data);
+    {
+        return ResponseSerializer.Default(@this, data);
+    }
 
     /// <summary>
     /// <para>Asynchronously sends serialized data as a response, using the specified response serializer.</para>
@@ -120,5 +126,7 @@ public static partial class HttpContextExtensions
     /// <seealso cref="SendDataAsync(IHttpContext,ResponseSerializerCallback,object)"/>
     /// <seealso cref="ResponseSerializer.Default"/>
     public static Task SendDataAsync(this IHttpContext @this, ResponseSerializerCallback serializer, object data)
-        => Validate.NotNull(nameof(serializer), serializer)(@this, data);
+    {
+        return Validate.NotNull(nameof(serializer), serializer)(@this, data);
+    }
 }

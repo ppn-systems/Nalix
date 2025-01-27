@@ -1,7 +1,6 @@
 ﻿using Notio.Web.Http;
 using Notio.Web.Sessions;
 using Notio.Web.Utilities;
-using Notio.Web.WebSockets;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;

@@ -7,30 +7,36 @@ namespace Notio.Web.Internal
 {
     internal sealed class MimeTypeCustomizer : ConfiguredObject, IMimeTypeCustomizer
     {
-        private readonly Dictionary<string, string> _customMimeTypes = new Dictionary<string, string>();
-        private readonly Dictionary<(string, string), bool> _data = new Dictionary<(string, string), bool>();
+        private readonly Dictionary<string, string> _customMimeTypes = [];
+        private readonly Dictionary<(string, string), bool> _data = [];
 
         private bool? _defaultPreferCompression;
 
         public string GetMimeType(string extension)
         {
-            _customMimeTypes.TryGetValue(Validate.NotNull(nameof(extension), extension), out var result);
-            return result;
+            _ = _customMimeTypes.TryGetValue(Validate.NotNull(nameof(extension), extension), out string? result);
+            return result ?? string.Empty;
         }
 
         public bool TryDetermineCompression(string mimeType, out bool preferCompression)
         {
-            var (type, subtype) = MimeType.UnsafeSplit(
+            (string type, string subtype) = MimeType.UnsafeSplit(
                 Validate.MimeType(nameof(mimeType), mimeType, false));
 
             if (_data.TryGetValue((type, subtype), out preferCompression))
+            {
                 return true;
+            }
 
             if (_data.TryGetValue((type, "*"), out preferCompression))
+            {
                 return true;
+            }
 
             if (!_defaultPreferCompression.HasValue)
+            {
                 return false;
+            }
 
             preferCompression = _defaultPreferCompression.Value;
             return true;
@@ -46,7 +52,7 @@ namespace Notio.Web.Internal
         public void PreferCompression(string mimeType, bool preferCompression)
         {
             EnsureConfigurationNotLocked();
-            var (type, subtype) = MimeType.UnsafeSplit(
+            (string type, string subtype) = MimeType.UnsafeSplit(
                 Validate.MimeType(nameof(mimeType), mimeType, true));
 
             if (type == "*")
@@ -59,6 +65,9 @@ namespace Notio.Web.Internal
             }
         }
 
-        public void Lock() => LockConfiguration();
+        public void Lock()
+        {
+            LockConfiguration();
+        }
     }
 }

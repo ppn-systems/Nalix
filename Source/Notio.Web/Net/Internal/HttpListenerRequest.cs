@@ -49,7 +49,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
                 return WebServer.DefaultEncoding;
             }
 
-            var charSet = HeaderUtility.GetCharset(ContentType);
+            string? charSet = HeaderUtility.GetCharset(ContentType);
             if (string.IsNullOrEmpty(charSet))
             {
                 return WebServer.DefaultEncoding;
@@ -67,7 +67,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
     }
 
     /// <inheritdoc />
-    public long ContentLength64 => long.TryParse(Headers[HttpHeaderNames.ContentLength], out var val) ? val : 0;
+    public long ContentLength64 => long.TryParse(Headers[HttpHeaderNames.ContentLength], out long val) ? val : 0;
 
     /// <inheritdoc />
     public string? ContentType => Headers[HttpHeaderNames.ContentType];
@@ -106,7 +106,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
         {
             if (!_kaSet)
             {
-                var cnc = Headers.GetValues(HttpHeaderNames.Connection);
+                string[]? cnc = Headers.GetValues(HttpHeaderNames.Connection);
                 _keepAlive = ProtocolVersion < HttpVersion.Version11
                     ? cnc != null && cnc.Length == 1 && string.Compare(cnc[0], "keep-alive", StringComparison.OrdinalIgnoreCase) == 0
                     : cnc == null || cnc.All(s => string.Compare(s, "close", StringComparison.OrdinalIgnoreCase) != 0);
@@ -159,7 +159,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
     {
         const string forbiddenMethodChars = "\"(),/:;<=>?@[\\]{}";
 
-        var parts = req.Split(Separators, 3);
+        string[] parts = req.Split(Separators, 3);
         if (parts.Length != 3)
         {
             _connection.SetError("Invalid request line (parts).");
@@ -167,7 +167,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
         }
 
         HttpMethod = parts[0];
-        foreach (var c in HttpMethod)
+        foreach (char c in HttpMethod)
         {
             // See https://tools.ietf.org/html/rfc7230#section-3.2.6
             // for the list of allowed characters
@@ -178,7 +178,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
             }
         }
 
-        HttpVerb = IsKnownHttpMethod(HttpMethod, out var verb) ? verb : HttpVerbs.Any;
+        HttpVerb = IsKnownHttpMethod(HttpMethod, out HttpVerbs verb) ? verb : HttpVerbs.Any;
 
         RawUrl = parts[1];
         if (parts[2].Length != 8 || !parts[2].StartsWith("HTTP/", StringComparison.Ordinal))
@@ -204,31 +204,31 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
 
     internal void FinishInitialization()
     {
-        var host = UserHostName;
+        string? host = UserHostName;
         if (ProtocolVersion > HttpVersion.Version10 && string.IsNullOrEmpty(host))
         {
             _connection.SetError("Invalid host name");
             return;
         }
 
-        var rawUri = UriUtility.StringToAbsoluteUri(RawUrl.ToLowerInvariant());
-        var path = rawUri?.PathAndQuery ?? RawUrl;
+        Uri? rawUri = UriUtility.StringToAbsoluteUri(RawUrl.ToLowerInvariant());
+        string path = rawUri?.PathAndQuery ?? RawUrl;
 
         if (string.IsNullOrEmpty(host))
         {
             host = rawUri?.Host ?? UserHostAddress;
         }
 
-        var colon = host.LastIndexOf(':');
+        int colon = host.LastIndexOf(':');
         if (colon >= 0)
         {
             host = host[..colon];
         }
 
         // var baseUri = $"{(IsSecureConnection ? "https" : "http")}://{host}:{LocalEndPoint.Port}";
-        var baseUri = $"http://{host}:{LocalEndPoint.Port}";
+        string baseUri = $"http://{host}:{LocalEndPoint.Port}";
 
-        if (!Uri.TryCreate(baseUri + path, UriKind.Absolute, out var url))
+        if (!Uri.TryCreate(baseUri + path, UriKind.Absolute, out Uri? url))
         {
             _connection.SetError(WebUtility.HtmlEncode($"Invalid url: {baseUri}{path}"));
             return;
@@ -250,15 +250,15 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
 
     internal void AddHeader(string header)
     {
-        var colon = header.IndexOf(':');
-        if (colon == -1 || colon == 0)
+        int colon = header.IndexOf(':');
+        if (colon is (-1) or 0)
         {
             _connection.SetError("Bad Request");
             return;
         }
 
-        var name = header[..colon].Trim();
-        var val = header[(colon + 1)..].Trim();
+        string name = header[..colon].Trim();
+        string val = header[(colon + 1)..].Trim();
 
         Headers.Set(name, val);
 
@@ -309,13 +309,13 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
             return true;
         }
 
-        var length = 2048;
+        int length = 2048;
         if (ContentLength64 > 0)
         {
             length = (int)Math.Min(ContentLength64, length);
         }
 
-        var bytes = new byte[length];
+        byte[] bytes = new byte[length];
 
         while (true)
         {
@@ -414,12 +414,12 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
     {
         _cookies ??= [];
 
-        var cookieStrings = val.SplitByAny(';', ',')
+        System.Collections.Generic.IEnumerable<string> cookieStrings = val.SplitByAny(';', ',')
             .Where(x => !string.IsNullOrEmpty(x));
         Cookie? current = null;
-        var version = 0;
+        int version = 0;
 
-        foreach (var str in cookieStrings)
+        foreach (string? str in cookieStrings)
         {
             if (str.StartsWith("$Version", StringComparison.Ordinal))
             {
@@ -445,7 +445,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
                 }
 
                 current = new Cookie();
-                var idx = str.IndexOf('=');
+                int idx = str.IndexOf('=');
                 if (idx > 0)
                 {
                     current.Name = str[..idx].Trim();
@@ -479,19 +479,19 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
             query = query[1..];
         }
 
-        var components = query.Split('&');
+        string[] components = query.Split('&');
 
-        foreach (var kv in components)
+        foreach (string kv in components)
         {
-            var pos = kv.IndexOf('=');
+            int pos = kv.IndexOf('=');
             if (pos == -1)
             {
                 QueryString.Add(null, WebUtility.UrlDecode(kv));
             }
             else
             {
-                var key = WebUtility.UrlDecode(kv[..pos]);
-                var val = WebUtility.UrlDecode(kv[(pos + 1)..]);
+                string key = WebUtility.UrlDecode(kv[..pos]);
+                string val = WebUtility.UrlDecode(kv[(pos + 1)..]);
 
                 QueryString.Add(key, val);
             }

@@ -1,10 +1,10 @@
-﻿using Notio.Web;
+﻿using Notio.Web.Enums;
 using Swan;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio;
+namespace Notio.Web;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IWebServer"/>.
@@ -21,8 +21,10 @@ public static partial class WebServerExtensions
     /// <exception cref="InvalidOperationException">The web server has already been started.</exception>
     public static void Start(this IWebServer @this, CancellationToken cancellationToken = default)
     {
-        Task.Run(() => @this.RunAsync(cancellationToken), cancellationToken);
+        _ = Task.Run(() => @this.RunAsync(cancellationToken), cancellationToken);
         while (@this.State < WebServerState.Listening)
+        {
             Task.Delay(1, cancellationToken).Await();
+        }
     }
 }

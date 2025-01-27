@@ -31,7 +31,7 @@ public sealed class QValueList
     // The part of string before the match contains the value and parameters (if any).
     // The part of string after the match contains the extensions (if any).
     // If there is no match, the whole string is just value and parameters (if any).
-    private static readonly Regex QualityValueRegex = new Regex(
+    private static readonly Regex QualityValueRegex = new(
         @";[ \t]*q=(?:(?:1(?:\.(?:0{1,3}))?)|(?:(0)(?:\.(\d{1,3}))?))[ \t]*(?:;|,|$)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
@@ -110,7 +110,9 @@ public sealed class QValueList
     /// <returns><see langword="true"/>if <paramref name="value"/> is a candidate;
     /// otherwise, <see langword="false"/>.</returns>
     public bool IsCandidate(string value)
-        => TryGetCandidateValue(Validate.NotNull(nameof(value), value), out var candidate) && candidate.Weight > 0;
+    {
+        return TryGetCandidateValue(Validate.NotNull(nameof(value), value), out (int Weight, int Ordinal) candidate) && candidate.Weight > 0;
+    }
 
     /// <summary>
     /// Attempts to determine whether the weight of a possible candidate.
@@ -122,7 +124,7 @@ public sealed class QValueList
     /// otherwise, <see langword="false"/>.</returns>
     public bool TryGetWeight(string value, out int weight)
     {
-        var result = TryGetCandidateValue(Validate.NotNull(nameof(value), value), out var candidate);
+        bool result = TryGetCandidateValue(Validate.NotNull(nameof(value), value), out (int Weight, int Ordinal) candidate);
         weight = candidate.Weight;
         return result;
     }
@@ -134,7 +136,9 @@ public sealed class QValueList
     /// <returns>The value preferred by the client, or <see langword="null"/>
     /// if none of the provided <paramref name="values"/> is accepted.</returns>
     public string? FindPreferred(IEnumerable<string> values)
-        => FindPreferredCore(values, out var result) >= 0 ? result : null;
+    {
+        return FindPreferredCore(values, out string? result) >= 0 ? result : null;
+    }
 
     /// <summary>
     /// Finds the index of the value preferred by the client in a list of values.
@@ -142,7 +146,10 @@ public sealed class QValueList
     /// <param name="values">The values.</param>
     /// <returns>The index of the value preferred by the client, or -1
     /// if none of the values in <paramref name="values"/> is accepted.</returns>
-    public int FindPreferredIndex(IEnumerable<string> values) => FindPreferredCore(values, out _);
+    public int FindPreferredIndex(IEnumerable<string> values)
+    {
+        return FindPreferredCore(values, out _);
+    }
 
     /// <summary>
     /// Finds the index of the value preferred by the client in an array of values.
@@ -150,23 +157,31 @@ public sealed class QValueList
     /// <param name="values">The values.</param>
     /// <returns>The index of the value preferred by the client, or -1
     /// if none of the values in <paramref name="values"/> is accepted.</returns>
-    public int FindPreferredIndex(params string[] values) => FindPreferredIndex(values as IReadOnlyList<string>);
+    public int FindPreferredIndex(params string[] values)
+    {
+        return FindPreferredIndex(values as IReadOnlyList<string>);
+    }
 
     private static IReadOnlyDictionary<string, (int Weight, int Ordinal)> Parse(string headerValues)
     {
-        var result = new Dictionary<string, (int Weight, int Ordinal)>();
+        Dictionary<string, (int Weight, int Ordinal)> result = [];
         ParseCore(headerValues, result);
         return result;
     }
 
     private static IReadOnlyDictionary<string, (int Weight, int Ordinal)> Parse(IEnumerable<string> headerValues)
     {
-        var result = new Dictionary<string, (int Weight, int Ordinal)>();
+        Dictionary<string, (int Weight, int Ordinal)> result = [];
 
-        if (headerValues == null) return result;
+        if (headerValues == null)
+        {
+            return result;
+        }
 
-        foreach (var headerValue in headerValues)
+        foreach (string headerValue in headerValues)
+        {
             ParseCore(headerValue, result);
+        }
 
         return result;
     }
@@ -174,35 +189,39 @@ public sealed class QValueList
     private static void ParseCore(string text, IDictionary<string, (int Weight, int Ordinal)> dictionary)
     {
         if (string.IsNullOrEmpty(text))
+        {
             return;
+        }
 
-        var length = text.Length;
-        var position = 0;
-        var ordinal = 0;
+        int length = text.Length;
+        int position = 0;
+        int ordinal = 0;
         while (position < length)
         {
-            var stop = text.IndexOf(',', position);
+            int stop = text.IndexOf(',', position);
             if (stop < 0)
+            {
                 stop = length;
+            }
 
             string name;
-            var weight = 1000;
-            var match = QualityValueRegex.Match(text, position, stop - position);
+            int weight = 1000;
+            Match match = QualityValueRegex.Match(text, position, stop - position);
             if (match.Success)
             {
-                var groups = match.Groups;
-                var wholeMatch = groups[0];
-                name = text.Substring(position, wholeMatch.Index - position).Trim();
+                GroupCollection groups = match.Groups;
+                Group wholeMatch = groups[0];
+                name = text[position..wholeMatch.Index].Trim();
                 if (groups[1].Success)
                 {
                     weight = 0;
                     if (groups[2].Success)
                     {
-                        var digits = groups[2].Value;
-                        var n = 0;
+                        string digits = groups[2].Value;
+                        int n = 0;
                         while (n < digits.Length)
                         {
-                            weight = 10 * weight + (digits[n] - '0');
+                            weight = (10 * weight) + (digits[n] - '0');
                             n++;
                         }
 
@@ -216,11 +235,13 @@ public sealed class QValueList
             }
             else
             {
-                name = text.Substring(position, stop - position).Trim();
+                name = text[position..stop].Trim();
             }
 
             if (!string.IsNullOrEmpty(name))
+            {
                 dictionary[name] = (weight, ordinal);
+            }
 
             position = stop + 1;
             ordinal++;
@@ -230,18 +251,16 @@ public sealed class QValueList
     private static int CompareQualities((int Weight, int Ordinal) a, (int Weight, int Ordinal) b)
     {
         if (a.Weight > b.Weight)
+        {
             return 1;
+        }
 
         if (a.Weight < b.Weight)
+        {
             return -1;
+        }
 
-        if (a.Ordinal < b.Ordinal)
-            return 1;
-
-        if (a.Ordinal > b.Ordinal)
-            return -1;
-
-        return 0;
+        return a.Ordinal < b.Ordinal ? 1 : a.Ordinal > b.Ordinal ? -1 : 0;
     }
 
     private int FindPreferredCore(IEnumerable<string> values, out string? result)
@@ -249,17 +268,19 @@ public sealed class QValueList
         values = Validate.NotNull(nameof(values), values);
 
         result = null;
-        var best = -1;
+        int best = -1;
 
         // Set initial values such as a weight of 0 can never win over them
         (int Weight, int Ordinal) bestValue = (0, int.MinValue);
-        var i = 0;
-        foreach (var value in values)
+        int i = 0;
+        foreach (string value in values)
         {
             if (value == null)
+            {
                 continue;
+            }
 
-            if (TryGetCandidateValue(value, out var candidateValue) && CompareQualities(candidateValue, bestValue) > 0)
+            if (TryGetCandidateValue(value, out (int Weight, int Ordinal) candidateValue) && CompareQualities(candidateValue, bestValue) > 0)
             {
                 result = value;
                 best = i;
@@ -273,6 +294,8 @@ public sealed class QValueList
     }
 
     private bool TryGetCandidateValue(string value, out (int Weight, int Ordinal) candidate)
-        => QValues.TryGetValue(value, out candidate)
-        || UseWildcard && QValues.TryGetValue(Wildcard, out candidate);
+    {
+        return QValues.TryGetValue(value, out candidate)
+            || (UseWildcard && QValues.TryGetValue(Wildcard, out candidate));
+    }
 }

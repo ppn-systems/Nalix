@@ -41,7 +41,10 @@ namespace Notio.Web.Sessions.Internal
         }
 
         /// <inheritdoc/>
-        public void Regenerate() => throw NoSessionManager();
+        public void Regenerate()
+        {
+            throw NoSessionManager();
+        }
 
         /// <inheritdoc/>
         public void Clear()
@@ -49,17 +52,32 @@ namespace Notio.Web.Sessions.Internal
         }
 
         /// <inheritdoc/>
-        public bool ContainsKey(string key) => throw NoSessionManager();
+        public bool ContainsKey(string key)
+        {
+            throw NoSessionManager();
+        }
 
         /// <inheritdoc/>
-        public bool TryGetValue(string key, out object value) => throw NoSessionManager();
+        public bool TryGetValue(string key, out object value)
+        {
+            throw NoSessionManager();
+        }
 
         /// <inheritdoc/>
-        public bool TryRemove(string key, out object value) => throw NoSessionManager();
+        public bool TryRemove(string key, out object value)
+        {
+            throw NoSessionManager();
+        }
 
         /// <inheritdoc/>
-        public IReadOnlyList<KeyValuePair<string, object>> TakeSnapshot() => throw NoSessionManager();
+        public IReadOnlyList<KeyValuePair<string, object>> TakeSnapshot()
+        {
+            throw NoSessionManager();
+        }
 
-        private InvalidOperationException NoSessionManager() => new InvalidOperationException("No session manager registered in the web server.");
+        private InvalidOperationException NoSessionManager()
+        {
+            return new("No session manager registered in the web server.");
+        }
     }
 }

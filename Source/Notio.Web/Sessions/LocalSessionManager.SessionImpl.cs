@@ -2,7 +2,6 @@
 using Notio.Web.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Notio.Sessions;
 
@@ -10,7 +9,7 @@ public partial class LocalSessionManager
 {
     private class SessionImpl : ISession
     {
-        private readonly Dictionary<string, object> _data = new Dictionary<string, object>(Session.KeyComparer);
+        private readonly Dictionary<string, object> _data = new(Session.KeyComparer);
 
         private int _usageCount;
 
@@ -56,7 +55,7 @@ public partial class LocalSessionManager
             {
                 lock (_data)
                 {
-                    return _data.TryGetValue(key, out var value) ? value : null!;
+                    return _data.TryGetValue(key, out object? value) ? value : null!;
                 }
             }
             set
@@ -64,9 +63,13 @@ public partial class LocalSessionManager
                 lock (_data)
                 {
                     if (value == null)
-                        _data.Remove(key);
+                    {
+                        _ = _data.Remove(key);
+                    }
                     else
+                    {
                         _data[key] = value;
+                    }
                 }
             }
         }
@@ -100,7 +103,7 @@ public partial class LocalSessionManager
                     return false;
                 }
 
-                _data.Remove(key);
+                _ = _data.Remove(key);
                 return true;
             }
         }
@@ -153,7 +156,9 @@ public partial class LocalSessionManager
         private void UnregisterIfNeededCore(Action unregister)
         {
             if (_usageCount < 1 && (IsEmpty || DateTime.UtcNow > LastActivity + Duration))
+            {
                 unregister();
+            }
         }
     }
 }

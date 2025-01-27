@@ -1,4 +1,6 @@
-﻿using Notio.Web.Exceptions;
+﻿using Notio.Web.Enums;
+using Notio.Web.Extensions;
+using Notio.Web.Http;
 using Notio.Web.Internal;
 using System.IO;
 using System.IO.Compression;
@@ -28,9 +30,9 @@ public static partial class HttpContextExtensions
     {
         // No need to check whether negotiation is successful;
         // the returned callback will throw HttpNotAcceptableException if it was not.
-        _ = @this.Request.TryNegotiateContentEncoding(preferCompression, out var compressionMethod, out var prepareResponse);
+        _ = @this.Request.TryNegotiateContentEncoding(preferCompression, out CompressionMethod compressionMethod, out System.Action<IHttpResponse>? prepareResponse);
         prepareResponse(@this.Response);
-        var stream = buffered ? new BufferingResponseStream(@this.Response) : @this.Response.OutputStream;
+        Stream stream = buffered ? new BufferingResponseStream(@this.Response) : @this.Response.OutputStream;
 
         return compressionMethod switch
         {

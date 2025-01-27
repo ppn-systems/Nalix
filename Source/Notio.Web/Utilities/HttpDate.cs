@@ -49,13 +49,15 @@ public static class HttpDate
     /// This parameter is passed uninitialized.</param>
     /// <returns><see langword="true"/> if <paramref name="str"/> was successfully parsed;
     /// otherwise, <see langword="false"/>.</returns>
-    public static bool TryParse(string str, out DateTimeOffset result) =>
-        DateTimeOffset.TryParseExact(
+    public static bool TryParse(string str, out DateTimeOffset result)
+    {
+        return DateTimeOffset.TryParseExact(
             str,
             DateFormats,
             DateTimeFormatInfo.InvariantInfo,
             DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
             out result);
+    }
 
     /// <summary>
     /// Formats the specified <see cref="DateTimeOffset"/>
@@ -64,7 +66,9 @@ public static class HttpDate
     /// <param name="dateTimeOffset">The <see cref="DateTimeOffset"/> to format.</param>
     /// <returns>A string containing the formatted <paramref name="dateTimeOffset"/>.</returns>
     public static string Format(DateTimeOffset dateTimeOffset)
-        => dateTimeOffset.ToUniversalTime().ToString("r", DateTimeFormatInfo.InvariantInfo);
+    {
+        return dateTimeOffset.ToUniversalTime().ToString("r", DateTimeFormatInfo.InvariantInfo);
+    }
 
     /// <summary>
     /// Formats the specified <see cref="DateTime"/>
@@ -73,5 +77,7 @@ public static class HttpDate
     /// <param name="dateTime">The <see cref="DateTime"/> to format.</param>
     /// <returns>A string containing the formatted <paramref name="dateTime"/>.</returns>
     public static string Format(DateTime dateTime)
-        => dateTime.ToUniversalTime().ToString("r", DateTimeFormatInfo.InvariantInfo);
+    {
+        return dateTime.ToUniversalTime().ToString("r", DateTimeFormatInfo.InvariantInfo);
+    }
 }

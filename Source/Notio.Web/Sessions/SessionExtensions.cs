@@ -23,7 +23,7 @@ namespace Notio.Web.Sessions
         /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
         public static bool TryGetValue<T>(this ISession @this, string key, out T? value)
         {
-            if (@this.TryGetValue(key, out var foundValue) && foundValue is T typedValue)
+            if (@this.TryGetValue(key, out object? foundValue) && foundValue is T typedValue)
             {
                 value = typedValue;
                 return true;
@@ -41,7 +41,9 @@ namespace Notio.Web.Sessions
         /// if the key is found and the associated value is of type <typeparamref name="T"/>;
         /// otherwise, the default value for <typeparamref name="T"/>.</returns>
         public static T? GetValue<T>(this ISession @this, string key)
-            => @this.TryGetValue(key, out var value) && value is T typedValue ? typedValue : default;
+        {
+            return @this.TryGetValue(key, out object? value) && value is T typedValue ? typedValue : default;
+        }
 
         /// <summary>Gets the value associated with the specified key.</summary>
         /// <typeparam name="T">The desired type of the value.</typeparam>
@@ -53,6 +55,8 @@ namespace Notio.Web.Sessions
         /// if the key is found and the associated value is of type <typeparamref name="T"/>;
         /// otherwise, <paramref name="defaultValue"/>.</returns>
         public static T GetOrDefault<T>(this ISession @this, string key, T defaultValue)
-            => @this.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
+        {
+            return @this.TryGetValue(key, out object? value) && value is T typedValue ? typedValue : defaultValue;
+        }
     }
 }

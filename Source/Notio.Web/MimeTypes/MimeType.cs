@@ -48,12 +48,14 @@ namespace Notio
         public static string StripParameters(string value)
         {
             if (string.IsNullOrEmpty(value))
+            {
                 return value;
+            }
 
-            var semicolonPos = value.IndexOf(';');
+            int semicolonPos = value.IndexOf(';');
             return semicolonPos < 0
                 ? value
-                : value.Substring(0, semicolonPos).TrimEnd();
+                : value[..semicolonPos].TrimEnd();
         }
 
         /// <summary>
@@ -70,18 +72,24 @@ namespace Notio
         public static bool IsMimeType(string value, bool acceptMediaRange)
         {
             if (string.IsNullOrEmpty(value))
+            {
                 return false;
+            }
 
-            var slashPos = value.IndexOf('/');
+            int slashPos = value.IndexOf('/');
             if (slashPos < 0)
+            {
                 return false;
+            }
 
-            var isWildcardSubtype = false;
-            var subtype = value.Substring(slashPos + 1);
+            bool isWildcardSubtype = false;
+            string subtype = value[(slashPos + 1)..];
             if (subtype == "*")
             {
                 if (!acceptMediaRange)
+                {
                     return false;
+                }
 
                 isWildcardSubtype = true;
             }
@@ -90,7 +98,7 @@ namespace Notio
                 return false;
             }
 
-            var type = value.Substring(0, slashPos);
+            string type = value[..slashPos];
             return type == "*"
                 ? acceptMediaRange && isWildcardSubtype
                 : Validate.IsRfc2616Token(type);
@@ -105,7 +113,9 @@ namespace Notio
         /// <exception cref="ArgumentException"><paramref name="mimeType"/> is not a valid
         /// MIME type or media range.</exception>
         public static (string type, string subtype) Split(string mimeType)
-            => UnsafeSplit(Validate.MimeType(nameof(mimeType), mimeType, true));
+        {
+            return UnsafeSplit(Validate.MimeType(nameof(mimeType), mimeType, true));
+        }
 
         /// <summary>
         /// Matches the specified MIME type to a media range.
@@ -126,46 +136,60 @@ namespace Notio
         /// <para><paramref name="mediaRange"/> is not a valid MIME media range.</para>
         /// </exception>
         public static bool IsInRange(string mimeType, string mediaRange)
-            => UnsafeIsInRange(
-                Validate.MimeType(nameof(mimeType), mimeType, false),
-                Validate.MimeType(nameof(mediaRange), mediaRange, true));
+        {
+            return UnsafeIsInRange(
+                        Validate.MimeType(nameof(mimeType), mimeType, false),
+                        Validate.MimeType(nameof(mediaRange), mediaRange, true));
+        }
 
         internal static (string type, string subtype) UnsafeSplit(string mimeType)
         {
-            var slashPos = mimeType.IndexOf('/');
-            return (mimeType.Substring(0, slashPos), mimeType.Substring(slashPos + 1));
+            int slashPos = mimeType.IndexOf('/');
+            return (mimeType[..slashPos], mimeType[(slashPos + 1)..]);
         }
 
         internal static bool UnsafeIsInRange(string mimeType, string mediaRange)
         {
             // A validated media range that starts with '*' can only be '*/*'
             if (mediaRange[0] == '*')
+            {
                 return true;
+            }
 
-            var typeSlashPos = mimeType.IndexOf('/');
-            var rangeSlashPos = mediaRange.IndexOf('/');
+            int typeSlashPos = mimeType.IndexOf('/');
+            int rangeSlashPos = mediaRange.IndexOf('/');
 
             if (typeSlashPos != rangeSlashPos)
+            {
                 return false;
+            }
 
-            for (var i = 0; i < typeSlashPos; i++)
+            for (int i = 0; i < typeSlashPos; i++)
             {
                 if (mimeType[i] != mediaRange[i])
+                {
                     return false;
+                }
             }
 
             // A validated token has at least 1 character,
             // thus there must be at least 1 character after a slash.
             if (mediaRange[rangeSlashPos + 1] == '*')
+            {
                 return true;
+            }
 
             if (mimeType.Length != mediaRange.Length)
+            {
                 return false;
+            }
 
-            for (var i = typeSlashPos + 1; i < mimeType.Length; i++)
+            for (int i = typeSlashPos + 1; i < mimeType.Length; i++)
             {
                 if (mimeType[i] != mediaRange[i])
+                {
                     return false;
+                }
             }
 
             return true;

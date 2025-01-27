@@ -1,5 +1,4 @@
 ﻿using Notio.Web.Net.Internal;
-using Notio.Web.WebSockets;
 using Swan;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace Notio.Web.WebSockets.Internal
             _data = code == 1005 ? Array.Empty<byte>() : Append(code, reason);
         }
 
-        internal MemoryStream ApplicationData => new MemoryStream(_data);
+        internal MemoryStream ApplicationData => new(_data);
 
         internal ulong Length => (ulong)_data.Length;
 
@@ -51,14 +50,20 @@ namespace Notio.Web.WebSockets.Internal
                    Code == (ushort)CloseStatusCode.Abnormal ||
                    Code == (ushort)CloseStatusCode.TlsHandshakeFailure);
 
-        public override string ToString() => BitConverter.ToString(_data);
+        public override string ToString()
+        {
+            return BitConverter.ToString(_data);
+        }
 
         internal static byte[] Append(ushort code, string? reason)
         {
-            var ret = code.ToByteArray(Endianness.Big);
-            if (string.IsNullOrEmpty(reason)) return ret;
+            byte[] ret = code.ToByteArray(Endianness.Big);
+            if (string.IsNullOrEmpty(reason))
+            {
+                return ret;
+            }
 
-            var buff = new List<byte>(ret);
+            List<byte> buff = new(ret);
             buff.AddRange(Encoding.UTF8.GetBytes(reason));
 
             return buff.ToArray();
@@ -67,9 +72,14 @@ namespace Notio.Web.WebSockets.Internal
         internal void Mask(byte[] key)
         {
             for (long i = 0; i < _data.Length; i++)
+            {
                 _data[i] = (byte)(_data[i] ^ key[i % 4]);
+            }
         }
 
-        internal byte[] ToArray() => _data;
+        internal byte[] ToArray()
+        {
+            return _data;
+        }
     }
 }

@@ -14,7 +14,7 @@ public static class UrlPath
     /// </summary>
     public const string Root = "/";
 
-    private static readonly Regex MultipleSlashRegex = new Regex("//+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex MultipleSlashRegex = new("//+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// Determines whether a string is a valid URL path.
@@ -31,7 +31,10 @@ public static class UrlPath
     /// <seealso cref="Normalize"/>
     /// <seealso cref="UnsafeNormalize"/>
     /// <seealso cref="Validate.UrlPath"/>
-    public static bool IsValid(string urlPath) => ValidateInternal(nameof(urlPath), urlPath) == null;
+    public static bool IsValid(string urlPath)
+    {
+        return ValidateInternal(nameof(urlPath), urlPath) == null;
+    }
 
     /// <summary>
     /// Normalizes the specified URL path.
@@ -61,11 +64,8 @@ public static class UrlPath
     /// <seealso cref="Validate.UrlPath"/>
     public static string Normalize(string urlPath, bool isBasePath)
     {
-        var exception = ValidateInternal(nameof(urlPath), urlPath);
-        if (exception != null)
-            throw exception;
-
-        return UnsafeNormalize(urlPath, isBasePath);
+        Exception? exception = ValidateInternal(nameof(urlPath), urlPath);
+        return exception != null ? throw exception : UnsafeNormalize(urlPath, isBasePath);
     }
 
     /// <summary>
@@ -98,20 +98,22 @@ public static class UrlPath
         urlPath = MultipleSlashRegex.Replace(urlPath, "/");
 
         // The root path needs no further checking.
-        var length = urlPath.Length;
+        int length = urlPath.Length;
         if (length == 1)
+        {
             return urlPath;
+        }
 
         // Base URL paths must end with a slash;
         // non-base URL paths must NOT end with a slash.
         // The final slash is irrelevant for the URL itself
         // (it has to map the same way with or without it)
         // but makes comparing and mapping URLs a lot simpler.
-        var finalPosition = length - 1;
-        var endsWithSlash = urlPath[finalPosition] == '/';
+        int finalPosition = length - 1;
+        bool endsWithSlash = urlPath[finalPosition] == '/';
         return isBasePath
             ? endsWithSlash ? urlPath : urlPath + "/"
-            : endsWithSlash ? urlPath.Substring(0, finalPosition) : urlPath;
+            : endsWithSlash ? urlPath[..finalPosition] : urlPath;
     }
 
     /// <summary>
@@ -142,9 +144,11 @@ public static class UrlPath
     /// <seealso cref="StripPrefix"/>
     /// <seealso cref="Validate.UrlPath"/>
     public static bool HasPrefix(string urlPath, string baseUrlPath)
-        => UnsafeHasPrefix(
-            Validate.UrlPath(nameof(urlPath), urlPath, false),
-            Validate.UrlPath(nameof(baseUrlPath), baseUrlPath, true));
+    {
+        return UnsafeHasPrefix(
+                Validate.UrlPath(nameof(urlPath), urlPath, false),
+                Validate.UrlPath(nameof(baseUrlPath), baseUrlPath, true));
+    }
 
     /// <summary>
     /// Determines whether the specified URL path is prefixed by the specified base URL path,
@@ -172,8 +176,10 @@ public static class UrlPath
     /// <seealso cref="StripPrefix"/>
     /// <seealso cref="Validate.UrlPath"/>
     public static bool UnsafeHasPrefix(string urlPath, string baseUrlPath)
-        => urlPath.StartsWith(baseUrlPath, StringComparison.Ordinal)
-        || urlPath.Length == baseUrlPath.Length - 1 && baseUrlPath.StartsWith(urlPath, StringComparison.Ordinal);
+    {
+        return urlPath.StartsWith(baseUrlPath, StringComparison.Ordinal)
+            || (urlPath.Length == baseUrlPath.Length - 1 && baseUrlPath.StartsWith(urlPath, StringComparison.Ordinal));
+    }
 
     /// <summary>
     /// Strips a base URL path fom a URL path, obtaining a relative path.
@@ -202,9 +208,11 @@ public static class UrlPath
     /// <seealso cref="HasPrefix"/>
     /// <seealso cref="Validate.UrlPath"/>
     public static string? StripPrefix(string urlPath, string baseUrlPath)
-        => UnsafeStripPrefix(
-            Validate.UrlPath(nameof(urlPath), urlPath, false),
-            Validate.UrlPath(nameof(baseUrlPath), baseUrlPath, true));
+    {
+        return UnsafeStripPrefix(
+                Validate.UrlPath(nameof(urlPath), urlPath, false),
+                Validate.UrlPath(nameof(baseUrlPath), baseUrlPath, true));
+    }
 
     /// <summary>
     /// Strips a base URL path fom a URL path, obtaining a relative path,
@@ -233,13 +241,15 @@ public static class UrlPath
     public static string? UnsafeStripPrefix(string urlPath, string baseUrlPath)
     {
         if (!UnsafeHasPrefix(urlPath, baseUrlPath))
+        {
             return null;
+        }
 
         // The only case where UnsafeHasPrefix returns true for a urlPath shorter than baseUrlPath
         // is urlPath == (baseUrlPath minus the final slash).
         return urlPath.Length < baseUrlPath.Length
             ? string.Empty
-            : urlPath.Substring(baseUrlPath.Length);
+            : urlPath[baseUrlPath.Length..];
     }
 
     /// <summary>
@@ -260,7 +270,9 @@ public static class UrlPath
     /// <seealso cref="Normalize"/>
     /// <seealso cref="Validate.UrlPath"/>
     public static IEnumerable<string> Split(string urlPath)
-        => UnsafeSplit(Validate.UrlPath(nameof(urlPath), urlPath, false));
+    {
+        return UnsafeSplit(Validate.UrlPath(nameof(urlPath), urlPath, false));
+    }
 
     /// <summary>
     /// Splits the specified URL path into segments, assuming it is valid and normalized.
@@ -282,18 +294,18 @@ public static class UrlPath
     /// <seealso cref="Validate.UrlPath"/>
     public static IEnumerable<string> UnsafeSplit(string urlPath)
     {
-        var length = urlPath.Length;
-        var position = 1; // Skip initial slash
+        int length = urlPath.Length;
+        int position = 1; // Skip initial slash
         while (position < length)
         {
-            var slashPosition = urlPath.IndexOf('/', position);
+            int slashPosition = urlPath.IndexOf('/', position);
             if (slashPosition < 0)
             {
-                yield return urlPath.Substring(position);
+                yield return urlPath[position..];
                 break;
             }
 
-            yield return urlPath.Substring(position, slashPosition - position);
+            yield return urlPath[position..slashPosition];
             position = slashPosition + 1;
         }
     }
@@ -301,14 +313,12 @@ public static class UrlPath
     internal static Exception? ValidateInternal(string argumentName, string value)
     {
         if (value == null)
+        {
             return new ArgumentNullException(argumentName);
+        }
 
-        if (value.Length == 0)
-            return new ArgumentException("URL path is empty.", argumentName);
-
-        if (value[0] != '/')
-            return new ArgumentException("URL path does not start with a slash.", argumentName);
-
-        return null;
+        return value.Length == 0
+            ? new ArgumentException("URL path is empty.", argumentName)
+            : value[0] != '/' ? new ArgumentException("URL path does not start with a slash.", argumentName) : (Exception?)null;
     }
 }

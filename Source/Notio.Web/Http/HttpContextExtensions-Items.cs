@@ -22,7 +22,7 @@ public static partial class HttpContextExtensions
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
     public static bool TryGetItem<T>(this IHttpContext @this, object key, out T? value)
     {
-        if (@this.Items.TryGetValue(key, out var item) && item is T typedItem)
+        if (@this.Items.TryGetValue(key, out object? item) && item is T typedItem)
         {
             value = typedItem;
             return true;
@@ -41,5 +41,7 @@ public static partial class HttpContextExtensions
     /// and the associated value is of type <typeparamref name="T"/>;
     /// otherwise, the default value for <typeparamref name="T"/>.</returns>
     public static T? GetItem<T>(this IHttpContext @this, object key)
-        => @this.Items.TryGetValue(key, out var item) && item is T typedItem ? typedItem : default;
+    {
+        return @this.Items.TryGetValue(key, out object? item) && item is T typedItem ? typedItem : default;
+    }
 }

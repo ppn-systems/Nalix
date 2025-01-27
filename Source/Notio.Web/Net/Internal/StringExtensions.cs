@@ -9,19 +9,21 @@ internal static class StringExtensions
     private const string TokenSpecialChars = "()<>@,;:\\\"/[]?={} \t";
 
     internal static bool IsToken(this string @this)
-        => @this.All(c => c >= 0x20 && c < 0x7f && TokenSpecialChars.IndexOf(c) < 0);
+    {
+        return @this.All(c => c >= 0x20 && c < 0x7f && TokenSpecialChars.IndexOf(c) < 0);
+    }
 
     internal static IEnumerable<string> SplitHeaderValue(this string @this, bool useCookieSeparators)
     {
-        var len = @this.Length;
+        int len = @this.Length;
 
-        var buff = new StringBuilder(32);
-        var escaped = false;
-        var quoted = false;
+        StringBuilder buff = new(32);
+        bool escaped = false;
+        bool quoted = false;
 
-        for (var i = 0; i < len; i++)
+        for (int i = 0; i < len; i++)
         {
-            var c = @this[i];
+            char c = @this[i];
 
             if (c == '"')
             {
@@ -41,7 +43,7 @@ internal static class StringExtensions
                     escaped = true;
                 }
             }
-            else if (c == ',' || useCookieSeparators && c == ';')
+            else if (c == ',' || (useCookieSeparators && c == ';'))
             {
                 if (!quoted)
                 {
@@ -63,8 +65,8 @@ internal static class StringExtensions
 
     internal static string Unquote(this string str)
     {
-        var start = str.IndexOf('\"');
-        var end = str.LastIndexOf('\"');
+        int start = str.IndexOf('\"');
+        int end = str.LastIndexOf('\"');
 
         if (start >= 0 && end >= 0)
         {

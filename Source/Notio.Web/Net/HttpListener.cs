@@ -77,7 +77,10 @@ public sealed class HttpListener : IHttpListener
     }
 
     /// <inheritdoc />
-    public void AddPrefix(string urlPrefix) => _prefixes.Add(urlPrefix);
+    public void AddPrefix(string urlPrefix)
+    {
+        _prefixes.Add(urlPrefix);
+    }
 
     /// <inheritdoc />
     public void Dispose()
@@ -99,9 +102,9 @@ public sealed class HttpListener : IHttpListener
         {
             await _ctxQueueSem.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            foreach (var key in _ctxQueue.Keys)
+            foreach (string key in _ctxQueue.Keys)
             {
-                if (_ctxQueue.TryRemove(key, out var context))
+                if (_ctxQueue.TryRemove(key, out HttpListenerContext? context))
                 {
                     return context;
                 }
@@ -121,23 +124,32 @@ public sealed class HttpListener : IHttpListener
         _ = _ctxQueueSem.Release();
     }
 
-    internal void UnregisterContext(HttpListenerContext context) => _ctxQueue.TryRemove(context.Id, out _);
+    internal void UnregisterContext(HttpListenerContext context)
+    {
+        _ = _ctxQueue.TryRemove(context.Id, out _);
+    }
 
-    internal void AddConnection(HttpConnection cnc) => _connections[cnc] = cnc;
+    internal void AddConnection(HttpConnection cnc)
+    {
+        _connections[cnc] = cnc;
+    }
 
-    internal void RemoveConnection(HttpConnection cnc) => _connections.TryRemove(cnc, out _);
+    internal void RemoveConnection(HttpConnection cnc)
+    {
+        _ = _connections.TryRemove(cnc, out _);
+    }
 
     private void Close(bool closeExisting)
     {
         EndPointManager.RemoveListener(this);
 
-        var keys = _connections.Keys;
-        var connections = new HttpConnection[keys.Count];
+        ICollection<HttpConnection> keys = _connections.Keys;
+        HttpConnection[] connections = new HttpConnection[keys.Count];
         keys.CopyTo(connections, 0);
         _connections.Clear();
-        var list = new List<HttpConnection>(connections);
+        List<HttpConnection> list = new(connections);
 
-        for (var i = list.Count - 1; i >= 0; i--)
+        for (int i = list.Count - 1; i >= 0; i--)
         {
             list[i].Close(true);
         }
@@ -149,9 +161,9 @@ public sealed class HttpListener : IHttpListener
 
         while (!_ctxQueue.IsEmpty)
         {
-            foreach (var key in _ctxQueue.Keys.ToArray())
+            foreach (string? key in _ctxQueue.Keys.ToArray())
             {
-                if (_ctxQueue.TryGetValue(key, out var context))
+                if (_ctxQueue.TryGetValue(key, out HttpListenerContext? context))
                 {
                     context.Connection.Close(true);
                 }

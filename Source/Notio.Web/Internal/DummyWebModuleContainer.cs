@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using Swan;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
@@ -22,6 +23,8 @@ namespace Notio.Web.Internal
         }
 
         private InternalErrorException UnexpectedCall([CallerMemberName] string member = "")
-            => SelfCheck.Failure($"Unexpected call to {nameof(DummyWebModuleContainer)}.{member}.");
+        {
+            return SelfCheck.Failure($"Unexpected call to {nameof(DummyWebModuleContainer)}.{member}.");
+        }
     }
 }

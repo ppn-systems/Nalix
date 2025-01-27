@@ -11,5 +11,8 @@ public static class UniqueIdGenerator
     /// Generates and returns a unique ID.
     /// </summary>
     /// <returns>The generated ID.</returns>
-    public static string GetNext() => Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..22];
+    public static string GetNext()
+    {
+        return Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..22];
+    }
 }

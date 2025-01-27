@@ -34,9 +34,11 @@ namespace Notio.Web.Routing
         /// <returns><see langword="true"/> if <paramref name="value"/> is a valid route parameter;
         /// otherwise, <see langword="false"/>.</returns>
         public static bool IsValidParameterName(string value)
-            => !string.IsNullOrEmpty(value)
-            && value[0] > '9'
-            && !value.Any(c => c < '0' || c > 'z' || Array.BinarySearch(ValidParameterNameChars, c) < 0);
+        {
+            return !string.IsNullOrEmpty(value)
+                    && value[0] > '9'
+                    && !value.Any(c => c < '0' || c > 'z' || Array.BinarySearch(ValidParameterNameChars, c) < 0);
+        }
 
         /// <summary>
         /// <para>Determines whether a string is a valid route.</para>
@@ -67,17 +69,23 @@ namespace Notio.Web.Routing
         /// otherwise, <see langword="false"/>.</param>
         /// <returns><see langword="true"/> if <paramref name="route"/> is a valid route;
         /// otherwise, <see langword="false"/>.</returns>
-        public static bool IsValid(string route, bool isBaseRoute) => ValidateInternal(nameof(route), route, isBaseRoute) == null;
+        public static bool IsValid(string route, bool isBaseRoute)
+        {
+            return ValidateInternal(nameof(route), route, isBaseRoute) == null;
+        }
 
         // Check the validity of a route by parsing it without storing the results.
         // Returns: ArgumentNullException, ArgumentException, null if OK
-        internal static Exception? ValidateInternal(string argumentName, string value, bool isBaseRoute) => ParseInternal(value, isBaseRoute, null) switch
+        internal static Exception? ValidateInternal(string argumentName, string value, bool isBaseRoute)
         {
-            ArgumentNullException _ => new ArgumentNullException(argumentName),
-            FormatException formatException => new ArgumentException(formatException.Message, argumentName),
-            Exception exception => exception,
-            _ => null
-        };
+            return ParseInternal(value, isBaseRoute, null) switch
+            {
+                ArgumentNullException _ => new ArgumentNullException(argumentName),
+                FormatException formatException => new ArgumentException(formatException.Message, argumentName),
+                Exception exception => exception,
+                _ => null
+            };
+        }
 
         // Validate and parse a route, constructing a Regex pattern.
         // setResult will be called at the end with the isBaseRoute flag, parameter names and the constructed pattern.
@@ -85,13 +93,19 @@ namespace Notio.Web.Routing
         internal static Exception? ParseInternal(string route, bool isBaseRoute, Action<bool, IEnumerable<string>, string>? setResult)
         {
             if (route == null)
+            {
                 return new ArgumentNullException(nameof(route));
+            }
 
             if (route.Length == 0)
+            {
                 return new FormatException("Route is empty.");
+            }
 
             if (route[0] != '/')
+            {
                 return new FormatException("Route does not start with a slash.");
+            }
 
             /*
              * Regex options set at start of pattern:
@@ -106,22 +120,22 @@ namespace Notio.Web.Routing
             const string InitialRegexOptions = "(?sn-imx)";
 
             // If setResult is null we don't need the StringBuilder.
-            var sb = setResult == null ? null : new StringBuilder("^");
+            StringBuilder? sb = setResult == null ? null : new StringBuilder("^");
 
-            var parameterNames = new List<string>();
+            List<string> parameterNames = [];
             if (route.Length == 1)
             {
                 // If the route consists of a single slash, only a single slash will match.
-                sb?.Append(isBaseRoute ? "/" : "/$");
+                _ = (sb?.Append(isBaseRoute ? "/" : "/$"));
             }
             else
             {
                 // First of all divide the route in segments.
                 // Segments are separated by slashes.
                 // The route is not necessarily normalized, so there could be runs of consecutive slashes.
-                var segmentCount = 0;
-                var optionalSegmentCount = 0;
-                foreach (var segment in GetSegments(route))
+                int segmentCount = 0;
+                int optionalSegmentCount = 0;
+                foreach (string segment in GetSegments(route))
                 {
                     segmentCount++;
 
@@ -134,27 +148,31 @@ namespace Notio.Web.Routing
                     // More syntax rules:
                     // - There cannot be two parameters without literal text in between.
                     // - If a segment consists ONLY of an OPTIONAL parameter, then the slash preceding it is optional too.
-                    var inParameterSpec = false;
-                    var afterParameter = false;
-                    for (var position = 0; ;)
+                    bool inParameterSpec = false;
+                    bool afterParameter = false;
+                    for (int position = 0; ;)
                     {
                         if (inParameterSpec)
                         {
                             // Look for end of spec, bail out if not found.
-                            var closePosition = segment.IndexOf('}', position);
+                            int closePosition = segment.IndexOf('}', position);
                             if (closePosition < 0)
+                            {
                                 return new FormatException("Route syntax error: unclosed parameter specification.");
+                            }
 
                             // Parameter spec cannot be empty.
                             if (closePosition == position)
+                            {
                                 return new FormatException("Route syntax error: empty parameter specification.");
+                            }
 
                             // Check the last character:
                             // {name} means empty parameter does not match
                             // {name?} means empty parameter matches
                             // If '?'is found, the parameter name ends before it
-                            var nameEndPosition = closePosition;
-                            var allowEmpty = false;
+                            int nameEndPosition = closePosition;
+                            bool allowEmpty = false;
                             if (segment[closePosition - 1] == '?')
                             {
                                 allowEmpty = true;
@@ -163,18 +181,24 @@ namespace Notio.Web.Routing
 
                             // Bail out if only '?' is found inside the spec.
                             if (nameEndPosition == position)
+                            {
                                 return new FormatException("Route syntax error: missing parameter name.");
+                            }
 
                             // Extract the parameter name.
-                            var parameterName = segment.Substring(position, nameEndPosition - position);
+                            string parameterName = segment[position..nameEndPosition];
 
                             // Ensure that the parameter name contains only valid characters.
                             if (!IsValidParameterName(parameterName))
+                            {
                                 return new FormatException("Route syntax error: parameter name contains one or more invalid characters.");
+                            }
 
                             // Ensure that the parameter name is not a duplicate.
                             if (parameterNames.Contains(parameterName))
+                            {
                                 return new FormatException("Route syntax error: duplicate parameter name.");
+                            }
 
                             // The spec is valid, so add the parameter to the list.
                             parameterNames.Add(parameterName);
@@ -186,13 +210,15 @@ namespace Notio.Web.Routing
                             if (allowEmpty && position == 1 && closePosition == segment.Length - 1)
                             {
                                 if (isBaseRoute)
+                                {
                                     return new FormatException("No segment of a base route can be optional.");
+                                }
 
                                 // If the segment consists only of an optional parameter,
                                 // then the slash preceding the segment is optional as well.
                                 // In this case the parameter must match only is not empty,
                                 // because it's (slash + parameter) that is optional.
-                                sb?.Append("(/(?<").Append(parameterName).Append(">[^/]+?))?");
+                                _ = (sb?.Append("(/(?<").Append(parameterName).Append(">[^/]+?))?"));
                                 optionalSegmentCount++;
                             }
                             else
@@ -200,9 +226,11 @@ namespace Notio.Web.Routing
                                 // If at the start of a segment, don't forget the slash!
                                 // Position will be 1 at the start, not 0, because we've skipped the opening '{'.
                                 if (position == 1)
-                                    sb?.Append('/');
+                                {
+                                    _ = (sb?.Append('/'));
+                                }
 
-                                sb?.Append("(?<").Append(parameterName).Append(">[^/]").Append(allowEmpty ? '*' : '+').Append("?)");
+                                _ = (sb?.Append("(?<").Append(parameterName).Append(">[^/]").Append(allowEmpty ? '*' : '+').Append("?)"));
                             }
 
                             // Go on with parsing.
@@ -213,28 +241,32 @@ namespace Notio.Web.Routing
                         else
                         {
                             // Look for start of parameter spec.
-                            var openPosition = segment.IndexOf('{', position);
+                            int openPosition = segment.IndexOf('{', position);
                             if (openPosition < 0)
                             {
                                 // If at the start of a segment, don't forget the slash.
                                 if (position == 0)
-                                    sb?.Append('/');
+                                {
+                                    _ = (sb?.Append('/'));
+                                }
 
                                 // No more parameter specs: escape the remainder of the string
                                 // and add it to the pattern.
-                                sb?.Append(Regex.Escape(segment.Substring(position)));
+                                _ = (sb?.Append(Regex.Escape(segment[position..])));
                                 break;
                             }
 
-                            var nextPosition = openPosition + 1;
+                            int nextPosition = openPosition + 1;
                             if (nextPosition < segment.Length && segment[nextPosition] == '{')
                             {
                                 // If another identical char follows, treat the two as a single literal char.
                                 // If at the start of a segment, don't forget the slash!
                                 if (position == 0)
-                                    sb?.Append('/');
+                                {
+                                    _ = (sb?.Append('/'));
+                                }
 
-                                sb?.Append(@"\\{");
+                                _ = (sb?.Append(@"\\{"));
                             }
                             else if (afterParameter && openPosition == position)
                             {
@@ -249,11 +281,13 @@ namespace Notio.Web.Routing
                                 // Otherwise let the parameter spec parsing code deal with the slash,
                                 // because we don't know whether this is an optional segment yet.
                                 if (position == 0 && openPosition > 0)
-                                    sb?.Append('/');
+                                {
+                                    _ = (sb?.Append('/'));
+                                }
 
                                 // Escape the part of the pattern outside the parameter spec
                                 // and add it to the pattern.
-                                sb?.Append(Regex.Escape(segment.Substring(position, openPosition - position)));
+                                _ = (sb?.Append(Regex.Escape(segment[position..openPosition])));
                                 inParameterSpec = true;
                             }
 
@@ -265,11 +299,13 @@ namespace Notio.Web.Routing
                 }
 
                 // Close the pattern
-                sb?.Append(isBaseRoute ? "(/|$)" : "$");
+                _ = (sb?.Append(isBaseRoute ? "(/|$)" : "$"));
 
                 // If all segments are optional segments, "/" must match too.
                 if (optionalSegmentCount == segmentCount)
-                    sb?.Insert(0, "(/$)|(").Append(')');
+                {
+                    _ = (sb?.Insert(0, "(/$)|(").Append(')'));
+                }
             }
 
             // Pass the results to the callback if needed.
@@ -282,28 +318,32 @@ namespace Notio.Web.Routing
         // Enumerate the segments of a route, ignoring consecutive slashes.
         private static IEnumerable<string> GetSegments(string route)
         {
-            var length = route.Length;
-            var position = 0;
+            int length = route.Length;
+            int position = 0;
             for (; ; )
             {
                 while (route[position] == '/')
                 {
                     position++;
                     if (position >= length)
+                    {
                         break;
+                    }
                 }
 
                 if (position >= length)
-                    break;
-
-                var slashPosition = route.IndexOf('/', position);
-                if (slashPosition < 0)
                 {
-                    yield return route.Substring(position);
                     break;
                 }
 
-                yield return route.Substring(position, slashPosition - position);
+                int slashPosition = route.IndexOf('/', position);
+                if (slashPosition < 0)
+                {
+                    yield return route[position..];
+                    break;
+                }
+
+                yield return route[position..slashPosition];
                 position = slashPosition;
             }
         }

@@ -1,5 +1,5 @@
-﻿using Notio.Web.Internal;
-using Notio.Web.Files;
+﻿using Notio.Web.Files;
+using Notio.Web.Internal;
 using Swan.Logging;
 using Swan.Threading;
 using System;
@@ -29,10 +29,10 @@ namespace Notio.Files
 
         private static readonly Stopwatch TimeBase = Stopwatch.StartNew();
 
-        private static readonly object DefaultSyncRoot = new object();
+        private static readonly object DefaultSyncRoot = new();
         private static FileCache? _defaultInstance;
 
-        private readonly ConcurrentDictionary<string, Section> _sections = new ConcurrentDictionary<string, Section>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, Section> _sections = new(StringComparer.Ordinal);
         private int _sectionCount; // Because ConcurrentDictionary<,>.Count is locking.
         private int _maxSizeKb = DefaultMaxSizeKb;
         private int _maxFileSizeKb = DefaultMaxFileSizeKb;
@@ -46,12 +46,13 @@ namespace Notio.Files
             get
             {
                 if (_defaultInstance != null)
+                {
                     return _defaultInstance;
+                }
 
                 lock (DefaultSyncRoot)
                 {
-                    if (_defaultInstance == null)
-                        _defaultInstance = new FileCache();
+                    _defaultInstance ??= new FileCache();
                 }
 
                 return _defaultInstance;
@@ -90,18 +91,20 @@ namespace Notio.Files
         // It would mean that something is very, very wrong.
         internal Section AddSection(string name)
         {
-            var section = new Section();
+            Section section = new();
             (_sections as IDictionary<string, Section>).Add(name, section);
 
             if (Interlocked.Increment(ref _sectionCount) == 1)
+            {
                 _cleaner = new PeriodicTask(TimeSpan.FromMinutes(1), CheckMaxSize);
+            }
 
             return section;
         }
 
         internal void RemoveSection(string name)
         {
-            _sections.TryRemove(name, out _);
+            _ = _sections.TryRemove(name, out _);
 
             if (Interlocked.Decrement(ref _sectionCount) == 0)
             {
@@ -112,9 +115,9 @@ namespace Notio.Files
 
         private async Task CheckMaxSize(CancellationToken cancellationToken)
         {
-            var timeKeeper = new TimeKeeper();
-            var maxSizeKb = _maxSizeKb;
-            var initialSizeKb = ComputeTotalSize() / 1024L;
+            TimeKeeper timeKeeper = new();
+            int maxSizeKb = _maxSizeKb;
+            long initialSizeKb = ComputeTotalSize() / 1024L;
 
             if (initialSizeKb <= maxSizeKb)
             {
@@ -124,18 +127,22 @@ namespace Notio.Files
 
             $"Total size = {initialSizeKb}/{_maxSizeKb}kb, purging...".Debug(nameof(FileCache));
 
-            var removedCount = 0;
-            var removedSize = 0L;
-            var totalSizeKb = initialSizeKb;
-            var threshold = 973L * maxSizeKb / 1024L; // About 95% of maximum allowed size
+            int removedCount = 0;
+            long removedSize = 0L;
+            long totalSizeKb = initialSizeKb;
+            long threshold = 973L * maxSizeKb / 1024L; // About 95% of maximum allowed size
             while (totalSizeKb > threshold)
             {
                 if (cancellationToken.IsCancellationRequested)
+                {
                     return;
+                }
 
-                var section = GetSectionWithLeastRecentItem();
+                Section? section = GetSectionWithLeastRecentItem();
                 if (section == null)
+                {
                     return;
+                }
 
                 removedSize += section.RemoveLeastRecentItem();
                 removedCount++;
@@ -153,16 +160,18 @@ namespace Notio.Files
         // of ConcurrentDictionary<,> have snapshot semantics,
         // while GetEnumerator enumerates without locking.
         private long ComputeTotalSize()
-            => _sections.Sum(pair => pair.Value.GetTotalSize());
+        {
+            return _sections.Sum(pair => pair.Value.GetTotalSize());
+        }
 
         private Section? GetSectionWithLeastRecentItem()
         {
             Section? result = null;
-            var earliestTime = long.MaxValue;
-            foreach (var pair in _sections)
+            long earliestTime = long.MaxValue;
+            foreach (KeyValuePair<string, Section> pair in _sections)
             {
-                var section = pair.Value;
-                var time = section.GetLeastRecentUseTime();
+                Section section = pair.Value;
+                long time = section.GetLeastRecentUseTime();
 
                 if (time < earliestTime)
                 {

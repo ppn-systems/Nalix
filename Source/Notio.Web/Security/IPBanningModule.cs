@@ -1,5 +1,6 @@
 ﻿using Notio.Web.Http;
 using Notio.Web.Security.Internal;
+using Notio.Web.WebModule;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -64,8 +65,10 @@ namespace Notio.Web.Security
         /// Registers the criterion.
         /// </summary>
         /// <param name="criterion">The criterion.</param>
-        public void RegisterCriterion(IIPBanningCriterion criterion) =>
+        public void RegisterCriterion(IIPBanningCriterion criterion)
+        {
             Configuration.RegisterCriterion(criterion);
+        }
 
         /// <inheritdoc />
         public void Dispose()
@@ -82,10 +85,12 @@ namespace Notio.Web.Security
         /// A collection of <see cref="BanInfo" /> in the blacklist.
         /// </returns>
         /// <exception cref="ArgumentException">baseRoute</exception>
-        public static IEnumerable<BanInfo> GetBannedIPs(string baseRoute = "/") =>
-            IPBanningExecutor.TryGetInstance(baseRoute, out var instance)
+        public static IEnumerable<BanInfo> GetBannedIPs(string baseRoute = "/")
+        {
+            return IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
             ? instance.BlackList
             : throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        }
 
         /// <summary>
         /// Tries to ban an IP explicitly.
@@ -97,8 +102,10 @@ namespace Notio.Web.Security
         /// <returns>
         ///   <c>true</c> if the IP was added to the blacklist; otherwise, <c>false</c>.
         /// </returns>
-        public static bool TryBanIP(IPAddress address, int banMinutes, string baseRoute = "/", bool isExplicit = true) =>
-            TryBanIP(address, DateTime.Now.AddMinutes(banMinutes), baseRoute, isExplicit);
+        public static bool TryBanIP(IPAddress address, int banMinutes, string baseRoute = "/", bool isExplicit = true)
+        {
+            return TryBanIP(address, DateTime.Now.AddMinutes(banMinutes), baseRoute, isExplicit);
+        }
 
         /// <summary>
         /// Tries to ban an IP explicitly.
@@ -110,8 +117,10 @@ namespace Notio.Web.Security
         /// <returns>
         ///   <c>true</c> if the IP was added to the blacklist; otherwise, <c>false</c>.
         /// </returns>
-        public static bool TryBanIP(IPAddress address, TimeSpan banDuration, string baseRoute = "/", bool isExplicit = true) =>
-            TryBanIP(address, DateTime.Now.Add(banDuration), baseRoute, isExplicit);
+        public static bool TryBanIP(IPAddress address, TimeSpan banDuration, string baseRoute = "/", bool isExplicit = true)
+        {
+            return TryBanIP(address, DateTime.Now.Add(banDuration), baseRoute, isExplicit);
+        }
 
         /// <summary>
         /// Tries to ban an IP explicitly.
@@ -126,10 +135,9 @@ namespace Notio.Web.Security
         /// <exception cref="ArgumentException">baseRoute</exception>
         public static bool TryBanIP(IPAddress address, DateTime banUntil, string baseRoute = "/", bool isExplicit = true)
         {
-            if (!IPBanningExecutor.TryGetInstance(baseRoute, out var instance))
-                throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
-
-            return instance.TryBanIP(address, isExplicit, banUntil);
+            return !IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
+                ? throw new ArgumentException(NoConfigurationFound, nameof(baseRoute))
+                : instance.TryBanIP(address, isExplicit, banUntil);
         }
 
         /// <summary>
@@ -141,13 +149,17 @@ namespace Notio.Web.Security
         ///   <c>true</c> if the IP was removed from the blacklist; otherwise, <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentException">baseRoute</exception>
-        public static bool TryUnbanIP(IPAddress address, string baseRoute = "/") =>
-            IPBanningExecutor.TryGetInstance(baseRoute, out var instance)
+        public static bool TryUnbanIP(IPAddress address, string baseRoute = "/")
+        {
+            return IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
             ? instance.TryRemoveBlackList(address)
             : throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        }
 
-        internal void AddToWhitelist(IEnumerable<string>? whitelist) =>
+        internal void AddToWhitelist(IEnumerable<string>? whitelist)
+        {
             Configuration.AddToWhitelistAsync(whitelist).GetAwaiter().GetResult();
+        }
 
         /// <inheritdoc />
         protected override void OnStart(CancellationToken cancellationToken)
@@ -170,10 +182,14 @@ namespace Notio.Web.Security
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             if (disposing)
             {
-                IPBanningExecutor.TryRemoveInstance(BaseRoute);
+                _ = IPBanningExecutor.TryRemoveInstance(BaseRoute);
                 Configuration.Dispose();
             }
 

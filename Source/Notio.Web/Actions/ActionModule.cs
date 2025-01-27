@@ -2,6 +2,7 @@
 using Notio.Web.Http;
 using Notio.Web.Request;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using System;
 using System.Threading.Tasks;
 
@@ -48,7 +49,9 @@ public class ActionModule : WebModuleBase
     protected override async Task OnRequestAsync(IHttpContext context)
     {
         if (_verb != HttpVerbs.Any && context.Request.HttpVerb != _verb)
+        {
             return;
+        }
 
         await _handler(context).ConfigureAwait(false);
         context.SetHandled();

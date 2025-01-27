@@ -1,8 +1,7 @@
 ﻿using Notio.Web.Exceptions;
-using Notio.Web.Http;
 using System;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 /// <summary>
 /// <para>Represents an exception that results in a particular

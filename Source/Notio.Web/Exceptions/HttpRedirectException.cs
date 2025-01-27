@@ -22,8 +22,10 @@ public class HttpRedirectException : HttpException
     public HttpRedirectException(string location, int statusCode = (int)HttpStatusCode.Found)
         : base(statusCode)
     {
-        if (statusCode < 300 || statusCode > 399)
+        if (statusCode is < 300 or > 399)
+        {
             throw new ArgumentException("Redirect status code is not valid.", nameof(statusCode));
+        }
 
         Location = location;
     }

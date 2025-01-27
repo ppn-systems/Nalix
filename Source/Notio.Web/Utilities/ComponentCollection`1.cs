@@ -35,10 +35,16 @@ public class ComponentCollection<T> : ConfiguredObject, IComponentCollection<T>
     public T this[string key] => _namedComponents[key];
 
     /// <inheritdoc />
-    public IEnumerator<T> GetEnumerator() => _components.GetEnumerator();
+    public IEnumerator<T> GetEnumerator()
+    {
+        return _components.GetEnumerator();
+    }
 
     /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_components).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable)_components).GetEnumerator();
+    }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">The collection is locked.</exception>
@@ -49,27 +55,40 @@ public class ComponentCollection<T> : ConfiguredObject, IComponentCollection<T>
         if (name != null)
         {
             if (name.Length == 0)
+            {
                 throw new ArgumentException("Component name is empty.", nameof(name));
+            }
 
             if (_namedComponents.ContainsKey(name))
+            {
                 throw new ArgumentException("Duplicate component name.", nameof(name));
+            }
         }
 
         if (component == null)
+        {
             throw new ArgumentNullException(nameof(component));
+        }
 
         if (_components.Contains(component))
+        {
             throw new ArgumentException("Component has already been added.", nameof(component));
+        }
 
         _components.Add(component);
         _componentsWithSafeNames.Add((name ?? $"<{component.GetType().Name}>", component));
 
         if (name != null)
+        {
             _namedComponents.Add(name, component);
+        }
     }
 
     /// <summary>
     /// Locks the collection, preventing further additions.
     /// </summary>
-    public void Lock() => LockConfiguration();
+    public void Lock()
+    {
+        LockConfiguration();
+    }
 }

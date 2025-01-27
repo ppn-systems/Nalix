@@ -90,8 +90,14 @@ public class SystemHttpResponse : IHttpResponse
     }
 
     /// <inheritdoc />
-    public void SetCookie(Cookie cookie) => _response.SetCookie(cookie);
+    public void SetCookie(Cookie cookie)
+    {
+        _response.SetCookie(cookie);
+    }
 
     /// <inheritdoc />
-    public void Close() => _response.OutputStream?.Dispose();
+    public void Close()
+    {
+        _response.OutputStream?.Dispose();
+    }
 }

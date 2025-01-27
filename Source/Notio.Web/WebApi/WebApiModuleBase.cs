@@ -2,6 +2,7 @@
 using Notio.Web.Response;
 using Notio.Web.Routing;
 using Notio.Web.Utilities;
+using Notio.Web.WebModule;
 using Swan;
 using System;
 using System.Collections.Generic;
@@ -20,15 +21,15 @@ namespace Notio.Web.WebApi
     {
         private const string GetRequestDataAsyncMethodName = nameof(IRequestDataAttribute<WebApiController>.GetRequestDataAsync);
 
-        private static readonly MethodInfo PreProcessRequestMethod = typeof(WebApiController).GetMethod(nameof(WebApiController.PreProcessRequest));
-        private static readonly MethodInfo HttpContextSetter = typeof(WebApiController).GetProperty(nameof(WebApiController.HttpContext)).GetSetMethod(true);
-        private static readonly MethodInfo RouteSetter = typeof(WebApiController).GetProperty(nameof(WebApiController.Route)).GetSetMethod(true);
-        private static readonly MethodInfo AwaitResultMethod = typeof(WebApiModuleBase).GetMethod(nameof(AwaitResult), BindingFlags.Static | BindingFlags.NonPublic);
-        private static readonly MethodInfo AwaitAndCastResultMethod = typeof(WebApiModuleBase).GetMethod(nameof(AwaitAndCastResult), BindingFlags.Static | BindingFlags.NonPublic);
-        private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
-        private static readonly MethodInfo SerializeResultAsyncMethod = typeof(WebApiModuleBase).GetMethod(nameof(SerializeResultAsync), BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo? PreProcessRequestMethod = typeof(WebApiController).GetMethod(nameof(WebApiController.PreProcessRequest));
+        private static readonly MethodInfo? HttpContextSetter = typeof(WebApiController).GetProperty(nameof(WebApiController.HttpContext))?.GetSetMethod(true) ?? throw new InvalidOperationException("HttpContext property setter not found.");
+        private static readonly MethodInfo? RouteSetter = typeof(WebApiController).GetProperty(nameof(WebApiController.Route))?.GetSetMethod(true) ?? throw new InvalidOperationException("Route property setter not found.");
+        private static readonly MethodInfo? AwaitResultMethod = typeof(WebApiModuleBase).GetMethod(nameof(AwaitResult), BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo? AwaitAndCastResultMethod = typeof(WebApiModuleBase).GetMethod(nameof(AwaitAndCastResult), BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo? DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
+        private static readonly MethodInfo? SerializeResultAsyncMethod = typeof(WebApiModuleBase).GetMethod(nameof(SerializeResultAsync), BindingFlags.Instance | BindingFlags.NonPublic);
 
-        private readonly HashSet<Type> _controllerTypes = new HashSet<Type>();
+        private readonly HashSet<Type> _controllerTypes = [];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebApiModuleBase" /> class,
@@ -104,7 +105,9 @@ namespace Notio.Web.WebApi
         /// <seealso cref="RegisterControllerType(Type)"/>
         protected void RegisterControllerType<TController>()
             where TController : WebApiController, new()
-            => RegisterControllerType(typeof(TController));
+        {
+            RegisterControllerType(typeof(TController));
+        }
 
         /// <summary>
         /// <para>Registers a controller type using a factory method.</para>
@@ -150,7 +153,9 @@ namespace Notio.Web.WebApi
         /// <seealso cref="RegisterControllerType(Type,Func{WebApiController})"/>
         protected void RegisterControllerType<TController>(Func<TController> factory)
             where TController : WebApiController
-            => RegisterControllerType(typeof(TController), factory);
+        {
+            RegisterControllerType(typeof(TController), factory);
+        }
 
         /// <summary>
         /// <para>Registers a controller type using a constructor.</para>
@@ -192,7 +197,7 @@ namespace Notio.Web.WebApi
 
             controllerType = ValidateControllerType(nameof(controllerType), controllerType, false);
 
-            var constructor = controllerType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 0);
+            ConstructorInfo? constructor = controllerType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 0);
             if (constructor == null)
             {
                 throw new ArgumentException(
@@ -201,7 +206,9 @@ namespace Notio.Web.WebApi
             }
 
             if (!TryRegisterControllerTypeCore(controllerType, Expression.New(constructor)))
+            {
                 throw new ArgumentException($"Type {controllerType.Name} contains no controller methods.");
+            }
         }
 
         /// <summary>
@@ -257,38 +264,47 @@ namespace Notio.Web.WebApi
             controllerType = ValidateControllerType(nameof(controllerType), controllerType, true);
             factory = Validate.NotNull(nameof(factory), factory);
             if (!controllerType.IsAssignableFrom(factory.Method.ReturnType))
+            {
                 throw new ArgumentException("Factory method has an incorrect return type.", nameof(factory));
+            }
 
-            var expression = Expression.Call(
+            MethodCallExpression expression = Expression.Call(
                 factory.Target == null ? null : Expression.Constant(factory.Target),
                 factory.Method);
 
             if (!TryRegisterControllerTypeCore(controllerType, expression))
+            {
                 throw new ArgumentException($"Type {controllerType.Name} contains no controller methods.");
+            }
         }
 
         private static int IndexOfRouteParameter(RouteMatcher matcher, string name)
         {
-            var names = matcher.ParameterNames;
-            for (var i = 0; i < names.Count; i++)
+            IReadOnlyList<string> names = matcher.ParameterNames;
+            for (int i = 0; i < names.Count; i++)
             {
                 if (names[i] == name)
+                {
                     return i;
+                }
             }
 
             return -1;
         }
 
-        private static T AwaitResult<T>(Task<T> task) => task.ConfigureAwait(false).GetAwaiter().GetResult();
+        private static T AwaitResult<T>(Task<T> task)
+        {
+            return task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
 
         private static T AwaitAndCastResult<T>(string parameterName, Task<object> task)
         {
-            var result = task.ConfigureAwait(false).GetAwaiter().GetResult();
+            object? result = task.ConfigureAwait(false).GetAwaiter().GetResult();
 
             return result switch
             {
                 null when typeof(T).IsValueType && Nullable.GetUnderlyingType(typeof(T)) == null => throw new InvalidCastException($"Cannot cast null to {typeof(T).FullName} for parameter \"{parameterName}\"."),
-                null => default,
+                null => default!,
                 T castResult => castResult,
                 _ => throw new InvalidCastException($"Cannot cast {result.GetType().FullName} to {typeof(T).FullName} for parameter \"{parameterName}\".")
             };
@@ -299,10 +315,14 @@ namespace Notio.Web.WebApi
             resultType = null;
 
             if (!type.IsConstructedGenericType)
+            {
                 return false;
+            }
 
             if (type.GetGenericTypeDefinition() != typeof(Task<>))
+            {
                 return false;
+            }
 
             resultType = type.GetGenericArguments()[0];
             return true;
@@ -325,35 +345,35 @@ namespace Notio.Web.WebApi
         private RouteHandlerCallback CompileHandler(Expression factoryExpression, MethodInfo method, RouteMatcher matcher)
         {
             // Lambda parameters
-            var contextInLambda = Expression.Parameter(typeof(IHttpContext), "context");
-            var routeInLambda = Expression.Parameter(typeof(RouteMatch), "route");
+            ParameterExpression contextInLambda = Expression.Parameter(typeof(IHttpContext), "context");
+            ParameterExpression routeInLambda = Expression.Parameter(typeof(RouteMatch), "route");
 
             // Local variables
-            var locals = new List<ParameterExpression>();
+            List<ParameterExpression> locals = [];
 
             // Local variable for controller
-            var controllerType = method.ReflectedType;
-            var controller = Expression.Variable(controllerType, "controller");
+            Type? controllerType = method.ReflectedType ?? throw new InvalidOperationException("Controller type cannot be null.");
+            ParameterExpression controller = Expression.Variable(controllerType, "controller");
             locals.Add(controller);
 
             // Label for return statement
-            var returnTarget = Expression.Label(typeof(Task));
+            LabelTarget returnTarget = Expression.Label(typeof(Task));
 
             // Contents of lambda body
-            var bodyContents = new List<Expression>();
+            List<Expression> bodyContents = [];
 
             // Build lambda arguments
-            var parameters = method.GetParameters();
-            var parameterCount = parameters.Length;
-            var handlerArguments = new List<Expression>();
-            for (var i = 0; i < parameterCount; i++)
+            ParameterInfo[] parameters = method.GetParameters();
+            int parameterCount = parameters.Length;
+            List<Expression> handlerArguments = [];
+            for (int i = 0; i < parameterCount; i++)
             {
-                var parameter = parameters[i];
-                var parameterType = parameter.ParameterType;
-                var failedToUseRequestDataAttributes = false;
+                ParameterInfo parameter = parameters[i];
+                Type parameterType = parameter.ParameterType;
+                bool failedToUseRequestDataAttributes = false;
 
                 // First, check for generic request data interfaces in attributes
-                var requestDataInterfaces = parameter.GetCustomAttributes<Attribute>()
+                List<(Attribute Attr, Type Intf)> requestDataInterfaces = parameter.GetCustomAttributes<Attribute>()
                         .Aggregate(new List<(Attribute Attr, Type Intf)>(), (list, attr) =>
                         {
                             list.AddRange(attr.GetType().GetInterfaces()
@@ -368,7 +388,7 @@ namespace Notio.Web.WebApi
                 if (requestDataInterfaces.Count > 0)
                 {
                     // Take the first that applies to both controller and parameter type
-                    var (attr, intf) = requestDataInterfaces.FirstOrDefault(
+                    (Attribute attr, Type intf) = requestDataInterfaces.FirstOrDefault(
                         x => x.Intf.GenericTypeArguments[0].IsAssignableFrom(controllerType)
                           && parameterType.IsAssignableFrom(x.Intf.GenericTypeArguments[1]));
 
@@ -412,7 +432,7 @@ namespace Notio.Web.WebApi
                 if (requestDataInterfaces.Count > 0)
                 {
                     // Take the first that applies to the controller
-                    var (attr, intf) = requestDataInterfaces.FirstOrDefault(
+                    (Attribute attr, Type intf) = requestDataInterfaces.FirstOrDefault(
                         x => x.Intf.GenericTypeArguments[0].IsAssignableFrom(controllerType));
 
                     if (attr != null)
@@ -447,14 +467,16 @@ namespace Notio.Web.WebApi
                 // There are request data attributes, but none is suitable
                 // for the type of the parameter.
                 if (failedToUseRequestDataAttributes)
+                {
                     throw new InvalidOperationException($"No request data attribute for parameter {parameter.Name} of method {controllerType.Name}.{method.Name} can provide the expected data type.");
+                }
 
                 // Check whether the name of the handler parameter matches the name of a route parameter.
-                var index = IndexOfRouteParameter(matcher, parameter.Name);
+                int index = IndexOfRouteParameter(matcher, parameter.Name);
                 if (index >= 0)
                 {
                     // Convert the parameter to the handler's parameter type.
-                    var convertFromRoute = FromString.ConvertExpressionTo(
+                    Expression? convertFromRoute = FromString.ConvertExpressionTo(
                         parameterType,
                         Expression.Property(routeInLambda, "Item", Expression.Constant(index)));
 
@@ -476,7 +498,7 @@ namespace Notio.Web.WebApi
 
             // Build the handler method call
             Expression callMethod = Expression.Call(controller, method, handlerArguments);
-            var methodReturnType = method.ReturnType;
+            Type methodReturnType = method.ReturnType;
             if (methodReturnType == typeof(Task))
             {
                 // Nothing to do
@@ -486,7 +508,7 @@ namespace Notio.Web.WebApi
                 // Convert void to Task by evaluating Task.CompletedTask
                 callMethod = Expression.Block(typeof(Task), callMethod, Expression.Constant(Task.CompletedTask));
             }
-            else if (IsGenericTaskType(methodReturnType, out var resultType))
+            else if (IsGenericTaskType(methodReturnType, out Type? resultType))
             {
                 // Return a Task that serializes the result of a Task<TResult>
                 callMethod = Expression.Call(
@@ -558,37 +580,42 @@ namespace Notio.Web.WebApi
             {
                 if (value.IsGenericTypeDefinition
                  || !value.IsSubclassOf(typeof(WebApiController)))
+                {
                     throw new ArgumentException($"Controller type must be a subclass of {nameof(WebApiController)}.", argumentName);
+                }
             }
             else
             {
                 if (value.IsAbstract
                  || value.IsGenericTypeDefinition
                  || !value.IsSubclassOf(typeof(WebApiController)))
+                {
                     throw new ArgumentException($"Controller type must be a non-abstract subclass of {nameof(WebApiController)}.", argumentName);
+                }
             }
 
-            if (_controllerTypes.Contains(value))
-                throw new ArgumentException("Controller type is already registered in this module.", argumentName);
-
-            return value;
+            return _controllerTypes.Contains(value)
+                ? throw new ArgumentException("Controller type is already registered in this module.", argumentName)
+                : value;
         }
 
         private bool TryRegisterControllerTypeCore(Type controllerType, Expression factoryExpression)
         {
-            var handlerCount = 0;
-            var methods = controllerType.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            int handlerCount = 0;
+            IEnumerable<MethodInfo> methods = controllerType.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                 .Where(m => !m.ContainsGenericParameters);
 
-            foreach (var method in methods)
+            foreach (MethodInfo? method in methods)
             {
-                var attributes = method.GetCustomAttributes()
+                RouteAttribute[] attributes = method.GetCustomAttributes()
                     .OfType<RouteAttribute>()
                     .ToArray();
                 if (attributes.Length < 1)
+                {
                     continue;
+                }
 
-                foreach (var attribute in attributes)
+                foreach (RouteAttribute? attribute in attributes)
                 {
                     AddHandler(attribute.Verb, attribute.Matcher, CompileHandler(factoryExpression, method, attribute.Matcher));
                     handlerCount++;
@@ -596,9 +623,11 @@ namespace Notio.Web.WebApi
             }
 
             if (handlerCount < 1)
+            {
                 return false;
+            }
 
-            _controllerTypes.Add(controllerType);
+            _ = _controllerTypes.Add(controllerType);
             return true;
         }
     }

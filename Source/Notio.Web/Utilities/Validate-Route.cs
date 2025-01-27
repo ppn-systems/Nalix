@@ -24,10 +24,7 @@ public static partial class Validate
     /// <seealso cref="Route.IsValid"/>
     public static string Route(string argumentName, string value, bool isBaseRoute)
     {
-        var exception = Web.Routing.Route.ValidateInternal(argumentName, value, isBaseRoute);
-        if (exception != null)
-            throw exception;
-
-        return Web.Utilities.UrlPath.UnsafeNormalize(value, isBaseRoute);
+        Exception? exception = Web.Routing.Route.ValidateInternal(argumentName, value, isBaseRoute);
+        return exception != null ? throw exception : Web.Utilities.UrlPath.UnsafeNormalize(value, isBaseRoute);
     }
 }

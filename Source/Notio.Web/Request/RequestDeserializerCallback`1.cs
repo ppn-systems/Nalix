@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using Notio.Web.Http;
+using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Web.Request;
 
 /// <summary>
 /// A callback used to deserialize an HTTP request body.

@@ -1,5 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web.Http;
+﻿using Notio.Web.Http;
 using Notio.Web.Utilities;
 using System;
 using System.Globalization;
@@ -43,7 +42,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
     /// <exception cref="InvalidOperationException">This property is being set and headers were already sent.</exception>
     public long ContentLength64
     {
-        get => Headers.ContainsKey(HttpHeaderNames.ContentLength) && long.TryParse(Headers[HttpHeaderNames.ContentLength], out var val) ? val : 0;
+        get => Headers.ContainsKey(HttpHeaderNames.ContentLength) && long.TryParse(Headers[HttpHeaderNames.ContentLength], out long val) ? val : 0;
 
         set
         {
@@ -123,7 +122,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
         set
         {
             EnsureCanChangeHeaders();
-            if (value < 100 || value > 999)
+            if (value is < 100 or > 999)
             {
                 throw new ArgumentOutOfRangeException(nameof(StatusCode), "StatusCode must be between 100 and 999.");
             }
@@ -144,7 +143,10 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
 
     internal bool HeadersSent { get; set; }
 
-    void IDisposable.Dispose() => Close(true);
+    void IDisposable.Dispose()
+    {
+        Close(true);
+    }
 
     public void Close()
     {
@@ -178,7 +180,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
     {
         if (_contentType != null)
         {
-            var contentTypeValue = !_contentType.Contains("charset=")
+            string contentTypeValue = !_contentType.Contains("charset=")
                 ? $"{_contentType}; charset={WebServer.DefaultEncoding.WebName}"
                 : _contentType;
 
@@ -207,9 +209,9 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
                 _chunked = false;
             }
 
-            var haveContentLength = !_chunked
+            bool haveContentLength = !_chunked
                                  && Headers.ContainsKey(HttpHeaderNames.ContentLength)
-                                 && long.TryParse(Headers[HttpHeaderNames.ContentLength], out var contentLength)
+                                 && long.TryParse(Headers[HttpHeaderNames.ContentLength], out long contentLength)
                                  && contentLength >= 0L;
 
             if (!haveContentLength)
@@ -235,8 +237,8 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
         //// HttpStatusCode.RequestUriTooLong     414
         //// HttpStatusCode.InternalServerError   500
         //// HttpStatusCode.ServiceUnavailable    503
-        var reuses = _connection.Reuses;
-        var keepAlive = _statusCode switch
+        int reuses = _connection.Reuses;
+        bool keepAlive = _statusCode switch
         {
             400 => false,
             408 => false,
@@ -320,7 +322,9 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
     }
 
     private static string QuotedString(Cookie cookie, string value)
-        => cookie.Version == 0 || value.IsToken() ? value : "\"" + value.Replace("\"", "\\\"") + "\"";
+    {
+        return cookie.Version == 0 || value.IsToken() ? value : "\"" + value.Replace("\"", "\\\"") + "\"";
+    }
 
     private void Close(bool force)
     {
@@ -331,7 +335,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
 
     private string GetHeaderData()
     {
-        var sb = new StringBuilder()
+        StringBuilder sb = new StringBuilder()
             .Append("HTTP/")
             .Append(ProtocolVersion)
             .Append(' ')
@@ -340,7 +344,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
             .Append(StatusDescription)
             .Append("\r\n");
 
-        foreach (var key in Headers.AllKeys.Where(x => x != "Set-Cookie"))
+        foreach (string? key in Headers.AllKeys.Where(x => x != "Set-Cookie"))
         {
             _ = sb
                 .Append(key)
@@ -351,7 +355,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
 
         if (_cookies != null)
         {
-            foreach (var cookie in _cookies)
+            foreach (Cookie cookie in _cookies)
             {
                 AppendSetCookieHeader(sb, cookie);
             }
@@ -359,7 +363,7 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
 
         if (Headers.ContainsKey(HttpHeaderNames.SetCookie))
         {
-            foreach (var cookie in CookieList.Parse(Headers[HttpHeaderNames.SetCookie] ?? string.Empty))
+            foreach (Cookie cookie in CookieList.Parse(Headers[HttpHeaderNames.SetCookie] ?? string.Empty))
             {
                 AppendSetCookieHeader(sb, cookie);
             }
@@ -370,9 +374,9 @@ internal sealed class HttpListenerResponse : IHttpResponse, IDisposable
 
     private MemoryStream WriteHeaders()
     {
-        var stream = new MemoryStream();
-        var data = WebServer.DefaultEncoding.GetBytes(GetHeaderData());
-        var preamble = WebServer.DefaultEncoding.GetPreamble();
+        MemoryStream stream = new();
+        byte[] data = WebServer.DefaultEncoding.GetBytes(GetHeaderData());
+        byte[] preamble = WebServer.DefaultEncoding.GetPreamble();
         stream.Write(preamble, 0, preamble.Length);
         stream.Write(data, 0, data.Length);
 

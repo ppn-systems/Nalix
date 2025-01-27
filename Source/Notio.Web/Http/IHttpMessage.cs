@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 /// <summary>
 /// Represents a HTTP request or response.

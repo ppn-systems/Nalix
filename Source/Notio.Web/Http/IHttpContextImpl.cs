@@ -1,5 +1,4 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Routing;
+﻿using Notio.Web.Routing;
 using Notio.Web.Sessions;
 using Notio.Web.Utilities;
 using Notio.Web.WebSockets;
@@ -9,7 +8,7 @@ using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 /// <summary>
 /// <para>Represents a HTTP context implementation, i.e. a HTTP context as seen internally by Notio.</para>

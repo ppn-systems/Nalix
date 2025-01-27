@@ -23,9 +23,8 @@ public static partial class Validate
     {
         value = NotNullOrEmpty(argumentName, value);
 
-        if (!Notio.MimeType.IsMimeType(value, acceptMediaRange))
-            throw new ArgumentException("MIME type is not valid.", argumentName);
-
-        return value;
+        return !Notio.MimeType.IsMimeType(value, acceptMediaRange)
+            ? throw new ArgumentException("MIME type is not valid.", argumentName)
+            : value;
     }
 }

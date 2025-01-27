@@ -1,6 +1,5 @@
 ﻿using Notio.Web.Enums;
 using Notio.Web.Net.Internal;
-using Notio.Web.WebSockets;
 using Swan;
 using System;
 using System.Collections.Generic;
@@ -35,11 +34,11 @@ namespace Notio.Web.WebSockets.Internal
             Rsv3 = Rsv.Off;
             Opcode = opcode;
 
-            var len = payloadData.Length;
+            ulong len = payloadData.Length;
             if (len < 126)
             {
                 PayloadLength = (byte)len;
-                ExtendedPayloadLength = Array.Empty<byte>();
+                ExtendedPayloadLength = [];
             }
             else if (len < 0x010000)
             {
@@ -53,8 +52,8 @@ namespace Notio.Web.WebSockets.Internal
             }
 
             Mask = Mask.Off;
-            MaskingKey = Array.Empty<byte>();
-            PayloadData = payloadData;
+            MaskingKey = [];
+            PayloadData = payloadData ?? throw new ArgumentNullException(nameof(payloadData));
         }
 
         internal WebSocketFrame(
@@ -73,6 +72,8 @@ namespace Notio.Web.WebSockets.Internal
             Opcode = opcode;
             Mask = mask;
             PayloadLength = payloadLength;
+            MaskingKey = [];
+            PayloadData = new PayloadData([]);
         }
 
         public byte[]? ExtendedPayloadLength { get; internal set; }
@@ -106,24 +107,27 @@ namespace Notio.Web.WebSockets.Internal
         internal ulong FullPayloadLength => PayloadLength < 126
             ? PayloadLength
             : PayloadLength == 126
-                ? BitConverter.ToUInt16(ExtendedPayloadLength.ToHostOrder(Endianness.Big), 0)
-                : BitConverter.ToUInt64(ExtendedPayloadLength.ToHostOrder(Endianness.Big), 0);
+                ? BitConverter.ToUInt16(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0)
+                : BitConverter.ToUInt64(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0);
 
-        public IEnumerator<byte> GetEnumerator() => ((IEnumerable<byte>)ToArray()).GetEnumerator();
+        public IEnumerator<byte> GetEnumerator()
+        {
+            return ((IEnumerable<byte>)ToArray()).GetEnumerator();
+        }
 
         public string PrintToString()
         {
             // Payload Length
-            var payloadLen = PayloadLength;
+            byte payloadLen = PayloadLength;
 
             // Extended Payload Length
-            var extPayloadLen = payloadLen > 125 ? FullPayloadLength.ToString(CultureInfo.InvariantCulture) : string.Empty;
+            string extPayloadLen = payloadLen > 125 ? FullPayloadLength.ToString(CultureInfo.InvariantCulture) : string.Empty;
 
             // Masking Key
-            var maskingKey = BitConverter.ToString(MaskingKey);
+            string maskingKey = BitConverter.ToString(MaskingKey);
 
             // Payload Data
-            var payload = payloadLen == 0
+            string payload = payloadLen == 0
                 ? string.Empty
                 : payloadLen > 125
                     ? "---"
@@ -146,8 +150,8 @@ Extended Payload Length: {extPayloadLen}
 
         public byte[] ToArray()
         {
-            using var buff = new MemoryStream();
-            var header = (int)Fin;
+            using MemoryStream buff = new();
+            int header = (int)Fin;
 
             header = (header << 1) + (int)Rsv1;
             header = (header << 1) + (int)Rsv2;
@@ -159,7 +163,7 @@ Extended Payload Length: {extPayloadLen}
 
             if (PayloadLength > 125)
             {
-                buff.Write(ExtendedPayloadLength, 0, PayloadLength == 126 ? 2 : 8);
+                buff.Write(ExtendedPayloadLength ?? [], 0, PayloadLength == 126 ? 2 : 8);
             }
 
             if (Mask == Mask.On)
@@ -169,14 +173,14 @@ Extended Payload Length: {extPayloadLen}
 
             if (PayloadLength > 0)
             {
-                var bytes = PayloadData.ToArray();
+                byte[] bytes = PayloadData.ToArray();
                 if (PayloadLength < 127)
                 {
                     buff.Write(bytes, 0, bytes.Length);
                 }
                 else
                 {
-                    using var input = new MemoryStream(bytes);
+                    using MemoryStream input = new(bytes);
                     input.CopyTo(buff, 1024);
                 }
             }
@@ -184,13 +188,25 @@ Extended Payload Length: {extPayloadLen}
             return buff.ToArray();
         }
 
-        public override string ToString() => BitConverter.ToString(ToArray());
+        public override string ToString()
+        {
+            return BitConverter.ToString(ToArray());
+        }
 
-        internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData) => new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
+        internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData)
+        {
+            return new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
+        }
 
-        internal static WebSocketFrame CreatePingFrame() => new(Fin.Final, Opcode.Ping, new PayloadData());
+        internal static WebSocketFrame CreatePingFrame()
+        {
+            return new(Fin.Final, Opcode.Ping, new PayloadData());
+        }
 
-        internal static WebSocketFrame CreatePingFrame(byte[] data) => new(Fin.Final, Opcode.Ping, new PayloadData(data));
+        internal static WebSocketFrame CreatePingFrame(byte[] data)
+        {
+            return new(Fin.Final, Opcode.Ping, new PayloadData(data));
+        }
 
         internal void Validate(WebSocket webSocket)
         {
@@ -233,9 +249,12 @@ Extended Payload Length: {extPayloadLen}
 
             Mask = Mask.Off;
             PayloadData.Mask(MaskingKey);
-            MaskingKey = Array.Empty<byte>();
+            MaskingKey = [];
         }
 
-        private static bool IsOpcodeData(Opcode opcode) => opcode == Opcode.Text || opcode == Opcode.Binary;
+        private static bool IsOpcodeData(Opcode opcode)
+        {
+            return opcode is Opcode.Text or Opcode.Binary;
+        }
     }
 }

@@ -42,7 +42,7 @@ internal class RequestStream : Stream
     public override int Read([In, Out] byte[] buffer, int offset, int count)
     {
         // Call FillFromBuffer to check for buffer boundaries even when remaining_body is 0
-        var nread = FillFromBuffer(buffer, offset, count);
+        int nread = FillFromBuffer(buffer, offset, count);
 
         if (nread == -1)
         {
@@ -65,11 +65,20 @@ internal class RequestStream : Stream
         return nread;
     }
 
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        throw new NotSupportedException();
+    }
 
-    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void SetLength(long value)
+    {
+        throw new NotSupportedException();
+    }
 
-    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        throw new NotSupportedException();
+    }
 
     // Returns 0 if we can keep reading from the base stream,
     // > 0 if we read something from the buffer.
@@ -91,7 +100,7 @@ internal class RequestStream : Stream
             throw new ArgumentOutOfRangeException(nameof(count), "< 0");
         }
 
-        var len = buffer.Length;
+        int len = buffer.Length;
 
         if (off > len)
         {
@@ -113,7 +122,7 @@ internal class RequestStream : Stream
             return 0;
         }
 
-        var size = Math.Min(_length, count);
+        int size = Math.Min(_length, count);
         if (_remainingBody > 0)
         {
             size = (int)Math.Min(size, _remainingBody);
