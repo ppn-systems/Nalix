@@ -1,5 +1,4 @@
-﻿using Notio.Logging;
-using Notio.Network.Http.Core;
+﻿using Notio.Common.Logging;
 using Notio.Network.Http.Exceptions;
 using System;
 using System.Net;
@@ -7,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public sealed class ExceptionHandlingMiddleware(NotioLog logger) : MiddlewareBase
+public sealed class ExceptionHandlingMiddleware(ILogger? logger) : MiddlewareBase
 {
-    private readonly NotioLog _logger = logger;
+    private readonly ILogger? _logger = logger;
 
     protected override async Task HandleAsync(HttpContext context)
     {
@@ -20,7 +19,7 @@ public sealed class ExceptionHandlingMiddleware(NotioLog logger) : MiddlewareBas
         }
         catch (Exception ex)
         {
-            _logger.Error("Unhandled exception", ex);
+            _logger?.Error("Unhandled exception", ex);
 
             var statusCode = ex switch
             {

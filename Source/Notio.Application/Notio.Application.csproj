@@ -29,7 +29,6 @@
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
 		<ProjectReference Include="..\Notio.Database\Notio.Database.csproj" />
-		<ProjectReference Include="..\Notio.Infrastructure\Notio.Infrastructure.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -2,10 +2,10 @@
 using Notio.Application.Http;
 using Notio.Common.Enums;
 using Notio.Database;
-using Notio.Infrastructure.Helper;
 using Notio.Logging;
 using Notio.Logging.Targets;
 using Notio.Network.Http;
+using Notio.Shared.Helper;
 using System;
 using System.Text;
 

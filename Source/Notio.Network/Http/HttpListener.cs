@@ -1,5 +1,4 @@
-﻿using Notio.Logging;
-using Notio.Network.Http.Core;
+﻿using Notio.Common.Logging;
 using Notio.Network.Http.Exceptions;
 using Notio.Network.Http.Middleware;
 using Notio.Shared.Configuration;
@@ -26,7 +25,7 @@ public interface IHttpListener
 
 public sealed class HttpListener : IDisposable, IHttpListener
 {
-    private readonly NotioLog _logger;
+    private readonly ILogger? _logger;
     private readonly HttpRouter _router;
     private readonly HttpConfig _httpConfig;
     private readonly MiddlewarePipeline _pipeline;
@@ -36,9 +35,9 @@ public sealed class HttpListener : IDisposable, IHttpListener
 
     public HttpListener(
         HttpConfig? config = null,
-        NotioLog? logger = null)
+        ILogger? logger = null)
     {
-        _logger = logger ?? NotioLog.Instance;
+        _logger = logger;
         _httpConfig = config ?? ConfigurationShared.Instance.Get<HttpConfig>();
 
         if (string.IsNullOrWhiteSpace(_httpConfig.Prefixes))
@@ -94,14 +93,14 @@ public sealed class HttpListener : IDisposable, IHttpListener
         try
         {
             _listener.Start();
-            _logger.Info($"HTTP server is running on {string.Join(", ", _httpConfig.Prefixes)}");
+            _logger?.Info($"HTTP server is running on {string.Join(", ", _httpConfig.Prefixes)}");
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
             await HandleRequestsAsync(linkedCts.Token);
         }
         catch (Exception ex)
         {
-            _logger.Error("Failed to start server", ex);
+            _logger?.Error("Failed to start server", ex);
             throw;
         }
     }
@@ -124,7 +123,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
                             _requestSemaphore.Release();
                             if (t.IsFaulted)
                             {
-                                _logger.Error("Unhandled error in request processing", t.Exception);
+                                _logger?.Error("Unhandled error in request processing", t.Exception);
                             }
                         }, TaskScheduler.Current);
                 }
@@ -139,7 +138,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
             }
             catch (Exception ex)
             {
-                _logger.Error("Error accepting request", ex);
+                _logger?.Error("Error accepting request", ex);
                 await Task.Delay(1000, cancellationToken); // Prevent tight loop on persistent errors
             }
         }
@@ -157,7 +156,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
         }
         catch (Exception ex)
         {
-            _logger.Error($"Error processing request: {ex.Message}", ex);
+            _logger?.Error($"Error processing request: {ex.Message}", ex);
             await HandleErrorResponse(context, ex);
         }
         finally
@@ -168,7 +167,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
             string safeHttpMethod = context.Request.HttpMethod ?? "Unknown";
             string safeUrl = context.Request.Url?.PathAndQuery?.Replace("\n", "").Replace("\r", "") ?? "Unknown URL";
 
-            _logger.Debug($"Request processed in {stopwatch.ElapsedMilliseconds}ms: {safeHttpMethod} {safeUrl}");
+            _logger?.Debug($"Request processed in {stopwatch.ElapsedMilliseconds}ms: {safeHttpMethod} {safeUrl}");
 
             context.Response.Close();
         }
@@ -198,7 +197,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
         _cts.Cancel();
         _listener.Stop();
         await Task.WhenAll(_pipeline.ShutdownAsync());
-        _logger.Info("Server has been stopped.");
+        _logger?.Info("Server has been stopped.");
     }
 
     public void Dispose()

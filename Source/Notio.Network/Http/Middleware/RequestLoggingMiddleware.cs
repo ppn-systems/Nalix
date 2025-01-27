@@ -1,13 +1,12 @@
-﻿using Notio.Logging;
-using Notio.Network.Http.Core;
+﻿using Notio.Common.Logging;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Http.Middleware;
 
-public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
+public sealed class RequestLoggingMiddleware(ILogger? logger) : MiddlewareBase
 {
-    private readonly NotioLog _logger = logger;
+    private readonly ILogger? _logger = logger;
     private readonly Stopwatch _stopwatch = new();
 
     protected override async Task HandleAsync(HttpContext context)
@@ -17,7 +16,7 @@ public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
         string safeHttpMethod = context.Request.HttpMethod ?? "Unknown";
         string safeUrl = context.Request.Url?.PathAndQuery?.Replace("\n", "").Replace("\r", "") ?? "Unknown URL";
 
-        _logger.Trace(
+        _logger?.Trace(
             $"Completed Request: {safeHttpMethod} {safeUrl} - " +
             $"Status: {context.Response.StatusCode} | " +
             $"Duration: {_stopwatch.ElapsedMilliseconds}ms");
@@ -32,7 +31,7 @@ public sealed class RequestLoggingMiddleware(NotioLog logger) : MiddlewareBase
             _stopwatch.Stop();
 
             // Log response
-            _logger.Trace(
+            _logger?.Trace(
                 $"Completed Request: {safeHttpMethod} {safeUrl} - " +
                 $"Status: {context.Response.StatusCode} | " +
                 $"Duration: {_stopwatch.ElapsedMilliseconds}ms");
