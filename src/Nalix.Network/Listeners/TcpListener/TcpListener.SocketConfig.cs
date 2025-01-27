@@ -22,12 +22,10 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.AddressFamily.InterNetworkV6,
                     System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
-                    // fast rebind combo with ReuseAddress
-                    ExclusiveAddressUse = !Config.ReuseAddress,
+                    ExclusiveAddressUse = !Config.ReuseAddress, // fast rebind combo with ReuseAddress
                     LingerState = new System.Net.Sockets.LingerOption(false, 0),
                     Blocking = true,
-                    // Must set before Bind
-                    DualMode = true
+                    DualMode = true // Must set before Bind
                 };
 
                 // Reuse BEFORE bind
@@ -66,6 +64,7 @@ public abstract partial class TcpListenerBase
                     listener?.Dispose();
                 }
                 catch { }
+
                 listener = null;
             }
         }
@@ -109,17 +108,17 @@ public abstract partial class TcpListenerBase
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     private static void InitializeOptions([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {
-        // Performance tuning
-        socket.NoDelay = Config.NoDelay;
-        socket.SendBufferSize = Config.BufferSize;
-        socket.ReceiveBufferSize = Config.BufferSize;
-
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 
         // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
-        // If you really want non-blocking IEndpointKey /O, ensure your Accept/Receive loops expect WouldBlock.
+        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
         socket.Blocking = true;
+
+        // Performance tuning
+        socket.NoDelay = Config.NoDelay;
+        socket.SendBufferSize = Config.BufferSize;
+        socket.ReceiveBufferSize = Config.BufferSize;
 
         if (Config.KeepAlive)
         {
@@ -170,8 +169,12 @@ public abstract partial class TcpListenerBase
     private static System.Boolean IsIgnorableAcceptError(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketError code,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
-        => token.IsCancellationRequested || code is System.Net.Sockets.SocketError.OperationAborted
-        or System.Net.Sockets.SocketError.Interrupted or System.Net.Sockets.SocketError.NotSocket
-        or System.Net.Sockets.SocketError.InvalidArgument or System.Net.Sockets.SocketError.TimedOut
-        or System.Net.Sockets.SocketError.WouldBlock or System.Net.Sockets.SocketError.Shutdown;
+        => token.IsCancellationRequested || code
+        is System.Net.Sockets.SocketError.Shutdown
+        or System.Net.Sockets.SocketError.TimedOut
+        or System.Net.Sockets.SocketError.NotSocket
+        or System.Net.Sockets.SocketError.WouldBlock
+        or System.Net.Sockets.SocketError.Interrupted
+        or System.Net.Sockets.SocketError.InvalidArgument
+        or System.Net.Sockets.SocketError.OperationAborted;
 }
