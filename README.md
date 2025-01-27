@@ -4,7 +4,8 @@
 
 ## Requirements
 
-- <img alt="Icon" src="Resource/Visual%20Studio.ico" height="16px" width="16px"> `Visual Studio 2022` (.NET 9 and C# 13 support required)
+- `Visual Studio 2022` (.NET 9 and C# 13 support required) 
+- [<img alt="Icon" src="Resource/Visual%20Studio.ico" height="16px" width="16px"> **Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
 ## Source Code
 
