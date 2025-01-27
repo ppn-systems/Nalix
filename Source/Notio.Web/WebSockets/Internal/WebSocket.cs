@@ -1,5 +1,6 @@
 ﻿using Notio.Net.Internal;
 using Notio.Web.Enums;
+using Notio.Web.Http;
 using Notio.Web.Net.Internal;
 using Notio.Web.WebSockets;
 using Swan;

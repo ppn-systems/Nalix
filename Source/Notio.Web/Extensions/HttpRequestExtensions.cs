@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Exceptions;
+using Notio.Web.Http;
 using Notio.Web.Utilities;
 using System;
 using System.Globalization;

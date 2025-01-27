@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Extensions;
+using Notio.Web.Http;
 using Swan.Logging;
 using System;
 using System.Net;

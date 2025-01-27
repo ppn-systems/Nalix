@@ -1,6 +1,7 @@
 ﻿using Notio.Utilities;
 using Notio.Web.Exceptions;
 using Notio.Web.Extensions;
+using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.MimeTypes;
 using Notio.Web.Sessions;

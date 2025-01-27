@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Enums;
+using Notio.Web.Http;
 using Notio.Web.Utilities;
 using Swan.Logging;
 using System;

@@ -1,5 +1,6 @@
 ﻿using Notio.Utilities;
 using Notio.Web.Authentication;
+using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.Routing;
 using Notio.Web.Sessions;

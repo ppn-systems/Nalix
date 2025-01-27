@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Enums;
+using Notio.Web.Http;
 using System;
 
 namespace Notio.Web.Routing

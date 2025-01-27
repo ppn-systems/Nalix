@@ -1,5 +1,6 @@
 ﻿using Notio.Utilities;
 using Notio.Web.Exceptions;
+using Notio.Web.Http;
 using Notio.Web.WebSockets.Internal;
 using Swan;
 using Swan.Logging;

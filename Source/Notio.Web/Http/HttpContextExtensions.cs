@@ -1,5 +1,4 @@
-﻿using Notio.Utilities;
-using Notio.Web.Exceptions;
+﻿using Notio.Web.Utilities;
 using Swan;
 using System;
 

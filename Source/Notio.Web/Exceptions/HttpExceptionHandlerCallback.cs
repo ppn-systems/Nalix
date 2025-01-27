@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using Notio.Web.Http;
+using System.Threading.Tasks;
 
 namespace Notio.Web.Exceptions;
 

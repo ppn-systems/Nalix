@@ -1,4 +1,5 @@
-﻿using Notio.Web.Internal;
+﻿using Notio.Web.Http;
+using Notio.Web.Internal;
 using System;
 using System.Collections.Specialized;
 using System.Net;

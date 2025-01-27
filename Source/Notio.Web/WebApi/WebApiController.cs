@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Extensions;
+using Notio.Web.Http;
 using Notio.Web.Routing;
 using Notio.Web.Sessions;
 using System.Security.Principal;

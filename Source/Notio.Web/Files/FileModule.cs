@@ -2,6 +2,7 @@
 using Notio.Web.Enums;
 using Notio.Web.Extensions;
 using Notio.Web.Files.Internal;
+using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;

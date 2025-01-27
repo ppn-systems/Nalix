@@ -1,4 +1,6 @@
 ﻿using Notio.Utilities;
+using Notio.Web.Http;
+using Notio.Web.Response;
 using Swan.Logging;
 using System;
 using System.Net;

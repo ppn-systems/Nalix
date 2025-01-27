@@ -1,4 +1,5 @@
 ﻿using Notio.Web;
+using Notio.Web.Http;
 using Notio.Web.Routing;
 using Notio.Web.Utilities;
 using Swan.Logging;

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Notio.Web.Http;
+using System.Net;
 
 namespace Notio.Web.Exceptions;
 

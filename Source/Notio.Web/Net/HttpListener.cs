@@ -1,4 +1,5 @@
-﻿using Notio.Web.Net.Internal;
+﻿using Notio.Web.Http;
+using Notio.Web.Net.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

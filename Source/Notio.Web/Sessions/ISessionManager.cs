@@ -1,4 +1,4 @@
-﻿using Notio.Web;
+﻿using Notio.Web.Http;
 using System.Threading;
 
 namespace Notio.Web.Sessions
