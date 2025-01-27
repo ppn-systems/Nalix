@@ -23,4 +23,8 @@
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Mapping\" />
+	</ItemGroup>
+
 </Project>

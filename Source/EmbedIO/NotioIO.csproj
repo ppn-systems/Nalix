@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<OutputType>Library</OutputType>
+		<Platforms>AnyCPU</Platforms>
+		<IsPublishable>false</IsPublishable>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<Import Project="..\Notio.Build.props" />
+
+	<ItemGroup>
+		<PackageReference Include="Unosquare.Swan.Lite" Version="3.1.0" />
+	</ItemGroup>
+  
+</Project>

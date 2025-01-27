@@ -32,7 +32,7 @@ public static class Aes256
         }
         catch (Exception ex)
         {
-            throw new CryptoOperationException("Failed to generate encryption key", ex);
+            throw new InternalErrorException("Failed to generate encryption key", ex);
         }
     }
 

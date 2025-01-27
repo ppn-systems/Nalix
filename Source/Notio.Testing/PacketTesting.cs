@@ -1,5 +1,5 @@
-﻿using Notio.Packets;
-using Notio.Packets.Utilities;
+﻿using Notio.Package;
+using Notio.Package.Helpers;
 using System;
 
 namespace Notio.Testing;

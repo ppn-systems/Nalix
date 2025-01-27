@@ -16,13 +16,13 @@ public sealed class JwtToken
     public JwtToken(string secretKey, string issuer, string audience)
     {
         if (string.IsNullOrWhiteSpace(secretKey))
-            throw new SecurityException("Secret key cannot be null or empty.", nameof(secretKey));
+            throw new InternalErrorException("Secret key cannot be null or empty.", nameof(secretKey));
 
         if (string.IsNullOrWhiteSpace(issuer))
-            throw new SecurityException("Issuer cannot be null or empty.", nameof(issuer));
+            throw new InternalErrorException("Issuer cannot be null or empty.", nameof(issuer));
 
         if (string.IsNullOrWhiteSpace(audience))
-            throw new SecurityException("Audience cannot be null or empty.", nameof(audience));
+            throw new InternalErrorException("Audience cannot be null or empty.", nameof(audience));
 
         _issuer = issuer;
         _audience = audience;
@@ -86,24 +86,24 @@ public sealed class JwtToken
     public static Dictionary<string, object> DecodeToken(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
-            throw new SecurityException("Token cannot be null or empty.", nameof(token));
+            throw new InternalErrorException("Token cannot be null or empty.", nameof(token));
 
         try
         {
             string[] parts = token.Split('.');
             if (parts.Length != 3)
-                throw new SecurityException("Invalid token format.", nameof(token));
+                throw new InternalErrorException("Invalid token format.", nameof(token));
 
             // Decode Payload
             string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
             var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson)
-                ?? throw new SecurityException("Invalid payload in token.", nameof(token));
+                ?? throw new InternalErrorException("Invalid payload in token.", nameof(token));
 
             return payload;
         }
         catch (Exception ex)
         {
-            throw new SecurityException("Failed to decode token.", ex);
+            throw new InternalErrorException("Failed to decode token.", ex);
         }
     }
 

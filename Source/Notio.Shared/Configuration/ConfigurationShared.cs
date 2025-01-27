@@ -7,7 +7,7 @@ namespace Notio.Shared.Configuration;
 /// <summary>
 /// Một singleton cung cấp quyền truy cập vào các container giá trị cấu hình.
 /// </summary>
-public sealed class ConfigurationShared : SingletonInstance<ConfigurationShared>
+public sealed class ConfigurationShared : SingletonBase<ConfigurationShared>
 {
     private readonly Dictionary<Type, ConfigurationBinder> _configContainerDict = [];
     private readonly ConfigurationIniFile _iniFile;

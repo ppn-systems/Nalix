@@ -4,19 +4,24 @@ using System.Collections.Concurrent;
 namespace Notio.Shared;
 
 /// <summary>
-/// The Singleton class is used to manage and initialize unique instances of classes.
+/// Singleton class used to register and resolve services and instances using lazy loading.
+/// Supports registering interfaces with implementations and factories for service creation.
 /// </summary>
 public static class Singleton
 {
     private static readonly ConcurrentDictionary<Type, Type> _typeMapping = new();
     private static readonly ConcurrentDictionary<Type, Lazy<object>> _services = new();
     private static readonly ConcurrentDictionary<Type, Func<object>> _factories = new();
+    private static bool _disposed = false;
 
     /// <summary>
-    /// Registers an instance of a class.
+    /// Registers an instance of a class for dependency injection.
     /// </summary>
+    /// <typeparam name="TClass">The type of the class to register.</typeparam>
     /// <param name="instance">The instance of the class to register.</param>
-    /// <param name="allowOverwrite">If true, allows overwriting existing registrations.</param>
+    /// <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Defaults to false.</param>
+    /// <exception cref="ArgumentNullException">Thrown when the instance is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
     public static void Register<TClass>(TClass instance, bool allowOverwrite = false)
         where TClass : class
     {
@@ -36,9 +41,12 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Registers an interface with an implementation class using lazy loading.
+    /// Registers an interface with its implementation type using lazy loading.
     /// </summary>
-    /// <param name="factory">A factory function to create an instance of the implementation.</param>
+    /// <typeparam name="TInterface">The interface type.</typeparam>
+    /// <typeparam name="TImplementation">The implementation type of the interface.</typeparam>
+    /// <param name="factory">An optional factory function to create instances of the implementation. If not provided, a default constructor will be used.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the interface has already been registered.</exception>
     public static void Register<TInterface, TImplementation>(Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
     {
@@ -57,21 +65,21 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Resolves or creates a registered instance of a class.
+    /// Resolves or creates an instance of the requested type.
     /// </summary>
-    /// <param name="createIfNotExists">If true, creates the instance if not already registered.</param>
-    /// <returns>The instance of the class.</returns>
+    /// <typeparam name="TClass">The type to resolve.</typeparam>
+    /// <param name="createIfNotExists">If true, creates the instance if not already registered. Defaults to true.</param>
+    /// <returns>The resolved or newly created instance of the requested type.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
     public static TClass? Resolve<TClass>(bool createIfNotExists = true) where TClass : class
     {
         Type type = typeof(TClass);
 
-        // Check if the instance is already registered
         if (_services.TryGetValue(type, out var lazyService))
         {
             return (TClass)lazyService.Value;
         }
 
-        // Check if a factory is registered
         if (_factories.TryGetValue(type, out var factory))
         {
             Lazy<object> lazyInstance = new(() => factory(), isThreadSafe: true);
@@ -79,7 +87,6 @@ public static class Singleton
             return (TClass)lazyInstance.Value;
         }
 
-        // Check for interface-to-implementation mapping
         if (_typeMapping.TryGetValue(type, out Type? implementationType))
         {
             if (!_services.TryGetValue(implementationType, out var lazyImpl))
@@ -121,20 +128,19 @@ public static class Singleton
     }
 
     /// <summary>
-    /// Checks if a type is registered.
+    /// Checks whether a specific type is registered.
     /// </summary>
+    /// <typeparam name="TClass">The type to check for registration.</typeparam>
     /// <returns>True if the type is registered, otherwise false.</returns>
     public static bool IsRegistered<TClass>() where TClass : class
-    {
-        Type type = typeof(TClass);
-        return _services.ContainsKey(type) ||
-               _typeMapping.ContainsKey(type) ||
-               _factories.ContainsKey(type);
-    }
+        => _services.ContainsKey(typeof(TClass)) ||
+           _typeMapping.ContainsKey(typeof(TClass)) ||
+           _factories.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes the registration of a specific type.
     /// </summary>
+    /// <typeparam name="TClass">The type to remove from registration.</typeparam>
     public static void Remove<TClass>() where TClass : class
     {
         Type type = typeof(TClass);
@@ -151,5 +157,23 @@ public static class Singleton
         _services.Clear();
         _typeMapping.Clear();
         _factories.Clear();
+    }
+
+    /// <summary>
+    /// Disposes of the Singleton container, releasing any resources held by registered services.
+    /// </summary>
+    public static void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        foreach (var lazyService in _services.Values)
+            if (lazyService.Value is IDisposable disposable)
+                disposable.Dispose();
+
+        _services.Clear();
+        _factories.Clear();
+        _typeMapping.Clear();
     }
 }

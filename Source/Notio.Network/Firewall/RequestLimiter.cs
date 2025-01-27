@@ -34,13 +34,13 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxAllowedRequests <= 0)
-            throw new FirewallException("MaxAllowedRequests must be greater than 0");
+            throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
 
         if (_firewallConfig.LockoutDurationSeconds <= 0)
-            throw new FirewallException("LockoutDurationSeconds must be greater than 0");
+            throw new InternalErrorException("LockoutDurationSeconds must be greater than 0");
 
         if (_firewallConfig.TimeWindowInMilliseconds <= 0)
-            throw new FirewallException("TimeWindowInMilliseconds must be greater than 0");
+            throw new InternalErrorException("TimeWindowInMilliseconds must be greater than 0");
 
         _maxAllowedRequests = _firewallConfig.MaxAllowedRequests;
         _lockoutDurationSeconds = _firewallConfig.LockoutDurationSeconds;
@@ -68,7 +68,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new FirewallException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         var currentTime = DateTime.UtcNow;
 

@@ -30,7 +30,7 @@ public sealed class ConnectionLimiter : IDisposable
         _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxConnectionsPerIpAddress <= 0)
-            throw new FirewallException("MaxConnectionsPerIpAddress must be greater than 0");
+            throw new InternalErrorException("MaxConnectionsPerIpAddress must be greater than 0");
 
         _maxConnectionsPerIp = _firewallConfig.MaxConnectionsPerIpAddress;
         _connectionInfo = new ConcurrentDictionary<string, ConnectionInfo>();
@@ -49,7 +49,7 @@ public sealed class ConnectionLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new FirewallException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         DateTime now = DateTime.UtcNow;
         DateTime currentDate = now.Date;
@@ -86,7 +86,7 @@ public sealed class ConnectionLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new FirewallException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         if (_firewallConfig.EnableMetrics)
             _logger?.Trace($"{endPoint}|Closed");
@@ -107,7 +107,7 @@ public sealed class ConnectionLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
-            throw new FirewallException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         ConnectionInfo stats = _connectionInfo.GetValueOrDefault(endPoint);
         return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
