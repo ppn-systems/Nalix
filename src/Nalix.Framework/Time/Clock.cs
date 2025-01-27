@@ -377,37 +377,31 @@ public static class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
-    public static System.Double SynchronizeTime(
-        System.DateTime externalTime,
-        System.Double maxAllowedDriftMs = 1000.0)
+    public static System.Double SynchronizeTime(System.DateTime externalTime, System.Double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != System.DateTimeKind.Utc)
         {
             throw new System.ArgumentException("External time must be UTC", nameof(externalTime));
         }
 
-        // Calculate current time according to our clock
-        System.DateTime currentTime = GetUtcNowPrecise();
-
-        // Calculate time difference
+        var currentTime = GetUtcNowPrecise();
         var timeDifference = externalTime - currentTime;
-
-        // Only adjust if drift is above threshold
         if (System.Math.Abs(timeDifference.TotalMilliseconds) <= maxAllowedDriftMs)
         {
             return 0;
         }
 
-        // Calculate and apply offset
+        // capture previous before overwrite
+        var previousSync = LastSyncTime;
+
         _timeOffset = timeDifference.Ticks;
         IsSynchronized = true;
         LastSyncTime = externalTime;
 
-        // Calculate drift rate if we have previous sync data
-        if (LastSyncTime != System.DateTime.MinValue)
+        if (previousSync != System.DateTime.MinValue)
         {
-            var elapsedSinceLastSync = (externalTime - LastSyncTime).TotalSeconds;
-            if (elapsedSinceLastSync > 60) // Only calculate drift after at least 1 minute
+            var elapsedSinceLastSync = (externalTime - previousSync).TotalSeconds;
+            if (elapsedSinceLastSync > 60)
             {
                 var expectedElapsed = (currentTime - UtcBase).TotalSeconds;
                 var actualElapsed = (externalTime - UtcBase).TotalSeconds;
