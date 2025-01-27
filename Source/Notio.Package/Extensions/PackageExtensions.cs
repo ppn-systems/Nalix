@@ -22,24 +22,24 @@ public static partial class PackageExtensions
     /// </summary>
     /// <exception cref="PackageException">Ném lỗi khi payload vượt quá giới hạn.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ToByteArray(this in Packet packet)
+    public static byte[] ToByteArray(this in Packet @this)
     {
-        if (packet.Payload.Length > ushort.MaxValue)
+        if (@this.Payload.Length > ushort.MaxValue)
             throw new PackageException("Payload is too large.");
 
-        int totalSize = PacketSize.Header + packet.Payload.Length;
+        int totalSize = PacketSize.Header + @this.Payload.Length;
 
         if (totalSize <= MaxStackAlloc)
         {
             Span<byte> stackBuffer = stackalloc byte[totalSize];
-            PacketSerializer.WritePacketFast(stackBuffer, in packet);
+            PacketSerializer.WritePacketFast(stackBuffer, in @this);
             return stackBuffer.ToArray();
         }
 
         byte[] rentedArray = Pool.Rent(totalSize);
         try
         {
-            PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
+            PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in @this);
             return rentedArray.AsSpan(0, totalSize).ToArray();
         }
         finally
@@ -53,16 +53,16 @@ public static partial class PackageExtensions
     /// </summary>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this ReadOnlySpan<byte> data)
+    public static Packet FromByteArray(this ReadOnlySpan<byte> @this)
     {
-        if (data.Length < PacketSize.Header)
-            throw new PackageException("Invalid length: data is smaller than header size.");
+        if (@this.Length < PacketSize.Header)
+            throw new PackageException("Invalid length: @this is smaller than header size.");
 
-        short length = MemoryMarshal.Read<short>(data);
-        if (length < PacketSize.Header || length > data.Length)
+        short length = MemoryMarshal.Read<short>(@this);
+        if (length < PacketSize.Header || length > @this.Length)
             throw new PackageException($"Invalid length: {length}.");
 
-        return PacketSerializer.ReadPacketFast(data);
+        return PacketSerializer.ReadPacketFast(@this);
     }
 
     /// <summary>
@@ -70,31 +70,31 @@ public static partial class PackageExtensions
     /// </summary>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this byte[] data)
+    public static Packet FromByteArray(this byte[] @this)
     {
-        if (data.Length < PacketSize.Header)
-            throw new PackageException("Invalid length: data is smaller than header size.");
+        if (@this.Length < PacketSize.Header)
+            throw new PackageException("Invalid length: @this is smaller than header size.");
 
-        short length = MemoryMarshal.Read<short>(data);
-        if (length < PacketSize.Header || length > data.Length)
+        short length = MemoryMarshal.Read<short>(@this);
+        if (length < PacketSize.Header || length > @this.Length)
             throw new PackageException($"Invalid length: {length}.");
 
-        return PacketSerializer.ReadPacketFast(data);
+        return PacketSerializer.ReadPacketFast(@this);
     }
 
     /// <summary>
     /// Thử chuyển đổi Packet thành mảng byte.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryToByteArray(this in Packet packet, Span<byte> destination, out int bytesWritten)
+    public static bool TryToByteArray(this in Packet @this, Span<byte> destination, out int bytesWritten)
     {
-        if (packet.Payload.Length > ushort.MaxValue)
+        if (@this.Payload.Length > ushort.MaxValue)
         {
             bytesWritten = 0;
             return false;
         }
 
-        int totalSize = PacketSize.Header + packet.Payload.Length;
+        int totalSize = PacketSize.Header + @this.Payload.Length;
         if (destination.Length < totalSize)
         {
             bytesWritten = 0;
@@ -103,7 +103,7 @@ public static partial class PackageExtensions
 
         try
         {
-            PacketSerializer.WritePacketFast(destination[..totalSize], in packet);
+            PacketSerializer.WritePacketFast(destination[..totalSize], in @this);
             bytesWritten = totalSize;
             return true;
         }
@@ -128,7 +128,7 @@ public static partial class PackageExtensions
 
         try
         {
-            // Validate packet length
+            // Validate @this length
             short length = MemoryMarshal.Read<short>(source);
             if (length < PacketSize.Header || length > source.Length)
             {
@@ -157,9 +157,9 @@ public static partial class PackageExtensions
     /// <summary>
     /// Trả về chuỗi dễ đọc của Packet.
     /// </summary>
-    public static string ToString(this in Packet packet) =>
-        $"Type: {packet.Type}, " +
-        $"Flags: {packet.Flags}, " +
-        $"Command: {packet.Command}, " +
-        $"Payload: {BitConverter.ToString(packet.Payload.ToArray())}";
+    public static string ToString(this in Packet @this) =>
+        $"Type: {@this.Type}, " +
+        $"Flags: {@this.Flags}, " +
+        $"Command: {@this.Command}, " +
+        $"Payload: {BitConverter.ToString(@this.Payload.ToArray())}";
 }

@@ -30,7 +30,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Storage", "Notio.Stor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Testing", "Notio.Testing\Notio.Testing.csproj", "{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotioIO", "NotioIO\NotioIO.csproj", "{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Web", "Notio.Web\Notio.Web.csproj", "{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

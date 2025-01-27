@@ -6,16 +6,11 @@ namespace Notio.Shared.Memory.Cache;
 /// <summary>
 /// Initializes a cache with a specified capacity.
 /// </summary>
-public sealed class BinaryCache
+public sealed class BinaryCache(int capacity)
 {
-    private readonly int _capacity;
+    private readonly int _capacity = capacity;
     private readonly LinkedList<ReadOnlyMemory<byte>> _usageOrder = new();
-    private readonly Dictionary<ReadOnlyMemory<byte>, LinkedListNode<ReadOnlyMemory<byte>>> _cacheMap = new();
-
-    public BinaryCache(int capacity)
-    {
-        _capacity = capacity;
-    }
+    private readonly Dictionary<ReadOnlyMemory<byte>, LinkedListNode<ReadOnlyMemory<byte>>> _cacheMap = [];
 
     /// <summary>
     /// Adds an item to the cache.
