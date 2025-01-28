@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Utilities;
-using Swan;
+﻿using Notio.Lite;
 using Notio.Logging;
+using Notio.Web.Enums;
+using Notio.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -106,7 +106,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && SwanRuntime.OS != Swan.OperatingSystem.Windows)
+            if (value && NotioRuntime.OS != Lite.OperatingSystem.Windows)
             {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
@@ -129,7 +129,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && SwanRuntime.OS != Swan.OperatingSystem.Windows)
+            if (value && NotioRuntime.OS != Lite.OperatingSystem.Windows)
             {
                 throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
             }
@@ -196,7 +196,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private X509Certificate2? LoadCertificate()
     {
-        if (SwanRuntime.OS != Swan.OperatingSystem.Windows)
+        if (NotioRuntime.OS != Lite.OperatingSystem.Windows)
         {
             return null;
         }
@@ -289,7 +289,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private bool TryRegisterCertificate()
     {
-        if (SwanRuntime.OS != Swan.OperatingSystem.Windows)
+        if (NotioRuntime.OS != Lite.OperatingSystem.Windows)
         {
             return false;
         }

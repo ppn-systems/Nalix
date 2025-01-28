@@ -1,9 +1,8 @@
-﻿using Notio.Storage.Generator;
+﻿using Notio.Shared.Configuration;
+using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;
-using Notio.Shared.Configured;
 using System;
 using System.IO;
-using Notio.Shared.Configuration;
 
 namespace Notio.Storage.Config;
 

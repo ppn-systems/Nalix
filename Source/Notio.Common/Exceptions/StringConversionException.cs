@@ -27,7 +27,7 @@ public class StringConversionException : Exception
         this.Ex = ex;
     }
 
-    public StringConversionException(string message, Exception? innerException) : base(message, innerException)
+    public StringConversionException(string message, Exception innerException) : base(message, innerException)
     {
     }
 }

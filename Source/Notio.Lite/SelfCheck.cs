@@ -1,12 +1,12 @@
-﻿using System.Diagnostics;
+﻿using Notio.Common.Exceptions;
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System;
-using Notio.Common.Exceptions;
 
-namespace Notio.Shared;
+namespace Notio.Lite;
 
 /// <summary>
 /// Provides helper methods for internal checks and exception generation
@@ -58,7 +58,7 @@ public static class SelfCheck
         }
 
         // Find the first stack frame outside of the SelfCheck class
-        StackFrame? stackFrame = frames.FirstOrDefault((StackFrame f) => f.GetMethod()?.ReflectedType != typeof(SelfCheck));
+        StackFrame? stackFrame = frames.FirstOrDefault((f) => f.GetMethod()?.ReflectedType != typeof(SelfCheck));
 
         // Build the message string
         StringBuilder stringBuilder = new StringBuilder().Append('[')

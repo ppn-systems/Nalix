@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 
-namespace Notio.Shared.Extensions;
+namespace Notio.Lite;
 
 public static class ExceptionExtensions
 {

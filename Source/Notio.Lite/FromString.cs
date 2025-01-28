@@ -1,12 +1,11 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Notio.Shared;
+namespace Notio.Lite;
 
 //
 // Summary:
