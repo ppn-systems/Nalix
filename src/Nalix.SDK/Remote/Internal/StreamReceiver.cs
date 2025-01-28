@@ -11,14 +11,14 @@ namespace Nalix.SDK.Remote.Internal;
 /// </summary>
 /// <typeparam name="TPacket">The packet type implementing <see cref="IPacket"/>.</typeparam>
 /// <remarks>
-/// Initializes a new instance of the <see cref="RemoteStreamReceiver{TPacket}"/> class with the specified network stream.
+/// Initializes a new instance of the <see cref="StreamReceiver{TPacket}"/> class with the specified network stream.
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for receiving data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
-internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
+internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
