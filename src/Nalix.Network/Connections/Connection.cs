@@ -26,6 +26,7 @@ public sealed partial class Connection : IConnection
     private readonly FramedSocketChannel _cstream;
 
     private System.Byte[] _secret;
+    private System.Int64 _bytesSent;
     private System.Boolean _disposed;
     private System.Int32 _closeSignaled;
 
@@ -139,6 +140,16 @@ public sealed partial class Connection : IConnection
                 // If copy isn't used as internal storage, return it. But we used it as internal storage so do not return.
             }
         }
+    }
+
+    /// <summary>
+    /// Gets the total number of bytes sent through this connection.
+    /// </summary>
+    public System.Int64 BytesSent
+    {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get => System.Threading.Interlocked.Read(ref _bytesSent);
     }
 
     #endregion Properties

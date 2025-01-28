@@ -23,6 +23,12 @@ public partial interface IConnection : System.IDisposable
     System.Int64 UpTime { get; }
 
     /// <summary>
+    /// Gets the total number of bytes sent over the connection.
+    /// Useful for monitoring bandwidth usage and data transfer statistics.
+    /// </summary>
+    System.Int64 BytesSent { get; }
+
+    /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>
@@ -37,6 +43,7 @@ public partial interface IConnection : System.IDisposable
     /// Gets the encryption key used for securing communication.
     /// </summary>
     System.Byte[] Secret { get; set; }
+
 
     /// <summary>
     /// Gets the authority levels associated with the connection.
