@@ -6,7 +6,7 @@ namespace Notio.Network;
 /// <summary>
 /// Configuration settings for the HTTP server.
 /// </summary>
-public sealed class HttpConfig : ConfigurationBinder
+public sealed class HttpConfig : ConfiguredBinder
 {
     /// <summary>
     /// Gets or sets the server's base URL.
@@ -40,21 +40,21 @@ public sealed class HttpConfig : ConfigurationBinder
     /// Gets or sets the allowed origins for cross-origin requests.
     /// Default is ["*"].
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public string[] AllowedOrigins { get; set; } = ["*"];
 
     /// <summary>
     /// Gets or sets the allowed HTTP methods for cross-origin requests.
     /// Default is ["GET", "POST", "PUT", "DELETE", "OPTIONS"].
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public string[] AllowedMethods { get; set; } = ["GET", "POST", "PUT", "DELETE", "OPTIONS"];
 
     /// <summary>
     /// Gets or sets the allowed HTTP headers for cross-origin requests.
     /// Default is ["Content-Type", "Authorization"].
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
 
     /// <summary>
@@ -62,6 +62,6 @@ public sealed class HttpConfig : ConfigurationBinder
     /// Default is 10 minutes.
     /// This property is ignored in the configuration binding process.
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public TimeSpan CacheExpiration { get; set; } = TimeSpan.FromMinutes(10);
 }

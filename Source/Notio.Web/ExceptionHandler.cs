@@ -1,14 +1,14 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Logging;
+using Notio.Web.Http;
 using Notio.Web.Response;
 using Notio.Web.WebModule;
-using Notio.Logging;
 using System;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Notio.Web.Exceptions;
+namespace Notio.Web;
 
 /// <summary>
 /// Provides standard handlers for unhandled exceptions at both module and server level.

@@ -1,4 +1,5 @@
-﻿using Notio.Web.Authentication;
+﻿using Notio.Logging;
+using Notio.Web.Authentication;
 using Notio.Web.Http;
 using Notio.Web.Internal;
 using Notio.Web.Routing;
@@ -6,7 +7,6 @@ using Notio.Web.Sessions;
 using Notio.Web.Utilities;
 using Notio.Web.WebSockets;
 using Notio.Web.WebSockets.Internal;
-using Swan.Logging;
 using System;
 using System.Collections.Generic;
 using System.Net;

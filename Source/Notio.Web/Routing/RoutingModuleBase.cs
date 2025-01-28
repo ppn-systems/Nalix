@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Shared;
+using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.WebModule;
-using Swan;
 using System;
 using System.Threading.Tasks;
 

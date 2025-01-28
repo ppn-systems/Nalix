@@ -1,5 +1,4 @@
-﻿using Notio.Files;
-using Notio.Web.Enums;
+﻿using Notio.Web.Enums;
 using Notio.Web.Files.Internal;
 using Notio.Web.Http;
 using Notio.Web.Internal;

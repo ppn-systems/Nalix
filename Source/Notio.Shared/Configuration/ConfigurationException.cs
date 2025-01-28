@@ -2,6 +2,6 @@
 
 namespace Notio.Shared.Configuration;
 
-public class ConfigurationException(string message) : Exception(message)
+public class ConfiguredException(string message) : Exception(message)
 {
 }

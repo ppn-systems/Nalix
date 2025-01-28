@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Logging;
+using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.Utilities;
-using Swan.Logging;
 using System;
 using System.Linq;
 using System.Linq.Expressions;

@@ -481,11 +481,12 @@ public abstract class WebApiModuleBase : RoutingModuleBase
             // for the type of the parameter.
             if (failedToUseRequestDataAttributes)
             {
-                throw new InvalidOperationException($"No request data attribute for parameter {parameter.Name} of method {controllerType.Name}.{method.Name} can provide the expected data type.");
+                throw new InvalidOperationException(
+                    $"No request data attribute for parameter {parameter.Name} of method {controllerType.Name}.{method.Name} can provide the expected data type.");
             }
 
             // Check whether the name of the handler parameter matches the name of a route parameter.
-            int index = IndexOfRouteParameter(matcher, parameter.Name);
+            int index = IndexOfRouteParameter(matcher, parameter.Name ?? string.Empty);
             if (index >= 0)
             {
                 // Convert the parameter to the handler's parameter type.

@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Shared;
+using Notio.Shared.Configuration;
+using Notio.Web.Http;
 using Notio.Web.Utilities;
-using Swan;
-using Swan.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;

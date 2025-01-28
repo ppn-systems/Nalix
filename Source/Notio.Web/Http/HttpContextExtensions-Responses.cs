@@ -1,4 +1,5 @@
-﻿using Notio.Web.Response;
+﻿using Notio.Web.MimeTypes;
+using Notio.Web.Response;
 using Notio.Web.Utilities;
 using System;
 using System.IO;

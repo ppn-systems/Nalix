@@ -1,9 +1,9 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Logging;
+using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.Net.Internal;
 using Notio.Web.Routing;
 using Notio.Web.Utilities;
-using Swan.Logging;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;

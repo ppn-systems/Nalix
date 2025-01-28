@@ -6,136 +6,136 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace Notio.Web.WebSockets.Internal
+namespace Notio.Web.WebSockets.Internal;
+
+internal class WebSocketFrame
 {
-    internal class WebSocketFrame
+    internal static readonly byte[] EmptyPingBytes = CreatePingFrame().ToArray();
+
+    internal WebSocketFrame(Opcode opcode, PayloadData payloadData)
+        : this(Fin.Final, opcode, payloadData)
     {
-        internal static readonly byte[] EmptyPingBytes = CreatePingFrame().ToArray();
+    }
 
-        internal WebSocketFrame(Opcode opcode, PayloadData payloadData)
-            : this(Fin.Final, opcode, payloadData)
+    internal WebSocketFrame(Fin fin, Opcode opcode, byte[] data, bool compressed)
+        : this(fin, opcode, new PayloadData(data), compressed)
+    {
+    }
+
+    internal WebSocketFrame(
+        Fin fin,
+        Opcode opcode,
+        PayloadData payloadData,
+        bool compressed = false)
+    {
+        Fin = fin;
+        Rsv1 = IsOpcodeData(opcode) && compressed ? Rsv.On : Rsv.Off;
+        Rsv2 = Rsv.Off;
+        Rsv3 = Rsv.Off;
+        Opcode = opcode;
+
+        ulong len = payloadData.Length;
+        if (len < 126)
         {
+            PayloadLength = (byte)len;
+            ExtendedPayloadLength = [];
+        }
+        else if (len < 0x010000)
+        {
+            PayloadLength = 126;
+            ExtendedPayloadLength = ((ushort)len).ToByteArray(Endianness.Big);
+        }
+        else
+        {
+            PayloadLength = 127;
+            ExtendedPayloadLength = len.ToByteArray(Endianness.Big);
         }
 
-        internal WebSocketFrame(Fin fin, Opcode opcode, byte[] data, bool compressed)
-            : this(fin, opcode, new PayloadData(data), compressed)
-        {
-        }
+        Mask = Mask.Off;
+        MaskingKey = [];
+        PayloadData = payloadData ?? throw new ArgumentNullException(nameof(payloadData));
+    }
 
-        internal WebSocketFrame(
-            Fin fin,
-            Opcode opcode,
-            PayloadData payloadData,
-            bool compressed = false)
-        {
-            Fin = fin;
-            Rsv1 = IsOpcodeData(opcode) && compressed ? Rsv.On : Rsv.Off;
-            Rsv2 = Rsv.Off;
-            Rsv3 = Rsv.Off;
-            Opcode = opcode;
+    internal WebSocketFrame(
+        Fin fin,
+        Rsv rsv1,
+        Rsv rsv2,
+        Rsv rsv3,
+        Opcode opcode,
+        Mask mask,
+        byte payloadLength)
+    {
+        Fin = fin;
+        Rsv1 = rsv1;
+        Rsv2 = rsv2;
+        Rsv3 = rsv3;
+        Opcode = opcode;
+        Mask = mask;
+        PayloadLength = payloadLength;
+        MaskingKey = [];
+        PayloadData = new PayloadData([]);
+    }
 
-            ulong len = payloadData.Length;
-            if (len < 126)
-            {
-                PayloadLength = (byte)len;
-                ExtendedPayloadLength = [];
-            }
-            else if (len < 0x010000)
-            {
-                PayloadLength = 126;
-                ExtendedPayloadLength = ((ushort)len).ToByteArray(Endianness.Big);
-            }
-            else
-            {
-                PayloadLength = 127;
-                ExtendedPayloadLength = len.ToByteArray(Endianness.Big);
-            }
+    public byte[]? ExtendedPayloadLength { get; internal set; }
 
-            Mask = Mask.Off;
-            MaskingKey = [];
-            PayloadData = payloadData ?? throw new ArgumentNullException(nameof(payloadData));
-        }
+    public Fin Fin { get; internal set; }
 
-        internal WebSocketFrame(
-            Fin fin,
-            Rsv rsv1,
-            Rsv rsv2,
-            Rsv rsv3,
-            Opcode opcode,
-            Mask mask,
-            byte payloadLength)
-        {
-            Fin = fin;
-            Rsv1 = rsv1;
-            Rsv2 = rsv2;
-            Rsv3 = rsv3;
-            Opcode = opcode;
-            Mask = mask;
-            PayloadLength = payloadLength;
-            MaskingKey = [];
-            PayloadData = new PayloadData([]);
-        }
+    public bool IsCompressed => Rsv1 == Rsv.On;
 
-        public byte[]? ExtendedPayloadLength { get; internal set; }
+    public bool IsFragment => Fin == Fin.More || Opcode == Opcode.Cont;
 
-        public Fin Fin { get; internal set; }
+    public bool IsMasked => Mask == Mask.On;
 
-        public bool IsCompressed => Rsv1 == Rsv.On;
+    public Mask Mask { get; internal set; }
 
-        public bool IsFragment => Fin == Fin.More || Opcode == Opcode.Cont;
+    public byte[] MaskingKey { get; internal set; }
 
-        public bool IsMasked => Mask == Mask.On;
+    public Opcode Opcode { get; internal set; }
 
-        public Mask Mask { get; internal set; }
+    public PayloadData PayloadData { get; internal set; }
 
-        public byte[] MaskingKey { get; internal set; }
+    public byte PayloadLength { get; internal set; }
 
-        public Opcode Opcode { get; internal set; }
+    public Rsv Rsv1 { get; internal set; }
 
-        public PayloadData PayloadData { get; internal set; }
+    public Rsv Rsv2 { get; internal set; }
 
-        public byte PayloadLength { get; internal set; }
+    public Rsv Rsv3 { get; internal set; }
 
-        public Rsv Rsv1 { get; internal set; }
+    internal int ExtendedPayloadLengthCount => PayloadLength < 126 ? 0 : PayloadLength == 126 ? 2 : 8;
 
-        public Rsv Rsv2 { get; internal set; }
+    internal ulong FullPayloadLength => PayloadLength < 126
+        ? PayloadLength
+        : PayloadLength == 126
+            ? BitConverter.ToUInt16(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0)
+            : BitConverter.ToUInt64(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0);
 
-        public Rsv Rsv3 { get; internal set; }
+    public IEnumerator<byte> GetEnumerator()
+    {
+        return ((IEnumerable<byte>)ToArray()).GetEnumerator();
+    }
 
-        internal int ExtendedPayloadLengthCount => PayloadLength < 126 ? 0 : PayloadLength == 126 ? 2 : 8;
+    public string PrintToString()
+    {
+        // Payload Length
+        byte payloadLen = PayloadLength;
 
-        internal ulong FullPayloadLength => PayloadLength < 126
-            ? PayloadLength
-            : PayloadLength == 126
-                ? BitConverter.ToUInt16(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0)
-                : BitConverter.ToUInt64(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0);
+        // Extended Payload Length
+        string extPayloadLen = payloadLen > 125 ? FullPayloadLength.ToString(CultureInfo.InvariantCulture) : string.Empty;
 
-        public IEnumerator<byte> GetEnumerator()
-        {
-            return ((IEnumerable<byte>)ToArray()).GetEnumerator();
-        }
+        // Masking Key
+        string maskingKey = BitConverter.ToString(MaskingKey);
 
-        public string PrintToString()
-        {
-            // Payload Length
-            byte payloadLen = PayloadLength;
+        // Payload Data
+        string payload = payloadLen == 0
+            ? string.Empty
+            : payloadLen > 125
+                ? "---"
+                : Opcode == Opcode.Text && !(IsFragment || IsMasked || IsCompressed)
+                    ? PayloadData.ApplicationData.ToArray().ToText()
+                    : PayloadData.ToString();
 
-            // Extended Payload Length
-            string extPayloadLen = payloadLen > 125 ? FullPayloadLength.ToString(CultureInfo.InvariantCulture) : string.Empty;
-
-            // Masking Key
-            string maskingKey = BitConverter.ToString(MaskingKey);
-
-            // Payload Data
-            string payload = payloadLen == 0
-                ? string.Empty
-                : payloadLen > 125
-                    ? "---"
-                    : Opcode == Opcode.Text && !(IsFragment || IsMasked || IsCompressed)
-                        ? PayloadData.ApplicationData.ToArray().ToText()
-                        : PayloadData.ToString();
-
-            return $@"
+        return $@"
                     FIN: {Fin}
                    RSV1: {Rsv1}
                    RSV2: {Rsv2}
@@ -146,115 +146,114 @@ namespace Notio.Web.WebSockets.Internal
 Extended Payload Length: {extPayloadLen}
             Masking Key: {maskingKey}
            Payload Data: {payload}";
-        }
+    }
 
-        public byte[] ToArray()
+    public byte[] ToArray()
+    {
+        using MemoryStream buff = new();
+        int header = (int)Fin;
+
+        header = (header << 1) + (int)Rsv1;
+        header = (header << 1) + (int)Rsv2;
+        header = (header << 1) + (int)Rsv3;
+        header = (header << 4) + (int)Opcode;
+        header = (header << 1) + (int)Mask;
+        header = (header << 7) + PayloadLength;
+        buff.Write(((ushort)header).ToByteArray(Endianness.Big), 0, 2);
+
+        if (PayloadLength > 125)
         {
-            using MemoryStream buff = new();
-            int header = (int)Fin;
-
-            header = (header << 1) + (int)Rsv1;
-            header = (header << 1) + (int)Rsv2;
-            header = (header << 1) + (int)Rsv3;
-            header = (header << 4) + (int)Opcode;
-            header = (header << 1) + (int)Mask;
-            header = (header << 7) + PayloadLength;
-            buff.Write(((ushort)header).ToByteArray(Endianness.Big), 0, 2);
-
-            if (PayloadLength > 125)
-            {
-                buff.Write(ExtendedPayloadLength ?? [], 0, PayloadLength == 126 ? 2 : 8);
-            }
-
-            if (Mask == Mask.On)
-            {
-                buff.Write(MaskingKey, 0, 4);
-            }
-
-            if (PayloadLength > 0)
-            {
-                byte[] bytes = PayloadData.ToArray();
-                if (PayloadLength < 127)
-                {
-                    buff.Write(bytes, 0, bytes.Length);
-                }
-                else
-                {
-                    using MemoryStream input = new(bytes);
-                    input.CopyTo(buff, 1024);
-                }
-            }
-
-            return buff.ToArray();
+            buff.Write(ExtendedPayloadLength ?? [], 0, PayloadLength == 126 ? 2 : 8);
         }
 
-        public override string ToString()
+        if (Mask == Mask.On)
         {
-            return BitConverter.ToString(ToArray());
+            buff.Write(MaskingKey, 0, 4);
         }
 
-        internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData)
+        if (PayloadLength > 0)
         {
-            return new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
-        }
-
-        internal static WebSocketFrame CreatePingFrame()
-        {
-            return new(Fin.Final, Opcode.Ping, new PayloadData());
-        }
-
-        internal static WebSocketFrame CreatePingFrame(byte[] data)
-        {
-            return new(Fin.Final, Opcode.Ping, new PayloadData(data));
-        }
-
-        internal void Validate(WebSocket webSocket)
-        {
-            if (!IsMasked)
+            byte[] bytes = PayloadData.ToArray();
+            if (PayloadLength < 127)
             {
-                throw new WebSocketException(CloseStatusCode.ProtocolError, "A frame from a client isn't masked.");
+                buff.Write(bytes, 0, bytes.Length);
             }
-
-            if (webSocket.InContinuation && (Opcode == Opcode.Text || Opcode == Opcode.Binary))
+            else
             {
-                throw new WebSocketException(CloseStatusCode.ProtocolError,
-                    "A data frame has been received while receiving continuation frames.");
-            }
-
-            if (IsCompressed && webSocket.Compression == CompressionMethod.None)
-            {
-                throw new WebSocketException(CloseStatusCode.ProtocolError,
-                    "A compressed frame has been received without any agreement for it.");
-            }
-
-            if (Rsv2 == Rsv.On)
-            {
-                throw new WebSocketException(CloseStatusCode.ProtocolError,
-                    "The RSV2 of a frame is non-zero without any negotiation for it.");
-            }
-
-            if (Rsv3 == Rsv.On)
-            {
-                throw new WebSocketException(CloseStatusCode.ProtocolError,
-                    "The RSV3 of a frame is non-zero without any negotiation for it.");
+                using MemoryStream input = new(bytes);
+                input.CopyTo(buff, 1024);
             }
         }
 
-        internal void Unmask()
-        {
-            if (Mask == Mask.Off)
-            {
-                return;
-            }
+        return buff.ToArray();
+    }
 
-            Mask = Mask.Off;
-            PayloadData.Mask(MaskingKey);
-            MaskingKey = [];
+    public override string ToString()
+    {
+        return BitConverter.ToString(ToArray());
+    }
+
+    internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData)
+    {
+        return new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
+    }
+
+    internal static WebSocketFrame CreatePingFrame()
+    {
+        return new(Fin.Final, Opcode.Ping, new PayloadData());
+    }
+
+    internal static WebSocketFrame CreatePingFrame(byte[] data)
+    {
+        return new(Fin.Final, Opcode.Ping, new PayloadData(data));
+    }
+
+    internal void Validate(WebSocket webSocket)
+    {
+        if (!IsMasked)
+        {
+            throw new WebSocketException(CloseStatusCode.ProtocolError, "A frame from a client isn't masked.");
         }
 
-        private static bool IsOpcodeData(Opcode opcode)
+        if (webSocket.InContinuation && (Opcode == Opcode.Text || Opcode == Opcode.Binary))
         {
-            return opcode is Opcode.Text or Opcode.Binary;
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                "A data frame has been received while receiving continuation frames.");
         }
+
+        if (IsCompressed && webSocket.Compression == CompressionMethod.None)
+        {
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                "A compressed frame has been received without any agreement for it.");
+        }
+
+        if (Rsv2 == Rsv.On)
+        {
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                "The RSV2 of a frame is non-zero without any negotiation for it.");
+        }
+
+        if (Rsv3 == Rsv.On)
+        {
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                "The RSV3 of a frame is non-zero without any negotiation for it.");
+        }
+    }
+
+    internal void Unmask()
+    {
+        if (Mask == Mask.Off)
+        {
+            return;
+        }
+
+        Mask = Mask.Off;
+        PayloadData.Mask(MaskingKey);
+        MaskingKey = [];
+    }
+
+    private static bool IsOpcodeData(Opcode opcode)
+    {
+        return opcode is Opcode.Text or Opcode.Binary;
     }
 }

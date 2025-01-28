@@ -1,15 +1,17 @@
-﻿using Swan.Threading;
+﻿using Notio.Lite.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Security.Internal
-{
-    internal static class IPBanningExecutor
-    {
-        private static readonly ConcurrentDictionary<string, IPBanningConfiguration> Configurations = new();
+namespace Notio.Web.Security.Internal;
 
-        private static readonly PeriodicTask Purger = new(TimeSpan.FromMinutes(1), ct =>
+internal static class IPBanningExecutor
+{
+    private static readonly ConcurrentDictionary<string, IPBanningConfiguration> Configurations = new();
+
+    static IPBanningExecutor()
+    {
+        Purger = new PeriodicTask(TimeSpan.FromMinutes(1), ct =>
         {
             foreach (string conf in Configurations.Keys)
             {
@@ -21,20 +23,22 @@ namespace Notio.Web.Security.Internal
 
             return Task.CompletedTask;
         });
+    }
 
-        public static IPBanningConfiguration RetrieveInstance(string baseRoute, int banMinutes)
-        {
-            return Configurations.GetOrAdd(baseRoute, x => new IPBanningConfiguration(banMinutes));
-        }
+    public static readonly PeriodicTask Purger;
 
-        public static bool TryGetInstance(string baseRoute, out IPBanningConfiguration? configuration)
-        {
-            return Configurations.TryGetValue(baseRoute, out configuration);
-        }
+    public static IPBanningConfiguration RetrieveInstance(string baseRoute, int banMinutes)
+    {
+        return Configurations.GetOrAdd(baseRoute, x => new IPBanningConfiguration(banMinutes));
+    }
 
-        public static bool TryRemoveInstance(string baseRoute)
-        {
-            return Configurations.TryRemove(baseRoute, out _);
-        }
+    public static bool TryGetInstance(string baseRoute, out IPBanningConfiguration? configuration)
+    {
+        return Configurations.TryGetValue(baseRoute, out configuration);
+    }
+
+    public static bool TryRemoveInstance(string baseRoute)
+    {
+        return Configurations.TryRemove(baseRoute, out _);
     }
 }

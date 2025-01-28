@@ -11,6 +11,12 @@
 	<Import Project="..\Notio.Build.props" />
 
 	<ItemGroup>
+	  <Compile Remove="Exceptions\**" />
+	  <EmbeddedResource Remove="Exceptions\**" />
+	  <None Remove="Exceptions\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Unosquare.Swan.Lite" Version="3.1.0" />
 		<ProjectReference Include="..\Notio.Lite\Notio.Lite.csproj" />
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />

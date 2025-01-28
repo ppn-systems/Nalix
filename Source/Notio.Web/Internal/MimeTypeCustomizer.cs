@@ -1,6 +1,6 @@
-﻿using Notio.Web.MimeTypes;
+﻿using Notio.Shared.Configuration;
+using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;
-using Swan.Configuration;
 using System.Collections.Generic;
 
 namespace Notio.Web.Internal;

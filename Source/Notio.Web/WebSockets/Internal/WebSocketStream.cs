@@ -5,102 +5,101 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-namespace Notio.Web.WebSockets.Internal
+namespace Notio.Web.WebSockets.Internal;
+
+internal class WebSocketStream : MemoryStream
 {
-    internal class WebSocketStream : MemoryStream
+    internal const int FragmentLength = 1016;
+
+    private readonly CompressionMethod _compression;
+    private readonly Opcode _opcode;
+
+    public WebSocketStream(byte[] data, Opcode opcode, CompressionMethod compression)
+        : base(data)
     {
-        internal const int FragmentLength = 1016;
+        _compression = compression;
+        _opcode = opcode;
+    }
 
-        private readonly CompressionMethod _compression;
-        private readonly Opcode _opcode;
+    public IEnumerable<WebSocketFrame> GetFrames()
+    {
+        bool compressed = _compression != CompressionMethod.None;
+        MemoryStream stream = compressed
+            ? this.CompressAsync(_compression, true, CancellationToken.None).Await()
+            : this;
 
-        public WebSocketStream(byte[] data, Opcode opcode, CompressionMethod compression)
-            : base(data)
+        long len = stream.Length;
+
+        /* Not fragmented */
+
+        if (len == 0)
         {
-            _compression = compression;
-            _opcode = opcode;
+            yield return new WebSocketFrame(Fin.Final, _opcode, Array.Empty<byte>(), compressed);
+            yield break;
         }
 
-        public IEnumerable<WebSocketFrame> GetFrames()
+        long quo = len / FragmentLength;
+        int rem = (int)(len % FragmentLength);
+
+        byte[] buff;
+
+        if (quo == 0)
         {
-            bool compressed = _compression != CompressionMethod.None;
-            MemoryStream stream = compressed
-                ? this.CompressAsync(_compression, true, CancellationToken.None).Await()
-                : this;
+            buff = new byte[rem];
 
-            long len = stream.Length;
-
-            /* Not fragmented */
-
-            if (len == 0)
+            if (stream.Read(buff, 0, rem) == rem)
             {
-                yield return new WebSocketFrame(Fin.Final, _opcode, Array.Empty<byte>(), compressed);
-                yield break;
+                yield return new WebSocketFrame(Fin.Final, _opcode, buff, compressed);
             }
 
-            long quo = len / FragmentLength;
-            int rem = (int)(len % FragmentLength);
+            yield break;
+        }
 
-            byte[] buff;
-
-            if (quo == 0)
+        buff = new byte[FragmentLength];
+        if (quo == 1 && rem == 0)
+        {
+            if (stream.Read(buff, 0, FragmentLength) == FragmentLength)
             {
-                buff = new byte[rem];
-
-                if (stream.Read(buff, 0, rem) == rem)
-                {
-                    yield return new WebSocketFrame(Fin.Final, _opcode, buff, compressed);
-                }
-
-                yield break;
+                yield return new WebSocketFrame(Fin.Final, _opcode, buff, compressed);
             }
 
-            buff = new byte[FragmentLength];
-            if (quo == 1 && rem == 0)
-            {
-                if (stream.Read(buff, 0, FragmentLength) == FragmentLength)
-                {
-                    yield return new WebSocketFrame(Fin.Final, _opcode, buff, compressed);
-                }
+            yield break;
+        }
 
-                yield break;
-            }
+        /* Send fragmented */
 
-            /* Send fragmented */
+        // Begin
+        if (stream.Read(buff, 0, FragmentLength) != FragmentLength)
+        {
+            yield break;
+        }
 
-            // Begin
+        yield return new WebSocketFrame(Fin.More, _opcode, buff, compressed);
+
+        long n = rem == 0 ? quo - 2 : quo - 1;
+        for (int i = 0; i < n; i++)
+        {
             if (stream.Read(buff, 0, FragmentLength) != FragmentLength)
             {
                 yield break;
             }
 
-            yield return new WebSocketFrame(Fin.More, _opcode, buff, compressed);
+            yield return new WebSocketFrame(Fin.More, Opcode.Cont, buff, compressed);
+        }
 
-            long n = rem == 0 ? quo - 2 : quo - 1;
-            for (int i = 0; i < n; i++)
-            {
-                if (stream.Read(buff, 0, FragmentLength) != FragmentLength)
-                {
-                    yield break;
-                }
+        // End
+        if (rem == 0)
+        {
+            rem = FragmentLength;
+        }
+        else
+        {
+            buff = new byte[rem];
+        }
 
-                yield return new WebSocketFrame(Fin.More, Opcode.Cont, buff, compressed);
-            }
-
-            // End
-            if (rem == 0)
-            {
-                rem = FragmentLength;
-            }
-            else
-            {
-                buff = new byte[rem];
-            }
-
-            if (stream.Read(buff, 0, rem) == rem)
-            {
-                yield return new WebSocketFrame(Fin.Final, Opcode.Cont, buff, compressed);
-            }
+        if (stream.Read(buff, 0, rem) == rem)
+        {
+            yield return new WebSocketFrame(Fin.Final, Opcode.Cont, buff, compressed);
         }
     }
 }

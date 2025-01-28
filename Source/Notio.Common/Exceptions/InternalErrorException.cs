@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 /*
@@ -18,6 +19,8 @@ namespace Notio.Common.Exceptions;
 [Serializable]
 public class InternalErrorException : Exception
 {
+    public string Details { get; }
+
     /// <summary>
     /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
     /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
@@ -46,6 +49,19 @@ public class InternalErrorException : Exception
     public InternalErrorException(string message, Exception innerException)
         : base(message, innerException)
     {
+    }
+
+    /// <summary>
+    /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
+    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// </summary>
+    /// <param name="message">The error message that explains the reason for the exception.</param>
+    /// <param name="details">The exception that is the cause of the current exception,
+    /// or <see langword="null"/> if no inner exception is specified.</param>
+    public InternalErrorException(string message, string details)
+        : base(message)
+    {
+        Details = details;
     }
 
     /// <summary>

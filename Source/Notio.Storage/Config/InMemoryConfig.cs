@@ -5,7 +5,7 @@ using System;
 namespace Notio.Storage.Config;
 
 /// <summary>
-/// Configuration for in-memory file storage.
+/// Configured for in-memory file storage.
 /// </summary>
 public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
 {

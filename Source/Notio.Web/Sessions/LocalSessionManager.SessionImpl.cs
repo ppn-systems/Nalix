@@ -1,9 +1,8 @@
-﻿using Notio.Web.Sessions;
-using Notio.Web.Utilities;
+﻿using Notio.Web.Utilities;
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Sessions;
+namespace Notio.Web.Sessions;
 
 public partial class LocalSessionManager
 {

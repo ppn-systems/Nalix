@@ -31,7 +31,7 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
     public RequestLimiter(FirewallConfig? networkConfig, ILogger? logger = null)
     {
         _logger = logger;
-        _firewallConfig = networkConfig ?? ConfigurationShared.Instance.Get<FirewallConfig>();
+        _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
 
         if (_firewallConfig.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");

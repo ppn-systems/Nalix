@@ -7,25 +7,25 @@ namespace Notio.Shared.Configuration;
 /// Cung cấp quyền truy cập vào các giá trị cấu hình.
 /// </summary>
 /// <remarks>
-/// Các lớp triển khai lớp này nên có hậu tố Configuration trong tên của chúng (ví dụ, FooConfig). Tên phần và khóa của tệp ini được lấy từ tên lớp và thuộc tính.
+/// Các lớp triển khai lớp này nên có hậu tố Configured trong tên của chúng (ví dụ, FooConfig). Tên phần và khóa của tệp ini được lấy từ tên lớp và thuộc tính.
 /// </remarks>
-public abstract class ConfigurationBinder
+public abstract class ConfiguredBinder
 {
     /// <summary>
-    /// Khởi tạo một phiên bản <see cref="ConfigurationBinder"/> từ <see cref="ConfigurationIniFile"/> được cung cấp bằng cách sử dụng reflection.
+    /// Khởi tạo một phiên bản <see cref="ConfiguredBinder"/> từ <see cref="ConfiguredIniFile"/> được cung cấp bằng cách sử dụng reflection.
     /// </summary>
     /// <param name="configFile">Tệp cấu hình ini được sử dụng để khởi tạo.</param>
-    internal void Initialize(ConfigurationIniFile configFile)
+    internal void Initialize(ConfiguredIniFile configFile)
     {
         Type type = GetType();
 
         string section = type.Name;
-        if (section.EndsWith("Configuration", StringComparison.OrdinalIgnoreCase))
+        if (section.EndsWith("Configured", StringComparison.OrdinalIgnoreCase))
             section = section[..^6];
 
         foreach (var property in type.GetProperties())
         {
-            if (property.IsDefined(typeof(ConfigurationIgnoreAttribute)))
+            if (property.IsDefined(typeof(ConfiguredIgnoreAttribute)))
                 continue;  // Bỏ qua các thuộc tính được chỉ định
 
             object? value = Type.GetTypeCode(property.PropertyType) switch

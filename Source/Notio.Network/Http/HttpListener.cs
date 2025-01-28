@@ -38,7 +38,7 @@ public sealed class HttpListener : IDisposable, IHttpListener
         ILogger? logger = null)
     {
         _logger = logger;
-        _httpConfig = config ?? ConfigurationShared.Instance.Get<HttpConfig>();
+        _httpConfig = config ?? ConfiguredShared.Instance.Get<HttpConfig>();
 
         if (string.IsNullOrWhiteSpace(_httpConfig.Prefixes))
             throw new ArgumentException("URL cannot be null or empty.", nameof(config));

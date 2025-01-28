@@ -8,7 +8,7 @@ namespace Notio.Shared.Configuration;
 /// <summary>
 /// Một lớp bao bọc để đọc và ghi các tệp ini.
 /// </summary>
-internal sealed class ConfigurationIniFile
+internal sealed class ConfiguredIniFile
 {
     private readonly string _path;
     private readonly Dictionary<string, Dictionary<string, string>> _iniData;
@@ -19,10 +19,10 @@ internal sealed class ConfigurationIniFile
     public bool ExistsFile => File.Exists(_path);
 
     /// <summary>
-    /// Khởi tạo một phiên bản mới của <see cref="ConfigurationIniFile"/> cho đường dẫn được chỉ định.
+    /// Khởi tạo một phiên bản mới của <see cref="ConfiguredIniFile"/> cho đường dẫn được chỉ định.
     /// </summary>
     /// <param name="path">Đường dẫn tới tệp ini.</param>
-    public ConfigurationIniFile(string path)
+    public ConfiguredIniFile(string path)
     {
         _path = path;
         _iniData = [];
@@ -96,11 +96,11 @@ internal sealed class ConfigurationIniFile
     public char? GetChar(string section, string key)
     {
         var stringValue = GetString(section, key);
-        return stringValue != null && stringValue.Length == 1 ? stringValue[0] : (char?)null;
+        return stringValue != null && stringValue.Length == 1 ? stringValue[0] : null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="string"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="string"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -112,7 +112,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="bool"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="bool"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -164,7 +164,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="int"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="int"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -176,7 +176,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="uint"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="uint"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -188,7 +188,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="long"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="long"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -200,7 +200,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="ulong"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="ulong"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -212,7 +212,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="float"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="float"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -226,7 +226,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="double"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="double"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
@@ -240,7 +240,7 @@ internal sealed class ConfigurationIniFile
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfigurationIniFile"/> này dưới dạng <see cref="DateTime"/>.
+    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="DateTime"/>.
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>

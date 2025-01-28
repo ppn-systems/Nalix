@@ -2,7 +2,7 @@
 
 namespace Notio.Network;
 
-public sealed class NetworkConfig : ConfigurationBinder
+public sealed class NetworkConfig : ConfiguredBinder
 {
     /// <summary>
     /// Địa chỉ IP (Default is 127.0.0.1)

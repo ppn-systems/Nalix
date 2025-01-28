@@ -1,15 +1,16 @@
 ﻿using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;
-using Notio.Shared.Configuration;
+using Notio.Shared.Configured;
 using System;
 using System.IO;
+using Notio.Shared.Configuration;
 
 namespace Notio.Storage.Config;
 
 /// <summary>
-/// Configuration for file storage on disk.
+/// Configured for file storage on disk.
 /// </summary>
-public class InDiskConfig : ConfigurationBinder, IFileStorageConfig<InDiskConfig>
+public class InDiskConfig : ConfiguredBinder, IFileStorageConfig<InDiskConfig>
 {
     /// <summary>
     /// Gets the location of the storage folder on disk.
@@ -19,25 +20,25 @@ public class InDiskConfig : ConfigurationBinder, IFileStorageConfig<InDiskConfig
     /// <summary>
     /// Gets the file generator instance for generating files.
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public IFileGenerator Generator { get; private set; }
 
     /// <summary>
     /// Gets the MIME type resolver instance.
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public IMimeTypeResolver MimeTypeResolver { get; private set; }
 
     /// <summary>
     /// Indicates whether file generation is enabled.
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public bool IsGenerationEnabled => Generator is not null;
 
     /// <summary>
     /// Indicates whether the MIME type resolver is enabled.
     /// </summary>
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public bool IsMimeTypeResolverEnabled => MimeTypeResolver is not null;
 
     /// <summary>

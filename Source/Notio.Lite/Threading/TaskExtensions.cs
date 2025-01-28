@@ -1,4 +1,4 @@
-﻿namespace Notio.Shared.Extensions;
+﻿namespace Notio.Lite.Threading;
 
 using System;
 using System.Threading.Tasks;

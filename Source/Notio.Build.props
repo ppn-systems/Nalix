@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<DebugType>none</DebugType>
 		<GenerateJson>false</GenerateJson>
-		<OutputPath>..\..\bin</OutputPath>
-		<IntermediateOutputPath>..\..\obj</IntermediateOutputPath>
+		<OutputPath>..\build\bin</OutputPath>
+		<IntermediateOutputPath>..\build\obj</IntermediateOutputPath>
 	</PropertyGroup>
 
 </Project>

@@ -27,7 +27,7 @@ public sealed class BufferAllocator : IBufferPool
     /// Gets the buffer configuration from the system configuration manager.
     /// </summary>
     /// <value>The buffer configuration set from the system.</value>
-    public BufferConfig BufferConfig { get; } = ConfigurationShared.Instance.Get<BufferConfig>();
+    public BufferConfig BufferConfig { get; } = ConfiguredShared.Instance.Get<BufferConfig>();
 
     /// <summary>
     /// Gets the largest buffer size from the buffer allocations list.

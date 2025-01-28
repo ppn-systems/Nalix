@@ -1,4 +1,4 @@
-﻿using Swan.Configuration;
+﻿using Notio.Shared.Configuration;
 using System;
 
 namespace Notio.Web;

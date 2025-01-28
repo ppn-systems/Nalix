@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Web.MimeTypes;
+using System;
 
 namespace Notio.Web.Files;
 
