@@ -87,9 +87,14 @@ public class IPBanningModule : WebModuleBase, IDisposable
     /// <exception cref="ArgumentException">baseRoute</exception>
     public static IEnumerable<BanInfo> GetBannedIPs(string baseRoute = "/")
     {
-        return IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
-        ? instance.BlackList
-        : throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        if (IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance) && instance is not null)
+        {
+            return instance.BlackList;
+        }
+        else
+        {
+            throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        }
     }
 
     /// <summary>
@@ -135,9 +140,11 @@ public class IPBanningModule : WebModuleBase, IDisposable
     /// <exception cref="ArgumentException">baseRoute</exception>
     public static bool TryBanIP(IPAddress address, DateTime banUntil, string baseRoute = "/", bool isExplicit = true)
     {
-        return !IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
-            ? throw new ArgumentException(NoConfigurationFound, nameof(baseRoute))
-            : instance.TryBanIP(address, isExplicit, banUntil);
+        if (!IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance) || instance is null)
+        {
+            throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        }
+        return instance.TryBanIP(address, isExplicit, banUntil);
     }
 
     /// <summary>
@@ -151,9 +158,14 @@ public class IPBanningModule : WebModuleBase, IDisposable
     /// <exception cref="ArgumentException">baseRoute</exception>
     public static bool TryUnbanIP(IPAddress address, string baseRoute = "/")
     {
-        return IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance)
-        ? instance.TryRemoveBlackList(address)
-        : throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        if (IPBanningExecutor.TryGetInstance(baseRoute, out IPBanningConfiguration? instance) && instance != null)
+        {
+            return instance.TryRemoveBlackList(address);
+        }
+        else
+        {
+            throw new ArgumentException(NoConfigurationFound, nameof(baseRoute));
+        }
     }
 
     internal void AddToWhitelist(IEnumerable<string>? whitelist)

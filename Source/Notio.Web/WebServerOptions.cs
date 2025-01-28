@@ -105,7 +105,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && Runtime.OS != Lite.OperatingSystem.Windows)
+            if (value && Lite.Runtime.OS != Lite.OperatingSystem.Windows)
             {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
@@ -128,7 +128,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && Runtime.OS != Lite.OperatingSystem.Windows)
+            if (value && Lite.Runtime.OS != Lite.OperatingSystem.Windows)
             {
                 throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
             }
@@ -195,7 +195,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private X509Certificate2? LoadCertificate()
     {
-        if (Runtime.OS != Lite.OperatingSystem.Windows)
+        if (Lite.Runtime.OS != Lite.OperatingSystem.Windows)
         {
             return null;
         }
@@ -288,7 +288,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private bool TryRegisterCertificate()
     {
-        if (Runtime.OS != Lite.OperatingSystem.Windows)
+        if (Lite.Runtime.OS != Lite.OperatingSystem.Windows)
         {
             return false;
         }

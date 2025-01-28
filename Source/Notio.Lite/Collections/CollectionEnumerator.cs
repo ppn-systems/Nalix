@@ -14,7 +14,7 @@ internal struct CollectionEnumerator(CollectionProxy proxy) : IDictionaryEnumera
 
     public readonly object? Value => _currentIndex >= 0 ? proxy[_currentIndex] : default;
 
-    public object? Current => _currentIndex >= 0 ? Entry : default;
+    public readonly object? Current => _currentIndex >= 0 ? Entry : default;
 
     public bool MoveNext()
     {

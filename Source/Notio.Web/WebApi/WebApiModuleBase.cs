@@ -1,9 +1,9 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Lite;
+using Notio.Web.Http;
 using Notio.Web.Response;
 using Notio.Web.Routing;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
-using Swan;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -453,7 +453,7 @@ public abstract class WebApiModuleBase : RoutingModuleBase
                     // Use the request data interface to get a value for the parameter.
                     Expression useRequestDataInterface = Expression.Call(
                         Expression.Constant(attr),
-                        intf.GetMethod(GetRequestDataAsyncMethodName),
+                        intf.GetMethod(GetRequestDataAsyncMethodName)!,
                         controller,
                         Expression.Constant(parameterType),
                         Expression.Constant(parameter.Name));
@@ -527,7 +527,7 @@ public abstract class WebApiModuleBase : RoutingModuleBase
             // Return a Task that serializes the result of a Task<TResult>
             callMethod = Expression.Call(
                 Expression.Constant(this),
-                SerializeResultAsyncMethod.MakeGenericMethod(resultType),
+                SerializeResultAsyncMethod.MakeGenericMethod(resultType!),
                 contextInLambda,
                 callMethod);
         }

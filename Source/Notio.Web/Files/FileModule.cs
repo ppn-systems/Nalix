@@ -439,7 +439,8 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
         {
             // Check whether the resource has changed.
             // If so, discard the cache item and create a new one.
-            if (cacheItem.LastModifiedUtc != info.LastModifiedUtc || cacheItem.Length != info.Length)
+            if (cacheItem != null &&
+                (cacheItem.LastModifiedUtc != info.LastModifiedUtc || cacheItem.Length != info.Length))
             {
                 _cacheSection.Remove(info.Path);
                 cacheItem = new FileCacheItem(_cacheSection, info.LastModifiedUtc, info.Length);
@@ -514,7 +515,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
         // Directories always have info.Length == 0; therefore,
         // unless the directory listing is cached, we must generate it now
         // (and cache it while we're there, if applicable).
-        byte[]? content = cacheItem.GetContent(compressionMethod);
+        byte[]? content = cacheItem?.GetContent(compressionMethod);
         if (info.IsDirectory && content == null)
         {
             long uncompressedLength;
@@ -522,7 +523,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
                 .ConfigureAwait(false);
             if (ContentCaching && uncompressedLength <= cachingThreshold)
             {
-                _ = cacheItem.SetContent(compressionMethod, content);
+                cacheItem?.SetContent(compressionMethod, content);
             }
         }
 
@@ -574,7 +575,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
                 responseContentLength = content.Length;
             }
 
-            _ = cacheItem.SetContent(compressionMethod, content);
+            cacheItem?.SetContent(compressionMethod, content);
         }
 
         // Transfer cached content if present.

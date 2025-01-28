@@ -150,6 +150,39 @@ public static class FromString
         }
     }
 
+    public static bool TryConvertTo<TResult>(Type type, string str, out TResult? result)
+    {
+        if (str == null)
+        {
+            result = default;
+            return false;
+        }
+
+        var converter = TypeDescriptor.GetConverter(type);
+        if (!converter.CanConvertFrom(typeof(string)))
+        {
+            result = default;
+            return false;
+        }
+
+        try
+        {
+            var convertedResult = converter.ConvertFromInvariantString(str);
+            if (convertedResult == null)
+            {
+                result = default;
+                return false;
+            }
+            result = (TResult)convertedResult;
+            return true;
+        }
+        catch
+        {
+            result = default;
+            return false;
+        }
+    }
+
     public static object? ConvertTo(Type type, string[] strings)
     {
         if (strings == null) return null;

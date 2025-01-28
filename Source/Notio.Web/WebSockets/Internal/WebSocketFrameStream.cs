@@ -6,16 +6,10 @@ using System.Threading.Tasks;
 
 namespace Notio.Web.WebSockets.Internal;
 
-internal class WebSocketFrameStream
+internal class WebSocketFrameStream(Stream? stream, bool unmask = false)
 {
-    private readonly bool _unmask;
-    private readonly Stream? _stream;
-
-    public WebSocketFrameStream(Stream? stream, bool unmask = false)
-    {
-        _stream = stream;
-        _unmask = unmask;
-    }
+    private readonly bool _unmask = unmask;
+    private readonly Stream? _stream = stream;
 
     internal async Task<WebSocketFrame?> ReadFrameAsync(WebSocket webSocket)
     {
