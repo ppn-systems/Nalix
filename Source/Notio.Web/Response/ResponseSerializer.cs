@@ -1,4 +1,5 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Lite.Formatters;
+using Notio.Web.Http;
 using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;
 using Swan.Formatters;
@@ -24,7 +25,7 @@ namespace Notio.Web.Response
 
         /// <summary>
         /// Serializes data in JSON format to a HTTP response,
-        /// using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="context">The HTTP context of the request.</param>
         /// <param name="data">The data to serialize.</param>
@@ -33,12 +34,12 @@ namespace Notio.Web.Response
         {
             context.Response.ContentType = MimeType.Json;
             context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-            await ChunkedEncodingBaseSerializer(context, Swan.Formatters.Json.Serialize(data)).ConfigureAwait(false);
+            await ChunkedEncodingBaseSerializer(context, Lite.Formatters.Json.Serialize(data)).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
-        /// to a HTTP response, using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// to a HTTP response, using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="jsonSerializerCase">The JSON serializer case.</param>
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
@@ -49,14 +50,14 @@ namespace Notio.Web.Response
                     {
                         context.Response.ContentType = MimeType.Json;
                         context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                        await ChunkedEncodingBaseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
+                        await ChunkedEncodingBaseSerializer(context, Lite.Formatters.Json.Serialize(data, jsonSerializerCase))
                             .ConfigureAwait(false);
                     };
         }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
-        /// to a HTTP response, using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// to a HTTP response, using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="serializerOptions">The JSON serializer options.</param>
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
@@ -72,13 +73,13 @@ namespace Notio.Web.Response
             {
                 context.Response.ContentType = MimeType.Json;
                 context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                await ChunkedEncodingBaseSerializer(context, Swan.Formatters.Json.Serialize(data, serializerOptions))
+                await ChunkedEncodingBaseSerializer(context, Lite.Formatters.Json.Serialize(data, serializerOptions))
                     .ConfigureAwait(false);
             };
         }
 
         /// <summary>
-        /// Serializes data in JSON format to a HTTP response, using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// Serializes data in JSON format to a HTTP response, using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
         /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
@@ -92,14 +93,14 @@ namespace Notio.Web.Response
                         context.Response.ContentType = MimeType.Json;
                         context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                         ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                        await baseSerializer(context, Swan.Formatters.Json.Serialize(data))
+                        await baseSerializer(context, Lite.Formatters.Json.Serialize(data))
                             .ConfigureAwait(false);
                     };
         }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
-        /// to a HTTP response, using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// to a HTTP response, using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
         /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
@@ -114,14 +115,14 @@ namespace Notio.Web.Response
                         context.Response.ContentType = MimeType.Json;
                         context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                         ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                        await baseSerializer(context, Swan.Formatters.Json.Serialize(data, jsonSerializerCase))
+                        await baseSerializer(context, Lite.Formatters.Json.Serialize(data, jsonSerializerCase))
                             .ConfigureAwait(false);
                     };
         }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
-        /// to a HTTP response, using the <see cref="Swan.Formatters.Json"/> utility class.
+        /// to a HTTP response, using the <see cref="Lite.Formatters.Json"/> utility class.
         /// </summary>
         /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
         /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
@@ -141,7 +142,7 @@ namespace Notio.Web.Response
                 context.Response.ContentType = MimeType.Json;
                 context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                 ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                await baseSerializer(context, Swan.Formatters.Json.Serialize(data, serializerOptions))
+                await baseSerializer(context, Lite.Formatters.Json.Serialize(data, serializerOptions))
                     .ConfigureAwait(false);
             };
         }

@@ -1,6 +1,6 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Logging;
+using Notio.Web.Http;
 using Swan.Formatters;
-using Notio.Logging;
 using System;
 using System.Threading.Tasks;
 

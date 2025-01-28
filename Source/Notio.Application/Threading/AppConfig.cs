@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Notio.Application.Http;
+using Notio.Application.RestApi;
 using Notio.Common.Enums;
 using Notio.Database;
 using Notio.Logging;

@@ -11,8 +11,8 @@ public static class DefaultDirectories
     private static readonly Lazy<string> _basePath = new(() => AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
     private static readonly Lazy<string> _logsPath = new(() => Path.Combine(BasePath, "Logs"));
     private static readonly Lazy<string> _dataPath = new(() => Path.Combine(BasePath, "Data"));
-    private static readonly Lazy<string> _configPath = new(() => Path.Combine(BasePath, "Config"));
     private static readonly Lazy<string> _tempPath = new(() => Path.Combine(DataPath, "Temp"));
+    private static readonly Lazy<string> _configPath = new(() => Path.Combine(BasePath, "Config"));
     private static readonly Lazy<string> _storagePath = new(() => Path.Combine(DataPath, "Storage"));
 
     /// <summary>

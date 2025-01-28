@@ -1,4 +1,5 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Lite.Extensions;
+using Notio.Web.Enums;
 using Swan;
 using System;
 using System.IO;

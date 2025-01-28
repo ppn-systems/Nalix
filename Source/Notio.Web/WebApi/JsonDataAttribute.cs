@@ -1,4 +1,5 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Lite.Formatters;
+using Notio.Web.Http;
 using System;
 using System.Threading.Tasks;
 
@@ -30,7 +31,7 @@ public class JsonDataAttribute : Attribute, IRequestDataAttribute<WebApiControll
 
         try
         {
-            return Swan.Formatters.Json.Deserialize(body, type);
+            return Json.Deserialize(body, type);
         }
         catch (FormatException)
         {

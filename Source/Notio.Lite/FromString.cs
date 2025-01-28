@@ -1,260 +1,349 @@
 ﻿using Notio.Common.Exceptions;
+using Notio.Lite.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Notio.Lite;
-
-/// <summary>
-/// A static class to handle conversions from strings to specific types.
-/// </summary>
-public static class FromString
+namespace Notio
 {
-    private static readonly MethodInfo _convertFromInvariantStringMethod = typeof(TypeConverter).GetMethod("ConvertFromInvariantString", [typeof(string)])!;
-    private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object? Result)>> _genericTryConvertToMethods = new();
-    private static readonly ConcurrentDictionary<Type, Func<string[], object>> _genericConvertToMethods = new();
-
     /// <summary>
-    /// Checks if the specified type can be converted from a string.
+    /// Provides a standard way to convert strings to different types.
     /// </summary>
-    /// <param name="type">The target type to check.</param>
-    /// <returns>True if conversion is possible; otherwise, false.</returns>
-    public static bool CanConvertTo(Type type) => TypeDescriptor.GetConverter(type).CanConvertFrom(typeof(string));
-
-    /// <summary>
-    /// Checks if the specified generic type can be converted from a string.
-    /// </summary>
-    /// <typeparam name="TResult">The target type to check.</typeparam>
-    /// <returns>True if conversion is possible; otherwise, false.</returns>
-    public static bool CanConvertTo<TResult>() => TypeDescriptor.GetConverter(typeof(TResult)).CanConvertFrom(typeof(string));
-
-    /// <summary>
-    /// Tries to convert a string to the specified generic type.
-    /// </summary>
-    /// <typeparam name="TResult">The target type to convert to.</typeparam>
-    /// <param name="str">The string to convert.</param>
-    /// <param name="result">The converted result if successful; otherwise, the default value of the target type.</param>
-    /// <returns>True if conversion is successful; otherwise, false.</returns>
-    public static bool TryConvertTo<TResult>(string str, out TResult result)
+    public static class FromString
     {
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        if (!converter.CanConvertFrom(typeof(string)))
-        {
-            result = default!;
-            return false;
-        }
+        // It doesn't matter which converter we get here: ConvertFromInvariantString is not virtual.
+        private static readonly MethodInfo ConvertFromInvariantStringMethod
+            = new Func<string, object>(TypeDescriptor.GetConverter(typeof(int)).ConvertFromInvariantString).Method;
 
-        try
+        private static readonly MethodInfo TryConvertToInternalMethod
+            = typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic);
+
+        private static readonly MethodInfo ConvertToInternalMethod
+            = typeof(FromString).GetMethod(nameof(ConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic);
+
+        private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>> GenericTryConvertToMethods
+            = new ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>>();
+
+        private static readonly ConcurrentDictionary<Type, Func<string[], object>> GenericConvertToMethods
+            = new ConcurrentDictionary<Type, Func<string[], object>>();
+
+        /// <summary>
+        /// Determines whether a string can be converted to the specified type.
+        /// </summary>
+        /// <param name="type">The type resulting from the conversion.</param>
+        /// <returns><see langword="true" /> if the conversion is possible;
+        /// otherwise, <see langword="false" />.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="type" /> is <see langword="null" />.</exception>
+        public static bool CanConvertTo(Type type)
+            => TypeDescriptor.GetConverter(type).CanConvertFrom(typeof(string));
+
+        /// <summary>
+        /// Determines whether a string can be converted to the specified type.
+        /// </summary>
+        /// <typeparam name="TResult">The type resulting from the conversion.</typeparam>
+        /// <returns><see langword="true" /> if the conversion is possible;
+        /// otherwise, <see langword="false" />.</returns>
+        public static bool CanConvertTo<TResult>()
+            => TypeDescriptor.GetConverter(typeof(TResult)).CanConvertFrom(typeof(string));
+
+        /// <summary>
+        /// Attempts to convert a string to the specified type.
+        /// </summary>
+        /// <param name="type">The type resulting from the conversion.</param>
+        /// <param name="str">The string to convert.</param>
+        /// <param name="result">When this method returns <see langword="true" />,
+        /// the result of the conversion. This parameter is passed uninitialized.</param>
+        /// <returns><see langword="true" /> if the conversion is successful;
+        /// otherwise, <see langword="false" />.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="type" /> is <see langword="null" />.</exception>
+        public static bool TryConvertTo(Type type, string str, out object? result)
         {
-            var convertedResult = converter.ConvertFromInvariantString(str);
-            if (convertedResult is null)
+            var converter = TypeDescriptor.GetConverter(type);
+            if (!converter.CanConvertFrom(typeof(string)))
             {
-                result = default!;
+                result = null;
                 return false;
             }
-            result = (TResult)convertedResult;
-            return true;
-        }
-        catch
-        {
-            result = default!;
-            return false;
-        }
-    }
 
-    /// <summary>
-    /// Converts a string to a specified type.
-    /// </summary>
-    /// <param name="type">The target type to convert to.</param>
-    /// <param name="str">The string to convert.</param>
-    /// <returns>The converted object.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when the type is null.</exception>
-    /// <exception cref="StringConversionException">Thrown when the conversion fails.</exception>
-    public static object ConvertTo(Type type, string str)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-
-        var converter = TypeDescriptor.GetConverter(type);
-        try
-        {
-            var result = converter.ConvertFromInvariantString(str) ?? throw new StringConversionException(type, "Conversion returned null.");
-            return result;
-        }
-        catch (Exception ex) when (!ex.IsCriticalException())
-        {
-            throw new StringConversionException(type, ex);
-        }
-    }
-
-    /// <summary>
-    /// Converts a string to a specified generic type.
-    /// </summary>
-    /// <typeparam name="TResult">The target type to convert to.</typeparam>
-    /// <param name="str">The string to convert.</param>
-    /// <returns>The converted object of type <typeparamref name="TResult"/>.</returns>
-    /// <exception cref="StringConversionException">Thrown when the conversion fails.</exception>
-    public static TResult ConvertTo<TResult>(string str)
-    {
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        try
-        {
-            var result = converter.ConvertFromInvariantString(str) ?? throw new StringConversionException(typeof(TResult), "Conversion returned null.");
-            return (TResult)result;
-        }
-        catch (Exception ex) when (!ex.IsCriticalException())
-        {
-            throw new StringConversionException(typeof(TResult), ex);
-        }
-    }
-
-    public static bool TryConvertTo(Type type, string[] strings, out object? result)
-    {
-        if (strings == null)
-        {
-            result = null;
-            return false;
+            try
+            {
+                result = converter.ConvertFromInvariantString(str);
+                return true;
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                result = null;
+                return false;
+            }
         }
 
-        var method = _genericTryConvertToMethods.GetOrAdd(type, BuildNonGenericTryConvertLambda);
-        var (success, res) = method(strings);
-        result = res;
-        return success;
-    }
-
-    public static bool TryConvertTo<TResult>(string[] strings, out TResult[]? result)
-    {
-        if (strings == null)
+        /// <summary>
+        /// Attempts to convert a string to the specified type.
+        /// </summary>
+        /// <typeparam name="TResult">The type resulting from the conversion.</typeparam>
+        /// <param name="str">The string to convert.</param>
+        /// <param name="result">When this method returns <see langword="true" />,
+        /// the result of the conversion. This parameter is passed uninitialized.</param>
+        /// <returns><see langword="true" /> if the conversion is successful;
+        /// otherwise, <see langword="false" />.</returns>
+        public static bool TryConvertTo<TResult>(string str, out TResult result)
         {
-            result = null;
-            return false;
-        }
-
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        if (!converter.CanConvertFrom(typeof(string)))
-        {
-            result = null;
-            return false;
-        }
-
-        try
-        {
-            result = Array.ConvertAll(strings, str => (TResult)converter.ConvertFromInvariantString(str)!);
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return false;
-        }
-    }
-
-    public static bool TryConvertTo<TResult>(Type type, string str, out TResult? result)
-    {
-        if (str == null)
-        {
-            result = default;
-            return false;
-        }
-
-        var converter = TypeDescriptor.GetConverter(type);
-        if (!converter.CanConvertFrom(typeof(string)))
-        {
-            result = default;
-            return false;
-        }
-
-        try
-        {
-            var convertedResult = converter.ConvertFromInvariantString(str);
-            if (convertedResult == null)
+            var converter = TypeDescriptor.GetConverter(typeof(TResult));
+            if (!converter.CanConvertFrom(typeof(string)))
             {
                 result = default;
                 return false;
             }
-            result = (TResult)convertedResult;
-            return true;
+
+            try
+            {
+                result = (TResult)converter.ConvertFromInvariantString(str);
+                return true;
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                result = default;
+                return false;
+            }
         }
-        catch
+
+        /// <summary>
+        /// Converts a string to the specified type.
+        /// </summary>
+        /// <param name="type">The type resulting from the conversion.</param>
+        /// <param name="str">The string to convert.</param>
+        /// <returns>An instance of <paramref name="type" />.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="type" /> is <see langword="null" />.</exception>
+        /// <exception cref="StringConversionException">The conversion was not successful.</exception>
+        public static object ConvertTo(Type type, string str)
         {
-            result = default;
-            return false;
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            try
+            {
+                return TypeDescriptor.GetConverter(type).ConvertFromInvariantString(str);
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                throw new StringConversionException(type, e);
+            }
         }
-    }
 
-    public static object? ConvertTo(Type type, string[] strings)
-    {
-        if (strings == null) return null;
-        var method = _genericConvertToMethods.GetOrAdd(type, BuildNonGenericConvertLambda);
-        return method(strings);
-    }
-
-    public static TResult[]? ConvertTo<TResult>(string[] strings)
-    {
-        if (strings == null) return null;
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        try
+        /// <summary>
+        /// Converts a string to the specified type.
+        /// </summary>
+        /// <typeparam name="TResult">The type resulting from the conversion.</typeparam>
+        /// <param name="str">The string to convert.</param>
+        /// <returns>An instance of <typeparamref name="TResult" />.</returns>
+        /// <exception cref="StringConversionException">
+        /// The conversion was not successful.
+        /// </exception>
+        public static TResult ConvertTo<TResult>(string str)
         {
-            return Array.ConvertAll(strings, str => (TResult)converter.ConvertFromInvariantString(str)!);
+            try
+            {
+                return (TResult)TypeDescriptor.GetConverter(typeof(TResult)).ConvertFromInvariantString(str);
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                throw new StringConversionException(typeof(TResult), e);
+            }
         }
-        catch (Exception ex) when (!ex.IsCriticalException())
+
+        /// <summary>
+        /// Attempts to convert an array of strings to an array of the specified type.
+        /// </summary>
+        /// <param name="type">The type resulting from the conversion of each
+        /// element of <paramref name="strings"/>.</param>
+        /// <param name="strings">The array to convert.</param>
+        /// <param name="result">When this method returns <see langword="true" />,
+        /// the result of the conversion. This parameter is passed uninitialized.</param>
+        /// <returns><see langword="true" /> if the conversion is successful;
+        /// otherwise, <see langword="false" />.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="type" /> is <see langword="null" />.</exception>
+        public static bool TryConvertTo(Type type, string[] strings, out object? result)
         {
-            throw new StringConversionException(typeof(TResult), ex);
+            if (strings == null)
+            {
+                result = null;
+                return false;
+            }
+
+            var method = GenericTryConvertToMethods.GetOrAdd(type, BuildNonGenericTryConvertLambda);
+            var (success, methodResult) = method(strings);
+            result = methodResult;
+            return success;
         }
-    }
 
-    public static Expression? ConvertExpressionTo(Type type, Expression str)
-    {
-        var converter = TypeDescriptor.GetConverter(type);
-        if (!converter.CanConvertFrom(typeof(string))) return null;
-        return Expression.Convert(Expression.Call(Expression.Constant(converter), _convertFromInvariantStringMethod, str), type);
-    }
-
-    private static Func<string[], (bool Success, object? Result)> BuildNonGenericTryConvertLambda(Type type)
-    {
-        var method = typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)!
-            .MakeGenericMethod(type);
-        var parameter = Expression.Parameter(typeof(string[]));
-        var lambda = Expression.Lambda<Func<string[], (bool, object?)>>(Expression.Call(method, parameter), parameter);
-        return lambda.Compile();
-    }
-
-    private static Func<string[], object> BuildNonGenericConvertLambda(Type type)
-    {
-        var method = typeof(FromString).GetMethod(nameof(ConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)!
-            .MakeGenericMethod(type);
-        var parameter = Expression.Parameter(typeof(string[]));
-        var lambda = Expression.Lambda<Func<string[], object>>(Expression.Call(method, parameter), parameter);
-        return lambda.Compile();
-    }
-
-    private static (bool Success, object? Result) TryConvertToInternal<TResult>(string[] strings)
-    {
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        if (!converter.CanConvertFrom(typeof(string))) return (false, null);
-
-        try
+        /// <summary>
+        /// Attempts to convert an array of strings to an array of the specified type.
+        /// </summary>
+        /// <typeparam name="TResult">The type resulting from the conversion of each
+        /// element of <paramref name="strings"/>.</typeparam>
+        /// <param name="strings">The array to convert.</param>
+        /// <param name="result">When this method returns <see langword="true" />,
+        /// the result of the conversion. This parameter is passed uninitialized.</param>
+        /// <returns><see langword="true" /> if the conversion is successful;
+        /// otherwise, <see langword="false" />.</returns>
+        public static bool TryConvertTo<TResult>(string[] strings, out TResult[]? result)
         {
-            var result = Array.ConvertAll(strings, str => (TResult)converter.ConvertFromInvariantString(str)!);
-            return (true, result);
+            if (strings == null)
+            {
+                result = null;
+                return false;
+            }
+
+            var converter = TypeDescriptor.GetConverter(typeof(TResult));
+            if (!converter.CanConvertFrom(typeof(string)))
+            {
+                result = null;
+                return false;
+            }
+
+            try
+            {
+                result = new TResult[strings.Length];
+                var i = 0;
+                foreach (var str in strings)
+                    result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+
+                return true;
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                result = null;
+                return false;
+            }
         }
-        catch
-        {
-            return (false, null);
-        }
-    }
 
-    private static TResult[] ConvertToInternal<TResult>(string[] strings)
-    {
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        try
+        /// <summary>
+        /// Converts an array of strings to an array of the specified type.
+        /// </summary>
+        /// <param name="type">The type resulting from the conversion of each
+        /// element of <paramref name="strings"/>.</param>
+        /// <param name="strings">The array to convert.</param>
+        /// <returns>An array of <paramref name="type" />.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="type" /> is <see langword="null" />.</exception>
+        /// <exception cref="StringConversionException">The conversion of at least one
+        /// of the elements of <paramref name="strings"/>was not successful.</exception>
+        public static object? ConvertTo(Type type, string[] strings)
         {
-            return Array.ConvertAll(strings, str => (TResult)converter.ConvertFromInvariantString(str)!);
+            if (strings == null)
+                return null;
+
+            var method = GenericConvertToMethods.GetOrAdd(type, BuildNonGenericConvertLambda);
+            return method(strings);
         }
-        catch (Exception ex) when (!ex.IsCriticalException())
+
+        /// <summary>
+        /// Converts an array of strings to an array of the specified type.
+        /// </summary>
+        /// <typeparam name="TResult">The type resulting from the conversion of each
+        /// element of <paramref name="strings"/>.</typeparam>
+        /// <param name="strings">The array to convert.</param>
+        /// <returns>An array of <typeparamref name="TResult" />.</returns>
+        /// <exception cref="StringConversionException">The conversion of at least one
+        /// of the elements of <paramref name="strings"/>was not successful.</exception>
+        public static TResult[]? ConvertTo<TResult>(string[] strings)
         {
-            throw new StringConversionException(typeof(TResult), ex);
+            if (strings == null)
+                return null;
+
+            var converter = TypeDescriptor.GetConverter(typeof(TResult));
+            var result = new TResult[strings.Length];
+            var i = 0;
+            try
+            {
+                foreach (var str in strings)
+                    result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                throw new StringConversionException(typeof(TResult), e);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts a expression, if the type can be converted to string, to a new expression including
+        /// the conversion to string.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <param name="str">The string.</param>
+        /// <returns>A new expression where the previous expression is converted to string.</returns>
+        public static Expression? ConvertExpressionTo(Type type, Expression str)
+        {
+            var converter = TypeDescriptor.GetConverter(type);
+
+            return converter.CanConvertFrom(typeof(string))
+                ? Expression.Convert(
+                    Expression.Call(Expression.Constant(converter), ConvertFromInvariantStringMethod, str),
+                    type)
+                : null;
+        }
+
+        private static Func<string[], (bool Success, object Result)> BuildNonGenericTryConvertLambda(Type type)
+        {
+            var methodInfo = TryConvertToInternalMethod.MakeGenericMethod(type);
+            var parameter = Expression.Parameter(typeof(string[]));
+            var body = Expression.Call(methodInfo, parameter);
+            var lambda = Expression.Lambda<Func<string[], (bool Success, object Result)>>(body, parameter);
+            return lambda.Compile();
+        }
+
+        private static (bool Success, object? Result) TryConvertToInternal<TResult>(string[] strings)
+        {
+            var converter = TypeDescriptor.GetConverter(typeof(TResult));
+            if (!converter.CanConvertFrom(typeof(string)))
+                return (false, null);
+
+            var result = new TResult[strings.Length];
+            var i = 0;
+
+            try
+            {
+                foreach (var str in strings)
+                    result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+
+                return (true, result);
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                return (false, null);
+            }
+        }
+
+        private static Func<string[], object> BuildNonGenericConvertLambda(Type type)
+        {
+            var methodInfo = ConvertToInternalMethod.MakeGenericMethod(type);
+            var parameter = Expression.Parameter(typeof(string[]));
+            var body = Expression.Call(methodInfo, parameter);
+            var lambda = Expression.Lambda<Func<string[], object>>(body, parameter);
+
+            return lambda.Compile();
+        }
+
+        private static object ConvertToInternal<TResult>(string[] strings)
+        {
+            var converter = TypeDescriptor.GetConverter(typeof(TResult));
+            var result = new TResult[strings.Length];
+            var i = 0;
+
+            try
+            {
+                foreach (var str in strings)
+                    result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+
+                return result;
+            }
+            catch (Exception e) when (!e.IsCriticalException())
+            {
+                throw new StringConversionException(typeof(TResult), e);
+            }
         }
     }
 }
