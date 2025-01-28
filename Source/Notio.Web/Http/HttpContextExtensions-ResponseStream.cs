@@ -1,12 +1,11 @@
 ﻿using Notio.Web.Enums;
-using Notio.Web.Extensions;
-using Notio.Web.Http;
 using Notio.Web.Internal;
+using Notio.Web.Request;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 public static partial class HttpContextExtensions
 {

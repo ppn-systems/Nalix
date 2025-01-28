@@ -184,9 +184,9 @@ public partial class WebServer : WebServerBase<WebServerOptions>
         {
             string urlPrefix = new(prefix?.ToCharArray());
 
-            if (!urlPrefix.EndsWith("/"))
+            if (!urlPrefix.EndsWith('/'))
             {
-                urlPrefix += "/";
+                urlPrefix += '/';
             }
 
             urlPrefix = urlPrefix.ToLowerInvariant();

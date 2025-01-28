@@ -3,7 +3,7 @@
 namespace Notio.Storage.Helper;
 
 /// <summary>
-/// Represents a URL expiration mechanism that can either be defined in seconds or as an exact UTC DateTime.
+/// Represents a URL expiration mechanism that can either be defined in seconds or as an exact UTC TimeStamp.
 /// </summary>
 public class UrlExpiration
 {
@@ -19,9 +19,9 @@ public class UrlExpiration
     public bool IsEnabled => InSeconds > 0;
 
     /// <summary>
-    /// Gets the UTC DateTime when the URL will expire.
+    /// Gets the UTC TimeStamp when the URL will expire.
     /// </summary>
-    /// <value>The expiration DateTime in UTC.</value>
+    /// <value>The expiration TimeStamp in UTC.</value>
     public DateTime InDateTime => DateTime.UtcNow.AddSeconds(InSeconds);
 
     /// <summary>
@@ -31,9 +31,9 @@ public class UrlExpiration
     public UrlExpiration(uint seconds = 0) => InSeconds = seconds;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UrlExpiration"/> class with a specified expiration DateTime in UTC.
+    /// Initializes a new instance of the <see cref="UrlExpiration"/> class with a specified expiration TimeStamp in UTC.
     /// </summary>
-    /// <param name="utcDate">The exact UTC expiration DateTime.</param>
+    /// <param name="utcDate">The exact UTC expiration TimeStamp.</param>
     /// <exception cref="OverflowException">Thrown when the time difference exceeds the maximum value of a <see cref="uint"/>.</exception>
     public UrlExpiration(DateTime utcDate)
     {

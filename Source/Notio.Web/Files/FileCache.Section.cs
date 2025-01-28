@@ -1,6 +1,7 @@
 ﻿using Notio.Web.Files.Internal;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Notio.Files
 {
@@ -8,7 +9,7 @@ namespace Notio.Files
     {
         internal class Section
         {
-            private readonly object _syncRoot = new();
+            private readonly Lock _syncRoot = new();
             private readonly Dictionary<string, FileCacheItem> _items = new(StringComparer.Ordinal);
             private long _totalSize;
             private string? _oldestKey;

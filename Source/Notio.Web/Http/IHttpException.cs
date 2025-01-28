@@ -1,5 +1,4 @@
-﻿using Notio.Web.Exceptions;
-using System;
+﻿using System;
 
 namespace Notio.Web.Http;
 

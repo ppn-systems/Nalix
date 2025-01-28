@@ -46,41 +46,41 @@ public static class Clock
         => TimeSpan.FromMilliseconds(UnixMillisecondsNow);
 
     /// <summary>
-    /// Chuyển đổi timestamp Unix (milliseconds) thành DateTime.
+    /// Chuyển đổi timestamp Unix (milliseconds) thành TimeStamp.
     /// </summary>
     /// <param name="timestamp">Timestamp Unix (milliseconds).</param>
-    /// <returns>DateTime tương ứng.</returns>
+    /// <returns>TimeStamp tương ứng.</returns>
     public static DateTime UnixTimeMillisecondsToDateTime(long timestamp)
         => DateTime.UnixEpoch.AddMilliseconds(timestamp);
 
     /// <summary>
-    /// Chuyển đổi timestamp (milliseconds) thành DateTime.
+    /// Chuyển đổi timestamp (milliseconds) thành TimeStamp.
     /// </summary>
     /// <param name="timestamp">Timestamp (milliseconds).</param>
-    /// <returns>DateTime tương ứng.</returns>
+    /// <returns>TimeStamp tương ứng.</returns>
     public static DateTime TimeMillisecondsToDateTime(long timestamp)
         => TimeEpoch.AddMilliseconds(timestamp);
 
     /// <summary>
-    /// Chuyển đổi TimeSpan thành DateTime.
+    /// Chuyển đổi TimeSpan thành TimeStamp.
     /// </summary>
     /// <param name="timeSpan">Thời gian Unix (TimeSpan).</param>
-    /// <returns>DateTime tương ứng.</returns>
+    /// <returns>TimeStamp tương ứng.</returns>
     public static DateTime UnixTimeToDateTime(TimeSpan timeSpan)
         => DateTime.UnixEpoch.Add(timeSpan);
 
     /// <summary>
-    /// Chuyển đổi DateTime thành TimeSpan Unix.
+    /// Chuyển đổi TimeStamp thành TimeSpan Unix.
     /// </summary>
-    /// <param name="dateTime">DateTime.</param>
+    /// <param name="dateTime">TimeStamp.</param>
     /// <returns>TimeSpan Unix.</returns>
     public static TimeSpan DateTimeToUnixTime(DateTime dateTime)
         => dateTime - DateTime.UnixEpoch;
 
     /// <summary>
-    /// Chuyển đổi DateTime thành TimeSpan game.
+    /// Chuyển đổi TimeStamp thành TimeSpan game.
     /// </summary>
-    /// <param name="dateTime">DateTime.</param>
+    /// <param name="dateTime">TimeStamp.</param>
     /// <returns>TimeSpan game.</returns>
     public static TimeSpan DateTimeToTime(DateTime dateTime)
         => dateTime - TimeEpoch;

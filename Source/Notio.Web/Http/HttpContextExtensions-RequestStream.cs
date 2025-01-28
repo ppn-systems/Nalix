@@ -1,10 +1,9 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Utilities;
-using Swan.Logging;
+﻿using Notio.Web.Utilities;
+using Notio.Logging;
 using System.IO;
 using System.IO.Compression;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 public static partial class HttpContextExtensions
 {

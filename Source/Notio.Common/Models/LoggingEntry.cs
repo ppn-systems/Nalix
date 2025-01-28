@@ -1,5 +1,6 @@
 ﻿using Notio.Common.Enums;
 using Notio.Common.Logging;
+using System;
 
 namespace Notio.Common.Models;
 
@@ -12,6 +13,11 @@ namespace Notio.Common.Models;
 /// <param name="exception">Ngoại lệ đi kèm (nếu có).</param>
 public readonly struct LoggingEntry(LoggingLevel level, EventId eventId, string message, System.Exception exception = null)
 {
+    /// <summary>
+    /// Thời gian của nhật ký.
+    /// </summary>
+    public readonly DateTime TimeStamp = DateTime.UtcNow;
+
     /// <summary>
     /// Nội dung của thông điệp nhật ký.
     /// </summary>

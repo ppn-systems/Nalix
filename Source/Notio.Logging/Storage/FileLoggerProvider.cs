@@ -10,7 +10,7 @@ namespace Notio.Logging.Storage;
 /// </summary>
 public class FileLoggerProvider
 {
-    private readonly ConcurrentDictionary<string, FileTarget> loggers = new();
+    private readonly ConcurrentDictionary<string, FileLoggingTarget> loggers = new();
     private readonly BlockingCollection<string> entryQueue = new(1024);
     private readonly Task processQueueTask;
     private readonly FileWriter fWriter;

@@ -40,7 +40,7 @@ public class FileLoggerOptions
     /// </remarks>
     /// <example>
     /// fileLoggerOpts.FormatLogFileName = (fname) => {
-    ///   return String.Format(Path.GetFileNameWithoutExtension(fname) + "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname), DateTime.UtcNow);
+    ///   return String.Format(Path.GetFileNameWithoutExtension(fname) + "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname), TimeStamp.UtcNow);
     /// };
     /// </example>
     public Func<string, string>? FormatLogFileName { get; set; }

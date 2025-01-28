@@ -1,5 +1,6 @@
-﻿using Notio.Web.Extensions;
+﻿using Notio.Web.Enums;
 using Notio.Web.Http;
+using Notio.Web.Response;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
 using Notio.Web.WebSockets.Internal;

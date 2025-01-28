@@ -280,7 +280,7 @@ public sealed class GenId
         public ushort SequenceNumber => (ushort)(id & GenIdConfig.SEQUENCE_MASK);
 
         /// <summary>
-        /// Thời gian tạo ID dạng DateTime.
+        /// Thời gian tạo ID dạng TimeStamp.
         /// </summary>
         public DateTime CreatedAt => Clock.UnixTimeToDateTime(TimeSpan.FromMilliseconds(Timestamp));
 

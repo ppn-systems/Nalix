@@ -244,7 +244,7 @@ internal sealed class ConfigurationIniFile
     /// </summary>
     /// <param name="section">Tên phần trong tệp ini.</param>
     /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng DateTime hoặc null nếu không thể chuyển đổi.</returns>
+    /// <returns>Giá trị dưới dạng TimeStamp hoặc null nếu không thể chuyển đổi.</returns>
     public DateTime? GetDateTime(string section, string key)
     {
         var stringValue = GetString(section, key);

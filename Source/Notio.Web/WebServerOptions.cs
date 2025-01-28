@@ -231,7 +231,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
             string line = e.Data.Trim();
 
-            if (line.StartsWith("Certificate Hash") && line.IndexOf(":", StringComparison.Ordinal) > -1)
+            if (line.StartsWith("Certificate Hash") && line.IndexOf(':', StringComparison.Ordinal) > -1)
             {
                 thumbprint = line.Split(':')[1].Trim();
             }

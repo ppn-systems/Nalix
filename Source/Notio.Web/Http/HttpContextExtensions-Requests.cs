@@ -1,13 +1,13 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Shared;
+using Notio.Shared.Extensions;
 using Notio.Web.Request;
 using Notio.Web.Utilities;
-using Swan;
 using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 public static partial class HttpContextExtensions
 {

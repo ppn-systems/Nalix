@@ -35,8 +35,8 @@ public sealed class NotioLog : LoggingEngine, ILogger
             builder.ConfigureDefaults(cfg =>
             {
                 cfg.SetMinLevel(LoggingLevel.Information);
-                cfg.AddTarget(new ConsoleTarget());
-                cfg.AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName));
+                cfg.AddTarget(new ConsoleLoggingTarget());
+                cfg.AddTarget(new FileLoggingTarget(cfg.LogDirectory, cfg.LogFileName));
                 return cfg;
             });
         }

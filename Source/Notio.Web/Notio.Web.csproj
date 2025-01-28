@@ -12,6 +12,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="Unosquare.Swan.Lite" Version="3.1.0" />
+		<ProjectReference Include="..\Notio\Notio.csproj" />
+		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 	</ItemGroup>
   
 </Project>

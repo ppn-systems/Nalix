@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Web.Http;
+using System;
 using System.Threading.Tasks;
 
 namespace Notio.Web.WebApi

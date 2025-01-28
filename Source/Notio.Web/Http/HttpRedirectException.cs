@@ -1,8 +1,7 @@
-﻿using Notio.Web.Http;
-using System;
+﻿using System;
 using System.Net;
 
-namespace Notio.Web.Exceptions;
+namespace Notio.Web.Http;
 
 /// <summary>
 /// When thrown, breaks the request handling control flow

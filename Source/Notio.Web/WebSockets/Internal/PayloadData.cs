@@ -1,4 +1,5 @@
-﻿using Notio.Web.Net.Internal;
+﻿using Notio.Web.Enums;
+using Notio.Web.Net.Internal;
 using Swan;
 using System;
 using System.Collections.Generic;

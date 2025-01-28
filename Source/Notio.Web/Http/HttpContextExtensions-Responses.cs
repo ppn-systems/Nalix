@@ -1,12 +1,11 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Response;
+﻿using Notio.Web.Response;
 using Notio.Web.Utilities;
 using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Web.Http;
 
 public static partial class HttpContextExtensions
 {

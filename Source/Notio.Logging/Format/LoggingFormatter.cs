@@ -22,14 +22,14 @@ public class LoggingFormatter(bool color = false) : ILoggingFormatter
     /// Định dạng một thông điệp log với timestamp, cấp độ log, ID sự kiện, thông điệp và ngoại lệ.
     /// </summary>
     /// <param name="logMsg">Thông điệp log cần định dạng.</param>
-    /// <param name="timeStamp">Thời gian tạo log.</param>
     /// <returns>Chuỗi định dạng log.</returns>
     /// <example>
     /// var formatter = new LoggingFormatter();
-    /// string log = formatter.FormatLog(logEntry, DateTime.UtcNow);
+    /// string log = formatter.FormatLog(logEntry);
     /// </example>
-    public string FormatLog(LoggingEntry logMsg, DateTime timeStamp)
-        => FormatLogEntry(timeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
+    public string FormatLog(LoggingEntry logMsg)
+        => FormatLogEntry(logMsg.TimeStamp, logMsg.LogLevel,
+            logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
     /// Định dạng một thông điệp log tĩnh.
@@ -41,7 +41,7 @@ public class LoggingFormatter(bool color = false) : ILoggingFormatter
     /// <param name="exception">Ngoại lệ kèm theo (nếu có).</param>
     /// <returns>Chuỗi định dạng log.</returns>
     /// <example>
-    /// string log = LoggingFormatter.FormatLogEntry(DateTime.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
+    /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     public string FormatLogEntry(
         DateTime timeStamp, LoggingLevel logLevel, EventId eventId,
@@ -49,7 +49,8 @@ public class LoggingFormatter(bool color = false) : ILoggingFormatter
     {
         StringBuilder logBuilder = new();
 
-        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _color);
+        LoggingBuilder.BuildLog(logBuilder, timeStamp,
+            logLevel, eventId, message, exception, _color);
 
         return logBuilder.ToString();
     }

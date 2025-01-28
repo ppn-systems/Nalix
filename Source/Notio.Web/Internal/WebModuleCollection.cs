@@ -1,53 +1,52 @@
 ﻿using Notio.Web.Http;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
-using Swan.Logging;
+using Notio.Logging;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Internal
+namespace Notio.Web.Internal;
+
+internal sealed class WebModuleCollection : DisposableComponentCollection<IWebModule>
 {
-    internal sealed class WebModuleCollection : DisposableComponentCollection<IWebModule>
+    private readonly string _logSource;
+
+    internal WebModuleCollection(string logSource)
     {
-        private readonly string _logSource;
+        _logSource = logSource;
+    }
 
-        internal WebModuleCollection(string logSource)
+    internal void StartAll(CancellationToken cancellationToken)
+    {
+        foreach ((string name, IWebModule module) in WithSafeNames)
         {
-            _logSource = logSource;
+            $"Starting module {name}...".Debug(_logSource);
+            module.Start(cancellationToken);
+        }
+    }
+
+    internal async Task DispatchRequestAsync(IHttpContext context)
+    {
+        if (context.IsHandled)
+        {
+            return;
         }
 
-        internal void StartAll(CancellationToken cancellationToken)
+        string requestedPath = context.RequestedPath;
+        foreach ((string name, IWebModule module) in WithSafeNames)
         {
-            foreach ((string name, IWebModule module) in WithSafeNames)
+            Routing.RouteMatch routeMatch = module.MatchUrlPath(requestedPath);
+            if (routeMatch == null)
             {
-                $"Starting module {name}...".Debug(_logSource);
-                module.Start(cancellationToken);
+                continue;
             }
-        }
 
-        internal async Task DispatchRequestAsync(IHttpContext context)
-        {
+            $"[{context.Id}] Processing with {name}.".Debug(_logSource);
+            context.GetImplementation().Route = routeMatch;
+            await module.HandleRequestAsync(context).ConfigureAwait(false);
             if (context.IsHandled)
             {
-                return;
-            }
-
-            string requestedPath = context.RequestedPath;
-            foreach ((string name, IWebModule module) in WithSafeNames)
-            {
-                Routing.RouteMatch routeMatch = module.MatchUrlPath(requestedPath);
-                if (routeMatch == null)
-                {
-                    continue;
-                }
-
-                $"[{context.Id}] Processing with {name}.".Debug(_logSource);
-                context.GetImplementation().Route = routeMatch;
-                await module.HandleRequestAsync(context).ConfigureAwait(false);
-                if (context.IsHandled)
-                {
-                    break;
-                }
+                break;
             }
         }
     }

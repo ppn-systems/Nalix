@@ -44,8 +44,8 @@ public static class AppConfig
         NotioLog.Instance.Initialize(cfg =>
         {
             cfg.SetMinLevel(LoggingLevel.Trace)
-               .AddTarget(new FileTarget(cfg.LogDirectory, cfg.LogFileName))
-               .AddTarget(new ConsoleTarget());
+               .AddTarget(new FileLoggingTarget(cfg.LogDirectory, cfg.LogFileName))
+               .AddTarget(new ConsoleLoggingTarget());
         });
     }
 
