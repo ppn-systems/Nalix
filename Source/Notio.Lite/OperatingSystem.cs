@@ -1,24 +1,27 @@
 ﻿namespace Notio.Lite;
 
+/// <summary>
+/// Represents the operating system types supported by the application.
+/// </summary>
 public enum OperatingSystem
 {
-    //
-    // Summary:
-    //     Unknown OS
+    /// <summary>
+    /// The operating system is unknown or not identified.
+    /// </summary>
     Unknown,
 
-    //
-    // Summary:
-    //     Windows
+    /// <summary>
+    /// The Microsoft Windows operating system.
+    /// </summary>
     Windows,
 
-    //
-    // Summary:
-    //     UNIX/Linux
+    /// <summary>
+    /// A UNIX-like operating system, including Linux distributions.
+    /// </summary>
     Unix,
 
-    //
-    // Summary:
-    //     macOS (OSX)
+    /// <summary>
+    /// The Apple macOS (formerly OS X) operating system.
+    /// </summary>
     Osx
 }
