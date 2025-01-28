@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Testing", "Notio.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Web", "Notio.Web\Notio.Web.csproj", "{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Lite", "Notio.Lite\Notio.Lite.csproj", "{54062EF6-B181-45DE-9125-903220BA1C81}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54062EF6-B181-45DE-9125-903220BA1C81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54062EF6-B181-45DE-9125-903220BA1C81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54062EF6-B181-45DE-9125-903220BA1C81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54062EF6-B181-45DE-9125-903220BA1C81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

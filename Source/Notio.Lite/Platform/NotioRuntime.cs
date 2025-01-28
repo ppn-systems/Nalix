@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 
-namespace Notio.Shared.Platform;
+namespace Notio.Lite.Platform;
 
 /// <summary>
 /// Provides utility methods to retrieve information about the current application.
