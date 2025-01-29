@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 /*
  * NOTE TO CONTRIBUTORS:
  *
  * Never use this exception directly.
- * Use the methods in Notio.Internal.SelfCheck instead.
+ * Use the methods in Notio.Common.SelfCheck instead.
  */
 
-namespace Notio.Common.Exceptions;
+namespace Notio.Common;
 
 /// <summary>
 /// <para>The exception that is thrown by Notio's internal diagnostic checks to signal a condition
@@ -31,7 +30,7 @@ public class InternalErrorException : Exception
 
     /// <summary>
     /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
-    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// <para>Do not call this constrcutor directly; use the methods of the <see cref="SelfCheck"/> class instead.</para>
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
     public InternalErrorException(string message)

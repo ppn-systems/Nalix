@@ -1,4 +1,5 @@
-﻿using Notio.Lite.Extensions;
+﻿using Notio.Common.Exceptions;
+using Notio.Lite.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -87,7 +88,7 @@ public static class FromString
     /// the result of the conversion. This parameter is passed uninitialized.</param>
     /// <returns><see langword="true" /> if the conversion is successful;
     /// otherwise, <see langword="false" />.</returns>
-    public static bool TryConvertTo<TResult>(string str, out TResult result)
+    public static bool TryConvertTo<TResult>(string str, out TResult? result)
     {
         var converter = TypeDescriptor.GetConverter(typeof(TResult));
         if (!converter.CanConvertFrom(typeof(string)))
@@ -118,12 +119,12 @@ public static class FromString
     /// <exception cref="StringConversionException">The conversion was not successful.</exception>
     public static object ConvertTo(Type type, string str)
     {
-        if (type == null)
-            throw new ArgumentNullException(nameof(type));
+        ArgumentNullException.ThrowIfNull(type);
 
         try
         {
-            return TypeDescriptor.GetConverter(type).ConvertFromInvariantString(str);
+            return TypeDescriptor.GetConverter(type).ConvertFromInvariantString(str)
+                ?? throw new StringConversionException(type, new NullReferenceException("Conversion resulted in null."));
         }
         catch (Exception e) when (!e.IsCriticalException())
         {
@@ -144,7 +145,11 @@ public static class FromString
     {
         try
         {
-            return (TResult)TypeDescriptor.GetConverter(typeof(TResult)).ConvertFromInvariantString(str);
+            object result = TypeDescriptor.GetConverter(typeof(TResult)).ConvertFromInvariantString(str) ??
+                 throw new StringConversionException(typeof(TResult),
+                 new NullReferenceException("Conversion resulted in null."));
+
+            return (TResult)result;
         }
         catch (Exception e) when (!e.IsCriticalException())
         {
@@ -206,8 +211,14 @@ public static class FromString
         {
             result = new TResult[strings.Length];
             var i = 0;
-            foreach (var str in strings)
-                result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+            foreach (string str in strings)
+            {
+                object convertedValue = converter.ConvertFromInvariantString(str) ??
+                    throw new StringConversionException(typeof(TResult),
+                    new NullReferenceException("Conversion resulted in null."));
+
+                result[i++] = (TResult)convertedValue;
+            }
 
             return true;
         }
@@ -256,8 +267,14 @@ public static class FromString
         var i = 0;
         try
         {
-            foreach (var str in strings)
-                result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+            foreach (string str in strings)
+            {
+                object convertedValue = converter.ConvertFromInvariantString(str) ??
+                    throw new StringConversionException(typeof(TResult),
+                    new NullReferenceException("Conversion resulted in null."));
+
+                result[i++] = (TResult)convertedValue;
+            }
         }
         catch (Exception e) when (!e.IsCriticalException())
         {
@@ -305,8 +322,14 @@ public static class FromString
 
         try
         {
-            foreach (var str in strings)
-                result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+            foreach (string str in strings)
+            {
+                object convertedValue = converter.ConvertFromInvariantString(str) ??
+                    throw new StringConversionException(typeof(TResult),
+                    new NullReferenceException("Conversion resulted in null."));
+
+                result[i++] = (TResult)convertedValue;
+            }
 
             return (true, result);
         }
@@ -326,16 +349,22 @@ public static class FromString
         return lambda.Compile();
     }
 
-    private static object ConvertToInternal<TResult>(string[] strings)
+    private static TResult[] ConvertToInternal<TResult>(string[] strings)
     {
-        var converter = TypeDescriptor.GetConverter(typeof(TResult));
-        var result = new TResult[strings.Length];
-        var i = 0;
+        TypeConverter converter = TypeDescriptor.GetConverter(typeof(TResult));
+        TResult[] result = new TResult[strings.Length];
+        int i = 0;
 
         try
         {
-            foreach (var str in strings)
-                result[i++] = (TResult)converter.ConvertFromInvariantString(str);
+            foreach (string str in strings)
+            {
+                object convertedValue = converter.ConvertFromInvariantString(str) ??
+                    throw new StringConversionException(typeof(TResult),
+                    new NullReferenceException("Conversion resulted in null."));
+
+                result[i++] = (TResult)convertedValue;
+            }
 
             return result;
         }

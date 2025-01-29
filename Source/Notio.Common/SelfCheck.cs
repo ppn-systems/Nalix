@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Notio.Common.Exceptions;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Notio.Lite;
+namespace Notio.Common;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.
@@ -28,7 +29,7 @@ public static class SelfCheck
     /// A newly-created instance of <see cref="InternalErrorException"/>.
     /// </returns>
     public static InternalErrorException Failure(string message, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
-        => new InternalErrorException(BuildMessage(message, filePath, lineNumber));
+        => new(BuildMessage(message, filePath, lineNumber));
 
     private static string BuildMessage(string message, string filePath, int lineNumber)
     {
