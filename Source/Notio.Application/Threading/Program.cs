@@ -24,7 +24,7 @@ public static class Program
         // Khởi tạo và chạy HTTP server
         var httpServer = AppConfig.InitializeHttpServer();
 
-        await httpServer.StartAsync();
+        await httpServer.RunAsync();
 
         Console.ReadKey();
     }

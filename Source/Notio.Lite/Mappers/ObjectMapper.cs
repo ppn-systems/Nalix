@@ -210,8 +210,7 @@ public partial class ObjectMapper
     /// <exception cref="InvalidOperationException">You can't map from type {source.GetType().Name} to {typeof(TDestination).Name}.</exception>
     public TDestination Map<TDestination>(object source, bool autoResolve = true)
     {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
 
         var destination = Activator.CreateInstance<TDestination>();
         var map = _maps

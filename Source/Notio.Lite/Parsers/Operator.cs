@@ -11,7 +11,7 @@ public class Operator
     /// <value>
     /// The name.
     /// </value>
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the precedence.

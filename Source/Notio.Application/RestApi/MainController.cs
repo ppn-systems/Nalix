@@ -1,5 +1,6 @@
-﻿using Notio.Network.Http;
-using Notio.Network.Http.Attributes;
+﻿using Notio.Web.Enums;
+using Notio.Web.Routing;
+using Notio.Web.WebApi;
 using System;
 using System.Diagnostics;
 using System.Net;
@@ -7,53 +8,36 @@ using System.Threading.Tasks;
 
 namespace Notio.Application.RestApi;
 
-[ApiController]
-internal class MainController
+internal class MainController : WebApiController
 {
-    // Endpoint chào mừng đơn giản
-    [Route("/api", HttpMethodType.GET)]
-    public static async Task HelloWorld(HttpContext context)
-        => await context.Response.WriteJsonResponseAsync(
-            HttpStatusCode.OK,
-            new
-            {
-                Message = "Hello, World!"
-            }
-        );
-
-    // Endpoint trả về trạng thái server
-    [Route("/api/status", HttpMethodType.GET)]
-    public static async Task ServerStatus(HttpContext context)
-        => await context.Response.WriteJsonResponseAsync(
-            HttpStatusCode.OK,
-            new
-            {
-                Status = "Running",
-                Timestamp = DateTime.UtcNow
-            }
-        );
-
-    // Endpoint xử lý lỗi demo
-    [Route("/api/error", HttpMethodType.GET)]
-    public static async Task SimulateError(HttpContext context)
+    [Route(HttpVerbs.Get, "/api/hello")]
+    public Task<object> HelloWord()
     {
-        await context.Response.WriteErrorResponseAsync(
-            HttpStatusCode.InternalServerError,
-            "This is a simulated error for testing purposes."
-        );
+        // Set status code 200 và response data
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        return Task.FromResult<object>(new { message = "Hello World!" });
     }
 
-    // Endpoint trả về thông tin hệ thống
-    [Route("/api/system-info", HttpMethodType.GET)]
-    public static async Task SystemInfo(HttpContext context)
-        => await context.Response.WriteJsonResponseAsync(
-            HttpStatusCode.OK,
-            new
-            {
-                OS = Environment.OSVersion.ToString(),
-                Framework = Environment.Version.ToString(),
-                Environment.MachineName,
-                Uptime = $"{DateTime.Now - Process.GetCurrentProcess().StartTime:hh\\:mm\\:ss}"
-            }
-        );
+    [Route(HttpVerbs.Get, "/api/greet/{name}")]
+    public Task<object> Greet(string name)
+    {
+        // Set status code 200 và response data
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        return Task.FromResult<object>(new { message = $"Hello, {name}!" });
+    }
+
+    [Route(HttpVerbs.Get, "/api/status")]
+    public Task<object> Status()
+    {
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        return Task.FromResult<object>(new
+        {
+            message = "Server is running",
+            OS = Environment.OSVersion.ToString(),
+            Framework = Environment.Version.ToString(),
+            Environment.MachineName,
+            Uptime = $"{DateTime.Now - Process.GetCurrentProcess().StartTime:hh\\:mm\\:ss}",
+            Timestamp = DateTime.UtcNow
+        });
+    }
 }

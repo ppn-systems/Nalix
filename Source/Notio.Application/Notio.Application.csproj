@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>0.1.27</Version>
+		<Version>0.1.59</Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
@@ -25,6 +25,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Notio.Web\Notio.Web.csproj" />
 		<ProjectReference Include="..\Notio.Testing\Notio.Testing.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
