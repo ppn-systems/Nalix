@@ -1,5 +1,5 @@
-﻿using Notio.Formatters;
-using Notio.Lite.Extensions;
+﻿using Notio.Lite.Extensions;
+using Notio.Lite.Formatters;
 using System;
 using System.IO;
 using System.Linq;

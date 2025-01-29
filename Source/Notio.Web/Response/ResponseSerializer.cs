@@ -2,7 +2,6 @@
 using Notio.Web.Http;
 using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;
-using Swan.Formatters;
 using System;
 using System.Threading.Tasks;
 

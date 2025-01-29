@@ -1,7 +1,6 @@
 ﻿using Notio.Lite;
 using Notio.Web.MimeTypes;
 using Notio.Web.Utilities;
-using Swan;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

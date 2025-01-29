@@ -1,6 +1,6 @@
-﻿using Notio.Logging;
+﻿using Notio.Lite.Formatters;
+using Notio.Logging;
 using Notio.Web.Http;
-using Swan.Formatters;
 using System;
 using System.Threading.Tasks;
 
@@ -59,7 +59,7 @@ public static class RequestDeserializer
 
         try
         {
-            return Swan.Formatters.Json.Deserialize<TData>(body, jsonSerializerCase);
+            return Lite.Formatters.Json.Deserialize<TData>(body, jsonSerializerCase);
         }
         catch (FormatException)
         {

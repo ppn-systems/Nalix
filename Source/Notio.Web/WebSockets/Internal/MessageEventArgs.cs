@@ -1,6 +1,5 @@
 ﻿using Notio.Lite.Extensions;
 using Notio.Web.Enums;
-using Swan;
 using System;
 
 namespace Notio.Web.WebSockets.Internal;

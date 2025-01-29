@@ -326,7 +326,7 @@ namespace Notio.Mappers
                 case IList sourceList when target is IList targetList:
                     var addMethod = targetType.GetMethods()
                         .FirstOrDefault(
-                            m => m.Name == Formatters.Json.AddMethodName && m.IsPublic && m.GetParameters().Length == 1);
+                            m => m.Name == Lite.Formatters.Json.AddMethodName && m.IsPublic && m.GetParameters().Length == 1);
 
                     if (addMethod == null) return target;
 

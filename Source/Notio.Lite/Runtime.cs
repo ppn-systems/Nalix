@@ -8,7 +8,7 @@ namespace Notio.Lite;
 /// <summary>
 /// Provides utility methods to retrieve information about the current application.
 /// </summary>
-public static class NotioRuntime
+public static class Runtime
 {
     private static readonly Lazy<Assembly> EntryAssemblyLazy = new Lazy<Assembly>(Assembly.GetEntryAssembly);
 
