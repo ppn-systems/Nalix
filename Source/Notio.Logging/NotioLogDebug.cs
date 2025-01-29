@@ -1,32 +1,25 @@
-﻿using System;
-using Notio.Common.Enums;
+﻿using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Engine;
+using System;
 using System.Runtime.CompilerServices;
-using Notio.Logging.Targets;
-using System.IO;
 
 namespace Notio.Logging;
 
-public static class NotioLogExtensions
+public static class NotioLogDebug
 {
     private static readonly LoggingPublisher _publisher = new();
-    public static LoggingLevel MinimumLevel = LoggingLevel.Trace;
+    private static LoggingLevel MinimumLevel = LoggingLevel.Trace;
 
-    public static bool CanLog(LoggingLevel level) => level >= MinimumLevel;
+    public static ILoggingPublisher AddTarget(ILoggingTarget ltg)
+        => _publisher.AddTarget(ltg);
 
-    static NotioLogExtensions()
-    {
-        string logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Notio.Logs"
-        );
+    public static void SetMinimumLevel(LoggingLevel level)
+        => MinimumLevel = level;
 
-        string logFilename = $"NotioLogExtensions_{DateTime.Now:yyyy-MM-dd}.log";
-
-        _publisher.AddTarget(new FileLoggingTarget(logDirectory, logFilename));
-    }
+    public static bool CanLog(LoggingLevel level)
+        => level >= MinimumLevel;
 
     /// <summary>
     /// Logs a debug message to the console.

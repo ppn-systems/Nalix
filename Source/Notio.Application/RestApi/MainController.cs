@@ -10,6 +10,7 @@ namespace Notio.Application.RestApi;
 
 internal class MainController : WebApiController
 {
+    //
     [Route(HttpVerbs.Get, "/")]
     public Task<object> Notio()
     {
