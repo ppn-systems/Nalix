@@ -1,4 +1,4 @@
-﻿using Notio.Net.Internal;
+﻿using Notio.Lite.Net.Internal;
 using System;
 using System.Globalization;
 using System.Net;
