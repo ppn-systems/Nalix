@@ -20,12 +20,11 @@ public static partial class Extensions
     /// The value of the provided key or default.
     /// </returns>
     /// <exception cref="ArgumentNullException">dict.</exception>
-    public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue defaultValue = default)
+    public static TValue? GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue? defaultValue = default)
     {
-        if (dict == null)
-            throw new ArgumentNullException(nameof(dict));
+        ArgumentNullException.ThrowIfNull(dict);
 
-        return dict.ContainsKey(key) ? dict[key] : defaultValue;
+        return dict.TryGetValue(key, out TValue? value) ? value : defaultValue;
     }
 
     /// <summary>
@@ -46,22 +45,20 @@ public static partial class Extensions
     /// or
     /// valueFactory.
     /// </exception>
-    public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> valueFactory)
+    public static TValue? GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> valueFactory)
     {
-        if (dict == null)
-            throw new ArgumentNullException(nameof(dict));
+        ArgumentNullException.ThrowIfNull(dict);
+        ArgumentNullException.ThrowIfNull(valueFactory);
 
-        if (valueFactory == null)
-            throw new ArgumentNullException(nameof(valueFactory));
-
-        if (!dict.ContainsKey(key))
+        if (!dict.TryGetValue(key, out TValue? value))
         {
-            var value = valueFactory(key);
-            if (Equals(value, default)) return default;
+            var newValue = valueFactory(key);
+            if (Equals(newValue, default)) return default;
+            value = newValue;
             dict[key] = value;
         }
 
-        return dict[key];
+        return value;
     }
 
     /// <summary>
@@ -74,8 +71,7 @@ public static partial class Extensions
     /// <exception cref="ArgumentNullException">dict.</exception>
     public static void ForEach<TKey, TValue>(this IDictionary<TKey, TValue> dict, Action<TKey, TValue> itemAction)
     {
-        if (dict == null)
-            throw new ArgumentNullException(nameof(dict));
+        ArgumentNullException.ThrowIfNull(dict);
 
         foreach (var kvp in dict)
         {

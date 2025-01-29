@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace Notio.Lite.Formatters;
 
@@ -47,31 +48,21 @@ namespace Notio.Lite.Formatters;
 /// }
 /// </code>
 /// </example>
-public class CsvWriter : IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="CsvWriter" /> class.
+/// </remarks>
+/// <param name="outputStream">The output stream.</param>
+/// <param name="leaveOpen">if set to <c>true</c> [leave open].</param>
+/// <param name="encoding">The encoding.</param>
+public class CsvWriter(Stream outputStream, bool leaveOpen, Encoding encoding) : IDisposable
 {
-    private static readonly PropertyTypeCache TypeCache = new PropertyTypeCache();
+    private static readonly PropertyTypeCache TypeCache = new();
 
-    private readonly object _syncLock = new object();
-    private readonly Stream _outputStream;
-    private readonly Encoding _encoding;
-    private readonly bool _leaveStreamOpen;
+    private readonly Lock _syncLock = new();
     private bool _isDisposing;
     private ulong _mCount;
 
     #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CsvWriter" /> class.
-    /// </summary>
-    /// <param name="outputStream">The output stream.</param>
-    /// <param name="leaveOpen">if set to <c>true</c> [leave open].</param>
-    /// <param name="encoding">The encoding.</param>
-    public CsvWriter(Stream outputStream, bool leaveOpen, Encoding encoding)
-    {
-        _outputStream = outputStream;
-        _encoding = encoding;
-        _leaveStreamOpen = leaveOpen;
-    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvWriter"/> class.
@@ -156,7 +147,7 @@ public class CsvWriter : IDisposable
     /// <value>
     /// The ignore property names.
     /// </value>
-    public List<string> IgnorePropertyNames { get; } = new List<string>();
+    public List<string> IgnorePropertyNames { get; } = [];
 
     /// <summary>
     /// Gets number of lines that have been written, including the headings line.
@@ -222,7 +213,7 @@ public class CsvWriter : IDisposable
     /// </summary>
     /// <param name="items">The items.</param>
     public void WriteLine(params object[] items)
-        => WriteLine(items.Select(x => x == null ? string.Empty : x.ToStringInvariant()));
+        => WriteLine(items.Select(x => x == null ? string.Empty : x.ToStringInvariant() ?? string.Empty));
 
     /// <summary>
     /// Writes a line of CSV text. Items are converted to strings.
@@ -231,7 +222,7 @@ public class CsvWriter : IDisposable
     /// </summary>
     /// <param name="items">The items.</param>
     public void WriteLine(IEnumerable<object> items)
-        => WriteLine(items.Select(x => x == null ? string.Empty : x.ToStringInvariant()));
+        => WriteLine(items.Select(x => x == null ? string.Empty : x.ToStringInvariant() ?? string.Empty));
 
     /// <summary>
     /// Writes a line of CSV text.
@@ -250,8 +241,8 @@ public class CsvWriter : IDisposable
         lock (_syncLock)
         {
             var length = items.Count();
-            var separatorBytes = _encoding.GetBytes(new[] { SeparatorCharacter });
-            var endOfLineBytes = _encoding.GetBytes(NewLineSequence);
+            var separatorBytes = encoding.GetBytes([SeparatorCharacter]);
+            var endOfLineBytes = encoding.GetBytes(NewLineSequence);
 
             // Declare state variables here to avoid recreation, allocation and
             // reassignment in every loop
@@ -265,10 +256,10 @@ public class CsvWriter : IDisposable
 
                 // Determine if we need the string to be enclosed
                 // (it either contains an escape, new line, or separator char)
-                needsEnclosing = textValue.IndexOf(SeparatorCharacter) >= 0
-                                 || textValue.IndexOf(EscapeCharacter) >= 0
-                                 || textValue.IndexOf('\r') >= 0
-                                 || textValue.IndexOf('\n') >= 0;
+                needsEnclosing = textValue.Contains(SeparatorCharacter)
+                                 || textValue.Contains(EscapeCharacter)
+                                 || textValue.Contains('\r')
+                                 || textValue.Contains('\n');
 
                 // Escape the escape characters by repeating them twice for every instance
                 textValue = textValue.Replace($"{EscapeCharacter}",
@@ -279,17 +270,17 @@ public class CsvWriter : IDisposable
                     textValue = string.Format($"{EscapeCharacter}{textValue}{EscapeCharacter}", textValue);
 
                 // Get the bytes to write to the stream and write them
-                output = _encoding.GetBytes(textValue);
-                _outputStream.Write(output, 0, output.Length);
+                output = encoding.GetBytes(textValue);
+                outputStream.Write(output, 0, output.Length);
 
                 // only write a separator if we are moving in between values.
                 // the last value should not be written.
                 if (i < length - 1)
-                    _outputStream.Write(separatorBytes, 0, separatorBytes.Length);
+                    outputStream.Write(separatorBytes, 0, separatorBytes.Length);
             }
 
             // output the newline sequence
-            _outputStream.Write(endOfLineBytes, 0, endOfLineBytes.Length);
+            outputStream.Write(endOfLineBytes, 0, endOfLineBytes.Length);
             _mCount += 1;
         }
     }
@@ -308,8 +299,7 @@ public class CsvWriter : IDisposable
     /// <exception cref="ArgumentNullException">item.</exception>
     public void WriteObject(object? item)
     {
-        if (item == null)
-            throw new ArgumentNullException(nameof(item));
+        ArgumentNullException.ThrowIfNull(item);
 
         lock (_syncLock)
         {
@@ -324,7 +314,7 @@ public class CsvWriter : IDisposable
                     return;
 
                 default:
-                    WriteLine(GetFilteredTypeProperties(item.GetType()).Select(x => item.ReadProperty(x.Name)));
+                    WriteLine(GetFilteredTypeProperties(item.GetType()).Select(x => item.ReadProperty(x.Name) ?? string.Empty));
                     break;
             }
         }
@@ -350,8 +340,7 @@ public class CsvWriter : IDisposable
     /// <exception cref="ArgumentNullException">items.</exception>
     public void WriteObjects<T>(IEnumerable<T> items)
     {
-        if (items == null)
-            throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
 
         lock (_syncLock)
         {
@@ -371,8 +360,7 @@ public class CsvWriter : IDisposable
     /// <exception cref="ArgumentNullException">type.</exception>
     public void WriteHeadings(Type type)
     {
-        if (type == null)
-            throw new ArgumentNullException(nameof(type));
+        ArgumentNullException.ThrowIfNull(type);
 
         var properties = GetFilteredTypeProperties(type).Select(p => p.Name.Humanize()).Cast<object>();
         WriteLine(properties);
@@ -391,8 +379,7 @@ public class CsvWriter : IDisposable
     /// <exception cref="ArgumentNullException">dictionary.</exception>
     public void WriteHeadings(IDictionary dictionary)
     {
-        if (dictionary == null)
-            throw new ArgumentNullException(nameof(dictionary));
+        ArgumentNullException.ThrowIfNull(dictionary);
 
         WriteLine(GetFilteredDictionary(dictionary, true));
     }
@@ -404,8 +391,7 @@ public class CsvWriter : IDisposable
     /// <exception cref="ArgumentNullException">obj.</exception>
     public void WriteHeadings(object obj)
     {
-        if (obj == null)
-            throw new ArgumentNullException(nameof(obj));
+        ArgumentNullException.ThrowIfNull(obj);
 
         WriteHeadings(obj.GetType());
     }
@@ -415,7 +401,11 @@ public class CsvWriter : IDisposable
     #region IDisposable Support
 
     /// <inheritdoc />
-    public void Dispose() => Dispose(true);
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.
@@ -427,9 +417,9 @@ public class CsvWriter : IDisposable
 
         if (disposeAlsoManaged)
         {
-            if (_leaveStreamOpen == false)
+            if (leaveOpen == false)
             {
-                _outputStream.Dispose();
+                outputStream.Dispose();
             }
         }
 
@@ -444,12 +434,12 @@ public class CsvWriter : IDisposable
         => dictionary
             .Keys
             .Cast<object>()
-            .Select(key => key == null ? string.Empty : key.ToStringInvariant())
+            .Select(key => key == null ? string.Empty : key.ToStringInvariant() ?? string.Empty)
             .Where(stringKey => !IgnorePropertyNames.Contains(stringKey))
             .Select(stringKey =>
                 filterKeys
                     ? stringKey
-                    : dictionary[stringKey] == null ? string.Empty : dictionary[stringKey].ToStringInvariant());
+                    : dictionary[stringKey] == null ? string.Empty : dictionary[stringKey].ToStringInvariant() ?? string.Empty);
 
     private IEnumerable<PropertyInfo> GetFilteredTypeProperties(Type type)
         => TypeCache.Retrieve(type, t =>

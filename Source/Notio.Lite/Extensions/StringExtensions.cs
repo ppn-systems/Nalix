@@ -21,22 +21,22 @@ public static class StringExtensions
     private static readonly string[] ByteSuffixes = { "B", "KB", "MB", "GB", "TB" };
 
     private static readonly Lazy<Regex> SplitLinesRegex =
-        new Lazy<Regex>(() => new Regex("\r\n|\r|\n", StandardRegexOptions));
+        new(() => new Regex("\r\n|\r|\n", StandardRegexOptions));
 
     private static readonly Lazy<Regex> UnderscoreRegex =
-        new Lazy<Regex>(() => new Regex(@"_", StandardRegexOptions));
+        new(() => new Regex(@"_", StandardRegexOptions));
 
     private static readonly Lazy<Regex> CamelCaseRegEx =
-        new Lazy<Regex>(() => new Regex(@"[a-z][A-Z]", StandardRegexOptions));
+        new(() => new Regex(@"[a-z][A-Z]", StandardRegexOptions));
 
     private static readonly Lazy<MatchEvaluator> SplitCamelCaseString = new Lazy<MatchEvaluator>(() => m =>
     {
         var x = m.ToString();
-        return x[0] + " " + x.Substring(1, x.Length - 1);
+        return x[0] + " " + x[1..];
     });
 
     private static readonly Lazy<string[]> InvalidFilenameChars =
-        new Lazy<string[]>(() => Path.GetInvalidFileNameChars().Select(c => c.ToStringInvariant()).ToArray());
+        new(() => Path.GetInvalidFileNameChars().Select(c => c.ToStringInvariant()).ToArray());
 
     #endregion Private Declarations
 
@@ -47,7 +47,7 @@ public static class StringExtensions
     /// </summary>
     /// <param name="this">The item.</param>
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
-    public static string ToStringInvariant(this object? @this)
+    public static string? ToStringInvariant(this object? @this)
     {
         if (@this == null)
             return string.Empty;
@@ -57,8 +57,8 @@ public static class StringExtensions
         if (itemType == typeof(string))
             return @this as string ?? string.Empty;
 
-        return Definitions.BasicTypesInfo.Value.ContainsKey(itemType)
-            ? Definitions.BasicTypesInfo.Value[itemType].ToStringInvariant(@this)
+        return Definitions.BasicTypesInfo.Value.TryGetValue(itemType, out Reflection.ExtendedTypeInfo? value)
+            ? value.ToStringInvariant(@this)
             : @this.ToString();
     }
 
@@ -71,7 +71,9 @@ public static class StringExtensions
     /// <param name="item">The item.</param>
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
     public static string ToStringInvariant<T>(this T item)
-        => typeof(string) == typeof(T) ? item as string ?? string.Empty : ToStringInvariant(item as object);
+        => typeof(string) == typeof(T) ? item as string
+        ?? string.Empty : ToStringInvariant(item as object)
+        ?? string.Empty;
 
     /// <summary>
     /// Removes the control characters from a string except for those specified.
@@ -84,11 +86,9 @@ public static class StringExtensions
     /// <exception cref="ArgumentNullException">input.</exception>
     public static string RemoveControlChars(this string value, params char[]? excludeChars)
     {
-        if (value == null)
-            throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
 
-        if (excludeChars == null)
-            excludeChars = Array.Empty<char>();
+        excludeChars ??= [];
 
         return new string(value
             .Where(c => char.IsControl(c) == false || excludeChars.Contains(c))
@@ -123,11 +123,9 @@ public static class StringExtensions
 
             return new HumanizeJson(jsonData, 0).GetResult();
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch
-#pragma warning restore CA1031 // Do not catch general exception types
         {
-            return @this.ToStringInvariant();
+            return @this.ToStringInvariant() ?? string.Empty;
         }
     }
 
@@ -179,7 +177,7 @@ public static class StringExtensions
     /// that are delimited by one or more characters in separator.
     /// </returns>
     public static string[] ToLines(this string @this) =>
-        @this == null ? Array.Empty<string>() : SplitLinesRegex.Value.Split(@this);
+        @this == null ? [] : SplitLinesRegex.Value.Split(@this);
 
     /// <summary>
     /// Humanizes (make more human-readable) an identifier-style string
@@ -227,7 +225,7 @@ public static class StringExtensions
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
     public static string Indent(this string value, int spaces = 4)
     {
-        if (value == null) value = string.Empty;
+        value ??= string.Empty;
         if (spaces <= 0) return value;
 
         var lines = value.ToLines();
@@ -351,8 +349,7 @@ public static class StringExtensions
             return null;
 
         return value.Length > maximumLength
-            ? value.Substring(0, maximumLength) + (omission ?? string.Empty)
-            : value;
+            ? string.Concat(value.AsSpan(0, maximumLength), omission ?? string.Empty) : value;
     }
 
     /// <summary>
@@ -381,7 +378,7 @@ public static class StringExtensions
     /// <param name="chars">The chars.</param>
     /// <returns>The string with the characters replaced.</returns>
     public static string ReplaceAll(this string value, string replaceValue, params char[] chars) =>
-        chars.Aggregate(value, (current, c) => current.Replace(new string(new[] { c }), replaceValue));
+        chars.Aggregate(value, (current, c) => current.Replace(new string([c]), replaceValue));
 
     /// <summary>
     /// Convert hex character to an integer. Return -1 if char is something

@@ -26,7 +26,7 @@ public partial class Json
     {
         #region Private Declarations
 
-        private static readonly Dictionary<int, string> IndentStrings = new Dictionary<int, string>();
+        private static readonly Dictionary<int, string> IndentStrings = [];
 
         private readonly SerializerOptions _options;
         private readonly string _result;
@@ -44,7 +44,10 @@ public partial class Json
         /// <param name="obj">The object.</param>
         /// <param name="depth">The depth.</param>
         /// <param name="options">The options.</param>
+#pragma warning disable CS8618
+
         private Serializer(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null)
+#pragma warning restore CS8618
         {
             if (depth > 20)
             {
@@ -125,7 +128,7 @@ public partial class Json
                 case MethodInfo _:
                 case PropertyInfo _:
                 case EventInfo _:
-                    return Escape(obj.ToString(), true);
+                    return Escape(obj.ToString() ?? string.Empty, true);
 
                 case DateTime d:
                     return $"{StringQuotedChar}{d:s}{StringQuotedChar}";
@@ -133,10 +136,10 @@ public partial class Json
                 default:
                     var targetType = obj.GetType();
 
-                    if (!Definitions.BasicTypesInfo.Value.ContainsKey(targetType))
+                    if (!Definitions.BasicTypesInfo.Value.TryGetValue(targetType, out ExtendedTypeInfo? value))
                         return string.Empty;
 
-                    var escapedValue = Escape(Definitions.BasicTypesInfo.Value[targetType].ToStringInvariant(obj), false);
+                    var escapedValue = Escape(value.ToStringInvariant(obj), false);
 
                     return decimal.TryParse(escapedValue, out _)
                         ? $"{escapedValue}"
@@ -240,9 +243,7 @@ public partial class Json
                         ? target.ReadProperty(property.Name)
                         : (field.Value as FieldInfo)?.GetValue(target);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     /* ignored */
                 }
@@ -262,11 +263,11 @@ public partial class Json
             {
                 // Serialize and append the key (first char indented)
                 Append(StringQuotedChar, depth + 1);
-                Escape(key.ToString(), _builder);
+                Escape(key.ToString() ?? string.Empty, _builder);
                 _builder
                     .Append(StringQuotedChar)
                     .Append(ValueSeparatorChar)
-                    .Append(" ");
+                    .Append(' ');
 
                 // Serialize and append the value
                 var serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);

@@ -21,10 +21,9 @@ public static partial class Json
 {
     private class Converter
     {
-        private static readonly ConcurrentDictionary<MemberInfo, string> MemberInfoNameCache =
-            new ConcurrentDictionary<MemberInfo, string>();
+        private static readonly ConcurrentDictionary<MemberInfo, string> MemberInfoNameCache = new();
 
-        private static readonly ConcurrentDictionary<Type, Type?> ListAddMethodCache = new ConcurrentDictionary<Type, Type?>();
+        private static readonly ConcurrentDictionary<Type, Type?> ListAddMethodCache = new();
 
         private readonly object? _target;
         private readonly Type _targetType;
@@ -120,9 +119,7 @@ public static partial class Json
                 {
                     source.CreateTarget(_targetType, _includeNonPublic, ref target);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     return false;
                 }
@@ -169,10 +166,9 @@ public static partial class Json
 
                 // Case 3: Source is a simple type; Attempt conversion
                 default:
-                    var sourceStringValue = source.ToStringInvariant();
+                    var sourceStringValue = source?.ToStringInvariant();
 
-                    // Handle basic types or enumerations if not
-                    if (!_targetType.TryParseBasicType(sourceStringValue, out target))
+                    if (sourceStringValue != null && !_targetType.TryParseBasicType(sourceStringValue, out target))
                         GetEnumValue(sourceStringValue, ref target);
 
                     break;
@@ -194,16 +190,14 @@ public static partial class Json
                         parameterType,
                         _includeNonPublic));
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     // ignored
                 }
             }
         }
 
-        private void PopulateArray(IList<object> objects, Array array)
+        private void PopulateArray(List<object> objects, Array array)
         {
             var elementType = _targetType.GetElementType();
 
@@ -218,9 +212,7 @@ public static partial class Json
                         _includeNonPublic);
                     array.SetValue(targetItem, i);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     // ignored
                 }
@@ -237,9 +229,7 @@ public static partial class Json
             {
                 target = Enum.Parse(enumType, sourceStringValue);
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch
-#pragma warning restore CA1031 // Do not catch general exception types
             {
                 // ignored
             }
@@ -272,9 +262,7 @@ public static partial class Json
                         _includeNonPublic);
                     targetDictionary.Add(sourceProperty.Key, targetEntryValue);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     // ignored
                 }
@@ -313,11 +301,12 @@ public static partial class Json
                         ref currentPropertyValue,
                         _includeNonPublic);
 
-                    _target.WriteProperty(property.Name, targetPropertyValue);
+                    if (targetPropertyValue != null)
+                    {
+                        _target.WriteProperty(property.Name, targetPropertyValue);
+                    }
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     // ignored
                 }
@@ -341,9 +330,7 @@ public static partial class Json
                 {
                     field.SetValue(_target, targetPropertyValue);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     // ignored
                 }

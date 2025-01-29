@@ -35,6 +35,7 @@ public sealed class InternalErrorException : Exception
     /// </summary>
     /// <param name="info">The <see cref="SerializationInfo"></see> that holds the serialized object data about the exception being thrown.</param>
     /// <param name="context">The <see cref="StreamingContext"></see> that contains contextual information about the source or destination.</param>
+    [Obsolete("This API supports obsolete formatter-based serialization and should not be used.", DiagnosticId = "SYSLIB0051")]
     private InternalErrorException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {

@@ -24,8 +24,8 @@ public partial class Json
         private readonly object? _result;
         private readonly string _json;
 
-        private Dictionary<string, object?> _resultObject;
-        private List<object?> _resultArray;
+        private Dictionary<string, object?> _resultObject = [];
+        private List<object?> _resultArray = [];
         private ReadState _state = ReadState.WaitingForRootOpen;
         private string? _currentFieldName;
 
@@ -119,12 +119,12 @@ public partial class Json
             switch (_json[_index])
             {
                 case OpenObjectChar:
-                    _resultObject = new Dictionary<string, object?>();
+                    _resultObject = [];
                     _state = ReadState.WaitingForField;
                     return;
 
                 case OpenArrayChar:
-                    _resultArray = new List<object?>();
+                    _resultArray = [];
                     _state = ReadState.WaitingForValue;
                     return;
 
@@ -292,9 +292,14 @@ public partial class Json
                 throw CreateParserException("[number]");
 
             if (_currentFieldName != null)
-                _resultObject[_currentFieldName] = value;
+            {
+                if (_resultObject != null)
+                    _resultObject[_currentFieldName] = value;
+            }
             else
-                _resultArray.Add(value);
+            {
+                _resultArray?.Add(value);
+            }
 
             _index += charCount - 1;
         }

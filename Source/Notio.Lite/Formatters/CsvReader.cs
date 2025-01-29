@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Notio.Lite.Formatters;
 
@@ -68,9 +69,9 @@ namespace Notio.Lite.Formatters;
 /// </example>
 public class CsvReader : IDisposable
 {
-    private static readonly PropertyTypeCache TypeCache = new PropertyTypeCache();
+    private static readonly PropertyTypeCache TypeCache = new();
 
-    private readonly object _syncLock = new object();
+    private readonly Lock _syncLock = new();
 
     private ulong _count;
     private char _escapeCharacter = '"';
@@ -91,11 +92,8 @@ public class CsvReader : IDisposable
     /// <param name="textEncoding">The text encoding.</param>
     public CsvReader(Stream inputStream, bool leaveOpen, Encoding textEncoding)
     {
-        if (inputStream == null)
-            throw new ArgumentNullException(nameof(inputStream));
-
-        if (textEncoding == null)
-            throw new ArgumentNullException(nameof(textEncoding));
+        ArgumentNullException.ThrowIfNull(inputStream);
+        ArgumentNullException.ThrowIfNull(textEncoding);
 
         _reader = new StreamReader(inputStream, textEncoding, true, 2048, leaveOpen);
     }
@@ -292,7 +290,7 @@ public class CsvReader : IDisposable
             _headings = ReadLine();
             _defaultMap = _headings.ToDictionary(x => x, x => x);
 
-            return _headings.ToArray();
+            return [.. _headings];
         }
     }
 
@@ -311,8 +309,7 @@ public class CsvReader : IDisposable
             if (_headings == null)
                 throw new InvalidOperationException($"Call the {nameof(ReadHeadings)} method before reading as an object.");
 
-            if (map == null)
-                throw new ArgumentNullException(nameof(map));
+            ArgumentNullException.ThrowIfNull(map);
 
             var result = new Dictionary<string, object>();
             var values = ReadLine();
@@ -334,7 +331,12 @@ public class CsvReader : IDisposable
     /// The property names correspond to the names of the CSV headings.
     /// </summary>
     /// <returns>Object of the type of the elements in the collection of key/value pairs.</returns>
-    public IDictionary<string, object> ReadObject() => ReadObject(_defaultMap);
+    public IDictionary<string, object> ReadObject()
+    {
+        ArgumentNullException.ThrowIfNull(_defaultMap);
+
+        return ReadObject(_defaultMap);
+    }
 
     /// <summary>
     /// Reads a line of CSV text converting it into an object of the given type, using a map (or Dictionary)
@@ -355,10 +357,9 @@ public class CsvReader : IDisposable
         {
             // Check arguments
             {
-                if (map == null)
-                    throw new ArgumentNullException(nameof(map));
+                ArgumentNullException.ThrowIfNull(map);
 
-                if (_reader.EndOfStream)
+                if (_reader?.EndOfStream ?? true)
                     throw new EndOfStreamException("Cannot read past the end of the stream");
 
                 if (_headings == null)
@@ -393,7 +394,7 @@ public class CsvReader : IDisposable
                 // Parse and assign the basic type value to the property if exists
                 properties
                     .FirstOrDefault(p => p.Name == propertyName)?
-                    .TrySetBasicType(values[i], result);
+                    .TrySetBasicType(values[i], result!);
             }
         }
     }
@@ -412,8 +413,7 @@ public class CsvReader : IDisposable
     public T ReadObject<T>(IDictionary<string, string> map)
         where T : new()
     {
-        if (map == null)
-            throw new ArgumentNullException(nameof(map));
+        ArgumentNullException.ThrowIfNull(map);
 
         var result = Activator.CreateInstance<T>();
         ReadObject(map, ref result);
@@ -426,9 +426,12 @@ public class CsvReader : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of object.</typeparam>
     /// <returns>The conversion of specific type of object.</returns>
-    public T ReadObject<T>()
-        where T : new() =>
-        ReadObject<T>(_defaultMap);
+    public T ReadObject<T>() where T : new()
+    {
+        ArgumentNullException.ThrowIfNull(_defaultMap);
+
+        return ReadObject<T>(_defaultMap);
+    }
 
     #endregion Read Methods
 
@@ -447,9 +450,9 @@ public class CsvReader : IDisposable
         var values = new List<string>();
         var currentValue = new StringBuilder(1024);
         var currentState = ReadState.WaitingForNewField;
-        string line;
+        string? line;
 
-        while ((line = reader.ReadLine()) != null)
+        while ((line = reader.ReadLine()) != null) // Read until the end of the stream
         {
             for (var charIndex = 0; charIndex < line.Length; charIndex++)
             {
@@ -556,7 +559,7 @@ public class CsvReader : IDisposable
             values.Add(currentValue.ToString());
         }
 
-        return values.ToArray();
+        return [.. values];
     }
 
     #endregion Support Methods

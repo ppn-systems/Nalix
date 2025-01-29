@@ -7,7 +7,7 @@ namespace Notio.Lite.Formatters;
 
 internal class HumanizeJson
 {
-    private readonly StringBuilder _builder = new StringBuilder();
+    private readonly StringBuilder _builder = new();
     private readonly int _indent;
     private readonly string _indentStr;
     private readonly object? _obj;
@@ -41,7 +41,7 @@ internal class HumanizeJson
                 break;
 
             default:
-                AppendString(_obj.ToString());
+                AppendString(_obj.ToString() ?? string.Empty);
                 break;
         }
     }

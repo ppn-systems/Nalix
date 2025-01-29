@@ -12,8 +12,7 @@ namespace Notio.Collections
     public class CollectionCacheRepository<TValue>
     {
         private readonly Lazy<ConcurrentDictionary<Type, IEnumerable<TValue>>> _data =
-            new Lazy<ConcurrentDictionary<Type, IEnumerable<TValue>>>(() =>
-                new ConcurrentDictionary<Type, IEnumerable<TValue>>(), true);
+            new(() => new ConcurrentDictionary<Type, IEnumerable<TValue>>(), true);
 
         /// <summary>
         /// Determines whether the cache contains the specified key.
@@ -39,11 +38,8 @@ namespace Notio.Collections
         /// </exception>
         public IEnumerable<TValue> Retrieve(Type key, Func<Type, IEnumerable<TValue>> factory)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
-
-            if (factory == null)
-                throw new ArgumentNullException(nameof(factory));
+            ArgumentNullException.ThrowIfNull(key);
+            ArgumentNullException.ThrowIfNull(factory);
 
             return _data.Value.GetOrAdd(key, k => factory.Invoke(k).Where(item => item != null));
         }

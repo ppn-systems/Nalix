@@ -80,8 +80,7 @@ public static partial class Benchmark
     /// <exception cref="ArgumentNullException">target.</exception>
     public static TimeSpan BenchmarkAction(Action target)
     {
-        if (target == null)
-            throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
 
         var sw = Stopwatch.IsHighResolution ? new HighResolutionTimer() : new Stopwatch();
 

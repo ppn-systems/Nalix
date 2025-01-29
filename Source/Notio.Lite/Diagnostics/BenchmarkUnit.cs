@@ -13,7 +13,7 @@ public static partial class Benchmark
     {
         private readonly string _identifier;
         private bool _isDisposed; // To detect redundant calls
-        private Stopwatch? _stopwatch = new Stopwatch();
+        private Stopwatch? _stopwatch = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BenchmarkUnit" /> class.

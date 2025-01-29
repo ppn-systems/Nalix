@@ -38,7 +38,7 @@ public static partial class Json
 
     #endregion Constants
 
-    private static readonly CollectionCacheRepository<string> IgnoredPropertiesCache = new CollectionCacheRepository<string>();
+    private static readonly CollectionCacheRepository<string> IgnoredPropertiesCache = new();
 
     #region Public API
 
@@ -322,7 +322,8 @@ public static partial class Json
     public static T Deserialize<T>(string json, JsonSerializerCase jsonSerializerCase = JsonSerializerCase.None) =>
         json == null
             ? throw new ArgumentNullException(nameof(json))
-            : (T)Deserialize(json, typeof(T), jsonSerializerCase: jsonSerializerCase);
+            : (T)(Deserialize(json, typeof(T), jsonSerializerCase: jsonSerializerCase)
+            ?? throw new InvalidOperationException("Deserialization returned null."));
 
     /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
@@ -336,7 +337,8 @@ public static partial class Json
     public static T Deserialize<T>(string json, bool includeNonPublic) =>
         json == null
             ? throw new ArgumentNullException(nameof(json))
-            : (T)Deserialize(json, typeof(T), includeNonPublic);
+            : (T)(Deserialize(json, typeof(T), includeNonPublic)
+            ?? throw new InvalidOperationException("Deserialization returned null."));
 
     /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
@@ -366,7 +368,7 @@ public static partial class Json
         {
             string stringValue => $"\"{stringValue}\"",
             bool boolValue => boolValue ? TrueLiteral : FalseLiteral,
-            _ => obj.ToString()
+            _ => obj.ToString() ?? string.Empty
         };
 
     #endregion Private API

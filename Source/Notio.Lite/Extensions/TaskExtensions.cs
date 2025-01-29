@@ -17,8 +17,7 @@ public static class TaskExtensions
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static void Await(this Task @this)
     {
-        if (@this == null)
-            throw new ArgumentNullException(nameof(@this));
+        ArgumentNullException.ThrowIfNull(@this);
 
         @this.GetAwaiter().GetResult();
     }
@@ -35,8 +34,7 @@ public static class TaskExtensions
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static TResult Await<TResult>(this Task<TResult> @this)
     {
-        if (@this == null)
-            throw new ArgumentNullException(nameof(@this));
+        ArgumentNullException.ThrowIfNull(@this);
 
         return @this.GetAwaiter().GetResult();
     }
@@ -54,8 +52,7 @@ public static class TaskExtensions
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static void Await(this Task @this, bool continueOnCapturedContext)
     {
-        if (@this == null)
-            throw new ArgumentNullException(nameof(@this));
+        ArgumentNullException.ThrowIfNull(@this);
 
         @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
     }
@@ -76,8 +73,7 @@ public static class TaskExtensions
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static TResult Await<TResult>(this Task<TResult> @this, bool continueOnCapturedContext)
     {
-        if (@this == null)
-            throw new ArgumentNullException(nameof(@this));
+        ArgumentNullException.ThrowIfNull(@this);
 
         return @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
     }
