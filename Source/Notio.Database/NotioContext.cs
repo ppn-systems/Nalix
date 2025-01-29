@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Database.Entities;
+using System.IO;
 
 namespace Notio.Database;
 
 public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbContext(options)
 {
+    public static readonly string DataSource = $"Data Source={Path.Combine(Directory.GetCurrentDirectory(), "notio.db")}";
     public DbSet<User> Users { get; set; }
     public DbSet<Chat> Chats { get; set; }
     public DbSet<Message> Messages { get; set; }

@@ -11,8 +11,8 @@ using Notio.Database;
 namespace Notio.Database.Migrations
 {
     [DbContext(typeof(NotioContext))]
-    [Migration("20250114081101_InitialCreateV2")]
-    partial class InitialCreateV2
+    [Migration("20250129144025_CreateUsersTable")]
+    partial class CreateUsersTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

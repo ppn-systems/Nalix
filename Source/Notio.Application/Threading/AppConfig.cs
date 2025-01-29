@@ -25,8 +25,6 @@ public static class AppConfig
 $"Version {AssemblyHelper.GetAssemblyInformationalVersion()} " +
 $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
 
-    public static readonly string DatabasePath = "Data Source=notio.db";
-
     // Phương thức khởi tạo console
     public static void InitializeConsole()
     {
@@ -64,8 +62,11 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
     public static NotioContext InitializeDatabase()
     {
         DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-        optionsBuilder.UseSqlite(DatabasePath);
-        return new NotioContext(optionsBuilder.Options);
+        optionsBuilder.UseSqlite(NotioContext.DataSource);
+
+        var context = new NotioContext(optionsBuilder.Options);
+
+        return context;
     }
 
     public static WebServer InitializeHttpServer(string url = "http://localhost:5000")
@@ -79,7 +80,10 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
             .WithMode(HttpListenerMode.Notio) // Chạy trong chế độ Microsoft
             .AddUrlPrefix(url))
             .WithCors() // Hỗ trợ CORS
-            .WithWebApi("/api", m => m.WithController<MainController>()) // REST API
+            .WithWebApi("/api", m => m
+                .WithController<MainController>()
+                .WithController<UserController>(()
+                    => new UserController(InitializeDatabase()))) // REST API
             .HandleHttpException((ctx, ex) =>
             {
                 ctx.Response.StatusCode = ex.StatusCode;

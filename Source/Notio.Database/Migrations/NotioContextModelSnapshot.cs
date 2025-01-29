@@ -2,250 +2,257 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Notio.Database;
 
-namespace Notio.Database.Migrations;
+#nullable disable
 
-[DbContext(typeof(NotioContext))]
-partial class NotioContextModelSnapshot : ModelSnapshot
+namespace Notio.Database.Migrations
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    [DbContext(typeof(NotioContext))]
+    partial class NotioContextModelSnapshot : ModelSnapshot
     {
-        modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
+#pragma warning disable 612, 618
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
-        modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
-            {
-                b.Property<long>("ChatId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+            modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
+                {
+                    b.Property<long>("ChatId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
-                b.Property<string>("ChatName")
-                    .HasMaxLength(100)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("ChatName")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
 
-                b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
 
-                b.Property<bool>("IsGroupChat")
-                    .HasColumnType("INTEGER");
+                    b.Property<bool>("IsGroupChat")
+                        .HasColumnType("INTEGER");
 
-                b.Property<DateTime>("LastActivityAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("TEXT");
 
-                b.HasKey("ChatId");
+                    b.HasKey("ChatId");
 
-                b.HasIndex("LastActivityAt");
+                    b.HasIndex("LastActivityAt");
 
-                b.ToTable("Chats");
-            });
+                    b.ToTable("Chats");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
-            {
-                b.Property<long>("MessageId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+            modelBuilder.Entity("Notio.Database.Entities.Message", b =>
+                {
+                    b.Property<long>("MessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
-                b.Property<long>("ChatId")
-                    .HasColumnType("INTEGER");
+                    b.Property<long>("ChatId")
+                        .HasColumnType("INTEGER");
 
-                b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
 
-                b.Property<bool>("IsDeleted")
-                    .HasColumnType("INTEGER");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
 
-                b.Property<string>("MediaMetadata")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("MediaMetadata")
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("MessageContent")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("MessageContent")
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("MessageType")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("MessageType")
+                        .HasColumnType("TEXT");
 
-                b.Property<long>("SenderId")
-                    .HasColumnType("INTEGER");
+                    b.Property<long>("SenderId")
+                        .HasColumnType("INTEGER");
 
-                b.HasKey("MessageId");
+                    b.HasKey("MessageId");
 
-                b.HasIndex("ChatId", "CreatedAt");
+                    b.HasIndex("ChatId", "CreatedAt");
 
-                b.HasIndex("SenderId", "CreatedAt");
+                    b.HasIndex("SenderId", "CreatedAt");
 
-                b.ToTable("Messages");
-            });
+                    b.ToTable("Messages");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
-            {
-                b.Property<long>("AttachmentId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+            modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
+                {
+                    b.Property<long>("AttachmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
-                b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("FileName")
-                    .HasMaxLength(255)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
-                b.Property<long>("FileSize")
-                    .HasColumnType("INTEGER");
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
 
-                b.Property<string>("FileType")
-                    .HasMaxLength(50)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("FileType")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("FileUrl")
-                    .HasMaxLength(255)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("FileUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
-                b.Property<long>("MessageId")
-                    .HasColumnType("INTEGER");
+                    b.Property<long>("MessageId")
+                        .HasColumnType("INTEGER");
 
-                b.HasKey("AttachmentId");
+                    b.HasKey("AttachmentId");
 
-                b.HasIndex("MessageId");
+                    b.HasIndex("MessageId");
 
-                b.ToTable("MessageAttachments");
-            });
+                    b.ToTable("MessageAttachments");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.User", b =>
-            {
-                b.Property<long>("UserId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("INTEGER");
+            modelBuilder.Entity("Notio.Database.Entities.User", b =>
+                {
+                    b.Property<long>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
 
-                b.Property<string>("AvatarUrl")
-                    .HasMaxLength(255)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
-                b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("DisplayName")
-                    .HasMaxLength(100)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("Email")
-                    .HasMaxLength(100)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
 
-                b.Property<bool>("IsActive")
-                    .HasColumnType("INTEGER");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
 
-                b.Property<DateTime?>("LastLogin")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime?>("LastLogin")
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("PasswordHash")
-                    .IsRequired()
-                    .HasMaxLength(60)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
 
-                b.Property<string>("Username")
-                    .IsRequired()
-                    .HasMaxLength(50)
-                    .HasColumnType("TEXT");
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
-                b.HasKey("UserId");
+                    b.HasKey("UserId");
 
-                b.HasIndex("Email")
-                    .IsUnique();
+                    b.HasIndex("Email")
+                        .IsUnique();
 
-                b.HasIndex("Username")
-                    .IsUnique();
+                    b.HasIndex("Username")
+                        .IsUnique();
 
-                b.ToTable("Users");
-            });
+                    b.ToTable("Users");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
-            {
-                b.Property<long>("UserId")
-                    .HasColumnType("INTEGER");
+            modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
 
-                b.Property<long>("ChatId")
-                    .HasColumnType("INTEGER");
+                    b.Property<long>("ChatId")
+                        .HasColumnType("INTEGER");
 
-                b.Property<DateTime>("JoinedAt")
-                    .HasColumnType("TEXT");
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("TEXT");
 
-                b.Property<long?>("LastReadMessageId")
-                    .HasColumnType("INTEGER");
+                    b.Property<long?>("LastReadMessageId")
+                        .HasColumnType("INTEGER");
 
-                b.Property<string>("UserRole")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("UserRole")
+                        .HasColumnType("TEXT");
 
-                b.HasKey("UserId", "ChatId");
+                    b.HasKey("UserId", "ChatId");
 
-                b.HasIndex("ChatId", "UserRole");
+                    b.HasIndex("ChatId", "UserRole");
 
-                b.ToTable("UserChats");
-            });
+                    b.ToTable("UserChats");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
-            {
-                b.HasOne("Notio.Database.Entities.Chat", "Chat")
-                    .WithMany("Messages")
-                    .HasForeignKey("ChatId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+            modelBuilder.Entity("Notio.Database.Entities.Message", b =>
+                {
+                    b.HasOne("Notio.Database.Entities.Chat", "Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Notio.Database.Entities.User", "Sender")
-                    .WithMany("SentMessages")
-                    .HasForeignKey("SenderId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                    b.HasOne("Notio.Database.Entities.User", "Sender")
+                        .WithMany("SentMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.Navigation("Chat");
+                    b.Navigation("Chat");
 
-                b.Navigation("Sender");
-            });
+                    b.Navigation("Sender");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
-            {
-                b.HasOne("Notio.Database.Entities.Message", "Message")
-                    .WithMany("Attachments")
-                    .HasForeignKey("MessageId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+            modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
+                {
+                    b.HasOne("Notio.Database.Entities.Message", "Message")
+                        .WithMany("Attachments")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.Navigation("Message");
-            });
+                    b.Navigation("Message");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
-            {
-                b.HasOne("Notio.Database.Entities.Chat", "Chat")
-                    .WithMany("UserChats")
-                    .HasForeignKey("ChatId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+            modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
+                {
+                    b.HasOne("Notio.Database.Entities.Chat", "Chat")
+                        .WithMany("UserChats")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Notio.Database.Entities.User", "User")
-                    .WithMany("UserChats")
-                    .HasForeignKey("UserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                    b.HasOne("Notio.Database.Entities.User", "User")
+                        .WithMany("UserChats")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.Navigation("Chat");
+                    b.Navigation("Chat");
 
-                b.Navigation("User");
-            });
+                    b.Navigation("User");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
-            {
-                b.Navigation("Messages");
+            modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
+                {
+                    b.Navigation("Messages");
 
-                b.Navigation("UserChats");
-            });
+                    b.Navigation("UserChats");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.Message", b =>
-            {
-                b.Navigation("Attachments");
-            });
+            modelBuilder.Entity("Notio.Database.Entities.Message", b =>
+                {
+                    b.Navigation("Attachments");
+                });
 
-        modelBuilder.Entity("Notio.Database.Entities.User", b =>
-            {
-                b.Navigation("SentMessages");
+            modelBuilder.Entity("Notio.Database.Entities.User", b =>
+                {
+                    b.Navigation("SentMessages");
 
-                b.Navigation("UserChats");
-            });
+                    b.Navigation("UserChats");
+                });
+#pragma warning restore 612, 618
+        }
     }
 }

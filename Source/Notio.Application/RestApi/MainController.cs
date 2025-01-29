@@ -41,18 +41,4 @@ internal class MainController : WebApiController
             Timestamp = DateTime.UtcNow
         });
     }
-
-    [Route(HttpVerbs.Get, "/server-time")]
-    public Task<object> GetServerTime()
-    {
-        Response.StatusCode = (int)HttpStatusCode.OK;
-        return Task.FromResult<object>(new { serverTime = DateTime.Now });
-    }
-
-    [Route(HttpVerbs.Get, "/health-check")]
-    public Task<object> HealthCheck()
-    {
-        Response.StatusCode = (int)HttpStatusCode.OK;
-        return Task.FromResult<object>(new { status = "Healthy" });
-    }
 }

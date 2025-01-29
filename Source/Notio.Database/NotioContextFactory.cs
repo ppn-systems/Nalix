@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-
 namespace Notio.Database;
 
 public sealed class NotioContextFactory
@@ -9,7 +8,7 @@ public sealed class NotioContextFactory
     public NotioContext CreateDbContext(string[] args)
     {
         DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-        optionsBuilder.UseSqlite("Data Source=notio.db");
+        optionsBuilder.UseSqlite(NotioContext.DataSource);
 
         return new NotioContext(optionsBuilder.Options);
     }
