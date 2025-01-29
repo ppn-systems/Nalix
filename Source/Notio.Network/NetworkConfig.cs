@@ -1,41 +1,49 @@
-﻿using Notio.Shared.Configuration;
+﻿using Notio.Common.Logging;
+using Notio.Common.Memory;
+using Notio.Shared.Configuration;
 
 namespace Notio.Network;
 
 public sealed class NetworkConfig : ConfiguredBinder
 {
     /// <summary>
-    /// Địa chỉ IP (Default is 127.0.0.1)
+    /// IP address (Default is 127.0.0.1).
     /// </summary>
-    public string IP { get; private set; } = "127.0.0.1";
+    public string IP { get; set; } = "127.0.0.1";
 
     /// <summary>
-    /// Cổng lắng nghe (Default is port 8080).
+    /// Listening port (Default is 8080).
     /// </summary>
-    public int Port { get; private set; } = 8080;
+    public int Port { get; set; } = 8080;
 
     /// <summary>
-    /// Số kết nối tối đa (Default is 100 connection).
+    /// Max connections (Default is 100).
     /// </summary>
-    public int MaxConnections { get; private set; } = 100;
+    public int MaxConnections { get; set; } = 100;
 
     /// <summary>
-    /// Chế độ không chặn (Default is false).
+    /// Non-blocking mode (Default is false).
     /// </summary>
-    public bool Blocking { get; private set; } = false;
+    public bool Blocking { get; set; } = false;
 
     /// <summary>
-    /// Bật Keep-Alive (Default is true).
+    /// Enable Keep-Alive (Default is true).
     /// </summary>
-    public bool KeepAlive { get; private set; } = true;
+    public bool KeepAlive { get; set; } = true;
 
     /// <summary>
-    /// Tái sử dụng địa chỉ (Default is true).
+    /// Reuse address (Default is true).
     /// </summary>
-    public bool ReuseAddress { get; private set; } = true;
+    public bool ReuseAddress { get; set; } = true;
 
     /// <summary>
     /// Timeout (Default is 20 seconds).
     /// </summary>
-    public int TimeoutInSeconds { get; private set; } = 20;
+    public int TimeoutInSeconds { get; set; } = 20;
+
+    [ConfiguredIgnore]
+    public IBufferPool? BufferPool { get; set; }
+
+    [ConfiguredIgnore]
+    public ILogger? Logger { get; set; }
 }

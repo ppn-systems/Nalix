@@ -1,11 +1,9 @@
-﻿using Notio.Common.Memory;
-using Notio.Network;
+﻿using Notio.Network;
 using Notio.Network.Listeners;
 
 namespace Notio.Application.Tcp;
 
-public sealed class LoginListener(
-    LoginProtocol protocol, IBufferPool bufferAllocator, NetworkConfig network)
-    : Listener(network.Port, protocol, bufferAllocator, null)
+public sealed class LoginListener(NetworkConfig networkConfig, LoginProtocol loginProtocol)
+    : Listener(networkConfig, loginProtocol)
 {
 }

@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Common.Logging;
+using Notio.Web.Http;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
-using Notio.Logging;
 using System.Threading;
 using System.Threading.Tasks;
 

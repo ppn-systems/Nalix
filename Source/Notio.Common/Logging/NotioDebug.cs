@@ -1,19 +1,25 @@
 ﻿using Notio.Common.Enums;
-using Notio.Common.Logging;
 using Notio.Common.Models;
-using Notio.Logging.Engine;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Logging;
+namespace Notio.Common.Logging;
 
-public static class NotioLogDebug
+public static class NotioDebug
 {
-    private static readonly LoggingPublisher _publisher = new();
+    private static ILoggingPublisher Publisher;
     private static LoggingLevel MinimumLevel = LoggingLevel.Trace;
 
+    public static void SetPublisher(ILoggingPublisher publisher)
+        => Publisher = publisher;
+
     public static ILoggingPublisher AddTarget(ILoggingTarget ltg)
-        => _publisher.AddTarget(ltg);
+    {
+        if (Publisher is null)
+            throw new InvalidOperationException("Logging publisher has not been set.");
+
+        return Publisher.AddTarget(ltg);
+    }
 
     public static void SetMinimumLevel(LoggingLevel level)
         => MinimumLevel = level;
@@ -32,8 +38,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Debug(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -53,7 +59,7 @@ public static class NotioLogDebug
     public static void Debug(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -92,8 +98,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Trace(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -113,7 +119,7 @@ public static class NotioLogDebug
     public static void Trace(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -152,8 +158,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Warn(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -173,7 +179,7 @@ public static class NotioLogDebug
     public static void Warn(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -212,8 +218,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Fatal(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -233,7 +239,7 @@ public static class NotioLogDebug
     public static void Fatal(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -272,8 +278,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Info(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -293,7 +299,7 @@ public static class NotioLogDebug
     public static void Info(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -332,8 +338,8 @@ public static class NotioLogDebug
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Error(
         this string message,
-        string? source = null,
-        object? extendedData = null,
+        string source = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -353,7 +359,7 @@ public static class NotioLogDebug
     public static void Error(
         this string message,
         Type source,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -395,7 +401,7 @@ public static class NotioLogDebug
         this string message,
         string source,
         LoggingLevel messageType,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -417,7 +423,7 @@ public static class NotioLogDebug
         this string message,
         Type source,
         LoggingLevel messageType,
-        object? extendedData = null,
+        object extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -435,9 +441,9 @@ public static class NotioLogDebug
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Log(
-        this Exception? ex,
-        string? source = null,
-        string? message = null,
+        this Exception ex,
+        string source = null,
+        string message = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -458,9 +464,9 @@ public static class NotioLogDebug
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     public static void Log(
-        this Exception? ex,
-        Type? source = null,
-        string? message = null,
+        this Exception ex,
+        Type source = null,
+        string message = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
@@ -474,8 +480,8 @@ public static class NotioLogDebug
     private static void CreateLogEntry(
         LoggingLevel level,
         string message,
-        string? sourceName,
-        object? extendedData,
+        string sourceName,
+        object extendedData,
         string callerMemberName,
         string callerFilePath,
         int callerLineNumber)
@@ -484,13 +490,13 @@ public static class NotioLogDebug
 
         string fullMessage = BuildFullMessage(message, sourceName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
 
-        _publisher.Publish(new LoggingEntry(level, EventId.Empty, fullMessage, null));
+        Publisher.Publish(new LoggingEntry(level, EventId.Empty, fullMessage, null));
     }
 
     private static string BuildFullMessage(
     string message,
-    string? sourceName,
-    object? extendedData,
+    string sourceName,
+    object extendedData,
     string callerMemberName,
     string callerFilePath,
     int callerLineNumber)

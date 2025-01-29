@@ -1,4 +1,5 @@
-﻿using Notio.Logging;
+﻿using Notio.Common.Logging;
+using Notio.Shared.Configuration;
 using Notio.Web.Enums;
 using Notio.Web.Http;
 using Notio.Web.Internal;
@@ -7,7 +8,6 @@ using Notio.Web.Request;
 using Notio.Web.Sessions;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
-using Notio.Shared.Configuration;
 using System;
 using System.Globalization;
 using System.Net;

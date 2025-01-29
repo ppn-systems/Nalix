@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Notio.Logging.Engine;
 
-internal class LoggingPublisher : ILoggingPublisher
+public class LoggingPublisher : ILoggingPublisher
 {
     private readonly IList<ILoggingTarget> _targets = [];
 

@@ -1,4 +1,4 @@
-﻿using Notio.Logging;
+﻿using Notio.Common.Logging;
 using Notio.Web.Net.Internal;
 using System;
 using System.Collections.Concurrent;

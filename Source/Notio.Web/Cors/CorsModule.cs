@@ -13,55 +13,46 @@ namespace Notio.Web.Cors;
 /// CORS is a mechanism that allows restricted resources (e.g. fonts)
 /// on a web page to be requested from another domain outside the domain from which the resource originated.
 /// </summary>
-public class CorsModule : WebModuleBase
+/// <remarks>
+/// Initializes a new instance of the <see cref="CorsModule" /> class.
+/// </remarks>
+/// <param name="baseRoute">The base route.</param>
+/// <param name="origins">The valid origins. The default is <see cref="All"/> (<c>*</c>).</param>
+/// <param name="headers">The valid headers. The default is <see cref="All"/> (<c>*</c>).</param>
+/// <param name="methods">The valid methods. The default is <see cref="All"/> (<c>*</c>).</param>
+/// <exception cref="ArgumentNullException">
+/// origins
+/// or
+/// headers
+/// or
+/// methods
+/// </exception>
+public class CorsModule(
+    string baseRoute,
+    string origins = CorsModule.All,
+    string headers = CorsModule.All,
+    string methods = CorsModule.All) : WebModuleBase(baseRoute)
 {
     /// <summary>
     /// A string meaning "All" in CORS headers.
     /// </summary>
     public const string All = "*";
 
-    private readonly string _origins;
-    private readonly string _headers;
-    private readonly string _methods;
-    private readonly string[] _validOrigins;
-    private readonly string[] _validMethods;
+    private readonly string _origins = origins ?? throw new ArgumentNullException(nameof(origins));
+    private readonly string _headers = headers ?? throw new ArgumentNullException(nameof(headers));
+    private readonly string _methods = methods ?? throw new ArgumentNullException(nameof(methods));
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CorsModule" /> class.
-    /// </summary>
-    /// <param name="baseRoute">The base route.</param>
-    /// <param name="origins">The valid origins. The default is <see cref="All"/> (<c>*</c>).</param>
-    /// <param name="headers">The valid headers. The default is <see cref="All"/> (<c>*</c>).</param>
-    /// <param name="methods">The valid methods. The default is <see cref="All"/> (<c>*</c>).</param>
-    /// <exception cref="ArgumentNullException">
-    /// origins
-    /// or
-    /// headers
-    /// or
-    /// methods
-    /// </exception>
-    public CorsModule(
-        string baseRoute,
-        string origins = All,
-        string headers = All,
-        string methods = All)
-     : base(baseRoute)
-    {
-        _origins = origins ?? throw new ArgumentNullException(nameof(origins));
-        _headers = headers ?? throw new ArgumentNullException(nameof(headers));
-        _methods = methods ?? throw new ArgumentNullException(nameof(methods));
-
-        _validOrigins =
+    private readonly string[] _validOrigins =
             origins.ToLowerInvariant()
                 .SplitByComma(StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim())
                 .ToArray();
-        _validMethods =
+
+    private readonly string[] _validMethods =
             methods.ToLowerInvariant()
                 .SplitByComma(StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim())
                 .ToArray();
-    }
 
     /// <inheritdoc />
     public override bool IsFinalHandler => false;

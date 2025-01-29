@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Application.RestApi;
 using Notio.Common.Enums;
+using Notio.Common.Logging;
 using Notio.Database;
 using Notio.Logging;
+using Notio.Logging.Engine;
 using Notio.Logging.Targets;
 using Notio.Shared.Helper;
 using Notio.Web;
@@ -53,8 +55,9 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
                .AddTarget(new ConsoleLoggingTarget());
         });
 
-        NotioLogDebug.AddTarget(new ConsoleLoggingTarget());
-        NotioLogDebug.SetMinimumLevel(LoggingLevel.Information);
+        NotioDebug.SetPublisher(new LoggingPublisher());
+        NotioDebug.AddTarget(new ConsoleLoggingTarget());
+        NotioDebug.SetMinimumLevel(LoggingLevel.Information);
     }
 
     // Phương thức khởi tạo database context

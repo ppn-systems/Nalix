@@ -10,13 +10,15 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferAllocator, ILogger? logger)
-    : TcpListener(IPAddress.Any, port), IListener
+public abstract class Listener(NetworkConfig networkCfg, IProtocol protocol)
+    : TcpListener(IPAddress.Any, networkCfg.Port), IListener
 {
-    private readonly int _port = port;
-    private readonly ILogger? _logger = logger;
+    private readonly int _port = networkCfg.Port;
     private readonly IProtocol _protocol = protocol;
-    private readonly IBufferPool _bufferAllocator = bufferAllocator;
+    private readonly ILogger? _logger = networkCfg.Logger;
+
+    private readonly IBufferPool _bufferPool = networkCfg.BufferPool
+        ?? throw new ArgumentNullException(nameof(networkCfg), "Buffer pool cannot be null.");
 
     public void BeginListening(CancellationToken cancellationToken)
     {
@@ -50,7 +52,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferA
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
 
-        Connection.Connection connection = new(socket, _bufferAllocator, _logger); // Fully qualify the Connection class
+        Connection.Connection connection = new(socket, _bufferPool, _logger); // Fully qualify the Connection class
 
         connection.OnCloseEvent += this.OnConnectionClose!;
         connection.OnProcessEvent += _protocol.ProcessMessage!;

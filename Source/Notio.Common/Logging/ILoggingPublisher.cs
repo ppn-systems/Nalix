@@ -1,10 +1,14 @@
-﻿namespace Notio.Common.Logging;
+﻿using Notio.Common.Models;
+
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Định nghĩa giao diện cho nhà xuất bản nhật ký.
 /// </summary>
 public interface ILoggingPublisher
 {
+    void Publish(LoggingEntry entry);
+
     /// <summary>
     /// Thêm một đối tượng xử lý nhật ký.
     /// </summary>
