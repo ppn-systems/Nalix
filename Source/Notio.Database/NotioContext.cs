@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Notio.Database.Configurations;
 using Notio.Database.Entities;
 using System;
 using System.IO;
@@ -19,11 +20,12 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        ModelConfiguration.UserEntity(modelBuilder);
-        ModelConfiguration.ChatEntity(modelBuilder);
-        ModelConfiguration.MessageEntity(modelBuilder);
-        ModelConfiguration.UserChatEntity(modelBuilder);
-        ModelConfiguration.MessageAttachmentEntity(modelBuilder);
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new ChatConfiguration());
+        modelBuilder.ApplyConfiguration(new MessageConfiguration());
+        modelBuilder.ApplyConfiguration(new UserChatConfiguration());
+        modelBuilder.ApplyConfiguration(new MessageAttachmentConfiguration());
     }
 
     private static string GetConnectionString()

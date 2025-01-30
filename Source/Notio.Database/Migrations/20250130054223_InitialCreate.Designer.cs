@@ -12,8 +12,8 @@ using Notio.Database;
 namespace Notio.Database.Migrations
 {
     [DbContext(typeof(NotioContext))]
-    [Migration("20250130032227_CreateUsersTable")]
-    partial class CreateUsersTable
+    [Migration("20250130054223_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,82 +27,110 @@ namespace Notio.Database.Migrations
 
             modelBuilder.Entity("Notio.Database.Entities.Chat", b =>
                 {
-                    b.Property<long>("ChatId")
+                    b.Property<int>("ChatId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ChatId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ChatId"));
 
                     b.Property<string>("ChatName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("ChatType")
+                        .HasColumnType("int");
 
-                    b.Property<bool>("IsGroupChat")
-                        .HasColumnType("bit");
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("LastActivityAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("ChatId");
 
-                    b.HasIndex("LastActivityAt");
+                    b.HasIndex("LastActivityAt")
+                        .HasDatabaseName("IX_Chats_LastActivityAt");
 
-                    b.ToTable("Chats");
+                    b.ToTable("Chats", (string)null);
                 });
 
             modelBuilder.Entity("Notio.Database.Entities.Message", b =>
                 {
-                    b.Property<long>("MessageId")
+                    b.Property<int>("MessageId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("MessageId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageId"));
 
-                    b.Property<long>("ChatId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("ChatId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("MediaMetadata")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("MessageContent")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("MessageType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
-                    b.Property<string>("MessageType")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
 
-                    b.Property<long>("SenderId")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("MessageId");
 
-                    b.HasIndex("ChatId", "CreatedAt");
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Messages_IsDeleted");
 
-                    b.HasIndex("SenderId", "CreatedAt");
+                    b.HasIndex("ChatId", "CreatedAt")
+                        .HasDatabaseName("IX_Messages_ChatId_CreatedAt");
 
-                    b.ToTable("Messages");
+                    b.HasIndex("SenderId", "CreatedAt")
+                        .HasDatabaseName("IX_Messages_SenderId_CreatedAt");
+
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("Notio.Database.Entities.MessageAttachment", b =>
                 {
-                    b.Property<long>("AttachmentId")
+                    b.Property<int>("AttachmentId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AttachmentId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttachmentId"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("FileName")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
@@ -110,37 +138,49 @@ namespace Notio.Database.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("FileType")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("FileUrl")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<long>("MessageId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("MessageId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("AttachmentId");
 
+                    b.HasIndex("FileType")
+                        .HasDatabaseName("IX_MessageAttachments_FileType");
+
                     b.HasIndex("MessageId");
 
-                    b.ToTable("MessageAttachments");
+                    b.ToTable("MessageAttachments", (string)null);
                 });
 
             modelBuilder.Entity("Notio.Database.Entities.User", b =>
                 {
-                    b.Property<long>("UserId")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("UserId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("DisplayName")
                         .HasMaxLength(100)
@@ -148,58 +188,79 @@ namespace Notio.Database.Migrations
 
                     b.Property<string>("Email")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("SQL_Latin1_General_CP1_CI_AS");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("nchar(60)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(50)")
+                        .UseCollation("SQL_Latin1_General_CP1_CI_AS");
 
                     b.HasKey("UserId");
 
                     b.HasIndex("Email")
                         .IsUnique()
+                        .HasDatabaseName("IX_Users_Email")
                         .HasFilter("[Email] IS NOT NULL");
 
                     b.HasIndex("Username")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Username")
+                        .HasFilter("[Username] IS NOT NULL");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Notio.Database.Entities.UserChat", b =>
                 {
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.Property<long>("ChatId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("ChatId")
+                        .HasColumnType("int");
 
-                    b.Property<DateTime>("JoinedAt")
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastReadAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long?>("LastReadMessageId")
-                        .HasColumnType("bigint");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<string>("UserRole")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("UserRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.HasKey("UserId", "ChatId");
 
-                    b.HasIndex("ChatId", "UserRole");
+                    b.HasIndex("LastReadAt")
+                        .HasDatabaseName("IX_UserChats_LastReadAt");
 
-                    b.ToTable("UserChats");
+                    b.HasIndex("ChatId", "UserRole")
+                        .HasDatabaseName("IX_UserChats_ChatId_UserRole");
+
+                    b.ToTable("UserChats", (string)null);
                 });
 
             modelBuilder.Entity("Notio.Database.Entities.Message", b =>

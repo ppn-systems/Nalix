@@ -1,25 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Notio.Database.Entities;
 
 /// <summary>
 /// Đại diện cho người dùng trong cơ sở dữ liệu.
 /// </summary>
-public class User
+public class User : BaseEntity
 {
-    public long UserId { get; set; }
-    public string Username { get; set; }
-    public string PasswordHash { get; set; }
+    public int UserId { get; set; }
+    public string Username { get; set; } = null!;
+    public string PasswordHash { get; set; } = null!;
     public string DisplayName { get; set; }
     public string Email { get; set; }
     public string AvatarUrl { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? LastLogin { get; set; }
-    public bool IsActive { get; set; }
 
-    // Navigation properties
-    public ICollection<UserChat> UserChats { get; set; }
+    // Navigation properties - sử dụng lazy loading
+    public virtual ICollection<UserChat> UserChats { get; set; }
 
-    public ICollection<Message> SentMessages { get; set; }
+    public virtual ICollection<Message> SentMessages { get; set; }
 }

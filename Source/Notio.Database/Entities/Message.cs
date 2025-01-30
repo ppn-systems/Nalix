@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Notio.Database.Enums;
 using System.Collections.Generic;
 
 namespace Notio.Database.Entities;
@@ -6,20 +6,19 @@ namespace Notio.Database.Entities;
 /// <summary>
 /// Đại diện cho tin nhắn trong cơ sở dữ liệu.
 /// </summary>
-public class Message
+public class Message : BaseEntity
 {
-    public long MessageId { get; set; }
-    public long ChatId { get; set; }
-    public long SenderId { get; set; }
-    public string MessageType { get; set; }
-    public string MessageContent { get; set; }
-    public string MediaMetadata { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public int MessageId { get; set; }
+    public int SenderId { get; set; }
+    public int ChatId { get; set; }
+    public string Content { get; set; } = null!;
+    public MessageType MessageType { get; set; }
+    public bool IsEdited { get; set; }
     public bool IsDeleted { get; set; }
 
     // Navigation properties
-    public User Sender { get; set; }
+    public virtual User Sender { get; set; }
 
-    public Chat Chat { get; set; }
-    public ICollection<MessageAttachment> Attachments { get; set; }
+    public virtual Chat Chat { get; set; }
+    public virtual ICollection<MessageAttachment> Attachments { get; set; }
 }

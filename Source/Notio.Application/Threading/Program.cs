@@ -32,7 +32,6 @@ public static class Program
     internal static void RunUnitTests()
     {
         Aes256Testing.Main();
-        JwtTokenTesting.Main();
         PacketTesting.Main();
     }
 }

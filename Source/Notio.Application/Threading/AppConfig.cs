@@ -22,8 +22,8 @@ public static class AppConfig
 {
     // Các giá trị cấu hình không thể thay đổi
     public static readonly string VersionInfo =
-$"Version {AssemblyHelper.GetAssemblyInformationalVersion()} " +
-$"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
+        $"Version {AssemblyHelper.GetAssemblyInformationalVersion()} " +
+        $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
 
     // Phương thức khởi tạo console
     public static void InitializeConsole()
@@ -63,7 +63,12 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
     {
         DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
 
-        optionsBuilder.UseSqlServer(NotioContext.AzureSqlConnection);
+        optionsBuilder.UseSqlServer(NotioContext.AzureSqlConnection, options =>
+            options.EnableRetryOnFailure(
+            maxRetryCount: 5, // Số lần thử lại tối đa
+            maxRetryDelay: TimeSpan.FromSeconds(30), // Thời gian chờ tối đa giữa các lần thử lại
+            errorNumbersToAdd: null)
+        );
 
         // Khởi tạo DbContext với cấu hình options
         var context = new NotioContext(optionsBuilder.Options);
@@ -78,14 +83,16 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
             WriteIndented = true
         };
 
+        var database = InitializeDatabase();
+
         WebServer server = new WebServer(options => options
             .WithMode(HttpListenerMode.Notio) // Chạy trong chế độ Notio
             .AddUrlPrefix(url))
             .WithCors() // Hỗ trợ CORS
-            .WithWebApi("/api", m => m
+            .WithWebApi("/api/v1", m => m
                 .WithController<MainController>()
-                .WithController<UserController>(()
-                    => new UserController(InitializeDatabase()))) // REST API
+                .WithController<AuthController>(() => new AuthController(database))
+                .WithController<MessageController>(() => new MessageController(database))) // REST API
             .HandleHttpException((ctx, ex) =>
             {
                 ctx.Response.StatusCode = ex.StatusCode;

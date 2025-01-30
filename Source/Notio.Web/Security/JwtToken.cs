@@ -5,14 +5,24 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace Notio.Network.Security;
+namespace Notio.Web.Security;
 
+/// <summary>
+/// Class for creating and validating JWT tokens.
+/// </summary>
 public sealed class JwtToken
 {
     private readonly string _issuer;
     private readonly string _audience;
     private readonly HMACSHA256 _hmac;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JwtToken"/> class.
+    /// </summary>
+    /// <param name="secretKey">The secret key used for signing the token.</param>
+    /// <param name="issuer">The issuer of the token.</param>
+    /// <param name="audience">The audience of the token.</param>
+    /// <exception cref="InternalErrorException">Thrown when any parameter is null or empty.</exception>
     public JwtToken(string secretKey, string issuer, string audience)
     {
         if (string.IsNullOrWhiteSpace(secretKey))
@@ -29,6 +39,13 @@ public sealed class JwtToken
         _hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
     }
 
+    /// <summary>
+    /// Generates a JWT token with the specified claims and expiration time.
+    /// </summary>
+    /// <param name="claims">The claims to include in the token.</param>
+    /// <param name="expiration">The expiration time of the token.</param>
+    /// <returns>The generated JWT token.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when claims is null.</exception>
     public string GenerateToken(Dictionary<string, object> claims, TimeSpan expiration)
     {
         ArgumentNullException.ThrowIfNull(claims);
@@ -51,6 +68,12 @@ public sealed class JwtToken
         return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
     }
 
+    /// <summary>
+    /// Validates a JWT token and extracts the claims.
+    /// </summary>
+    /// <param name="token">The JWT token to validate.</param>
+    /// <param name="claims">The extracted claims if the token is valid; otherwise, null.</param>
+    /// <returns>True if the token is valid; otherwise, false.</returns>
     public bool ValidateToken(string token, out Dictionary<string, object>? claims)
     {
         claims = null;
@@ -83,6 +106,12 @@ public sealed class JwtToken
         }
     }
 
+    /// <summary>
+    /// Decodes a JWT token and extracts the claims.
+    /// </summary>
+    /// <param name="token">The JWT token to decode.</param>
+    /// <returns>The extracted claims.</returns>
+    /// <exception cref="InternalErrorException">Thrown when the token format is invalid or decoding fails.</exception>
     public static Dictionary<string, object> DecodeToken(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
@@ -107,11 +136,21 @@ public sealed class JwtToken
         }
     }
 
+    /// <summary>
+    /// Converts a byte array to a Base64Url encoded string.
+    /// </summary>
+    /// <param name="input">The byte array to convert.</param>
+    /// <returns>The Base64Url encoded string.</returns>
     private static string ConvertToBase64Url(byte[] input)
         => Convert.ToBase64String(input).TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
 
+    /// <summary>
+    /// Deserializes JSON elements into a dictionary of claims.
+    /// </summary>
+    /// <param name="jsonElements">The JSON elements to deserialize.</param>
+    /// <returns>A dictionary of claims.</returns>
     private static Dictionary<string, object> DeserializeClaims(Dictionary<string, JsonElement> jsonElements)
     {
         Dictionary<string, object> claims = [];

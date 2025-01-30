@@ -10,15 +10,7 @@ namespace Notio.Application.RestApi;
 
 internal class MainController : WebApiController
 {
-    //
     [Route(HttpVerbs.Get, "/")]
-    public Task<object> Notio()
-    {
-        // Set status code 200 and response data
-        Response.StatusCode = (int)HttpStatusCode.OK;
-        return Task.FromResult<object>(new { message = "Notio-Api" });
-    }
-
     [Route(HttpVerbs.Get, "/hello")]
     public Task<object> HelloWord()
     {

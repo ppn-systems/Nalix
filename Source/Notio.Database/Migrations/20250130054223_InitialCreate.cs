@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Notio.Database.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateUsersTable : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,12 +15,13 @@ namespace Notio.Database.Migrations
                 name: "Chats",
                 columns: table => new
                 {
-                    ChatId = table.Column<long>(type: "bigint", nullable: false)
+                    ChatId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ChatName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsGroupChat = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastActivityAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    LastActivityAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    ChatType = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -31,16 +32,15 @@ namespace Notio.Database.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    UserId = table.Column<long>(type: "bigint", nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, collation: "SQL_Latin1_General_CP1_CI_AS"),
+                    PasswordHash = table.Column<string>(type: "nchar(60)", fixedLength: true, maxLength: 60, nullable: false),
                     DisplayName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true, collation: "SQL_Latin1_General_CP1_CI_AS"),
                     AvatarUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -51,15 +51,16 @@ namespace Notio.Database.Migrations
                 name: "Messages",
                 columns: table => new
                 {
-                    MessageId = table.Column<long>(type: "bigint", nullable: false)
+                    MessageId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ChatId = table.Column<long>(type: "bigint", nullable: false),
-                    SenderId = table.Column<long>(type: "bigint", nullable: false),
-                    MessageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MessageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MediaMetadata = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    SenderId = table.Column<int>(type: "int", nullable: false),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MessageType = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
+                    IsEdited = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -82,11 +83,13 @@ namespace Notio.Database.Migrations
                 name: "UserChats",
                 columns: table => new
                 {
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
-                    ChatId = table.Column<long>(type: "bigint", nullable: false),
-                    UserRole = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastReadMessageId = table.Column<long>(type: "bigint", nullable: true)
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    UserRole = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
+                    IsMuted = table.Column<bool>(type: "bit", nullable: false),
+                    LastReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -109,14 +112,15 @@ namespace Notio.Database.Migrations
                 name: "MessageAttachments",
                 columns: table => new
                 {
-                    AttachmentId = table.Column<long>(type: "bigint", nullable: false)
+                    AttachmentId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    MessageId = table.Column<long>(type: "bigint", nullable: false),
-                    FileUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    MessageId = table.Column<int>(type: "int", nullable: false),
+                    FileUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    FileType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    FileType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -135,6 +139,11 @@ namespace Notio.Database.Migrations
                 column: "LastActivityAt");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MessageAttachments_FileType",
+                table: "MessageAttachments",
+                column: "FileType");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MessageAttachments_MessageId",
                 table: "MessageAttachments",
                 column: "MessageId");
@@ -143,6 +152,11 @@ namespace Notio.Database.Migrations
                 name: "IX_Messages_ChatId_CreatedAt",
                 table: "Messages",
                 columns: new[] { "ChatId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_IsDeleted",
+                table: "Messages",
+                column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Messages_SenderId_CreatedAt",
@@ -155,6 +169,11 @@ namespace Notio.Database.Migrations
                 columns: new[] { "ChatId", "UserRole" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserChats_LastReadAt",
+                table: "UserChats",
+                column: "LastReadAt");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
@@ -165,7 +184,8 @@ namespace Notio.Database.Migrations
                 name: "IX_Users_Username",
                 table: "Users",
                 column: "Username",
-                unique: true);
+                unique: true,
+                filter: "[Username] IS NOT NULL");
         }
 
         /// <inheritdoc />
