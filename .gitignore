@@ -55,3 +55,6 @@ client-side/*
 
 # Uncomment if publishing code to a public repository
 #*.env
+
+# file config
+appsettings.json

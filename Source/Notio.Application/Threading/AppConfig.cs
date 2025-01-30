@@ -62,8 +62,10 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
     public static NotioContext InitializeDatabase()
     {
         DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-        optionsBuilder.UseSqlite(NotioContext.DataSource);
 
+        optionsBuilder.UseSqlServer(NotioContext.AzureSqlConnection);
+
+        // Khởi tạo DbContext với cấu hình options
         var context = new NotioContext(optionsBuilder.Options);
 
         return context;
@@ -77,7 +79,7 @@ $"| {(System.Diagnostics.Debugger.IsAttached ? "Debug" : "Release")}";
         };
 
         WebServer server = new WebServer(options => options
-            .WithMode(HttpListenerMode.Notio) // Chạy trong chế độ Microsoft
+            .WithMode(HttpListenerMode.Notio) // Chạy trong chế độ Notio
             .AddUrlPrefix(url))
             .WithCors() // Hỗ trợ CORS
             .WithWebApi("/api", m => m

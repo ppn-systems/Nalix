@@ -15,12 +15,12 @@ namespace Notio.Database.Migrations
                 name: "Chats",
                 columns: table => new
                 {
-                    ChatId = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ChatName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
-                    IsGroupChat = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastActivityAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    ChatId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ChatName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    IsGroupChat = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastActivityAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -31,16 +31,16 @@ namespace Notio.Database.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    UserId = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Username = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", maxLength: 60, nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
-                    AvatarUrl = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastLogin = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
+                    UserId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false),
+                    DisplayName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -51,15 +51,15 @@ namespace Notio.Database.Migrations
                 name: "Messages",
                 columns: table => new
                 {
-                    MessageId = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ChatId = table.Column<long>(type: "INTEGER", nullable: false),
-                    SenderId = table.Column<long>(type: "INTEGER", nullable: false),
-                    MessageType = table.Column<string>(type: "TEXT", nullable: true),
-                    MessageContent = table.Column<string>(type: "TEXT", nullable: true),
-                    MediaMetadata = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false)
+                    MessageId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ChatId = table.Column<long>(type: "bigint", nullable: false),
+                    SenderId = table.Column<long>(type: "bigint", nullable: false),
+                    MessageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MessageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MediaMetadata = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -82,11 +82,11 @@ namespace Notio.Database.Migrations
                 name: "UserChats",
                 columns: table => new
                 {
-                    UserId = table.Column<long>(type: "INTEGER", nullable: false),
-                    ChatId = table.Column<long>(type: "INTEGER", nullable: false),
-                    UserRole = table.Column<string>(type: "TEXT", nullable: true),
-                    JoinedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    LastReadMessageId = table.Column<long>(type: "INTEGER", nullable: true)
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    ChatId = table.Column<long>(type: "bigint", nullable: false),
+                    UserRole = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastReadMessageId = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -109,14 +109,14 @@ namespace Notio.Database.Migrations
                 name: "MessageAttachments",
                 columns: table => new
                 {
-                    AttachmentId = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    MessageId = table.Column<long>(type: "INTEGER", nullable: false),
-                    FileUrl = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    FileName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    FileSize = table.Column<long>(type: "INTEGER", nullable: false),
-                    FileType = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    AttachmentId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MessageId = table.Column<long>(type: "bigint", nullable: false),
+                    FileUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    FileType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -158,7 +158,8 @@ namespace Notio.Database.Migrations
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
-                unique: true);
+                unique: true,
+                filter: "[Email] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",
