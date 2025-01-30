@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Notio.Database;
 
@@ -11,9 +12,11 @@ using Notio.Database;
 namespace Notio.Database.Migrations
 {
     [DbContext(typeof(NotioContext))]
-    partial class NotioContextModelSnapshot : ModelSnapshot
+    [Migration("20250130062059_AddIsDeletedColumn")]
+    partial class AddIsDeletedColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -199,8 +202,8 @@ namespace Notio.Database.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nchar(200)")
+                        .HasMaxLength(60)
+                        .HasColumnType("nchar(60)")
                         .IsFixedLength();
 
                     b.Property<DateTime?>("UpdatedAt")

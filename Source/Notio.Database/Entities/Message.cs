@@ -14,7 +14,6 @@ public class Message : BaseEntity
     public string Content { get; set; } = null!;
     public MessageType MessageType { get; set; }
     public bool IsEdited { get; set; }
-    public bool IsDeleted { get; set; }
 
     // Navigation properties
     public virtual User Sender { get; set; }

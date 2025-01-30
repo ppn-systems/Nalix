@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Notio.Database;
 
@@ -11,9 +12,11 @@ using Notio.Database;
 namespace Notio.Database.Migrations
 {
     [DbContext(typeof(NotioContext))]
-    partial class NotioContextModelSnapshot : ModelSnapshot
+    [Migration("20250130062349_UpdatePasswordHashColumn")]
+    partial class UpdatePasswordHashColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -50,18 +50,15 @@ public sealed class JwtToken
     {
         ArgumentNullException.ThrowIfNull(claims);
 
-        // Header
         var header = new { alg = "HS256", typ = "JWT" };
         string headerBase64 = ConvertToBase64Url(JsonSerializer.SerializeToUtf8Bytes(header));
 
-        // Payload
         claims["iss"] = _issuer;
         claims["aud"] = _audience;
         claims["exp"] = DateTimeOffset.UtcNow.Add(expiration).ToUnixTimeSeconds();
         claims["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         string payloadBase64 = ConvertToBase64Url(JsonSerializer.SerializeToUtf8Bytes(claims));
 
-        // Signature
         byte[] signature = _hmac.ComputeHash(Encoding.UTF8.GetBytes($"{headerBase64}.{payloadBase64}"));
         string signatureBase64 = ConvertToBase64Url(signature);
 
@@ -85,12 +82,11 @@ public sealed class JwtToken
             string[] parts = token.Split('.');
             if (parts.Length != 3) return false;
 
-            // Validate Signature
             byte[] computedSignature = _hmac.ComputeHash(Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}"));
             if (ConvertToBase64Url(computedSignature) != parts[2]) return false;
 
-            // Validate Payload
-            string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
+            byte[] payloadBytes = ConvertFromBase64Url(parts[1]);
+            string payloadJson = Encoding.UTF8.GetString(payloadBytes);
             var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson);
 
             if (payload == null || !payload.TryGetValue("exp", out JsonElement expValue)) return false;
@@ -123,12 +119,12 @@ public sealed class JwtToken
             if (parts.Length != 3)
                 throw new InternalErrorException("Invalid token format.", nameof(token));
 
-            // Decode Payload
-            string payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1]));
-            var payload = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson)
+            byte[] payloadBytes = ConvertFromBase64Url(parts[1]);
+            string payloadJson = Encoding.UTF8.GetString(payloadBytes);
+            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson)
                 ?? throw new InternalErrorException("Invalid payload in token.", nameof(token));
 
-            return payload;
+            return DeserializeClaims(payload);
         }
         catch (Exception ex)
         {
@@ -136,21 +132,22 @@ public sealed class JwtToken
         }
     }
 
-    /// <summary>
-    /// Converts a byte array to a Base64Url encoded string.
-    /// </summary>
-    /// <param name="input">The byte array to convert.</param>
-    /// <returns>The Base64Url encoded string.</returns>
     private static string ConvertToBase64Url(byte[] input)
         => Convert.ToBase64String(input).TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
 
-    /// <summary>
-    /// Deserializes JSON elements into a dictionary of claims.
-    /// </summary>
-    /// <param name="jsonElements">The JSON elements to deserialize.</param>
-    /// <returns>A dictionary of claims.</returns>
+    private static byte[] ConvertFromBase64Url(string input)
+    {
+        string base64 = input.Replace('-', '+').Replace('_', '/');
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
+
     private static Dictionary<string, object> DeserializeClaims(Dictionary<string, JsonElement> jsonElements)
     {
         Dictionary<string, object> claims = [];
