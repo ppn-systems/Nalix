@@ -136,7 +136,7 @@ public static class ReflectionExtensions
         ArgumentNullException.ThrowIfNull(type);
 
         if (type != typeof(bool))
-            return type.TryParseBasicType(value.ToStringInvariant(), out result);
+            return type.TryParseBasicType(value.ToStringInvariant() ?? string.Empty, out result);
 
         result = value.ToBoolean();
         return true;
@@ -310,5 +310,5 @@ public static class ReflectionExtensions
     /// <returns>
     ///   <c>true</c> if the string represents a valid truly value, otherwise <c>false</c>.
     /// </returns>
-    public static bool ToBoolean(this object value) => value.ToStringInvariant().ToBoolean();
+    public static bool ToBoolean(this object value) => value.ToStringInvariant()?.ToBoolean() ?? false;
 }

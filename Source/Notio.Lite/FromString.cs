@@ -15,19 +15,19 @@ public static class FromString
 {
     // It doesn't matter which converter we get here: ConvertFromInvariantString is not virtual.
     private static readonly MethodInfo ConvertFromInvariantStringMethod
-        = new Func<string, object>(TypeDescriptor.GetConverter(typeof(int)).ConvertFromInvariantString).Method;
+        = new Func<string, object?>(TypeDescriptor.GetConverter(typeof(int)).ConvertFromInvariantString).Method;
 
     private static readonly MethodInfo TryConvertToInternalMethod
-        = typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic);
+        = typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException($"Method '{nameof(TryConvertToInternal)}' not found.");
 
     private static readonly MethodInfo ConvertToInternalMethod
-        = typeof(FromString).GetMethod(nameof(ConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic);
+        = typeof(FromString).GetMethod(nameof(ConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException($"Method '{nameof(ConvertToInternal)}' not found.");
 
-    private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>> GenericTryConvertToMethods
-        = new ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>>();
+    private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>> GenericTryConvertToMethods = new();
 
-    private static readonly ConcurrentDictionary<Type, Func<string[], object>> GenericConvertToMethods
-        = new ConcurrentDictionary<Type, Func<string[], object>>();
+    private static readonly ConcurrentDictionary<Type, Func<string[], object>> GenericConvertToMethods = new();
 
     /// <summary>
     /// Determines whether a string can be converted to the specified type.
@@ -99,7 +99,7 @@ public static class FromString
 
         try
         {
-            result = (TResult)converter.ConvertFromInvariantString(str);
+            result = (TResult?)converter.ConvertFromInvariantString(str);
             return true;
         }
         catch (Exception e) when (!e.IsCriticalException())

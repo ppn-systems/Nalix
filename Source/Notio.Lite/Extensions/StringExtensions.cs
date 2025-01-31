@@ -1,5 +1,6 @@
 ﻿using Notio.Lite.Extensions;
 using Notio.Lite.Formatters;
+using Notio.Lite.Reflection;
 using System;
 using System.IO;
 using System.Linq;
@@ -57,7 +58,7 @@ public static class StringExtensions
         if (itemType == typeof(string))
             return @this as string ?? string.Empty;
 
-        return Definitions.BasicTypesInfo.Value.TryGetValue(itemType, out Reflection.ExtendedTypeInfo? value)
+        return Definitions.BasicTypesInfo.Value.TryGetValue(itemType, out ExtendedTypeInfo? value)
             ? value.ToStringInvariant(@this)
             : @this.ToString();
     }

@@ -10,32 +10,32 @@ namespace Notio.Lite;
 /// </summary>
 public static class Runtime
 {
-    private static readonly Lazy<Assembly> EntryAssemblyLazy = new Lazy<Assembly>(Assembly.GetEntryAssembly);
+    private static readonly Lazy<Assembly?> EntryAssemblyLazy = new(Assembly.GetEntryAssembly);
 
-    private static readonly Lazy<string> CompanyNameLazy = new Lazy<string>(() =>
+    private static readonly Lazy<string> CompanyNameLazy = new(() =>
     {
         var attribute =
-            EntryAssembly.GetCustomAttribute(typeof(AssemblyCompanyAttribute)) as AssemblyCompanyAttribute;
+            EntryAssembly.GetCustomAttribute<AssemblyCompanyAttribute>() as AssemblyCompanyAttribute;
         return attribute?.Company ?? string.Empty;
     });
 
-    private static readonly Lazy<string> ProductNameLazy = new Lazy<string>(() =>
+    private static readonly Lazy<string> ProductNameLazy = new(() =>
     {
         var attribute =
-            EntryAssembly.GetCustomAttribute(typeof(AssemblyProductAttribute)) as AssemblyProductAttribute;
+            EntryAssembly.GetCustomAttribute<AssemblyProductAttribute>() as AssemblyProductAttribute;
         return attribute?.Product ?? string.Empty;
     });
 
-    private static readonly Lazy<string> ProductTrademarkLazy = new Lazy<string>(() =>
+    private static readonly Lazy<string> ProductTrademarkLazy = new(() =>
     {
         var attribute =
-            EntryAssembly.GetCustomAttribute(typeof(AssemblyTrademarkAttribute)) as AssemblyTrademarkAttribute;
+            EntryAssembly.GetCustomAttribute<AssemblyTrademarkAttribute>() as AssemblyTrademarkAttribute;
         return attribute?.Trademark ?? string.Empty;
     });
 
     private static readonly string ApplicationMutexName = "Global\\{{" + EntryAssembly.FullName + "}}";
 
-    private static readonly object SyncLock = new object();
+    private static readonly Lock SyncLock = new();
 
     private static OperatingSystem? _oS;
 
@@ -140,7 +140,7 @@ public static class Runtime
     /// <summary>
     /// Gets the entry assembly version.
     /// </summary>
-    public static Version EntryAssemblyVersion => EntryAssemblyName.Version;
+    public static Version? EntryAssemblyVersion => EntryAssemblyName.Version;
 
     /// <summary>
     /// Gets the full path to the folder containing the assembly that started the application.

@@ -1,6 +1,6 @@
 ﻿using Notio.Lite.Formatters;
 using Notio.Lite.Mappers;
-using Notio.Reflection;
+using Notio.Lite.Reflection;
 using System;
 using System.Collections;
 using System.Collections.Generic;

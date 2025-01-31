@@ -1,5 +1,5 @@
 ﻿using Notio.Lite.Extensions;
-using Notio.Reflection;
+using Notio.Lite.Reflection;
 using System;
 using System.Collections.Generic;
 using System.IO;

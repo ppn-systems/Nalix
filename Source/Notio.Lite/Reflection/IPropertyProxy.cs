@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace Notio.Reflection
+namespace Notio.Lite.Reflection
 {
     /// <summary>
     /// Represents a generic interface to store getters and setters for high speed access to properties.

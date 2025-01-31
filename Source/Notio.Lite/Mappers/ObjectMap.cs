@@ -18,9 +18,11 @@ public class ObjectMap<TSource, TDestination> : IObjectMap
     {
         SourceType = typeof(TSource);
         DestinationType = typeof(TDestination);
-        Map = intersect.ToDictionary(
-            property => DestinationType.GetProperty(property.Name),
-            property => new List<PropertyInfo> { SourceType.GetProperty(property.Name) });
+        Map = intersect
+            .Where(property => property != null)
+            .ToDictionary(
+                property => DestinationType.GetProperty(property.Name)!,
+                property => new List<PropertyInfo> { SourceType.GetProperty(property.Name)! });
     }
 
     /// <inheritdoc/>
@@ -48,17 +50,13 @@ public class ObjectMap<TSource, TDestination> : IObjectMap
             Expression<Func<TDestination, TDestinationProperty>> destinationProperty,
             Expression<Func<TSource, TSourceProperty>> sourceProperty)
     {
-        if (destinationProperty == null)
-            throw new ArgumentNullException(nameof(destinationProperty));
+        ArgumentNullException.ThrowIfNull(destinationProperty);
 
-        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo;
-
-        if (propertyDestinationInfo == null)
-            throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
-
+        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo
+            ?? throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
         var sourceMembers = GetSourceMembers(sourceProperty);
 
-        if (!sourceMembers.Any())
+        if (sourceMembers.Count == 0)
             throw new ArgumentException("Invalid source expression", nameof(sourceProperty));
 
         // reverse order
@@ -81,26 +79,19 @@ public class ObjectMap<TSource, TDestination> : IObjectMap
     public ObjectMap<TSource, TDestination> RemoveMapProperty<TDestinationProperty>(
         Expression<Func<TDestination, TDestinationProperty>> destinationProperty)
     {
-        if (destinationProperty == null)
-            throw new ArgumentNullException(nameof(destinationProperty));
+        ArgumentNullException.ThrowIfNull(destinationProperty);
 
-        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo;
+        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo
+            ?? throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
 
-        if (propertyDestinationInfo == null)
-            throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
-
-        if (Map.ContainsKey(propertyDestinationInfo))
-        {
-            Map.Remove(propertyDestinationInfo);
-        }
+        Map.Remove(propertyDestinationInfo);
 
         return this;
     }
 
     private static List<PropertyInfo> GetSourceMembers<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> sourceProperty)
     {
-        if (sourceProperty == null)
-            throw new ArgumentNullException(nameof(sourceProperty));
+        ArgumentNullException.ThrowIfNull(sourceProperty);
 
         var sourceMembers = new List<PropertyInfo>();
         var initialExpression = sourceProperty.Body as MemberExpression;
@@ -111,7 +102,7 @@ public class ObjectMap<TSource, TDestination> : IObjectMap
 
             if (propertySourceInfo == null) break;
             sourceMembers.Add(propertySourceInfo);
-            initialExpression = initialExpression.Expression as MemberExpression;
+            initialExpression = initialExpression?.Expression as MemberExpression;
         }
 
         return sourceMembers;

@@ -1,4 +1,4 @@
-﻿using Notio.Reflection;
+﻿using Notio.Lite.Reflection;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;

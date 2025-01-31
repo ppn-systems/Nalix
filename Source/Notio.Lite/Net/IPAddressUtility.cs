@@ -20,8 +20,15 @@ public static class IPAddressUtility
     /// as <paramref name="str"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful;
     /// otherwise, <see langword="false"/>.</returns>
-    public static bool TryParse(string? str, out IPAddress address)
+    public static bool TryParse(string? str, out IPAddress? address)
     {
+        // Check if the input string is null or empty before proceeding
+        if (string.IsNullOrEmpty(str))
+        {
+            address = null; // Explicitly return null for invalid inputs
+            return false;
+        }
+
         // https://docs.microsoft.com/en-us/dotnet/api/system.net.ipaddress.tryparse
         // "Note that this method accepts as valid an ipString value that can be parsed as an Int64,
         // and then treats that Int64 as the long value of an IP address in network byte order,
@@ -35,8 +42,19 @@ public static class IPAddressUtility
         // to parse IP addresses in dotted-decimal format."
         // ---
         // Thus, if it parses as an Int64, let's just refuse it.
-        // One-part IPv4 addresses be darned.
-        address = IPAddress.None;
-        return !long.TryParse(str, out _) && IPAddress.TryParse(str, out address);
+
+        // First, try parsing it as a valid Int64 and refuse it if successful.
+        if (long.TryParse(str, out _))
+        {
+            address = null; // Explicitly return null for invalid cases
+            return false;
+        }
+
+        // Now, try parsing it as a valid IP address
+        bool isParsed = IPAddress.TryParse(str, out var parsedAddress);
+
+        // Set address to the parsed result or null if parsing failed
+        address = isParsed ? parsedAddress : null;
+        return isParsed;
     }
 }
