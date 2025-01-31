@@ -15,7 +15,7 @@ namespace Notio.Network.Handlers;
 public class PacketHandlerRouter(ILogger? logger)
 {
     private readonly ILogger? _logger = logger;
-    private readonly ConcurrentDictionary<short, (PacketController, MethodInfo, Authoritys)> _handlers = new();
+    private readonly ConcurrentDictionary<int, (PacketController handler, MethodInfo method, Authoritys requiredAuthority)> _handlers = new();
 
     /// <summary>
     /// Registers a handler by passing in the Type.
@@ -28,8 +28,13 @@ public class PacketHandlerRouter(ILogger? logger)
     /// </summary>
     public void RoutePacket(IConnection connection)
     {
-        Packet packet = connection.IncomingPacket.FromByteArray();
+        if (connection == null)
+        {
+            _logger?.Error("Connection is null");
+            return;
+        }
 
+        Packet packet = connection.IncomingPacket.FromByteArray();
         if (!_handlers.TryGetValue(packet.Command, out var handlerInfo))
         {
             _logger?.Warn($"No handler found for command {packet.Command}");
@@ -37,18 +42,27 @@ public class PacketHandlerRouter(ILogger? logger)
         }
 
         var (handler, method, requiredAuthority) = handlerInfo;
-
         if (!ValidateAuthority(connection, requiredAuthority))
         {
             _logger?.Warn($"Access denied for command {packet.Command}. Required authority: {requiredAuthority}, User authority: {connection.Authority}");
             return;
         }
 
+        ExecuteHandlerMethod(handler, method, connection, packet);
+    }
+
+    private void ExecuteHandlerMethod(PacketController handler, MethodInfo method, IConnection connection, Packet packet)
+    {
         try
         {
-            if (method.Invoke(handler, [connection, packet]) is Packet packetResponse)
+            if (method.Invoke(handler, new object[] { connection, packet }) is Packet packetResponse)
             {
                 connection.Send(packetResponse.ToByteArray());
+                _logger?.Info($"Command {packet.Command} processed successfully.");
+            }
+            else
+            {
+                _logger?.Warn($"Method {method.Name} returned null for command {packet.Command}");
             }
         }
         catch (Exception ex)
@@ -67,15 +81,15 @@ public class PacketHandlerRouter(ILogger? logger)
             PacketCommandAttribute? attr = method.GetCustomAttribute<PacketCommandAttribute>();
             if (attr == null) continue;
 
-            if (method.ReturnType != typeof(byte[]))
+            if (method.ReturnType != typeof(Packet))
             {
-                _logger?.Warn($"Method {method.Name} in {type.Name} must return byte[]");
+                _logger?.Warn($"Method {method.Name} in {type.Name} must return Packet, but got {method.ReturnType.Name}");
                 continue;
             }
 
             if (_handlers.TryAdd(attr.CommandId, (handler, method, attr.RequiredAuthority)))
             {
-                _logger?.Info($"Registered {type.Name}.{method.Name} for command {attr.CommandId} with authority {attr.CommandId}");
+                _logger?.Info($"Registered {type.Name}.{method.Name} for command {attr.CommandId} with authority {attr.RequiredAuthority}");
             }
             else
             {
