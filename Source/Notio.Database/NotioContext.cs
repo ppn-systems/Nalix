@@ -1,17 +1,17 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Notio.Database.Configurations;
 using Notio.Database.Entities;
 using System;
 using System.IO;
+using System.Text.Json;
 
 namespace Notio.Database;
 
 public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbContext(options)
 {
-    public static readonly string AzureSqlConnection = GetConnectionString();
+    public static readonly string AzureSqlConnection = GetConnectionString("AzureSql");
 
-    public static readonly string LocalDbConnection = $"Data Source={Path.Combine(Directory.GetCurrentDirectory(), "notio.db")}";
+    public static readonly string LocalDbConnection = GetConnectionString("LocalDb");
     public DbSet<User> Users { get; set; }
     public DbSet<Chat> Chats { get; set; }
     public DbSet<Message> Messages { get; set; }
@@ -28,19 +28,12 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
         modelBuilder.ApplyConfiguration(new MessageAttachmentConfiguration());
     }
 
-    private static string GetConnectionString()
+    private static string GetConnectionString(string name)
     {
-        // Xây dựng cấu hình từ file appsettings.json
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .Build();
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+        if (!File.Exists(configPath)) throw new FileNotFoundException("Config file not found", configPath);
 
-        // Lấy connection string từ file cấu hình
-        string connectionString = configuration
-            .GetSection("ConnectionStrings")
-            .GetSection("AzureSql").Value;
-
-        return connectionString;
+        using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
+        return doc.RootElement.GetProperty("ConnectionStrings").GetProperty(name).GetString() ?? string.Empty;
     }
 }
