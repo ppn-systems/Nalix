@@ -1,5 +1,5 @@
 ﻿using Notio.Web.Enums;
-using Notio.Web.Http;
+using Notio.Web.Http.Handlers;
 using Notio.Web.MimeTypes;
 using Notio.Web.Sessions;
 using Notio.Web.WebModule;

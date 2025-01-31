@@ -3,6 +3,7 @@ using Notio.Lite.Extensions;
 using Notio.Lite.Threading;
 using Notio.Web.Enums;
 using Notio.Web.Http;
+using Notio.Web.Http.Extensions;
 using Notio.Web.Response;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
@@ -41,34 +42,25 @@ namespace Notio.Web.WebSockets;
 /// contains one or more <c>SecWebSocketProtocol</c> headers that specify
 /// the list of accepted subprotocols (if any).
 /// </remarks>
-public abstract class WebSocketModule : WebModuleBase, IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="WebSocketModule" /> class.
+/// </remarks>
+/// <param name="urlPath">The URL path of the WebSocket endpoint to serve.</param>
+/// <param name="enableConnectionWatchdog">If set to <see langword="true"/>,
+/// contexts representing closed connections will automatically be purged
+/// from <see cref="ActiveContexts"/> every 30 seconds..</param>
+public abstract class WebSocketModule(string urlPath, bool enableConnectionWatchdog) : WebModuleBase(urlPath), IDisposable
 {
     private const int ReceiveBufferSize = 2048;
 
-    private readonly bool _enableConnectionWatchdog;
+    private readonly bool _enableConnectionWatchdog = enableConnectionWatchdog;
     private readonly List<string> _protocols = [];
     private readonly ConcurrentDictionary<string, IWebSocketContext> _contexts = new();
     private bool _isDisposing;
-    private int _maxMessageSize;
-    private TimeSpan _keepAliveInterval;
-    private Encoding _encoding;
+    private int _maxMessageSize = 0;
+    private TimeSpan _keepAliveInterval = TimeSpan.FromSeconds(30);
+    private Encoding _encoding = Encoding.UTF8;
     private PeriodicTask? _connectionWatchdog;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WebSocketModule" /> class.
-    /// </summary>
-    /// <param name="urlPath">The URL path of the WebSocket endpoint to serve.</param>
-    /// <param name="enableConnectionWatchdog">If set to <see langword="true"/>,
-    /// contexts representing closed connections will automatically be purged
-    /// from <see cref="ActiveContexts"/> every 30 seconds..</param>
-    protected WebSocketModule(string urlPath, bool enableConnectionWatchdog)
-        : base(urlPath)
-    {
-        _enableConnectionWatchdog = enableConnectionWatchdog;
-        _maxMessageSize = 0;
-        _keepAliveInterval = TimeSpan.FromSeconds(30);
-        _encoding = Encoding.UTF8;
-    }
 
     /// <inheritdoc />
     public override sealed bool IsFinalHandler => true;
@@ -142,7 +134,7 @@ public abstract class WebSocketModule : WebModuleBase, IDisposable
             ICollection<IWebSocketContext> values = _contexts.Values;
             return values is IReadOnlyList<IWebSocketContext> list
                 ? list
-                : values.ToList();
+                : [.. values];
         }
     }
 
@@ -163,13 +155,14 @@ public abstract class WebSocketModule : WebModuleBase, IDisposable
             return;
         }
 
-        string[] requestedProtocols = context.Request.Headers.GetValues(HttpHeaderNames.SecWebSocketProtocol)
-                                     ?.Select(s => s.Trim())
-                                     .Where(s => s.Length > 0)
-                                     .ToArray()
-                              ?? Array.Empty<string>();
-        string acceptedProtocol;
         bool acceptConnection;
+        string acceptedProtocol;
+        string[] requestedProtocols = context.Request.Headers
+            .GetValues(HttpHeaderNames.SecWebSocketProtocol)?
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToArray() ?? [];
+
         if (_protocols.Count > 0)
         {
             acceptedProtocol = requestedProtocols.FirstOrDefault(_protocols.Contains) ?? string.Empty;
@@ -401,7 +394,7 @@ public abstract class WebSocketModule : WebModuleBase, IDisposable
     {
         try
         {
-            await context.WebSocket.SendAsync(payload ?? Array.Empty<byte>(), false, context.CancellationToken)
+            await context.WebSocket.SendAsync(payload ?? [], false, context.CancellationToken)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -666,7 +659,7 @@ public abstract class WebSocketModule : WebModuleBase, IDisposable
                 continue;
             }
 
-            await OnMessageReceivedAsync(context, receivedMessage.ToArray(), receiveResult)
+            await OnMessageReceivedAsync(context, [.. receivedMessage], receiveResult)
                 .ConfigureAwait(false);
             receivedMessage.Clear();
         }

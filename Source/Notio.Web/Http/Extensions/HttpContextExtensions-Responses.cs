@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Extensions;
 
 public static partial class HttpContextExtensions
 {

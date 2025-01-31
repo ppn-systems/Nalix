@@ -1,5 +1,5 @@
 ﻿using Notio.Shared.Configuration;
-using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
 using Notio.Web.Utilities;
 using System;
 using System.Collections.Concurrent;

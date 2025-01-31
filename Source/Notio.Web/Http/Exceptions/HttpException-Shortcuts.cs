@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Exceptions;
 
 public partial class HttpException
 {

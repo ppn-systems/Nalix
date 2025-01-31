@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Handlers;
 
 /// <summary>
 /// A callback used to build the contents of the response for an <see cref="IHttpException" />.

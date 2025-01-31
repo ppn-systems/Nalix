@@ -1,5 +1,7 @@
 ﻿using Notio.Common.Logging;
 using Notio.Web.Http;
+using Notio.Web.Http.Extensions;
+using Notio.Web.Http.Handlers;
 using Notio.Web.Response;
 using Notio.Web.WebModule;
 using System;

@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Http;
+using Notio.Web.Http.Handlers;
 using Notio.Web.Routing;
 using System.Threading;
 using System.Threading.Tasks;

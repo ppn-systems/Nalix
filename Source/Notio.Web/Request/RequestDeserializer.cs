@@ -1,6 +1,8 @@
 ﻿using Notio.Common.Logging;
 using Notio.Lite.Formatters;
 using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
+using Notio.Web.Http.Extensions;
 using System;
 using System.Threading.Tasks;
 

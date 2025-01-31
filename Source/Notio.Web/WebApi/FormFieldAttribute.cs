@@ -1,5 +1,6 @@
 ﻿using Notio.Lite;
-using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
+using Notio.Web.Http.Extensions;
 using Notio.Web.Utilities;
 using System;
 using System.Linq;

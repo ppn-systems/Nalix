@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
 using Notio.Web.WebModule;
 using System;
 using System.Threading;

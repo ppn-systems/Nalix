@@ -1,5 +1,6 @@
 ﻿using Notio.Web.Enums;
 using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
 using System;

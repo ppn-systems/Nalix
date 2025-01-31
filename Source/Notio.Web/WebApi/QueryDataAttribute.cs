@@ -1,4 +1,4 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Web.Http.Extensions;
 using System;
 using System.Collections.Specialized;
 using System.Threading.Tasks;

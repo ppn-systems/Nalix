@@ -1,4 +1,5 @@
 ﻿using Notio.Common.Logging;
+using Notio.Web.Http.Extensions;
 using Notio.Web.MimeTypes;
 using Notio.Web.Response;
 using Notio.Web.Utilities;
@@ -9,7 +10,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Handlers;
 
 /// <summary>
 /// Provides standard handlers for HTTP exceptions at both module and server level.

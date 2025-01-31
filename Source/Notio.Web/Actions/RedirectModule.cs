@@ -1,4 +1,5 @@
 ﻿using Notio.Web.Http;
+using Notio.Web.Http.Extensions;
 using Notio.Web.Utilities;
 using Notio.Web.WebModule;
 using System;

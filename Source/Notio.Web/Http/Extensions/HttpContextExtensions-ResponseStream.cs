@@ -5,7 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Extensions;
 
 public static partial class HttpContextExtensions
 {

@@ -2,7 +2,7 @@
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Handlers;
 
 /// <summary>
 /// A callback used to provide information about an unhandled exception occurred while processing a request.

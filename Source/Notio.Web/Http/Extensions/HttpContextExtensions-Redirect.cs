@@ -3,7 +3,7 @@ using Notio.Web.Utilities;
 using System;
 using System.Net;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Extensions;
 
 public static partial class HttpContextExtensions
 {

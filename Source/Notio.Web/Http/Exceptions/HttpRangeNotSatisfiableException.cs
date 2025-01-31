@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Notio.Web.Http;
+namespace Notio.Web.Http.Exceptions;
 
 /// <summary>
 /// When thrown, breaks the request handling control flow

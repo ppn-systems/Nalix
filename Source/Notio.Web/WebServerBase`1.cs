@@ -2,6 +2,8 @@
 using Notio.Shared.Configuration;
 using Notio.Web.Enums;
 using Notio.Web.Http;
+using Notio.Web.Http.Exceptions;
+using Notio.Web.Http.Handlers;
 using Notio.Web.Internal;
 using Notio.Web.MimeTypes;
 using Notio.Web.Request;
