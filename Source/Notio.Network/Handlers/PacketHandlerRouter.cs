@@ -21,39 +21,7 @@ public class PacketHandlerRouter(ILogger? logger)
     /// Registers a handler by passing in the Type.
     /// </summary>
     public void RegisterHandler<T>() where T : PacketController, new()
-    {
-        RegisterHandlerInstance(new T());
-    }
-
-    /// <summary>
-    /// Registers an instance of a handler (if needed manually).
-    /// </summary>
-    public void RegisterHandlerInstance(PacketController handler)
-    {
-        Type type = handler.GetType();
-        MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-        foreach (var method in methods)
-        {
-            PacketCommandAttribute? attr = method.GetCustomAttribute<PacketCommandAttribute>();
-            if (attr == null) continue;
-
-            if (method.ReturnType != typeof(byte[]))
-            {
-                _logger?.Warn($"Method {method.Name} in {type.Name} must return byte[]");
-                continue;
-            }
-
-            if (_handlers.TryAdd(attr.CommandId, (handler, method, attr.RequiredAuthority)))
-            {
-                _logger?.Info($"Registered {type.Name}.{method.Name} for command {attr.CommandId} with authority {attr.CommandId}");
-            }
-            else
-            {
-                _logger?.Warn($"Command {attr.CommandId} already has a handler!");
-            }
-        }
-    }
+        => RegisterHandlerInstance(new T());
 
     /// <summary>
     /// Processes a packet based on the command and checks authority.
@@ -89,9 +57,33 @@ public class PacketHandlerRouter(ILogger? logger)
         }
     }
 
-    /// <summary>
-    /// Validates the authority of the connection.
-    /// </summary>
+    internal void RegisterHandlerInstance(PacketController handler)
+    {
+        Type type = handler.GetType();
+        MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+        foreach (var method in methods)
+        {
+            PacketCommandAttribute? attr = method.GetCustomAttribute<PacketCommandAttribute>();
+            if (attr == null) continue;
+
+            if (method.ReturnType != typeof(byte[]))
+            {
+                _logger?.Warn($"Method {method.Name} in {type.Name} must return byte[]");
+                continue;
+            }
+
+            if (_handlers.TryAdd(attr.CommandId, (handler, method, attr.RequiredAuthority)))
+            {
+                _logger?.Info($"Registered {type.Name}.{method.Name} for command {attr.CommandId} with authority {attr.CommandId}");
+            }
+            else
+            {
+                _logger?.Warn($"Command {attr.CommandId} already has a handler!");
+            }
+        }
+    }
+
     private static bool ValidateAuthority(IConnection connection, Authoritys required)
         => connection != null && connection.Authority >= required;
 }

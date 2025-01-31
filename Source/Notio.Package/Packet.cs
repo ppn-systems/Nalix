@@ -11,55 +11,63 @@ using System.Runtime.Intrinsics;
 namespace Notio.Package;
 
 /// <summary>
-/// Đại diện cho một Packet với hiệu suất cao, tối ưu bộ nhớ.
+/// Represents a packet structure that can be pooled and disposed.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
 {
+    /// <summary>
+    /// The minimum size of a packet.
+    /// </summary>
     public const ushort MinPacketSize = 256;
+
+    /// <summary>
+    /// The maximum size of a packet.
+    /// </summary>
     public const ushort MaxPacketSize = ushort.MaxValue;
 
     private readonly bool _isPooled;
     private static readonly ArrayPool<byte> _pool = ArrayPool<byte>.Shared;
 
     /// <summary>
-    /// Lấy tổng chiều dài của gói tin bao gồm tiêu đề và tải trọng.
+    /// Gets the total length of the packet.
     /// </summary>
     public int Length => (short)(PacketSize.Header + Payload.Length);
 
     /// <summary>
-    /// Lấy loại của gói tin.
+    /// Gets the type of the packet.
     /// </summary>
     public byte Type { get; }
 
     /// <summary>
-    /// Lấy các cờ liên quan đến gói tin.
+    /// Gets the flags associated with the packet.
     /// </summary>
     public byte Flags { get; }
 
     /// <summary>
-    /// Lấy độ ưu tiên của gói tin.
+    /// Gets the priority of the packet.
     /// </summary>
     public byte Priority { get; }
 
     /// <summary>
-    /// Lấy lệnh liên quan đến gói tin.
+    /// Gets the command of the packet.
     /// </summary>
     public short Command { get; }
 
     /// <summary>
-    /// Lấy tải trọng của gói tin.
+    /// Gets the payload of the packet.
     /// </summary>
     public ReadOnlyMemory<byte> Payload { get; }
 
     /// <summary>
-    /// Khởi tạo một thể hiện mới của cấu trúc <see cref="Packet"/>.
+    /// Initializes a new instance of the <see cref="Packet"/> struct.
     /// </summary>
-    /// <param name="type">Loại của gói tin.</param>
-    /// <param name="flags">Các cờ liên quan đến gói tin.</param>
-    /// <param name="command">Lệnh liên quan đến gói tin.</param>
-    /// <param name="payload">Tải trọng của gói tin.</param>
-    /// <exception cref="PackageException">Ném ra nếu kích thước gói tin vượt quá giới hạn 64KB.</exception>
+    /// <param name="type">The type of the packet.</param>
+    /// <param name="flags">The flags associated with the packet.</param>
+    /// <param name="priority">The priority of the packet.</param>
+    /// <param name="command">The command of the packet.</param>
+    /// <param name="payload">The payload of the packet.</param>
+    /// <exception cref="PackageException">Thrown when the packet size exceeds the 64KB limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(byte type, byte flags, byte priority, short command, ReadOnlyMemory<byte> payload)
     {
@@ -88,68 +96,68 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     }
 
     /// <summary>
-    /// Tạo một gói mới với tải trọng được chỉ định, giữ lại loại, cờ và lệnh.
+    /// Creates a new packet with a different payload.
     /// </summary>
-    /// <param name="newPayload">Tải trọng mới cho gói tin.</param>
-    /// <returns>Một gói mới với tải trọng cập nhật.</returns>
+    /// <param name="newPayload">The new payload for the packet.</param>
+    /// <returns>A new packet with the updated payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet WithPayload(ReadOnlyMemory<byte> newPayload) =>
-        new(Type, Flags, Priority, Command, newPayload);
+    public Packet WithPayload(ReadOnlyMemory<byte> newPayload) => new(Type, Flags, Priority, Command, newPayload);
 
     /// <summary>
-    /// Đặt lại gói tin, chuẩn bị nó cho việc tái sử dụng bởi bộ nhớ đệm.
+    /// Resets the packet for pooling.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool() => Dispose();
 
     /// <summary>
-    /// Xác định liệu gói tin được chỉ định có bằng gói tin hiện tại không.
-    /// Sử dụng các kỹ thuật so sánh bộ nhớ tối ưu, bao gồm SIMD cho các tải trọng lớn hơn.
+    /// Checks if the packet is equal to another packet.
     /// </summary>
-    /// <param name="other">Gói tin để so sánh với gói tin hiện tại.</param>
-    /// <returns>true nếu gói tin được chỉ định bằng gói tin hiện tại; ngược lại là false.</returns>
+    /// <param name="other">The other packet to compare with.</param>
+    /// <returns>True if the packets are equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Packet other)
     {
-        if (Type != other.Type || Flags != other.Flags || Command != other.Command)
+        if (Type != other.Type || Flags != other.Flags || Command != other.Command || Priority != other.Priority)
             return false;
 
         if (Payload.Length != other.Payload.Length)
             return false;
 
-        // Xử lý tối ưu cho tải trọng nhỏ
-        if (Payload.Length > 0 && Payload.Length <= sizeof(ulong))
-        {
-            ulong payload1 = 0;
-            ulong payload2 = 0;
+        if (Payload.Length == 0)
+            return true;
 
-            // Đảm bảo chỉ đọc dữ liệu trong phạm vi an toàn
+        // Optimize comparison for small payloads with zero-padding
+        if (Payload.Length <= sizeof(ulong))
+        {
             Span<byte> buffer1 = stackalloc byte[sizeof(ulong)];
             Span<byte> buffer2 = stackalloc byte[sizeof(ulong)];
+            buffer1.Clear();
+            buffer2.Clear();
 
             Payload.Span.CopyTo(buffer1);
             other.Payload.Span.CopyTo(buffer2);
 
-            payload1 = MemoryMarshal.Read<ulong>(buffer1);
-            payload2 = MemoryMarshal.Read<ulong>(buffer2);
-
-            return payload1 == payload2;
+            return MemoryMarshal.Read<ulong>(buffer1) == MemoryMarshal.Read<ulong>(buffer2);
         }
 
-        // Xử lý SIMD cho tải trọng lớn hơn
-        if (Vector128.IsHardwareAccelerated && Payload.Length >= Vector128<byte>.Count)
+        // Use SIMD for larger payloads
+        if (Vector128.IsHardwareAccelerated)
             return MemoryCompareVectorized(Payload.Span, other.Payload.Span);
 
         return Payload.Span.SequenceEqual(other.Payload.Span);
     }
 
-    public override bool Equals(object? obj)
-        => obj is Packet other && Equals(other);
+    /// <summary>
+    /// Checks if the packet is equal to another object.
+    /// </summary>
+    /// <param name="obj">The object to compare with.</param>
+    /// <returns>True if the object is a packet and is equal to the current packet, otherwise false.</returns>
+    public override bool Equals(object? obj) => obj is Packet other && Equals(other);
 
     /// <summary>
-    /// Phục vụ như là hàm băm mặc định, cung cấp một mã băm duy nhất cho gói tin.
+    /// Gets the hash code for the packet.
     /// </summary>
-    /// <returns>Mã băm cho gói tin hiện tại.</returns>
+    /// <returns>The hash code for the packet.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
@@ -157,72 +165,106 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         hash.Add(Type);
         hash.Add(Flags);
         hash.Add(Command);
+        hash.Add(Priority);
 
-        if (Payload.Length <= sizeof(ulong))
+        if (Payload.Length > 0)
         {
-            hash.Add(MemoryMarshal.Read<ulong>(Payload.Span));
-        }
-        else
-        {
-            hash.Add(Payload.Length);
-            hash.Add(MemoryMarshal.Read<ulong>(Payload.Span));
-            if (Payload.Length > sizeof(ulong))
+            if (Payload.Length <= sizeof(ulong))
             {
-                hash.Add(MemoryMarshal.Read<ulong>(
-                    Payload.Span[(Payload.Length - sizeof(ulong))..]));
+                Span<byte> buffer = stackalloc byte[sizeof(ulong)];
+                buffer.Clear();
+                Payload.Span.CopyTo(buffer);
+                hash.Add(MemoryMarshal.Read<ulong>(buffer));
+            }
+            else
+            {
+                hash.Add(Payload.Length);
+                hash.AddBytes(Payload.Span[..sizeof(ulong)]);
+                hash.AddBytes(Payload.Span[^sizeof(ulong)..]);
             }
         }
 
         return hash.ToHashCode();
     }
 
+    /// <summary>
+    /// Equality operator for packets.
+    /// </summary>
+    /// <param name="left">The left packet.</param>
+    /// <param name="right">The right packet.</param>
+    /// <returns>True if the packets are equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Packet left, Packet right) => left.Equals(right);
 
+    /// <summary>
+    /// Inequality operator for packets.
+    /// </summary>
+    /// <param name="left">The left packet.</param>
+    /// <param name="right">The right packet.</param>
+    /// <returns>True if the packets are not equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Packet left, Packet right) => !(left == right);
 
+    /// <summary>
+    /// Implicit conversion to ReadOnlyMemory&lt;byte&gt;.
+    /// </summary>
+    /// <param name="packet">The packet to convert.</param>
+    /// <returns>The payload of the packet as ReadOnlyMemory&lt;byte&gt;.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator ReadOnlyMemory<byte>(Packet packet) => packet.Payload;
 
+    /// <summary>
+    /// Disposes the packet and returns it to the pool if it was pooled.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose()
+    {
+        if (_isPooled && MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
+        {
+            _pool.Return(segment.Array);
+        }
+    }
+
+    /// <summary>
+    /// Compares memory using SIMD for larger payloads.
+    /// </summary>
+    /// <param name="first">The first memory span to compare.</param>
+    /// <param name="second">The second memory span to compare.</param>
+    /// <returns>True if the memory spans are equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool MemoryCompareVectorized(ReadOnlySpan<byte> first, ReadOnlySpan<byte> second)
     {
         Debug.Assert(first.Length == second.Length);
 
-        int i = 0;
+        if (first.Length < Vector128<byte>.Count)
+            return first.SequenceEqual(second);
+
+        int offset = 0;
         int length = first.Length;
 
-        // So sánh 16 bytes mỗi lần using SIMD
-        while (length >= Vector128<byte>.Count)
+        // Xử lý phần dư đầu tiên không đủ 16 bytes
+        if ((length % Vector128<byte>.Count) != 0)
         {
-            Vector128<byte> v1 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first[i..]));
-            Vector128<byte> v2 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(second[i..]));
-
-            if (!Vector128.EqualsAll(v1, v2))
+            int remainder = length % Vector128<byte>.Count;
+            if (!first[^remainder..].SequenceEqual(second[^remainder..]))
                 return false;
 
-            i += Vector128<byte>.Count;
+            length -= remainder;
+        }
+
+        // So sánh chính bằng SIMD
+        while (length > 0)
+        {
+            var v1 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first), (nuint)offset);
+            var v2 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(second), (nuint)offset);
+
+            if (v1 != v2)
+                return false;
+
+            offset += Vector128<byte>.Count;
             length -= Vector128<byte>.Count;
         }
 
-        // So sánh bytes còn lại
-        return first[i..].SequenceEqual(second[i..]);
-    }
-
-    /// <summary>
-    /// Giải phóng tài nguyên được sử dụng bởi gói tin.
-    /// Nếu tải trọng là từ bộ nhớ đệm, trả lại bộ nhớ cho bộ nhớ đệm.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        if (_isPooled && Payload.Length > 0)
-        {
-            if (MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
-                _pool.Return(segment.Array);
-        }
-
-        GC.SuppressFinalize(this);
+        return true;
     }
 }

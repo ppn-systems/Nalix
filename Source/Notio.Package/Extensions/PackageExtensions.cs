@@ -18,96 +18,96 @@ public static partial class PackageExtensions
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
 
     /// <summary>
-    /// Chuyển đổi Packet thành mảng byte.
+    /// Chuyển đổi Packet thành mảng byte một cách hiệu quả.
     /// </summary>
-    /// <exception cref="PackageException">Ném lỗi khi payload vượt quá giới hạn.</exception>
+    /// <param name="packet">Gói tin cần chuyển đổi.</param>
+    /// <returns>Mảng byte đại diện cho gói tin.</returns>
+    /// <exception cref="PackageException">Ném lỗi khi payload vượt quá giới hạn cho phép.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ToByteArray(this in Packet @this)
+    public static byte[] ToByteArray(this in Packet packet)
     {
-        if (@this.Payload.Length > ushort.MaxValue)
-            throw new PackageException("Payload is too large.");
+        int totalSize = PacketSize.Header + packet.Payload.Length;
 
-        int totalSize = PacketSize.Header + @this.Payload.Length;
+        if (packet.Payload.Length > ushort.MaxValue)
+            throw new PackageException("Payload is too large.");
 
         if (totalSize <= MaxStackAlloc)
         {
             Span<byte> stackBuffer = stackalloc byte[totalSize];
-            PacketSerializer.WritePacketFast(stackBuffer, in @this);
+            PacketSerializer.WritePacketFast(stackBuffer, in packet);
             return stackBuffer.ToArray();
         }
-
-        byte[] rentedArray = Pool.Rent(totalSize);
-        try
+        else
         {
-            PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in @this);
-            return rentedArray.AsSpan(0, totalSize).ToArray();
-        }
-        finally
-        {
-            Pool.Return(rentedArray, true);
+            byte[] rentedArray = Pool.Rent(totalSize);
+            try
+            {
+                PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
+                return rentedArray.AsSpan(0, totalSize).ToArray();
+            }
+            finally
+            {
+                Pool.Return(rentedArray, clearArray: true);
+            }
         }
     }
 
     /// <summary>
-    /// Tạo Packet từ mảng byte.
+    /// Tạo Packet từ mảng byte một cách an toàn và hiệu quả.
     /// </summary>
+    /// <param name="data">Mảng byte chứa dữ liệu của gói tin.</param>
+    /// <returns>Gói tin được tạo từ dữ liệu đầu vào.</returns>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this ReadOnlySpan<byte> @this)
+    public static Packet FromByteArray(this ReadOnlySpan<byte> data)
     {
-        if (@this.Length < PacketSize.Header)
-            throw new PackageException("Invalid length: @this is smaller than header size.");
+        if (data.Length < PacketSize.Header)
+            throw new PackageException("Invalid data length: smaller than header size.");
 
-        short length = MemoryMarshal.Read<short>(@this);
-        if (length < PacketSize.Header || length > @this.Length)
-            throw new PackageException($"Invalid length: {length}.");
+        short length = MemoryMarshal.Read<short>(data);
+        if (length < PacketSize.Header || length > data.Length)
+            throw new PackageException($"Invalid packet length: {length}.");
 
-        return PacketSerializer.ReadPacketFast(@this);
+        return PacketSerializer.ReadPacketFast(data[..length]);
     }
 
     /// <summary>
-    /// Tạo Packet từ mảng byte.
+    /// Chuyển đổi mảng byte thành Packet.
     /// </summary>
+    /// <param name="data">Mảng byte chứa dữ liệu của gói tin.</param>
+    /// <returns>Gói tin được tạo từ mảng byte.</returns>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this byte[] @this)
+    public static Packet FromByteArray(this byte[] data)
     {
-        if (@this.Length < PacketSize.Header)
-            throw new PackageException("Invalid length: @this is smaller than header size.");
-
-        short length = MemoryMarshal.Read<short>(@this);
-        if (length < PacketSize.Header || length > @this.Length)
-            throw new PackageException($"Invalid length: {length}.");
-
-        return PacketSerializer.ReadPacketFast(@this);
+        return FromByteArray((ReadOnlySpan<byte>)data);
     }
 
     /// <summary>
-    /// Thử chuyển đổi Packet thành mảng byte.
+    /// Thử chuyển đổi Packet thành mảng byte với kiểm tra kích thước.
     /// </summary>
+    /// <param name="packet">Gói tin cần chuyển đổi.</param>
+    /// <param name="destination">Bộ đệm đích để lưu trữ mảng byte.</param>
+    /// <param name="bytesWritten">Số byte đã ghi vào bộ đệm đích.</param>
+    /// <returns>True nếu chuyển đổi thành công; ngược lại, False.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryToByteArray(this in Packet @this, Span<byte> destination, out int bytesWritten)
+    public static bool TryToByteArray(this in Packet packet, Span<byte> destination, out int bytesWritten)
     {
-        if (@this.Payload.Length > ushort.MaxValue)
+        int totalSize = PacketSize.Header + packet.Payload.Length;
+
+        if (packet.Payload.Length > ushort.MaxValue || destination.Length < totalSize)
         {
             bytesWritten = 0;
             return false;
         }
 
-        int totalSize = PacketSize.Header + @this.Payload.Length;
-        if (destination.Length < totalSize)
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
         try
         {
-            PacketSerializer.WritePacketFast(destination[..totalSize], in @this);
+            PacketSerializer.WritePacketFast(destination[..totalSize], in packet);
             bytesWritten = totalSize;
             return true;
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
+        catch
         {
             bytesWritten = 0;
             return false;
@@ -115,51 +115,45 @@ public static partial class PackageExtensions
     }
 
     /// <summary>
-    /// Thử tạo Packet từ mảng byte.
+    /// Thử tạo Packet từ mảng byte với kiểm tra dữ liệu.
     /// </summary>
+    /// <param name="source">Mảng byte nguồn chứa dữ liệu gói tin.</param>
+    /// <param name="packet">Gói tin được tạo nếu thành công.</param>
+    /// <returns>True nếu tạo thành công; ngược lại, False.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryFromByteArray(ReadOnlySpan<byte> source, out Packet packet)
     {
+        packet = default;
+
         if (source.Length < PacketSize.Header)
-        {
-            packet = default;
             return false;
-        }
 
         try
         {
-            // Validate @this length
             short length = MemoryMarshal.Read<short>(source);
             if (length < PacketSize.Header || length > source.Length)
-            {
-                packet = default;
                 return false;
-            }
-
-            // Validate payload size
-            int payloadSize = length - PacketSize.Header;
-            if (payloadSize > ushort.MaxValue)
-            {
-                packet = default;
-                return false;
-            }
 
             packet = PacketSerializer.ReadPacketFast(source[..length]);
             return true;
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
+        catch
         {
-            packet = default;
             return false;
         }
     }
 
     /// <summary>
-    /// Trả về chuỗi dễ đọc của Packet.
+    /// Trả về chuỗi biểu diễn dễ đọc của Packet.
     /// </summary>
-    public static string ToString(this in Packet @this) =>
-        $"Type: {@this.Type}, " +
-        $"Flags: {@this.Flags}, " +
-        $"Command: {@this.Command}, " +
-        $"Payload: {BitConverter.ToString(@this.Payload.ToArray())}";
+    /// <param name="packet">Gói tin cần biểu diễn.</param>
+    /// <returns>Chuỗi mô tả gói tin.</returns>
+    public static string ToReadableString(this in Packet packet)
+    {
+        return $"Type: {packet.Type}, " +
+               $"Flags: {packet.Flags}, " +
+               $"Priority: {packet.Priority}, " +
+               $"Command: {packet.Command}, " +
+               $"Payload Length: {packet.Payload.Length}";
+    }
 }
