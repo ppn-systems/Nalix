@@ -19,7 +19,7 @@ public abstract class Tokenizer
 
     private const string OpenFuncStr = "(";
 
-    private readonly List<Operator> _operators = new List<Operator>();
+    private readonly List<Operator> _operators = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Tokenizer"/> class.
@@ -108,7 +108,7 @@ public abstract class Tokenizer
     /// <value>
     /// The tokens.
     /// </value>
-    public List<Token> Tokens { get; } = new List<Token>();
+    public List<Token> Tokens { get; } = [];
 
     /// <summary>
     /// Validates the input and return the start index for tokenizer.
@@ -137,8 +137,8 @@ public abstract class Tokenizer
     /// Gets the default operators.
     /// </summary>
     /// <returns>An array with the operators to use for the tokenizer.</returns>
-    public virtual Operator[] GetDefaultOperators() => new[]
-    {
+    public virtual Operator[] GetDefaultOperators() =>
+    [
         new Operator {Name = "=", Precedence = 1},
         new Operator {Name = "!=", Precedence = 1},
         new Operator {Name = ">", Precedence = 2},
@@ -152,7 +152,7 @@ public abstract class Tokenizer
         new Operator {Name = "/", Precedence = 4},
         new Operator {Name = "\\", Precedence = 4},
         new Operator {Name = "^", Precedence = 4},
-    };
+    ];
 
     /// <summary>
     /// Shunting the yard.
@@ -185,7 +185,7 @@ public abstract class Tokenizer
                     break;
 
                 case TokenType.Operator:
-                    while (stack.Any() && stack.Peek().Type == TokenType.Operator &&
+                    while (stack.Count != 0 && stack.Peek().Type == TokenType.Operator &&
                            CompareOperators(tok.Value, stack.Peek().Value))
                         yield return stack.Pop();
 
@@ -193,7 +193,7 @@ public abstract class Tokenizer
                     break;
 
                 case TokenType.Comma:
-                    while (stack.Any() && (stack.Peek().Type != TokenType.Comma &&
+                    while (stack.Count != 0 && (stack.Peek().Type != TokenType.Comma &&
                                            stack.Peek().Type != TokenType.Parenthesis))
                         yield return stack.Pop();
 
@@ -202,7 +202,7 @@ public abstract class Tokenizer
                 case TokenType.Parenthesis:
                     if (tok.Value == OpenFuncStr)
                     {
-                        if (stack.Any() && stack.Peek().Type == TokenType.Function)
+                        if (stack.Count != 0 && stack.Peek().Type == TokenType.Function)
                         {
                             if (includeFunctionStopper)
                                 yield return new Token(TokenType.Wall, tok.Value);
@@ -217,7 +217,7 @@ public abstract class Tokenizer
 
                         stack.Pop();
 
-                        if (stack.Any() && stack.Peek().Type == TokenType.Function)
+                        if (stack.Count != 0 && stack.Peek().Type == TokenType.Function)
                         {
                             yield return stack.Pop();
                         }
@@ -230,7 +230,7 @@ public abstract class Tokenizer
             }
         }
 
-        while (stack.Any())
+        while (stack.Count != 0)
         {
             var tok = stack.Pop();
             if (tok.Type == TokenType.Parenthesis)
@@ -257,7 +257,7 @@ public abstract class Tokenizer
 
             if (input[i] == CommaChar)
             {
-                Tokens.Add(new Token(TokenType.Comma, new string(new[] { input[i] })));
+                Tokens.Add(new Token(TokenType.Comma, new string([input[i]])));
                 continue;
             }
 
@@ -276,7 +276,7 @@ public abstract class Tokenizer
 
             if (char.IsNumber(input, i) || (
                     input[i] == NegativeChar &&
-                    ((Tokens.Any() && Tokens.Last().Type != TokenType.Number) || !Tokens.Any())))
+                    ((Tokens.Count != 0 && Tokens.Last().Type != TokenType.Number) || Tokens.Count == 0)))
             {
                 i = ExtractNumber(input, i);
                 continue;
@@ -285,7 +285,7 @@ public abstract class Tokenizer
             if (input[i] == OpenFuncChar ||
                 input[i] == CloseFuncChar)
             {
-                Tokens.Add(new Token(TokenType.Parenthesis, new string(new[] { input[i] })));
+                Tokens.Add(new Token(TokenType.Parenthesis, new string([input[i]])));
                 continue;
             }
 

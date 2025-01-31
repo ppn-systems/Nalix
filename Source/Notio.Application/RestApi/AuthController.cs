@@ -3,7 +3,7 @@ using Notio.Cryptography.Hash;
 using Notio.Database;
 using Notio.Database.Entities;
 using Notio.Web.Enums;
-using Notio.Web.Http;
+using Notio.Web.Http.Extensions;
 using Notio.Web.Routing;
 using Notio.Web.Security;
 using Notio.Web.WebApi;

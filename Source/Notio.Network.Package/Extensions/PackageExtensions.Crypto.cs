@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Cryptography;
+using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Network.Package.Enums;
-using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Helpers.Flags;
 using Notio.Network.Package.Utilities;
 using System;
 

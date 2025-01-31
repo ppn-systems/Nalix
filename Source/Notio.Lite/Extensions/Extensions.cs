@@ -50,22 +50,6 @@ public static partial class Extensions
     }
 
     /// <summary>
-    /// Iterates over the keys of the source and tries to write a compatible value to a public,
-    /// instance, writable property in the destination.
-    /// </summary>
-    /// <param name="source">The source.</param>
-    /// <param name="target">The target.</param>
-    /// <param name="ignoreKeys">The ignore keys.</param>
-    /// <returns>Number of properties that was copied successful.</returns>
-    public static int CopyKeyValuePairTo(
-        this IDictionary<string, object> source,
-        object? target,
-        params string[] ignoreKeys) =>
-        source == null
-            ? throw new ArgumentNullException(nameof(source))
-            : ObjectMapper.Copy(source, target, null, ignoreKeys);
-
-    /// <summary>
     /// Gets the copyable properties.
     ///
     /// If there is no properties with the attribute <c>AttributeCache</c> returns all the properties.

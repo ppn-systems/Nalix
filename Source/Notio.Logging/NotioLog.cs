@@ -1,6 +1,7 @@
-﻿using Notio.Common.Enums;
-using Notio.Common.Logging;
-using Notio.Logging.Engine;
+﻿using Notio.Common.Logging.Enums;
+using Notio.Common.Logging.Interfaces;
+using Notio.Common.Models;
+using Notio.Logging.Core;
 using Notio.Logging.Targets;
 using System;
 using System.Runtime.CompilerServices;

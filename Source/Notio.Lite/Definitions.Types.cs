@@ -17,7 +17,7 @@ public static partial class Definitions
     /// <summary>
     /// The basic types information.
     /// </summary>
-    public static readonly Lazy<Dictionary<Type, ExtendedTypeInfo>> BasicTypesInfo = new Lazy<Dictionary<Type, ExtendedTypeInfo>>(() =>
+    public static readonly Lazy<Dictionary<Type, ExtendedTypeInfo>> BasicTypesInfo = new(() =>
         new Dictionary<Type, ExtendedTypeInfo>
         {
             // Non-Nullables
@@ -71,7 +71,7 @@ public static partial class Definitions
     /// <value>
     /// All basic types.
     /// </value>
-    public static IReadOnlyCollection<Type> AllBasicTypes { get; } = new ReadOnlyCollection<Type>(BasicTypesInfo.Value.Keys.ToArray());
+    public static IReadOnlyCollection<Type> AllBasicTypes { get; } = new ReadOnlyCollection<Type>([.. BasicTypesInfo.Value.Keys]);
 
     /// <summary>
     /// Gets all numeric types including their nullable counterparts.

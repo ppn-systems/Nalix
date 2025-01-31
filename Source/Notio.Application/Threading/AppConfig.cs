@@ -1,15 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Application.RestApi;
-using Notio.Common.Enums;
 using Notio.Common.Logging;
+using Notio.Common.Logging.Enums;
 using Notio.Database;
 using Notio.Logging;
-using Notio.Logging.Engine;
+using Notio.Logging.Core;
 using Notio.Logging.Targets;
-using Notio.Shared.Helper;
+using Notio.Network.Handlers;
+using Notio.Network.Listeners;
+using Notio.Network.Protocols;
+using Notio.Shared.Helpers;
+using Notio.Shared.Memory.Buffer;
 using Notio.Web;
 using Notio.Web.Enums;
-using Notio.Web.Http;
+using Notio.Web.Http.Extensions;
 using Notio.Web.WebApi;
 using Notio.Web.WebModule;
 using System;
@@ -118,5 +122,16 @@ public static class AppConfig
         server.StateChanged += (s, e) => NotioLog.Instance.Info($"WebServer state: {e.NewState}");
 
         return server;
+    }
+
+    public static ServerListener InitializeTcpServer()
+    {
+        BufferAllocator bufferAllocator = new();
+
+        PacketHandlerRouter handlerRouter = new(null);
+        handlerRouter.RegisterHandler<ExampleController>();
+
+        ServerProtocol serverProtocol = new(handlerRouter);
+        ServerListener listener = new ServerListener(serverProtocol, bufferAllocator, NotioLog.Instance);
     }
 }

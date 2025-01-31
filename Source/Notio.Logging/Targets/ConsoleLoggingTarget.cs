@@ -1,6 +1,6 @@
-﻿using Notio.Common.Logging;
+﻿using Notio.Common.Logging.Interfaces;
 using Notio.Common.Models;
-using Notio.Logging.Format;
+using Notio.Logging.Formatters;
 using System;
 
 namespace Notio.Logging.Targets;

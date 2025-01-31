@@ -1,4 +1,4 @@
-﻿using Notio.Common.Memory;
+﻿using Notio.Common.Memory.Pools;
 using System;
 using System.Collections.Concurrent;
 using System.Text;

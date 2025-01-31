@@ -1,9 +1,10 @@
 ﻿using Notio.Common.Connection;
-using Notio.Common.Enums;
-using Notio.Common.Logging;
-using Notio.Common.Memory;
+using Notio.Common.Connection.Enums;
+using Notio.Common.Logging.Interfaces;
+using Notio.Common.Memory.Pools;
 using Notio.Common.Models;
-using Notio.Cryptography;
+using Notio.Cryptography.Ciphers.Asymmetric;
+using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Shared.Identification;
 using Notio.Shared.Memory.Cache;
 using Notio.Shared.Time;

@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Common.Memory;
+using Notio.Common.Memory.Pools;
 using Notio.Network.Package.Models;
 using System;
 using System.Buffers;

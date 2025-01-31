@@ -1,8 +1,11 @@
-﻿namespace Notio.Network.Handlers;
+﻿using System;
+
+namespace Notio.Network.Handlers;
 
 /// <summary>
-/// Abstract class cho tất cả packet handlers.
+/// Attribute used to mark packet controllers responsible for handling packet commands.
 /// </summary>
-public abstract class PacketController
+[AttributeUsage(AttributeTargets.Class)]
+public class PacketControllerAttribute : Attribute
 {
 }

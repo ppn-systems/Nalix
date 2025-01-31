@@ -1,4 +1,4 @@
-﻿using Notio.Cryptography;
+﻿using Notio.Cryptography.Ciphers.Symmetric;
 using System;
 
 namespace Notio.Testing;
