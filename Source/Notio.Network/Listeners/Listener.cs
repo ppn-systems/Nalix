@@ -2,6 +2,7 @@
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Network.Protocols;
+using Notio.Shared.Configuration;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -10,15 +11,32 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Listeners;
 
-public abstract class Listener(NetworkConfig networkCfg, IProtocol protocol)
-    : TcpListener(IPAddress.Any, networkCfg.Port), IListener
+public abstract class Listener : TcpListener, IListener
 {
-    private readonly int _port = networkCfg.Port;
-    private readonly IProtocol _protocol = protocol;
-    private readonly ILogger? _logger = networkCfg.Logger;
+    private static readonly NetworkConfig NetworkConfig = ConfiguredShared.Instance.Get<NetworkConfig>();
 
-    private readonly IBufferPool _bufferPool = networkCfg.BufferPool
-        ?? throw new ArgumentNullException(nameof(networkCfg), "Buffer pool cannot be null.");
+    private readonly int _port;
+    private readonly ILogger? _logger;
+    private readonly IProtocol _protocol;
+    private readonly IBufferPool _bufferPool;
+
+    public Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
+        : base(IPAddress.Any, port)
+    {
+        _port = port;
+        _protocol = protocol;
+        _logger = logger;
+        _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
+    }
+
+    public Listener(IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
+        : base(IPAddress.Any, NetworkConfig.Port)
+    {
+        _logger = logger;
+        _protocol = protocol;
+        _port = NetworkConfig.Port;
+        _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
+    }
 
     public void BeginListening(CancellationToken cancellationToken)
     {
@@ -66,5 +84,33 @@ public abstract class Listener(NetworkConfig networkCfg, IProtocol protocol)
         args.Connection.OnCloseEvent -= this.OnConnectionClose!;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
+    }
+
+    private static void SocketConfig(Socket socket)
+    {
+        socket.ReceiveBufferSize = NetworkConfig.ReceiveBufferSize;
+        socket.SendBufferSize = NetworkConfig.SendBufferSize;
+        socket.LingerState = new LingerOption(true, NetworkConfig.LingerTimeoutSeconds);
+        socket.ReceiveTimeout = NetworkConfig.ReceiveTimeoutMilliseconds;
+        socket.SendTimeout = NetworkConfig.SendTimeoutMilliseconds;
+
+        // Apply TCP-specific settings
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, NetworkConfig.KeepAlive);
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, NetworkConfig.NoDelay);
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, NetworkConfig.ReuseAddress);
+
+        if (NetworkConfig.DualMode)
+        {
+            socket.DualMode = true;  // Enable IPv6 and IPv4 support
+        }
+
+        socket.SocketType = NetworkConfig.SocketType; // Apply SocketType (e.g., Stream or Dgram)
+
+        // Configure blocking mode
+        socket.Blocking = NetworkConfig.IsBlocking;
+
+        // Handle low-watermark thresholds (if needed in the implementation)
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, NetworkConfig.SocketReceiveLowWatermark);
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, NetworkConfig.SocketSendLowWatermark);
     }
 }

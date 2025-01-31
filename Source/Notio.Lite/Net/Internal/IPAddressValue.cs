@@ -1,7 +1,6 @@
 ﻿using Notio.Common;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -66,23 +65,26 @@ internal struct IPAddressValue : IEquatable<IPAddressValue>, IComparable<IPAddre
 
     // There are no overloads of IPAddress.HostToNetworkOrder for unsigned types;
     // hence the unchecked casts to signed types.
-    public IPAddress ToIPAddress(bool forceV6)
-        => new IPAddress(_isV4 && !forceV6
+    public readonly IPAddress ToIPAddress(bool forceV6)
+        => new(_isV4 && !forceV6
             ? BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((int)(uint)_n1)))
-            : BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((long)_n0)))
-                .Concat(BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((long)_n1))))
-                .ToArray());
+            :
+            [
+                .. BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((long)_n0)))
+,
+                .. BitConverter.GetBytes(IPAddress.HostToNetworkOrder(unchecked((long)_n1))),
+            ]);
 
-    public override int GetHashCode() => CompositeHashCode.Using(_n0, _n1, _isV4);
+    public override readonly int GetHashCode() => CompositeHashCode.Using(_n0, _n1, _isV4);
 
-    public override bool Equals(object obj)
+    public override readonly bool Equals(object? obj)
         => obj is IPAddressValue other && Equals(other);
 
-    public bool Equals(IPAddressValue other)
+    public readonly bool Equals(IPAddressValue other)
         => other._n0 == _n0
         && other._n1 == _n1;
 
-    public int CompareTo(IPAddressValue other)
+    public readonly int CompareTo(IPAddressValue other)
     {
         var result = _n0.CompareTo(other._n0);
         return result == 0 ? _n1.CompareTo(other._n1) : result;
@@ -119,7 +121,7 @@ internal struct IPAddressValue : IEquatable<IPAddressValue>, IComparable<IPAddre
         return new IPAddressValue(n0, n1, _isV4);
     }
 
-    private static IReadOnlyList<ulong> BuildLowBitMasks()
+    private static ulong[] BuildLowBitMasks()
     {
         var masks = new ulong[65];
         for (var i = 0; i < 64; i++)
@@ -128,7 +130,7 @@ internal struct IPAddressValue : IEquatable<IPAddressValue>, IComparable<IPAddre
         return masks;
     }
 
-    private static IReadOnlyList<ulong> BuildHighBitMasks()
+    private static ulong[] BuildHighBitMasks()
     {
         var masks = new ulong[65];
         for (var i = 0; i < 64; i++)

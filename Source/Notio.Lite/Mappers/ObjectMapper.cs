@@ -81,9 +81,9 @@ namespace Notio.Lite.Mappers;
 /// </example>
 public partial class ObjectMapper
 {
-    private static readonly Lazy<ObjectMapper> LazyInstance = new Lazy<ObjectMapper>(() => new ObjectMapper());
+    private static readonly Lazy<ObjectMapper> LazyInstance = new(() => new ObjectMapper());
 
-    private readonly List<IObjectMap> _maps = new List<IObjectMap>();
+    private readonly List<IObjectMap> _maps = [];
 
     /// <summary>
     /// Gets the current.
@@ -114,11 +114,9 @@ public partial class ObjectMapper
         IEnumerable<string>? propertiesToCopy = null,
         params string[]? ignoreProperties)
     {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
 
-        if (target == null)
-            throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
 
         return CopyInternal(
             target,
@@ -148,11 +146,8 @@ public partial class ObjectMapper
         IEnumerable<string>? propertiesToCopy = null,
         params string[] ignoreProperties)
     {
-        if (source == null)
-            throw new ArgumentNullException(nameof(source));
-
-        if (target == null)
-            throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
 
         return CopyInternal(
             target,
@@ -187,7 +182,7 @@ public partial class ObjectMapper
 
         var intersect = sourceType.Intersect(destinationType, new PropertyInfoComparer()).ToArray();
 
-        if (!intersect.Any())
+        if (intersect.Length == 0)
             throw new InvalidOperationException("Types doesn't match");
 
         var map = new ObjectMap<TSource, TDestination>(intersect);
@@ -221,9 +216,12 @@ public partial class ObjectMapper
             foreach (var property in map.Map)
             {
                 var finalSource = property.Value.Aggregate(source,
-                    (current, sourceProperty) => sourceProperty.GetValue(current));
+                    (current, sourceProperty) => sourceProperty?.GetValue(current) ?? current);
 
-                property.Key.SetValue(destination, finalSource);
+                if (finalSource != null || Nullable.GetUnderlyingType(property.Key.PropertyType) != null)
+                {
+                    property.Key.SetValue(destination, finalSource);
+                }
             }
         }
         else
@@ -263,7 +261,7 @@ public partial class ObjectMapper
             .Select(x => x.Name)
             .Distinct()
             .ToDictionary(x => x.ToLowerInvariant(), x => properties.First(y => y.Name == x))
-            .Where(x => sourceProperties.Keys.Contains(x.Key))
+            .Where(x => sourceProperties.ContainsKey(x.Key))
             .When(() => requiredProperties != null, q => q.Where(y => requiredProperties!.Contains(y.Key)))
             .When(() => ignoredProperties != null, q => q.Where(y => !ignoredProperties!.Contains(y.Key)))
             .ToDictionary(x => x.Value, x => sourceProperties[x.Key])
@@ -289,17 +287,19 @@ public partial class ObjectMapper
 
             if (propertyInfo.PropertyType.IsArray)
             {
-                propertyInfo.TrySetArray(value as IEnumerable<object>, target);
-                return true;
+                if (value is IEnumerable<object> enumerableValue)
+                {
+                    propertyInfo.TrySetArray(enumerableValue, target);
+                    return true;
+                }
+                return false;
             }
 
             propertyInfo.SetValue(target, GetValue(value, propertyInfo.PropertyType));
 
             return true;
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             // swallow
         }
@@ -329,7 +329,8 @@ public partial class ObjectMapper
 
                 if (addMethod == null) return target;
 
-                var isItemValueType = targetList.GetType().GetElementType().IsValueType;
+                var elementType = targetList.GetType().GetElementType();
+                var isItemValueType = elementType != null && elementType.IsValueType;
 
                 foreach (var item in sourceList)
                 {
@@ -339,9 +340,7 @@ public partial class ObjectMapper
                             ? item
                             : item.CopyPropertiesToNew<object>());
                     }
-#pragma warning disable CA1031 // Do not catch general exception types
                     catch
-#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         // ignored
                     }
@@ -367,9 +366,9 @@ public partial class ObjectMapper
         return sourceProperties
             .Select(x => x.Name)
             .Distinct()
-            .ToDictionary(
-                x => x.ToLowerInvariant(),
-                x => Tuple.Create(sourceProperties.First(y => y.Name == x).PropertyType,
-                    sourceProperties.First(y => y.Name == x).GetValue(source)));
+            .ToDictionary(x => x.ToLowerInvariant(), x => Tuple
+            .Create(sourceProperties
+            .First(y => y.Name == x).PropertyType, (object?)sourceProperties
+            .First(y => y.Name == x).GetValue(source)!));
     }
 }

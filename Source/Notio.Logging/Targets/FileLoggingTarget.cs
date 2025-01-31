@@ -2,7 +2,6 @@
 using Notio.Common.Models;
 using Notio.Logging.Format;
 using Notio.Logging.Storage;
-using System;
 
 namespace Notio.Logging.Targets;
 

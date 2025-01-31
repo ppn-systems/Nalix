@@ -1,49 +1,45 @@
-﻿using Notio.Common.Logging;
-using Notio.Common.Memory;
-using Notio.Shared.Configuration;
+﻿using Notio.Shared.Configuration;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Sockets;
 
 namespace Notio.Network;
 
 public sealed class NetworkConfig : ConfiguredBinder
 {
-    /// <summary>
-    /// IP address (Default is 127.0.0.1).
-    /// </summary>
-    public string IP { get; set; } = "127.0.0.1";
+    [Range(1, 65535)]
+    public int Port { get; set; } = 5000;
 
-    /// <summary>
-    /// Listening port (Default is 8080).
-    /// </summary>
-    public int Port { get; set; } = 8080;
+    // General socket configuration
+    // Constrain the buffer size to positive values with a minimum of 64KB (65536 bytes)
+    [Range(64 * 1024, int.MaxValue)]  // Minimum value set to 64KB
+    public int ReceiveBufferSize { get; set; } = 64 * 1024;  // Default set to 64KB
 
-    /// <summary>
-    /// Max connections (Default is 100).
-    /// </summary>
-    public int MaxConnections { get; set; } = 100;
+    [Range(64 * 1024, int.MaxValue)]  // Minimum value set to 64KB
+    public int SendBufferSize { get; set; } = 64 * 1024;  // Default set to 64KB
 
-    /// <summary>
-    /// Non-blocking mode (Default is false).
-    /// </summary>
-    public bool Blocking { get; set; } = false;
+    public int LingerTimeoutSeconds { get; set; } = 30;
 
-    /// <summary>
-    /// Enable Keep-Alive (Default is true).
-    /// </summary>
-    public bool KeepAlive { get; set; } = true;
+    public int ReceiveTimeoutMilliseconds { get; set; } = 5000;
 
-    /// <summary>
-    /// Reuse address (Default is true).
-    /// </summary>
-    public bool ReuseAddress { get; set; } = true;
+    public int SendTimeoutMilliseconds { get; set; } = 5000;
 
-    /// <summary>
-    /// Timeout (Default is 20 seconds).
-    /// </summary>
-    public int TimeoutInSeconds { get; set; } = 20;
+    // TCP-specific settings
+    public bool KeepAlive { get; set; } = true;  // Enable TCP KeepAlive
 
-    [ConfiguredIgnore]
-    public IBufferPool? BufferPool { get; set; }
+    public bool NoDelay { get; set; } = true;    // Disable Nagle's algorithm (for low-latency communication)
+    public bool ReuseAddress { get; set; } = false; // Allow binding to an address already in TIME_WAIT state
+    public bool DualMode { get; set; } = false;   // Support both IPv4 and IPv6
+    public SocketType SocketType { get; set; } = SocketType.Stream; // Use Stream (TCP) by default
 
-    [ConfiguredIgnore]
-    public ILogger? Logger { get; set; }
+    // Timeouts and low-watermark settings
+    public int AcceptConnectionTimeoutMilliseconds { get; set; } = 10000; // 10 seconds for accept timeout
+
+    public int SocketReceiveLowWatermark { get; set; } = 1024 * 1024; // 1MB
+    public int SocketSendLowWatermark { get; set; } = 1024 * 1024;   // 1MB
+
+    // Blocking vs non-blocking
+    public bool IsBlocking { get; set; } = true; // Sockets will be blocking by default
+
+    // Optionally, you can check for the port validity programmatically
+    public bool IsValidPort => Port >= 1 && Port <= 65535;
 }

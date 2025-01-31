@@ -33,18 +33,18 @@ public sealed class RequestLimiter : IDisposable, IRateLimiter
         _logger = logger;
         _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
 
-        if (_firewallConfig.MaxAllowedRequests <= 0)
+        if (_firewallConfig.RateLimit.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
 
-        if (_firewallConfig.LockoutDurationSeconds <= 0)
+        if (_firewallConfig.RateLimit.LockoutDurationSeconds <= 0)
             throw new InternalErrorException("LockoutDurationSeconds must be greater than 0");
 
-        if (_firewallConfig.TimeWindowInMilliseconds <= 0)
+        if (_firewallConfig.RateLimit.TimeWindowInMilliseconds <= 0)
             throw new InternalErrorException("TimeWindowInMilliseconds must be greater than 0");
 
-        _maxAllowedRequests = _firewallConfig.MaxAllowedRequests;
-        _lockoutDurationSeconds = _firewallConfig.LockoutDurationSeconds;
-        _timeWindowDuration = TimeSpan.FromMilliseconds(_firewallConfig.TimeWindowInMilliseconds);
+        _maxAllowedRequests = _firewallConfig.RateLimit.MaxAllowedRequests;
+        _lockoutDurationSeconds = _firewallConfig.RateLimit.LockoutDurationSeconds;
+        _timeWindowDuration = TimeSpan.FromMilliseconds(_firewallConfig.RateLimit.TimeWindowInMilliseconds);
         _ipData = new ConcurrentDictionary<string, RequestDataInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 

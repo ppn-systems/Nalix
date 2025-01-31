@@ -32,7 +32,7 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
     }
 
     /// <inheritdoc />
-    public sealed override bool IsFinalHandler => false;
+    public override sealed bool IsFinalHandler => false;
 
     /// <summary>
     /// Gets the authentication realm.
@@ -40,7 +40,7 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
     public string Realm { get; }
 
     /// <inheritdoc />
-    protected sealed override async Task OnRequestAsync(IHttpContext context)
+    protected override sealed async Task OnRequestAsync(IHttpContext context)
     {
         async Task<bool> IsAuthenticatedAsync()
         {

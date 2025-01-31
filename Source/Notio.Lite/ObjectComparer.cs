@@ -21,7 +21,14 @@ public static class ObjectComparer
     /// <param name="left">The left.</param>
     /// <param name="right">The right.</param>
     /// <returns><c>true</c> if the variables are equal; otherwise, <c>false</c>.</returns>
-    public static bool AreEqual<T>(T left, T right) => AreEqual(left, right, typeof(T));
+    public static bool AreEqual<T>(T left, T right)
+    {
+        if (left == null || right == null)
+        {
+            return false;
+        }
+        return AreEqual(left, right, typeof(T));
+    }
 
     /// <summary>
     /// Compare if two variables of the same type are equal.
@@ -35,8 +42,7 @@ public static class ObjectComparer
     /// <exception cref="ArgumentNullException">targetType.</exception>
     public static bool AreEqual(object left, object right, Type targetType)
     {
-        if (targetType == null)
-            throw new ArgumentNullException(nameof(targetType));
+        ArgumentNullException.ThrowIfNull(targetType);
 
         if (Definitions.BasicTypesInfo.Value.ContainsKey(targetType))
             return Equals(left, right);
@@ -69,8 +75,7 @@ public static class ObjectComparer
     /// <exception cref="ArgumentNullException">targetType.</exception>
     public static bool AreObjectsEqual(object left, object right, Type targetType)
     {
-        if (targetType == null)
-            throw new ArgumentNullException(nameof(targetType));
+        ArgumentNullException.ThrowIfNull(targetType);
 
         var properties = PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties(targetType).ToArray();
 
@@ -119,8 +124,7 @@ public static class ObjectComparer
     /// <exception cref="ArgumentNullException">targetType.</exception>
     public static bool AreStructsEqual(object left, object right, Type targetType)
     {
-        if (targetType == null)
-            throw new ArgumentNullException(nameof(targetType));
+        ArgumentNullException.ThrowIfNull(targetType);
 
         var fields = new List<MemberInfo>(FieldTypeCache.DefaultCache.Value.RetrieveAllFields(targetType))
             .Union(PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties(targetType));
@@ -167,8 +171,8 @@ public static class ObjectComparer
         if (Equals(right, default(T)))
             throw new ArgumentNullException(nameof(right));
 
-        var leftEnumerable = left.Cast<object>().ToArray();
-        var rightEnumerable = right.Cast<object>().ToArray();
+        var leftEnumerable = left?.Cast<object>().ToArray() ?? [];
+        var rightEnumerable = right?.Cast<object>().ToArray() ?? [];
 
         if (leftEnumerable.Length != rightEnumerable.Length)
             return false;

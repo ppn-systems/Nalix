@@ -34,13 +34,13 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// <para>This property is useful to initialize non-nullable properties
     /// of type <see cref="IPAddressRange"/>.</para>
     /// </summary>
-    public static readonly IPAddressRange None = new IPAddressRange(IPAddressValue.MaxValue, IPAddressValue.MinValue, true, 0);
+    public static readonly IPAddressRange None = new(IPAddressValue.MaxValue, IPAddressValue.MinValue, true, 0);
 
     /// <summary>
     /// <para>Gets an instance of <see cref="IPAddressRange"/> that contains all possible IP addresses.</para>
     /// <para>The <see cref="Contains"/> method of the returned instance will always return <see langword="true"/>.</para>
     /// </summary>
-    public static readonly IPAddressRange All = new IPAddressRange(IPAddressValue.MinValue, IPAddressValue.MaxValue, true, 128);
+    public static readonly IPAddressRange All = new(IPAddressValue.MinValue, IPAddressValue.MaxValue, true, 128);
 
     /// <summary>
     /// <para>Gets an instance of <see cref="IPAddressRange"/> that contains all IPv4 addresses.</para>
@@ -48,7 +48,7 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// for all IPv4 addresses, as well as their IPv6 mapped counterparts, and <see langword="false"/>
     /// for all other IPv6 addresses.</para>
     /// </summary>
-    public static readonly IPAddressRange AllIPv4 = new IPAddressRange(IPAddressValue.MinIPv4Value, IPAddressValue.MaxIPv4Value, false, 32);
+    public static readonly IPAddressRange AllIPv4 = new(IPAddressValue.MinIPv4Value, IPAddressValue.MaxIPv4Value, false, 32);
 
     private readonly IPAddressValue _start;
     private readonly IPAddressValue _end;
@@ -63,8 +63,7 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// <exception cref="ArgumentNullException"><paramref name="address"/> is <see langword="null"/>.</exception>
     public IPAddressRange(IPAddress address)
     {
-        if (address == null)
-            throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(address);
 
         _start = _end = new IPAddressValue(address);
         _isV6 = address.AddressFamily == AddressFamily.InterNetworkV6;
@@ -93,11 +92,8 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// </exception>
     public IPAddressRange(IPAddress start, IPAddress end)
     {
-        if (start == null)
-            throw new ArgumentNullException(nameof(start));
-
-        if (end == null)
-            throw new ArgumentNullException(nameof(end));
+        ArgumentNullException.ThrowIfNull(start);
+        ArgumentNullException.ThrowIfNull(end);
 
         var startFamily = start.AddressFamily;
         _isV6 = startFamily == AddressFamily.InterNetworkV6;
@@ -132,8 +128,7 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// </exception>
     public IPAddressRange(IPAddress baseAddress, byte prefixLength)
     {
-        if (baseAddress == null)
-            throw new ArgumentNullException(nameof(baseAddress));
+        ArgumentNullException.ThrowIfNull(baseAddress);
 
         byte maxPrefixLength;
         if (baseAddress.AddressFamily == AddressFamily.InterNetworkV6)
@@ -333,8 +328,7 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
     /// </remarks>
     public bool Contains(IPAddress address)
     {
-        if (address == null)
-            throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(address);
 
         var addressValue = new IPAddressValue(address);
         return addressValue.CompareTo(_start) >= 0
@@ -447,20 +441,20 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
         return TryParseSingleAddressFormat(str, out result);
     }
 
-    private static Exception? TryParseCidrOrAddressNetmaskFormat(string str, int separatorPos, out IPAddressRange result)
+    private static FormatException? TryParseCidrOrAddressNetmaskFormat(string str, int separatorPos, out IPAddressRange result)
     {
         result = None;
 
-        var s = str.Substring(0, separatorPos).Trim();
+        var s = str[..separatorPos].Trim();
         if (!IPAddressUtility.TryParse(s, out var address))
             return InvalidIPAddress();
 
-        var addressValue = new IPAddressValue(address);
+        var addressValue = new IPAddressValue(address!);
 
-        s = str.Substring(separatorPos + 1).Trim();
+        s = str[(separatorPos + 1)..].Trim();
         if (byte.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out var prefixLength))
         {
-            var maxPrefixLength = address.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
+            var maxPrefixLength = address!.AddressFamily == AddressFamily.InterNetworkV6 ? 128 : 32;
             if (prefixLength < 1 || prefixLength > maxPrefixLength)
                 return InvalidPrefixLength();
 
@@ -472,14 +466,14 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
         }
 
         // Only accept a netmask for IPv4
-        if (address.AddressFamily != AddressFamily.InterNetwork)
+        if (address!.AddressFamily != AddressFamily.InterNetwork)
             return InvalidPrefixLength();
 
         if (!IPAddressUtility.TryParse(s, out var netmask))
             return InvalidPrefixLengthOrNetmask();
 
         var addressFamily = address.AddressFamily;
-        if (netmask.AddressFamily != addressFamily)
+        if (netmask!.AddressFamily != addressFamily)
             return MismatchedNetmaskAddressFamily();
 
         var netmaskBytes = netmask.GetAddressBytes();
@@ -493,20 +487,20 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
         return null;
     }
 
-    private static Exception? TryParseStartEndFormat(string str, int separatorPos, out IPAddressRange result)
+    private static FormatException? TryParseStartEndFormat(string str, int separatorPos, out IPAddressRange result)
     {
         result = None;
 
-        var s = str.Substring(0, separatorPos).Trim();
+        var s = str[..separatorPos].Trim();
         if (!IPAddressUtility.TryParse(s, out var startAddress))
             return InvalidStartAddress();
 
-        s = str.Substring(separatorPos + 1).Trim();
+        s = str[(separatorPos + 1)..].Trim();
         if (!IPAddressUtility.TryParse(s, out var endAddress))
             return InvalidEndAddress();
 
-        var addressFamily = startAddress.AddressFamily;
-        if (endAddress.AddressFamily != addressFamily)
+        var addressFamily = startAddress!.AddressFamily;
+        if (endAddress!.AddressFamily != addressFamily)
             return MismatchedStartEndFamily();
 
         var start = new IPAddressValue(startAddress);
@@ -518,43 +512,43 @@ public sealed class IPAddressRange : IEquatable<IPAddressRange>
         return null;
     }
 
-    private static Exception? TryParseSingleAddressFormat(string str, out IPAddressRange result)
+    private static FormatException? TryParseSingleAddressFormat(string str, out IPAddressRange result)
     {
         result = None;
 
         if (!IPAddressUtility.TryParse(str, out var address))
             return InvalidIPAddress();
 
-        var addressValue = new IPAddressValue(address);
-        result = new IPAddressRange(addressValue, addressValue, address.AddressFamily == AddressFamily.InterNetworkV6, 0);
+        var addressValue = new IPAddressValue(address!);
+        result = new IPAddressRange(addressValue, addressValue, address!.AddressFamily == AddressFamily.InterNetworkV6, 0);
         return null;
     }
 
-    private static Exception InvalidIPAddress() => new FormatException("An invalid IP address was specified.");
+    private static FormatException InvalidIPAddress() => new("An invalid IP address was specified.");
 
-    private static Exception InvalidPrefixLengthOrNetmask() => new FormatException("An invalid prefix length or netmask was specified.");
+    private static FormatException InvalidPrefixLengthOrNetmask() => new("An invalid prefix length or netmask was specified.");
 
-    private static Exception MismatchedNetmaskAddressFamily() => new FormatException("Address and netmask are different types of addresses.");
+    private static FormatException MismatchedNetmaskAddressFamily() => new("Address and netmask are different types of addresses.");
 
-    private static Exception InvalidPrefixLength() => new FormatException("An invalid prefix length was specified.");
+    private static FormatException InvalidPrefixLength() => new("An invalid prefix length was specified.");
 
-    private static Exception InvalidPrefixLength(string paramName) => new ArgumentException("The prefix length is invalid.", paramName);
+    private static ArgumentException InvalidPrefixLength(string paramName) => new("The prefix length is invalid.", paramName);
 
-    private static Exception InvalidNetmask() => new FormatException("An invalid netmask was specified.");
+    private static FormatException InvalidNetmask() => new("An invalid netmask was specified.");
 
-    private static Exception InvalidSubnetBaseAddress() => new FormatException("The specified address is not the base address of the specified subnet.");
+    private static FormatException InvalidSubnetBaseAddress() => new("The specified address is not the base address of the specified subnet.");
 
-    private static Exception InvalidSubnetBaseAddress(string paramName) => new ArgumentException("The specified address is not the base address of the specified subnet.", paramName);
+    private static ArgumentException InvalidSubnetBaseAddress(string paramName) => new("The specified address is not the base address of the specified subnet.", paramName);
 
-    private static Exception InvalidStartAddress() => new FormatException("An invalid start address was specified for a range.");
+    private static FormatException InvalidStartAddress() => new("An invalid start address was specified for a range.");
 
-    private static Exception InvalidEndAddress() => new FormatException("An invalid end address was specified for a range.");
+    private static FormatException InvalidEndAddress() => new("An invalid end address was specified for a range.");
 
-    private static Exception MismatchedStartEndFamily() => new FormatException("Start and end are different types of addresses.");
+    private static FormatException MismatchedStartEndFamily() => new("Start and end are different types of addresses.");
 
-    private static Exception MismatchedEndFamily(string paramName) => new ArgumentException("The end address of a range must be of the same family as the start address.", paramName);
+    private static ArgumentException MismatchedEndFamily(string paramName) => new("The end address of a range must be of the same family as the start address.", paramName);
 
-    private static Exception EndLowerThanStart() => new FormatException("An end address was specified for a range that is lower than the start address.");
+    private static FormatException EndLowerThanStart() => new("An end address was specified for a range that is lower than the start address.");
 
-    private static Exception EndLowerThanStart(string paramName) => new ArgumentException("The end address of a range cannot be lower than the start address.", paramName);
+    private static ArgumentException EndLowerThanStart(string paramName) => new("The end address of a range cannot be lower than the start address.", paramName);
 }

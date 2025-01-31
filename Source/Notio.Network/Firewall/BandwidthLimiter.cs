@@ -32,22 +32,22 @@ public sealed class BandwidthLimiter : IDisposable
         _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
 
         // Kiểm tra cấu hình
-        if (_firewallConfig.MaxUploadBytesPerSecond <= 0 || _firewallConfig.MaxDownloadBytesPerSecond <= 0)
+        if (_firewallConfig.Bandwidth.MaxUploadBytesPerSecond <= 0 || _firewallConfig.Bandwidth.MaxDownloadBytesPerSecond <= 0)
             throw new ArgumentException("Bandwidth limits must be greater than 0");
 
         _uploadLimit = new RateLimitInfo(
-            _firewallConfig.MaxUploadBytesPerSecond,
-            _firewallConfig.UploadBurstSize
+            _firewallConfig.Bandwidth.MaxUploadBytesPerSecond,
+            _firewallConfig.Bandwidth.UploadBurstSize
         );
 
         _downloadLimit = new RateLimitInfo(
-            _firewallConfig.MaxDownloadBytesPerSecond,
-            _firewallConfig.DownloadBurstSize
+            _firewallConfig.Bandwidth.MaxDownloadBytesPerSecond,
+            _firewallConfig.Bandwidth.DownloadBurstSize
         );
 
         _stats = new ConcurrentDictionary<string, BandwidthInfo>();
         _throttles = new ConcurrentDictionary<string, SemaphoreSlim>();
-        _resetInterval = TimeSpan.FromSeconds(_firewallConfig.BandwidthResetIntervalSeconds);
+        _resetInterval = TimeSpan.FromSeconds(_firewallConfig.Bandwidth.BandwidthResetIntervalSeconds);
 
         // Tạo timer để reset số liệu định kỳ
         _resetTimer = new Timer(

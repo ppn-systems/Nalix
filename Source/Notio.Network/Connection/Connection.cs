@@ -2,6 +2,7 @@
 using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
+using Notio.Common.Models;
 using Notio.Cryptography;
 using Notio.Shared.Identification;
 using Notio.Shared.Memory.Cache;
@@ -25,9 +26,9 @@ public sealed class Connection : IConnection, IDisposable
     private readonly ILogger? _logger;
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
+    private readonly IBufferPool _bufferPool;
+    private readonly ReaderWriterLockSlim _rwLock;
     private readonly BinaryCache _cacheOutgoingPacket;
-    private readonly ReaderWriterLockSlim _rwLockState;
-    private readonly IBufferPool _bufferAllocator;
     private readonly DateTimeOffset _connectedTimestamp;
     private readonly FifoCache<byte[]> _cacheIncomingPacket;
 
@@ -36,6 +37,7 @@ public sealed class Connection : IConnection, IDisposable
     private long _lastPingTime;
     private byte[] _aes256Key;
     private Rsa4096? _rsa4096;
+    private Authoritys _authority;
     private ConnectionState _state;
     private CancellationTokenSource _ctokens;
 
@@ -50,18 +52,19 @@ public sealed class Connection : IConnection, IDisposable
         _logger = logger;
         _receiveLock = new Lock();
         _stream = new NetworkStream(socket);
-        _bufferAllocator = bufferAllocator;
+        _bufferPool = bufferAllocator;
         _id = UniqueId.NewId(TypeId.Session);
         _cacheOutgoingPacket = new BinaryCache(20);
         _cacheIncomingPacket = new FifoCache<byte[]>(20);
         _ctokens = new CancellationTokenSource();
-        _rwLockState = new ReaderWriterLockSlim();
+        _rwLock = new ReaderWriterLockSlim();
         _connectedTimestamp = DateTimeOffset.UtcNow;
 
         _disposed = false;
         _aes256Key = [];
+        _authority = Authoritys.Guests;
         _state = ConnectionState.Connecting;
-        _buffer = _bufferAllocator.Rent(1024); // byte
+        _buffer = _bufferPool.Rent(1024); // byte
         _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
     }
 
@@ -115,14 +118,31 @@ public sealed class Connection : IConnection, IDisposable
     {
         get
         {
-            _rwLockState.EnterReadLock();
+            _rwLock.EnterReadLock();
             try
             {
                 return _state;
             }
             finally
             {
-                _rwLockState.ExitReadLock();
+                _rwLock.ExitReadLock();
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public Authoritys Authority
+    {
+        get
+        {
+            _rwLock.EnterReadLock();
+            try
+            {
+                return _authority;
+            }
+            finally
+            {
+                _rwLock.ExitReadLock();
             }
         }
     }
@@ -266,7 +286,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             this.Disconnect();
 
-            _bufferAllocator.Return(_buffer);
+            _bufferPool.Return(_buffer);
             _buffer = [];
             _aes256Key = [];
         }
@@ -299,22 +319,35 @@ public sealed class Connection : IConnection, IDisposable
 
     private void UpdateState(ConnectionState newState)
     {
-        _rwLockState.EnterWriteLock();
+        _rwLock.EnterWriteLock();
         try
         {
             _state = newState;
         }
         finally
         {
-            _rwLockState.ExitWriteLock();
+            _rwLock.ExitWriteLock();
+        }
+    }
+
+    private void UpdateAuthority(Authoritys newAuthority)
+    {
+        _rwLock.EnterWriteLock();
+        try
+        {
+            _authority = newAuthority;
+        }
+        finally
+        {
+            _rwLock.ExitWriteLock();
         }
     }
 
     private void ResizeBuffer(int newSize)
     {
-        byte[] newBuffer = _bufferAllocator.Rent(newSize);
+        byte[] newBuffer = _bufferPool.Rent(newSize);
         Array.Copy(_buffer, newBuffer, _buffer.Length);
-        _bufferAllocator.Return(_buffer);
+        _bufferPool.Return(_buffer);
         _buffer = newBuffer;
     }
 
@@ -327,10 +360,10 @@ public sealed class Connection : IConnection, IDisposable
             int totalBytesRead = task.Result;
             ushort size = BitConverter.ToUInt16(_buffer, 0);
 
-            if (size > _bufferAllocator.MaxBufferSize)
+            if (size > _bufferPool.MaxBufferSize)
             {
                 _logger?.Error($"Data length ({size} bytes) " +
-                    $"exceeds the maximum allowed buffer size ({_bufferAllocator.MaxBufferSize} bytes).");
+                    $"exceeds the maximum allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
                 return;
             }
 

@@ -1,4 +1,5 @@
-﻿using Notio.Network.Firewall.Enums;
+﻿using Notio.Network.Firewall.Configuration;
+using Notio.Network.Firewall.Enums;
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 
@@ -6,40 +7,22 @@ namespace Notio.Network;
 
 public sealed class FirewallConfig : ConfiguredBinder
 {
-    // Cấu hình giới hạn băng thông
-    [Range(1024, long.MaxValue)]
-    public long MaxUploadBytesPerSecond { get; set; } = 1024 * 1024; // 1MB/s
-
-    [Range(1024, long.MaxValue)]
-    public long MaxDownloadBytesPerSecond { get; set; } = 1024 * 1024; // 1MB/s
-
-    [Range(1024, long.MaxValue)]
-    public int UploadBurstSize { get; set; } = 1024 * 1024 * 2; // 2MB burst
-
-    [Range(1024, long.MaxValue)]
-    public int DownloadBurstSize { get; set; } = 1024 * 1024 * 2; // 2MB burst
-
-    [Range(1, 3600)]
-    public int BandwidthResetIntervalSeconds { get; set; } = 60;
-
-    // Cấu hình giới hạn kết nối
-    [Range(1, 1000)]
-    public int MaxConnectionsPerIpAddress { get; set; } = 100;
-
-    // Cấu hình Rate Limit
-    [Range(1, 1000)]
-    public int MaxAllowedRequests { get; set; } = 100;
-
-    [Range(1, 3600)]
-    public int LockoutDurationSeconds { get; set; } = 300;
-
-    [Range(1000, int.MaxValue)]
-    public int TimeWindowInMilliseconds { get; set; } = 60000; // 1 phút
-
     // Cấu hình Chung
     public bool EnableLogging { get; set; } = true;
 
     public bool EnableMetrics { get; set; } = true;
+
+    // Cấu hình giới hạn băng thông
+    [ConfiguredIgnore]
+    public BandwidthConfig Bandwidth { get; set; } = new BandwidthConfig();
+
+    // Cấu hình giới hạn kết nối
+    [ConfiguredIgnore]
+    public ConnectionConfig Connection { get; set; } = new ConnectionConfig();
+
+    // Cấu hình Rate Limit
+    [ConfiguredIgnore]
+    public RateLimitConfig RateLimit { get; set; } = new RateLimitConfig();
 
     // Cấu hình mức độ giới hạn
     [ConfiguredIgnore]
@@ -64,27 +47,27 @@ public sealed class FirewallConfig : ConfiguredBinder
         switch (RequestLimit)
         {
             case RequestLimit.Low:
-                MaxAllowedRequests = 50;
-                LockoutDurationSeconds = 600;
-                TimeWindowInMilliseconds = 30000;
+                RateLimit.MaxAllowedRequests = 50;
+                RateLimit.LockoutDurationSeconds = 600;
+                RateLimit.TimeWindowInMilliseconds = 30000;
                 break;
 
             case RequestLimit.Medium:
-                MaxAllowedRequests = 100;
-                LockoutDurationSeconds = 300;
-                TimeWindowInMilliseconds = 60000;
+                RateLimit.MaxAllowedRequests = 100;
+                RateLimit.LockoutDurationSeconds = 300;
+                RateLimit.TimeWindowInMilliseconds = 60000;
                 break;
 
             case RequestLimit.High:
-                MaxAllowedRequests = 500;
-                LockoutDurationSeconds = 150;
-                TimeWindowInMilliseconds = 120000;
+                RateLimit.MaxAllowedRequests = 500;
+                RateLimit.LockoutDurationSeconds = 150;
+                RateLimit.TimeWindowInMilliseconds = 120000;
                 break;
 
             case RequestLimit.Unlimited:
-                MaxAllowedRequests = 1000;
-                LockoutDurationSeconds = 60;
-                TimeWindowInMilliseconds = 300000;
+                RateLimit.MaxAllowedRequests = 1000;
+                RateLimit.LockoutDurationSeconds = 60;
+                RateLimit.TimeWindowInMilliseconds = 300000;
                 break;
         }
     }
@@ -94,31 +77,31 @@ public sealed class FirewallConfig : ConfiguredBinder
         switch (BandwidthLimit)
         {
             case BandwidthLimit.Low:
-                MaxUploadBytesPerSecond = 512 * 1024; // 512KB/s
-                MaxDownloadBytesPerSecond = 512 * 1024;
-                UploadBurstSize = 1024 * 1024; // 1MB burst
-                DownloadBurstSize = 1024 * 1024;
+                Bandwidth.MaxUploadBytesPerSecond = 512 * 1024; // 512KB/s
+                Bandwidth.MaxDownloadBytesPerSecond = 512 * 1024;
+                Bandwidth.UploadBurstSize = 1024 * 1024; // 1MB burst
+                Bandwidth.DownloadBurstSize = 1024 * 1024;
                 break;
 
             case BandwidthLimit.Medium:
-                MaxUploadBytesPerSecond = 1024 * 1024; // 1MB/s
-                MaxDownloadBytesPerSecond = 1024 * 1024;
-                UploadBurstSize = 2 * 1024 * 1024; // 2MB burst
-                DownloadBurstSize = 2 * 1024 * 1024;
+                Bandwidth.MaxUploadBytesPerSecond = 1024 * 1024; // 1MB/s
+                Bandwidth.MaxDownloadBytesPerSecond = 1024 * 1024;
+                Bandwidth.UploadBurstSize = 2 * 1024 * 1024; // 2MB burst
+                Bandwidth.DownloadBurstSize = 2 * 1024 * 1024;
                 break;
 
             case BandwidthLimit.High:
-                MaxUploadBytesPerSecond = 5 * 1024 * 1024; // 5MB/s
-                MaxDownloadBytesPerSecond = 5 * 1024 * 1024;
-                UploadBurstSize = 10 * 1024 * 1024; // 10MB burst
-                DownloadBurstSize = 10 * 1024 * 1024;
+                Bandwidth.MaxUploadBytesPerSecond = 5 * 1024 * 1024; // 5MB/s
+                Bandwidth.MaxDownloadBytesPerSecond = 5 * 1024 * 1024;
+                Bandwidth.UploadBurstSize = 10 * 1024 * 1024; // 10MB burst
+                Bandwidth.DownloadBurstSize = 10 * 1024 * 1024;
                 break;
 
             case BandwidthLimit.Unlimited:
-                MaxUploadBytesPerSecond = long.MaxValue;
-                MaxDownloadBytesPerSecond = long.MaxValue;
-                UploadBurstSize = int.MaxValue;
-                DownloadBurstSize = int.MaxValue;
+                Bandwidth.MaxUploadBytesPerSecond = long.MaxValue;
+                Bandwidth.MaxDownloadBytesPerSecond = long.MaxValue;
+                Bandwidth.UploadBurstSize = int.MaxValue;
+                Bandwidth.DownloadBurstSize = int.MaxValue;
                 break;
         }
     }
@@ -128,19 +111,19 @@ public sealed class FirewallConfig : ConfiguredBinder
         switch (ConnectionLimit)
         {
             case ConnectionLimit.Low:
-                MaxConnectionsPerIpAddress = 20;
+                Connection.MaxConnectionsPerIpAddress = 20;
                 break;
 
             case ConnectionLimit.Medium:
-                MaxConnectionsPerIpAddress = 100;
+                Connection.MaxConnectionsPerIpAddress = 100;
                 break;
 
             case ConnectionLimit.High:
-                MaxConnectionsPerIpAddress = 500;
+                Connection.MaxConnectionsPerIpAddress = 500;
                 break;
 
             case ConnectionLimit.Unlimited:
-                MaxConnectionsPerIpAddress = 1000;
+                Connection.MaxConnectionsPerIpAddress = 1000;
                 break;
         }
     }

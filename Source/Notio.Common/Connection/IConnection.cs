@@ -1,4 +1,5 @@
 ﻿using Notio.Common.Enums;
+using Notio.Common.Models;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,11 @@ public interface IConnection : IDisposable
     /// Gets the remote endpoint address associated with the connection.
     /// </summary>
     string RemoteEndPoint { get; }
+
+    /// <summary>
+    /// Gets the authority levels associated with the connection.
+    /// </summary>
+    Authoritys Authority { get; }
 
     /// <summary>
     /// Gets the current state of the connection.

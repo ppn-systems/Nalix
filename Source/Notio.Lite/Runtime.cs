@@ -55,7 +55,7 @@ public static class Runtime
             {
                 var windowsDirectory = Environment.GetEnvironmentVariable("windir");
                 if (string.IsNullOrEmpty(windowsDirectory) == false
-                    && windowsDirectory.Contains(@"\")
+                    && windowsDirectory.Contains('\\')
                     && Directory.Exists(windowsDirectory))
                 {
                     _oS = OperatingSystem.Windows;
@@ -87,9 +87,7 @@ public static class Runtime
                     // Try to open existing mutex.
                     using var _ = Mutex.OpenExisting(ApplicationMutexName);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     try
                     {
@@ -99,9 +97,7 @@ public static class Runtime
                         // Only one instance.
                         return true;
                     }
-#pragma warning disable CA1031 // Do not catch general exception types
                     catch
-#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         // Sometimes the user can't create the Global Mutex
                     }
@@ -127,7 +123,7 @@ public static class Runtime
     /// <value>
     /// The entry assembly.
     /// </value>
-    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
+    public static Assembly EntryAssembly => EntryAssemblyLazy.Value ?? throw new InvalidOperationException("Entry assembly is null.");
 
     /// <summary>
     /// Gets the name of the entry assembly.
@@ -135,7 +131,7 @@ public static class Runtime
     /// <value>
     /// The name of the entry assembly.
     /// </value>
-    public static AssemblyName EntryAssemblyName => EntryAssemblyLazy.Value.GetName();
+    public static AssemblyName EntryAssemblyName => EntryAssemblyLazy.Value?.GetName() ?? throw new InvalidOperationException("Entry assembly is null.");
 
     /// <summary>
     /// Gets the entry assembly version.
@@ -152,9 +148,14 @@ public static class Runtime
     {
         get
         {
-            var uri = new UriBuilder(EntryAssembly.CodeBase);
+            var location = EntryAssembly.Location;
+            if (string.IsNullOrEmpty(location))
+            {
+                throw new InvalidOperationException("Entry assembly location is null or empty.");
+            }
+            var uri = new UriBuilder(location);
             var path = Uri.UnescapeDataString(uri.Path);
-            return Path.GetDirectoryName(path);
+            return Path.GetDirectoryName(path) ?? throw new InvalidOperationException("Failed to get directory name from path.");
         }
     }
 
@@ -192,10 +193,11 @@ public static class Runtime
     {
         get
         {
-            var localAppDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    EntryAssemblyName.Name);
+            var entryAssemblyName = EntryAssemblyName.Name ?? throw new InvalidOperationException("Entry assembly name is null.");
+            var localAppDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), entryAssemblyName);
 
-            var returnPath = Path.Combine(localAppDataPath, EntryAssemblyVersion.ToString());
+            var entryAssemblyVersion = EntryAssemblyVersion?.ToString() ?? throw new InvalidOperationException("Entry assembly version is null.");
+            var returnPath = Path.Combine(localAppDataPath, entryAssemblyVersion);
 
             if (!Directory.Exists(returnPath))
             {

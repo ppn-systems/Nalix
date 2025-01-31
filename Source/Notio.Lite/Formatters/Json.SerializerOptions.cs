@@ -53,9 +53,9 @@ public class SerializerOptions
         if (parentReferences == null)
             return;
 
-        foreach (var parentReference in parentReferences.Where(x => x.IsAlive))
+        foreach (var parentReference in parentReferences.Where(x => x.IsAlive && x.Target != null))
         {
-            IsObjectPresent(parentReference.Target);
+            IsObjectPresent(parentReference.Target!);
         }
     }
 
@@ -119,9 +119,9 @@ public class SerializerOptions
     internal Dictionary<string, MemberInfo> GetProperties(Type targetType)
         => GetPropertiesCache(targetType)
             .When(() => _includeProperties?.Length > 0,
-                query => query.Where(p => _includeProperties.Contains(p.Key.Item1)))
+                query => query.Where(p => _includeProperties!.Contains(p.Key.Item1)))
             .When(() => ExcludeProperties?.Length > 0,
-                query => query.Where(p => !ExcludeProperties.Contains(p.Key.Item1)))
+                query => query.Where(p => !ExcludeProperties!.Contains(p.Key.Item1)))
             .ToDictionary(x => x.Key.Item2, x => x.Value);
 
     private Dictionary<Tuple<string, string>, MemberInfo> GetPropertiesCache(Type targetType)

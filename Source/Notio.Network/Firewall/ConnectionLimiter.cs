@@ -29,10 +29,10 @@ public sealed class ConnectionLimiter : IDisposable
         _logger = logger;
         _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
 
-        if (_firewallConfig.MaxConnectionsPerIpAddress <= 0)
+        if (_firewallConfig.Connection.MaxConnectionsPerIpAddress <= 0)
             throw new InternalErrorException("MaxConnectionsPerIpAddress must be greater than 0");
 
-        _maxConnectionsPerIp = _firewallConfig.MaxConnectionsPerIpAddress;
+        _maxConnectionsPerIp = _firewallConfig.Connection.MaxConnectionsPerIpAddress;
         _connectionInfo = new ConcurrentDictionary<string, ConnectionInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 

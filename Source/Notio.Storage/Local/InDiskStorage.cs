@@ -1,9 +1,9 @@
-﻿using Notio.Storage.Config;
+﻿using Notio.Shared;
+using Notio.Storage.Config;
 using Notio.Storage.FileFormats;
 using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;
 using Notio.Storage.Models;
-using Notio.Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;

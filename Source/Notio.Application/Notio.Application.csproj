@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>0.1.59</Version>
+		<Version>0.1.71</Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
