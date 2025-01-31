@@ -1,6 +1,5 @@
 ﻿using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
-using System.Net.Sockets;
 
 namespace Notio.Network;
 
@@ -29,7 +28,6 @@ public sealed class NetworkConfig : ConfiguredBinder
     public bool NoDelay { get; set; } = true;    // Disable Nagle's algorithm (for low-latency communication)
     public bool ReuseAddress { get; set; } = false; // Allow binding to an address already in TIME_WAIT state
     public bool DualMode { get; set; } = false;   // Support both IPv4 and IPv6
-    public SocketType SocketType { get; set; } = SocketType.Stream; // Use Stream (TCP) by default
 
     // Timeouts and low-watermark settings
     public int AcceptConnectionTimeoutMilliseconds { get; set; } = 10000; // 10 seconds for accept timeout

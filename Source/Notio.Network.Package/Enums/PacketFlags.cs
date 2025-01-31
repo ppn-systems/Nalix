@@ -1,4 +1,4 @@
-﻿namespace Notio.Package.Enums;
+﻿namespace Notio.Network.Package.Enums;
 
 /// <summary>
 /// Packet flags indicating different states of a packet.

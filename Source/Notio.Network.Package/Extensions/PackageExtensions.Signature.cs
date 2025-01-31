@@ -1,11 +1,11 @@
-﻿using Notio.Package.Enums;
-using Notio.Package.Helpers;
-using Notio.Package.Models;
+﻿using Notio.Network.Package.Enums;
+using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Models;
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 public static partial class PackageExtensions
 {

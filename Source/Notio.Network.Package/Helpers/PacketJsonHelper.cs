@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-namespace Notio.Package.Helpers;
+namespace Notio.Network.Package.Helpers;
 
 /// <summary>
 /// Provides high-performance utility methods for the Packet class.

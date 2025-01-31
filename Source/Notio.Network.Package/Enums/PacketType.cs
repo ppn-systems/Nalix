@@ -1,4 +1,4 @@
-﻿namespace Notio.Package.Enums;
+﻿namespace Notio.Network.Package.Enums;
 
 /// <summary>
 /// Represents different types of payloads used in network packets.

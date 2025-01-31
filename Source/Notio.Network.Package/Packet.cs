@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Memory;
-using Notio.Package.Models;
+using Notio.Network.Package.Models;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-namespace Notio.Package;
+namespace Notio.Network.Package;
 
 /// <summary>
 /// Represents a packet structure that can be pooled and disposed.

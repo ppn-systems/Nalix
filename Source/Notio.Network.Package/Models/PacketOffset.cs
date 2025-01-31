@@ -1,4 +1,4 @@
-﻿namespace Notio.Package.Models;
+﻿namespace Notio.Network.Package.Models;
 
 /// <summary>
 /// Offset các thành phần trong tiêu đề gói tin.

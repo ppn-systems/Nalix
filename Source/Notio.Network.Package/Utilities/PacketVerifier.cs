@@ -1,10 +1,10 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Package.Enums;
-using Notio.Package.Helpers;
-using Notio.Package.Models;
+using Notio.Network.Package.Enums;
+using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Models;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Package.Utilities;
+namespace Notio.Network.Package.Utilities;
 
 /// <summary>
 /// Provides methods to validate and verify the validity of a Packet.

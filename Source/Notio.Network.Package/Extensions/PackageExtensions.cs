@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Package.Models;
-using Notio.Package.Serialization;
+using Notio.Network.Package.Models;
+using Notio.Network.Package.Serialization;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.

@@ -2,7 +2,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// A static class to manage a pool of reusable Packet objects.

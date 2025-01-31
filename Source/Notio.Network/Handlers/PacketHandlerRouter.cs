@@ -1,8 +1,8 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Models;
-using Notio.Package;
-using Notio.Package.Extensions;
+using Notio.Network.Package;
+using Notio.Network.Package.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;

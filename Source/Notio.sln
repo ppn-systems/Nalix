@@ -22,7 +22,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Logging", "Notio.Logg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Network", "Notio.Network\Notio.Network.csproj", "{24F017C9-5CCA-4FC9-8065-2CEA05A0447E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Package", "Notio.Package\Notio.Package.csproj", "{11498769-178D-4904-9DEF-9FC37B349797}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Network.Package", "Notio.Network.Package\Notio.Network.Package.csproj", "{11498769-178D-4904-9DEF-9FC37B349797}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Shared", "Notio.Shared\Notio.Shared.csproj", "{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}"
 EndProject

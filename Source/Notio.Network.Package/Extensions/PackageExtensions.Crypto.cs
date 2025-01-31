@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Cryptography;
-using Notio.Package.Enums;
-using Notio.Package.Helpers;
-using Notio.Package.Utilities;
+using Notio.Network.Package.Enums;
+using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Utilities;
 using System;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// Provides encryption and decryption methods for Packet Payload.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace Notio.Package.Utilities;
+namespace Notio.Network.Package.Utilities;
 
 public static class PacketOperations
 {

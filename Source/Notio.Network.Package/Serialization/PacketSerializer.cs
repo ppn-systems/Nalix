@@ -1,11 +1,11 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Package.Models;
+using Notio.Network.Package.Models;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace Notio.Package.Serialization;
+namespace Notio.Network.Package.Serialization;
 
 [SkipLocalsInit]
 internal static class PacketSerializer

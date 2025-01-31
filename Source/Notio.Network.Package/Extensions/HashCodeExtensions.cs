@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 public static class HashCodeExtensions
 {

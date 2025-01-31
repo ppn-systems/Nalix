@@ -1,7 +1,7 @@
-﻿using Notio.Package.Enums;
+﻿using Notio.Network.Package.Enums;
 using System;
 
-namespace Notio.Package.Helpers;
+namespace Notio.Network.Package.Helpers;
 
 /// <summary>
 /// Provides helper methods for the PacketPriority enum.

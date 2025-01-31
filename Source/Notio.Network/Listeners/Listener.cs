@@ -69,6 +69,7 @@ public abstract class Listener : TcpListener, IListener
     private async Task<IConnection> CreateConnection(CancellationToken cancellationToken)
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
+        SocketConfig(socket);
 
         Connection.Connection connection = new(socket, _bufferPool, _logger); // Fully qualify the Connection class
 
@@ -103,8 +104,6 @@ public abstract class Listener : TcpListener, IListener
         {
             socket.DualMode = true;  // Enable IPv6 and IPv4 support
         }
-
-        socket.SocketType = NetworkConfig.SocketType; // Apply SocketType (e.g., Stream or Dgram)
 
         // Configure blocking mode
         socket.Blocking = NetworkConfig.IsBlocking;

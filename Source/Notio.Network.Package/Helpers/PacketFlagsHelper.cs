@@ -1,6 +1,6 @@
-﻿using Notio.Package.Enums;
+﻿using Notio.Network.Package.Enums;
 
-namespace Notio.Package.Helpers;
+namespace Notio.Network.Package.Helpers;
 
 /// <summary>
 /// Provides extension methods for working with PacketFlags and byte flags.

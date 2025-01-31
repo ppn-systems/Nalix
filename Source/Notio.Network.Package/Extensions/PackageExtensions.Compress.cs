@@ -1,13 +1,13 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Package.Enums;
-using Notio.Package.Helpers;
-using Notio.Package.Utilities;
+using Notio.Network.Package.Enums;
+using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Utilities;
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Package.Extensions;
+namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// Provides operations for compressing and decompressing packets.

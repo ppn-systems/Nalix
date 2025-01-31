@@ -22,8 +22,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-		<ProjectReference Include="..\Notio.Package\Notio.Package.csproj" />
 		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />
+		<ProjectReference Include="..\Notio.Network.Package\Notio.Network.Package.csproj" />
 	</ItemGroup>
 
 </Project>
