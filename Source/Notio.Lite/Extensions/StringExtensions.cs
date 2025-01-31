@@ -144,8 +144,7 @@ public static class StringExtensions
         if (@this == null)
             return string.Empty;
 
-        var end = endIndex.Clamp(startIndex, @this.Length - 1);
-
+        var end = Math.Clamp(endIndex, startIndex, @this.Length - 1);
         return startIndex >= end ? string.Empty : @this.Substring(startIndex, (end - startIndex) + 1);
     }
 
@@ -163,8 +162,8 @@ public static class StringExtensions
         if (@this == null)
             return string.Empty;
 
-        var start = startIndex.Clamp(0, @this.Length - 1);
-        var len = length.Clamp(0, @this.Length - start);
+        var start = Math.Clamp(startIndex, 0, @this.Length - 1);
+        var len = Math.Clamp(length, 0, @this.Length - start);
 
         return len == 0 ? string.Empty : @this.Substring(start, len);
     }
@@ -256,7 +255,7 @@ public static class StringExtensions
         if (value == null)
             return Tuple.Create(0, 0);
 
-        var index = charIndex.Clamp(0, value.Length - 1);
+        var index = Math.Clamp(charIndex, 0, value.Length - 1);
 
         var lineIndex = 0;
         var colNumber = 0;

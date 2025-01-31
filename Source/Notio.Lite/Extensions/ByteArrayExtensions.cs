@@ -135,7 +135,7 @@ public static class ByteArrayExtensions
         ArgumentNullException.ThrowIfNull(@this);
         ArgumentNullException.ThrowIfNull(sequence);
 
-        var seqOffset = offset.Clamp(0, @this.Length - 1);
+        var seqOffset = Math.Clamp(offset, 0, @this.Length - 1);
 
         var result = new List<byte[]>();
 

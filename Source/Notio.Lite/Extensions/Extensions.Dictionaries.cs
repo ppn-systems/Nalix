@@ -60,22 +60,4 @@ public static partial class Extensions
 
         return value;
     }
-
-    /// <summary>
-    /// Executes the item action for each element in the Dictionary.
-    /// </summary>
-    /// <typeparam name="TKey">The type of the key.</typeparam>
-    /// <typeparam name="TValue">The type of the value.</typeparam>
-    /// <param name="dict">The dictionary.</param>
-    /// <param name="itemAction">The item action.</param>
-    /// <exception cref="ArgumentNullException">dict.</exception>
-    public static void ForEach<TKey, TValue>(this IDictionary<TKey, TValue> dict, Action<TKey, TValue> itemAction)
-    {
-        ArgumentNullException.ThrowIfNull(dict);
-
-        foreach (var kvp in dict)
-        {
-            itemAction(kvp.Key, kvp.Value);
-        }
-    }
 }

@@ -24,8 +24,6 @@ public partial class Json
     /// </summary>
     private class Serializer
     {
-        #region Private Declarations
-
         private static readonly Dictionary<int, string> IndentStrings = [];
 
         private readonly SerializerOptions _options;
@@ -34,34 +32,31 @@ public partial class Json
         private readonly string _lastCommaSearch;
         private readonly string[]? _excludedNames = null;
 
-        #endregion Private Declarations
-
-        #region Constructors
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Serializer" /> class.
         /// </summary>
         /// <param name="obj">The object.</param>
         /// <param name="depth">The depth.</param>
         /// <param name="options">The options.</param>
-#pragma warning disable CS8618
 
         private Serializer(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null)
-#pragma warning restore CS8618
         {
             if (depth > 20)
             {
                 throw new InvalidOperationException(
-                    "The max depth (20) has been reached. Serializer can not continue.");
+                    "The max depth (20) has been reached. Serializer cannot continue.");
             }
 
-            // Basic Type Handling (nulls, strings, number, date and bool)
+            _options = options; // Ensure _options is assigned
+            _builder = new StringBuilder(); // Ensure _builder is assigned
+            _lastCommaSearch = string.Empty; // Ensure _lastCommaSearch is assigned
+
+            // Basic Type Handling (nulls, strings, numbers, date, and bool)
             _result = ResolveBasicType(obj);
 
             if (!string.IsNullOrWhiteSpace(_result))
                 return;
 
-            _options = options;
             _excludedNames ??= excludedNames;
             _options.ExcludeProperties = GetExcludedNames(obj?.GetType(), _excludedNames);
 
@@ -88,10 +83,6 @@ public partial class Json
         }
 
         internal static string Serialize(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null) => new Serializer(obj, depth, options, excludedNames)._result;
-
-        #endregion Constructors
-
-        #region Helper Methods
 
         internal static string[]? GetExcludedNames(Type? type, string[]? excludedNames)
         {
@@ -378,7 +369,5 @@ public partial class Json
             if (_options.Format == false) return;
             _builder.Append(Environment.NewLine);
         }
-
-        #endregion Helper Methods
     }
 }

@@ -70,14 +70,8 @@ namespace Notio.Lite;
 /// </example>
 public static class CompositeHashCode
 {
-    #region Private constants
-
     private const int InitialSeed = 17;
     private const int Multiplier = 29;
-
-    #endregion Private constants
-
-    #region Public API
 
     /// <summary>
     /// Computes a hash code, taking into consideration the values of the specified
@@ -94,6 +88,4 @@ public static class CompositeHashCode
                 .Aggregate(InitialSeed, (current, field) => (Multiplier * current) + field.GetHashCode());
         }
     }
-
-    #endregion Public API
 }

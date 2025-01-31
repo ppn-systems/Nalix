@@ -17,11 +17,10 @@ namespace Notio.Lite.Formatters;
 /// </summary>
 public class SerializerOptions
 {
-    private static readonly ConcurrentDictionary<Type, Dictionary<Tuple<string, string>, MemberInfo>>
-        TypeCache = new ConcurrentDictionary<Type, Dictionary<Tuple<string, string>, MemberInfo>>();
+    private static readonly ConcurrentDictionary<Type, Dictionary<Tuple<string, string>, MemberInfo>> TypeCache = new();
 
     private readonly string[]? _includeProperties;
-    private readonly Dictionary<int, List<WeakReference>> _parentReferences = new Dictionary<int, List<WeakReference>>();
+    private readonly Dictionary<int, List<WeakReference>> _parentReferences = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SerializerOptions"/> class.
@@ -103,16 +102,15 @@ public class SerializerOptions
     {
         var hashCode = target.GetHashCode();
 
-        if (_parentReferences.ContainsKey(hashCode))
+        if (_parentReferences.TryGetValue(hashCode, out List<WeakReference>? value))
         {
             if (_parentReferences[hashCode].Any(p => ReferenceEquals(p.Target, target)))
                 return true;
-
-            _parentReferences[hashCode].Add(new WeakReference(target));
+            value.Add(new WeakReference(target));
             return false;
         }
 
-        _parentReferences.Add(hashCode, new List<WeakReference> { new WeakReference(target) });
+        _parentReferences.Add(hashCode, [new WeakReference(target)]);
         return false;
     }
 

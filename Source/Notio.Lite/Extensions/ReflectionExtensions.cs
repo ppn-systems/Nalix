@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,30 +10,6 @@ namespace Notio.Lite.Extensions;
 /// </summary>
 public static class ReflectionExtensions
 {
-    /// <summary>
-    /// Gets all types within an assembly in a safe manner.
-    /// </summary>
-    /// <param name="assembly">The assembly.</param>
-    /// <returns>
-    /// Array of Type objects representing the types specified by an assembly.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">assembly.</exception>
-    public static IEnumerable<Type> GetAllTypes(this Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException e)
-        {
-            return e.Types.Where(t => t != null).Cast<Type>();
-        }
-    }
-
-    #region Type Extensions
-
     /// <summary>
     /// The closest programmatic equivalent of default(T).
     /// </summary>
@@ -49,77 +24,6 @@ public static class ReflectionExtensions
 
         return type.IsValueType ? Activator.CreateInstance(type) : default;
     }
-
-    /// <summary>
-    /// Determines whether this type is compatible with ICollection.
-    /// </summary>
-    /// <param name="sourceType">The type.</param>
-    /// <returns>
-    ///   <c>true</c> if the specified source type is collection; otherwise, <c>false</c>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">sourceType.</exception>
-    public static bool IsCollection(this Type sourceType)
-    {
-        ArgumentNullException.ThrowIfNull(sourceType);
-
-        return sourceType != typeof(string) &&
-               typeof(IEnumerable).IsAssignableFrom(sourceType);
-    }
-
-    /// <summary>
-    /// Gets a method from a type given the method name, binding flags, generic types and parameter types.
-    /// </summary>
-    /// <param name="type">Type of the source.</param>
-    /// <param name="bindingFlags">The binding flags.</param>
-    /// <param name="methodName">Name of the method.</param>
-    /// <param name="genericTypes">The generic types.</param>
-    /// <param name="parameterTypes">The parameter types.</param>
-    /// <returns>
-    /// An object that represents the method with the specified name.
-    /// </returns>
-    /// <exception cref="AmbiguousMatchException">
-    /// The exception that is thrown when binding to a member results in more than one member matching the
-    /// binding criteria. This class cannot be inherited.
-    /// </exception>
-    public static MethodInfo? GetMethod(
-        this Type type,
-        BindingFlags bindingFlags,
-        string methodName,
-        Type[] genericTypes,
-        Type[] parameterTypes)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-        ArgumentNullException.ThrowIfNull(methodName);
-        ArgumentNullException.ThrowIfNull(genericTypes);
-        ArgumentNullException.ThrowIfNull(parameterTypes);
-
-        var methods = type
-            .GetMethods(bindingFlags)
-            .Where(mi => string.Equals(methodName, mi.Name, StringComparison.Ordinal))
-            .Where(mi => mi.ContainsGenericParameters)
-            .Where(mi => mi.GetGenericArguments().Length == genericTypes.Length)
-            .Where(mi => mi.GetParameters().Length == parameterTypes.Length)
-            .Select(mi => mi.MakeGenericMethod(genericTypes))
-            .Where(mi => mi.GetParameters().Select(pi => pi.ParameterType).SequenceEqual(parameterTypes))
-            .ToList();
-
-        return methods.Count > 1 ? throw new AmbiguousMatchException() : methods.FirstOrDefault();
-    }
-
-    /// <summary>
-    /// Determines whether [is i enumerable request].
-    /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>
-    ///   <c>true</c> if [is i enumerable request] [the specified type]; otherwise, <c>false</c>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">type.</exception>
-    public static bool IsIEnumerable(this Type type)
-        => type == null
-            ? throw new ArgumentNullException(nameof(type))
-            : type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
-
-    #endregion Type Extensions
 
     /// <summary>
     /// Tries to parse using the basic types.

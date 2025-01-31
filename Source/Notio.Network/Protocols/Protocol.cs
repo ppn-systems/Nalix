@@ -37,6 +37,6 @@ public abstract class Protocol : IProtocol
     /// Xử lý một tin nhắn đến từ kết nối.
     /// </summary>
     /// <param name="sender">Nguồn gốc của sự kiện.</param>
-    /// <param name="connection">Tham số của sự kiện kết nối.</param>
-    public abstract void ProcessMessage(object sender, IConnectEventArgs connection);
+    /// <param name="args">Tham số của sự kiện kết nối.</param>
+    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
 }

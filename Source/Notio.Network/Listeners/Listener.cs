@@ -20,6 +20,7 @@ public abstract class Listener : TcpListener, IListener
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
 
+    /// <inheritdoc />
     public Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
         : base(IPAddress.Any, port)
     {
@@ -29,6 +30,7 @@ public abstract class Listener : TcpListener, IListener
         _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
     }
 
+    /// <inheritdoc />
     public Listener(IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
         : base(IPAddress.Any, NetworkConfig.Port)
     {
@@ -38,6 +40,7 @@ public abstract class Listener : TcpListener, IListener
         _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
     }
 
+    /// <inheritdoc />
     public void BeginListening(CancellationToken cancellationToken)
     {
         Task.Run(async () =>
@@ -64,6 +67,7 @@ public abstract class Listener : TcpListener, IListener
         }, cancellationToken);
     }
 
+    /// <inheritdoc />
     public void EndListening() => base.Stop();
 
     private async Task<IConnection> CreateConnection(CancellationToken cancellationToken)

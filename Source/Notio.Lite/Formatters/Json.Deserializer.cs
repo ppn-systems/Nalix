@@ -19,8 +19,6 @@ public partial class Json
     /// </summary>
     private class Deserializer
     {
-        #region State Variables
-
         private readonly object? _result;
         private readonly string _json;
 
@@ -30,8 +28,6 @@ public partial class Json
         private string? _currentFieldName;
 
         private int _index;
-
-        #endregion State Variables
 
         private Deserializer(string json, int startIndex)
         {

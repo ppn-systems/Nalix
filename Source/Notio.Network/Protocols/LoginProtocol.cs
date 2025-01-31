@@ -5,7 +5,7 @@ namespace Notio.Network.Protocols;
 
 public class LoginProtocol(PacketHandlerRouter packetHandlerRouter) : Protocol
 {
-    private readonly PacketHandlerRouter _packetHandlerRouter = packetHandlerRouter;
+    private readonly PacketHandlerRouter _handlerFactory = packetHandlerRouter;
 
     /// <inheritdoc />
     public override bool KeepConnectionOpen => false;
@@ -13,7 +13,7 @@ public class LoginProtocol(PacketHandlerRouter packetHandlerRouter) : Protocol
     /// <inheritdoc />
     public override void ProcessMessage(object sender, IConnectEventArgs args)
     {
-        _packetHandlerRouter.RoutePacket(args.Connection);
+        _handlerFactory.RoutePacket(args.Connection);
     }
 
     /// <inheritdoc />
