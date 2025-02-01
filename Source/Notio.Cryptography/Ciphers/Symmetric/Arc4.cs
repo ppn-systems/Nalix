@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
@@ -55,6 +56,7 @@ public class Arc4
     /// <summary>
     /// Swaps two values in the state array.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Swap(byte[] s, int i, int j)
     {
         (s[i], s[j]) = (s[j], s[i]);

@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
 		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
@@ -21,10 +20,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Internal\" />
 	</ItemGroup>
 
 </Project>

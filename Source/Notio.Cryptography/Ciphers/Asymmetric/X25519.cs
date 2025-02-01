@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
@@ -143,11 +144,9 @@ public static class X25519
     /// Computes the modular inverse of a modulo p using Fermat's little theorem.
     /// (Tính nghịch đảo modular của a modulo p.)
     /// </summary>
-    private static BigInteger ModInverse(BigInteger a, BigInteger p)
-    {
-        // Since p is prime, a^(p-2) mod p is the inverse.
-        return BigInteger.ModPow(a, p - 2, p);
-    }
+    /// Since p is prime, a^(p-2) mod p is the inverse.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static BigInteger ModInverse(BigInteger a, BigInteger p) => BigInteger.ModPow(a, p - 2, p);
 
     /// <summary>
     /// Converts a BigInteger to a little-endian byte array of fixed length.
@@ -177,11 +176,7 @@ public static class X25519
     /// Conditional swap of two BigInteger variables if swap == 1.
     /// (Hàm swap có điều kiện của hai BigInteger nếu swap == 1.)
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ConditionalSwap(ref BigInteger a, ref BigInteger b, int swap)
-    {
-        if (swap != 0)
-        {
-            (b, a) = (a, b);
-        }
-    }
+        => (a, b) = swap != 0 ? (b, a) : (a, b);
 }

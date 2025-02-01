@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!-- General project settings -->
 		<Version>0.1.71</Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>Notio</AssemblyName>
 		<IsPublishable>false</IsPublishable>
-		<TargetFramework>net9.0</TargetFramework>
-		
+
+		<!-- Application settings -->
 		<ApplicationIcon>..\..\Resource\Notio.ico</ApplicationIcon>
 		<StartupObject>Notio.Application.Threading.Program</StartupObject>
 	</PropertyGroup>
@@ -29,6 +30,7 @@
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
+		<ProjectReference Include="..\Notio.Network.Web\Notio.Network.Web.csproj" />
 		<ProjectReference Include="..\Notio.Database\Notio.Database.csproj" />
 	</ItemGroup>
 

@@ -3,6 +3,7 @@ using Notio.Lite.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -14,6 +15,7 @@ namespace Notio.Lite;
 public static class FromString
 {
     // It doesn't matter which converter we get here: ConvertFromInvariantString is not virtual.
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     private static readonly MethodInfo ConvertFromInvariantStringMethod
         = new Func<string, object?>(TypeDescriptor.GetConverter(typeof(int)).ConvertFromInvariantString).Method;
 

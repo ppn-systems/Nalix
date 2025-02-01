@@ -6,7 +6,6 @@
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
 		<AssemblyName>NotioTest</AssemblyName>
-		<TargetFramework>net9.0</TargetFramework>
 
 		<StartupObject>Notio.Testing.Program</StartupObject>
 		<ApplicationIcon>..\..\Resource\Test.ico</ApplicationIcon>

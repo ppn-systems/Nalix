@@ -1,10 +1,26 @@
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+	<!-- Common settings for all projects in the solution -->
 	<PropertyGroup>
+		<!-- Common versioning settings -->
+		<Version>0.1.85</Version>
+		<PackageVersion>0.1.85</PackageVersion>
+		<Authors>Phuc Nguyen</Authors>
+		<Copyright>Copyright © 2025</Copyright>
+		<PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/phcnguyen/Notio</RepositoryUrl>
+
+		<!-- Target framework setting for all projects -->
+		<TargetFramework>net9.0</TargetFramework>
 		<DebugType>none</DebugType>
 		<GenerateJson>false</GenerateJson>
 		<OutputPath>..\build\bin</OutputPath>
 		<IntermediateOutputPath>..\build\obj</IntermediateOutputPath>
 	</PropertyGroup>
 
+	<!-- Optional: Configure publish settings -->
+	<PropertyGroup>
+		<PublishTrimmed>true</PublishTrimmed>
+		<PublishDir>..\build\publish\</PublishDir>
+	</PropertyGroup>
 </Project>

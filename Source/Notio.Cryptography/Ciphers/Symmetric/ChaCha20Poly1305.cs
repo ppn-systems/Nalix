@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
@@ -102,9 +103,11 @@ public class ChaCha20Poly1305
     // ----------------------------
 
     // Rotate left
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Rotl(uint x, int n) => x << n | x >> 32 - n;
 
     // ChaCha20 quarter round
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QuarterRound(ref uint a, ref uint b, ref uint c, ref uint d)
     {
         a += b; d ^= a; d = Rotl(d, 16);

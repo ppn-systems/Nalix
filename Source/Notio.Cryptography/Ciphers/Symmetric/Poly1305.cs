@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
@@ -105,6 +106,7 @@ public sealed class Poly1305
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to authenticate.</param>
     /// <returns>A 16-byte authentication tag.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Compute(byte[] key, byte[] message)
     {
         Poly1305 poly = new(key);
