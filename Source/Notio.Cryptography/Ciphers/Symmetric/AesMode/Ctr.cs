@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Notio.Cryptography.Ciphers.Symmetric.Mode;
+namespace Notio.Cryptography.Ciphers.Symmetric.AesMode;
 
-internal static class AesCtrMode
+internal static class Ctr
 {
     public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
     {

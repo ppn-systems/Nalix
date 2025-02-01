@@ -1,5 +1,4 @@
 ﻿using Notio.Common;
-using Notio.Cryptography.Ciphers.Symmetric.Mode;
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -64,28 +63,34 @@ public static class Aes256
 
     public static class CbcMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
-            => AesCbcMode.Encrypt(plaintext, key);
+        public static ReadOnlyMemory<byte> Encrypt(
+            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+            => AesMode.Cbc.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
-            => AesCbcMode.Decrypt(ciphertext, key);
+        public static ReadOnlyMemory<byte> Decrypt(
+            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+            => AesMode.Cbc.Decrypt(ciphertext, key);
     }
 
     public static class GcmMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
-            => AesGcmMode.Encrypt(plaintext, key);
+        public static ReadOnlyMemory<byte> Encrypt(
+            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+            => AesMode.Gcm.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
-            => AesGcmMode.Decrypt(ciphertext, key);
+        public static ReadOnlyMemory<byte> Decrypt(
+            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+            => AesMode.Gcm.Decrypt(ciphertext, key);
     }
 
     public static class CtrMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
-            => AesCtrMode.Encrypt(plaintext, key);
+        public static ReadOnlyMemory<byte> Encrypt(
+            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+            => AesMode.Ctr.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
-            => AesCtrMode.Decrypt(ciphertext, key);
+        public static ReadOnlyMemory<byte> Decrypt(
+            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+            => AesMode.Ctr.Decrypt(ciphertext, key);
     }
 }

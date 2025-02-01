@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Notio.Cryptography.Ciphers.Symmetric.Mode;
+namespace Notio.Cryptography.Ciphers.Symmetric.AesMode;
 
-internal static class AesCbcMode
+internal static class Cbc
 {
     private static Aes AesCbc(ReadOnlyMemory<byte> key)
     {

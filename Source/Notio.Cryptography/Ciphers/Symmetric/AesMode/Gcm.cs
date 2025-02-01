@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Notio.Cryptography.Ciphers.Symmetric.Mode;
+namespace Notio.Cryptography.Ciphers.Symmetric.AesMode;
 
-internal static class AesGcmMode
+internal static class Gcm
 {
     private static readonly int MaxTagSize = AesGcm.TagByteSizes.MaxSize;
     private static readonly int MaxNonceSize = AesGcm.NonceByteSizes.MaxSize;
