@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Configurations;
@@ -96,4 +96,17 @@ public abstract partial class TcpListenerBase
         this._listener.Bind(remote);
         this._listener.Listen(SocketBacklog);
     }
+
+    /// <summary>
+    /// Classifies socket errors that are expected/ignorable during shutdown.
+    /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean IsIgnorableAcceptError(System.Net.Sockets.SocketError code, System.Threading.CancellationToken token)
+        => token.IsCancellationRequested || code is System.Net.Sockets.SocketError.OperationAborted
+            or System.Net.Sockets.SocketError.Interrupted
+            or System.Net.Sockets.SocketError.NotSocket
+            or System.Net.Sockets.SocketError.InvalidArgument
+            or System.Net.Sockets.SocketError.TimedOut;
 }

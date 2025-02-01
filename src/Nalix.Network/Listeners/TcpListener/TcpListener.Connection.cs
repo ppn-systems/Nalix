@@ -128,6 +128,17 @@ public abstract partial class TcpListenerBase
             {
                 break; // Exit loop on cancellation
             }
+            catch (System.Net.Sockets.SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
+            {
+                if (cancellationToken.IsCancellationRequested || State != ListenerState.Running)
+                {
+                    break;
+                }
+
+                // Transient: Gentle backoff to avoid spam
+                await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                continue;
+            }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?

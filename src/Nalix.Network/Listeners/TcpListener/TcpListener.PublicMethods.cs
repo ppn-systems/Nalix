@@ -22,9 +22,6 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task ActivateAsync(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -38,10 +35,17 @@ public abstract partial class TcpListenerBase
         _cts?.Dispose();
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _cancellationToken = _cts.Token;
-        var linkedToken = _cts.Token;
+        System.Threading.CancellationToken linkedToken = _cts.Token;
 
         // Ensure socket closes on cancel
-        using var registration = linkedToken.Register(() => { try { _listener?.Close(); } catch { } });
+        using System.Threading.CancellationTokenRegistration registration = linkedToken.Register(() =>
+        {
+            try
+            {
+                _listener?.Close();
+            }
+            catch { }
+        });
 
         // IMPORTANT: Acquire the lifecycle lock BEFORE transitioning state
         await _lock.WaitAsync(linkedToken).ConfigureAwait(false);
@@ -51,7 +55,7 @@ public abstract partial class TcpListenerBase
             if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.Stopped)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Warn($"[{nameof(TcpListenerBase)}] Activate called but state = {State}");
+                                        .Warn($"[{nameof(TcpListenerBase)}] Activate called but state = {State}");
                 return;
             }
 
@@ -71,22 +75,22 @@ public abstract partial class TcpListenerBase
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Debug($"[{nameof(TcpListenerBase)}] Starting listener");
+                                    .Debug($"[{nameof(TcpListenerBase)}] Starting listener");
 
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Running);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Info($"[{nameof(TcpListenerBase)}] {_protocol} listening on port {Config.Port}");
+                                    .Info($"[{nameof(TcpListenerBase)}] {_protocol} listening on port {Config.Port}");
 
-            var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task>(1 + Config.MaxParallel)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                .StartTickLoopAsync(linkedToken)
-        };
+            System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = new(1 + Config.MaxParallel)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                                        .StartTickLoopAsync(linkedToken)
+            };
 
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
-                var accept = AcceptConnectionsAsync(linkedToken);
+                System.Threading.Tasks.Task accept = AcceptConnectionsAsync(linkedToken);
 
                 // Log faults without binding the continuation to the cancel token
                 _ = accept.ContinueWith(t =>
@@ -94,11 +98,13 @@ public abstract partial class TcpListenerBase
                     if (t.IsFaulted && !linkedToken.IsCancellationRequested)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Error($"[{nameof(TcpListenerBase)}] Accept task failed: {t.Exception?.GetBaseException().Message}");
+                                                .Error($"[{nameof(TcpListenerBase)}] Accept task failed: " +
+                                                       $"{t.Exception?.GetBaseException().Message}");
                     }
                 },
                 System.Threading.CancellationToken.None,
-                System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted | System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted |
+                System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
                 System.Threading.Tasks.TaskScheduler.Default);
 
                 tasks.Add(accept);
@@ -109,17 +115,17 @@ public abstract partial class TcpListenerBase
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Info($"[{nameof(TcpListenerBase)}] on {Config.Port} stopped by cancellation");
+                                    .Info($"[{nameof(TcpListenerBase)}] on {Config.Port} stopped by cancellation");
         }
         catch (System.Net.Sockets.SocketException ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(TcpListenerBase)}] Could not start {_protocol} on port {Config.Port}", ex);
+                                    .Error($"[{nameof(TcpListenerBase)}] Could not start {_protocol} on port {Config.Port}", ex);
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(TcpListenerBase)}] Critical error in listener on port {Config.Port}", ex);
+                                    .Fatal($"[{nameof(TcpListenerBase)}] Critical error in listener on port {Config.Port}", ex);
         }
         finally
         {
@@ -128,14 +134,15 @@ public abstract partial class TcpListenerBase
                 _cts?.Cancel();
                 _listener?.Close();
                 // Do NOT pass an external token here to avoid OCE during shutdown
-                await System.Threading.Tasks.Task.Delay(200).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None)
+                                                 .ConfigureAwait(false);
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().StopTicking();
             }
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Error($"[{nameof(TcpListenerBase)}] ERROR during shutdown: {ex.Message}");
+                                        .Error($"[{nameof(TcpListenerBase)}] Listener during shutdown: {ex.Message}");
             }
             finally
             {
