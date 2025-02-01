@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IComponentCollection{T}"/>.

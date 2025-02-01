@@ -1,11 +1,10 @@
-﻿using Notio.Web.Http;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 public partial class WebServer
 {

@@ -1,11 +1,11 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 internal static class StreamExtensions
 {

@@ -1,8 +1,8 @@
 ﻿using Notio.Lite.Extensions;
-using Notio.Web.Enums;
+using Notio.Network.Web.Enums;
 using System;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Represents the event data for the <see cref="WebSocket.OnMessage"/> event.

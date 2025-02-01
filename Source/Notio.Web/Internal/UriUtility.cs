@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal static class UriUtility
 {

@@ -1,6 +1,6 @@
 ﻿using System.Security.Principal;
 
-namespace Notio.Web.Authentication;
+namespace Notio.Network.Web.Authentication;
 
 /// <summary>
 /// Provides useful authentication-related constants.

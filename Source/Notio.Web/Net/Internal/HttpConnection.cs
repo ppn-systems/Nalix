@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal sealed partial class HttpConnection : IDisposable
 {

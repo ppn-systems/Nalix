@@ -1,10 +1,11 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Http.Handlers;
-using Notio.Web.Routing;
+﻿using Notio.Network.Web;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Handlers;
+using Notio.Network.Web.Routing;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// Represents a module.

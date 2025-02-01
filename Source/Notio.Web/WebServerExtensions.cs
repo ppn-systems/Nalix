@@ -1,10 +1,10 @@
 ﻿using Notio.Lite.Extensions;
-using Notio.Web.Enums;
+using Notio.Network.Web.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IWebServer"/>.

@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.WebSockets.Internal;
+﻿namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Indicates whether a WebSocket frame is the final frame of a message.

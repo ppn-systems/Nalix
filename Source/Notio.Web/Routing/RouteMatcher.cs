@@ -1,5 +1,5 @@
 ﻿using Notio.Lite;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Matches URL paths against a route.

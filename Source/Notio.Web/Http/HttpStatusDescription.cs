@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// <para>Provides standard HTTP status descriptions.</para>

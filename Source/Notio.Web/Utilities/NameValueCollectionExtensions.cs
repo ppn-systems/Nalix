@@ -1,10 +1,10 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides extension methods for <see cref="NameValueCollection"/>.

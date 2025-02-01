@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.MimeTypes;
+namespace Notio.Network.Web.MimeTypes;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IMimeTypeCustomizer"/>.

@@ -1,7 +1,7 @@
-﻿using Notio.Web.Sessions;
+﻿using Notio.Network.Web.Sessions;
 using System;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 public static partial class WebServerExtensions
 {

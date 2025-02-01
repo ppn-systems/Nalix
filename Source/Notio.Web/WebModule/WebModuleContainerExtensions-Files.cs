@@ -1,10 +1,10 @@
-﻿using Notio.Web.Files;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Files;
+using Notio.Network.Web.Utilities;
 using System;
 using System.IO;
 using System.Reflection;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

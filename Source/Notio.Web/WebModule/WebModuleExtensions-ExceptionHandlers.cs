@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http.Handlers;
+﻿using Notio.Network.Web.Http.Handlers;
 using System;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleExtensions
 {

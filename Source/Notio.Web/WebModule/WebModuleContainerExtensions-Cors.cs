@@ -1,8 +1,8 @@
-﻿using Notio.Web.Cors;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Cors;
+using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

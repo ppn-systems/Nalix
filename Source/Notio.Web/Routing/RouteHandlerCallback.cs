@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Base class for callbacks used to handle routed requests.

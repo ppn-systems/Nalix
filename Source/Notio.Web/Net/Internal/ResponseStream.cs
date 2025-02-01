@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Notio.Network.Web;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal class ResponseStream : Stream
 {

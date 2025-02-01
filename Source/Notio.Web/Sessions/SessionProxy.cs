@@ -1,9 +1,9 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Sessions.Internal;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Sessions.Internal;
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Web.Sessions;
+namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// Provides the same interface as a session object,

@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.WebSockets;
+﻿namespace Notio.Network.Web.WebSockets;
 
 /// <summary>
 /// Interface for WebSocket Receive Result object.

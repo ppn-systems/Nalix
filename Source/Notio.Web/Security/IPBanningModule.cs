@@ -1,13 +1,13 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Security.Internal;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Security.Internal;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Security;
+namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// A module to ban clients by IP address, based on TCP requests-per-second or RegEx matches on log messages.

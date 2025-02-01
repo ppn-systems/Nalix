@@ -2,7 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal class RequestStream : Stream
 {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// Provides extension methods for <see cref="WebApiModule"/>.

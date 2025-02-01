@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.WebSockets.Internal;
+﻿namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Indicates whether each RSV (RSV1, RSV2, and RSV3) of a WebSocket frame is non-zero.

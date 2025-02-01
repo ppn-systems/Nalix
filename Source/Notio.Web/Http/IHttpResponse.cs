@@ -2,7 +2,7 @@
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <inheritdoc />
 /// <summary>

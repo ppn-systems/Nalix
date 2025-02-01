@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Request;
+namespace Notio.Network.Web.Request;
 
 /// <summary>
 /// A callback used to handle a request.

@@ -1,8 +1,8 @@
-﻿using Notio.Web.Security;
+﻿using Notio.Network.Web.Security;
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

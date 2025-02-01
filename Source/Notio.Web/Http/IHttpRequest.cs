@@ -1,11 +1,11 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <inheritdoc />
 /// <summary>

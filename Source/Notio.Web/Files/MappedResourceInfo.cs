@@ -1,7 +1,7 @@
-﻿using Notio.Web.MimeTypes;
+﻿using Notio.Network.Web.MimeTypes;
 using System;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Contains information about a resource served via an <see cref="IFileProvider"/>.

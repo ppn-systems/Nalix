@@ -1,5 +1,5 @@
-﻿using Notio.Web.MimeTypes;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Provides access to the local file system to a <see cref="FileModule"/>.

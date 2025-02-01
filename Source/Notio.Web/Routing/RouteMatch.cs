@@ -1,10 +1,10 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Utilities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// <para>Represents a route resolved by a <see cref="RouteResolverBase{TData}"/>.</para>

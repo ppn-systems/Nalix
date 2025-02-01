@@ -2,11 +2,11 @@
 using Notio.Cryptography.Hash;
 using Notio.Database;
 using Notio.Database.Entities;
-using Notio.Web.Enums;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Routing;
-using Notio.Web.Security;
-using Notio.Web.WebApi;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Security;
+using Notio.Network.Web.WebApi;
 using System;
 using System.Collections.Generic;
 using System.Net;

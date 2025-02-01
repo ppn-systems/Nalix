@@ -1,4 +1,5 @@
-﻿using Notio.Web.Sessions;
+﻿using Notio.Network.Web;
+using Notio.Network.Web.Sessions;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -6,7 +7,7 @@ using System.Net;
 using System.Security.Principal;
 using System.Threading;
 
-namespace Notio.Web.WebSockets;
+namespace Notio.Network.Web.WebSockets;
 
 /// <summary>
 /// Represents the context of a WebSocket connection.

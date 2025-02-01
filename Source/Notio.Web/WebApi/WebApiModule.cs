@@ -1,10 +1,10 @@
-﻿using Notio.Web.Response;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Response;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// <para>A module using class methods as handlers.</para>

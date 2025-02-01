@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Enums;
+﻿namespace Notio.Network.Web.Enums;
 
 /// <summary>
 /// Defines the HTTP listeners available for use in a <see cref="WebServer"/>.

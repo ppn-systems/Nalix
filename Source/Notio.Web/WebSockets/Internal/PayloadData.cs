@@ -1,13 +1,13 @@
 ﻿using Notio.Lite;
-using Notio.Web.Enums;
-using Notio.Web.Net.Internal;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Net.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 internal class PayloadData
 {

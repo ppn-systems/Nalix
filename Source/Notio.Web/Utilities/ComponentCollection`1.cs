@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// <para>Implements a collection of components.</para>

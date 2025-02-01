@@ -18,16 +18,11 @@ public sealed class BufferAllocator : IBufferPool
 
     private readonly ILogger? _logger;
     private readonly int _totalBuffers;
+    private readonly BufferConfig _bufferConfig;
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly BufferManager _poolManager = new();
 
     private bool _isInitialized;
-
-    /// <summary>
-    /// Gets the buffer configuration from the system configuration manager.
-    /// </summary>
-    /// <value>The buffer configuration set from the system.</value>
-    public BufferConfig BufferConfig { get; } = ConfiguredShared.Instance.Get<BufferConfig>();
 
     /// <summary>
     /// Gets the largest buffer size from the buffer allocations list.
@@ -40,12 +35,11 @@ public sealed class BufferAllocator : IBufferPool
     /// <param name="bufferConfig">The buffer configuration to use. If null, the default configuration is used.</param>
     public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
-        if (bufferConfig is not null)
-            BufferConfig = bufferConfig;
+        _bufferConfig = bufferConfig ?? ConfiguredShared.Instance.Get<BufferConfig>();
 
         _logger = logger;
-        _totalBuffers = BufferConfig.TotalBuffers;
-        _bufferAllocations = ParseBufferAllocations(BufferConfig.BufferAllocations);
+        _totalBuffers = _bufferConfig.TotalBuffers;
+        _bufferAllocations = ParseBufferAllocations(_bufferConfig.BufferAllocations);
 
         _poolManager.EventShrink += ShrinkBufferPoolSize;
         _poolManager.EventIncrease += IncreaseBufferPoolSize;

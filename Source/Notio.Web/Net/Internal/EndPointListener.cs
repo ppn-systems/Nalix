@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Notio.Network.Web.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal sealed class EndPointListener : IDisposable
 {
@@ -44,7 +45,7 @@ internal sealed class EndPointListener : IDisposable
 
     public bool BindContext(HttpListenerContext context)
     {
-        Http.IHttpRequest req = context.Request;
+        IHttpRequest req = context.Request;
         HttpListener? listener = SearchListener(req.Url, out ListenerPrefix? prefix);
 
         if (listener == null)

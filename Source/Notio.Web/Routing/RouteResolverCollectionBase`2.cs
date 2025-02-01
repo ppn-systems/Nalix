@@ -1,13 +1,13 @@
 ﻿using Notio.Common;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Utilities;
 using Notio.Shared.Configuration;
-using Notio.Web.Http;
-using Notio.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Implements the logic for resolving a context and a URL path against a list of routes,

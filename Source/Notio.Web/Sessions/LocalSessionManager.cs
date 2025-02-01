@@ -1,5 +1,5 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Sessions;
+namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// <para>A simple session manager to handle in-memory sessions.</para>

@@ -1,10 +1,10 @@
 ﻿using Notio.Common;
 using Notio.Lite;
-using Notio.Web.Http;
-using Notio.Web.Response;
-using Notio.Web.Routing;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Response;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// <para>A module using objects derived from <see cref="WebApiController"/>

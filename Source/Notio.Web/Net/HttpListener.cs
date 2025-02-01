@@ -1,5 +1,5 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Net.Internal;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Net.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Net;
+namespace Notio.Network.Web.Net;
 
 /// <summary>
 /// The Notio implementation of the standard HTTP Listener class.

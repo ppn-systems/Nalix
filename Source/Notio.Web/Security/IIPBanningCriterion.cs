@@ -2,7 +2,7 @@
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Security;
+namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// Represents a criterion for <see cref="IPBanningModule"/>.

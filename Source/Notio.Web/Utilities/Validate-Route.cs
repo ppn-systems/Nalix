@@ -1,7 +1,7 @@
-﻿using Notio.Web.Routing;
+﻿using Notio.Network.Web.Routing;
 using System;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 public static partial class Validate
 {
@@ -24,7 +24,7 @@ public static partial class Validate
     /// <seealso cref="Route.IsValid"/>
     public static string Route(string argumentName, string value, bool isBaseRoute)
     {
-        Exception? exception = Web.Routing.Route.ValidateInternal(argumentName, value, isBaseRoute);
-        return exception != null ? throw exception : Web.Utilities.UrlPath.UnsafeNormalize(value, isBaseRoute);
+        Exception? exception = Network.Web.Routing.Route.ValidateInternal(argumentName, value, isBaseRoute);
+        return exception != null ? throw exception : Network.Web.Utilities.UrlPath.UnsafeNormalize(value, isBaseRoute);
     }
 }

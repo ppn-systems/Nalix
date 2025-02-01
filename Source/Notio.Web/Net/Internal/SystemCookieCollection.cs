@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Notio.Network.Web;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 /// <summary>
 /// Represents a wrapper for <c>System.Net.CookieCollection</c>.

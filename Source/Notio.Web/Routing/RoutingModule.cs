@@ -1,8 +1,8 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.WebModule;
 using System;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// A module that handles requests by resolving route / method pairs associated with handlers.

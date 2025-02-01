@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// <para>Represents a list of names with associated quality values extracted from an HTTP header,
@@ -221,7 +221,7 @@ public sealed class QValueList
                         int n = 0;
                         while (n < digits.Length)
                         {
-                            weight = (10 * weight) + (digits[n] - '0');
+                            weight = 10 * weight + (digits[n] - '0');
                             n++;
                         }
 
@@ -296,6 +296,6 @@ public sealed class QValueList
     private bool TryGetCandidateValue(string value, out (int Weight, int Ordinal) candidate)
     {
         return QValues.TryGetValue(value, out candidate)
-            || (UseWildcard && QValues.TryGetValue(Wildcard, out candidate));
+            || UseWildcard && QValues.TryGetValue(Wildcard, out candidate);
     }
 }

@@ -1,9 +1,9 @@
-﻿using Notio.Shared.Configuration;
-using Notio.Web.MimeTypes;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Utilities;
+using Notio.Shared.Configuration;
 using System.Collections.Generic;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal sealed class MimeTypeCustomizer : ConfiguredObject, IMimeTypeCustomizer
 {

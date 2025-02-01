@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Authentication;
-using Notio.Web.Http;
-using Notio.Web.Internal;
-using Notio.Web.Routing;
-using Notio.Web.Sessions;
-using Notio.Web.Utilities;
-using Notio.Web.WebSockets;
-using Notio.Web.WebSockets.Internal;
+using Notio.Network.Web.Authentication;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Sessions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebSockets;
+using Notio.Network.Web.WebSockets.Internal;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -14,7 +14,7 @@ using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 // Provides access to the request and response objects used by the HttpListener class.
 internal sealed class HttpListenerContext : IHttpContextImpl

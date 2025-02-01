@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Authentication;
+namespace Notio.Network.Web.Authentication;
 
 /// <summary>
 /// Provides extension methods for <see cref="BasicAuthenticationModule"/>.

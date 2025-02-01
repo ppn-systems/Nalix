@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Represents an object that can render a directory listing to a stream.

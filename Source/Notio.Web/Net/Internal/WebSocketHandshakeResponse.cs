@@ -1,11 +1,11 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal class WebSocketHandshakeResponse
 {

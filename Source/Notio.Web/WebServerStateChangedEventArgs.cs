@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Represents event arguments whenever the state of a web server changes.

@@ -1,12 +1,12 @@
 ﻿using Notio.Common;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.WebModule;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Base class for modules that handle requests by resolving route / method pairs associated with handlers.

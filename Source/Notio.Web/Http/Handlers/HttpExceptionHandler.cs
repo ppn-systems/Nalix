@@ -1,16 +1,16 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Http.Extensions;
-using Notio.Web.MimeTypes;
-using Notio.Web.Response;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Response;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Web;
 
-namespace Notio.Web.Http.Handlers;
+namespace Notio.Network.Web.Http.Handlers;
 
 /// <summary>
 /// Provides standard handlers for HTTP exceptions at both module and server level.
@@ -38,6 +38,7 @@ public static class HttpExceptionHandler
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public static Task EmptyResponse(IHttpContext context, IHttpException httpException)
     {
         return Task.CompletedTask;
@@ -52,9 +53,7 @@ public static class HttpExceptionHandler
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
     public static Task PlainTextResponse(IHttpContext context, IHttpException httpException)
-    {
-        return context.SendStringAsync(httpException.Message ?? string.Empty, MimeType.PlainText, WebServer.DefaultEncoding);
-    }
+        => context.SendStringAsync(httpException.Message ?? string.Empty, MimeType.PlainText, WebServer.DefaultEncoding);
 
     /// <summary>
     /// <para>Sends a response with a HTML payload
@@ -67,8 +66,7 @@ public static class HttpExceptionHandler
     /// <param name="httpException">The HTTP exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
     public static Task HtmlResponse(IHttpContext context, IHttpException httpException)
-    {
-        return context.SendStandardHtmlAsync(
+        => context.SendStandardHtmlAsync(
                 httpException.StatusCode,
                 text =>
                 {
@@ -93,7 +91,6 @@ public static class HttpExceptionHandler
                             HttpUtility.HtmlEncode(httpException.StackTrace));
                     }
                 });
-    }
 
     /// <summary>
     /// <para>Gets a <see cref="HttpExceptionHandlerCallback" /> that will serialize a HTTP exception's

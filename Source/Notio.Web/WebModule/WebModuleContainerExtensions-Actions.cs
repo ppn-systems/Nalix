@@ -1,10 +1,10 @@
-﻿using Notio.Web.Actions;
-using Notio.Web.Enums;
-using Notio.Web.Request;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Actions;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Request;
+using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

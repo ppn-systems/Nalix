@@ -1,8 +1,8 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
 using System;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Handles a HTTP request by matching it against a route,

@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Enums;
+﻿namespace Notio.Network.Web.Enums;
 
 /// <summary>
 /// Specifies the compression method used to compress a message on

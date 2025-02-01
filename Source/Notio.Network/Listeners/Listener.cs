@@ -14,30 +14,30 @@ namespace Notio.Network.Listeners;
 
 public abstract class Listener : TcpListener, IListener
 {
-    private static readonly NetworkConfig NetworkConfig = ConfiguredShared.Instance.Get<NetworkConfig>();
+    private static readonly NetworkConfig _networkConfig = ConfiguredShared.Instance.Get<NetworkConfig>();
 
     private readonly int _port;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
 
     /// <inheritdoc />
-    public Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
+    public Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
         : base(IPAddress.Any, port)
     {
         _port = port;
-        _protocol = protocol;
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
         _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
     }
 
     /// <inheritdoc />
-    public Listener(IProtocol protocol, IBufferPool bufferPool, ILogger? logger)
-        : base(IPAddress.Any, NetworkConfig.Port)
+    public Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+        : base(IPAddress.Any, _networkConfig.Port)
     {
-        _logger = logger;
-        _protocol = protocol;
-        _port = NetworkConfig.Port;
+        _port = _networkConfig.Port;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
         _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
     }
 

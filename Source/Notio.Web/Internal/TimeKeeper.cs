@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 /// <summary>
 /// Represents a wrapper around Stopwatch.

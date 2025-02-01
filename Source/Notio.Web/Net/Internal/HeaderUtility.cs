@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal static class HeaderUtility
 {

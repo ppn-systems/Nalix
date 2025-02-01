@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Notio.Web.Security;
+namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// Contains information about the ban of an IP address.

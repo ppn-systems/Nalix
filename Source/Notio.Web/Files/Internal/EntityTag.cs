@@ -1,9 +1,9 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Text;
 
-namespace Notio.Web.Files.Internal;
+namespace Notio.Network.Web.Files.Internal;
 
 internal static class EntityTag
 {

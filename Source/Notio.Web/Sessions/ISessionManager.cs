@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System.Threading;
 
-namespace Notio.Web.Sessions;
+namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// Represents a session manager, which is in charge of managing session objects

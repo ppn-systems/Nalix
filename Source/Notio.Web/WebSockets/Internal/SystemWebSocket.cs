@@ -1,10 +1,11 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.WebSockets;
 using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 internal sealed class SystemWebSocket : IWebSocket
 {

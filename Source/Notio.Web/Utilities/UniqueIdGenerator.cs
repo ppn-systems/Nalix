@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// <para>Generates locally unique string IDs, mainly for logging purposes.</para>

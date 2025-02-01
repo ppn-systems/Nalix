@@ -1,8 +1,8 @@
-﻿using Notio.Web.Routing;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Routing;
+using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

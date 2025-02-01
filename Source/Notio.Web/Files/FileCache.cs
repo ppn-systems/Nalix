@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Logging;
 using Notio.Lite.Threading;
-using Notio.Web.Internal;
+using Notio.Network.Web.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// A cache where one or more instances of <see cref="FileModule"/> can store hashes and file contents.

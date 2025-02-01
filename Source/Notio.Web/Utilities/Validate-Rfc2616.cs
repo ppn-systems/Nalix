@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 public static partial class Validate
 {

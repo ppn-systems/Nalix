@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using Notio.Network.Web.Net;
+using System.Collections.Generic;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal class HttpListenerPrefixCollection : List<string>
 {

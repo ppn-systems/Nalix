@@ -1,12 +1,12 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
 using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 /// <summary>
 /// Represents a wrapper for HttpListenerContext.Request.
@@ -23,7 +23,7 @@ public class SystemHttpRequest : IHttpRequest
     public SystemHttpRequest(System.Net.HttpListenerContext context)
     {
         _request = context.Request;
-        _ = Enum.TryParse<HttpVerbs>(_request.HttpMethod.Trim(), true, out HttpVerbs verb);
+        _ = Enum.TryParse(_request.HttpMethod.Trim(), true, out HttpVerbs verb);
         HttpVerb = verb;
         Cookies = new SystemCookieCollection(_request.Cookies);
         LocalEndPoint = _request.LocalEndPoint!;

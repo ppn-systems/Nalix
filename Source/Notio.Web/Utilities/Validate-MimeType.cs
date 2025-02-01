@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 public static partial class Validate
 {
@@ -23,7 +23,7 @@ public static partial class Validate
     {
         value = NotNullOrEmpty(argumentName, value);
 
-        return !MimeTypes.MimeType.IsMimeType(value, acceptMediaRange)
+        return !Network.Web.MimeTypes.MimeType.IsMimeType(value, acceptMediaRange)
             ? throw new ArgumentException("MIME type is not valid.", argumentName)
             : value;
     }

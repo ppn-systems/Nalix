@@ -1,5 +1,4 @@
-﻿using Notio.Testing;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,6 +18,8 @@ public static class Program
         AppConfig.InitializeConsole();
         AppConfig.InitializeLogging();
 
+        Thread.Sleep(1000); // Provide a time in milliseconds
+
         // Khởi tạo database context
         using (var dbContext = AppConfig.InitializeDatabase())
         {
@@ -36,11 +37,5 @@ public static class Program
 
         Console.ReadKey();
         CancellationTokenSource.Cancel();
-    }
-
-    internal static void RunUnitTests()
-    {
-        Aes256Testing.Main();
-        PacketTesting.Main();
     }
 }

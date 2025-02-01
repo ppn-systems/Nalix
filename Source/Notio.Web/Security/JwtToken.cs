@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace Notio.Web.Security;
+namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// Class for creating and validating JWT tokens.

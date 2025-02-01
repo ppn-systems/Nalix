@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Enums;
+﻿namespace Notio.Network.Web.Enums;
 
 /// <summary>
 /// Indicates the status code for the WebSocket connection close.

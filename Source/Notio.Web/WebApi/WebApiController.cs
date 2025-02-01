@@ -1,11 +1,11 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Response;
-using Notio.Web.Routing;
-using Notio.Web.Sessions;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Response;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Sessions;
 using System.Security.Principal;
 using System.Threading;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// Inherit from this class and define your own Web API methods

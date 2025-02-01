@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Security;
+﻿namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// Provides extension methods for <see cref="IPBanningModule"/> and derived classes.

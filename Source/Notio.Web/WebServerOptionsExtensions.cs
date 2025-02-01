@@ -1,10 +1,10 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Provides extension methods for <see cref="WebServerOptions"/>.

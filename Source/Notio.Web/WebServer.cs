@@ -1,15 +1,15 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Net.Internal;
-using Notio.Web.Routing;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Net.Internal;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// <para>Notio's web server. This is the default implementation of <see cref="IWebServer"/>.</para>

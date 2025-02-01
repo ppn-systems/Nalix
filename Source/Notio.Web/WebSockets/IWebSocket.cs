@@ -1,10 +1,10 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebSockets;
+namespace Notio.Network.Web.WebSockets;
 
 /// <inheritdoc />
 /// <summary>

@@ -1,10 +1,10 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Utilities;
 using System.IO;
 using System.IO.Compression;
 
-namespace Notio.Web.Http.Extensions;
+namespace Notio.Network.Web.Http.Extensions;
 
 public static partial class HttpContextExtensions
 {

@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.WebModule;
+﻿namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IWebModule"/>.

@@ -1,13 +1,13 @@
 ﻿using Notio.Lite;
 using Notio.Lite.Extensions;
-using Notio.Web.Enums;
-using Notio.Web.Net.Internal;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Net.Internal;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 internal class WebSocketFrame
 {

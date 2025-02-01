@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Provides extension methods for <see cref="FileModule"/> and derived classes.

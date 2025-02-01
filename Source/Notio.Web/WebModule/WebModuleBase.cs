@@ -1,17 +1,18 @@
-﻿using Notio.Shared.Configuration;
-using Notio.Web.Http;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Http.Handlers;
-using Notio.Web.Internal;
-using Notio.Web.MimeTypes;
-using Notio.Web.Routing;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Http.Handlers;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Utilities;
+using Notio.Shared.Configuration;
 using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// <para>Base class to define web modules.</para>

@@ -48,19 +48,21 @@ public abstract class SingletonBase<T> : IDisposable
     }
 
     /// <summary>
-    /// Releases unmanaged and - optionally - managed resources.
-    /// Call the GC.SuppressFinalize if you override this method and use
-    /// a non-default class finalizer (destructor).
+    /// Releases unmanaged and, optionally, managed resources.
+    /// If overridden, make sure to call base.Dispose(disposing).
     /// </summary>
-    /// <param name="disposeManaged"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+    /// <param name="disposeManaged">
+    /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
+    /// </param>
     protected virtual void Dispose(bool disposeManaged)
     {
-        if (_isDisposing) return;
+        if (_isDisposing)
+            return;
 
         _isDisposing = true;
 
-        // Dispose of the instance if it's IDisposable
-        if (_instance.Value is IDisposable disposableInstance)
+        // Only dispose the instance if it has been created.
+        if (_instance.IsValueCreated && _instance.Value is IDisposable disposableInstance)
         {
             disposableInstance.Dispose();
         }

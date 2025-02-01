@@ -1,12 +1,17 @@
 ﻿using System.Net;
 
-namespace Notio.Web.Http.Exceptions;
+namespace Notio.Network.Web.Http.Exceptions;
 
 /// <summary>
 /// When thrown, breaks the request handling control flow
 /// and sends a redirection response to the client.
 /// </summary>
-public class HttpRangeNotSatisfiableException : HttpException
+/// <remarks>
+/// Initializes a new instance of the <see cref="HttpRangeNotSatisfiableException"/> class.
+/// </remarks>
+/// <param name="contentLength">The total length of the requested resource, expressed in bytes,
+/// or <see langword="null"/> to omit the <c>Content-Range</c> header in the response.</param>
+public class HttpRangeNotSatisfiableException(long? contentLength) : HttpException((int)HttpStatusCode.RequestedRangeNotSatisfiable)
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpRangeNotSatisfiableException"/> class.
@@ -18,21 +23,10 @@ public class HttpRangeNotSatisfiableException : HttpException
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HttpRangeNotSatisfiableException"/> class.
-    /// </summary>
-    /// <param name="contentLength">The total length of the requested resource, expressed in bytes,
-    /// or <see langword="null"/> to omit the <c>Content-Range</c> header in the response.</param>
-    public HttpRangeNotSatisfiableException(long? contentLength)
-        : base((int)HttpStatusCode.RequestedRangeNotSatisfiable)
-    {
-        ContentLength = contentLength;
-    }
-
-    /// <summary>
     /// Gets the total content length to be specified
     /// on the response's <c>Content-Range</c> header.
     /// </summary>
-    public long? ContentLength { get; }
+    public long? ContentLength { get; } = contentLength;
 
     /// <inheritdoc />
     public override void PrepareResponse(IHttpContext context)

@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Decorate methods within controllers with this attribute in order to make them callable from the Web API Module

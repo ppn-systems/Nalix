@@ -51,6 +51,17 @@ public static class Aes256
         return SHA256.HashData(Encoding.UTF8.GetBytes(input));
     }
 
+    /// <summary>
+    /// Generates a secure random 96-bit nonce.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte[] GenerateNonce()
+    {
+        byte[] nonce = new byte[12];
+        RandomNumberGenerator.Fill(nonce);
+        return nonce;
+    }
+
     public static class CbcMode
     {
         public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)

@@ -1,10 +1,10 @@
-﻿using Notio.Web.WebModule;
+﻿using Notio.Network.Web.WebModule;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Authentication;
+namespace Notio.Network.Web.Authentication;
 
 /// <summary>
 /// Simple HTTP basic authentication module that stores credentials

@@ -1,22 +1,22 @@
 ﻿using Notio.Common.Logging;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Http.Handlers;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Request;
+using Notio.Network.Web.Sessions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using Notio.Shared.Configuration;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Http.Handlers;
-using Notio.Web.Internal;
-using Notio.Web.MimeTypes;
-using Notio.Web.Request;
-using Notio.Web.Sessions;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
 using System;
 using System.Globalization;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Base class for <see cref="IWebServer" /> implementations.

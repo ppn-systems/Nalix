@@ -1,11 +1,11 @@
-﻿using Notio.Web.WebApi;
+﻿using Notio.Network.Web.WebApi;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Notio.Web.Routing
+namespace Notio.Network.Web.Routing
 {
     /// <summary>
     /// Provides utility methods to work with routes.

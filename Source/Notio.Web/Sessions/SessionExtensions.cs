@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Sessions;
+namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="ISession"/>.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal sealed class ListenerPrefix
 {

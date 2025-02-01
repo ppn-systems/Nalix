@@ -6,7 +6,7 @@ using System.IO;
 namespace Notio.Shared.Configuration;
 
 /// <summary>
-/// Một lớp bao bọc để đọc và ghi các tệp ini.
+/// A wrapper class for reading and writing INI files.
 /// </summary>
 internal sealed class ConfiguredIniFile
 {
@@ -14,251 +14,251 @@ internal sealed class ConfiguredIniFile
     private readonly Dictionary<string, Dictionary<string, string>> _iniData;
 
     /// <summary>
-    /// Kiểm tra xem tệp có tồn tại tại đường dẫn được cung cấp hay không.
+    /// Checks whether the file exists at the provided path.
     /// </summary>
     public bool ExistsFile => File.Exists(_path);
 
     /// <summary>
-    /// Khởi tạo một phiên bản mới của <see cref="ConfiguredIniFile"/> cho đường dẫn được chỉ định.
+    /// Initializes a new instance of the <see cref="ConfiguredIniFile"/> class for the specified path.
     /// </summary>
-    /// <param name="path">Đường dẫn tới tệp ini.</param>
+    /// <param name="path">The path to the INI file.</param>
     public ConfiguredIniFile(string path)
     {
         _path = path;
-        _iniData = [];
+        // Use case-insensitive keys for sections and keys.
+        _iniData = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         Load();
     }
 
     /// <summary>
-    /// Đọc dữ liệu từ tệp ini vào bộ nhớ.
+    /// Loads the data from the INI file into memory.
     /// </summary>
     private void Load()
     {
-        if (!ExistsFile) return;
+        if (!ExistsFile)
+            return;
 
-        var currentSection = string.Empty;
+        string currentSection = string.Empty;
 
         foreach (var line in File.ReadLines(_path))
         {
-            var trimmedLine = line.Trim();
+            string trimmedLine = line.Trim();
 
-            // Bỏ qua dòng trống hoặc chú thích
+            // Skip empty lines or comments.
             if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith(';'))
                 continue;
 
-            // Kiểm tra xem có phải là phần (section) không
+            // Check if the line is a section header.
             if (trimmedLine.StartsWith('[') && trimmedLine.EndsWith(']'))
             {
                 currentSection = trimmedLine[1..^1].Trim();
                 if (!_iniData.ContainsKey(currentSection))
                 {
-                    _iniData[currentSection] = [];
+                    _iniData[currentSection] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 }
             }
             else
             {
-                // Nếu không phải là phần, giả sử đây là cặp khóa-giá trị
+                // Assume the line is a key-value pair.
                 var keyValue = trimmedLine.Split(['='], 2);
-
                 if (keyValue.Length == 2)
                 {
-                    var key = keyValue[0].Trim();
-                    var value = keyValue[1].Trim();
+                    string key = keyValue[0].Trim();
+                    string value = keyValue[1].Trim();
 
-                    _iniData[currentSection][key] = value;
+                    // Ensure the current section exists.
+                    if (!_iniData.TryGetValue(currentSection, out var section))
+                    {
+                        section = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        _iniData[currentSection] = section;
+                    }
+
+                    // Assign the key-value pair to the section.
+                    section[key] = value;
                 }
             }
         }
     }
 
     /// <summary>
-    /// Ghi một giá trị vào tệp ini nếu nó chưa tồn tại.
+    /// Writes a value to the INI file if the key does not already exist.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <param name="value">Giá trị cần ghi.</param>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <param name="value">The value to write.</param>
     public void WriteValue(string section, string key, object value)
     {
         if (!_iniData.TryGetValue(section, out Dictionary<string, string>? sectionData))
         {
-            sectionData = [];
+            sectionData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _iniData[section] = sectionData;
         }
 
-        // Chỉ ghi nếu giá trị chưa tồn tại
+        // Only write if the key does not already exist.
         if (!sectionData.ContainsKey(key))
         {
             sectionData[key] = value.ToString() ?? string.Empty;
-            WriteFile();  // Ghi lại toàn bộ dữ liệu vào tệp
+            WriteFile();  // Write the entire data back to the file.
         }
     }
 
-    public char? GetChar(string section, string key)
-    {
-        var stringValue = GetString(section, key);
-        return stringValue != null && stringValue.Length == 1 ? stringValue[0] : null;
-    }
-
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="string"/>.
+    /// Gets the value for the specified key in the specified section as a string.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng chuỗi.</returns>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The string value, or an empty string if not found.</returns>
     public string GetString(string section, string key)
     {
-        return _iniData.TryGetValue(section, out Dictionary<string, string>? value) && value.TryGetValue(key, out string? values)
-            ? values : string.Empty;
+        return _iniData.TryGetValue(section, out Dictionary<string, string>? sectionData) &&
+               sectionData.TryGetValue(key, out string? value)
+            ? value
+            : string.Empty;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="bool"/>.
+    /// Gets the value for the specified key in the specified section as a character.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng boolean hoặc null nếu không thể chuyển đổi.</returns>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
+    public char? GetChar(string section, string key)
+    {
+        string stringValue = GetString(section, key);
+        return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : (char?)null;
+    }
+
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as a boolean.
+    /// </summary>
     public bool? GetBool(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && bool.TryParse(stringValue, out bool parsedValue) ? parsedValue : null;
+        string stringValue = GetString(section, key);
+        return bool.TryParse(stringValue, out bool parsedValue) ? parsedValue : (bool?)null;
     }
 
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as a decimal.
+    /// </summary>
     public decimal? GetDecimal(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsedValue)
+        string stringValue = GetString(section, key);
+        return decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsedValue)
             ? parsedValue
-            : null;
+            : (decimal?)null;
     }
 
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as a byte.
+    /// </summary>
     public byte? GetByte(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && byte.TryParse(stringValue, out byte parsedValue)
-            ? parsedValue
-            : null;
+        string stringValue = GetString(section, key);
+        return byte.TryParse(stringValue, out byte parsedValue) ? parsedValue : (byte?)null;
     }
 
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as an sbyte.
+    /// </summary>
     public sbyte? GetSByte(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && sbyte.TryParse(stringValue, out sbyte parsedValue)
-            ? parsedValue
-            : null;
+        string stringValue = GetString(section, key);
+        return sbyte.TryParse(stringValue, out sbyte parsedValue) ? parsedValue : (sbyte?)null;
     }
 
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as a short.
+    /// </summary>
     public short? GetInt16(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && short.TryParse(stringValue, out short parsedValue)
-            ? parsedValue
-            : null;
+        string stringValue = GetString(section, key);
+        return short.TryParse(stringValue, out short parsedValue) ? parsedValue : (short?)null;
     }
 
+    /// <summary>
+    /// Gets the value for the specified key in the specified section as an unsigned short.
+    /// </summary>
     public ushort? GetUInt16(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && ushort.TryParse(stringValue, out ushort parsedValue)
-            ? parsedValue
-            : null;
+        string stringValue = GetString(section, key);
+        return ushort.TryParse(stringValue, out ushort parsedValue) ? parsedValue : (ushort?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="int"/>.
+    /// Gets the value for the specified key in the specified section as an integer.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng int hoặc null nếu không thể chuyển đổi.</returns>
     public int? GetInt32(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && int.TryParse(stringValue, out int parsedValue) ? parsedValue : null;
+        string stringValue = GetString(section, key);
+        return int.TryParse(stringValue, out int parsedValue) ? parsedValue : (int?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="uint"/>.
+    /// Gets the value for the specified key in the specified section as an unsigned integer.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng uint hoặc null nếu không thể chuyển đổi.</returns>
     public uint? GetUInt32(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && uint.TryParse(stringValue, out uint parsedValue) ? parsedValue : null;
+        string stringValue = GetString(section, key);
+        return uint.TryParse(stringValue, out uint parsedValue) ? parsedValue : (uint?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="long"/>.
+    /// Gets the value for the specified key in the specified section as a long.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng long hoặc null nếu không thể chuyển đổi.</returns>
     public long? GetInt64(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && long.TryParse(stringValue, out long parsedValue) ? parsedValue : null;
+        string stringValue = GetString(section, key);
+        return long.TryParse(stringValue, out long parsedValue) ? parsedValue : (long?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="ulong"/>.
+    /// Gets the value for the specified key in the specified section as an unsigned long.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng ulong hoặc null nếu không thể chuyển đổi.</returns>
     public ulong? GetUInt64(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && ulong.TryParse(stringValue, out ulong parsedValue) ? parsedValue : null;
+        string stringValue = GetString(section, key);
+        return ulong.TryParse(stringValue, out ulong parsedValue) ? parsedValue : (ulong?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="float"/>.
+    /// Gets the value for the specified key in the specified section as a float.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng float hoặc null nếu không thể chuyển đổi.</returns>
     public float? GetSingle(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue)
+        string stringValue = GetString(section, key);
+        return float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue)
             ? parsedValue
-            : null;
+            : (float?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="double"/>.
+    /// Gets the value for the specified key in the specified section as a double.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng double hoặc null nếu không thể chuyển đổi.</returns>
     public double? GetDouble(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedValue)
+        string stringValue = GetString(section, key);
+        return double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedValue)
             ? parsedValue
-            : null;
+            : (double?)null;
     }
 
     /// <summary>
-    /// Lấy giá trị có khóa được chỉ định từ phần được chỉ định của <see cref="ConfiguredIniFile"/> này dưới dạng <see cref="DateTime"/>.
+    /// Gets the value for the specified key in the specified section as a DateTime.
     /// </summary>
-    /// <param name="section">Tên phần trong tệp ini.</param>
-    /// <param name="key">Tên khóa trong phần.</param>
-    /// <returns>Giá trị dưới dạng TimeStamp hoặc null nếu không thể chuyển đổi.</returns>
     public DateTime? GetDateTime(string section, string key)
     {
-        var stringValue = GetString(section, key);
-        return stringValue != null && DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedValue)
+        string stringValue = GetString(section, key);
+        return DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedValue)
             ? parsedValue
-            : null;
+            : (DateTime?)null;
     }
 
     /// <summary>
-    /// Ghi lại nội dung của tệp ini vào tệp đích.
+    /// Writes the INI data to the file.
     /// </summary>
     private void WriteFile()
     {
-        if (_iniData == null || _iniData.Count == 0)
+        if (_iniData.Count == 0)
             return;
 
         using var writer = new StreamWriter(_path);
@@ -271,7 +271,7 @@ internal sealed class ConfiguredIniFile
                 writer.WriteLine($"{keyValue.Key}={keyValue.Value}");
             }
 
-            writer.WriteLine();  // Dòng trống giữa các section
+            writer.WriteLine(); // Blank line between sections
         }
     }
 }

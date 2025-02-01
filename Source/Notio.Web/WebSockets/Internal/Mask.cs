@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.WebSockets.Internal;
+﻿namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Indicates whether the payload data of a WebSocket frame is masked.

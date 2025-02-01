@@ -1,8 +1,8 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Internal;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Internal;
 using System;
 
-namespace Notio.Web.Files.Internal;
+namespace Notio.Network.Web.Files.Internal;
 
 internal sealed class FileCacheItem
 {

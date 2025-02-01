@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Enums;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +10,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Contains options for configuring an instance of <see cref="WebServer"/>.

@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Routing;
+﻿namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Represents the outcome of resolving a context and a path against a route.

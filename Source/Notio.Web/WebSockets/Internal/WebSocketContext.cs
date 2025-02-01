@@ -1,6 +1,8 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Sessions;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Sessions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebSockets;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -8,7 +10,7 @@ using System.Net;
 using System.Security.Principal;
 using System.Threading;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 internal sealed class WebSocketContext : IWebSocketContext
 {

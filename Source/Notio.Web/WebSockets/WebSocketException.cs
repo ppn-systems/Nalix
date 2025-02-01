@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 
-namespace Notio.Web.WebSockets;
+namespace Notio.Network.Web.WebSockets;
 
 /// <summary>
 /// The exception that is thrown when a WebSocket gets a fatal error.

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Security.Internal;
+namespace Notio.Network.Web.Security.Internal;
 
 internal static class IPBanningExecutor
 {

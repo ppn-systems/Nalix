@@ -1,10 +1,10 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System;
 using System.IO;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 /// <summary>
 /// Represents a wrapper for HttpListenerContext.Response.

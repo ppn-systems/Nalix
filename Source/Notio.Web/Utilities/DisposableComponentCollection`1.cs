@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// <para>Implements a collection of components that automatically disposes each component

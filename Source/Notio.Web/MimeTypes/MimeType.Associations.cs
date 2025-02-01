@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Web.MimeTypes;
+namespace Notio.Network.Web.MimeTypes;
 
 public static partial class MimeType
 {

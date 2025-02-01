@@ -1,10 +1,10 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 // Wraps a response's output stream, buffering all data
 // in a MemoryStream.

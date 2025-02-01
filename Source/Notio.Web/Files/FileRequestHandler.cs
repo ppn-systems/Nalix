@@ -1,9 +1,9 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Request;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Request;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Provides standard handler callbacks for <see cref="FileModule"/>.

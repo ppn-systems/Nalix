@@ -1,10 +1,10 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 /// <summary>
 /// Represents a wrapper for Microsoft HTTP Listener.

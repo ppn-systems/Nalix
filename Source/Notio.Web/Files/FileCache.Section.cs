@@ -1,9 +1,9 @@
-﻿using Notio.Web.Files.Internal;
+﻿using Notio.Network.Web.Files.Internal;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 public sealed partial class FileCache
 {

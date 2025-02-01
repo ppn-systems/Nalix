@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides standard methods to parse and format <see cref="DateTime"/>s according to various RFCs.

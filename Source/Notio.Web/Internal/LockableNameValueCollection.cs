@@ -1,6 +1,6 @@
 ﻿using System.Collections.Specialized;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal sealed class LockableNameValueCollection : NameValueCollection
 {

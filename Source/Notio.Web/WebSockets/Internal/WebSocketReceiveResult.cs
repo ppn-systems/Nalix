@@ -1,7 +1,8 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.WebSockets;
 using System;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Represents a WS Receive result.

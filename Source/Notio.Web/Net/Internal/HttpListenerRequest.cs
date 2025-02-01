@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Internal;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Specialized;
 using System.Globalization;
@@ -10,7 +10,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 /// <summary>
 /// Represents an HTTP Listener Request.

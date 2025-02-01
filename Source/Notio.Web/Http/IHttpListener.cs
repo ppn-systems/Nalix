@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// Interface to create a HTTP Listener.

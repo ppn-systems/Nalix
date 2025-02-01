@@ -1,6 +1,6 @@
-﻿using Notio.Shared.Configuration;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Utilities;
+using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Security;
+namespace Notio.Network.Web.Security;
 
 /// <summary>
 /// Represents a configuration object for <see cref="IPBanningModule"/>.

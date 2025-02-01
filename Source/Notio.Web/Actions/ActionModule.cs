@@ -1,12 +1,12 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Request;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Request;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Actions;
+namespace Notio.Network.Web.Actions;
 
 /// <summary>
 /// A module that passes requests to a callback.

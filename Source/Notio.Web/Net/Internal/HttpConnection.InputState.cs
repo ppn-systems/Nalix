@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Net.Internal;
+﻿namespace Notio.Network.Web.Net.Internal;
 
 internal partial class HttpConnection
 {

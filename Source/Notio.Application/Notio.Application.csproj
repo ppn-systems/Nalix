@@ -25,9 +25,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Web\Notio.Web.csproj" />
+		<ProjectReference Include="..\Notio.Web\Notio.Network.Web.csproj" />
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-		<ProjectReference Include="..\Notio.Testing\Notio.Testing.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
 		<ProjectReference Include="..\Notio.Database\Notio.Database.csproj" />

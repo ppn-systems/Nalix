@@ -1,7 +1,7 @@
-﻿using Notio.Web.MimeTypes;
-using Notio.Web.Routing;
-using Notio.Web.Sessions;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Sessions;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -9,7 +9,7 @@ using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// Represents the context of a HTTP(s) request being handled by a web server.

@@ -1,11 +1,11 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Files.Internal;
-using Notio.Web.Http;
-using Notio.Web.Internal;
-using Notio.Web.MimeTypes;
-using Notio.Web.Request;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Files.Internal;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Request;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -13,7 +13,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// A module serving files and directory listings from an <see cref="IFileProvider"/>.
@@ -492,7 +492,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
         // RFC7232, Section 3.3: "A recipient MUST ignore If-Modified-Since
         //                       if the request contains an If-None-Match header field."
         if (context.Request.CheckIfNoneMatch(entityTag, out bool ifNoneMatchExists)
-         || (!ifNoneMatchExists && context.Request.CheckIfModifiedSince(info.LastModifiedUtc, out _)))
+         || !ifNoneMatchExists && context.Request.CheckIfModifiedSince(info.LastModifiedUtc, out _))
         {
             context.Response.StatusCode = (int)HttpStatusCode.NotModified;
             PreparePositiveResponse(context.Response, info, contentType, entityTag, setCompressionInResponse);

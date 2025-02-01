@@ -1,6 +1,6 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 
-namespace Notio.Web.Files.Internal;
+namespace Notio.Network.Web.Files.Internal;
 
 internal static class MappedResourceInfoExtensions
 {

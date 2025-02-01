@@ -2,7 +2,7 @@
 using System.IO;
 using System.Security;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 public static partial class Validate
 {
@@ -27,8 +27,8 @@ public static partial class Validate
     /// <seealso cref="UrlPath.Normalize"/>
     public static string UrlPath(string argumentName, string value, bool isBasePath)
     {
-        Exception? exception = Web.Utilities.UrlPath.ValidateInternal(argumentName, value);
-        return exception != null ? throw exception : Web.Utilities.UrlPath.Normalize(value, isBasePath);
+        Exception? exception = Network.Web.Utilities.UrlPath.ValidateInternal(argumentName, value);
+        return exception != null ? throw exception : Network.Web.Utilities.UrlPath.Normalize(value, isBasePath);
     }
 
     /// <summary>

@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text;
 
-namespace Notio.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal static class StringExtensions
 {
@@ -43,7 +43,7 @@ internal static class StringExtensions
                     escaped = true;
                 }
             }
-            else if (c == ',' || (useCookieSeparators && c == ';'))
+            else if (c == ',' || useCookieSeparators && c == ';')
             {
                 if (!quoted)
                 {

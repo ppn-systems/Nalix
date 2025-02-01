@@ -1,9 +1,9 @@
-﻿using Notio.Web.Http.Exceptions;
-using Notio.Web.Internal;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.WebModule;
 using System;
 
-namespace Notio.Web.Request;
+namespace Notio.Network.Web.Request;
 
 /// <summary>
 /// Provides standard request handler callbacks.

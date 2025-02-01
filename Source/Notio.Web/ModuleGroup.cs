@@ -1,13 +1,13 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Internal;
-using Notio.Web.MimeTypes;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// <para>Groups modules under a common base URL path.</para>

@@ -1,6 +1,6 @@
-﻿using Notio.Web.Files.Internal;
+﻿using Notio.Network.Web.Files.Internal;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Provides standard directory listers for <see cref="FileModule"/>.

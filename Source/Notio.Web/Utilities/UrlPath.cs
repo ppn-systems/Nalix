@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides utility methods to work with URL paths.
@@ -178,7 +178,7 @@ public static class UrlPath
     public static bool UnsafeHasPrefix(string urlPath, string baseUrlPath)
     {
         return urlPath.StartsWith(baseUrlPath, StringComparison.Ordinal)
-            || (urlPath.Length == baseUrlPath.Length - 1 && baseUrlPath.StartsWith(urlPath, StringComparison.Ordinal));
+            || urlPath.Length == baseUrlPath.Length - 1 && baseUrlPath.StartsWith(urlPath, StringComparison.Ordinal);
     }
 
     /// <summary>

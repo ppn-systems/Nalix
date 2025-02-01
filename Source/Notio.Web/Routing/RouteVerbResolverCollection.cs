@@ -1,14 +1,14 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Handles a HTTP request by matching it against a list of routes,

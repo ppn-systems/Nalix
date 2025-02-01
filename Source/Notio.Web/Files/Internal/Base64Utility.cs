@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Files.Internal;
+namespace Notio.Network.Web.Files.Internal;
 
 internal static class Base64Utility
 {

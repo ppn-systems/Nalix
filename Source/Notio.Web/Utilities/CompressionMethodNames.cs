@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Utilities;
+﻿namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Exposes constants for possible values of the <c>Content-Encoding</c> HTTP header.

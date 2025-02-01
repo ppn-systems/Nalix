@@ -1,10 +1,10 @@
 ﻿using Notio.Common;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal sealed class DummyWebModuleContainer : IWebModuleContainer
 {

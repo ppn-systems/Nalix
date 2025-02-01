@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Enums;
+﻿namespace Notio.Network.Web.Enums;
 
 // NOTE TO CONTRIBUTORS:
 // =====================

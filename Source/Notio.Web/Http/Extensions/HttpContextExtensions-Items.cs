@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Http.Extensions;
+namespace Notio.Network.Web.Http.Extensions;
 
 public static partial class HttpContextExtensions
 {

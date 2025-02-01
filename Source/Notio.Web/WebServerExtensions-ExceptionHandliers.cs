@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http.Handlers;
+﻿using Notio.Network.Web.Http.Handlers;
 using System;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 public static partial class WebServerExtensions
 {

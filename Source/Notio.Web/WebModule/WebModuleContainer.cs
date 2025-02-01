@@ -1,6 +1,6 @@
-﻿using Notio.Web.Internal;
+﻿using Notio.Network.Web.Internal;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// Provides useful constants for dealing with module containers.

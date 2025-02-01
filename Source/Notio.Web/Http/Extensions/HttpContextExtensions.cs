@@ -1,8 +1,8 @@
 ﻿using Notio.Common;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.Http.Extensions;
+namespace Notio.Network.Web.Http.Extensions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IHttpContext"/>.

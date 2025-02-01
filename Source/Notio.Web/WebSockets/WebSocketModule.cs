@@ -1,13 +1,13 @@
 ﻿using Notio.Common.Logging;
 using Notio.Lite.Extensions;
 using Notio.Lite.Threading;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Response;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
-using Notio.Web.WebSockets.Internal;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Response;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
+using Notio.Network.Web.WebSockets.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebSockets;
+namespace Notio.Network.Web.WebSockets;
 
 /// <summary>
 /// A base class for modules that handle WebSocket connections.

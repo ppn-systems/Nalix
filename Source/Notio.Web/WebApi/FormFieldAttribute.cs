@@ -1,12 +1,12 @@
 ﻿using Notio.Lite;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// <para>Specifies that a parameter of a controller method will receive the value(s) of a field in a HTML form,

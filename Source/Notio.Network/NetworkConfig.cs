@@ -39,5 +39,6 @@ public sealed class NetworkConfig : ConfiguredBinder
     public bool IsBlocking { get; set; } = true; // Sockets will be blocking by default
 
     // Optionally, you can check for the port validity programmatically
+    [ConfiguredIgnore]
     public bool IsValidPort => Port >= 1 && Port <= 65535;
 }

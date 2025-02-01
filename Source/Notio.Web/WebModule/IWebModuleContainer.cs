@@ -1,7 +1,7 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// Represents an object that contains a collection of <see cref="IWebModule"/> interfaces.

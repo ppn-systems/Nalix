@@ -1,13 +1,13 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Cors;
+namespace Notio.Network.Web.Cors;
 
 /// <summary>
 /// Cross-origin resource sharing (CORS) control Module.

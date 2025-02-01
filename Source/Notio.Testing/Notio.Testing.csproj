@@ -1,11 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
-		<OutputType>Library</OutputType>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
-		<Nullable>enable</Nullable>
+		<AssemblyName>NotioTest</AssemblyName>
+		<TargetFramework>net9.0</TargetFramework>
+
+		<StartupObject>Notio.Testing.Program</StartupObject>
+		<ApplicationIcon>..\..\Resource\Test.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

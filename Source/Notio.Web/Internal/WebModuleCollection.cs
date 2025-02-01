@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Http;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal sealed class WebModuleCollection : DisposableComponentCollection<IWebModule>
 {

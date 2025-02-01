@@ -1,4 +1,4 @@
-﻿namespace Notio.Web;
+﻿namespace Notio.Network.Web;
 
 /// <summary>
 /// An event handler that is called whenever the state of a web server is changed.

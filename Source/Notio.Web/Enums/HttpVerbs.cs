@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Enums;
+﻿namespace Notio.Network.Web.Enums;
 
 /// <summary>
 /// Enumerates the different HTTP Verbs.

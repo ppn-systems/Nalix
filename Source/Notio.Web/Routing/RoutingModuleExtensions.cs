@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Provides extension methods for <see cref="RoutingModule"/>.

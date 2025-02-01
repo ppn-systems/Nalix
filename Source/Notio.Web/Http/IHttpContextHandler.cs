@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Notio.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// <para>Represents an object that can handle a HTTP context.</para>

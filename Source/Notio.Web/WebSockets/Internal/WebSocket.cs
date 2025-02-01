@@ -1,8 +1,9 @@
 ﻿using Notio.Common.Logging;
 using Notio.Lite.Extensions;
-using Notio.Web.Enums;
-using Notio.Web.Http;
-using Notio.Web.Net.Internal;
+using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Net.Internal;
+using Notio.Network.Web.WebSockets;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -12,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebSockets.Internal;
+namespace Notio.Network.Web.WebSockets.Internal;
 
 /// <summary>
 /// Implements the WebSocket interface.

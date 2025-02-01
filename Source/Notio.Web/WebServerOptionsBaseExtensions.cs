@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Provides extension methods for classes derived from <see cref="WebServerOptionsBase"/>.

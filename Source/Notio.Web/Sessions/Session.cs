@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Web.Sessions;
+namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// Provides useful constants related to session management.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Web.Sessions.Internal;
+namespace Notio.Network.Web.Sessions.Internal;
 
 internal sealed class DummySessionProxy : ISessionProxy
 {

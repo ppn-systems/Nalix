@@ -1,7 +1,7 @@
-﻿using Notio.Web.Http;
+﻿using Notio.Network.Web.Http;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// A callback used to handle a request in <see cref="FileModule"/>.

@@ -1,7 +1,7 @@
-﻿using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Web.MimeTypes;
+namespace Notio.Network.Web.MimeTypes;
 
 /// <summary>
 /// Provides constants for commonly-used MIME types and association between file extensions and MIME types.

@@ -1,13 +1,13 @@
-﻿using Notio.Web.Enums;
-using Notio.Web.Http.Handlers;
-using Notio.Web.MimeTypes;
-using Notio.Web.Sessions;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http.Handlers;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Sessions;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// <para>Represents a web server.</para>

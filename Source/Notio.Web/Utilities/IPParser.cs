@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides standard methods to parse IP address strings.
@@ -125,8 +125,8 @@ public static class IPParser
 
         for (int i = 0; i < 4; i++)
         {
-            beginIP[i] = (byte)((ip1 >> ((3 - i) * 8)) & 255);
-            endIP[i] = (byte)((ip2 >> ((3 - i) * 8)) & 255);
+            beginIP[i] = (byte)(ip1 >> (3 - i) * 8 & 255);
+            endIP[i] = (byte)(ip2 >> (3 - i) * 8 & 255);
         }
 
         return GetAllIPAddresses(beginIP, endIP);
@@ -161,7 +161,7 @@ public static class IPParser
             }
 
             if (!byte.TryParse(rangeParts[0], out _) ||
-                (rangeParts.Length > 1 && !byte.TryParse(rangeParts[1], out _)))
+                rangeParts.Length > 1 && !byte.TryParse(rangeParts[1], out _))
             {
                 return false;
             }

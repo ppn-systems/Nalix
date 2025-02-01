@@ -1,12 +1,12 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Http.Extensions;
-using Notio.Web.Utilities;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Actions;
+namespace Notio.Network.Web.Actions;
 
 /// <summary>
 /// A module that redirects requests.

@@ -1,7 +1,7 @@
 ﻿using Notio.Shared.Configuration;
 using System;
 
-namespace Notio.Web;
+namespace Notio.Network.Web;
 
 /// <summary>
 /// Base class for web server options.

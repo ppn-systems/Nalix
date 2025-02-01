@@ -1,11 +1,11 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.WebModule;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Authentication;
+namespace Notio.Network.Web.Authentication;
 
 /// <summary>
 /// Implements <see href="https://tools.ietf.org/html/rfc7617">HTTP basic authentication</see>.

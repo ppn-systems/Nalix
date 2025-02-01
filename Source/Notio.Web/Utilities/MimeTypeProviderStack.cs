@@ -1,9 +1,9 @@
-﻿using Notio.Web.MimeTypes;
+﻿using Notio.Network.Web.MimeTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// <para>Manages a stack of MIME type providers.</para>

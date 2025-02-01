@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Logging;
-using Notio.Web.Net.Internal;
+using Notio.Network.Web.Net.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Notio.Web.Net;
+namespace Notio.Network.Web.Net;
 
 /// <summary>
 /// Represents the EndPoint Manager.

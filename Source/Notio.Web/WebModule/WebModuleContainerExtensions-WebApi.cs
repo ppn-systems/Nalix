@@ -1,11 +1,11 @@
-﻿using Notio.Web.Response;
-using Notio.Web.Routing;
-using Notio.Web.Utilities;
-using Notio.Web.WebApi;
+﻿using Notio.Network.Web.Response;
+using Notio.Network.Web.Routing;
+using Notio.Network.Web.Utilities;
+using Notio.Network.Web.WebApi;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebModule;
+namespace Notio.Network.Web.WebModule;
 
 public static partial class WebModuleContainerExtensions
 {

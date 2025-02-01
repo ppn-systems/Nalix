@@ -1,12 +1,12 @@
 ﻿using Notio.Common.Logging;
 using Notio.Lite.Formatters;
-using Notio.Web.Http;
-using Notio.Web.Http.Exceptions;
-using Notio.Web.Http.Extensions;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Http.Extensions;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Request;
+namespace Notio.Network.Web.Request;
 
 /// <summary>
 /// Provides standard request deserialization callbacks.

@@ -1,9 +1,9 @@
-﻿using Notio.Web.Http.Extensions;
+﻿using Notio.Network.Web.Http.Extensions;
 using System;
 using System.Collections.Specialized;
 using System.Threading.Tasks;
 
-namespace Notio.Web.WebApi;
+namespace Notio.Network.Web.WebApi;
 
 /// <summary>
 /// <para>Specifies that a parameter of a controller method will receive a <see cref="NameValueCollection"/>

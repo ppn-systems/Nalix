@@ -1,6 +1,6 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Provides extension methods for <see cref="QValueList"/>.

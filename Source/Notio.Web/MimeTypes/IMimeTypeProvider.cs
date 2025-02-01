@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Web.MimeTypes;
+namespace Notio.Network.Web.MimeTypes;
 
 /// <summary>
 /// Represents an object that contains information on specific MIME types and media ranges.

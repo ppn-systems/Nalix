@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Sessions;
+﻿namespace Notio.Network.Web.Sessions;
 
 /// <summary>
 /// Represents a session proxy, i.e. an object that provides

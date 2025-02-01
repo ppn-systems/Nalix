@@ -1,6 +1,6 @@
 ﻿using Notio.Common;
-using Notio.Web.MimeTypes;
-using Notio.Web.Utilities;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -10,7 +10,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Files.Internal;
+namespace Notio.Network.Web.Files.Internal;
 
 internal class HtmlDirectoryLister : IDirectoryLister
 {

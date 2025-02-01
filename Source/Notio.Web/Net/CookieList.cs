@@ -1,6 +1,7 @@
-﻿using Notio.Web.Internal;
-using Notio.Web.Net.Internal;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.Net.Internal;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,7 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Notio.Web.Net;
+namespace Notio.Network.Web.Net;
 
 /// <summary>
 /// <para>Provides a collection container for instances of <see cref="Cookie"/>.</para>

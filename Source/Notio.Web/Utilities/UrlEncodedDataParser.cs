@@ -1,10 +1,10 @@
-﻿using Notio.Web.Http;
-using Notio.Web.Internal;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
 using System;
 using System.Collections.Specialized;
 using System.Net;
 
-namespace Notio.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Parses URL queries or URL-encoded HTML forms.

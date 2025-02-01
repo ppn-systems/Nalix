@@ -1,12 +1,12 @@
-﻿using Notio.Shared.Configuration;
-using Notio.Web.Http;
-using Notio.Web.Internal;
-using Notio.Web.Utilities;
+﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
+using Notio.Network.Web.Utilities;
+using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 /// <summary>
 /// Implements the logic for resolving the requested path of a HTTP context against a route,

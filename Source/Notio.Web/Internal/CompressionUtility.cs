@@ -1,8 +1,8 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System.IO;
 using System.IO.Compression;
 
-namespace Notio.Web.Internal;
+namespace Notio.Network.Web.Internal;
 
 internal static class CompressionUtility
 {

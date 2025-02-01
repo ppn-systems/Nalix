@@ -1,4 +1,4 @@
-﻿namespace Notio.Web.Http;
+﻿namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// Exposes known HTTP header names.

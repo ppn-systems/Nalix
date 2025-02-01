@@ -1,10 +1,10 @@
-﻿using Notio.Web.MimeTypes;
+﻿using Notio.Network.Web.MimeTypes;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-namespace Notio.Web.Files;
+namespace Notio.Network.Web.Files;
 
 /// <summary>
 /// Represents an object that can provide files and/or directories to be served by a <see cref="FileModule"/>.

@@ -1,12 +1,12 @@
 ﻿using Notio.Lite.Formatters;
-using Notio.Web.Http;
-using Notio.Web.Http.Extensions;
-using Notio.Web.MimeTypes;
-using Notio.Web.Utilities;
+using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.Utilities;
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Web.Response
+namespace Notio.Network.Web.Response
 {
     /// <summary>
     /// Provides standard response serializer callbacks.

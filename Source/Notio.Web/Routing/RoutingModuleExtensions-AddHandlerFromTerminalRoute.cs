@@ -1,7 +1,7 @@
-﻿using Notio.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using System;
 
-namespace Notio.Web.Routing;
+namespace Notio.Network.Web.Routing;
 
 public static partial class RoutingModuleExtensions
 {
