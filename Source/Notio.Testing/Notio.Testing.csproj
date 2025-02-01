@@ -20,10 +20,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
-		<ProjectReference Include="..\Notio.Network.Package\Notio.Network.Package.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />
+		<ProjectReference Include="..\Notio.Network.Package\Notio.Network.Package.csproj" />
 	</ItemGroup>
 	
 </Project>

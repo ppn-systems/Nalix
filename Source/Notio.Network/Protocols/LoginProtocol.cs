@@ -11,6 +11,12 @@ public class LoginProtocol(PacketHandlerRouter packetHandlerRouter) : Protocol
     public override bool KeepConnectionOpen => false;
 
     /// <inheritdoc />
+    public override void OnAccept(IConnection connection)
+    {
+        base.OnAccept(connection);
+    }
+
+    /// <inheritdoc />
     public override void ProcessMessage(object sender, IConnectEventArgs args)
     {
         _handlerFactory.RoutePacket(args.Connection);

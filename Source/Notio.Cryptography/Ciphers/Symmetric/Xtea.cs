@@ -2,8 +2,18 @@
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
+/// <summary>
+/// Implements the XTEA (eXtended Tiny Encryption Algorithm) symmetric cipher.
+/// </summary>
 public static class Xtea
 {
+    /// <summary>
+    /// Encrypts the given data using the XTEA algorithm.
+    /// </summary>
+    /// <param name="data">The plaintext data to encrypt.</param>
+    /// <param name="key">A 128-bit (4-element uint array) encryption key.</param>
+    /// <returns>The encrypted data.</returns>
+    /// <exception cref="ArgumentException">Thrown if the key is invalid.</exception>
     public static unsafe byte[] Encrypt(byte[] data, uint[] key)
     {
         if (key == null || key.Length < 4)
@@ -12,14 +22,14 @@ public static class Xtea
         int originalLength = data.Length;
         int pad = originalLength % 8;
         if (pad != 0)
-            Array.Resize(ref data, originalLength + (8 - pad));
+            Array.Resize(ref data, originalLength + (8 - pad)); // Ensure data is a multiple of 8 bytes
 
         uint[] words = new uint[data.Length / 4];
         Buffer.BlockCopy(data, 0, words, 0, data.Length);
 
         fixed (uint* wordsPtr = words, keyPtr = key)
         {
-            uint delta = 0x9E3779B9;
+            const uint delta = 0x9E3779B9;
             for (int pos = 0; pos < words.Length; pos += 2)
             {
                 uint* v0 = wordsPtr + pos;
@@ -40,6 +50,12 @@ public static class Xtea
         return encryptedData;
     }
 
+    /// <summary>
+    /// Decrypts the given data using the XTEA algorithm.
+    /// </summary>
+    /// <param name="data">The encrypted data to decrypt. This array is modified in-place.</param>
+    /// <param name="key">A 128-bit (4-element uint array) decryption key.</param>
+    /// <returns><c>true</c> if decryption was successful, <c>false</c> otherwise.</returns>
     public static unsafe bool Decrypt(byte[] data, uint[] key)
     {
         if (data == null || key == null || key.Length < 4 || data.Length % 8 != 0)
@@ -50,12 +66,12 @@ public static class Xtea
 
         fixed (uint* wordsPtr = words, keyPtr = key)
         {
-            uint delta = 0x9E3779B9;
+            const uint delta = 0x9E3779B9;
             for (int pos = 0; pos < words.Length; pos += 2)
             {
                 uint* v0 = wordsPtr + pos;
                 uint* v1 = v0 + 1;
-                uint sum = 0xC6EF3720;
+                uint sum = 0xC6EF3720; // delta * 32
 
                 for (int i = 0; i < 32; i++)
                 {

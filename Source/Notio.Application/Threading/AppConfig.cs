@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Application.RestApi;
+using Notio.Application.TcpHandlers;
 using Notio.Common.Logging;
 using Notio.Common.Logging.Enums;
 using Notio.Database;
@@ -132,6 +133,6 @@ public static class AppConfig
         handlerRouter.RegisterHandler<ExampleController>();
 
         ServerProtocol serverProtocol = new(handlerRouter);
-        ServerListener listener = new ServerListener(serverProtocol, bufferAllocator, NotioLog.Instance);
+        return new ServerListener(serverProtocol, bufferAllocator, NotioLog.Instance);
     }
 }

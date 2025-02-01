@@ -1,56 +1,63 @@
-﻿using System.Linq;
+﻿using System;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
-
-/// <summary>
-/// Lớp cung cấp các phương thức mã hóa và giải mã bằng thuật toán ARC4.
-/// </summary>
-public class Arc4
+namespace Notio.Cryptography.Ciphers.Symmetric
 {
-    private uint i;
-    private uint j;
-    private readonly byte[] s;
-
     /// <summary>
-    /// Khởi tạo một đối tượng ARC4 với khóa cho trước.
+    /// Implements the ARC4 (Alleged RC4) symmetric cipher.
     /// </summary>
-    /// <param name="key">Khóa dùng để mã hóa/giải mã.</param>
-    public Arc4(byte[] key)
+    public class Arc4
     {
-        s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
+        private byte i;
+        private byte j;
+        private readonly byte[] s;
 
-        uint index2 = 0u;
-
-        for (uint index = 0u; index < 256u; index++)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Arc4"/> class with the given key.
+        /// </summary>
+        /// <param name="key">The encryption/decryption key (should be between 5 and 256 bytes).</param>
+        /// <exception cref="ArgumentException">Thrown if the key is null or too short.</exception>
+        public Arc4(byte[] key)
         {
-            index2 = index2 + key[index % key.Length] + s[index] & 0xFF;
-            Swap(s, index, index2);
-        }
-    }
+            if (key == null || key.Length < 5 || key.Length > 256)
+                throw new ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
 
-    /// <summary>
-    /// Mã hóa hoặc giải mã dữ liệu trong buffer.
-    /// </summary>
-    /// <param name="buffer">Mảng byte chứa dữ liệu cần mã hóa/giải mã.</param>
-    public void Process(byte[] buffer)
-    {
-        for (uint index = 0u; index < buffer.Length; index++)
+            s = new byte[256];
+
+            for (int k = 0; k < 256; k++)
+                s[k] = (byte)k;
+
+            byte index2 = 0;
+            for (int k = 0; k < 256; k++)
+            {
+                index2 = (byte)((index2 + key[k % key.Length] + s[k]) & 0xFF);
+                Swap(s, k, index2);
+            }
+
+            i = 0;
+            j = 0;
+        }
+
+        /// <summary>
+        /// Encrypts or decrypts the given data in-place.
+        /// </summary>
+        /// <param name="buffer">The data to be processed.</param>
+        public void Process(Span<byte> buffer)
         {
-            i = i + 1 & 0xFF;
-            j = j + s[i] & 0xFF;
-            Swap(s, i, j);
-            buffer[index] ^= s[s[i] + s[j] & 0xFF];
+            for (int k = 0; k < buffer.Length; k++)
+            {
+                i = (byte)((i + 1) & 0xFF);
+                j = (byte)((j + s[i]) & 0xFF);
+                Swap(s, i, j);
+                buffer[k] ^= s[(s[i] + s[j]) & 0xFF];
+            }
         }
-    }
 
-    /// <summary>
-    /// Hoán đổi hai giá trị trong mảng.
-    /// </summary>
-    /// <param name="s">Mảng byte cần hoán đổi.</param>
-    /// <param name="i">Chỉ số đầu tiên.</param>
-    /// <param name="j">Chỉ số thứ hai.</param>
-    private static void Swap(byte[] s, uint i, uint j)
-    {
-        (s[i], s[j]) = (s[j], s[i]);
+        /// <summary>
+        /// Swaps two values in the state array.
+        /// </summary>
+        private static void Swap(byte[] s, int i, int j)
+        {
+            (s[i], s[j]) = (s[j], s[i]);
+        }
     }
 }

@@ -3,6 +3,7 @@ using Notio.Cryptography.Ciphers.Symmetric.Mode;
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
@@ -34,6 +35,20 @@ public static class Aes256
         {
             throw new InternalErrorException("Failed to generate encryption key", ex);
         }
+    }
+
+    /// <summary>
+    /// Derives a 256-bit AES key from a string.
+    /// </summary>
+    /// <param name="input">The input string.</param>
+    /// <returns>A 256-bit key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte[] GenerateKey(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            throw new ArgumentException("Input cannot be null or empty.", nameof(input));
+
+        return SHA256.HashData(Encoding.UTF8.GetBytes(input));
     }
 
     public static class CbcMode

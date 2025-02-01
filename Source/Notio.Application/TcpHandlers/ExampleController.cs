@@ -3,7 +3,8 @@ using Notio.Network.Package;
 
 namespace Notio.Application.TcpHandlers;
 
-public class ExampleController : PacketController
+[PacketController]
+public class ExampleController
 {
     [PacketCommand(100)]
     public static Packet ExampleMethod(Packet packet)

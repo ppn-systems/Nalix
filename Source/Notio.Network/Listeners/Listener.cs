@@ -6,6 +6,7 @@ using Notio.Shared.Configuration;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,6 +49,17 @@ public abstract class Listener : TcpListener, IListener
             try
             {
                 base.Start();
+                _logger?.Info($"{_protocol} is online on port {_port}");
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    IConnection connection = await CreateConnection(cancellationToken);
+
+                    _protocol.OnAccept(connection);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger?.Info($"Listener on port {_port} stopped gracefully");
             }
             catch (SocketException ex)
             {
@@ -55,14 +67,15 @@ public abstract class Listener : TcpListener, IListener
                 Environment.Exit(1);
                 return;
             }
-
-            _logger?.Info($"{_protocol} is online on port {_port}");
-
-            while (!cancellationToken.IsCancellationRequested)
+            catch (Exception ex)
             {
-                IConnection connection = await CreateConnection(cancellationToken);
-
-                _protocol.OnAccept(connection);
+                _logger?.Error($"Critical error in listener on port {_port}", ex);
+                Environment.Exit(1);
+                return;
+            }
+            finally
+            {
+                base.Stop();
             }
         }, cancellationToken);
     }
@@ -73,7 +86,7 @@ public abstract class Listener : TcpListener, IListener
     private async Task<IConnection> CreateConnection(CancellationToken cancellationToken)
     {
         Socket socket = await AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
-        SocketConfig(socket);
+        ConfigureHighPerformanceSocket(socket);
 
         Connection.Connection connection = new(socket, _bufferPool, _logger); // Fully qualify the Connection class
 
@@ -91,29 +104,36 @@ public abstract class Listener : TcpListener, IListener
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
     }
 
-    private static void SocketConfig(Socket socket)
+    private static void ConfigureHighPerformanceSocket(Socket socket)
     {
-        socket.ReceiveBufferSize = NetworkConfig.ReceiveBufferSize;
-        socket.SendBufferSize = NetworkConfig.SendBufferSize;
-        socket.LingerState = new LingerOption(true, NetworkConfig.LingerTimeoutSeconds);
-        socket.ReceiveTimeout = NetworkConfig.ReceiveTimeoutMilliseconds;
-        socket.SendTimeout = NetworkConfig.SendTimeoutMilliseconds;
+        socket.LingerState = new LingerOption(false, 0); // Không delay khi đóng
+        socket.NoDelay = true;
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-        // Apply TCP-specific settings
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, NetworkConfig.KeepAlive);
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.NoDelay, NetworkConfig.NoDelay);
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, NetworkConfig.ReuseAddress);
+        // Cấu hình cho hiệu năng cao
+        socket.ReceiveBufferSize = ushort.MaxValue;
+        socket.SendBufferSize = ushort.MaxValue;
+        socket.ReceiveTimeout = 30000;
+        socket.SendTimeout = 30000;
 
-        if (NetworkConfig.DualMode)
+        // Tối ưu cho các kết nối ngắn hạn
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            socket.DualMode = true;  // Enable IPv6 and IPv4 support
+            socket.IOControl(IOControlCode.KeepAliveValues, GetKeepAliveValues(), null);
         }
+    }
 
-        // Configure blocking mode
-        socket.Blocking = NetworkConfig.IsBlocking;
-
-        // Handle low-watermark thresholds (if needed in the implementation)
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, NetworkConfig.SocketReceiveLowWatermark);
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, NetworkConfig.SocketSendLowWatermark);
+    private static byte[] GetKeepAliveValues()
+    {
+        const uint time = 30000; // 30s
+        const uint interval = 1000; // 1s
+        return
+        [
+        1, 0, 0, 0,
+        (byte)(time & 0xFF), (byte)((time >> 8) & 0xFF),
+        (byte)((time >> 16) & 0xFF), (byte)((time >> 24) & 0xFF),
+        (byte)(interval & 0xFF), (byte)((interval >> 8) & 0xFF),
+        (byte)((interval >> 16) & 0xFF), (byte)((interval >> 24) & 0xFF)
+        ];
     }
 }

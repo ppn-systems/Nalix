@@ -28,18 +28,17 @@ public sealed class Connection : IConnection, IDisposable
     private readonly Lock _receiveLock;
     private readonly NetworkStream _stream;
     private readonly IBufferPool _bufferPool;
-    private readonly ReaderWriterLockSlim _rwLock;
     private readonly BinaryCache _cacheOutgoingPacket;
     private readonly DateTimeOffset _connectedTimestamp;
     private readonly FifoCache<byte[]> _cacheIncomingPacket;
 
+    private int _state;
     private byte[] _buffer;
     private bool _disposed;
-    private long _lastPingTime;
+    private int _authority;
     private byte[] _aes256Key;
     private Rsa4096? _rsa4096;
-    private Authoritys _authority;
-    private ConnectionState _state;
+    private long _lastPingTime;
     private CancellationTokenSource _ctokens;
 
     /// <summary>
@@ -58,14 +57,13 @@ public sealed class Connection : IConnection, IDisposable
         _cacheOutgoingPacket = new BinaryCache(20);
         _cacheIncomingPacket = new FifoCache<byte[]>(20);
         _ctokens = new CancellationTokenSource();
-        _rwLock = new ReaderWriterLockSlim();
         _connectedTimestamp = DateTimeOffset.UtcNow;
 
         _disposed = false;
         _aes256Key = [];
-        _authority = Authoritys.Guests;
-        _state = ConnectionState.Connecting;
         _buffer = _bufferPool.Rent(1024); // byte
+        _authority = (int)Authoritys.None;
+        _state = (int)ConnectionState.Connecting;
         _lastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
     }
 
@@ -115,38 +113,10 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public ConnectionState State
-    {
-        get
-        {
-            _rwLock.EnterReadLock();
-            try
-            {
-                return _state;
-            }
-            finally
-            {
-                _rwLock.ExitReadLock();
-            }
-        }
-    }
+    public ConnectionState State => (ConnectionState)Volatile.Read(ref _state);
 
     /// <inheritdoc />
-    public Authoritys Authority
-    {
-        get
-        {
-            _rwLock.EnterReadLock();
-            try
-            {
-                return _authority;
-            }
-            finally
-            {
-                _rwLock.ExitReadLock();
-            }
-        }
-    }
+    public Authoritys Authority => (Authoritys)Volatile.Read(ref _authority);
 
     /// <summary>
     /// Bắt đầu nhận dữ liệu không đồng bộ.
@@ -232,7 +202,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         try
         {
-            if (_state == ConnectionState.Authenticated)
+            if (_state == (int)ConnectionState.Authenticated)
             {
                 ReadOnlyMemory<byte> memoryBuffer = Aes256.GcmMode.Encrypt(message.ToArray(), _aes256Key);
                 message = memoryBuffer.Span;
@@ -259,7 +229,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         try
         {
-            if (_state == ConnectionState.Authenticated)
+            if (_state == (int)ConnectionState.Authenticated)
                 message = Aes256.GcmMode.Encrypt(message, _aes256Key).ToArray();
 
             Span<byte> key = stackalloc byte[10];
@@ -319,30 +289,10 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     private void UpdateState(ConnectionState newState)
-    {
-        _rwLock.EnterWriteLock();
-        try
-        {
-            _state = newState;
-        }
-        finally
-        {
-            _rwLock.ExitWriteLock();
-        }
-    }
+        => Interlocked.Exchange(ref _state, (int)newState);
 
-    private void UpdateAuthority(Authoritys newAuthority)
-    {
-        _rwLock.EnterWriteLock();
-        try
-        {
-            _authority = newAuthority;
-        }
-        finally
-        {
-            _rwLock.ExitWriteLock();
-        }
-    }
+    public void UpdateAuthority(Authoritys newAuthority)
+        => Interlocked.Exchange(ref _authority, (int)newAuthority);
 
     private void ResizeBuffer(int newSize)
     {
@@ -373,8 +323,11 @@ public sealed class Connection : IConnection, IDisposable
 
             while (totalBytesRead < size)
             {
-                int bytesRead = await _stream.ReadAsync(_buffer.AsMemory(totalBytesRead, size - totalBytesRead), _ctokens.Token);
+                int bytesRead = await _stream.ReadAsync(
+                    _buffer.AsMemory(totalBytesRead, size - totalBytesRead), _ctokens.Token);
+
                 if (bytesRead == 0) break;
+
                 totalBytesRead += bytesRead;
             }
 
@@ -392,7 +345,7 @@ public sealed class Connection : IConnection, IDisposable
 
     private async Task HandleConnectionStateAsync(ushort size, int totalBytesRead)
     {
-        switch (_state)
+        switch (State)
         {
             case ConnectionState.Connecting:
                 break;
