@@ -11,16 +11,9 @@
 		<RepositoryUrl>https://github.com/phcnguyen/Notio</RepositoryUrl>
 
 		<!-- Target framework setting for all projects -->
-		<TargetFramework>net9.0</TargetFramework>
 		<DebugType>none</DebugType>
 		<GenerateJson>false</GenerateJson>
 		<OutputPath>..\build\bin</OutputPath>
 		<IntermediateOutputPath>..\build\obj</IntermediateOutputPath>
-	</PropertyGroup>
-
-	<!-- Optional: Configure publish settings -->
-	<PropertyGroup>
-		<PublishTrimmed>true</PublishTrimmed>
-		<PublishDir>..\build\publish\</PublishDir>
 	</PropertyGroup>
 </Project>

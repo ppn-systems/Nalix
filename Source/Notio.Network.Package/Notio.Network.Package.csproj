@@ -6,6 +6,7 @@
 		<IsPublishable>false</IsPublishable>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

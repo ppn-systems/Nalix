@@ -4,6 +4,7 @@
 		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
+		<TargetFramework>net9.0</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 

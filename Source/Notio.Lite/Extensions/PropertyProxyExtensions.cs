@@ -1,6 +1,7 @@
 ﻿using Notio.Lite.Reflection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
@@ -22,19 +23,26 @@ public static class PropertyProxyExtensions
     /// </summary>
     /// <param name="t">The type to retrieve property proxies from.</param>
     /// <returns>A dictionary with property names as keys and <see cref="IPropertyProxy"/> objects as values.</returns>
-    public static Dictionary<string, IPropertyProxy> PropertyProxies(this Type t)
+    public static Dictionary<string, IPropertyProxy> PropertyProxies(
+        [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] this Type t)
     {
         ArgumentNullException.ThrowIfNull(t);
+
+        // Manually get properties without triggering dynamic member analysis
+        var properties = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
         lock (SyncLock)
         {
             if (ProxyCache.TryGetValue(t, out Dictionary<string, IPropertyProxy>? value))
                 return value;
 
-            var properties = t.GetProperties(BindingFlags.Instance | BindingFlags.Public);
             var result = new Dictionary<string, IPropertyProxy>(properties.Length, StringComparer.InvariantCultureIgnoreCase);
             foreach (var propertyInfo in properties)
+            {
                 result[propertyInfo.Name] = new PropertyInfoProxy(t, propertyInfo);
+            }
 
             ProxyCache[t] = result;
             return result;
@@ -56,7 +64,11 @@ public static class PropertyProxyExtensions
     /// <param name="t">The associated type.</param>
     /// <param name="propertyName">Name of the property.</param>
     /// <returns>The associated <see cref="IPropertyProxy"/></returns>
-    public static IPropertyProxy? PropertyProxy(this Type t, string propertyName)
+    public static IPropertyProxy? PropertyProxy(
+        [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] this Type t,
+        string propertyName)
     {
         var proxies = t.PropertyProxies();
         return proxies.TryGetValue(propertyName, out IPropertyProxy? value) ? value : null;

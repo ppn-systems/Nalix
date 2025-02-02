@@ -5,6 +5,7 @@
 		<Platforms>AnyCPU</Platforms>
 		<IsPublishable>false</IsPublishable>
 		<Nullable>enable</Nullable>
+		<TargetFramework>net9.0</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 

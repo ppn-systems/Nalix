@@ -32,6 +32,8 @@ public class PacketTesting
                 Console.WriteLine($"{test.Method.Name}: Failed - {ex.Message}");
             }
         }
+
+        Console.WriteLine("");
     }
 
     private static void TestPacketInitialization()

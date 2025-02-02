@@ -1,7 +1,8 @@
-﻿using Notio.Cryptography.Ciphers.Symmetric;
+﻿using Notio.Cryptography.Ciphers;
+using Notio.Cryptography.Ciphers.Symmetric;
 using System;
 
-namespace Notio.Testing;
+namespace Notio.Testing.Ciphers;
 
 public static class Aes256Testing
 {
@@ -27,11 +28,13 @@ public static class Aes256Testing
                 Console.WriteLine($"{test.Method.Name}: Failed - {ex.Message}");
             }
         }
+
+        Console.WriteLine("");
     }
 
     private static void TestCbcEncryptionDecryption()
     {
-        var key = Aes256.GenerateKey();
+        var key = CryptoKeyGen.CreateKey();
         var originalBytes = GenerateRandomBytes(5000);
 
         var encrypted = Aes256.CbcMode.Encrypt(originalBytes, key);
@@ -43,7 +46,7 @@ public static class Aes256Testing
 
     private static void TestGcmEncryptionDecryption()
     {
-        var key = Aes256.GenerateKey();
+        var key = CryptoKeyGen.CreateKey();
         var originalBytes = GenerateRandomBytes(5000);
 
         var encrypted = Aes256.GcmMode.Encrypt(originalBytes, key);
@@ -55,7 +58,7 @@ public static class Aes256Testing
 
     private static void TestCtrEncryptionDecryption()
     {
-        var key = Aes256.GenerateKey();
+        var key = CryptoKeyGen.CreateKey();
         var originalBytes = GenerateRandomBytes(500);
 
         var encrypted = Aes256.CtrMode.Encrypt(originalBytes, key);
@@ -69,7 +72,7 @@ public static class Aes256Testing
 
     private static void TestDifferentInputSizes()
     {
-        var key = Aes256.GenerateKey();
+        var key = CryptoKeyGen.CreateKey();
         var testSizes = new[] { 10240, 10240 * 2 };
 
         foreach (var size in testSizes)

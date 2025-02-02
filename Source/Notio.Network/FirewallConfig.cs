@@ -2,6 +2,7 @@
 using Notio.Network.Firewall.Enums;
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Notio.Network;
 
@@ -129,6 +130,7 @@ public sealed class FirewallConfig : ConfiguredBinder
     }
 
     // Helper method để validate cấu hình
+    [RequiresUnreferencedCode("Validation might not work correctly when trimming application code.")]
     public bool Validate(out string error)
     {
         try

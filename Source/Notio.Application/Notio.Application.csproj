@@ -8,6 +8,7 @@
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>Notio</AssemblyName>
 		<IsPublishable>false</IsPublishable>
+		<TargetFramework>net9.0</TargetFramework>
 
 		<!-- Application settings -->
 		<ApplicationIcon>..\..\Resource\Notio.ico</ApplicationIcon>
@@ -26,7 +27,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Web\Notio.Network.Web.csproj" />
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 		<ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Network\Notio.Network.csproj" />

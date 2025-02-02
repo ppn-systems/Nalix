@@ -5,6 +5,7 @@ using Notio.Network.Package;
 using Notio.Network.Package.Extensions;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Notio.Network.Handlers;
@@ -22,7 +23,8 @@ public class PacketHandlerRouter(ILogger? logger = null)
     /// <summary>
     /// Registers a handler by passing in the Type.
     /// </summary>
-    public void RegisterHandler<T>() where T : class, new()
+    public void RegisterHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>()
+        where T : class, new()
     {
         // Get class type
         Type type = typeof(T);

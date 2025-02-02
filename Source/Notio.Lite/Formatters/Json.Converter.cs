@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -79,13 +80,25 @@ public static partial class Json
             return new Converter(source, targetType, ref targetInstance, includeNonPublic, JsonSerializerCase.None).GetResult();
         }
 
-        private static Type? GetAddMethodParameterType(Type targetType)
-            => ListAddMethodCache.GetOrAdd(targetType,
-                x => x.GetMethods()
-                    .FirstOrDefault(
-                        m => m.Name == AddMethodName && m.IsPublic && m.GetParameters().Length == 1)?
-                    .GetParameters()[0]
-                    .ParameterType);
+        private static Type? GetAddMethodParameterType(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)
+            ] Type targetType)
+        {
+            // First, check the cache to avoid repeated reflection calls
+            return ListAddMethodCache.GetOrAdd(targetType,
+                type =>
+                {
+                    // Get all public instance methods on the type
+                    var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+
+                    // Find the method with the matching name (AddMethodName) and exactly one parameter
+                    var addMethod = methods.FirstOrDefault(m =>
+                        m.Name == AddMethodName && m.GetParameters().Length == 1);
+
+                    // If such a method exists, return the parameter type of its first parameter
+                    return addMethod?.GetParameters()[0].ParameterType;
+                });
+        }
 
         private static void GetByteArray(string sourceString, ref object? target)
         {

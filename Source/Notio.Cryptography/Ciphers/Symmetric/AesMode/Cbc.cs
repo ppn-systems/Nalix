@@ -18,8 +18,6 @@ internal static class Cbc
     {
         if (plainText.IsEmpty)
             throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));
-        if (key.Length != Aes256.KeySize)
-            throw new ArgumentException($"Key must be {Aes256.KeySize} bytes long", nameof(key));
 
         try
         {
@@ -45,8 +43,6 @@ internal static class Cbc
     {
         if (cipherText.Length < Aes256.IvSize)
             throw new ArgumentException("Ciphertext too short", nameof(cipherText));
-        if (key.Length != Aes256.KeySize)
-            throw new ArgumentException($"Key must be {Aes256.KeySize} bytes long", nameof(key));
 
         try
         {

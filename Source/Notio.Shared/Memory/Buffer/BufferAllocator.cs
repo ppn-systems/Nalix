@@ -29,6 +29,8 @@ public sealed class BufferAllocator : IBufferPool
     /// </summary>
     public int MaxBufferSize => _bufferAllocations.Max(alloc => alloc.BufferSize);
 
+    public int MinBufferSize => _bufferAllocations.Min(alloc => alloc.BufferSize);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferAllocator"/> class with buffer allocation settings and total buffer count.
     /// </summary>
@@ -69,7 +71,7 @@ public sealed class BufferAllocator : IBufferPool
     /// </summary>
     /// <param name="size">The size of the buffer to rent. Default is 1024.</param>
     /// <returns>A byte array representing the rented buffer.</returns>
-    public byte[] Rent(int size = 1024) => _poolManager.RentBuffer(size);
+    public byte[] Rent(int size = 256) => _poolManager.RentBuffer(size);
 
     /// <summary>
     /// Returns the buffer to the appropriate pool.
