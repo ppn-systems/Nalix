@@ -119,8 +119,8 @@ public static class ConnectionExtensions
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"DIRECTIVE send failed " +
-                                               $"(Type={controlType}, Reason={reason}, Action={action}, Seq={sequenceId}): {ex.Message}");
+                                        .Error($"[{nameof(ConnectionExtensions)}] directive-send-failed type={controlType} " +
+                                               $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
             }
             finally
             {
