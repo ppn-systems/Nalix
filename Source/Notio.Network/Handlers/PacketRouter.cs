@@ -5,12 +5,14 @@ using Notio.Network.Handlers.Base;
 using Notio.Network.Package;
 using Notio.Network.Package.Extensions;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
-public sealed class PacketCommandRouter(ILogger? logger = null) : IDisposable
+public sealed class PacketRouter(ILogger? logger = null) : IDisposable
 {
     private readonly ILogger? _logger = logger;
     private readonly SemaphoreSlim _routingLock = new(1, 1);
@@ -28,6 +30,19 @@ public sealed class PacketCommandRouter(ILogger? logger = null) : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    public void RegisterHandler<[DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.NonPublicMethods)] T>() where T : class
+    {
+        ArgumentNullException.ThrowIfNull(_logger);
+
+        Type type = typeof(T);
+        var controllerAttribute = type.GetCustomAttribute<PacketControllerAttribute>()
+            ?? throw new InvalidOperationException($"Class {type.Name} must be marked with PacketControllerAttribute.");
+
+        _handlerRegistry.RegisterHandlerMethods(type, controllerAttribute);
+    }
+
     public async Task RoutePacketAsync(IConnection connection, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -39,15 +54,17 @@ public sealed class PacketCommandRouter(ILogger? logger = null) : IDisposable
             _performanceMonitor.Start();
 
             var packet = connection.IncomingPacket.FromByteArray();
-            if (!_handlerRegistry.TryGetHandler(packet.Command, out var handlerInfo))
+
+            if (!_handlerRegistry.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
+                || handlerInfo == null)
             {
-                _logger?.Warn($"No handler found for command {packet.Command}");
+                _logger?.Warn($"No handler found for command <{packet.Command}>");
                 return;
             }
 
             if (!ValidateAuthority(connection, handlerInfo.RequiredAuthority))
             {
-                _logger?.Warn($"Access denied for command {packet.Command}. Required: {handlerInfo.RequiredAuthority}, User: {connection.Authority}");
+                _logger?.Warn($"Access denied for command <{packet.Command}>. Required: <{handlerInfo.RequiredAuthority}>, User: <{connection.Authority}>");
                 return;
             }
 
@@ -58,7 +75,7 @@ public sealed class PacketCommandRouter(ILogger? logger = null) : IDisposable
             {
                 await connection.SendAsync(response.Value.ToByteArray(), cancellationToken);
                 _performanceMonitor.Stop();
-                _logger?.Debug($"Command {packet.Command} processed in {_performanceMonitor.ElapsedMilliseconds}ms");
+                _logger?.Debug($"Command <{packet.Command}> processed in {_performanceMonitor.ElapsedMilliseconds}ms");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -101,5 +118,5 @@ public sealed class PacketCommandRouter(ILogger? logger = null) : IDisposable
     private static bool ValidateAuthority(IConnection connection, Authoritys required)
         => connection.Authority >= required;
 
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, nameof(PacketCommandRouter));
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, nameof(PacketRouter));
 }

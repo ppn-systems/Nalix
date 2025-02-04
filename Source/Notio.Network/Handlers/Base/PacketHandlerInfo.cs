@@ -2,7 +2,7 @@
 using System;
 using System.Reflection;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Handlers.Base;
 
 internal record PacketHandlerInfo(
     PacketControllerAttribute Controller,

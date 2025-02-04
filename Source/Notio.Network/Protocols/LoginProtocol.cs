@@ -3,9 +3,9 @@ using Notio.Network.Handlers;
 
 namespace Notio.Network.Protocols;
 
-public class LoginProtocol(PacketCommandRouter packetCommandRouter) : Protocol
+public class LoginProtocol(PacketRouter packetCommandRouter) : Protocol
 {
-    private readonly PacketCommandRouter _handlerFactory = packetCommandRouter;
+    private readonly PacketRouter _handlerFactory = packetCommandRouter;
 
     /// <inheritdoc />
     public override bool KeepConnectionOpen => false;

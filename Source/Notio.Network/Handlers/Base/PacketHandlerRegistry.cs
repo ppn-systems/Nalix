@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Handlers.Base;
 
 internal class PacketHandlerRegistry(ILogger? logger = null)
 {
@@ -68,8 +68,6 @@ internal class PacketHandlerRegistry(ILogger? logger = null)
         => method.ReturnType == typeof(Task<Packet>) ||
            method.ReturnType == typeof(ValueTask<Packet>);
 
-    public bool TryGetHandler(int commandId, out PacketHandlerInfo handlerInfo)
-    {
-        return _handlers.TryGetValue(commandId, out handlerInfo);
-    }
+    public bool TryGetHandler(int commandId, out PacketHandlerInfo? handlerInfo)
+        => _handlers.TryGetValue(commandId, out handlerInfo);
 }

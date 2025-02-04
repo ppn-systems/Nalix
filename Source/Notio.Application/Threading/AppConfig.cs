@@ -129,7 +129,7 @@ public static class AppConfig
     {
         BufferAllocator bufferAllocator = new();
 
-        PacketCommandRouter handlerRouter = new(null);
+        PacketRouter handlerRouter = new(null);
         handlerRouter.RegisterHandler<ExampleController>();
 
         ServerProtocol serverProtocol = new(handlerRouter);
