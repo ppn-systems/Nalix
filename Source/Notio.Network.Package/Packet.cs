@@ -1,5 +1,6 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Memory.Pools;
+using Notio.Network.Package.Enums;
 using Notio.Network.Package.Models;
 using System;
 using System.Buffers;
@@ -32,7 +33,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <summary>
     /// Gets the total length of the packet.
     /// </summary>
-    public int Length => (short)(PacketSize.Header + Payload.Length);
+    public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
 
     /// <summary>
     /// Gets the type of the packet.
@@ -52,7 +53,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <summary>
     /// Gets the command of the packet.
     /// </summary>
-    public short Command { get; }
+    public ushort Command { get; }
 
     /// <summary>
     /// Gets the payload of the packet.
@@ -69,7 +70,7 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <param name="payload">The payload of the packet.</param>
     /// <exception cref="PackageException">Thrown when the packet size exceeds the 64KB limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(byte type, byte flags, byte priority, short command, ReadOnlyMemory<byte> payload)
+    public Packet(byte type, byte flags, byte priority, ushort command, ReadOnlyMemory<byte> payload)
     {
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
@@ -79,20 +80,30 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         Command = command;
         Priority = priority;
 
-        if (payload.Length <= MinPacketSize)
-        {
-            var inlineArray = new byte[payload.Length];
-            payload.Span.CopyTo(inlineArray);
-            Payload = inlineArray;
-            _isPooled = false;
-        }
-        else
-        {
-            var pooledArray = _pool.Rent(payload.Length);
-            payload.Span.CopyTo(pooledArray);
-            Payload = new ReadOnlyMemory<byte>(pooledArray, 0, payload.Length);
-            _isPooled = true;
-        }
+        Payload = AllocatePayload(payload);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with specific enums.
+    /// </summary>
+    /// <param name="type">The type of the packet.</param>
+    /// <param name="flags">The flags associated with the packet.</param>
+    /// <param name="priority">The priority of the packet.</param>
+    /// <param name="command">The command of the packet.</param>
+    /// <param name="payload">The payload of the packet.</param>
+    /// <exception cref="PackageException">Thrown when the packet size exceeds the 64KB limit.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketType type, PacketFlags flags, PacketPriority priority, ushort command, ReadOnlyMemory<byte> payload)
+    {
+        if (payload.Length + PacketSize.Header > MaxPacketSize)
+            throw new PackageException("The packet size exceeds the 64KB limit.");
+
+        Type = (byte)type;
+        Flags = (byte)flags;
+        Command = command;
+        Priority = (byte)priority;
+
+        Payload = AllocatePayload(payload);
     }
 
     /// <summary>
@@ -266,5 +277,32 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Allocates memory for the payload efficiently.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ReadOnlyMemory<byte> AllocatePayload(ReadOnlyMemory<byte> payload)
+    {
+        int length = payload.Length;
+
+        if (length == 0)
+        {
+            return ReadOnlyMemory<byte>.Empty;
+        }
+
+        if (length <= MinPacketSize)
+        {
+            byte[] inlineArray = GC.AllocateUninitializedArray<byte>(length);
+            payload.Span.CopyTo(inlineArray);
+            return inlineArray;
+        }
+        else
+        {
+            byte[] pooledArray = _pool.Rent(length);
+            payload.Span.CopyTo(pooledArray);
+            return new ReadOnlyMemory<byte>(pooledArray, 0, length);
+        }
     }
 }

@@ -1,88 +1,117 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
 /// <summary>
-/// Implements the XTEA (eXtended Tiny Encryption Algorithm) symmetric cipher.
+/// Provides static methods for encrypting and decrypting data using the XTEA algorithm.
 /// </summary>
 public static class Xtea
 {
+    private const uint Delta = 0x9E3779B9;
+    private const int NumRounds = 32;
+
     /// <summary>
-    /// Encrypts the given data using the XTEA algorithm.
+    /// Encrypts the specified data using the XTEA algorithm.
     /// </summary>
-    /// <param name="data">The plaintext data to encrypt.</param>
-    /// <param name="key">A 128-bit (4-element uint array) encryption key.</param>
-    /// <returns>The encrypted data.</returns>
-    /// <exception cref="ArgumentException">Thrown if the key is invalid.</exception>
-    public static unsafe byte[] Encrypt(byte[] data, uint[] key)
+    /// <param name="data">The data to encrypt.</param>
+    /// <param name="key">The encryption key (must be exactly 4 elements).</param>
+    /// <param name="output">The buffer to store the encrypted data (must be large enough to hold the result).</param>
+    /// <exception cref="ArgumentException">Thrown when the data is empty or the key is not exactly 4 elements, or the output buffer is too small.</exception>
+    public static void Encrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
-        if (key == null || key.Length < 4)
-            throw new ArgumentException("Key must be at least 4 elements", nameof(key));
+        if (data.IsEmpty)
+            throw new ArgumentException("Data cannot be empty", nameof(data));
+        if (key.Length != 4)
+            throw new ArgumentException("Key must be exactly 4 elements", nameof(key));
 
-        int originalLength = data.Length;
-        int pad = originalLength % 8;
-        if (pad != 0)
-            Array.Resize(ref data, originalLength + (8 - pad)); // Ensure data is a multiple of 8 bytes
+        int length = data.Length;
+        int paddedLength = (length + 7) & ~7;
 
-        uint[] words = new uint[data.Length / 4];
-        Buffer.BlockCopy(data, 0, words, 0, data.Length);
+        if (output.Length < paddedLength)
+            throw new ArgumentException("Output buffer is too small", nameof(output));
 
-        fixed (uint* wordsPtr = words, keyPtr = key)
+        data.CopyTo(output);
+
+        if (paddedLength > length)
+            output.Slice(length, paddedLength - length).Span.Clear();
+
+        Span<uint> words = MemoryMarshal.Cast<byte, uint>(output.Span);
+        ReadOnlySpan<uint> keySpan = key.Span;
+
+        for (int pos = 0; pos < words.Length; pos += 2)
         {
-            const uint delta = 0x9E3779B9;
-            for (int pos = 0; pos < words.Length; pos += 2)
+            uint v0 = words[pos];
+            uint v1 = words[pos + 1];
+            uint sum = 0;
+
+            for (int i = 0; i < NumRounds; i++)
             {
-                uint* v0 = wordsPtr + pos;
-                uint* v1 = v0 + 1;
-                uint sum = 0;
-
-                for (int i = 0; i < 32; i++)
-                {
-                    *v0 += (*v1 << 4 ^ *v1 >> 5) + *v1 ^ sum + keyPtr[sum & 3];
-                    sum += delta;
-                    *v1 += (*v0 << 4 ^ *v0 >> 5) + *v0 ^ sum + keyPtr[sum >> 11 & 3];
-                }
+                v0 += ((v1 << 4) ^ (v1 >> 5)) + v1 ^ sum + keySpan[(int)(sum & 3)];
+                sum += Delta;
+                v1 += ((v0 << 4) ^ (v0 >> 5)) + v0 ^ sum + keySpan[(int)((sum >> 11) & 3)];
             }
-        }
 
-        byte[] encryptedData = new byte[words.Length * 4];
-        Buffer.BlockCopy(words, 0, encryptedData, 0, encryptedData.Length);
-        return encryptedData;
+            words[pos] = v0;
+            words[pos + 1] = v1;
+        }
     }
 
     /// <summary>
-    /// Decrypts the given data using the XTEA algorithm.
+    /// Decrypts the specified data using the XTEA algorithm.
     /// </summary>
-    /// <param name="data">The encrypted data to decrypt. This array is modified in-place.</param>
-    /// <param name="key">A 128-bit (4-element uint array) decryption key.</param>
-    /// <returns><c>true</c> if decryption was successful, <c>false</c> otherwise.</returns>
-    public static unsafe bool Decrypt(byte[] data, uint[] key)
+    /// <param name="data">The data to decrypt.</param>
+    /// <param name="key">The decryption key (must be exactly 4 elements).</param>
+    /// <param name="output">The buffer to store the decrypted data (must be large enough to hold the result).</param>
+    /// <exception cref="ArgumentException">Thrown when the key length is not exactly 4 elements, the data length is not a multiple of 8, or the output buffer is too small.</exception>
+    public static void Decrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
-        if (data == null || key == null || key.Length < 4 || data.Length % 8 != 0)
-            return false;
+        if (key.Length != 4 || data.Length % 8 != 0)
+            throw new ArgumentException("Invalid input data or key.");
 
-        uint[] words = new uint[data.Length / 4];
-        Buffer.BlockCopy(data, 0, words, 0, data.Length);
+        if (output.Length < data.Length)
+            throw new ArgumentException("Output buffer is too small", nameof(output));
 
-        fixed (uint* wordsPtr = words, keyPtr = key)
+        data.CopyTo(output);
+
+        Span<uint> words = MemoryMarshal.Cast<byte, uint>(output.Span);
+        ReadOnlySpan<uint> keySpan = key.Span;
+
+        for (int pos = 0; pos < words.Length; pos += 2)
         {
-            const uint delta = 0x9E3779B9;
-            for (int pos = 0; pos < words.Length; pos += 2)
+            uint v0 = words[pos];
+            uint v1 = words[pos + 1];
+            uint sum = unchecked(Delta * NumRounds);
+
+            for (int i = 0; i < NumRounds; i++)
             {
-                uint* v0 = wordsPtr + pos;
-                uint* v1 = v0 + 1;
-                uint sum = 0xC6EF3720; // delta * 32
-
-                for (int i = 0; i < 32; i++)
-                {
-                    *v1 -= (*v0 << 4 ^ *v0 >> 5) + *v0 ^ sum + keyPtr[sum >> 11 & 3];
-                    sum -= delta;
-                    *v0 -= (*v1 << 4 ^ *v1 >> 5) + *v1 ^ sum + keyPtr[sum & 3];
-                }
+                v1 -= ((v0 << 4) ^ (v0 >> 5)) + v0 ^ sum + keySpan[(int)((sum >> 11) & 3)];
+                sum -= Delta;
+                v0 -= ((v1 << 4) ^ (v1 >> 5)) + v1 ^ sum + keySpan[(int)(sum & 3)];
             }
-        }
 
-        Buffer.BlockCopy(words, 0, data, 0, data.Length);
-        return true;
+            words[pos] = v0;
+            words[pos + 1] = v1;
+        }
+    }
+
+    /// <summary>
+    /// Attempts to decrypt the specified data using the XTEA algorithm.
+    /// </summary>
+    /// <param name="data">The data to decrypt.</param>
+    /// <param name="key">The decryption key (must be exactly 4 elements).</param>
+    /// <param name="output">The buffer to store the decrypted data (must be large enough to hold the result).</param>
+    /// <returns>True if the decryption succeeds; otherwise, false.</returns>
+    public static bool TryDecrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
+    {
+        try
+        {
+            Decrypt(data, key, output);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

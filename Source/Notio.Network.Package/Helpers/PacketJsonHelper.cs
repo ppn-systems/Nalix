@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Notio.Network.Package.Helpers.Type;
+namespace Notio.Network.Package.Helpers;
 
 /// <summary>
 /// Provides high-performance utility methods for the Packet class.
@@ -45,7 +45,7 @@ public static class PacketJsonHelper
 
         try
         {
-            Packet? packet = JsonSerializer.Deserialize<Packet>(json, jsonTypeInfo);
+            Packet? packet = JsonSerializer.Deserialize(json, jsonTypeInfo);
             return packet ?? throw new PackageException("Deserialized JSON is null.");
         }
         catch (Exception ex)

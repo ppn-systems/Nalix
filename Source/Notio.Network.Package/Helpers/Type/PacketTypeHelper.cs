@@ -1,7 +1,7 @@
 ﻿using Notio.Network.Package.Enums;
 using System;
 
-namespace Notio.Network.Package.Helpers;
+namespace Notio.Network.Package.Helpers.Type;
 
 public static class PacketTypeHelper
 {

@@ -38,6 +38,9 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
+    public byte[] EncryptionKey { get; set; }
+
+    /// <inheritdoc />
     public string Id => _id.ToString(true);
 
     /// <inheritdoc />
@@ -51,9 +54,6 @@ public sealed class Connection : IConnection, IDisposable
 
     /// <inheritdoc />
     public long LastPingTime => _streamHandler.LastPingTime;
-
-    /// <inheritdoc />
-    public byte[] EncryptionKey => _securityManager.EncryptionKey;
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnCloseEvent;

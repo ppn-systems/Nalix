@@ -51,7 +51,7 @@ internal static class PacketSerializer
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
 
         // Đọc độ dài của gói tin
-        short length = Unsafe.ReadUnaligned<short>(ref dataRef);
+        ushort length = Unsafe.ReadUnaligned<ushort>(ref dataRef);
         if (length < PacketSize.Header || length > data.Length)
             throw new PackageException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
 
@@ -59,7 +59,7 @@ internal static class PacketSerializer
         byte type = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Type));
         byte flags = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Flags));
         byte priority = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Priority));
-        short command = Unsafe.ReadUnaligned<short>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
+        ushort command = Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
 
         // Sao chép payload một cách hiệu quả
         ReadOnlyMemory<byte> payload = data[PacketSize.Header..length].ToArray();

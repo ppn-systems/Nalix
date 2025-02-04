@@ -28,7 +28,7 @@ internal static unsafe class PacketSerializerUnsafe
         BinaryPrimitives.WriteInt16LittleEndian(headerSpan, (short)totalSize);
         headerSpan[PacketOffset.Type] = packet.Type;
         headerSpan[PacketOffset.Flags] = packet.Flags;
-        BinaryPrimitives.WriteInt16LittleEndian(headerSpan[PacketOffset.Command..], packet.Command);
+        BinaryPrimitives.WriteUInt16LittleEndian(headerSpan[PacketOffset.Command..], packet.Command);
 
         // Copy payload với kiểm tra bounds
         if (!packet.Payload.IsEmpty)
@@ -53,7 +53,7 @@ internal static unsafe class PacketSerializerUnsafe
 
         // Đọc header
         Span<byte> headerSpan = new(source, PacketSize.Header);
-        short packetLength = BinaryPrimitives.ReadInt16LittleEndian(headerSpan);
+        ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(headerSpan);
 
         if ((uint)packetLength > length)
             throw new PackageException("Packet size exceeds the provided buffer length.");
@@ -70,7 +70,7 @@ internal static unsafe class PacketSerializerUnsafe
             type: headerSpan[PacketOffset.Type],
             flags: headerSpan[PacketOffset.Flags],
             priority: headerSpan[PacketOffset.Priority],
-            command: BinaryPrimitives.ReadInt16LittleEndian(headerSpan[PacketOffset.Command..]),
+            command: BinaryPrimitives.ReadUInt16LittleEndian(headerSpan[PacketOffset.Command..]),
             payload: payloadMemory
         );
     }

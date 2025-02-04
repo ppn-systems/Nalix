@@ -9,7 +9,7 @@ namespace Notio.Network.Package.Extensions;
 
 public static partial class PackageExtensions
 {
-    private const short SignatureSize = 32;
+    private const ushort SignatureSize = 32;
 
     /// <summary>
     /// Signs a data packet and appends the signature to the payload.
@@ -63,7 +63,7 @@ public static partial class PackageExtensions
         if (!@this.Flags.HasFlag(PacketFlags.IsSigned))
             return false;
 
-        int payloadLengthWithoutSignature = @this.Payload.Length - SignatureSize;
+        int payloadLengthWithoutSignature = Math.Max(0, @this.Payload.Length - SignatureSize);
 
         if (payloadLengthWithoutSignature <= 0)
             return false; // Payload không hợp lệ

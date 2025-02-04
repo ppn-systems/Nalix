@@ -24,7 +24,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the encryption key used for securing communication.
     /// </summary>
-    byte[] EncryptionKey { get; }
+    byte[] EncryptionKey { get; set; }
 
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.

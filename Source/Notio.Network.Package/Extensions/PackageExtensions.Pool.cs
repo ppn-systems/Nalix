@@ -21,7 +21,7 @@ public static partial class PackageExtensions
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <see cref="Packet"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet Create(byte type, byte flags, byte priority, short command, ReadOnlyMemory<byte> payload)
+    public static Packet Create(byte type, byte flags, byte priority, ushort command, ReadOnlyMemory<byte> payload)
         => new(type, flags, priority, command, payload);
 
     /// <summary>

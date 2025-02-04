@@ -5,7 +5,7 @@
 /// </summary>
 public static class PacketSize
 {
-    public const int Length = sizeof(short);
+    public const int Length = sizeof(ushort);
 
     public const int Type = sizeof(byte);
 
@@ -13,7 +13,7 @@ public static class PacketSize
 
     public const int Priority = sizeof(byte);
 
-    public const int Command = sizeof(short);
+    public const int Command = sizeof(ushort);
 
     public const int Header = Length + Type + Flags + Priority + Command;
 }

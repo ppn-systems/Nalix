@@ -54,4 +54,15 @@ public static class CryptoKeyGen
         RandomNumberGenerator.Fill(nonce);
         return nonce;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint[] ConvertKey(this byte[] key)
+    {
+        if (key.Length != 16)
+            throw new ArgumentException($"XTEA key must be {16} bytes.", nameof(key));
+
+        uint[] uintKey = new uint[4];
+        Buffer.BlockCopy(key, 0, uintKey, 0, 16);
+        return uintKey;
+    }
 }
