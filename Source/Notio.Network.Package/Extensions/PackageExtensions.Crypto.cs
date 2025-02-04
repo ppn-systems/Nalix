@@ -1,127 +1,90 @@
-﻿using Notio.Common;
-using Notio.Common.Exceptions;
-using Notio.Cryptography.Ciphers;
-using Notio.Cryptography.Ciphers.Symmetric;
+﻿using Notio.Common.Exceptions;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers.Flags;
 using Notio.Network.Package.Utilities;
+using Notio.Network.Package.Utilities.Payload;
 using System;
 
-namespace Notio.Network.Package.Extensions;
-
-/// <summary>
-/// Provides encryption and decryption methods for Packet Payload.
-/// </summary>
-public static partial class PackageExtensions
+namespace Notio.Network.Package.Extensions
 {
     /// <summary>
-    /// Encrypts the Payload in the Packet using AES-256 in CTR mode.
+    /// Provides encryption and decryption methods for Packet Payload.
+    /// (Cung cấp các phương thức mã hóa và giải mã cho Payload của Packet.)
     /// </summary>
-    public static Packet EncryptPayload(this Packet @this, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
+    public static partial class PackageExtensions
     {
-        PacketVerifier.CheckEncryptionConditions(@this, key, isEncryption: true);
-
-        try
+        /// <summary>
+        /// Encrypts the Payload in the Packet using the specified algorithm.
+        /// (Mã hóa Payload trong Packet sử dụng thuật toán chỉ định.)
+        /// </summary>
+        /// <param name="packet">The packet to be encrypted.</param>
+        /// <param name="key">The encryption key.</param>
+        /// <param name="algorithm">The encryption algorithm to use (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
+        /// <returns>A new Packet instance with the encrypted payload.</returns>
+        public static Packet EncryptPayload(this Packet packet, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
         {
-            switch (algorithm)
+            // Validate encryption conditions.
+            PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
+
+            try
             {
-                case PacketEncryptionMode.Xtea:
-                    Memory<byte> encryptedXtea = new byte[(@this.Payload.Length + 7) & ~7];
-                    Xtea.Encrypt(@this.Payload, key.ConvertKey(), encryptedXtea);
-                    return new Packet(
-                        @this.Type, @this.Flags.RemoveFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, encryptedXtea
-                    );
+                // Encrypt the payload using the helper class.
+                ReadOnlyMemory<byte> encryptedPayload = PayloadCrypto.Encrypt(packet.Payload, key, algorithm);
 
-                case PacketEncryptionMode.AesGcm:
-                    ReadOnlyMemory<byte> encrypted = Aes256.GcmMode.Encrypt(@this.Payload, key);
-                    return new Packet(
-                        @this.Type, @this.Flags.RemoveFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, encrypted
-                    );
+                // For ChaCha20Poly1305, add the encryption flag; for other algorithms remove it.
+                var newFlags = algorithm == PacketEncryptionMode.ChaCha20Poly1305
+                    ? packet.Flags.AddFlag(PacketFlags.IsEncrypted)
+                    : packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
 
-                case PacketEncryptionMode.ChaCha20Poly1305:
-                    byte[] nonce = CryptoKeyGen.CreateNonce();
-
-                    // Encrypt using ChaCha20-Poly1305.
-                    ChaCha20Poly1305.Encrypt(key, nonce, @this.Payload.Span, null, out byte[] ciphertext, out byte[] tag);
-
-                    // Combine nonce, ciphertext, and tag for transmission
-                    byte[] result = new byte[12 + ciphertext.Length + 16];
-                    Buffer.BlockCopy(nonce, 0, result, 0, 12);
-                    Buffer.BlockCopy(ciphertext, 0, result, 12, ciphertext.Length);
-                    Buffer.BlockCopy(tag, 0, result, 12 + ciphertext.Length, 16);
-
-                    return new Packet(
-                        @this.Type, @this.Flags.AddFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, result
-                    );
-
-                default:
-                    throw new PackageException("The specified encryption algorithm is not supported.");
+                // Return a new Packet with the updated payload and flags.
+                return new Packet(
+                    packet.Type,
+                    newFlags,
+                    packet.Priority,
+                    packet.Command,
+                    encryptedPayload
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new PackageException("Failed to encrypt the packet payload.", ex);
             }
         }
-        catch (Exception ex)
-        {
-            throw new PackageException("Failed to encrypt the @this payload.", ex);
-        }
-    }
 
-    /// <summary>
-    /// Decrypts the Payload in the Packet using AES-256 in CTR mode.
-    /// </summary>
-    public static Packet DecryptPayload(this Packet @this, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
-    {
-        PacketVerifier.CheckEncryptionConditions(@this, key, isEncryption: false);
-
-        try
+        /// <summary>
+        /// Decrypts the Payload in the Packet using the specified algorithm.
+        /// (Giải mã Payload trong Packet sử dụng thuật toán chỉ định.)
+        /// </summary>
+        /// <param name="packet">The packet to be decrypted.</param>
+        /// <param name="key">The decryption key.</param>
+        /// <param name="algorithm">The encryption algorithm that was used (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
+        /// <returns>A new Packet instance with the decrypted payload.</returns>
+        public static Packet DecryptPayload(this Packet packet, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
         {
-            switch (algorithm)
+            // Validate decryption conditions.
+            PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);
+
+            try
             {
-                case PacketEncryptionMode.Xtea:
-                    Memory<byte> decryptedXtea = new byte[(@this.Payload.Length + 7) & ~7];
-                    bool successXtea = Xtea.TryDecrypt(@this.Payload, key.ConvertKey(), decryptedXtea);
+                // Decrypt the payload using the helper class.
+                ReadOnlyMemory<byte> decryptedPayload = PayloadCrypto.Decrypt(packet.Payload, key, algorithm);
 
-                    if (!successXtea)
-                        throw new InternalErrorException("Authentication failed.");
+                // Remove the encryption flag on decryption.
+                var newFlags = packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
 
-                    return new Packet(
-                        @this.Type, @this.Flags.RemoveFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, decryptedXtea
-                    );
-
-                case PacketEncryptionMode.AesGcm:
-                    ReadOnlyMemory<byte> decrypted = Aes256.GcmMode.Decrypt(@this.Payload, key);
-                    return new Packet(
-                        @this.Type, @this.Flags.RemoveFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, decrypted
-                    );
-
-                case PacketEncryptionMode.ChaCha20Poly1305:
-                    ReadOnlySpan<byte> input = @this.Payload.Span;
-                    if (input.Length < 12 + 16)
-                        throw new ArgumentException("Invalid data length.");
-
-                    ReadOnlySpan<byte> nonce = input[..12];
-                    ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
-                    ReadOnlySpan<byte> ciphertext = input.Slice(12, input.Length - 12 - 16);
-
-                    bool success = ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext);
-                    if (!success)
-                        throw new PackageException("Authentication failed.");
-
-                    return new Packet(
-                        @this.Type, @this.Flags.RemoveFlag(PacketFlags.IsEncrypted),
-                        @this.Priority, @this.Command, plaintext
-                    );
-
-                default:
-                    throw new PackageException("The specified encryption algorithm is not supported.");
+                // Return a new Packet with the updated payload and flags.
+                return new Packet(
+                    packet.Type,
+                    newFlags,
+                    packet.Priority,
+                    packet.Command,
+                    decryptedPayload
+                );
             }
-        }
-        catch (Exception ex)
-        {
-            throw new PackageException("Failed to decrypt the @this payload.", ex);
+            catch (Exception ex)
+            {
+                throw new PackageException("Failed to decrypt the packet payload.", ex);
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
-public sealed class PacketRouter(ILogger? logger = null) : IDisposable
+public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 {
     private readonly ILogger? _logger = logger;
     private readonly SemaphoreSlim _routingLock = new(1, 1);
@@ -118,5 +118,5 @@ public sealed class PacketRouter(ILogger? logger = null) : IDisposable
     private static bool ValidateAuthority(IConnection connection, Authoritys required)
         => connection.Authority >= required;
 
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, nameof(PacketRouter));
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, nameof(PacketHandlerRouter));
 }
