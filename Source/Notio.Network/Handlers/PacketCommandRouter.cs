@@ -13,7 +13,7 @@ namespace Notio.Network.Handlers;
 /// <summary>
 /// Represents a router for handling packet commands.
 /// </summary>
-public class PacketHandlerRouter(ILogger? logger = null)
+public class PacketCommandRouter(ILogger? logger = null)
 {
     private readonly ILogger? _logger = logger;
 
@@ -23,7 +23,10 @@ public class PacketHandlerRouter(ILogger? logger = null)
     /// <summary>
     /// Registers a handler by passing in the Type.
     /// </summary>
-    public void RegisterHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] T>()
+    public void RegisterHandler<
+        [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.NonPublicMethods)] T>()
         where T : class, new()
     {
         // Get class type
@@ -38,7 +41,10 @@ public class PacketHandlerRouter(ILogger? logger = null)
         }
 
         // Register methods with PacketHandlerAttribute
-        MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        MethodInfo[] methods = type.GetMethods(
+            BindingFlags.Instance | BindingFlags.Public |
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
         foreach (var method in methods)
         {
             var handlerAttribute = method.GetCustomAttribute<PacketCommandAttribute>();

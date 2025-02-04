@@ -143,7 +143,17 @@ public sealed class Connection : IConnection, IDisposable
     public void Send(ReadOnlyMemory<byte> message)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
+        {
+            try
+            {
+                message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
+            }
+            catch
+            {
+                _stateManager.UpdateState(ConnectionState.Connected);
+                return;
+            }
+        }
 
         if (_streamManager.Send(message.Span))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
@@ -152,7 +162,17 @@ public sealed class Connection : IConnection, IDisposable
     public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
+        {
+            try
+            {
+                message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
+            }
+            catch
+            {
+                _stateManager.UpdateState(ConnectionState.Connected);
+                return;
+            }
+        }
 
         if (await _streamManager.SendAsync(message, cancellationToken))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
@@ -161,7 +181,16 @@ public sealed class Connection : IConnection, IDisposable
     private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            return Aes256.GcmMode.Decrypt(data, EncryptionKey);
+        {
+            try
+            {
+                return Aes256.GcmMode.Encrypt(data, EncryptionKey);
+            }
+            catch
+            {
+                _stateManager.UpdateState(ConnectionState.Connected);
+            }
+        }
 
         return data;
     }
