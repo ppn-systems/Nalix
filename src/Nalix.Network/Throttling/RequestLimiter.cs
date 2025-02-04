@@ -122,7 +122,11 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }, this, System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds), System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(RequestLimiter)}] TokenBucket init: cap={_opt.CapacityTokens}, refill={_opt.RefillTokensPerSecond}/s, shards={_opt.ShardCount}");
+                                .Debug($"[{nameof(RequestLimiter)}] init cap={_opt.CapacityTokens} " +
+                                       $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
+                                       $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
+                                       $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
+
     }
 
     #endregion Constructors
@@ -142,15 +146,27 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             throw new InternalErrorException($"[{nameof(RequestLimiter)}] EndPoint cannot be null or whitespace", nameof(endPoint));
         }
 
+        System.Boolean isNew = false;
         var now = System.Diagnostics.Stopwatch.GetTimestamp();
         var shard = GetShard(endPoint);
-        var state = shard.Map.GetOrAdd(endPoint, static _ => new EndpointState
+
+        var state = shard.Map.GetOrAdd(endPoint, _ =>
         {
-            LastRefillSwTicks = System.Diagnostics.Stopwatch.GetTimestamp(),
-            MicroBalance = 0, // start empty or full? choose empty for burst-protection; can be changed to _capacityMicro
-            HardBlockedUntilSw = 0,
-            LastSeenSw = System.Diagnostics.Stopwatch.GetTimestamp()
+            isNew = true;
+            return new EndpointState
+            {
+                LastRefillSwTicks = now,
+                MicroBalance = 0,
+                HardBlockedUntilSw = 0,
+                LastSeenSw = now
+            };
         });
+
+        if (isNew)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[{nameof(RequestLimiter)}] new-endpoint ep={EpKey(endPoint)}");
+        }
 
         lock (state.Gate)
         {
@@ -160,11 +176,14 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             if (state.HardBlockedUntilSw > now)
             {
                 var retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(RequestLimiter)}] hard-blocked ep={EpKey(endPoint)} retry_ms={retryMsHard}");
+
                 return new LimitDecision
                 {
                     Allowed = false,
                     RetryAfterMs = retryMsHard,
-                    Credit = GetCredit(state.MicroBalance),
+                    Credit = GetCredit(state.MicroBalance, _opt.TokenScale),
                     Reason = RateLimitReason.HardLockout
                 };
             }
@@ -176,13 +195,13 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             if (state.MicroBalance >= _opt.TokenScale)
             {
                 state.MicroBalance -= _opt.TokenScale;
-                return new LimitDecision
+                var credit = GetCredit(state.MicroBalance, _opt.TokenScale);
+                if (credit <= 1)
                 {
-                    Allowed = true,
-                    RetryAfterMs = 0,
-                    Credit = GetCredit(state.MicroBalance),
-                    Reason = RateLimitReason.None
-                };
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Trace($"[{nameof(RequestLimiter)}] allow ep={EpKey(endPoint)} credit={credit}");
+                }
+                return new LimitDecision { Allowed = true, RetryAfterMs = 0, Credit = credit, Reason = RateLimitReason.None };
             }
 
             // Not enough: compute soft retry-after
@@ -199,7 +218,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             {
                 Allowed = false,
                 RetryAfterMs = retryMs,
-                Credit = GetCredit(state.MicroBalance),
+                Credit = GetCredit(state.MicroBalance, _opt.TokenScale),
                 Reason = _opt.HardLockoutSeconds > 0 ? RateLimitReason.HardLockout : RateLimitReason.SoftThrottle
             };
         }
@@ -209,8 +228,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// Async facade for <see cref="Check(System.String)"/> (no extra allocations).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<LimitDecision> CheckAsync(System.String endPoint)
-        => new(this.Check(endPoint));
+    public System.Threading.Tasks.ValueTask<LimitDecision> CheckAsync(System.String endPoint) => new(this.Check(endPoint));
 
     #endregion Public API
 
@@ -258,11 +276,6 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             state.MicroBalance = nb >= _capacityMicro ? _capacityMicro : nb;
             state.LastRefillSwTicks = now;
         }
-        else
-        {
-            // Still update timestamp to avoid huge dt next time
-            state.LastRefillSwTicks = now;
-        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -295,10 +308,10 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int64 ToSwTicks(System.Int32 seconds)
-        => (System.Int64)(seconds * _swFreq);
+        => (System.Int64)System.Math.Round(seconds * _swFreq);
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt16 GetCredit(System.Int64 microBalance, System.Int32 tokenScale = 1_000_000)
+    private static System.UInt16 GetCredit(System.Int64 microBalance, System.Int32 tokenScale)
     {
         var t = microBalance / tokenScale;
         return t <= 0 ? (System.UInt16)0
@@ -330,6 +343,22 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.String EpKey(System.String s)
+    {
+        // FNV-1a 32-bit, stable
+        unchecked
+        {
+            System.UInt32 h = 2166136261;
+            for (System.Int32 i = 0; i < s.Length; i++)
+            {
+                h ^= s[i];
+                h *= 16777619;
+            }
+            return h.ToString("X8");
+        }
+    }
+
     #endregion Private Helpers
 
     #region Cleanup
@@ -344,30 +373,40 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             return;
         }
 
-        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        var now = System.Diagnostics.Stopwatch.GetTimestamp();
-        var staleTicks = ToSwTicks(_opt.StaleEntrySeconds);
-
-        System.Int32 removed = 0, visited = 0;
-
-        foreach (var shard in _shards)
+        try
         {
-            foreach (var kv in shard.Map)
+
+
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            var staleTicks = ToSwTicks(_opt.StaleEntrySeconds);
+
+            System.Int32 removed = 0, visited = 0;
+
+            foreach (var shard in _shards)
             {
-                visited++;
-                var state = kv.Value;
-                if (now - state.LastSeenSw > staleTicks)
+                foreach (var kv in shard.Map)
                 {
-                    // Best-effort: try remove if still present
-                    _ = shard.Map.TryRemove(kv.Key, out _);
-                    removed++;
+                    visited++;
+                    var state = kv.Value;
+                    if (now - state.LastSeenSw > staleTicks)
+                    {
+                        // Best-effort: try remove if still present
+                        _ = shard.Map.TryRemove(kv.Key, out _);
+                        removed++;
+                    }
                 }
             }
-        }
 
-        if (removed > 0)
+            if (removed > 0)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[{nameof(RequestLimiter)}] Cleanup visited={visited} removed={removed}");
+            }
+        }
+        catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            logger?.Debug($"[{nameof(RequestLimiter)}] Cleanup visited={visited}, removed={removed}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(RequestLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -389,8 +428,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         _disposed = true;
         _cleanupTimer.Dispose();
         await System.Threading.Tasks.Task.Yield();
-        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        logger?.Debug($"[{nameof(RequestLimiter)}] disposed");
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(RequestLimiter)}] disposed");
     }
 
     #endregion IDisposable & IAsyncDisposable
