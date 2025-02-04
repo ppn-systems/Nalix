@@ -18,7 +18,6 @@ public sealed class Connection : IConnection, IDisposable
     private readonly ILogger? _logger;
     private readonly ConnectionStreamManager _streamManager;
     private readonly CancellationTokenSource _ctokens = new();
-    private readonly ConnectionStateManager _stateManager = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
     private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
 
@@ -38,22 +37,16 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public byte[] EncryptionKey { get; set; } = [];
-
-    /// <inheritdoc />
     public string Id => _id.ToString(true);
 
     /// <inheritdoc />
-    public ConnectionState State => _stateManager.State;
+    public byte[] EncryptionKey { get; set; } = [];
 
     /// <inheritdoc />
-    public Authoritys Authority => _stateManager.Authority;
+    public long PingTime => _streamManager.LastPingTime;
 
     /// <inheritdoc />
     public DateTimeOffset Timestamp => _connectedTimestamp;
-
-    /// <inheritdoc />
-    public long LastPingTime => _streamManager.LastPingTime;
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnCloseEvent;
@@ -63,6 +56,12 @@ public sealed class Connection : IConnection, IDisposable
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+
+    /// <inheritdoc />
+    public Authoritys Authority { get; set; } = Authoritys.Guests;
+
+    /// <inheritdoc />
+    public ConnectionState State { get; set; } = ConnectionState.Connected;
 
     /// <inheritdoc />
     public string RemoteEndPoint
@@ -82,6 +81,46 @@ public sealed class Connection : IConnection, IDisposable
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
         => _streamManager.BeginReceive(cancellationToken);
+
+    /// <inheritdoc />
+    public void Send(ReadOnlyMemory<byte> message)
+    {
+        if (this.State == ConnectionState.Authenticated)
+        {
+            try
+            {
+                message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
+            }
+            catch
+            {
+                this.State = ConnectionState.Connected;
+                return;
+            }
+        }
+
+        if (_streamManager.Send(message.Span))
+            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+    }
+
+    /// <inheritdoc />
+    public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
+    {
+        if (this.State == ConnectionState.Authenticated)
+        {
+            try
+            {
+                message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
+            }
+            catch
+            {
+                this.State = ConnectionState.Connected;
+                return;
+            }
+        }
+
+        if (await _streamManager.SendAsync(message, cancellationToken))
+            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+    }
 
     /// <inheritdoc />
     public void Close()
@@ -109,7 +148,7 @@ public sealed class Connection : IConnection, IDisposable
             if (_disposed) return;
 
             _ctokens.Cancel();
-            _stateManager.UpdateState(ConnectionState.Disconnected);
+            this.State = ConnectionState.Disconnected;
             OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
@@ -140,47 +179,9 @@ public sealed class Connection : IConnection, IDisposable
         }
     }
 
-    public void Send(ReadOnlyMemory<byte> message)
-    {
-        if (_stateManager.State == ConnectionState.Authenticated)
-        {
-            try
-            {
-                message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
-            }
-            catch
-            {
-                _stateManager.UpdateState(ConnectionState.Connected);
-                return;
-            }
-        }
-
-        if (_streamManager.Send(message.Span))
-            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-    }
-
-    public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
-    {
-        if (_stateManager.State == ConnectionState.Authenticated)
-        {
-            try
-            {
-                message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
-            }
-            catch
-            {
-                _stateManager.UpdateState(ConnectionState.Connected);
-                return;
-            }
-        }
-
-        if (await _streamManager.SendAsync(message, cancellationToken))
-            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-    }
-
     private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
     {
-        if (_stateManager.State == ConnectionState.Authenticated)
+        if (this.State == ConnectionState.Authenticated)
         {
             try
             {
@@ -188,7 +189,7 @@ public sealed class Connection : IConnection, IDisposable
             }
             catch
             {
-                _stateManager.UpdateState(ConnectionState.Connected);
+                this.State = ConnectionState.Connected;
             }
         }
 

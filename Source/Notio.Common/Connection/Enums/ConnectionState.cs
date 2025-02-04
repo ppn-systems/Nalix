@@ -6,11 +6,6 @@
 public enum ConnectionState
 {
     /// <summary>
-    /// The connection is in the process of being established.
-    /// </summary>
-    Connecting,
-
-    /// <summary>
     /// The connection has been successfully established.
     /// </summary>
     Connected,

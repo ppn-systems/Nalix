@@ -40,7 +40,7 @@ public class PacketTesting
     {
         byte type = 1;
         byte flags = 2;
-        short command = 100;
+        ushort command = 100;
 
         var packet = new Packet(type, flags, 0x00, command, PacketTesting.payload);
 
@@ -112,7 +112,7 @@ public class PacketTesting
 
     private static void TestPacketSign()
     {
-        var packet = new Packet(0x00, 0x00, 0x00, 0x00, PacketTesting.payload);
+        var packet = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
 
         var signedPacket = packet.SignPacket();
         var isVerified = signedPacket.VerifyPacket();

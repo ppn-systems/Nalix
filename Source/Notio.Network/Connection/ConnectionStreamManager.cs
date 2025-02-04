@@ -12,7 +12,7 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
 /// </summary>
-public class ConnectionStreamHandler : IDisposable
+public class ConnectionStreamManager : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly NetworkStream _stream;
@@ -47,12 +47,12 @@ public class ConnectionStreamHandler : IDisposable
     public Func<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>? OnDataReceived;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionStreamHandler"/> class.
+    /// Initializes a new instance of the <see cref="ConnectionStreamManager"/> class.
     /// </summary>
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
     /// <param name="logger">The logger (optional).</param>
-    public ConnectionStreamHandler(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
+    public ConnectionStreamManager(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
         _logger = logger;
         _bufferPool = bufferPool;
@@ -185,7 +185,7 @@ public class ConnectionStreamHandler : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="ConnectionStreamHandler"/> instance.
+    /// Disposes the resources used by the <see cref="ConnectionStreamManager"/> instance.
     /// </summary>
     public void Dispose()
     {

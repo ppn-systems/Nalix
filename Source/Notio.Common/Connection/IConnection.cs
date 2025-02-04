@@ -22,29 +22,29 @@ public interface IConnection : IDisposable
     byte[] IncomingPacket { get; }
 
     /// <summary>
-    /// Gets the encryption key used for securing communication.
-    /// </summary>
-    byte[] EncryptionKey { get; set; }
-
-    /// <summary>
     /// Gets the remote endpoint address associated with the connection.
     /// </summary>
     string RemoteEndPoint { get; }
 
     /// <summary>
+    /// Gets the timestamp indicating when the connection was established.
+    /// </summary>
+    DateTimeOffset Timestamp { get; }
+
+    /// <summary>
+    /// Gets the encryption key used for securing communication.
+    /// </summary>
+    byte[] EncryptionKey { get; set; }
+
+    /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>
-    Authoritys Authority { get; }
+    Authoritys Authority { get; set; }
 
     /// <summary>
     /// Gets the current state of the connection.
     /// </summary>
-    ConnectionState State { get; }
-
-    /// <summary>
-    /// Gets the timestamp indicating when the connection was established.
-    /// </summary>
-    DateTimeOffset Timestamp { get; }
+    ConnectionState State { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.
