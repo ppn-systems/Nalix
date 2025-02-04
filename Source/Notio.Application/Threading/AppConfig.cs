@@ -129,7 +129,7 @@ public static class AppConfig
     {
         BufferAllocator bufferAllocator = new();
 
-        PacketHandlerRouter handlerRouter = new(null);
+        PacketHandlerRouter handlerRouter = new(NotioLog.Instance);
         handlerRouter.RegisterHandler<ExampleController>();
 
         ServerProtocol serverProtocol = new(handlerRouter);

@@ -10,9 +10,7 @@ public static class Program
 
     public static async Task Main()
     {
-        var token = CancellationTokenSource.Token;
-        // Chạy unit tests (nếu cần)
-        // RunUnitTests();
+        CancellationToken token = CancellationTokenSource.Token;
 
         // Khởi tạo cấu hình
         AppConfig.InitializeConsole();

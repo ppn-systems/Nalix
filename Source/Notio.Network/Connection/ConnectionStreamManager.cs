@@ -3,6 +3,7 @@ using Notio.Common.Memory.Pools;
 using Notio.Shared.Memory.Cache;
 using Notio.Shared.Time;
 using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -74,6 +75,14 @@ public class ConnectionStreamManager : IDisposable
         {
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
                    .ContinueWith((task, state) => OnReceiveCompleted(task, cancellationToken), cancellationToken);
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Connection reset by remote host.");
+        }
+        catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Connection forcibly closed by remote host.");
         }
         catch (Exception ex)
         {

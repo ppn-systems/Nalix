@@ -17,9 +17,9 @@ public class ServerProtocol(PacketHandlerRouter packetCommandRouter) : Protocol
     }
 
     /// <inheritdoc />
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
+    public override async void ProcessMessage(object sender, IConnectEventArgs args)
     {
-        _handlerFactory.RoutePacket(args.Connection);
+        await _handlerFactory.RoutePacketAsync(args.Connection);
     }
 
     /// <inheritdoc />
