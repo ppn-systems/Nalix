@@ -18,7 +18,7 @@ public sealed class Connection : IConnection, IDisposable
     private readonly ILogger? _logger;
     private readonly ConnectionStreamManager _streamManager;
     private readonly CancellationTokenSource _ctokens = new();
-    private readonly ConnectionStateTracker _stateTracker = new();
+    private readonly ConnectionStateManager _stateManager = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
     private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
 
@@ -44,10 +44,10 @@ public sealed class Connection : IConnection, IDisposable
     public string Id => _id.ToString(true);
 
     /// <inheritdoc />
-    public ConnectionState State => _stateTracker.State;
+    public ConnectionState State => _stateManager.State;
 
     /// <inheritdoc />
-    public Authoritys Authority => _stateTracker.Authority;
+    public Authoritys Authority => _stateManager.Authority;
 
     /// <inheritdoc />
     public DateTimeOffset Timestamp => _connectedTimestamp;
@@ -109,7 +109,7 @@ public sealed class Connection : IConnection, IDisposable
             if (_disposed) return;
 
             _ctokens.Cancel();
-            _stateTracker.UpdateState(ConnectionState.Disconnected);
+            _stateManager.UpdateState(ConnectionState.Disconnected);
             OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
@@ -142,7 +142,7 @@ public sealed class Connection : IConnection, IDisposable
 
     public void Send(ReadOnlyMemory<byte> message)
     {
-        if (_stateTracker.State == ConnectionState.Authenticated)
+        if (_stateManager.State == ConnectionState.Authenticated)
             message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
 
         if (_streamManager.Send(message.Span))
@@ -151,7 +151,7 @@ public sealed class Connection : IConnection, IDisposable
 
     public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
     {
-        if (_stateTracker.State == ConnectionState.Authenticated)
+        if (_stateManager.State == ConnectionState.Authenticated)
             message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
 
         if (await _streamManager.SendAsync(message, cancellationToken))
@@ -160,7 +160,7 @@ public sealed class Connection : IConnection, IDisposable
 
     private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
     {
-        if (_stateTracker.State == ConnectionState.Authenticated)
+        if (_stateManager.State == ConnectionState.Authenticated)
             return Aes256.GcmMode.Decrypt(data, EncryptionKey);
 
         return data;
