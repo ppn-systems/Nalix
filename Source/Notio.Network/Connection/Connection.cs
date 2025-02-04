@@ -3,6 +3,7 @@ using Notio.Common.Connection.Enums;
 using Notio.Common.Logging.Interfaces;
 using Notio.Common.Memory.Pools;
 using Notio.Common.Models;
+using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Shared.Identification;
 using System;
 using System.Net.Sockets;
@@ -19,7 +20,6 @@ public sealed class Connection : IConnection, IDisposable
     private readonly CancellationTokenSource _ctokens = new();
     private readonly ConnectionStateManager _stateManager = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
-    private readonly ConnectionSecurityManager _securityManager = new();
     private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
 
     private bool _disposed;
@@ -38,7 +38,7 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public byte[] EncryptionKey { get; set; }
+    public byte[] EncryptionKey { get; set; } = [];
 
     /// <inheritdoc />
     public string Id => _id.ToString(true);
@@ -140,29 +140,29 @@ public sealed class Connection : IConnection, IDisposable
         }
     }
 
-    public void Send(ReadOnlySpan<byte> message)
+    public void Send(ReadOnlyMemory<byte> message)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            message = _securityManager.Encrypt(message.ToArray());
+            message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
 
-        if (_streamHandler.Send(message))
+        if (_streamHandler.Send(message.Span))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
     public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            message = _securityManager.Encrypt(message).ToArray();
+            message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
 
         if (await _streamHandler.SendAsync(message, cancellationToken))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
-    private byte[] OnDataReceived(ReadOnlyMemory<byte> data)
+    private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
     {
         if (_stateManager.State == ConnectionState.Authenticated)
-            return _securityManager.Encrypt(data).ToArray();
+            return Aes256.GcmMode.Decrypt(data, EncryptionKey);
 
-        return data.ToArray();
+        return data;
     }
 }

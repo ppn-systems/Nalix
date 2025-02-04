@@ -44,7 +44,7 @@ public class ConnectionStreamHandler : IDisposable
     /// <summary>
     /// A delegate that processes received data.
     /// </summary>
-    public Func<ReadOnlyMemory<byte>, byte[]>? OnDataReceived;
+    public Func<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>? OnDataReceived;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionStreamHandler"/> class.
@@ -172,7 +172,7 @@ public class ConnectionStreamHandler : IDisposable
             }
 
             ReadOnlyMemory<byte> receivedData = _buffer.AsMemory(0, totalBytesRead);
-            byte[] processedData = OnDataReceived?.Invoke(receivedData) ?? receivedData.ToArray();
+            byte[] processedData = OnDataReceived?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
 
             CacheIncomingPacket.Add(processedData);
             LastPingTime = (long)Clock.UnixTime.TotalMilliseconds;

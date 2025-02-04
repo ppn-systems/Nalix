@@ -84,7 +84,7 @@ public interface IConnection : IDisposable
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    void Send(ReadOnlySpan<byte> message);
+    void Send(ReadOnlyMemory<byte> message);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
