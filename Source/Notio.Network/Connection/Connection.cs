@@ -16,9 +16,9 @@ public sealed class Connection : IConnection, IDisposable
 {
     private readonly Socket _socket;
     private readonly ILogger? _logger;
-    private readonly ConnectionStreamHandler _streamHandler;
+    private readonly ConnectionStreamManager _streamManager;
     private readonly CancellationTokenSource _ctokens = new();
-    private readonly ConnectionStateManager _stateManager = new();
+    private readonly ConnectionStateTracker _stateTracker = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
     private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
 
@@ -28,10 +28,10 @@ public sealed class Connection : IConnection, IDisposable
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
-        _streamHandler = new ConnectionStreamHandler(socket, bufferAllocator, logger);
+        _streamManager = new ConnectionStreamManager(socket, bufferAllocator, logger);
 
-        _streamHandler.OnDataReceived += OnDataReceived;
-        _streamHandler.OnNewPacketCached = () =>
+        _streamManager.OnDataReceived += OnDataReceived;
+        _streamManager.OnNewPacketCached = () =>
         {
             OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
         };
@@ -44,16 +44,16 @@ public sealed class Connection : IConnection, IDisposable
     public string Id => _id.ToString(true);
 
     /// <inheritdoc />
-    public ConnectionState State => _stateManager.State;
+    public ConnectionState State => _stateTracker.State;
 
     /// <inheritdoc />
-    public Authoritys Authority => _stateManager.Authority;
+    public Authoritys Authority => _stateTracker.Authority;
 
     /// <inheritdoc />
     public DateTimeOffset Timestamp => _connectedTimestamp;
 
     /// <inheritdoc />
-    public long LastPingTime => _streamHandler.LastPingTime;
+    public long LastPingTime => _streamManager.LastPingTime;
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnCloseEvent;
@@ -73,7 +73,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         get
         {
-            if (_streamHandler.CacheIncomingPacket.TryGetValue(out var data))
+            if (_streamManager.CacheIncomingPacket.TryGetValue(out var data))
                 return data;
             return null;
         }
@@ -81,7 +81,7 @@ public sealed class Connection : IConnection, IDisposable
 
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
-        => _streamHandler.BeginReceive(cancellationToken);
+        => _streamManager.BeginReceive(cancellationToken);
 
     /// <inheritdoc />
     public void Close()
@@ -109,7 +109,7 @@ public sealed class Connection : IConnection, IDisposable
             if (_disposed) return;
 
             _ctokens.Cancel();
-            _stateManager.UpdateState(ConnectionState.Disconnected);
+            _stateTracker.UpdateState(ConnectionState.Disconnected);
             OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
@@ -135,32 +135,32 @@ public sealed class Connection : IConnection, IDisposable
         finally
         {
             _ctokens.Dispose();
-            _streamHandler.Dispose();
+            _streamManager.Dispose();
             GC.SuppressFinalize(this);
         }
     }
 
     public void Send(ReadOnlyMemory<byte> message)
     {
-        if (_stateManager.State == ConnectionState.Authenticated)
+        if (_stateTracker.State == ConnectionState.Authenticated)
             message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
 
-        if (_streamHandler.Send(message.Span))
+        if (_streamManager.Send(message.Span))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
     public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
     {
-        if (_stateManager.State == ConnectionState.Authenticated)
+        if (_stateTracker.State == ConnectionState.Authenticated)
             message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
 
-        if (await _streamHandler.SendAsync(message, cancellationToken))
+        if (await _streamManager.SendAsync(message, cancellationToken))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
     private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
     {
-        if (_stateManager.State == ConnectionState.Authenticated)
+        if (_stateTracker.State == ConnectionState.Authenticated)
             return Aes256.GcmMode.Decrypt(data, EncryptionKey);
 
         return data;

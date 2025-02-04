@@ -7,7 +7,7 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Manages the connection state and authority, providing thread-safe updates.
 /// </summary>
-public class ConnectionStateManager
+public class ConnectionStateTracker
 {
     private int _state;
     private int _authority;
