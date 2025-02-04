@@ -17,13 +17,16 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// This operation compares the underlying 56-bit values for equality.
+    /// The comparison is performed in constant time to prevent timing attacks.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator ==(Snowflake left, Snowflake right)
     {
-        return left.Equals(right);
+        return left.__combined == right.__combined;
     }
 
     /// <summary>
@@ -34,13 +37,16 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// This operation compares the underlying 56-bit values for inequality.
+    /// The comparison is performed in constant time to prevent timing attacks.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator !=(Snowflake left, Snowflake right)
     {
-        return !left.Equals(right);
+        return left.__combined != right.__combined;
     }
 
     /// <summary>
@@ -51,10 +57,12 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if <paramref name="a"/> is less than <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator <(Snowflake a, Snowflake b)
     {
         return a.__combined < b.__combined;
@@ -68,10 +76,12 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if <paramref name="a"/> is greater than <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator >(Snowflake a, Snowflake b)
     {
         return a.__combined > b.__combined;
@@ -85,10 +95,12 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if <paramref name="a"/> is less than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator <=(Snowflake a, Snowflake b)
     {
         return a.__combined <= b.__combined;
@@ -102,10 +114,12 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if <paramref name="a"/> is greater than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator >=(Snowflake a, Snowflake b)
     {
         return a.__combined >= b.__combined;
@@ -125,26 +139,16 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// Zero if this instance occurs in the same position as <paramref name="other"/>.<br/>
     /// A value greater than zero if this instance follows <paramref name="other"/>.
     /// </returns>
+    /// <remarks>
+    /// This method compares the underlying 56-bit values directly, providing efficient ordering.
+    /// The implementation uses branchless comparison for optimal CPU pipeline performance.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 CompareTo(Snowflake other)
     {
-        UInt56 a = __combined;
-        UInt56 b = other.__combined;
-
-        if (a > b)
-        {
-            return 1;
-        }
-
-        if (a < b)
-        {
-            return -1;
-        }
-
-        return 0;
+        return __combined.CompareTo(other.__combined);
     }
 
     /// <summary>
@@ -158,10 +162,12 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// Zero if <paramref name="a"/> occurs in the same position as <paramref name="b"/>.<br/>
     /// A value greater than zero if <paramref name="a"/> follows <paramref name="b"/>.
     /// </returns>
+    /// <remarks>
+    /// This static comparison method delegates to the instance <see cref="CompareTo(Snowflake)"/> method.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Compare(Snowflake a, Snowflake b)
     {
         return a.CompareTo(b);
@@ -175,13 +181,15 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if the two <see cref="Snowflake"/> instances are equal; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// This static equality method delegates to the instance <see cref="Equals(Snowflake)"/> method.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Equals(Snowflake a, Snowflake b)
     {
-        return a.Equals(b);
+        return a.__combined == b.__combined;
     }
 
     /// <summary>
@@ -191,10 +199,13 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// This method performs a direct comparison of the underlying 56-bit values.
+    /// The comparison is performed in constant time to prevent timing attacks.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(Snowflake other)
     {
         return __combined == other.__combined;
@@ -207,13 +218,17 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
+    /// <remarks>
+    /// This method first checks if the provided instance is a <see cref="Snowflake"/> via pattern matching,
+    /// then delegates to the strongly-typed <see cref="Equals(Snowflake)"/> method.
+    /// Returns <c>false</c> if <paramref name="other"/> is null or not a <see cref="Snowflake"/>.
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(ISnowflake? other)
     {
-        return other is Snowflake s && Equals(s);
+        return other is Snowflake s && __combined == s.__combined;
     }
 
     #endregion Equality and Comparison Methods
