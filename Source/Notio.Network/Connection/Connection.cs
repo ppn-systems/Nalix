@@ -123,28 +123,15 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public void Close()
+    public void Close(bool force = false)
     {
         try
         {
-            if (_socket.Connected && (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0))
+            if (!force && _socket.Connected && (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0))
             {
                 return;
             }
 
-            OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error(ex);
-        }
-    }
-
-    /// <inheritdoc />
-    public void Disconnect(string? reason = null)
-    {
-        try
-        {
             if (_disposed) return;
 
             _ctokens.Cancel();
@@ -156,6 +143,9 @@ public sealed class Connection : IConnection, IDisposable
             _logger?.Error(ex);
         }
     }
+
+    /// <inheritdoc />
+    public void Disconnect(string? reason = null) => Close(force: true);
 
     /// <inheritdoc />
     public void Dispose()

@@ -78,7 +78,7 @@ public interface IConnection : IDisposable
     /// <remarks>
     /// Ensures that both the socket and associated streams are properly closed.
     /// </remarks>
-    void Close();
+    void Close(bool force = false);
 
     /// <summary>
     /// Sends a message synchronously over the connection.
