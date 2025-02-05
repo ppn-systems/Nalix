@@ -1,4 +1,5 @@
 ﻿using Notio.Common.Exceptions;
+using Notio.Cryptography.Ciphers.Symmetric.Enums;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers.Flags;
 using Notio.Network.Package.Utilities;
@@ -21,7 +22,7 @@ namespace Notio.Network.Package.Extensions
         /// <param name="key">The encryption key.</param>
         /// <param name="algorithm">The encryption algorithm to use (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
         /// <returns>A new Packet instance with the encrypted payload.</returns>
-        public static Packet EncryptPayload(this Packet packet, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
+        public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.AesGcm)
         {
             // Validate encryption conditions.
             PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
@@ -32,7 +33,7 @@ namespace Notio.Network.Package.Extensions
                 ReadOnlyMemory<byte> encryptedPayload = PayloadCrypto.Encrypt(packet.Payload, key, algorithm);
 
                 // For ChaCha20Poly1305, add the encryption flag; for other algorithms remove it.
-                var newFlags = algorithm == PacketEncryptionMode.ChaCha20Poly1305
+                var newFlags = algorithm == EncryptionMode.ChaCha20Poly1305
                     ? packet.Flags.AddFlag(PacketFlags.IsEncrypted)
                     : packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
 
@@ -59,7 +60,7 @@ namespace Notio.Network.Package.Extensions
         /// <param name="key">The decryption key.</param>
         /// <param name="algorithm">The encryption algorithm that was used (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
         /// <returns>A new Packet instance with the decrypted payload.</returns>
-        public static Packet DecryptPayload(this Packet packet, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.AesGcm)
+        public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.AesGcm)
         {
             // Validate decryption conditions.
             PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);

@@ -185,7 +185,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             try
             {
-                return Aes256.GcmMode.Encrypt(data, EncryptionKey);
+                return Aes256.GcmMode.Decrypt(data, EncryptionKey);
             }
             catch
             {

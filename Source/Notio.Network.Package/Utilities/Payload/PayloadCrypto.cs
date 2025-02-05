@@ -2,7 +2,7 @@
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Ciphers;
 using Notio.Cryptography.Ciphers.Symmetric;
-using Notio.Network.Package.Enums;
+using Notio.Cryptography.Ciphers.Symmetric.Enums;
 using System;
 
 namespace Notio.Network.Package.Utilities.Payload;
@@ -22,7 +22,7 @@ public static class PayloadCrypto
     /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
     /// </param>
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> data, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.Xtea)
+    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key), "Key cannot be null.");
@@ -33,7 +33,7 @@ public static class PayloadCrypto
         {
             switch (algorithm)
             {
-                case PacketEncryptionMode.Xtea:
+                case EncryptionMode.Xtea:
                     {
                         // Calculate the required buffer size (round up to the next multiple of 8)
                         int bufferSize = data.Length + 7 & ~7;
@@ -42,14 +42,14 @@ public static class PayloadCrypto
                         return encryptedXtea;
                     }
 
-                case PacketEncryptionMode.AesGcm:
+                case EncryptionMode.AesGcm:
                     {
                         // Encrypt using AES-256 GCM mode
                         ReadOnlyMemory<byte> encrypted = Aes256.GcmMode.Encrypt(data, key);
                         return encrypted;
                     }
 
-                case PacketEncryptionMode.ChaCha20Poly1305:
+                case EncryptionMode.ChaCha20Poly1305:
                     {
                         byte[] nonce = CryptoKeyGen.CreateNonce();
 
@@ -85,7 +85,7 @@ public static class PayloadCrypto
     /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
     /// </param>
     /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> data, byte[] key, PacketEncryptionMode algorithm = PacketEncryptionMode.Xtea)
+    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key), "Key cannot be null.");
@@ -96,7 +96,7 @@ public static class PayloadCrypto
         {
             switch (algorithm)
             {
-                case PacketEncryptionMode.Xtea:
+                case EncryptionMode.Xtea:
                     {
                         int bufferSize = data.Length + 7 & ~7;
                         Memory<byte> decryptedXtea = new byte[bufferSize];
@@ -108,13 +108,13 @@ public static class PayloadCrypto
                         return decryptedXtea;
                     }
 
-                case PacketEncryptionMode.AesGcm:
+                case EncryptionMode.AesGcm:
                     {
                         ReadOnlyMemory<byte> decrypted = Aes256.GcmMode.Decrypt(data, key);
                         return decrypted;
                     }
 
-                case PacketEncryptionMode.ChaCha20Poly1305:
+                case EncryptionMode.ChaCha20Poly1305:
                     {
                         ReadOnlySpan<byte> input = data.Span;
                         // Ensure the input has at least enough bytes for nonce (12 bytes) and tag (16 bytes)
