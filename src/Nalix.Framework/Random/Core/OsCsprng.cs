@@ -41,16 +41,14 @@ internal static partial class OsCsprng
             {
                 _f = L;
             }
-            else if (System.OperatingSystem.IsMacOS() ||
-                     System.OperatingSystem.IsIOS() ||
-                     System.OperatingSystem.IsTvOS() ||
-                     System.OperatingSystem.IsWatchOS())
-            {
-                _f = A;
-            }
             else
             {
-                _f = D;
+                _f = System.OperatingSystem.IsMacOS() ||
+                     System.OperatingSystem.IsIOS() ||
+                     System.OperatingSystem.IsTvOS() ||
+                     System.OperatingSystem.IsWatchOS()
+                    ? A
+                    : D;
             }
         }
         catch
