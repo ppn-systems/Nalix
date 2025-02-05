@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<OutputType>Library</OutputType>
-		<Platforms>AnyCPU</Platforms>
-		<IsPublishable>false</IsPublishable>
 		<Nullable>enable</Nullable>
+		<Platforms>AnyCPU</Platforms>
+		<OutputType>Library</OutputType>
+		<IsPublishable>false</IsPublishable>
 		<TargetFramework>net9.0</TargetFramework>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

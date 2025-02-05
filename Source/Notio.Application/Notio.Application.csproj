@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<!-- General project settings -->
-		<Version>0.1.71</Version>
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>

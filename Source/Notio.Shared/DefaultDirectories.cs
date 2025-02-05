@@ -50,9 +50,7 @@ public static class DefaultDirectories
     /// Ensures that all necessary directories are created.
     /// </summary>
     static DefaultDirectories()
-    {
-        EnsureDirectoriesExist(LogsPath, DataPath, ConfigPath, TempPath, StoragePath);
-    }
+        => EnsureDirectoriesExist(LogsPath, DataPath, ConfigPath, TempPath, StoragePath);
 
     /// <summary>
     /// Ensures that the specified directories exist. Creates them if they do not exist.
