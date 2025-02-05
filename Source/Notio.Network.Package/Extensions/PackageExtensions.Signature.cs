@@ -1,5 +1,5 @@
 ﻿using Notio.Network.Package.Enums;
-using Notio.Network.Package.Helpers.Flags;
+using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Models;
 using System;
 using System.Runtime.CompilerServices;
