@@ -16,7 +16,7 @@ public sealed class Connection : IConnection, IDisposable
 {
     private readonly Socket _socket;
     private readonly ILogger? _logger;
-    private readonly ConnectionStreamManager _streamManager;
+    private readonly ConnectionStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
     private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
@@ -27,10 +27,10 @@ public sealed class Connection : IConnection, IDisposable
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
-        _streamManager = new ConnectionStreamManager(socket, bufferAllocator, logger);
+        _cstream = new ConnectionStream(socket, bufferAllocator, logger);
 
-        _streamManager.OnDataReceived += OnDataReceived;
-        _streamManager.OnNewPacketCached = () =>
+        _cstream.TransformReceivedData += OnDataReceived;
+        _cstream.PacketCached = () =>
         {
             OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
         };
@@ -43,7 +43,7 @@ public sealed class Connection : IConnection, IDisposable
     public byte[] EncryptionKey { get; set; } = [];
 
     /// <inheritdoc />
-    public long PingTime => _streamManager.LastPingTime;
+    public long PingTime => _cstream.LastPingTime;
 
     /// <inheritdoc />
     public DateTimeOffset Timestamp => _connectedTimestamp;
@@ -72,7 +72,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         get
         {
-            if (_streamManager.CacheIncomingPacket.TryGetValue(out var data))
+            if (_cstream.CacheIncomingPacket.TryGetValue(out var data))
                 return data;
             return null;
         }
@@ -80,7 +80,7 @@ public sealed class Connection : IConnection, IDisposable
 
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
-        => _streamManager.BeginReceive(cancellationToken);
+        => _cstream.BeginReceive(cancellationToken);
 
     /// <inheritdoc />
     public void Send(ReadOnlyMemory<byte> message)
@@ -98,7 +98,7 @@ public sealed class Connection : IConnection, IDisposable
             }
         }
 
-        if (_streamManager.Send(message.Span))
+        if (_cstream.Send(message.Span))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
@@ -118,7 +118,7 @@ public sealed class Connection : IConnection, IDisposable
             }
         }
 
-        if (await _streamManager.SendAsync(message, cancellationToken))
+        if (await _cstream.SendAsync(message, cancellationToken))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
@@ -164,7 +164,7 @@ public sealed class Connection : IConnection, IDisposable
         finally
         {
             _ctokens.Dispose();
-            _streamManager.Dispose();
+            _cstream.Dispose();
             GC.SuppressFinalize(this);
         }
     }

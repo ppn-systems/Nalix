@@ -1,12 +1,12 @@
 ﻿namespace Notio.Common.Connection;
 
 /// <summary>
-/// Interface representing event arguments for connection-related events.
+/// Represents connection events and provides event data.
 /// </summary>
 public interface IConnectEventArgs
 {
     /// <summary>
-    /// Gets the connection associated with the event.
+    /// The connection related to the event.
     /// </summary>
     IConnection Connection { get; }
 }

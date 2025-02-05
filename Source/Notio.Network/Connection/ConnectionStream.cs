@@ -13,7 +13,7 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
 /// </summary>
-public class ConnectionStreamManager : IDisposable
+public class ConnectionStream : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly NetworkStream _stream;
@@ -40,27 +40,27 @@ public class ConnectionStreamManager : IDisposable
     /// <summary>
     /// Event triggered when a new packet is added to the cache.
     /// </summary>
-    public Action? OnNewPacketCached;
+    public Action? PacketCached;
 
     /// <summary>
     /// A delegate that processes received data.
     /// </summary>
-    public Func<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>? OnDataReceived;
+    public Func<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>? TransformReceivedData;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionStreamManager"/> class.
+    /// Initializes a new instance of the <see cref="ConnectionStream"/> class.
     /// </summary>
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
     /// <param name="logger">The logger (optional).</param>
-    public ConnectionStreamManager(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
+    public ConnectionStream(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
         _logger = logger;
         _bufferPool = bufferPool;
         _buffer = _bufferPool.Rent(256);
         _stream = new NetworkStream(socket);
         CacheOutgoingPacket = new BinaryCache(20);
-        CacheIncomingPacket = new FifoCache<byte[]>(5);
+        CacheIncomingPacket = new FifoCache<byte[]>(20);
     }
 
     /// <summary>
@@ -99,10 +99,16 @@ public class ConnectionStreamManager : IDisposable
     {
         try
         {
-            Span<byte> key = stackalloc byte[10];
-            message[..4].CopyTo(key);
-            message[(message.Length - 5)..].CopyTo(key);
+            // Validate that the message is long enough to extract the key.
+            if (message.Length < 9)
+                throw new ArgumentException("Message must be at least 9 bytes long", nameof(message));
 
+            // Allocate a key of 9 bytes.
+            Span<byte> key = stackalloc byte[9];
+            message.Slice(0, 4).CopyTo(key[..4]);
+            message.Slice(message.Length - 5, 5).CopyTo(key.Slice(4, 5));
+
+            // Cache the message if the key is not already present.
             if (!CacheOutgoingPacket.TryGetValue(key, out _))
             {
                 CacheOutgoingPacket.Add(key, message.ToArray());
@@ -130,9 +136,12 @@ public class ConnectionStreamManager : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            Span<byte> key = stackalloc byte[10];
-            message.AsSpan(0, 4).CopyTo(key);
-            message.AsSpan(message.Length - 5).CopyTo(key);
+            if (message.Length < 9)
+                throw new ArgumentException("Message must be at least 9 bytes long", nameof(message));
+
+            Span<byte> key = stackalloc byte[9];
+            message.AsSpan(0, 4).CopyTo(key[..4]);
+            message.AsSpan(message.Length - 5, 5).CopyTo(key.Slice(4, 5));
 
             if (!CacheOutgoingPacket.TryGetValue(key, out _))
             {
@@ -181,11 +190,11 @@ public class ConnectionStreamManager : IDisposable
             }
 
             ReadOnlyMemory<byte> receivedData = _buffer.AsMemory(0, totalBytesRead);
-            byte[] processedData = OnDataReceived?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
+            byte[] processedData = TransformReceivedData?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
 
             CacheIncomingPacket.Add(processedData);
             LastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
-            OnNewPacketCached?.Invoke();
+            PacketCached?.Invoke();
         }
         catch (Exception ex)
         {
@@ -194,26 +203,32 @@ public class ConnectionStreamManager : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="ConnectionStreamManager"/> instance.
+    /// Disposes the resources used by the <see cref="ConnectionStream"/> instance.
     /// </summary>
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes the managed and unmanaged resources.
+    /// </summary>
+    /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
+    private void Dispose(bool disposing)
+    {
         if (_disposed) return;
 
-        try
+        if (disposing)
         {
             _bufferPool.Return(_buffer);
             _buffer = [];
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error(ex);
-        }
-        finally
-        {
-            _disposed = true;
             _stream.Dispose();
-            GC.SuppressFinalize(this);
         }
+
+        CacheOutgoingPacket.Clear();
+        CacheIncomingPacket.Clear();
+
+        _disposed = true;
     }
 }
