@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Notio.Application.RestApi;
 using Notio.Application.TcpHandlers;
-using Notio.Common.Logging;
+using Notio.Common.Logging.Debugging;
 using Notio.Common.Logging.Enums;
 using Notio.Database;
 using Notio.Logging;

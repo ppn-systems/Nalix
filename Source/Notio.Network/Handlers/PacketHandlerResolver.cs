@@ -1,19 +1,20 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Logging.Interfaces;
+using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Handlers.Base;
+namespace Notio.Network.Handlers;
 
-internal class PacketHandlerRegistry(ILogger? logger = null)
+internal class PacketHandlerResolver(ILogger? logger = null)
 {
     private readonly ILogger? _logger = logger;
     private readonly ConcurrentDictionary<int, PacketHandlerInfo> _handlers = new();
 
-    public void RegisterHandlerMethods(Type type, PacketControllerAttribute controllerAttribute)
+    public void RegisterHandlers(Type type, PacketControllerAttribute controllerAttribute)
     {
         var methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public |
                                       BindingFlags.NonPublic | BindingFlags.Static);
@@ -25,6 +26,23 @@ internal class PacketHandlerRegistry(ILogger? logger = null)
 
             ValidateMethodSignature(method);
 
+            var commandId = handlerAttribute.CommandId;
+
+            if (_handlers.TryGetValue(commandId, out var existingHandler))
+            {
+                if (existingHandler.ControllerType == type)
+                {
+                    _logger?.Warn($"Handler {type.Name}.{method.Name} for command {commandId} is already registered.");
+                    continue;
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Command {commandId} is already handled by {existingHandler.ControllerType.Name}." +
+                        $" Cannot register {type.Name}.{method.Name}.");
+                }
+            }
+
             var handlerInfo = new PacketHandlerInfo(
                 controllerAttribute,
                 method,
@@ -32,14 +50,8 @@ internal class PacketHandlerRegistry(ILogger? logger = null)
                 type,
                 IsAsyncMethod(method));
 
-            if (!_handlers.TryAdd(handlerAttribute.CommandId, handlerInfo))
-            {
-                _logger?.Warn($"Command {handlerAttribute.CommandId} already has a handler.");
-            }
-            else
-            {
-                _logger?.Info($"Registered {type.Name}.{method.Name} for command {handlerAttribute.CommandId}");
-            }
+            _handlers.TryAdd(commandId, handlerInfo);
+            _logger?.Info($"Registered {type.Name}.{method.Name} for command {commandId}");
         }
     }
 

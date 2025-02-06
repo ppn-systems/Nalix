@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+﻿using Notio.Common.Logging.Debugging;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;

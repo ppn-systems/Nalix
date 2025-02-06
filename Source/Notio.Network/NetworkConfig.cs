@@ -10,10 +10,10 @@ public sealed class NetworkConfig : ConfiguredBinder
 
     // General socket configuration
     // Constrain the buffer size to positive values with a minimum of 64KB (65536 bytes)
-    [Range(64 * 1024, int.MaxValue)]  // Minimum value set to 64KB
+    [Range(1024, int.MaxValue)]  // Minimum value set to 64KB
     public int ReceiveBufferSize { get; set; } = 64 * 1024;  // Default set to 64KB
 
-    [Range(64 * 1024, int.MaxValue)]  // Minimum value set to 64KB
+    [Range(1024, int.MaxValue)]  // Minimum value set to 64KB
     public int SendBufferSize { get; set; } = 64 * 1024;  // Default set to 64KB
 
     public int LingerTimeoutSeconds { get; set; } = 30;

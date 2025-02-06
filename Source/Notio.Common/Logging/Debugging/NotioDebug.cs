@@ -4,7 +4,7 @@ using Notio.Common.Models;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Common.Logging;
+namespace Notio.Common.Logging.Debugging;
 
 public static class NotioDebug
 {

@@ -105,7 +105,7 @@ public class ConnectionStream : IDisposable
 
             // Allocate a key of 9 bytes.
             Span<byte> key = stackalloc byte[9];
-            message.Slice(0, 4).CopyTo(key[..4]);
+            message[..4].CopyTo(key[..4]);
             message.Slice(message.Length - 5, 5).CopyTo(key.Slice(4, 5));
 
             // Cache the message if the key is not already present.

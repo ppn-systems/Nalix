@@ -72,7 +72,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         get
         {
-            if (_cstream.CacheIncomingPacket.TryGetValue(out var data))
+            if (_cstream.CacheIncomingPacket.TryGetValue(out byte[]? data))
                 return data;
             return null;
         }

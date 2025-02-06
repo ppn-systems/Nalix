@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+﻿using Notio.Common.Logging.Debugging;
 using Notio.Lite.Extensions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;

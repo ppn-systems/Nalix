@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+﻿using Notio.Common.Logging.Debugging;
 using Notio.Lite.Formatters;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;

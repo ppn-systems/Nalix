@@ -1,7 +1,9 @@
 ﻿using Notio.Common.Connection;
+using Notio.Common.Diagnostics;
+using Notio.Common.Injection;
 using Notio.Common.Logging.Interfaces;
 using Notio.Common.Models;
-using Notio.Network.Handlers.Base;
+using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
 using Notio.Network.Package.Extensions;
 using System;
@@ -15,17 +17,15 @@ namespace Notio.Network.Handlers;
 public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 {
     private readonly ILogger? _logger = logger;
-    private readonly SemaphoreSlim _routingLock = new(1, 1);
     private readonly InstanceManager _instanceManager = new();
     private readonly PerformanceMonitor _performanceMonitor = new();
-    private readonly PacketHandlerRegistry _handlerRegistry = new(logger);
+    private readonly PacketHandlerResolver _handlerResolver = new(logger);
 
     private bool _isDisposed;
 
     public void Dispose()
     {
         if (_isDisposed) return;
-        _routingLock.Dispose();
         _isDisposed = true;
         GC.SuppressFinalize(this);
     }
@@ -40,7 +40,7 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
         var controllerAttribute = type.GetCustomAttribute<PacketControllerAttribute>()
             ?? throw new InvalidOperationException($"Class {type.Name} must be marked with PacketControllerAttribute.");
 
-        _handlerRegistry.RegisterHandlerMethods(type, controllerAttribute);
+        _handlerResolver.RegisterHandlers(type, controllerAttribute);
     }
 
     public async Task RoutePacketAsync(IConnection connection, CancellationToken cancellationToken = default)
@@ -48,14 +48,15 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
         ArgumentNullException.ThrowIfNull(connection);
         ThrowIfDisposed();
 
-        await _routingLock.WaitAsync(cancellationToken);
+        // Use a local performance monitor if needed
+        var performanceMonitor = new PerformanceMonitor();
+        performanceMonitor.Start();
+
         try
         {
-            _performanceMonitor.Start();
-
             var packet = connection.IncomingPacket.FromByteArray();
 
-            if (!_handlerRegistry.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
+            if (!_handlerResolver.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
                 || handlerInfo == null)
             {
                 _logger?.Warn($"No handler found for command <{packet.Command}>");
@@ -74,17 +75,13 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
             if (response != null)
             {
                 await connection.SendAsync(response.Value.ToByteArray(), cancellationToken);
-                _performanceMonitor.Stop();
-                _logger?.Debug($"Command <{packet.Command}> processed in {_performanceMonitor.ElapsedMilliseconds}ms");
+                performanceMonitor.Stop();
+                _logger?.Debug($"Command <{packet.Command}> processed in {performanceMonitor.ElapsedMilliseconds}ms");
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger?.Error($"Error processing packet: {ex}");
-        }
-        finally
-        {
-            _routingLock.Release();
         }
     }
 
