@@ -27,9 +27,7 @@ internal sealed partial class HttpListenerRequest : IHttpRequest
     private bool _keepAlive;
 
     internal HttpListenerRequest(HttpListenerContext context)
-    {
-        _connection = context.Connection;
-    }
+        => _connection = context.Connection;
 
     /// <summary>
     /// Gets the MIME accept types.

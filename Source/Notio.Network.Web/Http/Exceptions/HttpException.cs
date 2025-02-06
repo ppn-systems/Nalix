@@ -15,9 +15,7 @@ public partial class HttpException : Exception, IHttpException
     /// </summary>
     /// <param name="statusCode">The status code to set on the response.</param>
     public HttpException(int statusCode)
-    {
-        StatusCode = statusCode;
-    }
+        => StatusCode = statusCode;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpException"/> class,
@@ -61,10 +59,7 @@ public partial class HttpException : Exception, IHttpException
     /// <param name="message">A message to include in the response as plain text.</param>
     /// <param name="data">The data object to include in the response.</param>
     public HttpException(int statusCode, string? message, object? data)
-        : this(statusCode, message)
-    {
-        DataObject = data;
-    }
+        : this(statusCode, message) => DataObject = data;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpException" /> class,

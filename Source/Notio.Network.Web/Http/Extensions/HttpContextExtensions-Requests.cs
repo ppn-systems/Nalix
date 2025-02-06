@@ -1,6 +1,6 @@
 ﻿using Notio.Common;
 using Notio.Lite.Extensions;
-using Notio.Network.Web.Request;
+using Notio.Network.Web.Http.Request;
 using Notio.Network.Web.Utilities;
 using System;
 using System.Collections.Specialized;
@@ -37,11 +37,7 @@ public static partial class HttpContextExtensions
     /// whose result will be a read-only <see cref="MemoryStream"/> containing the request body.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static async Task<MemoryStream> GetRequestBodyAsMemoryStreamAsync(this IHttpContext @this)
-    {
-        return new MemoryStream(
-                await GetRequestBodyAsByteArrayAsync(@this).ConfigureAwait(false),
-                false);
-    }
+        => new MemoryStream(await GetRequestBodyAsByteArrayAsync(@this).ConfigureAwait(false), false);
 
     /// <summary>
     /// Asynchronously retrieves the request body as a string.
@@ -67,9 +63,7 @@ public static partial class HttpContextExtensions
     /// whose result will be the deserialized data.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static Task<TData> GetRequestDataAsync<TData>(this IHttpContext @this)
-    {
-        return RequestDeserializer.Default<TData>(@this);
-    }
+        => RequestDeserializer.Default<TData>(@this);
 
     /// <summary>
     /// Asynchronously deserializes a request body, using the specified request deserializer.
@@ -82,9 +76,7 @@ public static partial class HttpContextExtensions
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="deserializer"/> is <see langword="null"/>.</exception>
     public static Task<TData> GetRequestDataAsync<TData>(this IHttpContext @this, RequestDeserializerCallback<TData> deserializer)
-    {
-        return Validate.NotNull(nameof(deserializer), deserializer)(@this);
-    }
+        => Validate.NotNull(nameof(deserializer), deserializer)(@this);
 
     /// <summary>
     /// Asynchronously parses a request body in <c>application/x-www-form-urlencoded</c> format.

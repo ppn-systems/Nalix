@@ -65,7 +65,5 @@ public static partial class HttpContextExtensions
     /// <seealso cref="OpenRequestStream"/>
     /// <seealso cref="WebServerOptionsBase.SupportCompressedRequests"/>
     public static TextReader OpenRequestText(this IHttpContext @this)
-    {
-        return new StreamReader(OpenRequestStream(@this), @this.Request.ContentEncoding);
-    }
+        => new StreamReader(OpenRequestStream(@this), @this.Request.ContentEncoding);
 }

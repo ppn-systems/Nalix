@@ -1,9 +1,8 @@
-﻿using Notio.Network.Web.Http;
-using Notio.Network.Web.MimeTypes;
+﻿using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Utilities;
 using System;
 
-namespace Notio.Network.Web.Response;
+namespace Notio.Network.Web.Http.Exceptions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IHttpResponse"/>.

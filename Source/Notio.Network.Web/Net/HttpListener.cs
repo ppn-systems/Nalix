@@ -47,7 +47,7 @@ public sealed class HttpListener : IHttpListener
     public string Name { get; } = "Unosquare HTTP Listener";
 
     /// <inheritdoc />
-    public List<string> Prefixes => _prefixes.ToList();
+    public List<string> Prefixes => [.. _prefixes];
 
     /// <summary>
     /// Gets the certificate.
@@ -78,9 +78,7 @@ public sealed class HttpListener : IHttpListener
 
     /// <inheritdoc />
     public void AddPrefix(string urlPrefix)
-    {
-        _prefixes.Add(urlPrefix);
-    }
+        => _prefixes.Add(urlPrefix);
 
     /// <inheritdoc />
     public void Dispose()
@@ -117,27 +115,16 @@ public sealed class HttpListener : IHttpListener
     internal void RegisterContext(HttpListenerContext context)
     {
         if (!_ctxQueue.TryAdd(context.Id, context))
-        {
             throw new InvalidOperationException("Unable to register context");
-        }
 
         _ = _ctxQueueSem.Release();
     }
 
-    internal void UnregisterContext(HttpListenerContext context)
-    {
-        _ = _ctxQueue.TryRemove(context.Id, out _);
-    }
+    internal void UnregisterContext(HttpListenerContext context) => _ = _ctxQueue.TryRemove(context.Id, out _);
 
-    internal void AddConnection(HttpConnection cnc)
-    {
-        _connections[cnc] = cnc;
-    }
+    internal void AddConnection(HttpConnection cnc) => _connections[cnc] = cnc;
 
-    internal void RemoveConnection(HttpConnection cnc)
-    {
-        _ = _connections.TryRemove(cnc, out _);
-    }
+    internal void RemoveConnection(HttpConnection cnc) => _ = _connections.TryRemove(cnc, out _);
 
     private void Close(bool closeExisting)
     {
@@ -149,15 +136,9 @@ public sealed class HttpListener : IHttpListener
         _connections.Clear();
         List<HttpConnection> list = new(connections);
 
-        for (int i = list.Count - 1; i >= 0; i--)
-        {
-            list[i].Close(true);
-        }
+        for (int i = list.Count - 1; i >= 0; i--) list[i].Close(true);
 
-        if (!closeExisting)
-        {
-            return;
-        }
+        if (!closeExisting) return;
 
         while (!_ctxQueue.IsEmpty)
         {

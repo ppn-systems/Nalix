@@ -59,9 +59,7 @@ internal sealed class EndPointListener : IDisposable
     }
 
     public static void UnbindContext(HttpListenerContext context)
-    {
-        context.Listener?.UnregisterContext(context);
-    }
+        => context.Listener?.UnregisterContext(context);
 
     public void Dispose()
     {
@@ -274,10 +272,7 @@ internal sealed class EndPointListener : IDisposable
         _ = conn.BeginReadRequest();
     }
 
-    private static void OnAccept(object sender, SocketAsyncEventArgs e)
-    {
-        ProcessAccept(e);
-    }
+    private static void OnAccept(object sender, SocketAsyncEventArgs e) => ProcessAccept(e);
 
     private static HttpListener? MatchFromList(string path, List<ListenerPrefix>? list, out ListenerPrefix? prefix)
     {

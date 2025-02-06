@@ -78,10 +78,7 @@ internal sealed class HttpListenerContext : IHttpContextImpl
 
     internal HttpConnection Connection { get; }
 
-    public void SetHandled()
-    {
-        IsHandled = true;
-    }
+    public void SetHandled() => IsHandled = true;
 
     public void OnClose(Action<IHttpContext> callback)
     {
@@ -124,13 +121,8 @@ internal sealed class HttpListenerContext : IHttpContextImpl
         return new WebSocketContext(this, WebSocket.SupportedVersion, requestedProtocols, acceptedProtocol, webSocket, cancellationToken);
     }
 
-    public string GetMimeType(string extension)
-    {
-        return MimeTypeProviders.GetMimeType(extension);
-    }
+    public string GetMimeType(string extension) => MimeTypeProviders.GetMimeType(extension);
 
     public bool TryDetermineCompression(string mimeType, out bool preferCompression)
-    {
-        return MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
-    }
+        => MimeTypeProviders.TryDetermineCompression(mimeType, out preferCompression);
 }

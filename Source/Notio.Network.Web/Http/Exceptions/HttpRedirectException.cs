@@ -48,7 +48,5 @@ public class HttpRedirectException : HttpException
 
     /// <inheritdoc />
     public override void PrepareResponse(IHttpContext context)
-    {
-        context.Redirect(Location, StatusCode);
-    }
+        => context.Redirect(Location, StatusCode);
 }

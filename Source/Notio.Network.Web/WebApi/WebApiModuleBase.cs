@@ -1,7 +1,7 @@
 ﻿using Notio.Common;
 using Notio.Lite;
 using Notio.Network.Web.Http;
-using Notio.Network.Web.Response;
+using Notio.Network.Web.Http.Response;
 using Notio.Network.Web.Routing;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;

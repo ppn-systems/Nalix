@@ -10,23 +10,18 @@ namespace Notio.Network.Web.Authentication;
 /// Simple HTTP basic authentication module that stores credentials
 /// in a <seealso cref="ConcurrentDictionary{TKey,TValue}"/>.
 /// </summary>
-public class BasicAuthenticationModule : BasicAuthenticationModuleBase
+/// <remarks>
+/// Initializes a new instance of the <see cref="BasicAuthenticationModule"/> class.
+/// </remarks>
+/// <param name="baseRoute">The base route.</param>
+/// <param name="realm">The authentication realm.</param>
+/// <remarks>
+/// <para>If <paramref name="realm"/> is <see langword="null"/> or the empty string,
+/// the <see cref="BasicAuthenticationModuleBase.Realm">Realm</see> property will be set equal to
+/// <see cref="IWebModule.BaseRoute">BaseRoute</see>.</para>
+/// </remarks>
+public class BasicAuthenticationModule(string baseRoute, string? realm = null) : BasicAuthenticationModuleBase(baseRoute, realm)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BasicAuthenticationModule"/> class.
-    /// </summary>
-    /// <param name="baseRoute">The base route.</param>
-    /// <param name="realm">The authentication realm.</param>
-    /// <remarks>
-    /// <para>If <paramref name="realm"/> is <see langword="null"/> or the empty string,
-    /// the <see cref="BasicAuthenticationModuleBase.Realm">Realm</see> property will be set equal to
-    /// <see cref="IWebModule.BaseRoute">BaseRoute</see>.</para>
-    /// </remarks>
-    public BasicAuthenticationModule(string baseRoute, string? realm = null)
-        : base(baseRoute, realm)
-    {
-    }
-
     /// <summary>
     /// Gets a dictionary of valid user names and passwords.
     /// </summary>

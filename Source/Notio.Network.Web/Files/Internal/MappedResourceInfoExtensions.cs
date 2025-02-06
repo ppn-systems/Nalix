@@ -5,7 +5,5 @@ namespace Notio.Network.Web.Files.Internal;
 internal static class MappedResourceInfoExtensions
 {
     public static string GetEntityTag(this MappedResourceInfo @this, CompressionMethod compressionMethod)
-    {
-        return EntityTag.Compute(@this.LastModifiedUtc, @this.Length, compressionMethod);
-    }
+        => EntityTag.Compute(@this.LastModifiedUtc, @this.Length, compressionMethod);
 }

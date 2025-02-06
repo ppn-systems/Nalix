@@ -3,7 +3,7 @@ using Notio.Network.Web.Internal;
 using Notio.Network.Web.WebModule;
 using System;
 
-namespace Notio.Network.Web.Request;
+namespace Notio.Network.Web.Http.Request;
 
 /// <summary>
 /// Provides standard request handler callbacks.
@@ -19,9 +19,7 @@ public static class RequestHandler
     /// </summary>
     /// <returns>A newly-created <see cref="Exception"/>.</returns>
     public static Exception PassThrough()
-    {
-        return new RequestHandlerPassThroughException();
-    }
+        => new RequestHandlerPassThroughException();
 
     /// <summary>
     /// <para>Returns a <see cref="RequestHandlerCallback" /> that unconditionally sends a <c>401 Unauthorized</c> response.</para>
@@ -29,9 +27,7 @@ public static class RequestHandler
     /// <param name="message">A message to include in the response.</param>
     /// <returns>A <see cref="RequestHandlerCallback" />.</returns>
     public static RequestHandlerCallback ThrowUnauthorized(string? message = null)
-    {
-        return _ => throw HttpException.Unauthorized(message);
-    }
+        => _ => throw HttpException.Unauthorized(message);
 
     /// <summary>
     /// <para>Returns a <see cref="RequestHandlerCallback" /> that unconditionally sends a <c>403 Forbidden</c> response.</para>
@@ -39,9 +35,7 @@ public static class RequestHandler
     /// <param name="message">A message to include in the response.</param>
     /// <returns>A <see cref="RequestHandlerCallback" />.</returns>
     public static RequestHandlerCallback ThrowForbidden(string? message = null)
-    {
-        return _ => throw HttpException.Forbidden(message);
-    }
+        => _ => throw HttpException.Forbidden(message);
 
     /// <summary>
     /// <para>Returns a <see cref="RequestHandlerCallback" /> that unconditionally sends a <c>400 Bad Request</c> response.</para>
@@ -49,9 +43,7 @@ public static class RequestHandler
     /// <param name="message">A message to include in the response.</param>
     /// <returns>A <see cref="RequestHandlerCallback" />.</returns>
     public static RequestHandlerCallback ThrowBadRequest(string? message = null)
-    {
-        return _ => throw HttpException.BadRequest(message);
-    }
+        => _ => throw HttpException.BadRequest(message);
 
     /// <summary>
     /// <para>Returns a <see cref="RequestHandlerCallback" /> that unconditionally sends a <c>404 Not Found</c> response.</para>
@@ -59,9 +51,7 @@ public static class RequestHandler
     /// <param name="message">A message to include in the response.</param>
     /// <returns>A <see cref="RequestHandlerCallback" />.</returns>
     public static RequestHandlerCallback ThrowNotFound(string? message = null)
-    {
-        return _ => throw HttpException.NotFound(message);
-    }
+        => _ => throw HttpException.NotFound(message);
 
     /// <summary>
     /// <para>Returns a <see cref="RequestHandlerCallback" /> that unconditionally sends a <c>405 Method Not Allowed</c> response.</para>
@@ -69,7 +59,5 @@ public static class RequestHandler
     /// <param name="message">A message to include in the response.</param>
     /// <returns>A <see cref="RequestHandlerCallback" />.</returns>
     public static RequestHandlerCallback ThrowMethodNotAllowed(string? message = null)
-    {
-        return _ => throw HttpException.MethodNotAllowed(message);
-    }
+        => _ => throw HttpException.MethodNotAllowed(message);
 }

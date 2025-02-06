@@ -1,6 +1,6 @@
 ﻿using Notio.Network.Web.Actions;
 using Notio.Network.Web.Enums;
-using Notio.Network.Web.Request;
+using Notio.Network.Web.Http.Request;
 using Notio.Network.Web.Utilities;
 using System;
 

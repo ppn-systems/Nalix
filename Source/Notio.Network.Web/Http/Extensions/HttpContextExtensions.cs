@@ -24,8 +24,6 @@ public static partial class HttpContextExtensions
     /// <paramref name="this"/> does not implement <see cref="IHttpContextImpl"/>.
     /// </exception>
     public static IHttpContextImpl GetImplementation(this IHttpContext @this)
-    {
-        return Validate.NotNull(nameof(@this), @this) as IHttpContextImpl
-            ?? throw SelfCheck.Failure($"{@this.GetType().FullName} does not implement {nameof(IHttpContextImpl)}.");
-    }
+        => Validate.NotNull(nameof(@this), @this) as IHttpContextImpl
+        ?? throw SelfCheck.Failure($"{@this.GetType().FullName} does not implement {nameof(IHttpContextImpl)}.");
 }

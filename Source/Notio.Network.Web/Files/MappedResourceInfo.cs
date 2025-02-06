@@ -65,9 +65,7 @@ public sealed class MappedResourceInfo
     /// <param name="contentType">A MIME type describing the kind of contents of the file.</param>
     /// <returns>A newly-constructed instance of <see cref="MappedResourceInfo"/>.</returns>
     public static MappedResourceInfo ForFile(string path, string name, DateTime lastModifiedUtc, long size, string contentType)
-    {
-        return new(path, name, lastModifiedUtc, size, contentType ?? MimeType.Default);
-    }
+        => new(path, name, lastModifiedUtc, size, contentType ?? MimeType.Default);
 
     /// <summary>
     /// Creates and returns a new instance of the <see cref="MappedResourceInfo"/> class,
@@ -78,7 +76,5 @@ public sealed class MappedResourceInfo
     /// <param name="lastModifiedUtc">The UTC date and time of the last modification made to the directory.</param>
     /// <returns>A newly-constructed instance of <see cref="MappedResourceInfo"/>.</returns>
     public static MappedResourceInfo ForDirectory(string path, string name, DateTime lastModifiedUtc)
-    {
-        return new(path, name, lastModifiedUtc, 0, null);
-    }
+        => new(path, name, lastModifiedUtc, 0, null);
 }

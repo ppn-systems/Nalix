@@ -7,9 +7,7 @@ internal class HttpListenerPrefixCollection : List<string>
     private readonly HttpListener _listener;
 
     internal HttpListenerPrefixCollection(HttpListener listener)
-    {
-        _listener = listener;
-    }
+        => _listener = listener;
 
     public new void Add(string uriPrefix)
     {

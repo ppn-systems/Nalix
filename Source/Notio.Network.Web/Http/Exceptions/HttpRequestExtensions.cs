@@ -1,7 +1,5 @@
 ﻿using Notio.Network.Web.Enums;
-using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
-using Notio.Network.Web.Request;
 using Notio.Network.Web.Utilities;
 using System;
 using System.Globalization;
@@ -9,7 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 
-namespace Notio.Network.Web.Request;
+namespace Notio.Network.Web.Http.Exceptions;
 
 /// <summary>
 /// Provides extension methods for types implementing <see cref="IHttpRequest"/>.

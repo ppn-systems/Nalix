@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 
-namespace Notio.Network.Web;
+namespace Notio.Network.Web.Net;
 
 /// <summary>
 /// Interface for Cookie Collection.

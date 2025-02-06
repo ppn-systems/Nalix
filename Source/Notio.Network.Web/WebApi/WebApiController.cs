@@ -1,5 +1,5 @@
 ﻿using Notio.Network.Web.Http;
-using Notio.Network.Web.Response;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Routing;
 using Notio.Network.Web.Sessions;
 using System.Security.Principal;

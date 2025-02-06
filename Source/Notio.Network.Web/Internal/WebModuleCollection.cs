@@ -13,9 +13,7 @@ internal sealed class WebModuleCollection : DisposableComponentCollection<IWebMo
     private readonly string _logSource;
 
     internal WebModuleCollection(string logSource)
-    {
-        _logSource = logSource;
-    }
+        => _logSource = logSource;
 
     internal void StartAll(CancellationToken cancellationToken)
     {

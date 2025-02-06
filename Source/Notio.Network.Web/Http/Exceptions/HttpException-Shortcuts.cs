@@ -16,9 +16,7 @@ public partial class HttpException
     /// A newly-created <see cref="HttpException" />.
     /// </returns>
     public static HttpException InternalServerError(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.InternalServerError, message, data);
-    }
+        => new(HttpStatusCode.InternalServerError, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpException" /> that, when thrown,
@@ -31,9 +29,7 @@ public partial class HttpException
     /// A newly-created <see cref="HttpException" />.
     /// </returns>
     public static HttpException Unauthorized(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.Unauthorized, message, data);
-    }
+        => new(HttpStatusCode.Unauthorized, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpException"/> that, when thrown,
@@ -44,9 +40,7 @@ public partial class HttpException
     /// <param name="data">The data object to include in the response.</param>
     /// <returns>A newly-created <see cref="HttpException"/>.</returns>
     public static HttpException Forbidden(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.Forbidden, message, data);
-    }
+        => new(HttpStatusCode.Forbidden, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpException"/> that, when thrown,
@@ -57,9 +51,7 @@ public partial class HttpException
     /// <param name="data">The data object to include in the response.</param>
     /// <returns>A newly-created <see cref="HttpException"/>.</returns>
     public static HttpException BadRequest(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.BadRequest, message, data);
-    }
+        => new(HttpStatusCode.BadRequest, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpException"/> that, when thrown,
@@ -70,9 +62,7 @@ public partial class HttpException
     /// <param name="data">The data object to include in the response.</param>
     /// <returns>A newly-created <see cref="HttpException"/>.</returns>
     public static HttpException NotFound(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.NotFound, message, data);
-    }
+        => new(HttpStatusCode.NotFound, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpException"/> that, when thrown,
@@ -83,9 +73,7 @@ public partial class HttpException
     /// <param name="data">The data object to include in the response.</param>
     /// <returns>A newly-created <see cref="HttpException"/>.</returns>
     public static HttpException MethodNotAllowed(string? message = null, object? data = null)
-    {
-        return new(HttpStatusCode.MethodNotAllowed, message, data);
-    }
+        => new(HttpStatusCode.MethodNotAllowed, message, data);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpNotAcceptableException"/> that, when thrown,
@@ -94,10 +82,7 @@ public partial class HttpException
     /// </summary>
     /// <returns>A newly-created <see cref="HttpNotAcceptableException"/>.</returns>
     /// <seealso cref="HttpNotAcceptableException()"/>
-    public static HttpNotAcceptableException NotAcceptable()
-    {
-        return new();
-    }
+    public static HttpNotAcceptableException NotAcceptable() => new();
 
     /// <summary>
     /// <para>Returns a new instance of <see cref="HttpNotAcceptableException"/> that, when thrown,
@@ -107,10 +92,7 @@ public partial class HttpException
     /// <param name="vary">A value, or a comma-separated list of values, to set the response's <c>Vary</c> header to.</param>
     /// <returns>A newly-created <see cref="HttpNotAcceptableException"/>.</returns>
     /// <seealso cref="HttpNotAcceptableException(string)"/>
-    public static HttpNotAcceptableException NotAcceptable(string vary)
-    {
-        return new(vary);
-    }
+    public static HttpNotAcceptableException NotAcceptable(string vary) => new(vary);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpRangeNotSatisfiableException"/> that, when thrown,
@@ -119,10 +101,7 @@ public partial class HttpException
     /// </summary>
     /// <returns>A newly-created <see cref="HttpRangeNotSatisfiableException"/>.</returns>
     /// <seealso cref="HttpRangeNotSatisfiableException()"/>
-    public static HttpRangeNotSatisfiableException RangeNotSatisfiable()
-    {
-        return new();
-    }
+    public static HttpRangeNotSatisfiableException RangeNotSatisfiable() => new();
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpRangeNotSatisfiableException"/> that, when thrown,
@@ -133,10 +112,7 @@ public partial class HttpException
     /// or <see langword="null"/> to omit the <c>Content-Range</c> header in the response.</param>
     /// <returns>A newly-created <see cref="HttpRangeNotSatisfiableException"/>.</returns>
     /// <seealso cref="HttpRangeNotSatisfiableException()"/>
-    public static HttpRangeNotSatisfiableException RangeNotSatisfiable(long? contentLength)
-    {
-        return new(contentLength);
-    }
+    public static HttpRangeNotSatisfiableException RangeNotSatisfiable(long? contentLength) => new(contentLength);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpRedirectException" /> that, when thrown,
@@ -147,10 +123,7 @@ public partial class HttpException
     /// <returns>
     /// A newly-created <see cref="HttpRedirectException" />.
     /// </returns>
-    public static HttpRedirectException Redirect(string location)
-    {
-        return new(location);
-    }
+    public static HttpRedirectException Redirect(string location) => new(location);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpRedirectException" /> that, when thrown,
@@ -163,10 +136,7 @@ public partial class HttpException
     /// A newly-created <see cref="HttpRedirectException" />.
     /// </returns>
     /// <exception cref="ArgumentException"><paramref name="statusCode"/> is not in the 300-399 range.</exception>
-    public static HttpRedirectException Redirect(string location, int statusCode)
-    {
-        return new(location, statusCode);
-    }
+    public static HttpRedirectException Redirect(string location, int statusCode) => new(location, statusCode);
 
     /// <summary>
     /// Returns a new instance of <see cref="HttpRedirectException" /> that, when thrown,
@@ -179,8 +149,5 @@ public partial class HttpException
     /// A newly-created <see cref="HttpRedirectException" />.
     /// </returns>
     /// <exception cref="ArgumentException"><paramref name="statusCode"/> is not a redirection status code.</exception>
-    public static HttpRedirectException Redirect(string location, HttpStatusCode statusCode)
-    {
-        return new(location, statusCode);
-    }
+    public static HttpRedirectException Redirect(string location, HttpStatusCode statusCode) => new(location, statusCode);
 }

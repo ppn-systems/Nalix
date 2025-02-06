@@ -99,9 +99,7 @@ public static class HttpStatusDescription
     /// <seealso cref="TryGet(int,out string)"/>
     /// <seealso cref="Get(HttpStatusCode)"/>
     public static bool TryGet(HttpStatusCode code, out string description)
-    {
-        return Dictionary.TryGetValue((int)code, out description!);
-    }
+        => Dictionary.TryGetValue((int)code, out description!);
 
     /// <summary>
     /// Attempts to get the standard status description for a HTTP status code
@@ -118,9 +116,7 @@ public static class HttpStatusDescription
     /// <seealso cref="TryGet(HttpStatusCode,out string)"/>
     /// <seealso cref="Get(int)"/>
     public static bool TryGet(int code, out string description)
-    {
-        return Dictionary.TryGetValue(code, out description!);
-    }
+        => Dictionary.TryGetValue(code, out description!);
 
     /// <summary>
     /// Returns the standard status description for a <see cref="HttpStatusCode"/>.

@@ -1,5 +1,5 @@
-﻿using Notio.Network.Web.MimeTypes;
-using Notio.Network.Web.Response;
+﻿using Notio.Network.Web.Http.Response;
+using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Utilities;
 using System;
 using System.IO;
@@ -56,9 +56,7 @@ public static partial class HttpContextExtensions
     /// <exception cref="ArgumentException">There is no standard status description for <paramref name="statusCode"/>.</exception>
     /// <seealso cref="SendStandardHtmlAsync(IHttpContext,int,Action{TextWriter})"/>
     public static Task SendStandardHtmlAsync(this IHttpContext @this, int statusCode)
-    {
-        return SendStandardHtmlAsync(@this, statusCode, null);
-    }
+        => SendStandardHtmlAsync(@this, statusCode, null);
 
     /// <summary>
     /// Asynchronously sends a standard HTML response for the specified status code.
@@ -108,9 +106,7 @@ public static partial class HttpContextExtensions
     /// <seealso cref="SendDataAsync(IHttpContext,ResponseSerializerCallback,object)"/>
     /// <seealso cref="ResponseSerializer.Default"/>
     public static Task SendDataAsync(this IHttpContext @this, object data)
-    {
-        return ResponseSerializer.Default(@this, data);
-    }
+        => ResponseSerializer.Default(@this, data);
 
     /// <summary>
     /// <para>Asynchronously sends serialized data as a response, using the specified response serializer.</para>
@@ -126,7 +122,5 @@ public static partial class HttpContextExtensions
     /// <seealso cref="SendDataAsync(IHttpContext,ResponseSerializerCallback,object)"/>
     /// <seealso cref="ResponseSerializer.Default"/>
     public static Task SendDataAsync(this IHttpContext @this, ResponseSerializerCallback serializer, object data)
-    {
-        return Validate.NotNull(nameof(serializer), serializer)(@this, data);
-    }
+        => Validate.NotNull(nameof(serializer), serializer)(@this, data);
 }

@@ -1,6 +1,6 @@
 ﻿using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
-using Notio.Network.Web.Request;
+using Notio.Network.Web.Http.Request;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Web.Files;
@@ -19,9 +19,7 @@ public static class FileRequestHandler
     /// otherwise, <see langword="null"/>.</param>
     /// <returns>This method never returns; it throws an exception instead.</returns>
     public static Task PassThrough(IHttpContext context, MappedResourceInfo? info)
-    {
-        throw RequestHandler.PassThrough();
-    }
+        => throw RequestHandler.PassThrough();
 
     /// <summary>
     /// <para>Unconditionally sends a <c>403 Unauthorized</c> response.</para>
@@ -31,9 +29,7 @@ public static class FileRequestHandler
     /// otherwise, <see langword="null"/>.</param>
     /// <returns>This method never returns; it throws a <see cref="HttpException"/> instead.</returns>
     public static Task ThrowUnauthorized(IHttpContext context, MappedResourceInfo? info)
-    {
-        throw HttpException.Unauthorized();
-    }
+        => throw HttpException.Unauthorized();
 
     /// <summary>
     /// <para>Unconditionally sends a <c>404 Not Found</c> response.</para>
@@ -43,9 +39,7 @@ public static class FileRequestHandler
     /// otherwise, <see langword="null"/>.</param>
     /// <returns>This method never returns; it throws a <see cref="HttpException"/> instead.</returns>
     public static Task ThrowNotFound(IHttpContext context, MappedResourceInfo? info)
-    {
-        throw HttpException.NotFound();
-    }
+        => throw HttpException.NotFound();
 
     /// <summary>
     /// <para>Unconditionally sends a <c>405 Method Not Allowed</c> response.</para>
@@ -55,7 +49,5 @@ public static class FileRequestHandler
     /// otherwise, <see langword="null"/>.</param>
     /// <returns>This method never returns; it throws a <see cref="HttpException"/> instead.</returns>
     public static Task ThrowMethodNotAllowed(IHttpContext context, MappedResourceInfo? info)
-    {
-        throw HttpException.MethodNotAllowed();
-    }
+        => throw HttpException.MethodNotAllowed();
 }

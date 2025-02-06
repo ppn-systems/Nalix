@@ -1,6 +1,7 @@
 ﻿using Notio.Network.Web.Enums;
 using Notio.Network.Web.Internal;
 using System;
+using System.Threading;
 
 namespace Notio.Network.Web.Files.Internal;
 
@@ -44,7 +45,7 @@ internal sealed class FileCacheItem
     //     - if the result is not a multiple of 16, round it up to next multiple of 16
     private static readonly long SizeOfItem = Environment.Is64BitProcess ? 96 : 128;
 
-    private readonly object _syncRoot = new();
+    private readonly Lock _syncRoot = new();
 
     // Used to update total size of section.
     // Weak reference avoids circularity.

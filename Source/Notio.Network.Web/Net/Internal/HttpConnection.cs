@@ -135,19 +135,13 @@ internal sealed partial class HttpConnection : IDisposable
     }
 
     public ResponseStream GetResponseStream()
-    {
-        return _oStream ??= new ResponseStream(Stream, _context.HttpListenerResponse, _context.Listener?.IgnoreWriteExceptions ?? true);
-    }
+        => _oStream ??= new ResponseStream(Stream, _context.HttpListenerResponse, _context.Listener?.IgnoreWriteExceptions ?? true);
 
     internal void SetError(string message)
-    {
-        _errorMessage = message;
-    }
+        => _errorMessage = message;
 
     internal void ForceClose()
-    {
-        Close(true);
-    }
+        => Close(true);
 
     internal void Close(bool forceClose = false)
     {

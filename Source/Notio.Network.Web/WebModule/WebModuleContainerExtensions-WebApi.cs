@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Response;
+﻿using Notio.Network.Web.Http.Response;
 using Notio.Network.Web.Routing;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebApi;

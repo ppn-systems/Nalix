@@ -1,9 +1,9 @@
 ﻿using Notio.Network.Web.Enums;
 using Notio.Network.Web.Files.Internal;
 using Notio.Network.Web.Http;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Internal;
 using Notio.Network.Web.MimeTypes;
-using Notio.Network.Web.Request;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using System;
@@ -61,10 +61,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
     /// <summary>
     /// Finalizes an instance of the <see cref="FileModule"/> class.
     /// </summary>
-    ~FileModule()
-    {
-        Dispose(false);
-    }
+    ~FileModule() => Dispose(false);
 
     /// <inheritdoc />
     public override bool IsFinalHandler => true;
@@ -226,26 +223,18 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
     }
 
     string IMimeTypeProvider.GetMimeType(string extension)
-    {
-        return _mimeTypeCustomizer.GetMimeType(extension);
-    }
+        => _mimeTypeCustomizer.GetMimeType(extension);
 
     bool IMimeTypeProvider.TryDetermineCompression(string mimeType, out bool preferCompression)
-    {
-        return _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
-    }
+        => _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
 
     /// <inheritdoc />
     public void AddCustomMimeType(string extension, string mimeType)
-    {
-        _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
-    }
+        => _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
 
     /// <inheritdoc />
     public void PreferCompression(string mimeType, bool preferCompression)
-    {
-        _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
-    }
+        => _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
 
     /// <summary>
     /// Clears the part of <see cref="Cache"/> used by this module.
@@ -583,7 +572,8 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
         {
             context.Response.ContentLength64 = responseContentLength;
             int offset = isPartial ? (int)partialStart : 0;
-            await context.Response.OutputStream.WriteAsync(content, offset, (int)responseContentLength, context.CancellationToken)
+            await context.Response.OutputStream
+                .WriteAsync(content.AsMemory(offset, (int)responseContentLength), context.CancellationToken)
                 .ConfigureAwait(false);
 
             return;
@@ -606,7 +596,8 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
                     int skipLength = (int)partialStart;
                     while (skipLength > 0)
                     {
-                        int read = await source.ReadAsync(buffer, 0, Math.Min(skipLength, buffer.Length), context.CancellationToken)
+                        int read = await source
+                            .ReadAsync(buffer.AsMemory(0, Math.Min(skipLength, buffer.Length)), context.CancellationToken)
                             .ConfigureAwait(false);
 
                         skipLength -= read;
@@ -616,10 +607,12 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
                 long transferSize = responseContentLength;
                 while (transferSize >= WebServer.StreamCopyBufferSize)
                 {
-                    int read = await source.ReadAsync(buffer, 0, WebServer.StreamCopyBufferSize, context.CancellationToken)
+                    int read = await source
+                        .ReadAsync(buffer.AsMemory(0, WebServer.StreamCopyBufferSize), context.CancellationToken)
                         .ConfigureAwait(false);
 
-                    await context.Response.OutputStream.WriteAsync(buffer, 0, read, context.CancellationToken)
+                    await context.Response.OutputStream
+                        .WriteAsync(buffer.AsMemory(0, read), context.CancellationToken)
                         .ConfigureAwait(false);
 
                     transferSize -= read;
@@ -627,10 +620,12 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
 
                 if (transferSize > 0)
                 {
-                    int read = await source.ReadAsync(buffer, 0, (int)transferSize, context.CancellationToken)
+                    int read = await source
+                        .ReadAsync(buffer.AsMemory(0, (int)transferSize), context.CancellationToken)
                         .ConfigureAwait(false);
 
-                    await context.Response.OutputStream.WriteAsync(buffer, 0, read, context.CancellationToken)
+                    await context.Response.OutputStream
+                        .WriteAsync(buffer.AsMemory(0, read), context.CancellationToken)
                         .ConfigureAwait(false);
                 }
             }

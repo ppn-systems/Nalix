@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Response;
+﻿using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Utilities;
 using System;
 using System.Net;

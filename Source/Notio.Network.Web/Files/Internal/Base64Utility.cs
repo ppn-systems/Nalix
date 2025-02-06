@@ -7,7 +7,5 @@ internal static class Base64Utility
     // long is 8 bytes
     // base64 of 8 bytes is 12 chars, but the last one is padding
     public static string LongToBase64(long value)
-    {
-        return Convert.ToBase64String(BitConverter.GetBytes(value))[..11];
-    }
+        => Convert.ToBase64String(BitConverter.GetBytes(value))[..11];
 }

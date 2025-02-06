@@ -65,8 +65,5 @@ internal sealed class MimeTypeCustomizer : ConfiguredObject, IMimeTypeCustomizer
         }
     }
 
-    public void Lock()
-    {
-        LockConfiguration();
-    }
+    public void Lock() => LockConfiguration();
 }

@@ -34,10 +34,7 @@ public class ZipFileProvider(Stream stream, bool leaveOpen = false) : IDisposabl
     /// <summary>
     /// Finalizes an instance of the <see cref="ZipFileProvider"/> class.
     /// </summary>
-    ~ZipFileProvider()
-    {
-        Dispose(false);
-    }
+    ~ZipFileProvider() => Dispose(false);
 
     /// <inheritdoc />
     public event Action<string> ResourceChanged
@@ -91,15 +88,11 @@ public class ZipFileProvider(Stream stream, bool leaveOpen = false) : IDisposabl
 
     /// <inheritdoc />
     public Stream OpenFile(string path)
-    {
-        return _zipArchive.GetEntry(path)?.Open() ?? throw new FileNotFoundException($"\"{path}\" cannot be found in Zip archive.");
-    }
+        => _zipArchive.GetEntry(path)?.Open()
+        ?? throw new FileNotFoundException($"\"{path}\" cannot be found in Zip archive.");
 
     /// <inheritdoc />
-    public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider)
-    {
-        return [];
-    }
+    public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider) => [];
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.

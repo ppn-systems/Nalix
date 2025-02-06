@@ -1,6 +1,6 @@
 ﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Internal;
-using Notio.Network.Web.Request;
 using System.IO;
 using System.IO.Compression;
 using System.Text;

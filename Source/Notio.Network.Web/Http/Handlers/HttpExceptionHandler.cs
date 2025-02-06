@@ -1,7 +1,8 @@
 ﻿using Notio.Common.Logging.Debugging;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Http.Response;
 using Notio.Network.Web.MimeTypes;
-using Notio.Network.Web.Response;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using System;
@@ -39,10 +40,7 @@ public static class HttpExceptionHandler
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    public static Task EmptyResponse(IHttpContext context, IHttpException httpException)
-    {
-        return Task.CompletedTask;
-    }
+    public static Task EmptyResponse(IHttpContext context, IHttpException httpException) => Task.CompletedTask;
 
     /// <summary>
     /// <para>Sends a HTTP exception's <see cref="IHttpException.Message">Message</see> property

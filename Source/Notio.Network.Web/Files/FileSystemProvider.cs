@@ -51,10 +51,7 @@ public class FileSystemProvider : IDisposable, IFileProvider
     /// <summary>
     /// Finalizes an instance of the <see cref="FileSystemProvider"/> class.
     /// </summary>
-    ~FileSystemProvider()
-    {
-        Dispose(false);
-    }
+    ~FileSystemProvider() => Dispose(false);
 
     /// <inheritdoc />
     public event Action<string>? ResourceChanged;
@@ -145,16 +142,12 @@ public class FileSystemProvider : IDisposable, IFileProvider
 
     /// <inheritdoc />
     public Stream OpenFile(string path)
-    {
-        return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-    }
+        => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 
     /// <inheritdoc />
     public IEnumerable<MappedResourceInfo> GetDirectoryEntries(string path, IMimeTypeProvider mimeTypeProvider)
-    {
-        return new DirectoryInfo(path).EnumerateFileSystemInfos()
+        => new DirectoryInfo(path).EnumerateFileSystemInfos()
                     .Select(fsi => GetMappedResourceInfo(mimeTypeProvider, fsi));
-    }
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.

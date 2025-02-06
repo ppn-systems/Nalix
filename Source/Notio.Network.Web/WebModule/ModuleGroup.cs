@@ -2,12 +2,11 @@
 using Notio.Network.Web.Internal;
 using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Utilities;
-using Notio.Network.Web.WebModule;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Web;
+namespace Notio.Network.Web.WebModule;
 
 /// <summary>
 /// <para>Groups modules under a common base URL path.</para>
