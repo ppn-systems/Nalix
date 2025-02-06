@@ -1,5 +1,4 @@
-﻿using Notio.Lite.Formatters;
-using Notio.Lite.Reflection;
+﻿using Notio.Lite.Reflection;
 using System;
 using System.Text.RegularExpressions;
 
@@ -17,18 +16,6 @@ public static class StringExtensions
 
     private static readonly Lazy<Regex> SplitLinesRegex =
         new(() => new("\r\n|\r|\n", StandardRegexOptions));
-
-    private static readonly Lazy<Regex> UnderscoreRegex =
-        new(() => new(@"_", StandardRegexOptions));
-
-    private static readonly Lazy<Regex> CamelCaseRegEx =
-        new(() => new(@"[a-z][A-Z]", StandardRegexOptions));
-
-    private static readonly Lazy<MatchEvaluator> SplitCamelCaseString = new Lazy<MatchEvaluator>(() => m =>
-    {
-        var x = m.ToString();
-        return x[0] + " " + x[1..];
-    });
 
     #endregion Private Declarations
 
@@ -66,31 +53,6 @@ public static class StringExtensions
         => typeof(string) == typeof(T) ? item as string
         ?? string.Empty : ToStringInvariant(item as object)
         ?? string.Empty;
-
-    /// <summary>
-    /// Returns text representing the properties of the specified object in a human-readable format.
-    /// While this method is fairly expensive computationally speaking, it provides an easy way to
-    /// examine objects.
-    /// </summary>
-    /// <param name="this">The object.</param>
-    /// <returns>A <see cref="string" /> that represents the current object.</returns>
-    public static string Stringify(this object @this)
-    {
-        if (@this == null)
-            return "(null)";
-
-        try
-        {
-            var jsonText = Json.Serialize(@this, false, "$type");
-            var jsonData = Json.Deserialize(jsonText);
-
-            return new HumanizeJson(jsonData, 0).GetResult();
-        }
-        catch
-        {
-            return @this.ToStringInvariant() ?? string.Empty;
-        }
-    }
 
     /// <summary>
     /// Retrieves a section of the string, inclusive of both, the start and end indexes.
@@ -140,23 +102,6 @@ public static class StringExtensions
     /// </returns>
     public static string[] ToLines(this string @this) =>
         @this == null ? [] : SplitLinesRegex.Value.Split(@this);
-
-    /// <summary>
-    /// Humanizes (make more human-readable) an identifier-style string
-    /// in either camel case or snake case. For example, CamelCase will be converted to
-    /// Camel Case and Snake_Case will be converted to Snake Case.
-    /// </summary>
-    /// <param name="value">The identifier-style string.</param>
-    /// <returns>A <see cref="string" /> humanized.</returns>
-    public static string Humanize(this string value)
-    {
-        if (value == null)
-            return string.Empty;
-
-        var returnValue = UnderscoreRegex.Value.Replace(value, " ");
-        returnValue = CamelCaseRegEx.Value.Replace(returnValue, SplitCamelCaseString.Value);
-        return returnValue;
-    }
 
     /// <summary>
     /// Gets the line and column number (i.e. not index) of the

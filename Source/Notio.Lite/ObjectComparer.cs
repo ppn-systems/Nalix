@@ -17,22 +17,6 @@ public static class ObjectComparer
     /// <summary>
     /// Compare if two variables of the same type are equal.
     /// </summary>
-    /// <typeparam name="T">The type of objects to compare.</typeparam>
-    /// <param name="left">The left.</param>
-    /// <param name="right">The right.</param>
-    /// <returns><c>true</c> if the variables are equal; otherwise, <c>false</c>.</returns>
-    public static bool AreEqual<T>(T left, T right)
-    {
-        if (left == null || right == null)
-        {
-            return false;
-        }
-        return AreEqual(left, right, typeof(T));
-    }
-
-    /// <summary>
-    /// Compare if two variables of the same type are equal.
-    /// </summary>
     /// <param name="left">The left.</param>
     /// <param name="right">The right.</param>
     /// <param name="targetType">Type of the target.</param>
@@ -50,19 +34,6 @@ public static class ObjectComparer
         return targetType.IsValueType || targetType.IsArray
             ? AreStructsEqual(left, right, targetType)
             : AreObjectsEqual(left, right, targetType);
-    }
-
-    /// <summary>
-    /// Compare if two objects of the same type are equal.
-    /// </summary>
-    /// <typeparam name="T">The type of objects to compare.</typeparam>
-    /// <param name="left">The left.</param>
-    /// <param name="right">The right.</param>
-    /// <returns><c>true</c> if the objects are equal; otherwise, <c>false</c>.</returns>
-    public static bool AreObjectsEqual<T>(T left, T right)
-        where T : class
-    {
-        return AreObjectsEqual(left, right, typeof(T));
     }
 
     /// <summary>
@@ -97,19 +68,6 @@ public static class ObjectComparer
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Compare if two structures of the same type are equal.
-    /// </summary>
-    /// <typeparam name="T">The type of structs to compare.</typeparam>
-    /// <param name="left">The left.</param>
-    /// <param name="right">The right.</param>
-    /// <returns><c>true</c> if the structs are equal; otherwise, <c>false</c>.</returns>
-    public static bool AreStructsEqual<T>(T left, T right)
-        where T : struct
-    {
-        return AreStructsEqual(left, right, typeof(T));
     }
 
     /// <summary>
