@@ -14,6 +14,35 @@ namespace Notio.Lite.Extensions;
 public static partial class Extensions
 {
     /// <summary>
+    /// Whens the specified condition.
+    /// </summary>
+    /// <typeparam name="T">The type of IEnumerable.</typeparam>
+    /// <param name="list">The list.</param>
+    /// <param name="condition">The condition.</param>
+    /// <param name="fn">The function.</param>
+    /// <returns>
+    /// The IEnumerable.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// this
+    /// or
+    /// condition
+    /// or
+    /// fn.
+    /// </exception>
+    public static IEnumerable<T> When<T>(
+        this IEnumerable<T> list,
+        Func<bool> condition,
+        Func<IEnumerable<T>, IEnumerable<T>> fn)
+    {
+        ArgumentNullException.ThrowIfNull(fn);
+        ArgumentNullException.ThrowIfNull(list);
+        ArgumentNullException.ThrowIfNull(condition);
+
+        return condition() ? fn(list) : list;
+    }
+
+    /// <summary>
     /// Iterates over the public, instance, readable properties of the source and
     /// tries to write a compatible value to a public, instance, writable property in the destination.
     /// </summary>
@@ -79,6 +108,59 @@ public static partial class Extensions
         return properties.Any()
             ? properties
             : collection.Select(x => x.Name);
+    }
+
+    /// <summary>
+    /// Gets the value if exists or default.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
+    /// <param name="dict">The dictionary.</param>
+    /// <param name="key">The key.</param>
+    /// <param name="defaultValue">The default value.</param>
+    /// <returns>
+    /// The value of the provided key or default.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">dict.</exception>
+    public static TValue? GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue? defaultValue = default)
+    {
+        ArgumentNullException.ThrowIfNull(dict);
+
+        return dict.TryGetValue(key, out TValue? value) ? value : defaultValue;
+    }
+
+    /// <summary>
+    /// Adds a key/value pair to the Dictionary if the key does not already exist.
+    /// If the value is null, the key will not be updated.
+    /// Based on <c>ConcurrentDictionary.GetOrAdd</c> method.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
+    /// <param name="dict">The dictionary.</param>
+    /// <param name="key">The key.</param>
+    /// <param name="valueFactory">The value factory.</param>
+    /// <returns>
+    /// The value for the key.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// dict
+    /// or
+    /// valueFactory.
+    /// </exception>
+    public static TValue? GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, Func<TKey, TValue> valueFactory)
+    {
+        ArgumentNullException.ThrowIfNull(dict);
+        ArgumentNullException.ThrowIfNull(valueFactory);
+
+        if (!dict.TryGetValue(key, out TValue? value))
+        {
+            var newValue = valueFactory(key);
+            if (Equals(newValue, default)) return default;
+            value = newValue;
+            dict[key] = value;
+        }
+
+        return value;
     }
 
     internal static void CreateTarget(

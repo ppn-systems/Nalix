@@ -21,17 +21,6 @@ public class PropertyTypeCache : TypeCache<PropertyInfo>
     /// <summary>
     /// Retrieves all properties.
     /// </summary>
-    /// <typeparam name="T">The type to inspect.</typeparam>
-    /// <param name="onlyPublic">if set to <c>true</c> [only public].</param>
-    /// <returns>
-    /// A collection with all the properties in the given type.
-    /// </returns>
-    public IEnumerable<PropertyInfo> RetrieveAllProperties<T>(bool onlyPublic = false)
-        => Retrieve<T>(onlyPublic ? GetAllPublicPropertiesFunc() : GetAllPropertiesFunc());
-
-    /// <summary>
-    /// Retrieves all properties.
-    /// </summary>
     /// <param name="type">The type.</param>
     /// <param name="onlyPublic">if set to <c>true</c> [only public].</param>
     /// <returns>

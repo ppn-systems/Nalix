@@ -56,25 +56,4 @@ public static class TaskExtensions
 
         @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
     }
-
-    /// <summary>
-    /// <para>Suspends execution until the specified <see cref="Task"/> is completed
-    /// and returns its result.</para>
-    /// <para>This method operates similarly to the <see langword="await"/> C# operator,
-    /// but is meant to be called from a non-<see langword="async"/> method.</para>
-    /// </summary>
-    /// <typeparam name="TResult">The type of the task's result.</typeparam>
-    /// <param name="this">The <see cref="Task{TResult}"/> on which this method is called.</param>
-    /// <param name="continueOnCapturedContext">If set to <see langword="true"/>,
-    /// attempts to marshal the continuation back to the original context captured.
-    /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait"/>
-    /// method.</param>
-    /// <returns>The result of <paramref name="this"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
-    public static TResult Await<TResult>(this Task<TResult> @this, bool continueOnCapturedContext)
-    {
-        ArgumentNullException.ThrowIfNull(@this);
-
-        return @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
-    }
 }

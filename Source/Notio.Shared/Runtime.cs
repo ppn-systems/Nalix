@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Notio.Shared.Enums;
+using System;
 using System.IO;
 using System.Reflection;
 using System.Threading;
 
-namespace Notio.Lite;
+namespace Notio.Shared;
 
 /// <summary>
 /// Provides utility methods to retrieve information about the current application.
@@ -37,7 +38,7 @@ public static class Runtime
 
     private static readonly Lock SyncLock = new();
 
-    private static OperatingSystem? _oS;
+    private static OSType? _oS;
 
     #region Properties
 
@@ -47,7 +48,7 @@ public static class Runtime
     /// <value>
     /// The os.
     /// </value>
-    public static OperatingSystem OS
+    public static OSType OS
     {
         get
         {
@@ -58,15 +59,15 @@ public static class Runtime
                     && windowsDirectory.Contains('\\')
                     && Directory.Exists(windowsDirectory))
                 {
-                    _oS = OperatingSystem.Windows;
+                    _oS = OSType.Windows;
                 }
                 else
                 {
-                    _oS = File.Exists(@"/proc/sys/kernel/ostype") ? OperatingSystem.Unix : OperatingSystem.Osx;
+                    _oS = File.Exists(@"/proc/sys/kernel/ostype") ? OSType.Unix : OSType.Osx;
                 }
             }
 
-            return _oS ?? OperatingSystem.Unknown;
+            return _oS ?? OSType.Unknown;
         }
     }
 

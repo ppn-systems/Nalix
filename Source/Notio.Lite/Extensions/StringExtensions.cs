@@ -1,6 +1,5 @@
 ﻿using Notio.Lite.Reflection;
 using System;
-using System.Text.RegularExpressions;
 
 namespace Notio.Lite.Extensions;
 
@@ -9,16 +8,6 @@ namespace Notio.Lite.Extensions;
 /// </summary>
 public static class StringExtensions
 {
-    #region Private Declarations
-
-    private const RegexOptions StandardRegexOptions =
-        RegexOptions.Multiline | RegexOptions.Compiled | RegexOptions.CultureInvariant;
-
-    private static readonly Lazy<Regex> SplitLinesRegex =
-        new(() => new("\r\n|\r|\n", StandardRegexOptions));
-
-    #endregion Private Declarations
-
     /// <summary>
     /// Returns a string that represents the given item
     /// It tries to use InvariantCulture if the ToString(IFormatProvider)
@@ -91,17 +80,6 @@ public static class StringExtensions
 
         return len == 0 ? string.Empty : @this.Substring(start, len);
     }
-
-    /// <summary>
-    /// Splits the specified text into r, n or rn separated lines.
-    /// </summary>
-    /// <param name="this">The text.</param>
-    /// <returns>
-    /// An array whose elements contain the substrings from this instance
-    /// that are delimited by one or more characters in separator.
-    /// </returns>
-    public static string[] ToLines(this string @this) =>
-        @this == null ? [] : SplitLinesRegex.Value.Split(@this);
 
     /// <summary>
     /// Gets the line and column number (i.e. not index) of the

@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 
@@ -97,15 +96,5 @@ public static class PropertyProxyExtensions
 
         var proxy = obj.PropertyProxy(propertyName);
         proxy?.SetValue(obj, value);
-    }
-
-    private static string PropertyName<T, TV>(this Expression<Func<T, TV>> propertyExpression)
-    {
-        var memberExpression = propertyExpression.Body as MemberExpression
-                               ?? (propertyExpression.Body as UnaryExpression)?.Operand as MemberExpression;
-
-        return memberExpression == null
-            ? throw new ArgumentException("Invalid property expression", nameof(propertyExpression))
-            : memberExpression.Member.Name;
     }
 }

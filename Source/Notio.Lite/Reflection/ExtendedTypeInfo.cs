@@ -61,9 +61,8 @@ public class ExtendedTypeInfo
         try
         {
             TryParseMethodInfo = UnderlyingType.GetMethod(TryParseMethodName,
-                                     new[] { typeof(string), typeof(NumberStyles), typeof(IFormatProvider), UnderlyingType.MakeByRefType() }) ??
-                                 UnderlyingType.GetMethod(TryParseMethodName,
-                                     new[] { typeof(string), UnderlyingType.MakeByRefType() });
+                                     [typeof(string), typeof(NumberStyles), typeof(IFormatProvider), UnderlyingType.MakeByRefType()]) ??
+                                 UnderlyingType.GetMethod(TryParseMethodName, [typeof(string), UnderlyingType.MakeByRefType()]);
 
             _tryParseParameters = TryParseMethodInfo?.GetParameters();
         }
@@ -75,10 +74,8 @@ public class ExtendedTypeInfo
         // Extract the ToString method Info
         try
         {
-            ToStringMethodInfo = UnderlyingType.GetMethod(ToStringMethodName,
-                                     new[] { typeof(IFormatProvider) }) ??
-                                 UnderlyingType.GetMethod(ToStringMethodName,
-                                     Array.Empty<Type>());
+            ToStringMethodInfo = UnderlyingType.GetMethod(ToStringMethodName, [typeof(IFormatProvider)]) ??
+                                 UnderlyingType.GetMethod(ToStringMethodName, []);
 
             _toStringArgumentLength = ToStringMethodInfo?.GetParameters().Length ?? 0;
         }

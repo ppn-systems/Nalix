@@ -17,7 +17,7 @@ namespace Notio.Lite.Reflection;
 /// Initializes a new instance of the <see cref="AttributeCache"/> class.
 /// </remarks>
 /// <param name="propertyCache">The property cache object.</param>
-public class AttributeCache(PropertyTypeCache? propertyCache = null)
+public class AttributeCache
 {
     private readonly Lazy<ConcurrentDictionary<Tuple<object, Type>, IEnumerable<object>>> _data =
         new(() => new ConcurrentDictionary<Tuple<object, Type>, IEnumerable<object>>(), true);
@@ -29,44 +29,6 @@ public class AttributeCache(PropertyTypeCache? propertyCache = null)
     /// The default cache.
     /// </value>
     public static Lazy<AttributeCache> DefaultCache { get; } = new Lazy<AttributeCache>(() => new AttributeCache());
-
-    /// <summary>
-    /// A PropertyTypeCache object for caching properties and their attributes.
-    /// </summary>
-    public PropertyTypeCache PropertyTypeCache { get; } = propertyCache ?? PropertyTypeCache.DefaultCache.Value;
-
-    /// <summary>
-    /// Gets specific attributes from a member constrained to an attribute.
-    /// </summary>
-    /// <typeparam name="T">The type of the attribute to be retrieved.</typeparam>
-    /// <param name="member">The member.</param>
-    /// <param name="inherit"><c>true</c> to inspect the ancestors of element; otherwise, <c>false</c>.</param>
-    /// <returns>An array of the attributes stored for the specified type.</returns>
-    public IEnumerable<object> Retrieve<T>(MemberInfo member, bool inherit = false)
-        where T : Attribute
-    {
-        ArgumentNullException.ThrowIfNull(member);
-
-        return Retrieve(new Tuple<object, Type>(member, typeof(T)), t => member.GetCustomAttributes<T>(inherit));
-    }
-
-    /// <summary>
-    /// Gets all attributes of a specific type from a member.
-    /// </summary>
-    /// <param name="member">The member.</param>
-    /// <param name="type">The attribute type.</param>
-    /// <param name="inherit"><c>true</c> to inspect the ancestors of element; otherwise, <c>false</c>.</param>
-    /// <returns>An array of the attributes stored for the specified type.</returns>
-    public IEnumerable<object> Retrieve(MemberInfo member, Type type, bool inherit = false)
-    {
-        ArgumentNullException.ThrowIfNull(member);
-
-        ArgumentNullException.ThrowIfNull(type);
-
-        return Retrieve(
-            new Tuple<object, Type>(member, type),
-            t => member.GetCustomAttributes(type, inherit));
-    }
 
     /// <summary>
     /// Gets one attribute of a specific type from a member.

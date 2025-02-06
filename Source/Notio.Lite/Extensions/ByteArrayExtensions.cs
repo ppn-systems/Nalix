@@ -42,106 +42,6 @@ public static class ByteArrayExtensions
     }
 
     /// <summary>
-    /// Sets the bit value at the given offset.
-    /// </summary>
-    /// <param name="this">The b.</param>
-    /// <param name="offset">The offset.</param>
-    /// <param name="length">The length.</param>
-    /// <param name="value">The value.</param>
-    /// <returns>Bit value at the given offset.</returns>
-    public static byte SetBitValueAt(this byte @this, byte offset, byte length, byte value)
-    {
-        var mask = ~(0xff << length);
-        var valueAt = (byte)(value & mask);
-
-        return (byte)(valueAt << offset | @this & ~(mask << offset));
-    }
-
-    /// <summary>
-    /// Clones the specified buffer, byte by byte.
-    /// </summary>
-    /// <param name="this">The buffer.</param>
-    /// <returns>
-    /// A byte array containing the results of encoding the specified set of characters.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">this</exception>
-    public static byte[] DeepClone(this byte[] @this)
-    {
-        ArgumentNullException.ThrowIfNull(@this);
-
-        var result = new byte[@this.Length];
-        Array.Copy(@this, result, @this.Length);
-        return result;
-    }
-
-    /// <summary>
-    /// Removes the specified sequence from the start of the buffer if the buffer begins with such sequence.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    /// A new trimmed byte array.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffer.</exception>
-    public static byte[] TrimStart(this byte[] buffer, params byte[] sequence)
-    {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        if (buffer.StartsWith(sequence) == false)
-            return buffer.DeepClone();
-
-        var result = new byte[buffer.Length - sequence.Length];
-        Array.Copy(buffer, sequence.Length, result, 0, result.Length);
-        return result;
-    }
-
-    /// <summary>
-    /// Removes the specified sequence from the end of the buffer if the buffer ends with such sequence.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    /// A byte array containing the results of encoding the specified set of characters.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffer.</exception>
-    public static byte[] TrimEnd(this byte[] buffer, params byte[] sequence)
-    {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        if (buffer.EndsWith(sequence) == false)
-            return buffer.DeepClone();
-
-        var result = new byte[buffer.Length - sequence.Length];
-        Array.Copy(buffer, 0, result, 0, result.Length);
-        return result;
-    }
-
-    /// <summary>
-    /// Determines if the specified buffer ends with the given sequence of bytes.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    /// True if the specified buffer is ends; otherwise, false.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffer.</exception>
-    public static bool EndsWith(this byte[] buffer, params byte[] sequence)
-    {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        var startIndex = buffer.Length - sequence.Length;
-        return buffer.GetIndexOf(sequence, startIndex) == startIndex;
-    }
-
-    /// <summary>
-    /// Determines if the specified buffer starts with the given sequence of bytes.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns><c>true</c> if the specified buffer starts; otherwise, <c>false</c>.</returns>
-    public static bool StartsWith(this byte[] buffer, params byte[] sequence) => buffer.GetIndexOf(sequence) == 0;
-
-    /// <summary>
     /// Returns the first instance of the matched sequence based on the given offset.
     /// If no matches are found then this method returns -1.
     /// </summary>
@@ -179,28 +79,6 @@ public static class ByteArrayExtensions
         }
 
         return -1;
-    }
-
-    /// <summary>
-    /// Appends the Memory Stream with the specified buffer.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <param name="buffer">The buffer.</param>
-    /// <returns>
-    /// The same MemoryStream instance.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// stream
-    /// or
-    /// buffer.
-    /// </exception>
-    public static MemoryStream Append(this MemoryStream stream, byte[] buffer)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        stream.Write(buffer, 0, buffer.Length);
-        return stream;
     }
 
     /// <summary>

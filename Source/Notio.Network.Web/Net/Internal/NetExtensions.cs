@@ -1,4 +1,4 @@
-﻿using Notio.Lite;
+﻿using Notio.Shared.Enums;
 using System;
 using System.Linq;
 
