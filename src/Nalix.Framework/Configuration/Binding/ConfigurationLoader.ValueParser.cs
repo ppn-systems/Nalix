@@ -9,6 +9,12 @@ namespace Nalix.Framework.Configuration.Binding;
 public partial class ConfigurationLoader
 {
     /// <summary>
+    /// Cache for enum getter methods to avoid repeated reflection calls.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Reflection.MethodInfo> _enumGetterCache = new();
+
+    /// <summary>
     /// Gets the configuration value for a property using the appropriate method.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
@@ -19,14 +25,28 @@ public partial class ConfigurationLoader
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     private static System.Object? GetConfigValue(IniConfig configFile, System.String section, PropertyMetadata property)
     {
-        // Handle Enums of any underlying type
+        // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
         {
-            // Use reflection to call generic method
-            System.Reflection.MethodInfo? method = typeof(IniConfig).GetMethod(nameof(IniConfig.GetEnum))?
-                                                                    .MakeGenericMethod(property.PropertyType);
+            // Get or create the generic method for this enum type
+            System.Reflection.MethodInfo method = _enumGetterCache.GetOrAdd(
+                property.PropertyType,
+                enumType =>
+                {
+                    System.Reflection.MethodInfo? baseMethod = typeof(IniConfig).GetMethod(
+                        nameof(IniConfig.GetEnum),
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
-            return method?.Invoke(configFile, [section, property.Name]);
+                    if (baseMethod == null)
+                    {
+                        throw new System.InvalidOperationException(
+                            $"Could not find GetEnum method on {nameof(IniConfig)}.");
+                    }
+
+                    return baseMethod.MakeGenericMethod(enumType);
+                });
+
+            return method.Invoke(configFile, [section, property.Name]);
         }
 
         return property.TypeCode switch

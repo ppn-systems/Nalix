@@ -17,14 +17,23 @@ public partial class ConfigurationLoader
         {
             System.String section = t.Name;
 
-            foreach (System.String suffix in System.Linq.Enumerable.OrderByDescending(
-                         _suffixesToTrim, s => s.Length))
+            // Manual iteration to avoid LINQ allocation overhead
+            System.String? longestMatch = null;
+            System.Int32 longestLength = 0;
+
+            foreach (System.String suffix in _suffixesToTrim)
             {
-                if (section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
+                if (suffix.Length > longestLength && 
+                    section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    section = section[..^suffix.Length];
-                    break;
+                    longestMatch = suffix;
+                    longestLength = suffix.Length;
                 }
+            }
+
+            if (longestMatch != null)
+            {
+                section = section[..^longestLength];
             }
 
             return Capitalize(section);
