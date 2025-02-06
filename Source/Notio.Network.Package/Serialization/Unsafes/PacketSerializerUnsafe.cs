@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Network.Package.Models;
+using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;

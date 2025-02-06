@@ -160,11 +160,6 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
         return new BigInteger(hash, true);
     }
 
-    /// <summary>
-    /// Phiên bản có độ dài biến đổi của SHA_Interleave từ RFC2945.
-    /// </summary>
-    /// <param name="key">Khóa cần xử lý.</param>
-    /// <returns>Số nguyên BigInteger đại diện cho khóa đã xử lý.</returns>
     private static BigInteger ShaInterleave(BigInteger key)
     {
         byte[] keyBytes = key.ToByteArray(true);

@@ -1,7 +1,9 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Common.Memory.Pools;
+using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
-using Notio.Network.Package.Models;
+using Notio.Network.Package.Metadata;
+using Notio.Shared.Time;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -36,6 +38,11 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
 
     /// <summary>
+    /// Gets the unique identifier of the packet.
+    /// </summary>
+    public byte Id { get; }
+
+    /// <summary>
     /// Gets the type of the packet.
     /// </summary>
     public byte Type { get; }
@@ -54,6 +61,18 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// Gets the command of the packet.
     /// </summary>
     public ushort Command { get; }
+
+    /// <summary>
+    /// Gets the timestamp of the packet, indicating when it was created.
+    /// The timestamp is represented in milliseconds since the Unix epoch.
+    /// </summary>
+    public ulong Timestamp { get; }
+
+    /// <summary>
+    /// Gets the checksum of the packet.
+    /// This is used to verify the integrity of the packet's payload.
+    /// </summary>
+    public uint Checksum { get; }
 
     /// <summary>
     /// Gets the payload of the packet.
@@ -75,10 +94,13 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
 
+        Timestamp = Clock.UnixMillisecondsNow();
+        Id = (byte)(Timestamp % byte.MaxValue);
         Type = type;
         Flags = flags;
         Command = command;
         Priority = priority;
+        Checksum = Crc32.ComputeChecksum(payload.Span);
 
         Payload = AllocatePayload(payload);
     }
@@ -98,11 +120,13 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
 
+        Timestamp = Clock.UnixMillisecondsNow();
+        Id = (byte)(Timestamp % byte.MaxValue);
         Type = (byte)type;
         Flags = (byte)flags;
         Command = command;
         Priority = (byte)priority;
-
+        Checksum = Crc32.ComputeChecksum(payload.Span);
         Payload = AllocatePayload(payload);
     }
 

@@ -215,7 +215,7 @@ public sealed class GenId
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ulong GetTimestampFromEpoch()
     {
-        double currentUnixTime = Clock.UnixTime.TotalMilliseconds;
+        double currentUnixTime = Clock.UnixTime().TotalMilliseconds;
         double epochMilliseconds = new TimeSpan(_epoch.Ticks).TotalMilliseconds;
         return (ulong)(currentUnixTime - epochMilliseconds);
     }
@@ -226,7 +226,7 @@ public sealed class GenId
         do
         {
             Thread.Yield();
-            timestamp = (ulong)Clock.UnixTime.TotalMilliseconds;
+            timestamp = (ulong)Clock.UnixTime().TotalMilliseconds;
         } while (timestamp <= lastTimestamp);
         return timestamp;
     }

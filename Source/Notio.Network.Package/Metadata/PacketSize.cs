@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Package.Models;
+﻿namespace Notio.Network.Package.Metadata;
 
 /// <summary>
 /// Kích thước các thành phần trong tiêu đề gói tin.
@@ -6,6 +6,8 @@
 public static class PacketSize
 {
     public const int Length = sizeof(ushort);
+
+    public const int Id = sizeof(ushort);
 
     public const int Type = sizeof(byte);
 
@@ -15,5 +17,9 @@ public static class PacketSize
 
     public const int Command = sizeof(ushort);
 
-    public const int Header = Length + Type + Flags + Priority + Command;
+    public const int Timestamp = sizeof(ulong);
+
+    public const int Checksum = sizeof(uint);
+
+    public const int Header = Length + Id + Type + Flags + Priority + Command + Timestamp + Checksum;
 }
