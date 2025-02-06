@@ -1,5 +1,4 @@
-﻿using Notio.Network.Web;
-using Notio.Network.Web.Internal;
+﻿using Notio.Network.Web.Internal;
 using Notio.Network.Web.Net.Internal;
 using Notio.Network.Web.Utilities;
 using System;

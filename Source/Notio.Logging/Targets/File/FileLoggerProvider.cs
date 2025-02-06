@@ -1,5 +1,4 @@
 ﻿using Notio.Logging.Storage;
-using Notio.Logging.Targets;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;

@@ -1,5 +1,4 @@
 ﻿using Notio.Network.Web.Enums;
-using Notio.Network.Web.WebSockets;
 using System;
 using System.Net.WebSockets;
 using System.Threading;

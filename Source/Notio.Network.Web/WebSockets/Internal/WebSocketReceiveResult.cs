@@ -1,5 +1,4 @@
 ﻿using Notio.Network.Web.Enums;
-using Notio.Network.Web.WebSockets;
 using System;
 
 namespace Notio.Network.Web.WebSockets.Internal;

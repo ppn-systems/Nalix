@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Shared.Randomization ;
+namespace Notio.Shared.Randomization;
 
 /// <summary>
 /// Lớp cung cấp các phương thức tạo số ngẫu nhiên.

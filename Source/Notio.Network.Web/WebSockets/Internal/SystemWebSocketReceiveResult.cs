@@ -1,6 +1,4 @@
-﻿using Notio.Network.Web.WebSockets;
-
-namespace Notio.Network.Web.WebSockets.Internal
+﻿namespace Notio.Network.Web.WebSockets.Internal
 {
     /// <summary>
     /// Represents a wrapper around a regular WebSocketContext.

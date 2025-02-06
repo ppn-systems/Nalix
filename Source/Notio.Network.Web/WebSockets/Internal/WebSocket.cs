@@ -3,7 +3,6 @@ using Notio.Lite.Extensions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
-using Notio.Network.Web.WebSockets;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
