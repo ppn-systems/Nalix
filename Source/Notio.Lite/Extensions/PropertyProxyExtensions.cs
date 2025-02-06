@@ -50,31 +50,6 @@ public static class PropertyProxyExtensions
     }
 
     /// <summary>
-    /// Gets the property proxies associated with the provided instance type.
-    /// </summary>
-    /// <typeparam name="T">The instance type.</typeparam>
-    /// <param name="obj">The instance.</param>
-    /// <returns>A dictionary with property names as keys and <see cref="IPropertyProxy"/> objects as values.</returns>
-    public static Dictionary<string, IPropertyProxy> PropertyProxies<T>(this T obj) =>
-        (obj?.GetType() ?? typeof(T)).PropertyProxies();
-
-    /// <summary>
-    /// Gets the property proxy given the property name.
-    /// </summary>
-    /// <param name="t">The associated type.</param>
-    /// <param name="propertyName">Name of the property.</param>
-    /// <returns>The associated <see cref="IPropertyProxy"/></returns>
-    public static IPropertyProxy? PropertyProxy(
-        [DynamicallyAccessedMembers(
-        DynamicallyAccessedMemberTypes.PublicProperties |
-        DynamicallyAccessedMemberTypes.NonPublicProperties)] this Type t,
-        string propertyName)
-    {
-        var proxies = t.PropertyProxies();
-        return proxies.TryGetValue(propertyName, out IPropertyProxy? value) ? value : null;
-    }
-
-    /// <summary>
     /// Gets the property proxy given the property name.
     /// </summary>
     /// <typeparam name="T">The type of instance to extract proxies from.</typeparam>
@@ -111,26 +86,6 @@ public static class PropertyProxyExtensions
     /// Reads the property value.
     /// </summary>
     /// <typeparam name="T">The type to get property proxies from.</typeparam>
-    /// <typeparam name="V">The type of the property.</typeparam>
-    /// <param name="obj">The instance.</param>
-    /// <param name="propertyExpression">The property expression.</param>
-    /// <returns>
-    /// The value obtained from the associated <see cref="IPropertyProxy" />
-    /// </returns>
-    /// <exception cref="ArgumentNullException">obj.</exception>
-    public static V? ReadProperty<T, V>(this T obj, Expression<Func<T, V>> propertyExpression)
-    {
-        if (obj == null)
-            throw new ArgumentNullException(nameof(obj));
-
-        var proxy = obj.PropertyProxy(propertyExpression);
-        return proxy?.GetValue(obj) is V value ? value : default;
-    }
-
-    /// <summary>
-    /// Reads the property value.
-    /// </summary>
-    /// <typeparam name="T">The type to get property proxies from.</typeparam>
     /// <param name="obj">The instance.</param>
     /// <param name="propertyName">Name of the property.</param>
     /// <returns>
@@ -144,22 +99,6 @@ public static class PropertyProxyExtensions
 
         var proxy = obj.PropertyProxy(propertyName);
         return proxy?.GetValue(obj);
-    }
-
-    /// <summary>
-    /// Writes the property value.
-    /// </summary>
-    /// <typeparam name="T">The type to get property proxies from.</typeparam>
-    /// <typeparam name="TV">The type of the property.</typeparam>
-    /// <param name="obj">The instance.</param>
-    /// <param name="propertyExpression">The property expression.</param>
-    /// <param name="value">The value.</param>
-    public static void WriteProperty<T, TV>(this T obj, Expression<Func<T, TV>> propertyExpression, TV value)
-    {
-        ArgumentNullException.ThrowIfNull(obj);
-
-        var proxy = obj.PropertyProxy(propertyExpression);
-        proxy?.SetValue(obj, value);
     }
 
     /// <summary>

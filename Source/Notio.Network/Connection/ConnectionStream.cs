@@ -193,7 +193,7 @@ public class ConnectionStream : IDisposable
             byte[] processedData = TransformReceivedData?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
 
             CacheIncomingPacket.Add(processedData);
-            LastPingTime = (long)Clock.UnixTime.TotalMilliseconds;
+            LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
             PacketCached?.Invoke();
         }
         catch (Exception ex)

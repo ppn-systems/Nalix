@@ -32,7 +32,7 @@ public sealed class PeriodicTask : IDisposable
         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _interval = ValidateInterval(interval);
 
-        Task.Run(ActionLoop);
+        Task.Run(() => ActionLoop(), _cancellationTokenSource.Token);
     }
 
     /// <summary>

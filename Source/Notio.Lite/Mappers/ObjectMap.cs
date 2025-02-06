@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Notio.Lite.Mappers;
@@ -33,78 +32,4 @@ public class ObjectMap<TSource, TDestination> : IObjectMap
 
     /// <inheritdoc/>
     public Type DestinationType { get; }
-
-    /// <summary>
-    /// Maps the property.
-    /// </summary>
-    /// <typeparam name="TDestinationProperty">The type of the destination property.</typeparam>
-    /// <typeparam name="TSourceProperty">The type of the source property.</typeparam>
-    /// <param name="destinationProperty">The destination property.</param>
-    /// <param name="sourceProperty">The source property.</param>
-    /// <returns>
-    /// An object map representation of type of the destination property
-    /// and type of the source property.
-    /// </returns>
-    public ObjectMap<TSource, TDestination> MapProperty
-        <TDestinationProperty, TSourceProperty>(
-            Expression<Func<TDestination, TDestinationProperty>> destinationProperty,
-            Expression<Func<TSource, TSourceProperty>> sourceProperty)
-    {
-        ArgumentNullException.ThrowIfNull(destinationProperty);
-
-        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo
-            ?? throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
-        var sourceMembers = GetSourceMembers(sourceProperty);
-
-        if (sourceMembers.Count == 0)
-            throw new ArgumentException("Invalid source expression", nameof(sourceProperty));
-
-        // reverse order
-        sourceMembers.Reverse();
-        Map[propertyDestinationInfo] = sourceMembers;
-
-        return this;
-    }
-
-    /// <summary>
-    /// Removes the map property.
-    /// </summary>
-    /// <typeparam name="TDestinationProperty">The type of the destination property.</typeparam>
-    /// <param name="destinationProperty">The destination property.</param>
-    /// <returns>
-    /// An object map representation of type of the destination property
-    /// and type of the source property.
-    /// </returns>
-    /// <exception cref="System.Exception">Invalid destination expression.</exception>
-    public ObjectMap<TSource, TDestination> RemoveMapProperty<TDestinationProperty>(
-        Expression<Func<TDestination, TDestinationProperty>> destinationProperty)
-    {
-        ArgumentNullException.ThrowIfNull(destinationProperty);
-
-        var propertyDestinationInfo = (destinationProperty.Body as MemberExpression)?.Member as PropertyInfo
-            ?? throw new ArgumentException("Invalid destination expression", nameof(destinationProperty));
-
-        Map.Remove(propertyDestinationInfo);
-
-        return this;
-    }
-
-    private static List<PropertyInfo> GetSourceMembers<TSourceProperty>(Expression<Func<TSource, TSourceProperty>> sourceProperty)
-    {
-        ArgumentNullException.ThrowIfNull(sourceProperty);
-
-        var sourceMembers = new List<PropertyInfo>();
-        var initialExpression = sourceProperty.Body as MemberExpression;
-
-        while (true)
-        {
-            var propertySourceInfo = initialExpression?.Member as PropertyInfo;
-
-            if (propertySourceInfo == null) break;
-            sourceMembers.Add(propertySourceInfo);
-            initialExpression = initialExpression?.Expression as MemberExpression;
-        }
-
-        return sourceMembers;
-    }
 }

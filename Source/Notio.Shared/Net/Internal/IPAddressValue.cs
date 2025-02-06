@@ -1,10 +1,9 @@
 ﻿using Notio.Common;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Notio.Lite.Net.Internal;
+namespace Notio.Shared.Net.Internal;
 
 // NOTE TO CONTRIBUTORS: If you decide to use this type
 // in any context other than IPAddressRange, please be aware
@@ -16,13 +15,13 @@ namespace Notio.Lite.Net.Internal;
 [Serializable]
 internal struct IPAddressValue : IEquatable<IPAddressValue>, IComparable<IPAddressValue>
 {
-    public static readonly IPAddressValue MinValue = new IPAddressValue(ulong.MinValue, ulong.MinValue, false);
-    public static readonly IPAddressValue MaxValue = new IPAddressValue(ulong.MaxValue, ulong.MaxValue, false);
-    public static readonly IPAddressValue MinIPv4Value = new IPAddressValue(0UL, 0xFFFF00000000UL, true);
-    public static readonly IPAddressValue MaxIPv4Value = new IPAddressValue(0UL, 0xFFFFFFFFFFFFUL, true);
+    public static readonly IPAddressValue MinValue = new(ulong.MinValue, ulong.MinValue, false);
+    public static readonly IPAddressValue MaxValue = new(ulong.MaxValue, ulong.MaxValue, false);
+    public static readonly IPAddressValue MinIPv4Value = new(0UL, 0xFFFF00000000UL, true);
+    public static readonly IPAddressValue MaxIPv4Value = new(0UL, 0xFFFFFFFFFFFFUL, true);
 
-    private static readonly IReadOnlyList<ulong> LowBitMasks = BuildLowBitMasks();
-    private static readonly IReadOnlyList<ulong> HighBitMasks = BuildHighBitMasks();
+    private static readonly ulong[] LowBitMasks = BuildLowBitMasks();
+    private static readonly ulong[] HighBitMasks = BuildHighBitMasks();
 
     private const long V4Mask0 = 0L;
     private const long V4Mask1 = 0xFFFF00000000L;

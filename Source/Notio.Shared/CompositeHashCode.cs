@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Lite;
+namespace Notio.Shared;
 
 /// <summary>
 /// <para>Provides a way for types that override <see cref="object.GetHashCode"/>

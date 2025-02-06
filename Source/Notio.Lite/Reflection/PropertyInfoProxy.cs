@@ -8,29 +8,21 @@ namespace Notio.Lite.Reflection;
 /// The concrete and hidden implementation of the <see cref="IPropertyProxy"/> implementation.
 /// </summary>
 /// <seealso cref="IPropertyProxy" />
-internal sealed class PropertyInfoProxy : IPropertyProxy
+/// <remarks>
+/// Initializes a new instance of the <see cref="PropertyInfoProxy"/> class.
+/// </remarks>
+/// <param name="declaringType">Type of the declaring.</param>
+/// <param name="propertyInfo">The property information.</param>
+internal sealed class PropertyInfoProxy(Type declaringType, PropertyInfo propertyInfo) : IPropertyProxy
 {
-    private readonly Func<object, object>? _getter;
-    private readonly Action<object, object?>? _setter;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PropertyInfoProxy"/> class.
-    /// </summary>
-    /// <param name="declaringType">Type of the declaring.</param>
-    /// <param name="propertyInfo">The property information.</param>
-    public PropertyInfoProxy(Type declaringType, PropertyInfo propertyInfo)
-    {
-        Property = propertyInfo;
-        EnclosingType = declaringType;
-        _getter = CreateLambdaGetter(declaringType, propertyInfo);
-        _setter = CreateLambdaSetter(declaringType, propertyInfo);
-    }
+    private readonly Func<object, object>? _getter = CreateLambdaGetter(declaringType, propertyInfo);
+    private readonly Action<object, object?>? _setter = CreateLambdaSetter(declaringType, propertyInfo);
 
     /// <inheritdoc />
-    public PropertyInfo Property { get; }
+    public PropertyInfo Property { get; } = propertyInfo;
 
     /// <inheritdoc />
-    public Type EnclosingType { get; }
+    public Type EnclosingType { get; } = declaringType;
 
     /// <inheritdoc />
     public string Name => Property.Name;

@@ -17,7 +17,7 @@ public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
     /// <summary>
     /// Gets the MIME type resolver instance.
     /// </summary>
-    public IMimeTypeResolver MimeTypeResolver { get; private set; }
+    public IMimeTypeResolver? MimeTypeResolver { get; private set; }
 
     /// <summary>
     /// Indicates whether file generation is enabled in this configuration.

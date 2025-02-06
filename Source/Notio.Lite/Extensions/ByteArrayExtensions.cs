@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,41 +13,6 @@ namespace Notio.Lite.Extensions;
 /// </summary>
 public static class ByteArrayExtensions
 {
-    /// <summary>
-    /// Converts an array of bytes to its lower-case, hexadecimal representation.
-    /// </summary>
-    /// <param name="bytes">The bytes.</param>
-    /// <param name="addPrefix">if set to <c>true</c> add the 0x prefix tot he output.</param>
-    /// <returns>
-    /// The specified string instance; no actual conversion is performed.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">bytes.</exception>
-    public static string ToLowerHex(this byte[] bytes, bool addPrefix = false)
-        => ToHex(bytes, addPrefix, "x2");
-
-    /// <summary>
-    /// Converts an array of bytes to its upper-case, hexadecimal representation.
-    /// </summary>
-    /// <param name="bytes">The bytes.</param>
-    /// <param name="addPrefix">if set to <c>true</c> [add prefix].</param>
-    /// <returns>
-    /// The specified string instance; no actual conversion is performed.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">bytes.</exception>
-    public static string ToUpperHex(this byte[] bytes, bool addPrefix = false)
-        => ToHex(bytes, addPrefix, "X2");
-
-    /// <summary>
-    /// Converts an array of bytes to a sequence of dash-separated, hexadecimal,
-    /// uppercase characters.
-    /// </summary>
-    /// <param name="bytes">The bytes.</param>
-    /// <returns>
-    /// A string of hexadecimal pairs separated by hyphens, where each pair represents
-    /// the corresponding element in value; for example, "7F-2C-4A-00".
-    /// </returns>
-    public static string ToDashedHex(this byte[] bytes) => BitConverter.ToString(bytes);
-
     /// <summary>
     /// Converts an array of bytes to a base-64 encoded string.
     /// </summary>
@@ -78,17 +42,6 @@ public static class ByteArrayExtensions
     }
 
     /// <summary>
-    /// Gets the bit value at the given offset.
-    /// </summary>
-    /// <param name="this">The b.</param>
-    /// <param name="offset">The offset.</param>
-    /// <param name="length">The length.</param>
-    /// <returns>
-    /// Bit value at the given offset.
-    /// </returns>
-    public static byte GetBitValueAt(this byte @this, byte offset, byte length = 1) => (byte)(@this >> offset & ~(0xff << length));
-
-    /// <summary>
     /// Sets the bit value at the given offset.
     /// </summary>
     /// <param name="this">The b.</param>
@@ -102,64 +55,6 @@ public static class ByteArrayExtensions
         var valueAt = (byte)(value & mask);
 
         return (byte)(valueAt << offset | @this & ~(mask << offset));
-    }
-
-    /// <summary>
-    /// Sets the bit value at the given offset.
-    /// </summary>
-    /// <param name="this">The b.</param>
-    /// <param name="offset">The offset.</param>
-    /// <param name="value">The value.</param>
-    /// <returns>Bit value at the given offset.</returns>
-    public static byte SetBitValueAt(this byte @this, byte offset, byte value) => @this.SetBitValueAt(offset, 1, value);
-
-    /// <summary>
-    /// Splits a byte array delimited by the specified sequence of bytes.
-    /// Each individual element in the result will contain the split sequence terminator if it is found to be delimited by it.
-    /// For example if you split [1,2,3,4] by a sequence of [2,3] this method will return a list with 2 byte arrays, one containing [1,2,3] and the
-    /// second one containing 4. Use the Trim extension methods to remove terminator sequences.
-    /// </summary>
-    /// <param name="this">The buffer.</param>
-    /// <param name="offset">The offset at which to start splitting bytes. Any bytes before this will be discarded.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    /// A byte array containing the results the specified sequence of bytes.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// buffer
-    /// or
-    /// sequence.
-    /// </exception>
-    public static List<byte[]> Split(this byte[] @this, int offset, params byte[] sequence)
-    {
-        ArgumentNullException.ThrowIfNull(@this);
-        ArgumentNullException.ThrowIfNull(sequence);
-
-        var seqOffset = Math.Clamp(offset, 0, @this.Length - 1);
-
-        var result = new List<byte[]>();
-
-        while (seqOffset < @this.Length)
-        {
-            var separatorStartIndex = @this.GetIndexOf(sequence, seqOffset);
-
-            if (separatorStartIndex >= 0)
-            {
-                var item = new byte[separatorStartIndex - seqOffset + sequence.Length];
-                Array.Copy(@this, seqOffset, item, 0, item.Length);
-                result.Add(item);
-                seqOffset += item.Length;
-            }
-            else
-            {
-                var item = new byte[@this.Length - seqOffset];
-                Array.Copy(@this, seqOffset, item, 0, item.Length);
-                result.Add(item);
-                break;
-            }
-        }
-
-        return result;
     }
 
     /// <summary>
@@ -222,19 +117,6 @@ public static class ByteArrayExtensions
     }
 
     /// <summary>
-    /// Removes the specified sequence from the end and the start of the buffer
-    /// if the buffer ends and/or starts with such sequence.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>A byte array containing the results of encoding the specified set of characters.</returns>
-    public static byte[] Trim(this byte[] buffer, params byte[] sequence)
-    {
-        var trimStart = buffer.TrimStart(sequence);
-        return trimStart.TrimEnd(sequence);
-    }
-
-    /// <summary>
     /// Determines if the specified buffer ends with the given sequence of bytes.
     /// </summary>
     /// <param name="buffer">The buffer.</param>
@@ -258,35 +140,6 @@ public static class ByteArrayExtensions
     /// <param name="sequence">The sequence.</param>
     /// <returns><c>true</c> if the specified buffer starts; otherwise, <c>false</c>.</returns>
     public static bool StartsWith(this byte[] buffer, params byte[] sequence) => buffer.GetIndexOf(sequence) == 0;
-
-    /// <summary>
-    /// Determines whether the buffer contains the specified sequence.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    ///   <c>true</c> if [contains] [the specified sequence]; otherwise, <c>false</c>.
-    /// </returns>
-    public static bool Contains(this byte[] buffer, params byte[] sequence) => buffer.GetIndexOf(sequence) >= 0;
-
-    /// <summary>
-    /// Determines whether the buffer exactly matches, byte by byte the specified sequence.
-    /// </summary>
-    /// <param name="buffer">The buffer.</param>
-    /// <param name="sequence">The sequence.</param>
-    /// <returns>
-    ///   <c>true</c> if [is equal to] [the specified sequence]; otherwise, <c>false</c>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffer.</exception>
-    public static bool IsEqualTo(this byte[] buffer, params byte[] sequence)
-    {
-        if (ReferenceEquals(buffer, sequence))
-            return true;
-
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        return buffer.Length == sequence.Length && buffer.GetIndexOf(sequence) == 0;
-    }
 
     /// <summary>
     /// Returns the first instance of the matched sequence based on the given offset.
@@ -347,41 +200,6 @@ public static class ByteArrayExtensions
         ArgumentNullException.ThrowIfNull(buffer);
 
         stream.Write(buffer, 0, buffer.Length);
-        return stream;
-    }
-
-    /// <summary>
-    /// Appends the Memory Stream with the specified buffer.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <param name="buffer">The buffer.</param>
-    /// <returns>
-    /// Block of bytes to the current stream using data read from a buffer.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffer.</exception>
-    public static MemoryStream Append(this MemoryStream stream, IEnumerable<byte> buffer)
-    {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        return stream.Append(buffer.ToArray());
-    }
-
-    /// <summary>
-    /// Appends the Memory Stream with the specified set of buffers.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <param name="buffers">The buffers.</param>
-    /// <returns>
-    /// Block of bytes to the current stream using data read from a buffer.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">buffers.</exception>
-    public static MemoryStream Append(this MemoryStream stream, IEnumerable<byte[]> buffers)
-    {
-        ArgumentNullException.ThrowIfNull(buffers);
-
-        foreach (var buffer in buffers)
-            stream.Append(buffer);
-
         return stream;
     }
 
@@ -479,17 +297,5 @@ public static class ByteArrayExtensions
         }
 
         return new ArraySegment<byte>(buff, 0, offset).ToArray();
-    }
-
-    private static string ToHex(byte[] bytes, bool addPrefix, string format)
-    {
-        ArgumentNullException.ThrowIfNull(bytes);
-
-        var sb = new StringBuilder(bytes.Length * 2);
-
-        foreach (var item in bytes)
-            sb.Append(item.ToString(format, CultureInfo.InvariantCulture));
-
-        return $"{(addPrefix ? "0x" : string.Empty)}{sb}";
     }
 }

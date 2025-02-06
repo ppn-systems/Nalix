@@ -20,7 +20,7 @@ public class ExtendedTypeInfo
     private const string ToStringMethodName = nameof(ToString);
 
     private static readonly Type[] NumericTypes =
-    {
+    [
         typeof(byte),
         typeof(sbyte),
         typeof(decimal),
@@ -32,7 +32,7 @@ public class ExtendedTypeInfo
         typeof(ulong),
         typeof(short),
         typeof(ushort),
-    };
+    ];
 
     private readonly ParameterInfo[]? _tryParseParameters;
     private readonly int _toStringArgumentLength;

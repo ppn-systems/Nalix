@@ -83,8 +83,6 @@ public partial class ObjectMapper
 {
     private static readonly Lazy<ObjectMapper> LazyInstance = new(() => new ObjectMapper());
 
-    private readonly List<IObjectMap> _maps = [];
-
     /// <summary>
     /// Gets the current.
     /// </summary>
@@ -123,120 +121,6 @@ public partial class ObjectMapper
             GetSourceMap(source),
             propertiesToCopy,
             ignoreProperties);
-    }
-
-    /// <summary>
-    /// Copies the specified source.
-    /// </summary>
-    /// <param name="source">The source.</param>
-    /// <param name="target">The target.</param>
-    /// <param name="propertiesToCopy">The properties to copy.</param>
-    /// <param name="ignoreProperties">The ignore properties.</param>
-    /// <returns>
-    /// Copied properties count.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// source
-    /// or
-    /// target.
-    /// </exception>
-    public static int Copy(
-        IDictionary<string, object>? source,
-        object? target,
-        IEnumerable<string>? propertiesToCopy = null,
-        params string[] ignoreProperties)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(target);
-
-        return CopyInternal(
-            target,
-            source.ToDictionary(
-                x => x.Key.ToLowerInvariant(),
-                x => Tuple.Create(typeof(object), x.Value)),
-            propertiesToCopy,
-            ignoreProperties);
-    }
-
-    /// <summary>
-    /// Creates the map.
-    /// </summary>
-    /// <typeparam name="TSource">The type of the source.</typeparam>
-    /// <typeparam name="TDestination">The type of the destination.</typeparam>
-    /// <returns>
-    /// An object map representation of type of the destination property
-    /// and type of the source property.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// You can't create an existing map
-    /// or
-    /// Types doesn't match.
-    /// </exception>
-    public ObjectMap<TSource, TDestination> CreateMap<TSource, TDestination>()
-    {
-        if (_maps.Any(x => x.SourceType == typeof(TSource) && x.DestinationType == typeof(TDestination)))
-            throw new InvalidOperationException("You can't create an existing map");
-
-        var sourceType = PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties<TSource>(true);
-        var destinationType = PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties<TDestination>(true);
-
-        var intersect = sourceType.Intersect(destinationType, new PropertyInfoComparer()).ToArray();
-
-        if (intersect.Length == 0)
-            throw new InvalidOperationException("Types doesn't match");
-
-        var map = new ObjectMap<TSource, TDestination>(intersect);
-
-        _maps.Add(map);
-
-        return map;
-    }
-
-    /// <summary>
-    /// Maps the specified source.
-    /// </summary>
-    /// <typeparam name="TDestination">The type of the destination.</typeparam>
-    /// <param name="source">The source.</param>
-    /// <param name="autoResolve">if set to <c>true</c> [automatic resolve].</param>
-    /// <returns>
-    /// A new instance of the map.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">source.</exception>
-    /// <exception cref="InvalidOperationException">You can't map from type {source.GetType().Name} to {typeof(TDestination).Name}.</exception>
-    public TDestination Map<TDestination>(object source, bool autoResolve = true)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-
-        var destination = Activator.CreateInstance<TDestination>();
-        var map = _maps
-            .FirstOrDefault(x => x.SourceType == source.GetType() && x.DestinationType == typeof(TDestination));
-
-        if (map != null)
-        {
-            foreach (var property in map.Map)
-            {
-                var finalSource = property.Value.Aggregate(source,
-                    (current, sourceProperty) => sourceProperty?.GetValue(current) ?? current);
-
-                if (finalSource != null || Nullable.GetUnderlyingType(property.Key.PropertyType) != null)
-                {
-                    property.Key.SetValue(destination, finalSource);
-                }
-            }
-        }
-        else
-        {
-            if (!autoResolve)
-            {
-                throw new InvalidOperationException(
-                    $"You can't map from type {source.GetType().Name} to {typeof(TDestination).Name}");
-            }
-
-            // Missing mapping, try to use default behavior
-            Copy(source, destination!);
-        }
-
-        return destination;
     }
 
     private static int CopyInternal(

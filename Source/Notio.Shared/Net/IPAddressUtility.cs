@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Notio.Lite.Net;
+namespace Notio.Shared.Net;
 
 /// <summary>
 /// Provides utility methods to work with the <see cref="IPAddress"/> class.

@@ -16,15 +16,6 @@ namespace Notio.Lite.Reflection;
 public abstract class TypeCache<T> : CollectionCacheRepository<T>
 {
     /// <summary>
-    /// Determines whether the cache contains the specified type.
-    /// </summary>
-    /// <typeparam name="TOut">The type of the out.</typeparam>
-    /// <returns>
-    ///   <c>true</c> if [contains]; otherwise, <c>false</c>.
-    /// </returns>
-    public bool Contains<TOut>() => ContainsKey(typeof(TOut));
-
-    /// <summary>
     /// Retrieves the properties stored for the specified type.
     /// If the properties are not available, it calls the factory method to retrieve them
     /// and returns them as an array of PropertyInfo.
@@ -51,16 +42,6 @@ public class FieldTypeCache : TypeCache<FieldInfo>
     /// The default cache.
     /// </value>
     public static Lazy<FieldTypeCache> DefaultCache { get; } = new Lazy<FieldTypeCache>(() => new FieldTypeCache());
-
-    /// <summary>
-    /// Retrieves all fields.
-    /// </summary>
-    /// <typeparam name="T">The type to inspect.</typeparam>
-    /// <returns>
-    /// A collection with all the fields in the given type.
-    /// </returns>
-    public IEnumerable<FieldInfo> RetrieveAllFields<T>()
-        => Retrieve<T>(GetAllFieldsFunc());
 
     /// <summary>
     /// Retrieves all fields.

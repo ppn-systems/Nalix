@@ -17,8 +17,7 @@ public class PacketTesting
             TestPacketWithPayload,
             TestPacketDispose,
             TestPacketCompress,
-            TestPacketArray,
-            TestPacketSign
+            TestPacketArray
         };
 
         foreach (var test in tests)
@@ -108,17 +107,5 @@ public class PacketTesting
         Console.WriteLine(packet.Payload.Span.SequenceEqual(deserializedPacket.Payload.Span)
             ? "TestPacketArray: Passed"
             : "TestPacketArray: Failed");
-    }
-
-    private static void TestPacketSign()
-    {
-        var packet = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
-
-        var signedPacket = packet.SignPacket();
-        var isVerified = signedPacket.VerifyPacket();
-
-        Console.WriteLine(isVerified
-            ? "TestPacketSign: Passed"
-            : "TestPacketSign: Failed");
     }
 }

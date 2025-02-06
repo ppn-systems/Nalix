@@ -1,10 +1,10 @@
-﻿using Notio.Lite.Net.Internal;
+﻿using Notio.Shared.Net.Internal;
 using System;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Notio.Lite.Net;
+namespace Notio.Shared.Net;
 
 // NOTE TO CONTRIBUTORS: When adding a check on a public method parameter,
 // please do not just "throw new ArgumentException(...)".

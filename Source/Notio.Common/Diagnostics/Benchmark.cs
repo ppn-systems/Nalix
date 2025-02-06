@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Notio.Lite.Diagnostics;
 
@@ -35,7 +36,7 @@ namespace Notio.Lite.Diagnostics;
 /// </example>
 public static partial class Benchmark
 {
-    private static readonly object SyncLock = new object();
+    private static readonly Lock SyncLock = new();
     private static readonly Dictionary<string, List<TimeSpan>> Measures = new Dictionary<string, List<TimeSpan>>();
 
     /// <summary>

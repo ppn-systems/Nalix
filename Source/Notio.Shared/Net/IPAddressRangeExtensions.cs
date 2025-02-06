@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Lite.Net;
+namespace Notio.Shared.Net;
 
 /// <summary>
 /// Provides extension methods for instances and collections of <see cref="IPAddressRange"/>.
