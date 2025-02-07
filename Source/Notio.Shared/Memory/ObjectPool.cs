@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Shared.Memory.Pool;
+namespace Notio.Shared.Memory;
 
 /// <summary>
 /// Lưu trữ các instance <see cref="IPoolable"/> để tái sử dụng sau.

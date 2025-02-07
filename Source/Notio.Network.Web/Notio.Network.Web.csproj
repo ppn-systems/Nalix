@@ -4,7 +4,6 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-		<IsPublishable>false</IsPublishable>
 		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 

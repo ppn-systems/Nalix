@@ -6,7 +6,6 @@
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>Notio</AssemblyName>
-		<IsPublishable>false</IsPublishable>
 		<TargetFramework>net9.0</TargetFramework>
 
 		<!-- Application settings -->

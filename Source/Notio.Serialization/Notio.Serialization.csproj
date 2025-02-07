@@ -2,9 +2,8 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<OutputType>Library</OutputType>
 		<Platforms>AnyCPU</Platforms>
-		<IsPublishable>false</IsPublishable>
+		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 
