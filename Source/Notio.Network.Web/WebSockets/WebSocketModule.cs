@@ -1,6 +1,4 @@
 ﻿using Notio.Common.Logging.Debugging;
-using Notio.Lite.Extensions;
-using Notio.Lite.Threading;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
@@ -8,6 +6,7 @@ using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using Notio.Network.Web.WebSockets.Internal;
+using Notio.Shared.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -17,6 +16,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Notio.Shared.Extensions;
 
 namespace Notio.Network.Web.WebSockets;
 

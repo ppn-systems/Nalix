@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Logging.Debugging;
-using Notio.Lite.Formatters;
+using Notio.Serialization;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
 using System;
@@ -52,7 +52,7 @@ public static class RequestDeserializer
 
         try
         {
-            return Lite.Formatters.Json.Deserialize<TData>(body, jsonSerializerCase);
+            return Notio.Serialization.Json.Deserialize<TData>(body, jsonSerializerCase);
         }
         catch (FormatException)
         {

@@ -32,7 +32,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Storage", "Notio.Stor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Testing", "Notio.Testing\Notio.Testing.csproj", "{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Lite", "Notio.Lite\Notio.Lite.csproj", "{54062EF6-B181-45DE-9125-903220BA1C81}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Serialization", "Notio.Serialization\Notio.Serialization.csproj", "{54062EF6-B181-45DE-9125-903220BA1C81}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +68,10 @@ Global
 		{11498769-178D-4904-9DEF-9FC37B349797}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11498769-178D-4904-9DEF-9FC37B349797}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11498769-178D-4904-9DEF-9FC37B349797}.Release|Any CPU.Build.0 = Release|Any CPU
+		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -80,10 +84,6 @@ Global
 		{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3FDC6A26-9ABD-4BAE-A334-5EDCBAF69749}.Release|Any CPU.Build.0 = Release|Any CPU
-		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{448B5748-EE69-4FB2-A0A5-F3C45E6AD4D2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{54062EF6-B181-45DE-9125-903220BA1C81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{54062EF6-B181-45DE-9125-903220BA1C81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54062EF6-B181-45DE-9125-903220BA1C81}.Release|Any CPU.ActiveCfg = Release|Any CPU

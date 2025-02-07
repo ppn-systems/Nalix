@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Notio.Lite.Diagnostics;
+namespace Notio.Serialization.Diagnostics;
 
 /// <summary>
 /// Provides access to a high-resolution, time measuring device.

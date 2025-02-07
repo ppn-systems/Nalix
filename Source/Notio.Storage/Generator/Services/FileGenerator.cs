@@ -54,7 +54,7 @@ public class FileGenerator : IFileGenerator
     {
         ArgumentNullException.ThrowIfNull(data);
 
-        if (!_formats.TryGetValue(format, out IFileFormat formatInstance))
+        if (!_formats.TryGetValue(format, out IFileFormat? formatInstance))
             throw new NotSupportedException($"This file format is not supported: {format}");
 
         return formatInstance.Generate(data);

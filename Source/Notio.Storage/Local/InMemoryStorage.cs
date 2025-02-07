@@ -82,7 +82,7 @@ public class InMemoryStorage : IFileStorageAsync
         foreach (var meta in metaInfo)
             metaDictionary.Add(Uri.EscapeDataString(meta.Key), Uri.EscapeDataString(meta.Value));
 
-        string contentType = _storageConfig.MimeTypeResolver.GetMimeType(data);
+        string contentType = _storageConfig.MimeTypeResolver?.GetMimeType(data) ?? string.Empty;
 
         var file = new InMemoryFile(data, metaDictionary, contentType);
 

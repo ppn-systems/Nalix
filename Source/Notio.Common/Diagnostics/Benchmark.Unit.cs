@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Notio.Lite.Diagnostics;
+namespace Notio.Serialization.Diagnostics;
 
 public static partial class Benchmark
 {

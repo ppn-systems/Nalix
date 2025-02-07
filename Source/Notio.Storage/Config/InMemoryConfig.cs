@@ -12,7 +12,7 @@ public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
     /// <summary>
     /// Gets the file generator instance for generating files in memory.
     /// </summary>
-    public IFileGenerator Generator { get; private set; }
+    public IFileGenerator Generator { get; private set; } = null!;
 
     /// <summary>
     /// Gets the MIME type resolver instance.

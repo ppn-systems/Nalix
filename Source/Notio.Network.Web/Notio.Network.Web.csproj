@@ -20,7 +20,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Lite\Notio.Lite.csproj" />
+		<ProjectReference Include="..\Notio.Serialization\Notio.Serialization.csproj" />
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 	</ItemGroup>
   

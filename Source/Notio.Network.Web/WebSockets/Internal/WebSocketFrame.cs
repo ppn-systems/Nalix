@@ -1,7 +1,7 @@
-﻿using Notio.Lite.Extensions;
-using Notio.Network.Web.Enums;
+﻿using Notio.Network.Web.Enums;
 using Notio.Network.Web.Net.Internal;
 using Notio.Shared.Enums;
+using Notio.Shared.Extensions;
 using System;
 using System.Globalization;
 using System.IO;

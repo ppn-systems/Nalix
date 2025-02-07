@@ -1,5 +1,4 @@
 ﻿using Notio.Common.Logging.Debugging;
-using Notio.Lite.Extensions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
@@ -11,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Notio.Shared.Extensions;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

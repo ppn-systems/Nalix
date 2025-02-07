@@ -20,13 +20,13 @@ public class InDiskConfig : ConfiguredBinder, IFileStorageConfig<InDiskConfig>
     /// Gets the file generator instance for generating files.
     /// </summary>
     [ConfiguredIgnore]
-    public IFileGenerator Generator { get; private set; }
+    public IFileGenerator Generator { get; private set; } = null!;
 
     /// <summary>
     /// Gets the MIME type resolver instance.
     /// </summary>
     [ConfiguredIgnore]
-    public IMimeTypeResolver MimeTypeResolver { get; private set; }
+    public IMimeTypeResolver MimeTypeResolver { get; private set; } = null!;
 
     /// <summary>
     /// Indicates whether file generation is enabled.

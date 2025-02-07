@@ -39,14 +39,14 @@ public class InDiskStorage : IFileStorage
 
         if (fileName.Contains('.') == false && _storageConfig.IsMimeTypeResolverEnabled)
         {
-            var fileExtension = _storageConfig.MimeTypeResolver.GetExtension(data);
+            string fileExtension = _storageConfig.MimeTypeResolver.GetExtension(data);
             fileName += fileExtension;
         }
 
         var filePath = Path.Combine(_storageConfig.StorageLocation, format, fileName);
         var fileInfo = new FileInfo(filePath);
 
-        if (!fileInfo.Directory.Exists)
+        if (fileInfo.Directory?.Exists == false)
             fileInfo.Directory.Create();
 
         File.WriteAllBytes(filePath, data);
