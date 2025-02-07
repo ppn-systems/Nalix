@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Notio.Serialization.Extensions;
+namespace Notio.Serialization.Internal.Extensions;
 
 /// <summary>
 /// Provides various extension methods for Reflection and Types.

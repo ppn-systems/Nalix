@@ -1,5 +1,4 @@
-﻿using Notio.Shared.Enums;
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -38,7 +37,7 @@ public static class Runtime
     private static readonly string ApplicationMutexName = "Global\\{{" + EntryAssembly.FullName + "}}";
 
     // Use a simple static object for synchronization.
-    private static readonly Lock SyncLock = new Lock();
+    private static readonly Lock SyncLock = new();
 
     // Lazy-load the operating system type.
     private static readonly Lazy<OSType> OsLazy = new(() =>
@@ -184,4 +183,46 @@ public static class Runtime
     }
 
     #endregion Methods
+}
+
+/// <summary>
+/// Enumeration of Operating Systems.
+/// </summary>
+public enum OSType
+{
+    /// <summary>
+    /// Unknown OS
+    /// </summary>
+    Unknown,
+
+    /// <summary>
+    /// Windows
+    /// </summary>
+    Windows,
+
+    /// <summary>
+    /// UNIX/Linux
+    /// </summary>
+    Unix,
+
+    /// <summary>
+    /// macOS (OSX)
+    /// </summary>
+    Osx,
+}
+
+/// <summary>
+/// Defines Endianness, big or little.
+/// </summary>
+public enum Endianness
+{
+    /// <summary>
+    /// In big endian, you store the most significant byte in the smallest address.
+    /// </summary>
+    Big,
+
+    /// <summary>
+    /// In little endian, you store the least significant byte in the smallest address.
+    /// </summary>
+    Little,
 }

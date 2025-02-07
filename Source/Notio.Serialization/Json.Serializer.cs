@@ -1,5 +1,6 @@
-﻿using Notio.Serialization.Extensions;
-using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal;
+using Notio.Serialization.Internal.Extensions;
+using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;

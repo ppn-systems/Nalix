@@ -1,9 +1,10 @@
 ﻿using Notio.Common.Memory.Pools;
+using Notio.Shared.Memory.Pool;
 using System;
 using System.Collections.Concurrent;
 using System.Text;
 
-namespace Notio.Shared.Memory.Pool;
+namespace Notio.Shared.Memory;
 
 /// <summary>
 /// Cung cấp quyền truy cập an toàn trong môi trường đa luồng vào các pool chứa các instance của <see cref="IPoolable"/>.

@@ -1,4 +1,5 @@
-﻿using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal;
+using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Linq;

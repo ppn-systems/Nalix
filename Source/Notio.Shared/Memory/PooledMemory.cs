@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace Notio.Shared.Memory.Pool;
+namespace Notio.Shared.Memory;
 
 /// <summary>
 /// Đại diện cho bộ nhớ được quản lý từ ArrayPool.

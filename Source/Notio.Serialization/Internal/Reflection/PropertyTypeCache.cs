@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Notio.Serialization.Reflection;
+namespace Notio.Serialization.Internal.Reflection;
 
 /// <summary>
 /// A thread-safe cache of properties belonging to a given type.

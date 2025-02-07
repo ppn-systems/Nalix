@@ -1,11 +1,11 @@
-﻿using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
-namespace Notio.Serialization.Extensions;
+namespace Notio.Serialization.Internal.Extensions;
 
 /// <summary>
 /// Provides functionality to access <see cref="IPropertyProxy"/> objects

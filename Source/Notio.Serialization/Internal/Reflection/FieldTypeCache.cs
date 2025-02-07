@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Notio.Serialization.Reflection;
+namespace Notio.Serialization.Internal.Reflection;
 
 /// <summary>
 /// A thread-safe cache of fields belonging to a given type

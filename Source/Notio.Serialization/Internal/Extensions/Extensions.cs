@@ -1,11 +1,11 @@
-﻿using Notio.Serialization.Mappers;
-using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal.Mappers;
+using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Serialization.Extensions;
+namespace Notio.Serialization.Internal.Extensions;
 
 /// <summary>
 /// Extension methods.
@@ -82,7 +82,7 @@ internal static partial class Extensions
     /// </returns>
     internal static int CopyPropertiesTo<T>(this T source, object target, params string[]? ignoreProperties)
         where T : class =>
-        ObjectMapper.Copy(source, target, GetCopyableProperties(target), ignoreProperties);
+        ObjectMapper.Copy(source, target, target.GetCopyableProperties(), ignoreProperties);
 
     /// <summary>
     /// Copies the properties to new instance of T.
@@ -100,7 +100,7 @@ internal static partial class Extensions
         ArgumentNullException.ThrowIfNull(source);
 
         var target = Activator.CreateInstance<T>();
-        ObjectMapper.Copy(source, target, GetCopyableProperties(target), ignoreProperties);
+        ObjectMapper.Copy(source, target, target.GetCopyableProperties(), ignoreProperties);
 
         return target;
     }

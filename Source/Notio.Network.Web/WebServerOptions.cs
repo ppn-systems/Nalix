@@ -2,7 +2,6 @@
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Utilities;
 using Notio.Shared;
-using Notio.Shared.Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

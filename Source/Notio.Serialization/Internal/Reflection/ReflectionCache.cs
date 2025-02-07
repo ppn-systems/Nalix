@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Serialization.Reflection;
+namespace Notio.Serialization.Internal.Reflection;
 
 /// <summary>
 /// A thread-safe collection cache repository for types.

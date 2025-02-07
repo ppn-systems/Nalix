@@ -1,12 +1,12 @@
-﻿using Notio.Serialization.Extensions;
-using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal.Extensions;
+using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Notio.Serialization.Mappers;
+namespace Notio.Serialization.Internal.Mappers;
 
 /// <summary>
 /// Represents an AutoMapper-like object to map from one object type

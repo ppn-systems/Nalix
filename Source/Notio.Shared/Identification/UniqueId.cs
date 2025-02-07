@@ -16,7 +16,9 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     private const string Alphabet = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const int Base = 36;
 
-    private static readonly byte[] CharToValue = new byte[128].Select(x => byte.MaxValue).ToArray();
+    // Lookup table for converting characters to their Base36 values.
+    private static readonly byte[] CharToValue = new byte[128].Select(_ => byte.MaxValue).ToArray();
+
     private readonly uint _value = value;
 
     /// <summary>
@@ -40,16 +42,23 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// <returns>Đối tượng <see cref="UniqueId"/></returns>
     public static UniqueId NewId(TypeId type = TypeId.Generic, ushort machineId = 0)
     {
+        // Generate 4 random bytes.
         byte[] randomBytes = new byte[4];
         System.Random.Shared.NextBytes(randomBytes);
-
         uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
+
+        // Use the current Unix time in milliseconds (masked to 32 bits).
         uint timestamp = (uint)(Clock.UnixTime().Milliseconds & 0xFFFFFFFF);
-        uint uniqueValue = randomValue ^ (timestamp << 5 | timestamp >> 27);
+
+        // Combine the random value and timestamp via XOR, with a bit-shift mix.
+        uint uniqueValue = randomValue ^ ((timestamp << 5) | (timestamp >> 27));
+
+        // Incorporate the type ID (shifted into the high 8 bits) and the machine ID.
         uint typeId = (uint)type << 24;
         uint machineValue = (uint)(machineId & 0xFFFF);
 
-        return new UniqueId(typeId | uniqueValue & 0xFFFFFF | machineValue);
+        // Combine: use the top 8 bits for type, next 24 bits for unique value, then OR in the machine value.
+        return new UniqueId(typeId | (uniqueValue & 0xFFFFFF) | machineValue);
     }
 
     /// <summary>
@@ -60,19 +69,21 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// <exception cref="ArgumentException">Ném ra nếu chỉ số của chuỗi không hợp lệ.</exception>
     public string ToString(bool isHex = false)
     {
-        if (isHex)
-            return _value.ToString("X8");
+        if (isHex) return _value.ToString("X8");
 
+        // Allocate a fixed-size span on the stack for the Base36 string.
         Span<char> chars = stackalloc char[13];
         int index = chars.Length;
         uint value = _value;
 
+        // Compute the Base36 representation.
         do
         {
             chars[--index] = Alphabet[(int)(value % Base)];
             value /= Base;
         } while (value > 0);
 
+        // Pad to a minimum width of 7 characters.
         return new string(chars[index..]).PadLeft(7, '0');
     }
 
@@ -84,6 +95,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         bool isHex = input.Length == 8;
         if (isHex)
         {
+            // Check that all characters are valid hex digits.
             foreach (char c in input)
             {
                 if (!Uri.IsHexDigit(c))
@@ -125,9 +137,9 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// <param name="input">Chuỗi cần chuyển đổi.</param>
     /// <param name="isHex">Nếu là chuỗi Hex, chuyển đổi thành số thập lục phân.</param>
     /// <returns>Đối tượng <see cref="UniqueId"/> từ chuỗi đã cho.</returns>
-    /// <exception cref="ArgumentNullException">Ném ra nếu chuỗi nhập vào rỗng hoặc chỉ chứa khoảng trắng.</exception>
-    /// <exception cref="ArgumentException">Ném ra nếu chuỗi nhập vào dài quá hoặc có ký tự không hợp lệ khi chuyển đổi Base36.</exception>
-    /// <exception cref="FormatException">Ném ra nếu chuỗi nhập vào chứa ký tự không hợp lệ trong hệ cơ số 36 hoặc trong trường hợp chuỗi Hex.</exception>
+    /// <exception cref="ArgumentNullException">Nếu chuỗi nhập vào rỗng hoặc chỉ chứa khoảng trắng.</exception>
+    /// <exception cref="ArgumentException">Nếu chuỗi nhập vào dài quá hoặc có ký tự không hợp lệ khi chuyển đổi Base36.</exception>
+    /// <exception cref="FormatException">Nếu chuỗi nhập vào chứa ký tự không hợp lệ trong hệ cơ số 36 hoặc trong trường hợp chuỗi Hex.</exception>
     public static UniqueId Parse(ReadOnlySpan<char> input, bool isHex = false)
     {
         if (isHex)
@@ -166,7 +178,6 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     public static bool TryParse(ReadOnlySpan<char> input, out UniqueId result)
     {
         result = Empty;
-
         if (input.IsEmpty || input.Length > 13)
             return false;
 
@@ -174,77 +185,31 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         foreach (char c in input)
         {
             byte charValue = c > 127 ? byte.MaxValue : CharToValue[char.ToUpperInvariant(c)];
-
             if (charValue == byte.MaxValue)
                 return false;
-
             value = value * Base + charValue;
         }
-
         result = new UniqueId(value);
         return true;
     }
 
-    /// <summary>
-    /// Xác định xem thể hiện hiện tại và đối tượng đã chỉ định có bằng nhau hay không.
-    /// </summary>
-    /// <param name="obj">Đối tượng để so sánh với thể hiện hiện tại.</param>
-    /// <returns>true nếu đối tượng hiện tại bằng đối tượng đã chỉ định; ngược lại, false.</returns>
     public override bool Equals(object? obj) => obj is UniqueId other && Equals(other);
 
-    /// <summary>
-    /// Xác định xem thể hiện hiện tại và <see cref="UniqueId"/> đã chỉ định có bằng nhau hay không.
-    /// </summary>
-    /// <param name="other">Đối tượng <see cref="UniqueId"/> để so sánh với thể hiện hiện tại.</param>
-    /// <returns>true nếu đối tượng hiện tại bằng <see cref="UniqueId"/> đã chỉ định; ngược lại, false.</returns>
     public bool Equals(UniqueId other) => _value == other._value;
 
-    /// <summary>
-    /// Trả về mã băm cho thể hiện hiện tại.
-    /// </summary>
-    /// <returns>Mã băm 32-bit có dấu cho thể hiện hiện tại.</returns>
     public override int GetHashCode() => _value.GetHashCode();
 
-    /// <summary>
-    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác và trả về một số nguyên cho biết thứ tự tương đối của các đối tượng được so sánh.
-    /// </summary>
-    /// <param name="other">Đối tượng <see cref="UniqueId"/> để so sánh.</param>
-    /// <returns>Một số nguyên cho biết thứ tự tương đối của các đối tượng được so sánh.</returns>
     public int CompareTo(UniqueId other) => _value.CompareTo(other._value);
 
-    /// <summary>
-    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu nhỏ hơn.
-    /// </summary>
     public static bool operator <(UniqueId left, UniqueId right) => left._value < right._value;
 
-    /// <summary>
-    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu nhỏ hơn hoặc bằng.
-    /// </summary>
     public static bool operator <=(UniqueId left, UniqueId right) => left._value <= right._value;
 
-    /// <summary>
-    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu lớn hơn.
-    /// </summary>
     public static bool operator >(UniqueId left, UniqueId right) => left._value > right._value;
 
-    /// <summary>
-    /// So sánh thể hiện hiện tại với một <see cref="UniqueId"/> khác để xác định nếu lớn hơn hoặc bằng.
-    /// </summary>
     public static bool operator >=(UniqueId left, UniqueId right) => left._value >= right._value;
 
-    /// <summary>
-    /// Xác định xem hai đối tượng <see cref="UniqueId"/> có bằng nhau hay không.
-    /// </summary>
-    /// <param name="left">Đối tượng đầu tiên để so sánh.</param>
-    /// <param name="right">Đối tượng thứ hai để so sánh.</param>
-    /// <returns>true nếu các đối tượng bằng nhau; ngược lại, false.</returns>
     public static bool operator ==(UniqueId left, UniqueId right) => left.Equals(right);
 
-    /// <summary>
-    /// Xác định xem hai đối tượng <see cref="UniqueId"/> có khác nhau hay không.
-    /// </summary>
-    /// <param name="left">Đối tượng đầu tiên để so sánh.</param>
-    /// <param name="right">Đối tượng thứ hai để so sánh.</param>
-    /// <returns>true nếu các đối tượng khác nhau; ngược lại, false.</returns>
     public static bool operator !=(UniqueId left, UniqueId right) => !(left == right);
 }

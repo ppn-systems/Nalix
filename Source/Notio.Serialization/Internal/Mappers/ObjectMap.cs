@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Notio.Serialization.Mappers;
+namespace Notio.Serialization.Internal.Mappers;
 
 /// <summary>
 /// Interface object map.

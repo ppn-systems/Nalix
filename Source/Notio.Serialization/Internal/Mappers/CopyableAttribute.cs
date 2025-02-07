@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Serialization.Mappers;
+namespace Notio.Serialization.Internal.Mappers;
 
 /// <summary>
 /// Represents an attribute to select which properties are copyable between objects.

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Notio.Serialization.Reflection;
+namespace Notio.Serialization.Internal.Reflection;
 
 /// <summary>
 /// A thread-safe cache of members belonging to a given type.

@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Extensions;
+﻿using Notio.Serialization.Internal.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

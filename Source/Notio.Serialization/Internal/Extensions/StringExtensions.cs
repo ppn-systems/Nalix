@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Serialization.Extensions;
+namespace Notio.Serialization.Internal.Extensions;
 
 /// <summary>
 /// String related extension methods.
@@ -34,7 +34,7 @@ internal static class StringExtensions
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
     internal static string ToStringInvariant<T>(this T item)
         => typeof(string) == typeof(T) ? item as string
-        ?? string.Empty : ToStringInvariant(item as object)
+        ?? string.Empty : (item as object).ToStringInvariant()
         ?? string.Empty;
 
     /// <summary>

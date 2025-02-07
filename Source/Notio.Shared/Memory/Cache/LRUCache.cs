@@ -7,7 +7,7 @@ namespace Notio.Shared.Memory.Cache;
 /// </summary>
 /// <typeparam name="TKey">The type of the cache key.</typeparam>
 /// <typeparam name="TValue">The type of the cache value.</typeparam>
-public sealed class LRUCache<TKey, TValue>(int capacity) where TKey : notnull
+public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
 {
     private class CacheItem
     {

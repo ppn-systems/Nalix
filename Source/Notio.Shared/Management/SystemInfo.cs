@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Notio.Shared.Management.Commands;
+namespace Notio.Shared.Management;
 
 /// <summary>
 /// Lớp chứa các phương thức để lấy thông tin hệ thống.

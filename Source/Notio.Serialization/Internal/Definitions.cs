@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Reflection;
+﻿using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 
-namespace Notio.Serialization;
+namespace Notio.Serialization.Internal;
 
 /// <summary>
 /// Contains useful constants and definitions.

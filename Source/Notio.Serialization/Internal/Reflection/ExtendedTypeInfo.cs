@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Extensions;
+﻿using Notio.Serialization.Internal.Extensions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
-namespace Notio.Serialization.Reflection;
+namespace Notio.Serialization.Internal.Reflection;
 
 /// <summary>
 /// Provides extended information about a type.
