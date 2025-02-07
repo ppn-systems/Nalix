@@ -125,6 +125,12 @@ public static partial class Clock
     /// <summary>
     /// Applies time synchronization using a Unix timestamp and optional RTT.
     /// </summary>
+    /// <param name="serverUnixMs">The server Unix timestamp in milliseconds. Must be non-negative and within a reasonable range.</param>
+    /// <param name="rttMs">Round-trip time in milliseconds. Must be non-negative.</param>
+    /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied. Must be positive.</param>
+    /// <param name="maxHardAdjustMs">Maximum hard adjustment in milliseconds. Must be positive.</param>
+    /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when input parameters are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -134,6 +140,35 @@ public static partial class Clock
         [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxAllowedDriftMs = 1_000.0,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxHardAdjustMs = 10_000.0)
     {
+        // Validate input parameters
+        if (serverUnixMs < 0)
+        {
+            throw new System.ArgumentException("Server Unix timestamp cannot be negative", nameof(serverUnixMs));
+        }
+
+        if (rttMs < 0)
+        {
+            throw new System.ArgumentException("RTT cannot be negative", nameof(rttMs));
+        }
+
+        if (maxAllowedDriftMs <= 0)
+        {
+            throw new System.ArgumentException("Max allowed drift must be positive", nameof(maxAllowedDriftMs));
+        }
+
+        if (maxHardAdjustMs <= 0)
+        {
+            throw new System.ArgumentException("Max hard adjust must be positive", nameof(maxHardAdjustMs));
+        }
+
+        // Sanity check: Unix timestamp should be reasonable (after year 2000 and before year 2100)
+        const System.Int64 MinReasonableUnixMs = 946684800000L; // Jan 1, 2000
+        const System.Int64 MaxReasonableUnixMs = 4102444800000L; // Jan 1, 2100
+        if (serverUnixMs < MinReasonableUnixMs || serverUnixMs > MaxReasonableUnixMs)
+        {
+            throw new System.ArgumentException("Server Unix timestamp is outside reasonable range (2000-2100)", nameof(serverUnixMs));
+        }
+
         // Compensate half RTT (one-way latency)
         System.Int64 corrected = serverUnixMs + (System.Int64)(rttMs * 0.5);
         System.DateTime externalTime = System.DateTime.UnixEpoch.AddMilliseconds(corrected);
