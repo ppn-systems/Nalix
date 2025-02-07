@@ -100,8 +100,8 @@ public class PacketTesting
     {
         Packet packet = new(1, 0x00, 2, 100, PacketTesting.payload);
 
-        ReadOnlySpan<byte> serialized = packet.ToByteArray();
-        Packet deserializedPacket = serialized.FromByteArray();
+        ReadOnlySpan<byte> serialized = packet.Serialize();
+        Packet deserializedPacket = serialized.Deserialize();
 
         Console.WriteLine(packet.Payload.Span.SequenceEqual(deserializedPacket.Payload.Span)
             ? "TestPacketArray: Passed"

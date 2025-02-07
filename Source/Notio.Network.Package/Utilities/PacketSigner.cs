@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace Notio.Network.Package.Utilities.Signing;
+namespace Notio.Network.Package.Utilities;
 
 internal class PacketSigner
 {

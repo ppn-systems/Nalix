@@ -53,7 +53,7 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 
         try
         {
-            var packet = connection.IncomingPacket.FromByteArray();
+            var packet = connection.IncomingPacket.Deserialize();
 
             if (!_handlerResolver.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
                 || handlerInfo == null)
@@ -73,7 +73,7 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 
             if (response != null)
             {
-                await connection.SendAsync(response.Value.ToByteArray(), cancellationToken);
+                await connection.SendAsync(response.Value.Serialize(), cancellationToken);
                 performanceMonitor.Stop();
                 _logger?.Debug($"Command <{packet.Command}> processed in {performanceMonitor.ElapsedMilliseconds}ms");
             }

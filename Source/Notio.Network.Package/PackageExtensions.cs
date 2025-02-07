@@ -13,7 +13,7 @@ namespace Notio.Network.Package;
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.
 /// </summary>
 [SkipLocalsInit]
-public static partial class Package
+public static partial class PackageExtensions
 {
     private const int MaxStackAlloc = 512;
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
@@ -44,7 +44,7 @@ public static partial class Package
     /// <returns>Mảng byte đại diện cho gói tin.</returns>
     /// <exception cref="PackageException">Ném lỗi khi payload vượt quá giới hạn cho phép.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ToByteArray(this in Packet packet)
+    public static byte[] Serialize(this in Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -79,7 +79,7 @@ public static partial class Package
     /// <returns>Gói tin được tạo từ dữ liệu đầu vào.</returns>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this ReadOnlySpan<byte> data)
+    public static Packet Deserialize(this ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException("Invalid data length: smaller than header size.");
@@ -98,8 +98,8 @@ public static partial class Package
     /// <returns>Gói tin được tạo từ mảng byte.</returns>
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet FromByteArray(this byte[] data)
-        => FromByteArray((ReadOnlySpan<byte>)data);
+    public static Packet Deserialize(this byte[] data)
+        => Deserialize((ReadOnlySpan<byte>)data);
 
     /// <summary>
     /// Thử chuyển đổi Packet thành mảng byte với kiểm tra kích thước.
@@ -109,7 +109,7 @@ public static partial class Package
     /// <param name="bytesWritten">Số byte đã ghi vào bộ đệm đích.</param>
     /// <returns>True nếu chuyển đổi thành công; ngược lại, False.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryToByteArray(this in Packet packet, Span<byte> destination, out int bytesWritten)
+    public static bool TrySerialize(this in Packet packet, Span<byte> destination, out int bytesWritten)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -139,7 +139,7 @@ public static partial class Package
     /// <param name="packet">Gói tin được tạo nếu thành công.</param>
     /// <returns>True nếu tạo thành công; ngược lại, False.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryFromByteArray(ReadOnlySpan<byte> source, out Packet packet)
+    public static bool TryDeserialize(ReadOnlySpan<byte> source, out Packet packet)
     {
         packet = default;
 

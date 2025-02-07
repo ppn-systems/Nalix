@@ -20,7 +20,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="Package.cs" />
+	  <None Include="PackageExtensions.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -12,7 +12,7 @@ namespace Notio.Network.Package;
 /// Provides encryption and decryption methods for Packet Payload.
 /// (Cung cấp các phương thức mã hóa và giải mã cho Payload của Packet.)
 /// </summary>
-public static partial class Package
+public static partial class PackageExtensions
 {
     /// <summary>
     /// Encrypts the Payload in the Packet using the specified algorithm.

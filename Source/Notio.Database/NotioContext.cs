@@ -38,11 +38,15 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
     }
 
     // Method to create DbContext with the connection string
-    public static DbContext CreateContextWithConnectionString()
+    public static NotioContext CreateContextWithConnectionString()
     {
         var options = new DbContextOptionsBuilder<NotioContext>()
-            .UseSqlServer(AzureSqlConnection) // Or use AzureSqlConnection based on the environment
-            .Options;
+            .UseSqlServer(AzureSqlConnection, options =>
+                options.EnableRetryOnFailure(
+                maxRetryCount: 5, // Số lần thử lại tối đa
+                maxRetryDelay: TimeSpan.FromSeconds(30), // Thời gian chờ tối đa giữa các lần thử lại
+                errorNumbersToAdd: null)
+            ).Options;
 
         // Create and return the context
         return new NotioContext(options);

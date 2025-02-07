@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Notio.Application.RestApi;
+﻿using Notio.Application.RestApi;
 using Notio.Application.TcpHandlers;
 using Notio.Common.Logging.Debugging;
 using Notio.Common.Logging.Enums;
@@ -65,21 +64,7 @@ public static class AppConfig
 
     // Phương thức khởi tạo database context
     public static NotioContext InitializeDatabase()
-    {
-        DbContextOptionsBuilder<NotioContext> optionsBuilder = new();
-
-        optionsBuilder.UseSqlServer(NotioContext.AzureSqlConnection, options =>
-            options.EnableRetryOnFailure(
-            maxRetryCount: 5, // Số lần thử lại tối đa
-            maxRetryDelay: TimeSpan.FromSeconds(30), // Thời gian chờ tối đa giữa các lần thử lại
-            errorNumbersToAdd: null)
-        );
-
-        // Khởi tạo DbContext với cấu hình options
-        var context = new NotioContext(optionsBuilder.Options);
-
-        return context;
-    }
+        => NotioContext.CreateContextWithConnectionString();
 
     public static WebServer InitializeHttpServer(string url = "http://localhost:5000")
     {

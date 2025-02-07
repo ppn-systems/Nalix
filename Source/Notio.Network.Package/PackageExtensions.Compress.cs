@@ -12,7 +12,7 @@ namespace Notio.Network.Package;
 /// <summary>
 /// Provides operations for compressing and decompressing packets.
 /// </summary>
-public static partial class Package
+public static partial class PackageExtensions
 {
     /// <summary>
     /// Compresses the payload of the packet using the specified compression algorithm.

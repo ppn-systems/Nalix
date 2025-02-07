@@ -3,8 +3,8 @@
 	<!-- Common settings for all projects in the solution -->
 	<PropertyGroup>
 		<!-- Common versioning settings -->
-		<Version>0.1.85</Version>
-		<PackageVersion>0.1.85</PackageVersion>
+		<Version>0.2.19</Version>
+		<PackageVersion>0.2.19</PackageVersion>
 		<Authors>Phuc Nguyen</Authors>
 		<Copyright>Copyright © 2025</Copyright>
 		<PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
