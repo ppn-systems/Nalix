@@ -39,11 +39,13 @@ internal static class ReflectionExtensions
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        if (type != typeof(bool))
-            return type.TryParseBasicType(value.ToStringInvariant() ?? string.Empty, out result);
+        if (type == typeof(bool))
+        {
+            result = value.ToBoolean();
+            return true;
+        }
 
-        result = value.ToBoolean();
-        return true;
+        return type.TryParseBasicType(value.ToStringInvariant() ?? string.Empty, out result);
     }
 
     /// <summary>
@@ -80,17 +82,10 @@ internal static class ReflectionExtensions
     {
         ArgumentNullException.ThrowIfNull(propertyInfo);
 
-        try
+        if (propertyInfo.PropertyType.TryParseBasicType(value, out var parsedValue))
         {
-            if (propertyInfo.PropertyType.TryParseBasicType(value, out var propertyValue))
-            {
-                propertyInfo.SetValue(target, propertyValue);
-                return true;
-            }
-        }
-        catch
-        {
-            // swallow
+            propertyInfo.SetValue(target, parsedValue);
+            return true;
         }
 
         return false;
@@ -114,32 +109,12 @@ internal static class ReflectionExtensions
         if (target == null)
             return false;
 
-        try
-        {
-            if (value == null)
-            {
-                target.SetValue(null, index);
-                return true;
-            }
+        object? parsedValue = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>)
+            ? null
+            : type.TryParseBasicType(value, out var temp) ? temp : null;
 
-            if (type.TryParseBasicType(value, out var propertyValue))
-            {
-                target.SetValue(propertyValue, index);
-                return true;
-            }
-
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-            {
-                target.SetValue(null, index);
-                return true;
-            }
-        }
-        catch
-        {
-            // swallow
-        }
-
-        return false;
+        target.SetValue(parsedValue, index);
+        return true;
     }
 
     /// <summary>
@@ -157,23 +132,17 @@ internal static class ReflectionExtensions
         ArgumentNullException.ThrowIfNull(propertyInfo);
 
         var elementType = propertyInfo.PropertyType.GetElementType();
-
         if (elementType == null || value == null)
             return false;
 
-        var targetArray = Array.CreateInstance(elementType, value.Count());
+        var valueArray = value.ToArray();
+        var targetArray = Array.CreateInstance(elementType, valueArray.Length);
 
-        var i = 0;
-
-        foreach (var sourceElement in value)
-        {
-            var result = elementType.TrySetArrayBasicType(sourceElement, targetArray, i++);
-
-            if (!result) return false;
-        }
+        for (int i = 0; i < valueArray.Length; i++)
+            if (!elementType.TrySetArrayBasicType(valueArray[i], targetArray, i))
+                return false;
 
         propertyInfo.SetValue(obj, targetArray);
-
         return true;
     }
 
@@ -184,28 +153,9 @@ internal static class ReflectionExtensions
     /// <returns>
     ///   <c>true</c> if the string represents a valid truly value, otherwise <c>false</c>.
     /// </returns>
-    internal static bool ToBoolean(this string str)
-    {
-        try
-        {
-            return Convert.ToBoolean(str);
-        }
-        catch (FormatException)
-        {
-            // ignored
-        }
-
-        try
-        {
-            return Convert.ToBoolean(Convert.ToInt32(str));
-        }
-        catch
-        {
-            // ignored
-        }
-
-        return false;
-    }
+    internal static bool ToBoolean(this string str) =>
+        bool.TryParse(str, out var boolResult) ? boolResult :
+        int.TryParse(str, out var intResult) && intResult != 0;
 
     /// <summary>
     /// Convert a object to a boolean.
@@ -214,5 +164,11 @@ internal static class ReflectionExtensions
     /// <returns>
     ///   <c>true</c> if the string represents a valid truly value, otherwise <c>false</c>.
     /// </returns>
-    internal static bool ToBoolean(this object value) => value.ToStringInvariant()?.ToBoolean() ?? false;
+    internal static bool ToBoolean(this object value) =>
+        value switch
+        {
+            bool b => b,
+            int i => i != 0,
+            _ => value.ToStringInvariant()?.ToBoolean() ?? false
+        };
 }

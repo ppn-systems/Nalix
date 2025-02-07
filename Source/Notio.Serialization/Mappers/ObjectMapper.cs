@@ -97,88 +97,71 @@ internal partial class ObjectMapper
     /// target.
     /// </exception>
     internal static int Copy(
-        object source,
-        object target,
+        object source, object target,
         IEnumerable<string>? propertiesToCopy = null,
         params string[]? ignoreProperties)
     {
         ArgumentNullException.ThrowIfNull(source);
-
         ArgumentNullException.ThrowIfNull(target);
 
-        return CopyInternal(
-            target,
-            GetSourceMap(source),
-            propertiesToCopy,
-            ignoreProperties);
+        return CopyInternal(target, GetSourceMap(source), propertiesToCopy, ignoreProperties);
     }
 
     private static int CopyInternal(
         object target,
-        Dictionary<string, Tuple<Type, object>> sourceProperties,
+        Dictionary<string, (Type Type, object Value)> sourceProperties,
         IEnumerable<string>? propertiesToCopy,
         IEnumerable<string>? ignoreProperties)
     {
-        // Filter properties
-        var requiredProperties = propertiesToCopy?
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.ToLowerInvariant());
+        var propertyDict = PropertyTypeCache.DefaultCache.Value
+            .RetrieveFilteredProperties(target.GetType(), true, x => x.CanWrite)
+            .ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
 
-        var ignoredProperties = ignoreProperties?
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => p.ToLowerInvariant());
+        // Loại bỏ bộ lọc nếu null
+        var requiredSet = propertiesToCopy?.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var ignoreSet = ignoreProperties?.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var properties = PropertyTypeCache.DefaultCache.Value
-            .RetrieveFilteredProperties(target.GetType(), true, x => x.CanWrite);
-
-        return properties
-            .Select(x => x.Name)
-            .Distinct()
-            .ToDictionary(x => x.ToLowerInvariant(), x => properties.First(y => y.Name == x))
-            .Where(x => sourceProperties.ContainsKey(x.Key))
-            .When(() => requiredProperties != null, q => q.Where(y => requiredProperties!.Contains(y.Key)))
-            .When(() => ignoredProperties != null, q => q.Where(y => !ignoredProperties!.Contains(y.Key)))
-            .ToDictionary(x => x.Value, x => sourceProperties[x.Key])
-            .Sum(x => TrySetValue(x.Key, x.Value, target) ? 1 : 0);
+        return propertyDict
+            .Where(p => sourceProperties.ContainsKey(p.Key) &&
+                        (requiredSet == null || requiredSet.Contains(p.Key)) &&
+                        (ignoreSet == null || !ignoreSet.Contains(p.Key)))
+            .Sum(p => TrySetValue(p.Value, sourceProperties[p.Key], target) ? 1 : 0);
     }
 
-    private static bool TrySetValue(PropertyInfo propertyInfo, Tuple<Type, object> property, object target)
+    private static bool TrySetValue(PropertyInfo propertyInfo, (Type Type, object Value) property, object target)
     {
         try
         {
             var (type, value) = property;
 
-            if (type.IsEnum)
+            if (value == null || propertyInfo.PropertyType.IsAssignableFrom(type))
             {
-                propertyInfo.SetValue(target,
-                    Enum.ToObject(propertyInfo.PropertyType, value));
+                propertyInfo.SetValue(target, value);
+                return true;
+            }
 
+            if (propertyInfo.PropertyType.IsEnum && Enum.IsDefined(propertyInfo.PropertyType, value))
+            {
+                propertyInfo.SetValue(target, Enum.ToObject(propertyInfo.PropertyType, value));
                 return true;
             }
 
             if (type.IsValueType || propertyInfo.PropertyType != type)
                 return propertyInfo.TrySetBasicType(value, target);
 
-            if (propertyInfo.PropertyType.IsArray)
+            if (propertyInfo.PropertyType.IsArray && value is IEnumerable<object> enumerableValue)
             {
-                if (value is IEnumerable<object> enumerableValue)
-                {
-                    propertyInfo.TrySetArray(enumerableValue, target);
-                    return true;
-                }
-                return false;
+                propertyInfo.TrySetArray(enumerableValue, target);
+                return true;
             }
 
             propertyInfo.SetValue(target, GetValue(value, propertyInfo.PropertyType));
-
             return true;
         }
         catch
         {
-            // swallow
+            return false;
         }
-
-        return false;
     }
 
     private static object? GetValue(object source, Type targetType)
@@ -187,62 +170,42 @@ internal partial class ObjectMapper
             return null;
 
         object? target = null;
-
         source.CreateTarget(targetType, false, ref target);
 
         switch (source)
         {
             case string _:
-                target = source;
-                break;
+                return source;
 
             case IList sourceList when target is IList targetList:
                 var addMethod = targetType.GetMethods()
-                    .FirstOrDefault(
-                        m => m.Name == Json.AddMethodName && m.IsPublic && m.GetParameters().Length == 1);
+                    .FirstOrDefault(m => m.Name == Json.AddMethodName && m.IsPublic && m.GetParameters().Length == 1);
 
                 if (addMethod == null) return target;
-
-                var elementType = targetList.GetType().GetElementType();
-                var isItemValueType = elementType != null && elementType.IsValueType;
 
                 foreach (var item in sourceList)
                 {
                     try
                     {
-                        targetList.Add(isItemValueType
-                            ? item
-                            : item.CopyPropertiesToNew<object>());
+                        targetList.Add(item.CopyPropertiesToNew<object>());
                     }
                     catch
                     {
-                        // ignored
+                        // Ignore errors
                     }
                 }
-
-                break;
+                return target;
 
             default:
                 source.CopyPropertiesTo(target!);
-                break;
+                return target;
         }
-
-        return target;
     }
 
-    private static Dictionary<string, Tuple<Type, object>> GetSourceMap(object source)
+    private static Dictionary<string, (Type Type, object Value)> GetSourceMap(object source)
     {
-        // select distinct properties because they can be duplicated by inheritance
-        var sourceProperties = PropertyTypeCache.DefaultCache.Value
+        return PropertyTypeCache.DefaultCache.Value
             .RetrieveFilteredProperties(source.GetType(), true, x => x.CanRead)
-            .ToArray();
-
-        return sourceProperties
-            .Select(x => x.Name)
-            .Distinct()
-            .ToDictionary(x => x.ToLowerInvariant(), x => Tuple
-            .Create(sourceProperties
-            .First(y => y.Name == x).PropertyType, (object?)sourceProperties
-            .First(y => y.Name == x).GetValue(source)!));
+            .ToDictionary(p => p.Name, p => ((Type, object))(p.PropertyType, p.GetValue(source)!), StringComparer.OrdinalIgnoreCase);
     }
 }

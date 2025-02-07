@@ -43,28 +43,17 @@ internal class AttributeCache
         if (member == null)
             return default;
 
-        var attr = Retrieve(
-            new Tuple<object, Type>(member, typeof(T)),
-            t => member.GetCustomAttributes(typeof(T), inherit));
+        var key = new Tuple<object, Type>(member, typeof(T));
 
-        return ConvertToAttribute<T>(attr);
-    }
+        var attr = Retrieve(key, k => member.GetCustomAttributes(typeof(T), inherit));
 
-    private static T? ConvertToAttribute<T>(IEnumerable<object> attr)
-        where T : Attribute
-    {
-        if (attr?.Any() != true)
-            return default;
-
-        return attr.Count() == 1
-            ? (T)Convert.ChangeType(attr.First(), typeof(T))
-            : throw new AmbiguousMatchException("Multiple custom attributes of the same type found.");
+        return attr?.SingleOrDefault() as T;
     }
 
     private IEnumerable<object> Retrieve(Tuple<object, Type> key, Func<Tuple<object, Type>, IEnumerable<object>> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        return _data.Value.GetOrAdd(key, k => factory.Invoke(k).Where(item => item != null));
+        return _data.Value.GetOrAdd(key, k => factory.Invoke(k));
     }
 }

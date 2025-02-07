@@ -46,43 +46,20 @@ internal class ExtendedTypeInfo
     public ExtendedTypeInfo(Type t)
     {
         Type = t ?? throw new ArgumentNullException(nameof(t));
-        IsNullableValueType = Type.IsGenericType
-            && Type.GetGenericTypeDefinition() == typeof(Nullable<>);
 
+        IsNullableValueType = Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(Nullable<>);
         IsValueType = t.IsValueType;
-
-        UnderlyingType = IsNullableValueType ?
-            new NullableConverter(Type).UnderlyingType :
-            Type;
-
+        UnderlyingType = IsNullableValueType ? new NullableConverter(Type).UnderlyingType : Type;
         IsNumeric = NumericTypes.Contains(UnderlyingType);
 
-        // Extract the TryParse method info
-        try
-        {
-            TryParseMethodInfo = UnderlyingType.GetMethod(TryParseMethodName,
-                                     [typeof(string), typeof(NumberStyles), typeof(IFormatProvider), UnderlyingType.MakeByRefType()]) ??
-                                 UnderlyingType.GetMethod(TryParseMethodName, [typeof(string), UnderlyingType.MakeByRefType()]);
+        // Cache TryParse method info if it exists
+        TryParseMethodInfo = GetTryParseMethodInfo();
 
-            _tryParseParameters = TryParseMethodInfo?.GetParameters();
-        }
-        catch
-        {
-            // ignored
-        }
+        // Cache ToString method info
+        ToStringMethodInfo = GetToStringMethodInfo();
 
-        // Extract the ToString method Info
-        try
-        {
-            ToStringMethodInfo = UnderlyingType.GetMethod(ToStringMethodName, [typeof(IFormatProvider)]) ??
-                                 UnderlyingType.GetMethod(ToStringMethodName, []);
-
-            _toStringArgumentLength = ToStringMethodInfo?.GetParameters().Length ?? 0;
-        }
-        catch
-        {
-            // ignored
-        }
+        _tryParseParameters = TryParseMethodInfo?.GetParameters();
+        _toStringArgumentLength = ToStringMethodInfo?.GetParameters().Length ?? 0;
     }
 
     #endregion Constructors
@@ -171,36 +148,23 @@ internal class ExtendedTypeInfo
     {
         result = Type.GetDefault();
 
+        if (Type == typeof(string))
+        {
+            result = Convert.ChangeType(s, Type, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (IsNullableValueType && string.IsNullOrEmpty(s) || !CanParseNatively)
+        {
+            return true;
+        }
+
         try
         {
-            if (Type == typeof(string))
-            {
-                result = Convert.ChangeType(s, Type, CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            if (IsNullableValueType && string.IsNullOrEmpty(s) || !CanParseNatively)
-            {
-                return true;
-            }
-
-            // Build the arguments of the TryParse method
             var dynamicArguments = new List<object?> { s };
+            AddTryParseArguments(dynamicArguments);
 
-            for (var pi = 1; pi < (_tryParseParameters?.Length ?? 0) - 1; pi++)
-            {
-                var argInfo = _tryParseParameters?[pi];
-                if (argInfo?.ParameterType == typeof(IFormatProvider))
-                    dynamicArguments.Add(CultureInfo.InvariantCulture);
-                else if (argInfo?.ParameterType == typeof(NumberStyles))
-                    dynamicArguments.Add(NumberStyles.Any);
-                else
-                    dynamicArguments.Add(null);
-            }
-
-            dynamicArguments.Add(null);
             var parseArguments = dynamicArguments.ToArray();
-
             if (TryParseMethodInfo != null && TryParseMethodInfo.Invoke(null, parseArguments) is bool parseResult && parseResult)
             {
                 result = parseArguments[^1];
@@ -209,7 +173,7 @@ internal class ExtendedTypeInfo
         }
         catch
         {
-            // Ignore
+            // Ignore exceptions
         }
 
         return false;
@@ -224,15 +188,60 @@ internal class ExtendedTypeInfo
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
     public string ToStringInvariant(object instance)
     {
-        if (instance == null)
-            return string.Empty;
+        if (instance == null) return string.Empty;
 
-        return _toStringArgumentLength != 1
-            ? instance.ToString() ?? string.Empty
+        return _toStringArgumentLength != 1 ? instance.ToString() ?? string.Empty
             : ToStringMethodInfo?.Invoke(instance, [CultureInfo.InvariantCulture]) as string ?? string.Empty;
     }
 
     #endregion Methods
+
+    #region Private Methods
+
+    private MethodInfo? GetTryParseMethodInfo()
+    {
+        try
+        {
+            return UnderlyingType.GetMethod(TryParseMethodName,
+                         [typeof(string), typeof(NumberStyles), typeof(IFormatProvider), UnderlyingType.MakeByRefType()])
+                   ?? UnderlyingType.GetMethod(TryParseMethodName, [typeof(string), UnderlyingType.MakeByRefType()]);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private MethodInfo? GetToStringMethodInfo()
+    {
+        try
+        {
+            return UnderlyingType.GetMethod(ToStringMethodName, [typeof(IFormatProvider)])
+                   ?? UnderlyingType.GetMethod(ToStringMethodName, []);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void AddTryParseArguments(List<object?> dynamicArguments)
+    {
+        for (var pi = 1; pi < (_tryParseParameters?.Length ?? 0) - 1; pi++)
+        {
+            var argInfo = _tryParseParameters?[pi];
+            if (argInfo?.ParameterType == typeof(IFormatProvider))
+                dynamicArguments.Add(CultureInfo.InvariantCulture);
+            else if (argInfo?.ParameterType == typeof(NumberStyles))
+                dynamicArguments.Add(NumberStyles.Any);
+            else
+                dynamicArguments.Add(null);
+        }
+
+        dynamicArguments.Add(null);
+    }
+
+    #endregion Private Methods
 }
 
 /// <summary>

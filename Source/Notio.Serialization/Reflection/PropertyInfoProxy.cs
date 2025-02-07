@@ -5,46 +5,6 @@ using System.Reflection;
 namespace Notio.Serialization.Reflection;
 
 /// <summary>
-/// Represents a generic interface to store getters and setters for high speed access to properties.
-/// </summary>
-public interface IPropertyProxy
-{
-    /// <summary>
-    /// Gets the name of the property.
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    /// Gets the type of the property.
-    /// </summary>
-    Type PropertyType { get; }
-
-    /// <summary>
-    /// Gets the associated reflection property info.
-    /// </summary>
-    PropertyInfo Property { get; }
-
-    /// <summary>
-    /// Gets the type owning this property proxy.
-    /// </summary>
-    Type EnclosingType { get; }
-
-    /// <summary>
-    /// Gets the property value via a stored delegate.
-    /// </summary>
-    /// <param name="instance">The instance.</param>
-    /// <returns>The property value.</returns>
-    object? GetValue(object instance);
-
-    /// <summary>
-    /// Sets the property value via a stored delegate.
-    /// </summary>
-    /// <param name="instance">The instance.</param>
-    /// <param name="value">The value.</param>
-    void SetValue(object instance, object? value);
-}
-
-/// <summary>
 /// The concrete and hidden implementation of the <see cref="IPropertyProxy"/> implementation.
 /// </summary>
 /// <seealso cref="IPropertyProxy" />
@@ -85,9 +45,7 @@ internal sealed class PropertyInfoProxy(Type declaringType, PropertyInfo propert
         var typedInstance = Expression.Convert(instanceParameter, instanceType);
         var property = Expression.Property(typedInstance, propertyInfo);
         var convert = Expression.Convert(property, typeof(object));
-        var dynamicGetter = (Func<object, object>)Expression.Lambda(convert, instanceParameter).Compile();
-
-        return dynamicGetter;
+        return Expression.Lambda<Func<object, object>>(convert, instanceParameter).Compile();
     }
 
     private static Action<object, object?>? CreateLambdaSetter(Type instanceType, PropertyInfo propertyInfo)
@@ -103,8 +61,6 @@ internal sealed class PropertyInfoProxy(Type declaringType, PropertyInfo propert
         var propertyValue = Expression.Convert(valueParameter, propertyInfo.PropertyType);
 
         var body = Expression.Assign(property, propertyValue);
-        var dynamicSetter = Expression.Lambda<Action<object, object?>>(body, instanceParameter, valueParameter).Compile();
-
-        return dynamicSetter;
+        return Expression.Lambda<Action<object, object?>>(body, instanceParameter, valueParameter).Compile();
     }
 }

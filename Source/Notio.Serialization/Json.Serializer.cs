@@ -2,6 +2,7 @@
 using Notio.Serialization.Reflection;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -12,10 +13,10 @@ namespace Notio.Serialization;
 
 /// <summary>
 /// A very simple, light-weight JSON library written by Mario
-/// to teach Geo how things are done
+/// to teach Geo how things are done.
 ///
-/// This is an useful helper for small tasks but it doesn't represent a full-featured
-/// serializer such as the beloved Serialization.NET.
+/// This helper is useful for small tasks but does not represent a full-featured
+/// serializer such as Serialization.NET.
 /// </summary>
 public partial class Json
 {
@@ -24,65 +25,59 @@ public partial class Json
     /// </summary>
     private class Serializer
     {
-        private static readonly Dictionary<int, string> IndentStrings = [];
+        // Use a thread-safe dictionary for indent strings caching.
+        private static readonly ConcurrentDictionary<int, string> IndentStrings = new();
 
         private readonly SerializerOptions _options;
-        private readonly string _result;
         private readonly StringBuilder _builder;
+        private readonly bool _format;
+        private readonly string _newLine;
         private readonly string _lastCommaSearch;
-        private readonly string[]? _excludedNames = null;
+        private readonly string[]? _excludedNames;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Serializer" /> class.
-        /// </summary>
-        /// <param name="obj">The object.</param>
-        /// <param name="depth">The depth.</param>
-        /// <param name="options">The options.</param>
+        private readonly string _result;
 
         private Serializer(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null)
         {
             if (depth > 20)
-            {
-                throw new InvalidOperationException(
-                    "The max depth (20) has been reached. Serializer cannot continue.");
-            }
+                throw new InvalidOperationException("The max depth (20) has been reached. Serializer cannot continue.");
 
-            _options = options; // Ensure _options is assigned
-            _builder = new StringBuilder(); // Ensure _builder is assigned
-            _lastCommaSearch = string.Empty; // Ensure _lastCommaSearch is assigned
+            _options = options;
+            _format = options.Format;
+            _newLine = _format ? Environment.NewLine : string.Empty;
+            _builder = new StringBuilder();
+            _lastCommaSearch = FieldSeparatorChar + _newLine;
+            _excludedNames = excludedNames;
 
-            // Basic Type Handling (nulls, strings, numbers, date, and bool)
+            // First, attempt to resolve as a basic type.
             _result = ResolveBasicType(obj);
-
             if (!string.IsNullOrWhiteSpace(_result))
                 return;
 
-            _excludedNames ??= excludedNames;
+            // Update excluded names from type attributes.
             _options.ExcludeProperties = GetExcludedNames(obj?.GetType(), _excludedNames);
 
-            // Handle circular references correctly and avoid them
+            // Handle circular references.
             if (options.IsObjectPresent(obj!))
             {
                 _result = $"{{ \"$circref\": \"{Escape(obj!.GetHashCode().ToStringInvariant(), false)}\" }}";
                 return;
             }
 
-            // At this point, we will need to construct the object with a StringBuilder.
-            _lastCommaSearch = FieldSeparatorChar + (_options.Format ? Environment.NewLine : string.Empty);
-            _builder = new StringBuilder();
-
+            // Choose the resolution method based on the type of obj.
             _result = obj switch
             {
-                IDictionary itemsZero when itemsZero.Count == 0 => EmptyObjectLiteral,
-                IDictionary items => ResolveDictionary(items, depth),
-                IEnumerable enumerableZero when !enumerableZero.Cast<object>().Any() => EmptyArrayLiteral,
-                IEnumerable enumerableBytes when enumerableBytes is byte[] bytes => Serialize(bytes.ToBase64(), depth, _options, _excludedNames),
+                IDictionary dict when dict.Count == 0 => EmptyObjectLiteral,
+                IDictionary dict => ResolveDictionary(dict, depth),
+                IEnumerable enumerable when !enumerable.Cast<object>().Any() => EmptyArrayLiteral,
+                IEnumerable enumerable when enumerable is byte[] bytes => Serialize(bytes.ToBase64(), depth, _options, _excludedNames),
                 IEnumerable enumerable => ResolveEnumerable(enumerable, depth),
                 _ => ResolveObject(obj!, depth)
             };
         }
 
-        internal static string Serialize(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null) => new Serializer(obj, depth, options, excludedNames)._result;
+        internal static string Serialize(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null) =>
+            new Serializer(obj, depth, options, excludedNames)._result;
 
         internal static string[]? GetExcludedNames(Type? type, string[]? excludedNames)
         {
@@ -96,54 +91,40 @@ public partial class Json
             if (excludedByAttr?.Any() != true)
                 return excludedNames;
 
-            return excludedNames?.Any(string.IsNullOrWhiteSpace) == true
+            return excludedNames?.Any(name => !string.IsNullOrWhiteSpace(name)) == true
                 ? excludedByAttr.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y))).ToArray()
                 : excludedByAttr.ToArray();
         }
 
         private static string ResolveBasicType(object? obj)
         {
-            switch (obj)
+            return obj switch
             {
-                case null:
-                    return NullLiteral;
+                null => NullLiteral,
+                string s => Escape(s, true),
+                bool b => b ? TrueLiteral : FalseLiteral,
+                DateTime d => $"{StringQuotedChar}{d:s}{StringQuotedChar}",
+                Type or Assembly or MethodInfo or PropertyInfo or EventInfo => Escape(obj.ToString() ?? string.Empty, true),
+                _ => ResolveComplexBasicType(obj)
+            };
+        }
 
-                case string s:
-                    return Escape(s, true);
+        private static string ResolveComplexBasicType(object obj)
+        {
+            var targetType = obj.GetType();
+            if (!Definitions.BasicTypesInfo.Value.TryGetValue(targetType, out ExtendedTypeInfo? info))
+                return string.Empty;
 
-                case bool b:
-                    return b ? TrueLiteral : FalseLiteral;
-
-                case Type _:
-                case Assembly _:
-                case MethodInfo _:
-                case PropertyInfo _:
-                case EventInfo _:
-                    return Escape(obj.ToString() ?? string.Empty, true);
-
-                case DateTime d:
-                    return $"{StringQuotedChar}{d:s}{StringQuotedChar}";
-
-                default:
-                    var targetType = obj.GetType();
-
-                    if (!Definitions.BasicTypesInfo.Value.TryGetValue(targetType, out ExtendedTypeInfo? value))
-                        return string.Empty;
-
-                    var escapedValue = Escape(value.ToStringInvariant(obj), false);
-
-                    return decimal.TryParse(escapedValue, out _)
-                        ? $"{escapedValue}"
-                        : $"{StringQuotedChar}{escapedValue}{StringQuotedChar}";
-            }
+            var escaped = Escape(info.ToStringInvariant(obj), false);
+            return decimal.TryParse(escaped, out _) ? escaped : $"{StringQuotedChar}{escaped}{StringQuotedChar}";
         }
 
         private static bool IsNonEmptyJsonArrayOrObject(string serialized)
         {
-            if (serialized == EmptyObjectLiteral || serialized == EmptyArrayLiteral) return false;
+            if (serialized == EmptyObjectLiteral || serialized == EmptyArrayLiteral)
+                return false;
 
-            // find the first position the character is not a space
-            return serialized.Where(c => c != ' ').Select(c => c == OpenObjectChar || c == OpenArrayChar).FirstOrDefault();
+            return serialized.TrimStart().FirstOrDefault() is OpenObjectChar or OpenArrayChar;
         }
 
         private static string Escape(string str, bool quoted)
@@ -151,96 +132,70 @@ public partial class Json
             if (str == null)
                 return string.Empty;
 
-            var builder = new StringBuilder(str.Length * 2);
-            if (quoted) builder.Append(StringQuotedChar);
-            Escape(str, builder);
-            if (quoted) builder.Append(StringQuotedChar);
-            return builder.ToString();
-        }
-
-        private static void Escape(string str, StringBuilder builder)
-        {
-            foreach (var currentChar in str)
+            var sb = new StringBuilder(str.Length * 2);
+            if (quoted) sb.Append(StringQuotedChar);
+            foreach (var ch in str)
             {
-                switch (currentChar)
+                switch (ch)
                 {
                     case '\\':
                     case '"':
                     case '/':
-                        builder
-                            .Append('\\')
-                            .Append(currentChar);
+                        sb.Append('\\').Append(ch);
                         break;
 
                     case '\b':
-                        builder.Append("\\b");
+                        sb.Append("\\b");
                         break;
 
                     case '\t':
-                        builder.Append("\\t");
+                        sb.Append("\\t");
                         break;
 
                     case '\n':
-                        builder.Append("\\n");
+                        sb.Append("\\n");
                         break;
 
                     case '\f':
-                        builder.Append("\\f");
+                        sb.Append("\\f");
                         break;
 
                     case '\r':
-                        builder.Append("\\r");
+                        sb.Append("\\r");
                         break;
 
                     default:
-                        if (currentChar < ' ')
+                        if (ch < ' ')
                         {
-                            var escapeBytes = BitConverter.GetBytes((ushort)currentChar);
-                            if (BitConverter.IsLittleEndian == false)
-                                Array.Reverse(escapeBytes);
-
-                            builder.Append("\\u")
-                                .Append(escapeBytes[1].ToString("X", CultureInfo.InvariantCulture).PadLeft(2, '0'))
-                                .Append(escapeBytes[0].ToString("X", CultureInfo.InvariantCulture).PadLeft(2, '0'));
+                            sb.Append("\\u")
+                              .Append(((int)ch).ToString("X4", CultureInfo.InvariantCulture));
                         }
                         else
-                        {
-                            builder.Append(currentChar);
-                        }
-
+                            sb.Append(ch);
                         break;
                 }
             }
+            if (quoted) sb.Append(StringQuotedChar);
+            return sb.ToString();
         }
 
-        private Dictionary<string, object?> CreateDictionary(
-            Dictionary<string, MemberInfo> fields,
-            string targetType,
-            object target)
+        private Dictionary<string, object?> CreateDictionary(Dictionary<string, MemberInfo> fields, string targetType, object target)
         {
-            // Create the dictionary and extract the properties
-            var objectDictionary = new Dictionary<string, object?>();
-
+            var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrWhiteSpace(_options.TypeSpecifier))
-                objectDictionary[_options.TypeSpecifier!] = targetType;
+                dict[_options.TypeSpecifier!] = targetType;
 
-            foreach (var field in fields)
+            foreach (var kvp in fields)
             {
-                // Build the dictionary using property names and values
-                // Note: used to be: property.GetValue(target); but we would be reading private properties
                 try
                 {
-                    objectDictionary[field.Key] = field.Value is PropertyInfo property
-                        ? target.ReadProperty(property.Name)
-                        : (field.Value as FieldInfo)?.GetValue(target);
+                    dict[kvp.Key] = kvp.Value is PropertyInfo prop
+                        ? target.ReadProperty(prop.Name)
+                        : (kvp.Value as FieldInfo)?.GetValue(target);
                 }
-                catch
-                {
-                    /* ignored */
-                }
+                catch { /* Ignore errors */ }
             }
-
-            return objectDictionary;
+            return dict;
         }
 
         private string ResolveDictionary(IDictionary items, int depth)
@@ -248,108 +203,87 @@ public partial class Json
             Append(OpenObjectChar, depth);
             AppendLine();
 
-            // Iterate through the elements and output recursively
-            var writeCount = 0;
+            int count = 0;
             foreach (var key in items.Keys)
             {
-                // Serialize and append the key (first char indented)
+                if (key == null) continue; // Skip null keys to avoid null reference exception
+
                 Append(StringQuotedChar, depth + 1);
-                Escape(key.ToString() ?? string.Empty, _builder);
-                _builder
-                    .Append(StringQuotedChar)
-                    .Append(ValueSeparatorChar)
-                    .Append(' ');
-
-                // Serialize and append the value
+                Append(Escape(key.ToString() ?? string.Empty, false), 0);
+                Append(StringQuotedChar, 0);
+                _builder.Append(ValueSeparatorChar).Append(' ');
                 var serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);
-
-                if (IsNonEmptyJsonArrayOrObject(serializedValue)) AppendLine();
+                if (IsNonEmptyJsonArrayOrObject(serializedValue))
+                    AppendLine();
                 Append(serializedValue, 0);
-
-                // Add a comma and start a new line -- We will remove the last one when we are done writing the elements
                 Append(FieldSeparatorChar, 0);
                 AppendLine();
-                writeCount++;
+                count++;
             }
-
-            // Output the end of the object and set the result
             RemoveLastComma();
-            Append(CloseObjectChar, writeCount > 0 ? depth : 0);
+            Append(CloseObjectChar, count > 0 ? depth : 0);
             return _builder.ToString();
         }
 
         private string ResolveObject(object target, int depth)
         {
             var targetType = target.GetType();
-
             if (targetType.IsEnum)
                 return Convert.ToInt64(target, CultureInfo.InvariantCulture).ToStringInvariant();
 
             var fields = _options.GetProperties(targetType);
-
             if (fields.Count == 0 && string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 return EmptyObjectLiteral;
 
-            // If we arrive here, then we convert the object into a
-            // dictionary of property names and values and call the serialization
-            // function again
-            var objectDictionary = CreateDictionary(fields, targetType.ToString(), target);
-
-            return Serialize(objectDictionary, depth, _options, _excludedNames);
+            var dict = CreateDictionary(fields, targetType.ToString()!, target);
+            return Serialize(dict, depth, _options, _excludedNames);
         }
 
         private string ResolveEnumerable(IEnumerable target, int depth)
         {
-            // Cast the items as a generic object array
             var items = target.Cast<object>();
-
             Append(OpenArrayChar, depth);
             AppendLine();
-
-            // Iterate through the elements and output recursively
-            var writeCount = 0;
-            foreach (var entry in items)
+            int count = 0;
+            foreach (var item in items)
             {
-                var serializedValue = Serialize(entry, depth + 1, _options, _excludedNames);
-
-                if (IsNonEmptyJsonArrayOrObject(serializedValue))
-                    Append(serializedValue, 0);
+                var serialized = Serialize(item, depth + 1, _options, _excludedNames);
+                if (IsNonEmptyJsonArrayOrObject(serialized))
+                    Append(serialized, 0);
                 else
-                    Append(serializedValue, depth + 1);
-
+                    Append(serialized, depth + 1);
                 Append(FieldSeparatorChar, 0);
                 AppendLine();
-                writeCount++;
+                count++;
             }
-
-            // Output the end of the array and set the result
             RemoveLastComma();
-            Append(CloseArrayChar, writeCount > 0 ? depth : 0);
+            Append(CloseArrayChar, count > 0 ? depth : 0);
             return _builder.ToString();
         }
 
         private void SetIndent(int depth)
         {
-            if (_options.Format == false || depth <= 0) return;
-
-            _builder.Append(IndentStrings.GetOrAdd(depth, x => new string(' ', x * 4)));
+            if (!_format || depth <= 0) return;
+            _builder.Append(IndentStrings.GetOrAdd(depth, d => new string(' ', d * 4)));
         }
 
-        /// <summary>
-        /// Removes the last comma in the current string builder.
-        /// </summary>
         private void RemoveLastComma()
         {
-            if (_builder.Length < _lastCommaSearch.Length)
-                return;
+            int len = _builder.Length;
+            int searchLen = _lastCommaSearch.Length;
+            if (len < searchLen) return;
 
-            if (_lastCommaSearch.Where((t, i) => _builder[_builder.Length - _lastCommaSearch.Length + i] != t).Any())
+            bool match = true;
+            for (int i = 0; i < searchLen; i++)
             {
-                return;
+                if (_builder[len - searchLen + i] != _lastCommaSearch[i])
+                {
+                    match = false;
+                    break;
+                }
             }
-
-            // If we got this far, we simply remove the comma character
-            _builder.Remove(_builder.Length - _lastCommaSearch.Length, 1);
+            if (match)
+                _builder.Remove(len - searchLen, 1);
         }
 
         private void Append(string text, int depth)
@@ -358,16 +292,31 @@ public partial class Json
             _builder.Append(text);
         }
 
-        private void Append(char text, int depth)
+        private void Append(char ch, int depth)
         {
             SetIndent(depth);
-            _builder.Append(text);
+            _builder.Append(ch);
         }
 
         private void AppendLine()
         {
-            if (_options.Format == false) return;
-            _builder.Append(Environment.NewLine);
+            if (_format)
+                _builder.Append(_newLine);
         }
+
+        // Constants and special characters.
+        private const char OpenObjectChar = '{';
+
+        private const char CloseObjectChar = '}';
+        private const char OpenArrayChar = '[';
+        private const char CloseArrayChar = ']';
+        private const char StringQuotedChar = '"';
+        private const char FieldSeparatorChar = ',';
+        private const char ValueSeparatorChar = ':';
+        private const string NullLiteral = "null";
+        private const string TrueLiteral = "true";
+        private const string FalseLiteral = "false";
+        private const string EmptyObjectLiteral = "{ }";
+        private const string EmptyArrayLiteral = "[ ]";
     }
 }

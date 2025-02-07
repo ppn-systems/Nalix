@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Collections;
+﻿using Notio.Serialization.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,7 +38,7 @@ public static partial class Json
 
     #endregion Constants
 
-    private static readonly CollectionCacheRepository<string> IgnoredPropertiesCache = new();
+    private static readonly ReflectionCache<string> IgnoredPropertiesCache = new();
 
     #region Public API
 

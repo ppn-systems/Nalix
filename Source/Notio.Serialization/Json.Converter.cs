@@ -22,6 +22,7 @@ public static partial class Json
 {
     private class Converter
     {
+        // Caches to avoid repeated reflection lookups.
         private static readonly ConcurrentDictionary<MemberInfo, string> MemberInfoNameCache = new();
 
         private static readonly ConcurrentDictionary<Type, Type?> ListAddMethodCache = new();
@@ -31,25 +32,21 @@ public static partial class Json
         private readonly bool _includeNonPublic;
         private readonly JsonSerializerCase _jsonSerializerCase;
 
-        private Converter(
-            object? source,
-            Type targetType,
-            ref object? targetInstance,
-            bool includeNonPublic,
-            JsonSerializerCase jsonSerializerCase)
+        private Converter(object? source, Type targetType, ref object? targetInstance, bool includeNonPublic, JsonSerializerCase jsonSerializerCase)
         {
             _targetType = targetInstance != null ? targetInstance.GetType() : targetType;
             _includeNonPublic = includeNonPublic;
             _jsonSerializerCase = jsonSerializerCase;
 
-            if (source == null)
+            if (source is null)
             {
                 return;
             }
 
             var sourceType = source.GetType();
+            if (_targetType == null || _targetType == typeof(object))
+                _targetType = sourceType;
 
-            if (_targetType == null || _targetType == typeof(object)) _targetType = sourceType;
             if (sourceType == _targetType)
             {
                 _target = source;
@@ -62,42 +59,24 @@ public static partial class Json
             ResolveObject(source, ref _target);
         }
 
-        internal static object? FromJsonResult(
-            object? source,
-            JsonSerializerCase jsonSerializerCase,
-            Type? targetType = null,
-            bool includeNonPublic = false)
+        internal static object? FromJsonResult(object? source, JsonSerializerCase jsonSerializerCase, Type? targetType = null, bool includeNonPublic = false)
         {
             object? nullRef = null;
             return new Converter(source, targetType ?? typeof(object), ref nullRef, includeNonPublic, jsonSerializerCase).GetResult();
         }
 
-        private static object? FromJsonResult(object source,
-            Type targetType,
-            ref object? targetInstance,
-            bool includeNonPublic)
+        private static object? FromJsonResult(object source, Type targetType, ref object? targetInstance, bool includeNonPublic)
+            => new Converter(source, targetType, ref targetInstance, includeNonPublic, JsonSerializerCase.None).GetResult();
+
+        private static Type? GetAddMethodParameterType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type targetType)
         {
-            return new Converter(source, targetType, ref targetInstance, includeNonPublic, JsonSerializerCase.None).GetResult();
-        }
-
-        private static Type? GetAddMethodParameterType(
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)
-            ] Type targetType)
-        {
-            // First, check the cache to avoid repeated reflection calls
-            return ListAddMethodCache.GetOrAdd(targetType,
-                type =>
-                {
-                    // Get all public instance methods on the type
-                    var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-
-                    // Find the method with the matching name (AddMethodName) and exactly one parameter
-                    var addMethod = methods.FirstOrDefault(m =>
-                        m.Name == AddMethodName && m.GetParameters().Length == 1);
-
-                    // If such a method exists, return the parameter type of its first parameter
-                    return addMethod?.GetParameters()[0].ParameterType;
-                });
+            // Cache the parameter type of the Add method.
+            return ListAddMethodCache.GetOrAdd(targetType, type =>
+            {
+                var addMethod = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                                     .FirstOrDefault(m => m.Name == AddMethodName && m.GetParameters().Length == 1);
+                return addMethod?.GetParameters()[0].ParameterType;
+            });
         }
 
         private static void GetByteArray(string sourceString, ref object? target)
@@ -105,29 +84,26 @@ public static partial class Json
             try
             {
                 target = Convert.FromBase64String(sourceString);
-            } // Try conversion from Base 64
+            }
             catch (FormatException)
             {
                 target = Encoding.UTF8.GetBytes(sourceString);
-            } // Get the string bytes in UTF8
+            }
         }
 
-        private object? GetSourcePropertyValue(
-            IDictionary<string, object> sourceProperties,
-            MemberInfo targetProperty)
+        private object? GetSourcePropertyValue(IDictionary<string, object> sourceProperties, MemberInfo targetMember)
         {
-            var targetPropertyName = MemberInfoNameCache.GetOrAdd(
-                targetProperty,
-                x => AttributeCache.DefaultCache.Value.RetrieveOne<JsonPropertyAttribute>(x)?.PropertyName ?? x.Name.GetNameWithCase(_jsonSerializerCase));
-
-            return sourceProperties!.GetValueOrDefault(targetPropertyName);
+            // Cache the target name (either from a JsonPropertyAttribute or the member name)
+            var targetName = MemberInfoNameCache.GetOrAdd(targetMember,
+                x => AttributeCache.DefaultCache.Value.RetrieveOne<JsonPropertyAttribute>(x)?.PropertyName
+                     ?? x.Name.GetNameWithCase(_jsonSerializerCase));
+            return sourceProperties.TryGetValue(targetName, out var val) ? val : null;
         }
 
         private bool TrySetInstance(object? targetInstance, object source, ref object? target)
         {
-            if (targetInstance == null)
+            if (targetInstance is null)
             {
-                // Try to create a default instance
                 try
                 {
                     source.CreateTarget(_targetType, _includeNonPublic, ref target);
@@ -141,7 +117,6 @@ public static partial class Json
             {
                 target = targetInstance;
             }
-
             return true;
         }
 
@@ -151,39 +126,34 @@ public static partial class Json
         {
             switch (source)
             {
-                // Case 0: Special Cases Handling (Source and Target are of specific convertible types)
-                // Case 0.1: Source is string, Target is byte[]
-                case string sourceString when _targetType == typeof(byte[]):
-                    GetByteArray(sourceString, ref target);
+                case string s when _targetType == typeof(byte[]):
+                    GetByteArray(s, ref target);
                     break;
 
-                // Case 1.1: Source is Dictionary, Target is IDictionary
-                case Dictionary<string, object> sourceProperties when target is IDictionary targetDictionary:
-                    PopulateDictionary(sourceProperties, targetDictionary);
+                case Dictionary<string, object> dict when target is IDictionary targetDict:
+                    PopulateDictionary(dict, targetDict);
                     break;
 
-                // Case 1.2: Source is Dictionary, Target is not IDictionary (i.e. it is a complex type)
-                case Dictionary<string, object> sourceProperties:
-                    PopulateObject(sourceProperties);
+                case Dictionary<string, object> dict:
+                    PopulateObject(dict);
                     break;
 
-                // Case 2.1: Source is List, Target is Array
-                case List<object> sourceList when target is Array targetArray:
-                    PopulateArray(sourceList, targetArray);
+                case List<object> list when target is Array targetArray:
+                    PopulateArray(list, targetArray);
                     break;
 
-                // Case 2.2: Source is List,  Target is IList
-                case List<object> sourceList when target is IList targetList:
-                    PopulateIList(sourceList, targetList);
+                case List<object> list when target is IList targetList:
+                    PopulateIList(list, targetList);
                     break;
 
-                // Case 3: Source is a simple type; Attempt conversion
                 default:
-                    var sourceStringValue = source?.ToStringInvariant();
-
-                    if (sourceStringValue != null && !_targetType.TryParseBasicType(sourceStringValue, out target))
-                        GetEnumValue(sourceStringValue, ref target);
-
+                    {
+                        var sourceStringValue = source?.ToStringInvariant();
+                        if (sourceStringValue != null && !_targetType.TryParseBasicType(sourceStringValue, out target))
+                        {
+                            GetEnumValue(sourceStringValue, ref target);
+                        }
+                    }
                     break;
             }
         }
@@ -191,21 +161,17 @@ public static partial class Json
         private void PopulateIList(IEnumerable<object> objects, IList list)
         {
             var parameterType = GetAddMethodParameterType(_targetType);
-            if (parameterType == null) return;
+            if (parameterType is null) return;
 
             foreach (var item in objects)
             {
                 try
                 {
-                    list.Add(FromJsonResult(
-                        item,
-                        _jsonSerializerCase,
-                        parameterType,
-                        _includeNonPublic));
+                    list.Add(FromJsonResult(item, _jsonSerializerCase, parameterType, _includeNonPublic));
                 }
                 catch
                 {
-                    // ignored
+                    // Ignored
                 }
             }
         }
@@ -213,30 +179,24 @@ public static partial class Json
         private void PopulateArray(List<object> objects, Array array)
         {
             var elementType = _targetType.GetElementType();
-
             for (var i = 0; i < objects.Count; i++)
             {
                 try
                 {
-                    var targetItem = FromJsonResult(
-                        objects[i],
-                        _jsonSerializerCase,
-                        elementType,
-                        _includeNonPublic);
+                    var targetItem = FromJsonResult(objects[i], _jsonSerializerCase, elementType, _includeNonPublic);
                     array.SetValue(targetItem, i);
                 }
                 catch
                 {
-                    // ignored
+                    // Ignored
                 }
             }
         }
 
         private void GetEnumValue(string sourceStringValue, ref object? target)
         {
-            var enumType = Nullable.GetUnderlyingType(_targetType);
-            if (enumType == null && _targetType.IsEnum) enumType = _targetType;
-            if (enumType == null) return;
+            var enumType = Nullable.GetUnderlyingType(_targetType) ?? (_targetType.IsEnum ? _targetType : null);
+            if (enumType is null) return;
 
             try
             {
@@ -244,49 +204,39 @@ public static partial class Json
             }
             catch
             {
-                // ignored
+                // Ignored
             }
         }
 
         private void PopulateDictionary(IDictionary<string, object> sourceProperties, IDictionary targetDictionary)
         {
-            // find the add method of the target dictionary
-            var addMethod = _targetType.GetMethods()
-                .FirstOrDefault(
-                    m => m.Name == AddMethodName && m.IsPublic && m.GetParameters().Length == 2);
+            // Locate an Add method that accepts (string, T) parameters.
+            var addMethod = _targetType.GetMethods().FirstOrDefault(m =>
+                m.Name == AddMethodName &&
+                m.IsPublic &&
+                m.GetParameters().Length == 2 &&
+                m.GetParameters()[0].ParameterType == typeof(string));
 
-            // skip if we don't have a compatible add method
-            if (addMethod == null) return;
-            var addMethodParameters = addMethod.GetParameters();
-            if (addMethodParameters[0].ParameterType != typeof(string)) return;
+            if (addMethod is null) return;
 
-            // Retrieve the target entry type
-            var targetEntryType = addMethodParameters[1].ParameterType;
-
-            // Add the items to the target dictionary
-            foreach (var sourceProperty in sourceProperties)
+            var targetEntryType = addMethod.GetParameters()[1].ParameterType;
+            foreach (var kvp in sourceProperties)
             {
                 try
                 {
-                    var targetEntryValue = FromJsonResult(
-                        sourceProperty.Value,
-                        _jsonSerializerCase,
-                        targetEntryType,
-                        _includeNonPublic);
-                    targetDictionary.Add(sourceProperty.Key, targetEntryValue);
+                    var targetEntryValue = FromJsonResult(kvp.Value, _jsonSerializerCase, targetEntryType, _includeNonPublic);
+                    targetDictionary.Add(kvp.Key, targetEntryValue);
                 }
                 catch
                 {
-                    // ignored
+                    // Ignored
                 }
             }
         }
 
         private void PopulateObject(IDictionary<string, object> sourceProperties)
         {
-            if (sourceProperties == null)
-                return;
-
+            if (sourceProperties is null) return;
             if (_targetType.IsValueType)
                 PopulateFields(sourceProperties);
 
@@ -295,33 +245,26 @@ public static partial class Json
 
         private void PopulateProperties(IDictionary<string, object> sourceProperties)
         {
-            var properties = PropertyTypeCache.DefaultCache.Value.RetrieveFilteredProperties(_targetType, false, p => p.CanWrite);
+            // Retrieve writable properties from the cache.
+            var properties = PropertyTypeCache.DefaultCache.Value
+                .RetrieveFilteredProperties(_targetType, false, p => p.CanWrite);
 
             foreach (var property in properties)
             {
-                var sourcePropertyValue = GetSourcePropertyValue(sourceProperties, property);
-                if (sourcePropertyValue == null) continue;
+                var sourceValue = GetSourcePropertyValue(sourceProperties, property);
+                if (sourceValue is null) continue;
 
                 try
                 {
-                    var currentPropertyValue = !property.PropertyType.IsArray
-                        ? _target.ReadProperty(property.Name)
-                        : null;
-
-                    var targetPropertyValue = FromJsonResult(
-                        sourcePropertyValue,
-                        property.PropertyType,
-                        ref currentPropertyValue,
-                        _includeNonPublic);
-
-                    if (targetPropertyValue != null)
-                    {
-                        _target.WriteProperty(property.Name, targetPropertyValue);
-                    }
+                    // For arrays, no need to retrieve the current value.
+                    object? currentValue = property.PropertyType.IsArray ? null : _target.ReadProperty(property.Name);
+                    var targetValue = FromJsonResult(sourceValue, property.PropertyType, ref currentValue, _includeNonPublic);
+                    if (targetValue != null)
+                        _target.WriteProperty(property.Name, targetValue);
                 }
                 catch
                 {
-                    // ignored
+                    // Ignored
                 }
             }
         }
@@ -330,22 +273,17 @@ public static partial class Json
         {
             foreach (var field in FieldTypeCache.DefaultCache.Value.RetrieveAllFields(_targetType))
             {
-                var sourcePropertyValue = GetSourcePropertyValue(sourceProperties, field);
-                if (sourcePropertyValue == null) continue;
-
-                var targetPropertyValue = FromJsonResult(
-                    sourcePropertyValue,
-                    _jsonSerializerCase,
-                    field.FieldType,
-                    _includeNonPublic);
+                var sourceValue = GetSourcePropertyValue(sourceProperties, field);
+                if (sourceValue is null) continue;
 
                 try
                 {
-                    field.SetValue(_target, targetPropertyValue);
+                    var targetValue = FromJsonResult(sourceValue, _jsonSerializerCase, field.FieldType, _includeNonPublic);
+                    field.SetValue(_target, targetValue);
                 }
                 catch
                 {
-                    // ignored
+                    // Ignored
                 }
             }
         }

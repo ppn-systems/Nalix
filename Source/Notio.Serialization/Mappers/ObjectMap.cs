@@ -38,11 +38,20 @@ internal class ObjectMap<TSource, TDestination> : IObjectMap
     {
         SourceType = typeof(TSource);
         DestinationType = typeof(TDestination);
-        Map = intersect
-            .Where(property => property != null)
-            .ToDictionary(
-                property => DestinationType.GetProperty(property.Name)!,
-                property => new List<PropertyInfo> { SourceType.GetProperty(property.Name)! });
+
+        var sourceProperties = SourceType
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => intersect.Any(i => i.Name == p.Name))
+            .ToDictionary(p => p.Name, p => p);
+
+        var destinationProperties = DestinationType
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => sourceProperties.ContainsKey(p.Name))
+            .ToDictionary(p => p.Name, p => (Destination: p, Source: sourceProperties[p.Name]));
+
+        Map = destinationProperties.Values
+            .GroupBy(p => p.Destination)
+            .ToDictionary(g => g.Key, g => g.Select(p => p.Source).ToList());
     }
 
     /// <inheritdoc/>

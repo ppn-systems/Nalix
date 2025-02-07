@@ -84,9 +84,9 @@ internal static class Definitions
         {
             Windows1252Encoding = Encoding.GetEncoding(1252);
         }
-        catch
+        catch (ArgumentException)
         {
-            // ignore, the codepage is not available use default
+            // Log exception if necessary
             Windows1252Encoding = CurrentAnsiEncoding;
         }
     }
@@ -97,6 +97,6 @@ internal static class Definitions
     /// <value>
     /// All basic value types.
     /// </value>
-    internal static IReadOnlyCollection<Type> AllBasicValueTypes { get; } = new ReadOnlyCollection<Type>
-        (BasicTypesInfo.Value.Where(kvp => kvp.Value.IsValueType).Select(kvp => kvp.Key).ToArray());
+    internal static IReadOnlyCollection<Type> AllBasicValueTypes { get; } = new ReadOnlyCollection<Type>(
+            BasicTypesInfo.Value.Where(kvp => kvp.Value.IsValueType).Select(kvp => kvp.Key).ToArray());
 }

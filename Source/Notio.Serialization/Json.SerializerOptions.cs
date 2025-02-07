@@ -100,27 +100,23 @@ public class SerializerOptions
 
     internal bool IsObjectPresent(object target)
     {
-        var hashCode = target.GetHashCode();
-
-        if (_parentReferences.TryGetValue(hashCode, out List<WeakReference>? value))
+        int hash = target.GetHashCode();
+        if (_parentReferences.TryGetValue(hash, out var list))
         {
-            if (_parentReferences[hashCode].Any(p => ReferenceEquals(p.Target, target)))
+            if (list.Any(wr => ReferenceEquals(wr.Target, target)))
                 return true;
-            value.Add(new WeakReference(target));
+            list.Add(new WeakReference(target));
             return false;
         }
-
-        _parentReferences.Add(hashCode, [new WeakReference(target)]);
+        _parentReferences.Add(hash, [new WeakReference(target)]);
         return false;
     }
 
     internal Dictionary<string, MemberInfo> GetProperties(Type targetType)
         => GetPropertiesCache(targetType)
-            .When(() => _includeProperties?.Length > 0,
-                query => query.Where(p => _includeProperties!.Contains(p.Key.Item1)))
-            .When(() => ExcludeProperties?.Length > 0,
-                query => query.Where(p => !ExcludeProperties!.Contains(p.Key.Item1)))
-            .ToDictionary(x => x.Key.Item2, x => x.Value);
+        .When(() => _includeProperties?.Length > 0, query => query.Where(p => _includeProperties!.Contains(p.Key.Item1)))
+        .When(() => ExcludeProperties?.Length > 0, query => query.Where(p => !ExcludeProperties!.Contains(p.Key.Item1)))
+        .ToDictionary(x => x.Key.Item2, x => x.Value);
 
     private Dictionary<Tuple<string, string>, MemberInfo> GetPropertiesCache(Type targetType)
     {

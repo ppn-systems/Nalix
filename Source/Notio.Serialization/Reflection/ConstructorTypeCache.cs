@@ -10,6 +10,9 @@ namespace Notio.Serialization.Reflection;
 /// </summary>
 internal class ConstructorTypeCache : TypeCache<Tuple<ConstructorInfo, ParameterInfo[]>>
 {
+    private static readonly BindingFlags DefaultBindingFlags = BindingFlags.Public | BindingFlags.Instance;
+    private static readonly BindingFlags NonPublicBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
     /// <summary>
     /// Gets the default cache.
     /// </summary>
@@ -31,7 +34,11 @@ internal class ConstructorTypeCache : TypeCache<Tuple<ConstructorInfo, Parameter
         => Retrieve(type, GetConstructors(includeNonPublic));
 
     private static Func<Type, IEnumerable<Tuple<ConstructorInfo, ParameterInfo[]>>> GetConstructors(bool includeNonPublic)
-        => t => [.. t.GetConstructors(includeNonPublic ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance : BindingFlags.Public | BindingFlags.Instance)
-            .Select(x => Tuple.Create(x, x.GetParameters()))
-            .OrderBy(x => x.Item2.Length)];
+            => t =>
+            {
+                var bindingFlags = includeNonPublic ? NonPublicBindingFlags : DefaultBindingFlags;
+                return t.GetConstructors(bindingFlags)
+                    .Select(x => Tuple.Create(x, x.GetParameters()))
+                    .OrderBy(x => x.Item2.Length);
+            };
 }

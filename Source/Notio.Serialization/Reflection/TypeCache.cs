@@ -1,7 +1,5 @@
-﻿using Notio.Serialization.Collections;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace Notio.Serialization.Reflection;
 
@@ -13,7 +11,7 @@ namespace Notio.Serialization.Reflection;
 /// in the cache.
 /// </summary>
 /// <typeparam name="T">The type of Member to be cached.</typeparam>
-internal abstract class TypeCache<T> : CollectionCacheRepository<T>
+internal abstract class TypeCache<T> : ReflectionCache<T>
 {
     /// <summary>
     /// Retrieves the properties stored for the specified type.
@@ -25,34 +23,4 @@ internal abstract class TypeCache<T> : CollectionCacheRepository<T>
     /// <returns>An array of the properties stored for the specified type.</returns>
     public IEnumerable<T> Retrieve<TOut>(Func<Type, IEnumerable<T>> factory)
         => Retrieve(typeof(TOut), factory);
-}
-
-/// <summary>
-/// A thread-safe cache of fields belonging to a given type
-/// The Retrieve method is the most useful one in this class as it
-/// calls the retrieval process if the type is not contained
-/// in the cache.
-/// </summary>
-internal class FieldTypeCache : TypeCache<FieldInfo>
-{
-    /// <summary>
-    /// Gets the default cache.
-    /// </summary>
-    /// <value>
-    /// The default cache.
-    /// </value>
-    public static Lazy<FieldTypeCache> DefaultCache { get; } = new Lazy<FieldTypeCache>(() => new FieldTypeCache());
-
-    /// <summary>
-    /// Retrieves all fields.
-    /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>
-    /// A collection with all the fields in the given type.
-    /// </returns>
-    public IEnumerable<FieldInfo> RetrieveAllFields(Type type)
-        => Retrieve(type, GetAllFieldsFunc());
-
-    private static Func<Type, IEnumerable<FieldInfo>> GetAllFieldsFunc()
-        => t => t.GetFields(BindingFlags.Public | BindingFlags.Instance);
 }

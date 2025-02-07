@@ -3,13 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Serialization.Collections;
+namespace Notio.Serialization.Reflection;
 
 /// <summary>
 /// A thread-safe collection cache repository for types.
 /// </summary>
 /// <typeparam name="TValue">The type of member to cache.</typeparam>
-internal class CollectionCacheRepository<TValue>
+internal class ReflectionCache<TValue>
 {
     private readonly Lazy<ConcurrentDictionary<Type, IEnumerable<TValue>>> _data =
         new(() => new ConcurrentDictionary<Type, IEnumerable<TValue>>(), true);

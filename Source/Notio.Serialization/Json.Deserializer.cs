@@ -1,352 +1,404 @@
 ﻿using Notio.Serialization.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Notio.Serialization;
 
 /// <summary>
 /// A very simple, light-weight JSON library written by Mario
-/// to teach Geo how things are done
+/// to teach Geo how things are done.
 ///
-/// This is an useful helper for small tasks but it doesn't represent a full-featured
-/// serializer such as the beloved Serialization.NET.
+/// This helper is useful for small tasks but does not represent a full-featured
+/// serializer such as Serialization.NET.
 /// </summary>
-public partial class Json
+public static partial class Json
 {
     /// <summary>
     /// A simple JSON Deserializer.
     /// </summary>
     private class Deserializer
     {
-        private readonly object? _result;
         private readonly string _json;
-
-        private Dictionary<string, object?> _resultObject = [];
-        private List<object?> _resultArray = [];
+        private int _index;
         private ReadState _state = ReadState.WaitingForRootOpen;
         private string? _currentFieldName;
 
-        private int _index;
+        // The final result – either a Dictionary for objects or a List for arrays.
+        private readonly object? _result;
+
+        // Will hold object data when parsing JSON objects.
+        private Dictionary<string, object?>? _resultObject;
+
+        // Will hold array data when parsing JSON arrays.
+        private List<object?>? _resultArray;
 
         private Deserializer(string json, int startIndex)
         {
             _json = json;
+            _index = startIndex;
+            int len = _json.Length;
 
-            for (_index = startIndex; _index < _json.Length; _index++)
+            _resultObject = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            _resultArray = [];
+
+            while (_index < len)
             {
+                // Switch based on the current state.
                 switch (_state)
                 {
                     case ReadState.WaitingForRootOpen:
                         WaitForRootOpen();
-                        continue;
-                    case ReadState.WaitingForField when char.IsWhiteSpace(_json, _index):
-                        continue;
-                    case ReadState.WaitingForField when (_resultObject != null && _json[_index] == CloseObjectChar)
-                                                        || (_resultArray != null && _json[_index] == CloseArrayChar):
-                        // Handle empty arrays and empty objects
-                        _result = _resultObject ?? _resultArray as object;
-                        return;
+                        break;
 
-                    case ReadState.WaitingForField when _json[_index] != StringQuotedChar:
-                        throw CreateParserException($"'{StringQuotedChar}'");
                     case ReadState.WaitingForField:
                         {
-                            var charCount = GetFieldNameCount();
-
+                            // Skip white space.
+                            if (char.IsWhiteSpace(_json, _index))
+                            {
+                                _index++;
+                                continue;
+                            }
+                            // Check for closing object or array.
+                            if ((_resultObject != null && _json[_index] == CloseObjectChar) ||
+                                (_resultArray != null && _json[_index] == CloseArrayChar))
+                            {
+                                _result = _resultObject ?? (object?)_resultArray;
+                                return;
+                            }
+                            // Field names must start with a quoted string.
+                            if (_json[_index] != StringQuotedChar)
+                                throw CreateParserException($"'{StringQuotedChar}'");
+                            // Get field name.
+                            int charCount = GetFieldNameCount();
                             _currentFieldName = Unescape(_json.SliceLength(_index + 1, charCount));
-                            _index += charCount + 1;
+                            _index += charCount + 1; // Skip over the field name closing quote.
                             _state = ReadState.WaitingForColon;
-                            continue;
                         }
+                        break;
 
-                    case ReadState.WaitingForColon when char.IsWhiteSpace(_json, _index):
-                        continue;
-                    case ReadState.WaitingForColon when _json[_index] != ValueSeparatorChar:
-                        throw CreateParserException($"'{ValueSeparatorChar}'");
                     case ReadState.WaitingForColon:
-                        _state = ReadState.WaitingForValue;
-                        continue;
-                    case ReadState.WaitingForValue when char.IsWhiteSpace(_json, _index):
-                        continue;
-                    case ReadState.WaitingForValue when (_resultObject != null && _json[_index] == CloseObjectChar)
-                                                        || (_resultArray != null && _json[_index] == CloseArrayChar):
-                        // Handle empty arrays and empty objects
-                        _result = _resultObject ?? _resultArray as object;
-                        return;
+                        {
+                            if (char.IsWhiteSpace(_json, _index))
+                            {
+                                _index++;
+                                continue;
+                            }
+                            if (_json[_index] != ValueSeparatorChar)
+                                throw CreateParserException($"'{ValueSeparatorChar}'");
+                            _state = ReadState.WaitingForValue;
+                            _index++; // Consume the colon.
+                        }
+                        break;
 
                     case ReadState.WaitingForValue:
-                        ExtractValue();
-                        continue;
+                        {
+                            if (char.IsWhiteSpace(_json, _index))
+                            {
+                                _index++;
+                                continue;
+                            }
+                            // Check for empty object/array.
+                            if ((_resultObject != null && _json[_index] == CloseObjectChar) ||
+                                (_resultArray != null && _json[_index] == CloseArrayChar))
+                            {
+                                _result = _resultObject ?? (object?)_resultArray;
+                                return;
+                            }
+                            // Extract the value.
+                            ExtractValue();
+                            _state = ReadState.WaitingForNextOrRootClose;
+                        }
+                        break;
+
+                    case ReadState.WaitingForNextOrRootClose:
+                        {
+                            if (char.IsWhiteSpace(_json, _index))
+                            {
+                                _index++;
+                                continue;
+                            }
+                            // If we encounter a comma, move to the next field/value.
+                            if (_json[_index] == FieldSeparatorChar)
+                            {
+                                if (_resultObject != null)
+                                {
+                                    _state = ReadState.WaitingForField;
+                                    _currentFieldName = null;
+                                }
+                                else
+                                {
+                                    _state = ReadState.WaitingForValue;
+                                }
+                                _index++; // Consume the comma.
+                                continue;
+                            }
+                            // If we see a closing brace/bracket, finish.
+                            if ((_resultObject != null && _json[_index] == CloseObjectChar) ||
+                                (_resultArray != null && _json[_index] == CloseArrayChar))
+                            {
+                                _result = _resultObject ?? (object?)_resultArray;
+                                return;
+                            }
+                            throw CreateParserException($"'{FieldSeparatorChar}', '{CloseObjectChar}' or '{CloseArrayChar}'");
+                        }
                 }
-
-                if (_state != ReadState.WaitingForNextOrRootClose || char.IsWhiteSpace(_json, _index)) continue;
-
-                if (_json[_index] == FieldSeparatorChar)
-                {
-                    if (_resultObject != null)
-                    {
-                        _state = ReadState.WaitingForField;
-                        _currentFieldName = null;
-                        continue;
-                    }
-
-                    _state = ReadState.WaitingForValue;
-                    continue;
-                }
-
-                if ((_resultObject == null || _json[_index] != CloseObjectChar) &&
-                    (_resultArray == null || _json[_index] != CloseArrayChar))
-                {
-                    throw CreateParserException($"'{FieldSeparatorChar}' '{CloseObjectChar}' or '{CloseArrayChar}'");
-                }
-
-                _result = _resultObject ?? _resultArray as object;
-                return;
             }
         }
 
-        internal static object? DeserializeInternal(string json) => new Deserializer(json, 0)._result;
+        internal static object? DeserializeInternal(string json) =>
+            new Deserializer(json, 0)._result;
 
         private void WaitForRootOpen()
         {
-            if (char.IsWhiteSpace(_json, _index)) return;
+            // Skip any whitespace.
+            while (_index < _json.Length && char.IsWhiteSpace(_json, _index))
+                _index++;
 
-            switch (_json[_index])
+            if (_index >= _json.Length)
+                throw CreateParserException($"'{OpenObjectChar}' or '{OpenArrayChar}'");
+
+            char ch = _json[_index];
+            if (ch == OpenObjectChar)
             {
-                case OpenObjectChar:
-                    _resultObject = [];
-                    _state = ReadState.WaitingForField;
-                    return;
-
-                case OpenArrayChar:
-                    _resultArray = [];
-                    _state = ReadState.WaitingForValue;
-                    return;
-
-                default:
-                    throw CreateParserException($"'{OpenObjectChar}' or '{OpenArrayChar}'");
+                _resultObject = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                _state = ReadState.WaitingForField;
+                _index++; // Consume the opening brace.
+            }
+            else if (ch == OpenArrayChar)
+            {
+                _resultArray = [];
+                _state = ReadState.WaitingForValue;
+                _index++; // Consume the opening bracket.
+            }
+            else
+            {
+                throw CreateParserException($"'{OpenObjectChar}' or '{OpenArrayChar}'");
             }
         }
 
         private void ExtractValue()
         {
-            // determine the value based on what it starts with
-            switch (_json[_index])
+            // Determine the value type based on the current character.
+            char current = _json[_index];
+            if (current == StringQuotedChar)
             {
-                case StringQuotedChar: // expect a string
-                    ExtractStringQuoted();
-                    break;
-
-                case OpenObjectChar: // expect object
-                case OpenArrayChar: // expect array
-                    ExtractObject();
-                    break;
-
-                case 't': // expect true
-                    ExtractConstant(TrueLiteral, true);
-                    break;
-
-                case 'f': // expect false
-                    ExtractConstant(FalseLiteral, false);
-                    break;
-
-                case 'n': // expect null
-                    ExtractConstant(NullLiteral);
-                    break;
-
-                default: // expect number
-                    ExtractNumber();
-                    break;
+                ExtractStringQuoted();
             }
-
+            else if (current == OpenObjectChar || current == OpenArrayChar)
+            {
+                ExtractObject();
+            }
+            else if (current == 't') // true
+            {
+                ExtractConstant(TrueLiteral, true);
+            }
+            else if (current == 'f') // false
+            {
+                ExtractConstant(FalseLiteral, false);
+            }
+            else if (current == 'n') // null
+            {
+                ExtractConstant(NullLiteral);
+            }
+            else
+            {
+                ExtractNumber();
+            }
             _currentFieldName = null;
-            _state = ReadState.WaitingForNextOrRootClose;
         }
 
         private static string Unescape(string str)
         {
-            // check if we need to unescape at all
+            // If no escape sequences, return early.
             if (str.IndexOf(StringEscapeChar) < 0)
                 return str;
 
             var builder = new StringBuilder(str.Length);
-            for (var i = 0; i < str.Length; i++)
+            for (int i = 0; i < str.Length; i++)
             {
-                if (str[i] != StringEscapeChar)
+                char c = str[i];
+                if (c != StringEscapeChar)
                 {
-                    builder.Append(str[i]);
-                    continue;
+                    builder.Append(c);
                 }
-
-                if (i + 1 > str.Length - 1)
-                    break;
-
-                // escape sequence begins here
-                switch (str[i + 1])
+                else if (i + 1 < str.Length)
                 {
-                    case 'u':
-                        i = ExtractEscapeSequence(str, i, builder);
-                        break;
+                    char next = str[i + 1];
+                    switch (next)
+                    {
+                        case 'u':
+                            i = ExtractEscapeSequence(str, i, builder);
+                            break;
 
-                    case 'b':
-                        builder.Append('\b');
-                        i += 1;
-                        break;
+                        case 'b':
+                            builder.Append('\b');
+                            i++;
+                            break;
 
-                    case 't':
-                        builder.Append('\t');
-                        i += 1;
-                        break;
+                        case 't':
+                            builder.Append('\t');
+                            i++;
+                            break;
 
-                    case 'n':
-                        builder.Append('\n');
-                        i += 1;
-                        break;
+                        case 'n':
+                            builder.Append('\n');
+                            i++;
+                            break;
 
-                    case 'f':
-                        builder.Append('\f');
-                        i += 1;
-                        break;
+                        case 'f':
+                            builder.Append('\f');
+                            i++;
+                            break;
 
-                    case 'r':
-                        builder.Append('\r');
-                        i += 1;
-                        break;
+                        case 'r':
+                            builder.Append('\r');
+                            i++;
+                            break;
 
-                    default:
-                        builder.Append(str[i + 1]);
-                        i += 1;
-                        break;
+                        default:
+                            builder.Append(next);
+                            i++;
+                            break;
+                    }
                 }
             }
-
             return builder.ToString();
         }
 
         private static int ExtractEscapeSequence(string str, int i, StringBuilder builder)
         {
-            var startIndex = i + 2;
-            var endIndex = i + 5;
-            if (endIndex > str.Length - 1)
+            // Expecting format "\uXXXX"
+            int hexStart = i + 2;
+            int hexLength = 4;
+            if (hexStart + hexLength > str.Length)
             {
                 builder.Append(str[i + 1]);
-                i += 1;
-                return i;
+                return i + 1;
             }
+            // Parse 4 hex digits directly.
+            int code = 0;
+            for (int j = hexStart; j < hexStart + hexLength; j++)
+            {
+                code = code * 16 + HexValue(str[j]);
+            }
+            builder.Append((char)code);
+            return i + 5;
+        }
 
-            var hexCode = str.Slice(startIndex, endIndex).ConvertHexadecimalToBytes();
-            builder.Append(Encoding.BigEndianUnicode.GetChars(hexCode));
-            i += 5;
-            return i;
+        private static int HexValue(char c)
+        {
+            if (c >= '0' && c <= '9')
+                return c - '0';
+            if (c >= 'a' && c <= 'f')
+                return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F')
+                return c - 'A' + 10;
+            throw new FormatException($"Invalid hex digit: {c}");
         }
 
         private int GetFieldNameCount()
         {
-            var charCount = 0;
-            for (var j = _index + 1; j < _json.Length; j++)
+            int count = 0;
+            for (int j = _index + 1; j < _json.Length; j++)
             {
                 if (_json[j] == StringQuotedChar && _json[j - 1] != StringEscapeChar)
                     break;
-
-                charCount++;
+                count++;
             }
-
-            return charCount;
+            return count;
         }
 
         private void ExtractObject()
         {
-            // Extract and set the value
-            var deserializer = new Deserializer(_json, _index);
-
-            if (_currentFieldName != null)
-                _resultObject[_currentFieldName] = deserializer._result;
+            // Recursively parse an object/array.
+            var innerDeserializer = new Deserializer(_json, _index);
+            if (_currentFieldName != null && _resultObject != null)
+            {
+                _resultObject[_currentFieldName] = innerDeserializer._result;
+            }
             else
-                _resultArray.Add(deserializer._result);
-
-            _index = deserializer._index;
+            {
+                _resultArray?.Add(innerDeserializer._result);
+            }
+            _index = innerDeserializer._index;
         }
 
         private void ExtractNumber()
         {
-            var charCount = 0;
-            for (var j = _index; j < _json.Length; j++)
+            int start = _index;
+            while (_index < _json.Length)
             {
-                if (char.IsWhiteSpace(_json[j]) || _json[j] == FieldSeparatorChar
-                    || (_resultObject != null && _json[j] == CloseObjectChar)
-                    || (_resultArray != null && _json[j] == CloseArrayChar))
+                char c = _json[_index];
+                if (char.IsWhiteSpace(c) || c == FieldSeparatorChar ||
+                    (_resultObject != null && c == CloseObjectChar) ||
+                    (_resultArray != null && c == CloseArrayChar))
+                {
                     break;
-
-                charCount++;
+                }
+                _index++;
             }
-
-            // Extract and set the value
-            var stringValue = _json.SliceLength(_index, charCount);
-
-            if (decimal.TryParse(stringValue, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value) == false)
+            int count = _index - start;
+            string numberStr = _json.SliceLength(start, count);
+            if (!decimal.TryParse(numberStr, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal number))
                 throw CreateParserException("[number]");
-
-            if (_currentFieldName != null)
+            if (_currentFieldName != null && _resultObject != null)
             {
-                if (_resultObject != null)
-                    _resultObject[_currentFieldName] = value;
+                _resultObject[_currentFieldName] = number;
+            }
+            else
+            {
+                _resultArray?.Add(number);
+            }
+            _index--; // Adjust for loop increment.
+        }
+
+        private void ExtractConstant(string literal, bool? constantValue = null)
+        {
+            if (_json.SliceLength(_index, literal.Length) != literal)
+                throw CreateParserException($"'{literal}'");
+            if (_currentFieldName != null && _resultObject != null)
+            {
+                _resultObject[_currentFieldName] = constantValue;
+            }
+            else
+            {
+                _resultArray?.Add(constantValue);
+            }
+            _index += literal.Length - 1;
+        }
+
+        private void ExtractStringQuoted()
+        {
+            int start = _index + 1;
+            int count = 0;
+            bool escapeFound = false;
+            for (int j = start; j < _json.Length; j++)
+            {
+                if (_json[j] == StringQuotedChar && !escapeFound)
+                    break;
+                escapeFound = _json[j] == StringEscapeChar && !escapeFound;
+                count++;
+            }
+            string value = Unescape(_json.SliceLength(start, count));
+            if (_currentFieldName != null && _resultObject != null)
+            {
+                _resultObject[_currentFieldName] = value;
             }
             else
             {
                 _resultArray?.Add(value);
             }
-
-            _index += charCount - 1;
-        }
-
-        private void ExtractConstant(string boolValue, bool? value = null)
-        {
-            if (_json.SliceLength(_index, boolValue.Length) != boolValue)
-                throw CreateParserException($"'{ValueSeparatorChar}'");
-
-            // Extract and set the value
-            if (_currentFieldName != null)
-                _resultObject[_currentFieldName] = value;
-            else
-                _resultArray.Add(value);
-
-            _index += boolValue.Length - 1;
-        }
-
-        private void ExtractStringQuoted()
-        {
-            var charCount = 0;
-            var escapeCharFound = false;
-            for (var j = _index + 1; j < _json.Length; j++)
-            {
-                if (_json[j] == StringQuotedChar && !escapeCharFound)
-                    break;
-
-                escapeCharFound = _json[j] == StringEscapeChar && !escapeCharFound;
-                charCount++;
-            }
-
-            // Extract and set the value
-            var value = Unescape(_json.SliceLength(_index + 1, charCount));
-            if (_currentFieldName != null)
-                _resultObject[_currentFieldName] = value;
-            else
-                _resultArray.Add(value);
-
-            _index += charCount + 1;
+            _index += count + 1;
         }
 
         private FormatException CreateParserException(string expected)
         {
             var (line, col) = _json.TextPositionAt(_index);
-            return new FormatException(
-                $"Parser error (Line {line}, Col {col}, State {_state}): Expected {expected} but got '{_json[_index]}'.");
+            return new FormatException($"Parser error (Line {line}, Col {col}, State {_state}): Expected {expected} but got '{_json[_index]}'.");
         }
 
-        /// <summary>
-        /// Defines the different JSON read states.
-        /// </summary>
         private enum ReadState
         {
             WaitingForRootOpen,
@@ -355,5 +407,19 @@ public partial class Json
             WaitingForValue,
             WaitingForNextOrRootClose,
         }
+
+        // Constants (assumed defined elsewhere or can be defined here)
+        private const char OpenObjectChar = '{';
+
+        private const char CloseObjectChar = '}';
+        private const char OpenArrayChar = '[';
+        private const char CloseArrayChar = ']';
+        private const char StringQuotedChar = '"';
+        private const char StringEscapeChar = '\\';
+        private const char FieldSeparatorChar = ',';
+        private const char ValueSeparatorChar = ':';
+        private const string TrueLiteral = "true";
+        private const string FalseLiteral = "false";
+        private const string NullLiteral = "null";
     }
 }
