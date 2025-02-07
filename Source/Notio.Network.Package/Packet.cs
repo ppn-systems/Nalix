@@ -1,5 +1,4 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Common.Memory.Pools;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Metadata;
@@ -17,7 +16,7 @@ namespace Notio.Network.Package;
 /// Represents a packet structure that can be pooled and disposed.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
+public readonly struct Packet : IEquatable<Packet>, IDisposable
 {
     /// <summary>
     /// The minimum size of a packet.
@@ -137,12 +136,6 @@ public readonly struct Packet : IEquatable<Packet>, IPoolable, IDisposable
     /// <returns>A new packet with the updated payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithPayload(ReadOnlyMemory<byte> newPayload) => new(Type, Flags, Priority, Command, newPayload);
-
-    /// <summary>
-    /// Resets the packet for pooling.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ResetForPool() => Dispose();
 
     /// <summary>
     /// Checks if the packet is equal to another packet.

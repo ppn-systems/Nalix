@@ -21,6 +21,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Include="Package.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />
 	</ItemGroup>

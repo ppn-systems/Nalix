@@ -6,13 +6,13 @@ using Notio.Network.Package.Utilities;
 using Notio.Network.Package.Utilities.Payload;
 using System;
 
-namespace Notio.Network.Package.Extensions;
+namespace Notio.Network.Package;
 
 /// <summary>
 /// Provides encryption and decryption methods for Packet Payload.
 /// (Cung cấp các phương thức mã hóa và giải mã cho Payload của Packet.)
 /// </summary>
-public static partial class PackageExtensions
+public static partial class Package
 {
     /// <summary>
     /// Encrypts the Payload in the Packet using the specified algorithm.

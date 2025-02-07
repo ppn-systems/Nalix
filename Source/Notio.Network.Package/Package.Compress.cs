@@ -7,12 +7,12 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Extensions;
+namespace Notio.Network.Package;
 
 /// <summary>
 /// Provides operations for compressing and decompressing packets.
 /// </summary>
-public static partial class PackageExtensions
+public static partial class Package
 {
     /// <summary>
     /// Compresses the payload of the packet using the specified compression algorithm.

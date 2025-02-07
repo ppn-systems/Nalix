@@ -1,5 +1,4 @@
 ﻿using Notio.Network.Package;
-using Notio.Network.Package.Extensions;
 using System;
 
 namespace Notio.Testing;

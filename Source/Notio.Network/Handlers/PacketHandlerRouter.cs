@@ -5,7 +5,6 @@ using Notio.Common.Logging.Interfaces;
 using Notio.Common.Models;
 using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
-using Notio.Network.Package.Extensions;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;

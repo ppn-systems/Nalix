@@ -1,19 +1,19 @@
 ﻿using Notio.Common.Exceptions;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Metadata;
-using Notio.Network.Package.Serialization;
+using Notio.Network.Package.Utilities;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Network.Package.Extensions;
+namespace Notio.Network.Package;
 
 /// <summary>
 /// Cung cấp các phương thức mở rộng hiệu suất cao cho lớp Packet.
 /// </summary>
 [SkipLocalsInit]
-public static partial class PackageExtensions
+public static partial class Package
 {
     private const int MaxStackAlloc = 512;
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
@@ -99,9 +99,7 @@ public static partial class PackageExtensions
     /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet FromByteArray(this byte[] data)
-    {
-        return FromByteArray((ReadOnlySpan<byte>)data);
-    }
+        => FromByteArray((ReadOnlySpan<byte>)data);
 
     /// <summary>
     /// Thử chuyển đổi Packet thành mảng byte với kiểm tra kích thước.
