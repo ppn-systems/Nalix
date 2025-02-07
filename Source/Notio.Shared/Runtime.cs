@@ -11,72 +11,74 @@ namespace Notio.Shared;
 /// </summary>
 public static class Runtime
 {
-    private static readonly Lazy<Assembly?> EntryAssemblyLazy = new(Assembly.GetEntryAssembly);
+    // Lazy-load the entry assembly.
+    private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
+        Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
 
+    // Lazy-loaded company, product, and trademark names.
     private static readonly Lazy<string> CompanyNameLazy = new(() =>
     {
-        var attribute =
-            EntryAssembly.GetCustomAttribute<AssemblyCompanyAttribute>() as AssemblyCompanyAttribute;
+        var attribute = EntryAssembly.GetCustomAttribute<AssemblyCompanyAttribute>();
         return attribute?.Company ?? string.Empty;
     });
 
     private static readonly Lazy<string> ProductNameLazy = new(() =>
     {
-        var attribute =
-            EntryAssembly.GetCustomAttribute<AssemblyProductAttribute>() as AssemblyProductAttribute;
+        var attribute = EntryAssembly.GetCustomAttribute<AssemblyProductAttribute>();
         return attribute?.Product ?? string.Empty;
     });
 
     private static readonly Lazy<string> ProductTrademarkLazy = new(() =>
     {
-        var attribute =
-            EntryAssembly.GetCustomAttribute<AssemblyTrademarkAttribute>() as AssemblyTrademarkAttribute;
+        var attribute = EntryAssembly.GetCustomAttribute<AssemblyTrademarkAttribute>();
         return attribute?.Trademark ?? string.Empty;
     });
 
+    // Application mutex name based on the entry assembly’s full name.
     private static readonly string ApplicationMutexName = "Global\\{{" + EntryAssembly.FullName + "}}";
 
-    private static readonly Lock SyncLock = new();
+    // Use a simple static object for synchronization.
+    private static readonly Lock SyncLock = new Lock();
 
-    private static OSType? _oS;
+    // Lazy-load the operating system type.
+    private static readonly Lazy<OSType> OsLazy = new(() =>
+    {
+        var windir = Environment.GetEnvironmentVariable("windir");
+        if (!string.IsNullOrEmpty(windir) && windir.Contains('\\') && Directory.Exists(windir))
+        {
+            return OSType.Windows;
+        }
+        // Check for Unix-like system by the existence of /proc/sys/kernel/ostype
+        return File.Exists("/proc/sys/kernel/ostype") ? OSType.Unix : OSType.Osx;
+    });
+
+    // Lazy-load the local storage path.
+    private static readonly Lazy<string> LocalStoragePathLazy = new(() =>
+    {
+        var assemblyName = EntryAssemblyName.Name
+            ?? throw new InvalidOperationException("Entry assembly name is null.");
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var basePath = Path.Combine(localAppData, assemblyName);
+        var version = EntryAssemblyVersion?.ToString()
+            ?? throw new InvalidOperationException("Entry assembly version is null.");
+        var fullPath = Path.Combine(basePath, version);
+        if (!Directory.Exists(fullPath))
+        {
+            Directory.CreateDirectory(fullPath);
+        }
+        return fullPath;
+    });
 
     #region Properties
 
     /// <summary>
-    /// Gets the current Operating System.
+    /// Gets the current operating system.
     /// </summary>
-    /// <value>
-    /// The os.
-    /// </value>
-    public static OSType OS
-    {
-        get
-        {
-            if (_oS.HasValue == false)
-            {
-                var windowsDirectory = Environment.GetEnvironmentVariable("windir");
-                if (string.IsNullOrEmpty(windowsDirectory) == false
-                    && windowsDirectory.Contains('\\')
-                    && Directory.Exists(windowsDirectory))
-                {
-                    _oS = OSType.Windows;
-                }
-                else
-                {
-                    _oS = File.Exists(@"/proc/sys/kernel/ostype") ? OSType.Unix : OSType.Osx;
-                }
-            }
-
-            return _oS ?? OSType.Unknown;
-        }
-    }
+    public static OSType OS => OsLazy.Value;
 
     /// <summary>
     /// Checks if this application (including version number) is the only instance currently running.
     /// </summary>
-    /// <value>
-    ///   <c>true</c> if this instance is the only instance; otherwise, <c>false</c>.
-    /// </value>
     public static bool IsTheOnlyInstance
     {
         get
@@ -85,26 +87,22 @@ public static class Runtime
             {
                 try
                 {
-                    // Try to open existing mutex.
-                    using var _ = Mutex.OpenExisting(ApplicationMutexName);
+                    // Try to open an existing global mutex.
+                    using var existingMutex = Mutex.OpenExisting(ApplicationMutexName);
                 }
                 catch
                 {
                     try
                     {
-                        // If exception occurred, there is no such mutex.
+                        // If no mutex exists, create one. This instance is the only instance.
                         using var appMutex = new Mutex(true, ApplicationMutexName);
-
-                        // Only one instance.
                         return true;
                     }
                     catch
                     {
-                        // Sometimes the user can't create the Global Mutex
+                        // In case mutex creation fails.
                     }
                 }
-
-                // More than one instance.
                 return false;
             }
         }
@@ -113,26 +111,17 @@ public static class Runtime
     /// <summary>
     /// Gets a value indicating whether this application instance is using the MONO runtime.
     /// </summary>
-    /// <value>
-    ///   <c>true</c> if this instance is using MONO runtime; otherwise, <c>false</c>.
-    /// </value>
     public static bool IsUsingMonoRuntime => Type.GetType("Mono.Runtime") != null;
 
     /// <summary>
     /// Gets the assembly that started the application.
     /// </summary>
-    /// <value>
-    /// The entry assembly.
-    /// </value>
-    public static Assembly EntryAssembly => EntryAssemblyLazy.Value ?? throw new InvalidOperationException("Entry assembly is null.");
+    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
 
     /// <summary>
     /// Gets the name of the entry assembly.
     /// </summary>
-    /// <value>
-    /// The name of the entry assembly.
-    /// </value>
-    public static AssemblyName EntryAssemblyName => EntryAssemblyLazy.Value?.GetName() ?? throw new InvalidOperationException("Entry assembly is null.");
+    public static AssemblyName EntryAssemblyName => EntryAssembly.GetName();
 
     /// <summary>
     /// Gets the entry assembly version.
@@ -142,18 +131,13 @@ public static class Runtime
     /// <summary>
     /// Gets the full path to the folder containing the assembly that started the application.
     /// </summary>
-    /// <value>
-    /// The entry assembly directory.
-    /// </value>
     public static string EntryAssemblyDirectory
     {
         get
         {
             var location = EntryAssembly.Location;
             if (string.IsNullOrEmpty(location))
-            {
                 throw new InvalidOperationException("Entry assembly location is null or empty.");
-            }
             var uri = new UriBuilder(location);
             var path = Uri.UnescapeDataString(uri.Path);
             return Path.GetDirectoryName(path) ?? throw new InvalidOperationException("Failed to get directory name from path.");
@@ -161,75 +145,42 @@ public static class Runtime
     }
 
     /// <summary>
-    /// Gets the name of the company.
+    /// Gets the company name.
     /// </summary>
-    /// <value>
-    /// The name of the company.
-    /// </value>
     public static string CompanyName => CompanyNameLazy.Value;
 
     /// <summary>
-    /// Gets the name of the product.
+    /// Gets the product name.
     /// </summary>
-    /// <value>
-    /// The name of the product.
-    /// </value>
     public static string ProductName => ProductNameLazy.Value;
 
     /// <summary>
-    /// Gets the trademark.
+    /// Gets the product trademark.
     /// </summary>
-    /// <value>
-    /// The product trademark.
-    /// </value>
     public static string ProductTrademark => ProductTrademarkLazy.Value;
 
     /// <summary>
-    /// Gets a local storage path with a version.
+    /// Gets the local storage path with a version.
     /// </summary>
-    /// <value>
-    /// The local storage path.
-    /// </value>
-    public static string LocalStoragePath
-    {
-        get
-        {
-            var entryAssemblyName = EntryAssemblyName.Name ?? throw new InvalidOperationException("Entry assembly name is null.");
-            var localAppDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), entryAssemblyName);
-
-            var entryAssemblyVersion = EntryAssemblyVersion?.ToString() ?? throw new InvalidOperationException("Entry assembly version is null.");
-            var returnPath = Path.Combine(localAppDataPath, entryAssemblyVersion);
-
-            if (!Directory.Exists(returnPath))
-            {
-                Directory.CreateDirectory(returnPath);
-            }
-
-            return returnPath;
-        }
-    }
+    public static string LocalStoragePath => LocalStoragePathLazy.Value;
 
     #endregion Properties
 
     #region Methods
 
     /// <summary>
-    /// Build a full path pointing to the current user's desktop with the given filename.
+    /// Builds a full path pointing to the current user's desktop with the given filename.
     /// </summary>
     /// <param name="filename">The filename.</param>
-    /// <returns>
-    /// The fully qualified location of path, such as "C:\MyFile.txt".
-    /// </returns>
-    /// <exception cref="ArgumentNullException">filename.</exception>
+    /// <returns>The fully qualified path.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if filename is null or whitespace.</exception>
     public static string GetDesktopFilePath(string filename)
     {
         if (string.IsNullOrWhiteSpace(filename))
             throw new ArgumentNullException(nameof(filename));
-
-        var pathWithFilename = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            filename);
-
-        return Path.GetFullPath(pathWithFilename);
+        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var fullPath = Path.Combine(desktopPath, filename);
+        return Path.GetFullPath(fullPath);
     }
 
     #endregion Methods

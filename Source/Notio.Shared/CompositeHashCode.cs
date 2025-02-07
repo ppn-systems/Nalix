@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Notio.Shared;
 
@@ -70,9 +69,6 @@ namespace Notio.Shared;
 /// </example>
 public static class CompositeHashCode
 {
-    private const int InitialSeed = 17;
-    private const int Multiplier = 29;
-
     /// <summary>
     /// Computes a hash code, taking into consideration the values of the specified
     /// fields and/oror properties as part of an object's state. See the
@@ -80,12 +76,16 @@ public static class CompositeHashCode
     /// </summary>
     /// <param name="fields">The values of the fields and/or properties.</param>
     /// <returns>The computed has code.</returns>
-    public static int Using(params object[] fields)
+    public static int Using(params int[] fields)
     {
         unchecked
         {
-            return fields.Where(f => f is not null)
-                .Aggregate(InitialSeed, (current, field) => (Multiplier * current) + field.GetHashCode());
+            int hash = 17;
+            foreach (int field in fields)
+            {
+                hash = (29 * hash) + field;
+            }
+            return hash;
         }
     }
 }
