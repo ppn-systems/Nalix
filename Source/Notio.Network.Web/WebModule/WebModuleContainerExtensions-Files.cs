@@ -35,9 +35,7 @@ public static partial class WebModuleContainerExtensions
         bool isImmutable,
         Action<FileModule>? configure = null)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithStaticFolder(@this, null, baseRoute, fileSystemPath, isImmutable, configure);
-    }
+        => WithStaticFolder(@this, null, baseRoute, fileSystemPath, isImmutable, configure);
 
     /// <summary>
     /// Creates an instance of <see cref="FileSystemProvider"/>, uses it to initialize
@@ -111,9 +109,7 @@ public static partial class WebModuleContainerExtensions
         string pathPrefix,
         Action<FileModule>? configure = null)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithEmbeddedResources(@this, null, baseRoute, assembly, pathPrefix, configure);
-    }
+        => WithEmbeddedResources(@this, null, baseRoute, assembly, pathPrefix, configure);
 
     /// <summary>
     /// Creates an instance of <see cref="ResourceFileProvider"/>, uses it to initialize
@@ -169,9 +165,7 @@ public static partial class WebModuleContainerExtensions
         string zipFilePath,
         Action<FileModule>? configure = null)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithZipFile(@this, null, baseRoute, zipFilePath, configure);
-    }
+        => WithZipFile(@this, null, baseRoute, zipFilePath, configure);
 
     /// <summary>
     /// Creates an instance of <see cref="ZipFileProvider"/> using a file-system path, uses it to initialize
@@ -232,9 +226,7 @@ public static partial class WebModuleContainerExtensions
         Stream zipFileStream,
         Action<FileModule>? configure = null)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithZipFileStream(@this, null, baseRoute, zipFileStream, configure);
-    }
+        => WithZipFileStream(@this, null, baseRoute, zipFileStream, configure);
 
     /// <summary>
     /// Creates an instance of <see cref="ZipFileProvider"/> using a zip file as stream, uses it to initialize

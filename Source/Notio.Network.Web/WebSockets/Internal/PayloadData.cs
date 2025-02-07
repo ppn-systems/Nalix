@@ -24,7 +24,7 @@ internal class PayloadData
     internal PayloadData(ushort code = 1005, string? reason = null)
     {
         _code = code;
-        _data = code == 1005 ? Array.Empty<byte>() : Append(code, reason);
+        _data = code == 1005 ? [] : Append(code, reason);
     }
 
     internal MemoryStream ApplicationData => new(_data);
@@ -67,7 +67,7 @@ internal class PayloadData
         List<byte> buff = new(ret);
         buff.AddRange(Encoding.UTF8.GetBytes(reason));
 
-        return buff.ToArray();
+        return [.. buff];
     }
 
     internal void Mask(byte[] key)

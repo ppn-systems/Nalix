@@ -3,7 +3,6 @@ using Notio.Network.Web.Enums;
 using Notio.Network.Web.Net.Internal;
 using Notio.Shared.Enums;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 
@@ -111,11 +110,6 @@ internal class WebSocketFrame
             ? BitConverter.ToUInt16(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0)
             : BitConverter.ToUInt64(ExtendedPayloadLength?.ToHostOrder(Endianness.Big) ?? [], 0);
 
-    public IEnumerator<byte> GetEnumerator()
-    {
-        return ((IEnumerable<byte>)ToArray()).GetEnumerator();
-    }
-
     public string PrintToString()
     {
         // Payload Length
@@ -189,25 +183,14 @@ Extended Payload Length: {extPayloadLen}
         return buff.ToArray();
     }
 
-    public override string ToString()
-    {
-        return BitConverter.ToString(ToArray());
-    }
-
     internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData)
-    {
-        return new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
-    }
+        => new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
 
     internal static WebSocketFrame CreatePingFrame()
-    {
-        return new(Fin.Final, Opcode.Ping, new PayloadData());
-    }
+        => new(Fin.Final, Opcode.Ping, new PayloadData());
 
     internal static WebSocketFrame CreatePingFrame(byte[] data)
-    {
-        return new(Fin.Final, Opcode.Ping, new PayloadData(data));
-    }
+        => new(Fin.Final, Opcode.Ping, new PayloadData(data));
 
     internal void Validate(WebSocket webSocket)
     {
@@ -253,8 +236,5 @@ Extended Payload Length: {extPayloadLen}
         MaskingKey = [];
     }
 
-    private static bool IsOpcodeData(Opcode opcode)
-    {
-        return opcode is Opcode.Text or Opcode.Binary;
-    }
+    private static bool IsOpcodeData(Opcode opcode) => opcode is Opcode.Text or Opcode.Binary;
 }

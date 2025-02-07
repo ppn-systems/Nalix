@@ -18,7 +18,18 @@ namespace Notio.Network.Web.WebApi;
 /// <para>A module using objects derived from <see cref="WebApiController"/>
 /// as collections of handler methods.</para>
 /// </summary>
-public abstract class WebApiModuleBase : RoutingModuleBase
+/// <remarks>
+/// Initializes a new instance of the <see cref="WebApiModuleBase" /> class,
+/// using the specified response serializer.
+/// </remarks>
+/// <param name="baseRoute">The base route served by this module.</param>
+/// <param name="serializer">A <see cref="ResponseSerializerCallback"/> used to serialize
+/// the result of controller methods returning <see langword="object"/>
+/// or <see cref="Task{TResult}">Task&lt;object&gt;</see>.</param>
+/// <exception cref="ArgumentNullException"><paramref name="serializer"/> is <see langword="null"/>.</exception>
+/// <seealso cref="IWebModule.BaseRoute" />
+/// <seealso cref="Validate.UrlPath" />
+public abstract class WebApiModuleBase(string baseRoute, ResponseSerializerCallback serializer) : RoutingModuleBase(baseRoute)
 {
     private const string GetRequestDataAsyncMethodName = nameof(IRequestDataAttribute<WebApiController>.GetRequestDataAsync);
 
@@ -58,27 +69,10 @@ public abstract class WebApiModuleBase : RoutingModuleBase
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="WebApiModuleBase" /> class,
-    /// using the specified response serializer.
-    /// </summary>
-    /// <param name="baseRoute">The base route served by this module.</param>
-    /// <param name="serializer">A <see cref="ResponseSerializerCallback"/> used to serialize
-    /// the result of controller methods returning <see langword="object"/>
-    /// or <see cref="Task{TResult}">Task&lt;object&gt;</see>.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="serializer"/> is <see langword="null"/>.</exception>
-    /// <seealso cref="IWebModule.BaseRoute" />
-    /// <seealso cref="Validate.UrlPath" />
-    protected WebApiModuleBase(string baseRoute, ResponseSerializerCallback serializer)
-        : base(baseRoute)
-    {
-        Serializer = Validate.NotNull(nameof(serializer), serializer);
-    }
-
-    /// <summary>
     /// A <see cref="ResponseSerializerCallback"/> used to serialize
     /// the result of controller methods returning values.
     /// </summary>
-    public ResponseSerializerCallback Serializer { get; }
+    public ResponseSerializerCallback Serializer { get; } = Validate.NotNull(nameof(serializer), serializer);
 
     /// <summary>
     /// Gets the number of controller types registered in this module.
@@ -118,10 +112,7 @@ public abstract class WebApiModuleBase : RoutingModuleBase
     /// <seealso cref="RegisterControllerType{TController}(Func{TController})"/>
     /// <seealso cref="RegisterControllerType(Type)"/>
     protected void RegisterControllerType<TController>()
-        where TController : WebApiController, new()
-    {
-        RegisterControllerType(typeof(TController));
-    }
+        where TController : WebApiController, new() => RegisterControllerType(typeof(TController));
 
     /// <summary>
     /// <para>Registers a controller type using a factory method.</para>
@@ -166,10 +157,7 @@ public abstract class WebApiModuleBase : RoutingModuleBase
     /// <seealso cref="RegisterControllerType{TController}()"/>
     /// <seealso cref="RegisterControllerType(Type,Func{WebApiController})"/>
     protected void RegisterControllerType<TController>(Func<TController> factory)
-        where TController : WebApiController
-    {
-        RegisterControllerType(typeof(TController), factory);
-    }
+        where TController : WebApiController => RegisterControllerType(typeof(TController), factory);
 
     /// <summary>
     /// <para>Registers a controller type using a constructor.</para>
@@ -307,9 +295,7 @@ public abstract class WebApiModuleBase : RoutingModuleBase
     }
 
     private static T AwaitResult<T>(Task<T> task)
-    {
-        return task.ConfigureAwait(false).GetAwaiter().GetResult();
-    }
+        => task.ConfigureAwait(false).GetAwaiter().GetResult();
 
     private static T AwaitAndCastResult<T>(string parameterName, Task<object> task)
     {

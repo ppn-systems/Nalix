@@ -7,19 +7,12 @@ using System.Threading;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 
-internal class WebSocketStream : MemoryStream
+internal class WebSocketStream(byte[] data, Opcode opcode, CompressionMethod compression) : MemoryStream(data)
 {
     internal const int FragmentLength = 1016;
 
-    private readonly CompressionMethod _compression;
-    private readonly Opcode _opcode;
-
-    public WebSocketStream(byte[] data, Opcode opcode, CompressionMethod compression)
-        : base(data)
-    {
-        _compression = compression;
-        _opcode = opcode;
-    }
+    private readonly CompressionMethod _compression = compression;
+    private readonly Opcode _opcode = opcode;
 
     public IEnumerable<WebSocketFrame> GetFrames()
     {

@@ -19,10 +19,7 @@ public static partial class WebModuleContainerExtensions
     /// <seealso cref="IWebModuleContainer.Modules"/>
     /// <seealso cref="IComponentCollection{T}.Add"/>
     public static TContainer WithModule<TContainer>(this TContainer @this, IWebModule module)
-        where TContainer : class, IWebModuleContainer
-    {
-        return @this.WithModule(null, module);
-    }
+        where TContainer : class, IWebModuleContainer => @this.WithModule(null, module);
 
     /// <summary>
     /// Adds the specified <paramref name="module"/> to a module container,
@@ -57,10 +54,7 @@ public static partial class WebModuleContainerExtensions
     /// <seealso cref="IComponentCollection{T}.Add"/>
     public static TContainer WithModule<TContainer, TWebModule>(this TContainer @this, TWebModule module, Action<TWebModule>? configure)
         where TContainer : class, IWebModuleContainer
-        where TWebModule : IWebModule
-    {
-        return @this.WithModule(null, module, configure);
-    }
+        where TWebModule : IWebModule => @this.WithModule(null, module, configure);
 
     /// <summary>
     /// Adds the specified <paramref name="module"/> to a module container,

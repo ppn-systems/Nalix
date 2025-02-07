@@ -20,9 +20,7 @@ public static partial class WebModuleContainerExtensions
         IEnumerable<string>? whiteList = null,
         int banMinutes = IPBanningModule.DefaultBanMinutes)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithIPBanning(@this, null, whiteList, banMinutes);
-    }
+        => WithIPBanning(@this, null, whiteList, banMinutes);
 
     /// <summary>
     /// Creates an instance of <see cref="IPBanningModule" /> and adds it to a module container.
@@ -40,7 +38,5 @@ public static partial class WebModuleContainerExtensions
         IEnumerable<string>? whiteList = null,
         int banMinutes = IPBanningModule.DefaultBanMinutes)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithModule(@this, new IPBanningModule("/", whiteList, banMinutes), configure);
-    }
+        => WithModule(@this, new IPBanningModule("/", whiteList, banMinutes), configure);
 }

@@ -25,7 +25,7 @@ internal sealed class WebSocket : IWebSocket
 {
     public const string SupportedVersion = "13";
 
-    private readonly object _stateSyncRoot = new();
+    private readonly Lock _stateSyncRoot = new();
     private readonly ConcurrentQueue<MessageEventArgs> _messageEventQueue = new();
     private readonly Action _closeConnection;
     private readonly TimeSpan _waitTime = TimeSpan.FromSeconds(1);
@@ -44,10 +44,7 @@ internal sealed class WebSocket : IWebSocket
         _readyState = WebSocketState.Open;
     }
 
-    ~WebSocket()
-    {
-        Dispose(false);
-    }
+    ~WebSocket() => Dispose(false);
 
     /// <summary>
     /// Occurs when the <see cref="WebSocket"/> receives a message.
@@ -65,15 +62,11 @@ internal sealed class WebSocket : IWebSocket
 
     /// <inheritdoc />
     public Task SendAsync(byte[] buffer, bool isText, CancellationToken cancellationToken)
-    {
-        return SendAsync(buffer, isText ? Opcode.Text : Opcode.Binary, cancellationToken);
-    }
+        => SendAsync(buffer, isText ? Opcode.Text : Opcode.Binary, cancellationToken);
 
     /// <inheritdoc />
     public Task CloseAsync(CancellationToken cancellationToken = default)
-    {
-        return CloseAsync(CloseStatusCode.Normal, cancellationToken: cancellationToken);
-    }
+        => CloseAsync(CloseStatusCode.Normal, cancellationToken: cancellationToken);
 
     /// <inheritdoc />
     public Task CloseAsync(
@@ -131,9 +124,7 @@ internal sealed class WebSocket : IWebSocket
     /// otherwise, <c>false</c>.
     /// </returns>
     public Task<bool> PingAsync()
-    {
-        return PingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
-    }
+        => PingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
 
     /// <summary>
     /// Sends a ping with the specified <paramref name="message"/> using the WebSocket connection.
@@ -175,6 +166,7 @@ internal sealed class WebSocket : IWebSocket
     /// binary data using websocket.
     /// </returns>
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter")]
     public async Task SendAsync(byte[] data, Opcode opcode, CancellationToken cancellationToken = default)
     {
         if (_readyState != WebSocketState.Open)
@@ -203,8 +195,7 @@ internal sealed class WebSocket : IWebSocket
             const string Guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
             StringBuilder buff = new StringBuilder(clientKey, 64).Append(Guid);
-            using SHA1 sha1 = SHA1.Create();
-            return Convert.ToBase64String(sha1.ComputeHash(Encoding.UTF8.GetBytes(buff.ToString())));
+            return Convert.ToBase64String(SHA1.HashData(Encoding.UTF8.GetBytes(buff.ToString())));
         }
 
         System.Collections.Specialized.NameValueCollection requestHeaders = httpContext.Request.Headers;
@@ -213,14 +204,16 @@ internal sealed class WebSocket : IWebSocket
 
         if (string.IsNullOrEmpty(webSocketKey))
         {
-            throw new WebSocketException(CloseStatusCode.ProtocolError, $"Includes no {HttpHeaderNames.SecWebSocketKey} header, or it has an invalid value.");
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                $"Includes no {HttpHeaderNames.SecWebSocketKey} header, or it has an invalid value.");
         }
 
         string? webSocketVersion = requestHeaders[HttpHeaderNames.SecWebSocketVersion];
 
         if (webSocketVersion is null or not SupportedVersion)
         {
-            throw new WebSocketException(CloseStatusCode.ProtocolError, $"Includes no {HttpHeaderNames.SecWebSocketVersion} header, or it has an invalid value.");
+            throw new WebSocketException(CloseStatusCode.ProtocolError,
+                $"Includes no {HttpHeaderNames.SecWebSocketVersion} header, or it has an invalid value.");
         }
 
         WebSocketHandshakeResponse handshakeResponse = new(httpContext);
@@ -233,7 +226,7 @@ internal sealed class WebSocket : IWebSocket
         }
 
         byte[] bytes = Encoding.UTF8.GetBytes(handshakeResponse.ToString());
-        await httpContext.Connection.Stream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
+        await httpContext.Connection.Stream.WriteAsync(bytes).ConfigureAwait(false);
 
         // Signal the original response that headers have been sent.
         httpContext.HttpListenerResponse.HeadersSent = true;
@@ -265,6 +258,7 @@ internal sealed class WebSocket : IWebSocket
                 or CloseStatusCode.TlsHandshakeFailure;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter")]
     private void Dispose(bool disposing)
     {
         try

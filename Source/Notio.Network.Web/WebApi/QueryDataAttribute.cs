@@ -18,7 +18,5 @@ public sealed class QueryDataAttribute : Attribute, IRequestDataAttribute<WebApi
 {
     /// <inheritdoc />
     public Task<NameValueCollection?> GetRequestDataAsync(WebApiController controller, string parameterName)
-    {
-        return Task.FromResult<NameValueCollection?>(controller.HttpContext.GetRequestQueryData());
-    }
+        => Task.FromResult<NameValueCollection?>(controller.HttpContext.GetRequestQueryData());
 }

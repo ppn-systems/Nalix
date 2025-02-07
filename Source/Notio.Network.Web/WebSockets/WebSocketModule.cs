@@ -409,9 +409,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="payload">The payload.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected Task BroadcastAsync(byte[] payload)
-    {
-        return Task.WhenAll(_contexts.Values.Select(c => SendAsync(c, payload)));
-    }
+        => Task.WhenAll(_contexts.Values.Select(c => SendAsync(c, payload)));
 
     /// <summary>
     /// Broadcasts the specified payload to selected WebSocket clients.
@@ -421,9 +419,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// for each context to be included in the broadcast.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected Task BroadcastAsync(byte[] payload, Func<IWebSocketContext, bool> selector)
-    {
-        return Task.WhenAll(_contexts.Values.Where(Validate.NotNull(nameof(selector), selector)).Select(c => SendAsync(c, payload)));
-    }
+        => Task.WhenAll(_contexts.Values.Where(Validate.NotNull(nameof(selector), selector)).Select(c => SendAsync(c, payload)));
 
     /// <summary>
     /// Broadcasts the specified payload to all connected WebSocket clients.
@@ -431,9 +427,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="payload">The payload.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected Task BroadcastAsync(string payload)
-    {
-        return Task.WhenAll(_contexts.Values.Select(c => SendAsync(c, payload)));
-    }
+        => Task.WhenAll(_contexts.Values.Select(c => SendAsync(c, payload)));
 
     /// <summary>
     /// Broadcasts the specified payload to selected WebSocket clients.
@@ -443,9 +437,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// for each context to be included in the broadcast.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected Task BroadcastAsync(string payload, Func<IWebSocketContext, bool> selector)
-    {
-        return Task.WhenAll(_contexts.Values.Where(Validate.NotNull(nameof(selector), selector)).Select(c => SendAsync(c, payload)));
-    }
+        => Task.WhenAll(_contexts.Values.Where(Validate.NotNull(nameof(selector), selector)).Select(c => SendAsync(c, payload)));
 
     /// <summary>
     /// Closes the specified web socket, removes it and disposes it.
@@ -503,9 +495,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="context">The context.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected virtual Task OnClientConnectedAsync(IWebSocketContext context)
-    {
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 
     /// <summary>
     /// Called when the server has removed a connected client for any reason.
@@ -513,9 +503,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="context">The context.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
     protected virtual Task OnClientDisconnectedAsync(IWebSocketContext context)
-    {
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.

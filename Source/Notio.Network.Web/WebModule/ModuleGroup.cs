@@ -22,25 +22,18 @@ namespace Notio.Network.Web.WebModule;
 /// <seealso cref="WebModuleBase" />
 /// <seealso cref="IDisposable" />
 /// <seealso cref="IWebModuleContainer" />
-public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMimeTypeCustomizer
+/// <remarks>
+/// Initializes a new instance of the <see cref="ModuleGroup" /> class.
+/// </remarks>
+/// <param name="baseRoute">The base route served by this module.</param>
+/// <param name="isFinalHandler">The value to set the <see cref="IWebModule.IsFinalHandler" /> property to.
+/// See the help for the property for more information.</param>
+/// <seealso cref="IWebModule.BaseRoute" />
+/// <seealso cref="IWebModule.IsFinalHandler" />
+public class ModuleGroup(string baseRoute, bool isFinalHandler) : WebModuleBase(baseRoute), IDisposable, IWebModuleContainer, IMimeTypeCustomizer
 {
-    private readonly WebModuleCollection _modules;
+    private readonly WebModuleCollection _modules = new WebModuleCollection(nameof(ModuleGroup));
     private readonly MimeTypeCustomizer _mimeTypeCustomizer = new();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ModuleGroup" /> class.
-    /// </summary>
-    /// <param name="baseRoute">The base route served by this module.</param>
-    /// <param name="isFinalHandler">The value to set the <see cref="IWebModule.IsFinalHandler" /> property to.
-    /// See the help for the property for more information.</param>
-    /// <seealso cref="IWebModule.BaseRoute" />
-    /// <seealso cref="IWebModule.IsFinalHandler" />
-    public ModuleGroup(string baseRoute, bool isFinalHandler)
-        : base(baseRoute)
-    {
-        IsFinalHandler = isFinalHandler;
-        _modules = new WebModuleCollection(nameof(ModuleGroup));
-    }
 
     /// <summary>
     /// Finalizes an instance of the <see cref="ModuleGroup"/> class.
@@ -51,7 +44,7 @@ public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMim
     }
 
     /// <inheritdoc />
-    public override sealed bool IsFinalHandler { get; }
+    public override sealed bool IsFinalHandler { get; } = isFinalHandler;
 
     /// <inheritdoc />
     public IComponentCollection<IWebModule> Modules => _modules;
@@ -64,32 +57,22 @@ public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMim
     }
 
     string IMimeTypeProvider.GetMimeType(string extension)
-    {
-        return _mimeTypeCustomizer.GetMimeType(extension);
-    }
+        => _mimeTypeCustomizer.GetMimeType(extension);
 
     bool IMimeTypeProvider.TryDetermineCompression(string mimeType, out bool preferCompression)
-    {
-        return _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
-    }
+        => _mimeTypeCustomizer.TryDetermineCompression(mimeType, out preferCompression);
 
     /// <inheritdoc />
     public void AddCustomMimeType(string extension, string mimeType)
-    {
-        _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
-    }
+        => _mimeTypeCustomizer.AddCustomMimeType(extension, mimeType);
 
     /// <inheritdoc />
     public void PreferCompression(string mimeType, bool preferCompression)
-    {
-        _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
-    }
+        => _mimeTypeCustomizer.PreferCompression(mimeType, preferCompression);
 
     /// <inheritdoc />
     protected override Task OnRequestAsync(IHttpContext context)
-    {
-        return _modules.DispatchRequestAsync(context);
-    }
+        => _modules.DispatchRequestAsync(context);
 
     /// <summary>
     /// Releases unmanaged and - optionally - managed resources.
@@ -116,7 +99,5 @@ public class ModuleGroup : WebModuleBase, IDisposable, IWebModuleContainer, IMim
 
     /// <inheritdoc />
     protected override void OnStart(CancellationToken cancellationToken)
-    {
-        _modules.StartAll(cancellationToken);
-    }
+        => _modules.StartAll(cancellationToken);
 }

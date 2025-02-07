@@ -51,10 +51,7 @@ public class WebApiModule : WebApiModuleBase
     /// <seealso cref="RegisterController(Type)"/>
     /// <seealso cref="WebApiModuleBase.RegisterControllerType{TController}()"/>
     public void RegisterController<TController>()
-        where TController : WebApiController, new()
-    {
-        RegisterControllerType(typeof(TController));
-    }
+        where TController : WebApiController, new() => RegisterControllerType<TController>();
 
     /// <summary>
     /// <para>Registers a controller type using a factory method.</para>
@@ -67,10 +64,7 @@ public class WebApiModule : WebApiModuleBase
     /// <seealso cref="RegisterController(Type,Func{WebApiController})"/>
     /// <seealso cref="WebApiModuleBase.RegisterControllerType{TController}(Func{TController})"/>
     public void RegisterController<TController>(Func<TController> factory)
-        where TController : WebApiController
-    {
-        RegisterControllerType(typeof(TController), factory);
-    }
+        where TController : WebApiController => RegisterControllerType(factory);
 
     /// <summary>
     /// <para>Registers a controller type using a constructor.</para>
@@ -81,10 +75,7 @@ public class WebApiModule : WebApiModuleBase
     /// <seealso cref="RegisterController(Type,Func{WebApiController})"/>
     /// <seealso cref="RegisterController{TController}()"/>
     /// <seealso cref="WebApiModuleBase.RegisterControllerType(Type)"/>
-    public void RegisterController(Type controllerType)
-    {
-        RegisterControllerType(controllerType);
-    }
+    public void RegisterController(Type controllerType) => RegisterControllerType(controllerType);
 
     /// <summary>
     /// <para>Registers a controller type using a factory method.</para>
@@ -97,7 +88,5 @@ public class WebApiModule : WebApiModuleBase
     /// <seealso cref="RegisterController{TController}(Func{TController})"/>
     /// <seealso cref="WebApiModuleBase.RegisterControllerType(Type,Func{WebApiController})"/>
     public void RegisterController(Type controllerType, Func<WebApiController> factory)
-    {
-        RegisterControllerType(controllerType, factory);
-    }
+        => RegisterControllerType(controllerType, factory);
 }

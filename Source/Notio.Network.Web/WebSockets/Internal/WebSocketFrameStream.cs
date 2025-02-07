@@ -36,15 +36,9 @@ internal class WebSocketFrameStream(Stream? stream, bool unmask = false)
         return frame;
     }
 
-    private static bool IsOpcodeData(byte opcode)
-    {
-        return opcode is 0x1 or 0x2;
-    }
+    private static bool IsOpcodeData(byte opcode) => opcode is 0x1 or 0x2;
 
-    private static bool IsOpcodeControl(byte opcode)
-    {
-        return opcode is > 0x7 and < 0x10;
-    }
+    private static bool IsOpcodeControl(byte opcode) => opcode is > 0x7 and < 0x10;
 
     private static WebSocketFrame ProcessHeader(byte[] header)
     {
@@ -111,16 +105,13 @@ internal class WebSocketFrameStream(Stream? stream, bool unmask = false)
 
     private async Task ReadMaskingKeyAsync(WebSocketFrame frame)
     {
-        if (_stream == null)
-        {
-            throw new ArgumentNullException(nameof(_stream));
-        }
+        ArgumentNullException.ThrowIfNull(_stream);
 
         int len = frame.IsMasked ? 4 : 0;
 
         if (len == 0)
         {
-            frame.MaskingKey = Array.Empty<byte>();
+            frame.MaskingKey = [];
             return;
         }
 
@@ -136,10 +127,7 @@ internal class WebSocketFrameStream(Stream? stream, bool unmask = false)
 
     private async Task ReadPayloadDataAsync(WebSocketFrame frame)
     {
-        if (_stream == null)
-        {
-            throw new ArgumentNullException(nameof(_stream));
-        }
+        ArgumentNullException.ThrowIfNull(_stream);
 
         ulong len = frame.FullPayloadLength;
         if (len == 0)

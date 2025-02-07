@@ -47,7 +47,5 @@ public static partial class WebModuleContainerExtensions
         string headers = CorsModule.All,
         string methods = CorsModule.All)
         where TContainer : class, IWebModuleContainer
-    {
-        return WithCors(@this, UrlPath.Root, origins, headers, methods);
-    }
+        => WithCors(@this, UrlPath.Root, origins, headers, methods);
 }

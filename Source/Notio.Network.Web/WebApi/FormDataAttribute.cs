@@ -19,7 +19,5 @@ public sealed class FormDataAttribute : Attribute, IRequestDataAttribute<WebApiC
 {
     /// <inheritdoc />
     public async Task<NameValueCollection?> GetRequestDataAsync(WebApiController controller, string parameterName)
-    {
-        return await controller.HttpContext.GetRequestFormDataAsync();
-    }
+        => await controller.HttpContext.GetRequestFormDataAsync();
 }

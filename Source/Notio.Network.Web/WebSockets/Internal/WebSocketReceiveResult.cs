@@ -10,10 +10,7 @@ internal sealed class WebSocketReceiveResult : IWebSocketReceiveResult
 {
     internal WebSocketReceiveResult(int count, Opcode code)
     {
-        if (count < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(count));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
 
         Count = count;
         EndOfMessage = code == Opcode.Close;

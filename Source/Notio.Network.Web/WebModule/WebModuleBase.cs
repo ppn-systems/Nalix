@@ -99,9 +99,7 @@ public abstract class WebModuleBase : ConfiguredObject, IWebModule
 
     /// <inheritdoc />
     public RouteMatch MatchUrlPath(string urlPath)
-    {
-        return _routeMatcher.Match(urlPath) ?? RouteMatch.None;
-    }
+        => _routeMatcher.Match(urlPath) ?? RouteMatch.None;
 
     /// <inheritdoc />
     public async Task HandleRequestAsync(IHttpContext context)

@@ -5,16 +5,10 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 
-internal class FragmentBuffer : MemoryStream
+internal class FragmentBuffer(Opcode frameOpcode, bool frameIsCompressed) : MemoryStream
 {
-    private readonly bool _fragmentsCompressed;
-    private readonly Opcode _fragmentsOpcode;
-
-    public FragmentBuffer(Opcode frameOpcode, bool frameIsCompressed)
-    {
-        _fragmentsOpcode = frameOpcode;
-        _fragmentsCompressed = frameIsCompressed;
-    }
+    private readonly bool _fragmentsCompressed = frameIsCompressed;
+    private readonly Opcode _fragmentsOpcode = frameOpcode;
 
     public void AddPayload(MemoryStream data)
     {

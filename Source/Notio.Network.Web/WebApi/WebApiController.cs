@@ -63,18 +63,12 @@ public abstract class WebApiController
     /// to perform common operations before any handler gets called.</para>
     /// </summary>
     /// <seealso cref="OnBeforeHandler"/>
-    public void PreProcessRequest()
-    {
-        OnBeforeHandler();
-    }
+    public void PreProcessRequest() => OnBeforeHandler();
 
     /// <summary>
     /// <para>Called before a handler to perform common operations.</para>
     /// <para>The default behavior is to set response headers
     /// in order to prevent caching of the response.</para>
     /// </summary>
-    protected virtual void OnBeforeHandler()
-    {
-        HttpContext.Response.DisableCaching();
-    }
+    protected virtual void OnBeforeHandler() => HttpContext.Response.DisableCaching();
 }
