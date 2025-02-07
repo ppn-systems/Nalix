@@ -19,21 +19,28 @@ internal static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void WritePacketFast(Span<byte> buffer, in Packet packet)
     {
-        int requiredSize = PacketSize.Header + packet.Payload.Length;
-        if (buffer.Length < requiredSize)
-            throw new PackageException("Buffer size is too small to write the packet.");
+        try
+        {
+            int requiredSize = PacketSize.Header + packet.Payload.Length;
+            if (buffer.Length < requiredSize)
+                throw new PackageException("Buffer size is too small to write the packet.");
 
-        ref byte bufferStart = ref MemoryMarshal.GetReference(buffer);
+            ref byte bufferStart = ref MemoryMarshal.GetReference(buffer);
 
-        // Ghi header vào buffer
-        Unsafe.WriteUnaligned(ref bufferStart, (short)requiredSize);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Type), packet.Type);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Flags), packet.Flags);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Priority), packet.Priority);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Command), packet.Command);
+            // Ghi header vào buffer
+            Unsafe.WriteUnaligned(ref bufferStart, (short)requiredSize);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Type), packet.Type);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Flags), packet.Flags);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Priority), packet.Priority);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Command), packet.Command);
 
-        // Sao chép payload một cách hiệu quả
-        packet.Payload.Span.CopyTo(buffer.Slice(PacketSize.Header, packet.Payload.Length));
+            // Sao chép payload một cách hiệu quả
+            packet.Payload.Span.CopyTo(buffer.Slice(PacketSize.Header, packet.Payload.Length));
+        }
+        catch (Exception ex) when (ex is not PackageException)
+        {
+            throw new PackageException("An error occurred while writing the packet.", ex);
+        }
     }
 
     /// <summary>
@@ -45,27 +52,33 @@ internal static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
-        if (data.Length < PacketSize.Header)
-            throw new PackageException("Data size is smaller than the minimum header size.");
+        try
+        {
+            if (data.Length < PacketSize.Header)
+                throw new PackageException("Data size is smaller than the minimum header size.");
 
-        ref byte dataRef = ref MemoryMarshal.GetReference(data);
+            ref byte dataRef = ref MemoryMarshal.GetReference(data);
 
-        // Đọc độ dài của gói tin
-        ushort length = Unsafe.ReadUnaligned<ushort>(ref dataRef);
-        if (length < PacketSize.Header || length > data.Length)
-            throw new PackageException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
+            // Đọc độ dài của gói tin
+            ushort length = Unsafe.ReadUnaligned<ushort>(ref dataRef);
+            if (length < PacketSize.Header || length > data.Length)
+                throw new PackageException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
 
-        // Đọc header từ data
-        byte type = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Type));
-        byte flags = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Flags));
-        byte priority = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Priority));
-        ushort command = Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
+            // Đọc header từ data
+            byte type = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Type));
+            byte flags = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Flags));
+            byte priority = Unsafe.ReadUnaligned<byte>(ref Unsafe.Add(ref dataRef, PacketOffset.Priority));
+            ushort command = Unsafe.ReadUnaligned<ushort>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
 
-        // Sao chép payload một cách hiệu quả
-        ReadOnlyMemory<byte> payload = data[PacketSize.Header..length].ToArray();
+            // Sao chép payload một cách hiệu quả
+            ReadOnlyMemory<byte> payload = data[PacketSize.Header..length].ToArray();
 
-        // Tạo và trả về Packet
-        return new Packet(type, flags, priority, command, payload);
+            return new Packet(type, flags, priority, command, payload);
+        }
+        catch (Exception ex) when (ex is not PackageException)
+        {
+            throw new PackageException("An error occurred while reading the packet.", ex);
+        }
     }
 
     /// <summary>
@@ -93,10 +106,17 @@ internal static class PacketSerializer
     /// <returns>Task biểu diễn hoạt động ghi vào luồng.</returns>
     internal static async Task WriteToStreamAsync(System.IO.Stream stream, Packet packet)
     {
-        int totalSize = PacketSize.Header + packet.Payload.Length;
-        byte[] buffer = new byte[totalSize];
-        WritePacketFast(buffer, packet);
-        await stream.WriteAsync(buffer.AsMemory(0, totalSize));
+        try
+        {
+            int totalSize = PacketSize.Header + packet.Payload.Length;
+            byte[] buffer = new byte[totalSize];
+            WritePacketFast(buffer, packet);
+            await stream.WriteAsync(buffer.AsMemory(0, totalSize));
+        }
+        catch (Exception ex) when (ex is not PackageException)
+        {
+            throw new PackageException("An error occurred while writing the packet to the stream.", ex);
+        }
     }
 
     /// <summary>

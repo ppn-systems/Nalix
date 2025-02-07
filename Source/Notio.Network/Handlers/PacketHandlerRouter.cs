@@ -1,5 +1,6 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Diagnostics;
+using Notio.Common.Exceptions;
 using Notio.Common.Injection;
 using Notio.Common.Logging.Interfaces;
 using Notio.Common.Models;
@@ -77,6 +78,10 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
                 performanceMonitor.Stop();
                 _logger?.Debug($"Command <{packet.Command}> processed in {performanceMonitor.ElapsedMilliseconds}ms");
             }
+        }
+        catch (PackageException ex)
+        {
+            _logger?.Warn($"ID:{connection.Id}/IP:{connection.RemoteEndPoint}/Er:{ex}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

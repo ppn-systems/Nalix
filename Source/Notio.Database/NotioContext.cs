@@ -28,6 +28,21 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
         modelBuilder.ApplyConfiguration(new MessageAttachmentConfiguration());
     }
 
+    public static NotioContext CreateContextWithConnectionString()
+    {
+        var options = new DbContextOptionsBuilder<NotioContext>()
+            .UseSqlServer(AzureSqlConnection, options =>
+                options.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null)
+            ).Options;
+
+        // Create and return the context
+        return new NotioContext(options);
+    }
+
+    public void Migrate() => this.Database.Migrate();
+
+    public void EnsureCreated() => this.Database.EnsureCreated();
+
     private static string GetConnectionString(string name)
     {
         string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
@@ -35,20 +50,5 @@ public sealed class NotioContext(DbContextOptions<NotioContext> options) : DbCon
 
         using var doc = JsonDocument.Parse(File.ReadAllText(configPath));
         return doc.RootElement.GetProperty("ConnectionStrings").GetProperty(name).GetString() ?? string.Empty;
-    }
-
-    // Method to create DbContext with the connection string
-    public static NotioContext CreateContextWithConnectionString()
-    {
-        var options = new DbContextOptionsBuilder<NotioContext>()
-            .UseSqlServer(AzureSqlConnection, options =>
-                options.EnableRetryOnFailure(
-                maxRetryCount: 5, // Số lần thử lại tối đa
-                maxRetryDelay: TimeSpan.FromSeconds(30), // Thời gian chờ tối đa giữa các lần thử lại
-                errorNumbersToAdd: null)
-            ).Options;
-
-        // Create and return the context
-        return new NotioContext(options);
     }
 }
