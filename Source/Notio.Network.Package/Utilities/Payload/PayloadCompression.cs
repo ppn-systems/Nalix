@@ -1,5 +1,6 @@
 ﻿using Notio.Network.Package.Enums;
 using System;
+using System.Buffers;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
@@ -11,6 +12,8 @@ namespace Notio.Network.Package.Utilities.Payload;
 /// </summary>
 public static class PayloadCompression
 {
+    private const int BufferSize = 8192; // 8KB buffer for streaming
+
     /// <summary>
     /// Compresses the given data using the specified algorithm.
     /// </summary>
@@ -21,28 +24,22 @@ public static class PayloadCompression
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Compress(ReadOnlyMemory<byte> data, PacketCompressionMode algorithm)
     {
+        if (data.IsEmpty) return [];
+
+        using MemoryStream outputStream = new(data.Length / 2); // Preallocate capacity
         try
         {
-            using MemoryStream outputStream = new();
-            switch (algorithm)
+            Stream compressionStream = algorithm switch
             {
-                case PacketCompressionMode.GZip:
-                    using (GZipStream gzipStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true))
-                        gzipStream.Write(data.Span);
-                    break;
+                PacketCompressionMode.GZip => new GZipStream(outputStream, CompressionLevel.Optimal, leaveOpen: true),
+                PacketCompressionMode.Deflate => new DeflateStream(outputStream, CompressionLevel.Optimal, leaveOpen: true),
+                PacketCompressionMode.Brotli => new BrotliStream(outputStream, CompressionLevel.Optimal, leaveOpen: true),
+                _ => throw new InvalidOperationException("Unsupported compression algorithm.")
+            };
 
-                case PacketCompressionMode.Deflate:
-                    using (DeflateStream deflateStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true))
-                        deflateStream.Write(data.Span);
-                    break;
-
-                case PacketCompressionMode.Brotli:
-                    using (BrotliStream brotliStream = new(outputStream, CompressionLevel.Optimal, leaveOpen: true))
-                        brotliStream.Write(data.Span);
-                    break;
-
-                default:
-                    throw new InvalidOperationException("Unsupported compression algorithm.");
+            using (compressionStream)
+            {
+                compressionStream.Write(data.Span);
             }
 
             return outputStream.ToArray();
@@ -63,30 +60,32 @@ public static class PayloadCompression
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decompress(ReadOnlyMemory<byte> compressedData, PacketCompressionMode algorithm)
     {
+        if (compressedData.IsEmpty) return [];
+
+        using MemoryStream inputStream = new(compressedData.Length);
+        inputStream.Write(compressedData.Span);
+        inputStream.Position = 0;
+
+        using MemoryStream outputStream = new(compressedData.Length * 2); // Preallocate capacity
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+
         try
         {
-            using MemoryStream inputStream = new(compressedData.ToArray());
-            using MemoryStream outputStream = new();
-
-            switch (algorithm)
+            Stream decompressionStream = algorithm switch
             {
-                case PacketCompressionMode.GZip:
-                    using (GZipStream gzipStream = new(inputStream, CompressionMode.Decompress))
-                        gzipStream.CopyTo(outputStream);
-                    break;
+                PacketCompressionMode.GZip => new GZipStream(inputStream, CompressionMode.Decompress),
+                PacketCompressionMode.Deflate => new DeflateStream(inputStream, CompressionMode.Decompress),
+                PacketCompressionMode.Brotli => new BrotliStream(inputStream, CompressionMode.Decompress),
+                _ => throw new InvalidOperationException("Unsupported decompression algorithm.")
+            };
 
-                case PacketCompressionMode.Deflate:
-                    using (DeflateStream deflateStream = new(inputStream, CompressionMode.Decompress))
-                        deflateStream.CopyTo(outputStream);
-                    break;
-
-                case PacketCompressionMode.Brotli:
-                    using (BrotliStream brotliStream = new(inputStream, CompressionMode.Decompress))
-                        brotliStream.CopyTo(outputStream);
-                    break;
-
-                default:
-                    throw new InvalidOperationException("Unsupported decompression algorithm.");
+            using (decompressionStream)
+            {
+                int bytesRead;
+                while ((bytesRead = decompressionStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    outputStream.Write(buffer, 0, bytesRead);
+                }
             }
 
             return outputStream.ToArray();
@@ -98,6 +97,10 @@ public static class PayloadCompression
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
             throw new InvalidOperationException("Error occurred during data decompression.", ex);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 }

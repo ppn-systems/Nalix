@@ -167,11 +167,9 @@ public static partial class PackageExtensions
     /// <param name="packet">Gói tin cần biểu diễn.</param>
     /// <returns>Chuỗi mô tả gói tin.</returns>
     public static string ToReadableString(this in Packet packet)
-    {
-        return $"Type: {packet.Type}, " +
-               $"Flags: {packet.Flags}, " +
-               $"Priority: {packet.Priority}, " +
-               $"Command: {packet.Command}, " +
-               $"Payload Length: {packet.Payload.Length}";
-    }
+        => $"Type: {packet.Type}, " +
+        $"Flags: {packet.Flags}, " +
+        $"Priority: {packet.Priority}, " +
+        $"Command: {packet.Command}, " +
+        $"Payload Length: {packet.Payload.Length}";
 }

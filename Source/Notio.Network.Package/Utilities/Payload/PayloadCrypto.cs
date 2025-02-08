@@ -4,6 +4,7 @@ using Notio.Cryptography.Ciphers;
 using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Cryptography.Ciphers.Symmetric.Enums;
 using System;
+using System.Buffers;
 
 namespace Notio.Network.Package.Utilities.Payload;
 
@@ -35,32 +36,33 @@ public static class PayloadCrypto
             {
                 case EncryptionMode.Xtea:
                     {
-                        // Calculate the required buffer size (round up to the next multiple of 8)
-                        int bufferSize = data.Length + 7 & ~7;
-                        Memory<byte> encryptedXtea = new byte[bufferSize];
-                        Xtea.Encrypt(data, key.ConvertKey(), encryptedXtea);
-                        return encryptedXtea;
+                        int bufferSize = (data.Length + 7) & ~7;
+                        byte[] encryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
+
+                        try
+                        {
+                            Xtea.Encrypt(data, key.ConvertKey(), encryptedXtea.AsMemory(0, bufferSize));
+                            return encryptedXtea.AsMemory(0, bufferSize);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(encryptedXtea);
+                        }
                     }
 
                 case EncryptionMode.AesGcm:
-                    {
-                        // Encrypt using AES-256 GCM mode
-                        Memory<byte> encrypted = Aes256.GcmMode.Encrypt(data, key);
-                        return encrypted;
-                    }
+                    return Aes256.GcmMode.Encrypt(data, key);
 
                 case EncryptionMode.ChaCha20Poly1305:
                     {
-                        byte[] nonce = CryptoKeyGen.CreateNonce();
+                        Span<byte> nonce = CryptoKeyGen.CreateNonce();
 
-                        // Encrypt using ChaCha20-Poly1305.
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null, out byte[] ciphertext, out byte[] tag);
 
-                        // Combine nonce, ciphertext, and tag.
                         byte[] result = new byte[12 + ciphertext.Length + 16];
-                        Buffer.BlockCopy(nonce, 0, result, 0, 12);
-                        Buffer.BlockCopy(ciphertext, 0, result, 12, ciphertext.Length);
-                        Buffer.BlockCopy(tag, 0, result, 12 + ciphertext.Length, 16);
+                        nonce.CopyTo(result);
+                        ciphertext.CopyTo(result.AsSpan(12));
+                        tag.CopyTo(result.AsSpan(12 + ciphertext.Length));
 
                         return result;
                     }
@@ -98,35 +100,36 @@ public static class PayloadCrypto
             {
                 case EncryptionMode.Xtea:
                     {
-                        int bufferSize = data.Length + 7 & ~7;
-                        Memory<byte> decryptedXtea = new byte[bufferSize];
+                        int bufferSize = (data.Length + 7) & ~7;
+                        byte[] decryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
 
-                        bool success = Xtea.TryDecrypt(data, key.ConvertKey(), decryptedXtea);
-                        if (!success)
-                            throw new InternalErrorException("Authentication failed.");
+                        try
+                        {
+                            if (!Xtea.TryDecrypt(data, key.ConvertKey(), decryptedXtea.AsMemory(0, bufferSize)))
+                                throw new InternalErrorException("Authentication failed.");
 
-                        return decryptedXtea;
+                            return decryptedXtea.AsMemory(0, bufferSize);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(decryptedXtea);
+                        }
                     }
 
                 case EncryptionMode.AesGcm:
-                    {
-                        Memory<byte> decrypted = Aes256.GcmMode.Decrypt(data, key);
-                        return decrypted;
-                    }
+                    return Aes256.GcmMode.Decrypt(data, key);
 
                 case EncryptionMode.ChaCha20Poly1305:
                     {
                         ReadOnlySpan<byte> input = data.Span;
-                        // Ensure the input has at least enough bytes for nonce (12 bytes) and tag (16 bytes)
-                        if (input.Length < 12 + 16)
+                        if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
                             throw new ArgumentException("Invalid data length.", nameof(data));
 
                         ReadOnlySpan<byte> nonce = input[..12];
                         ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
-                        ReadOnlySpan<byte> ciphertext = input.Slice(12, input.Length - 12 - 16);
+                        ReadOnlySpan<byte> ciphertext = input[12..^16];
 
-                        bool success = ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext);
-                        if (!success)
+                        if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
                             throw new PackageException("Authentication failed.");
 
                         return plaintext;
