@@ -102,7 +102,7 @@ public static class Xtea
     /// <param name="key">The decryption key (must be exactly 4 elements).</param>
     /// <param name="output">The buffer to store the decrypted data (must be large enough to hold the result).</param>
     /// <returns>True if the decryption succeeds; otherwise, false.</returns>
-    public static bool TryDecrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
+    public static bool TryDecrypt(Memory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
         try
         {

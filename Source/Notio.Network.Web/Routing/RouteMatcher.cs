@@ -1,5 +1,4 @@
 ﻿using Notio.Network.Web.Utilities;
-using Notio.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -101,9 +100,7 @@ public sealed class RouteMatcher : IEquatable<RouteMatcher>
     /// <returns>A hash code for this instance, suitable for use in hashing algorithms
     /// and data structures like a hash table.</returns>
     public override int GetHashCode()
-    {
-        return CompositeHashCode.Using(Route, IsBaseRoute);
-    }
+        => HashCode.Combine(Route, IsBaseRoute);
 
     /// <summary>
     /// Determines whether the specified <see cref="object"/> is equal to this instance.

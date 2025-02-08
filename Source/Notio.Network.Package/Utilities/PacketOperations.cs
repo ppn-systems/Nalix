@@ -53,7 +53,7 @@ public static class PacketOperations
         byte[] payloadCopy = ArrayPool<byte>.Shared.Rent(packet.Payload.Length);
         packet.Payload.Span.CopyTo(payloadCopy);
         Packet newPacket = new(packet.Type, packet.Flags, packet.Priority, packet.Command,
-            new ReadOnlyMemory<byte>(payloadCopy, 0, packet.Payload.Length));
+            new Memory<byte>(payloadCopy, 0, packet.Payload.Length));
 
         return newPacket;
     }
