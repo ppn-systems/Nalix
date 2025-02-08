@@ -16,79 +16,51 @@ namespace Notio.Network.Package;
 /// Represents a packet structure that can be pooled and disposed.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Packet : IEquatable<Packet>, IDisposable
+public struct Packet : IEquatable<Packet>, IDisposable
 {
-    /// <summary>
-    /// The minimum size of a packet.
-    /// </summary>
     public const ushort MinPacketSize = 256;
-
-    /// <summary>
-    /// The maximum size of a packet.
-    /// </summary>
+    public const ushort StackAllocThreshold = 128;
+    public const ushort VectorCompareThreshold = 32;
     public const ushort MaxPacketSize = ushort.MaxValue;
 
-    private readonly bool _isPooled;
-    private static readonly ArrayPool<byte> _pool = ArrayPool<byte>.Shared;
+    private Memory<byte> _payload;
+    private uint _checksum;
+    private bool _isPooled;
 
     /// <summary>
     /// Gets the total length of the packet.
     /// </summary>
-    public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
+    public readonly ushort Length => (ushort)(PacketSize.Header + Payload.Length);
 
-    /// <summary>
-    /// Gets the unique identifier of the packet.
-    /// </summary>
     public byte Id { get; }
-
-    /// <summary>
-    /// Gets the type of the packet.
-    /// </summary>
     public byte Type { get; }
-
-    /// <summary>
-    /// Gets the flags associated with the packet.
-    /// </summary>
     public byte Flags { get; }
-
-    /// <summary>
-    /// Gets the priority of the packet.
-    /// </summary>
     public byte Priority { get; }
-
-    /// <summary>
-    /// Gets the command of the packet.
-    /// </summary>
     public ushort Command { get; }
-
-    /// <summary>
-    /// Gets the timestamp of the packet, indicating when it was created.
-    /// The timestamp is represented in milliseconds since the Unix epoch.
-    /// </summary>
     public ulong Timestamp { get; }
 
-    /// <summary>
-    /// Gets the checksum of the packet.
-    /// This is used to verify the integrity of the packet's payload.
-    /// </summary>
-    public uint Checksum { get; }
+    public uint Checksum
+    {
+        readonly get => _checksum;
+        private set => _checksum = value;
+    }
+
+    public Memory<byte> Payload
+    {
+        readonly get => _payload;
+        private set => _payload = value;
+    }
 
     /// <summary>
-    /// Gets the payload of the packet.
+    /// Initializes a new instance of the Packet struct.
     /// </summary>
-    public ReadOnlyMemory<byte> Payload { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct.
-    /// </summary>
-    /// <param name="type">The type of the packet.</param>
-    /// <param name="flags">The flags associated with the packet.</param>
-    /// <param name="priority">The priority of the packet.</param>
-    /// <param name="command">The command of the packet.</param>
-    /// <param name="payload">The payload of the packet.</param>
-    /// <exception cref="PackageException">Thrown when the packet size exceeds the 64KB limit.</exception>
+    /// <param name="type">The packet type.</param>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(byte type, byte flags, byte priority, ushort command, ReadOnlyMemory<byte> payload)
+    public Packet(byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
     {
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
@@ -100,21 +72,19 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
         Command = command;
         Priority = priority;
         Checksum = Crc32.ComputeChecksum(payload.Span);
-
-        Payload = AllocatePayload(payload);
+        (Payload, _isPooled) = AllocatePayload(payload);
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with specific enums.
+    /// Initializes a new instance of the Packet struct.
     /// </summary>
-    /// <param name="type">The type of the packet.</param>
-    /// <param name="flags">The flags associated with the packet.</param>
-    /// <param name="priority">The priority of the packet.</param>
-    /// <param name="command">The command of the packet.</param>
-    /// <param name="payload">The payload of the packet.</param>
-    /// <exception cref="PackageException">Thrown when the packet size exceeds the 64KB limit.</exception>
+    /// <param name="type">The packet type.</param>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketType type, PacketFlags flags, PacketPriority priority, ushort command, ReadOnlyMemory<byte> payload)
+    public Packet(PacketType type, PacketFlags flags, PacketPriority priority, ushort command, Memory<byte> payload)
     {
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
@@ -126,24 +96,54 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
         Command = command;
         Priority = (byte)priority;
         Checksum = Crc32.ComputeChecksum(payload.Span);
-        Payload = AllocatePayload(payload);
+        (Payload, _isPooled) = AllocatePayload(payload);
+    }
+
+    public readonly bool IsValid() => Crc32.ComputeChecksum(Payload.Span) == Checksum;
+
+    public readonly bool IsExpired(TimeSpan timeout) =>
+        Clock.UnixMillisecondsNow() - Timestamp > timeout.TotalMilliseconds;
+
+    // Cập nhật operator chuyển đổi ngầm định
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Memory<byte>(Packet packet) => packet.Payload;
+
+    // Thêm phương thức mới để lấy ReadOnlyMemory khi cần
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ReadOnlyMemory<byte> AsReadOnlyMemory() => Payload;
+
+    // Thêm phương thức mới để làm việc trực tiếp với Memory
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Memory<byte> GetMutablePayload() => Payload;
+
+    /// <summary>
+    /// Updates the current packet's payload directly without creating a new instance
+    /// </summary>
+    /// <param name="newPayload">The new payload to replace the current one</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void UpdatePayload(Memory<byte> newPayload)
+    {
+        if (newPayload.Length + PacketSize.Header > MaxPacketSize)
+            throw new PackageException("The packet size exceeds the 64KB limit.");
+
+        // Only return the previous payload if it was pooled.
+        if (_isPooled && MemoryMarshal.TryGetArray<byte>(Payload, out var segment) && segment.Array != null)
+        {
+            try { ArrayPool<byte>.Shared.Return(segment.Array); }
+            catch (ObjectDisposedException) { }
+        }
+
+        _checksum = Crc32.ComputeChecksum(newPayload.Span);
+        (_payload, _isPooled) = AllocatePayload(newPayload);
     }
 
     /// <summary>
-    /// Creates a new packet with a different payload.
+    /// Determines whether the specified packet is equal to the current packet.
     /// </summary>
-    /// <param name="newPayload">The new payload for the packet.</param>
-    /// <returns>A new packet with the updated payload.</returns>
+    /// <param name="other">The packet to compare with the current packet.</param>
+    /// <returns>true if the specified packet is equal to the current packet; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet WithPayload(ReadOnlyMemory<byte> newPayload) => new(Type, Flags, Priority, Command, newPayload);
-
-    /// <summary>
-    /// Checks if the packet is equal to another packet.
-    /// </summary>
-    /// <param name="other">The other packet to compare with.</param>
-    /// <returns>True if the packets are equal, otherwise false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Packet other)
+    public readonly bool Equals(Packet other)
     {
         if (Type != other.Type || Flags != other.Flags || Command != other.Command || Priority != other.Priority)
             return false;
@@ -154,7 +154,6 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
         if (Payload.Length == 0)
             return true;
 
-        // Optimize comparison for small payloads with zero-padding
         if (Payload.Length <= sizeof(ulong))
         {
             Span<byte> buffer1 = stackalloc byte[sizeof(ulong)];
@@ -168,26 +167,20 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
             return MemoryMarshal.Read<ulong>(buffer1) == MemoryMarshal.Read<ulong>(buffer2);
         }
 
-        // Use SIMD for larger payloads
         if (Vector128.IsHardwareAccelerated)
             return MemoryCompareVectorized(Payload.Span, other.Payload.Span);
 
         return Payload.Span.SequenceEqual(other.Payload.Span);
     }
 
-    /// <summary>
-    /// Checks if the packet is equal to another object.
-    /// </summary>
-    /// <param name="obj">The object to compare with.</param>
-    /// <returns>True if the object is a packet and is equal to the current packet, otherwise false.</returns>
-    public override bool Equals(object? obj) => obj is Packet other && Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Packet other && Equals(other);
 
     /// <summary>
-    /// Gets the hash code for the packet.
+    /// Returns a hash code for the current packet.
     /// </summary>
-    /// <returns>The hash code for the packet.</returns>
+    /// <returns>A hash code for the current packet.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Type);
@@ -215,50 +208,35 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
         return hash.ToHashCode();
     }
 
-    /// <summary>
-    /// Equality operator for packets.
-    /// </summary>
-    /// <param name="left">The left packet.</param>
-    /// <param name="right">The right packet.</param>
-    /// <returns>True if the packets are equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Packet left, Packet right) => left.Equals(right);
 
-    /// <summary>
-    /// Inequality operator for packets.
-    /// </summary>
-    /// <param name="left">The left packet.</param>
-    /// <param name="right">The right packet.</param>
-    /// <returns>True if the packets are not equal, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Packet left, Packet right) => !(left == right);
 
-    /// <summary>
-    /// Implicit conversion to ReadOnlyMemory&lt;byte&gt;.
-    /// </summary>
-    /// <param name="packet">The packet to convert.</param>
-    /// <returns>The payload of the packet as ReadOnlyMemory&lt;byte&gt;.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator ReadOnlyMemory<byte>(Packet packet) => packet.Payload;
 
     /// <summary>
-    /// Disposes the packet and returns it to the pool if it was pooled.
+    /// Releases the resources used by the packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
+    public readonly void Dispose()
     {
-        if (_isPooled && MemoryMarshal.TryGetArray(Payload, out var segment) && segment.Array != null)
+        if (!_isPooled) return; // Only return if the memory was rented from ArrayPool.
+        if (MemoryMarshal.TryGetArray<byte>(Payload, out var segment) && segment.Array != null)
         {
-            _pool.Return(segment.Array);
+            try { ArrayPool<byte>.Shared.Return(segment.Array); }
+            catch (ObjectDisposedException) { }
         }
     }
 
     /// <summary>
-    /// Compares memory using SIMD for larger payloads.
+    /// Compares two memory spans using vectorized operations.
     /// </summary>
-    /// <param name="first">The first memory span to compare.</param>
-    /// <param name="second">The second memory span to compare.</param>
-    /// <returns>True if the memory spans are equal, otherwise false.</returns>
+    /// <param name="first">The first memory span.</param>
+    /// <param name="second">The second memory span.</param>
+    /// <returns>true if the spans are equal; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool MemoryCompareVectorized(ReadOnlySpan<byte> first, ReadOnlySpan<byte> second)
     {
@@ -270,7 +248,7 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
         int offset = 0;
         int length = first.Length;
 
-        // Xử lý phần dư đầu tiên không đủ 16 bytes
+        // Compare the trailing bytes that do not fit into a full vector.
         if ((length % Vector128<byte>.Count) != 0)
         {
             int remainder = length % Vector128<byte>.Count;
@@ -280,7 +258,7 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
             length -= remainder;
         }
 
-        // So sánh chính bằng SIMD
+        // Compare using SIMD.
         while (length > 0)
         {
             var v1 = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first), (nuint)offset);
@@ -297,29 +275,32 @@ public readonly struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Allocates memory for the payload efficiently.
+    /// Allocates the payload memory.
     /// </summary>
+    /// <param name="payload">The payload to allocate.</param>
+    /// <returns>A tuple containing the allocated memory and a boolean indicating whether the memory is pooled.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ReadOnlyMemory<byte> AllocatePayload(ReadOnlyMemory<byte> payload)
+    private static (Memory<byte> Memory, bool IsPooled) AllocatePayload(Memory<byte> payload)
     {
         int length = payload.Length;
+        if (length == 0) return (Memory<byte>.Empty, false);
 
-        if (length == 0)
+        if (length <= StackAllocThreshold)
         {
-            return ReadOnlyMemory<byte>.Empty;
+            Span<byte> stackBuffer = stackalloc byte[length];
+            payload.Span.CopyTo(stackBuffer);
+            return (stackBuffer.ToArray(), false);
         }
 
         if (length <= MinPacketSize)
         {
             byte[] inlineArray = GC.AllocateUninitializedArray<byte>(length);
             payload.Span.CopyTo(inlineArray);
-            return inlineArray;
+            return (inlineArray, false);
         }
-        else
-        {
-            byte[] pooledArray = _pool.Rent(length);
-            payload.Span.CopyTo(pooledArray);
-            return new ReadOnlyMemory<byte>(pooledArray, 0, length);
-        }
+
+        byte[] pooledArray = ArrayPool<byte>.Shared.Rent(length);
+        payload.Span.CopyTo(pooledArray);
+        return (new Memory<byte>(pooledArray, 0, length), true);
     }
 }

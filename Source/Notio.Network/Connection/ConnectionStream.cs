@@ -136,12 +136,11 @@ public class ConnectionStream : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (message.Length < 9)
-                throw new ArgumentException("Message must be at least 9 bytes long", nameof(message));
+            if (message.Length < 1)
+                throw new ArgumentException("Message must be at least 1 bytes long", nameof(message));
 
-            Span<byte> key = stackalloc byte[9];
-            message.AsSpan(0, 4).CopyTo(key[..4]);
-            message.AsSpan(message.Length - 5, 5).CopyTo(key.Slice(4, 5));
+            Span<byte> key = stackalloc byte[1];
+            message.AsSpan(0, 1).CopyTo(key[0..]);
 
             if (!CacheOutgoingPacket.TryGetValue(key, out _))
             {
