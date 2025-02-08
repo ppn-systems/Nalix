@@ -5,7 +5,7 @@ namespace Notio.Cryptography.Ciphers.Symmetric.AesMode;
 
 internal static class Ctr
 {
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Encrypt(Memory<byte> plainText, ReadOnlyMemory<byte> key)
     {
         if (plainText.IsEmpty)
             throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));
@@ -44,7 +44,7 @@ internal static class Ctr
         return result;
     }
 
-    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> cipherText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Decrypt(Memory<byte> cipherText, ReadOnlyMemory<byte> key)
     {
         if (cipherText.Length < Aes256.BlockSize)
             throw new ArgumentException("Ciphertext is too short", nameof(cipherText));

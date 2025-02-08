@@ -30,16 +30,15 @@ public static partial class PackageExtensions
         try
         {
             // Encrypt the payload using the helper class.
-            ReadOnlyMemory<byte> encryptedPayload = PayloadCrypto.Encrypt(packet.Payload, key, algorithm);
+            Memory<byte> encryptedPayload = PayloadCrypto.Encrypt(packet.Payload, key, algorithm);
+
+            byte newFlags = packet.Flags.AddFlag(PacketFlags.IsEncrypted);
 
             // Return a new Packet with the updated payload and flags.
-            return new Packet(
-                packet.Type,
-                packet.Flags.AddFlag(PacketFlags.IsEncrypted),
-                packet.Priority,
-                packet.Command,
-                encryptedPayload
-            );
+            packet.UpdateFlags(newFlags);
+            packet.UpdatePayload(encryptedPayload);
+
+            return packet;
         }
         catch (Exception ex)
         {
@@ -63,19 +62,16 @@ public static partial class PackageExtensions
         try
         {
             // Decrypt the payload using the helper class.
-            ReadOnlyMemory<byte> decryptedPayload = PayloadCrypto.Decrypt(packet.Payload, key, algorithm);
+            Memory<byte> decryptedPayload = PayloadCrypto.Decrypt(packet.Payload, key, algorithm);
 
             // Remove the encryption flag on decryption.
-            var newFlags = packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
+            byte newFlags = packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
 
             // Return a new Packet with the updated payload and flags.
-            return new Packet(
-                packet.Type,
-                newFlags,
-                packet.Priority,
-                packet.Command,
-                decryptedPayload
-            );
+            packet.UpdateFlags(newFlags);
+            packet.UpdatePayload(decryptedPayload);
+
+            return packet;
         }
         catch (Exception ex)
         {

@@ -19,21 +19,20 @@ public static partial class PackageExtensions
     /// (Nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(this in Packet @this, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static Packet CompressPayload(this in Packet packet, PacketCompressionMode mode = PacketCompressionMode.GZip)
     {
-        PacketVerifier.ValidateCompressionEligibility(@this);
+        PacketVerifier.ValidateCompressionEligibility(packet);
 
         try
         {
-            byte[] compressedData = PayloadCompression.Compress(@this.Payload, mode);
+            byte[] compressedData = PayloadCompression.Compress(packet.Payload, mode);
 
-            return new Packet(
-                @this.Type,
-                @this.Flags.AddFlag(PacketFlags.IsCompressed),
-                @this.Priority,
-                @this.Command,
-                compressedData
-            );
+            byte newFlags = packet.Flags.AddFlag(PacketFlags.IsCompressed);
+
+            packet.UpdateFlags(newFlags);
+            packet.UpdatePayload(compressedData);
+
+            return packet;
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
@@ -46,24 +45,22 @@ public static partial class PackageExtensions
     /// (Giải nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(this in Packet @this, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static Packet DecompressPayload(this in Packet packet, PacketCompressionMode mode = PacketCompressionMode.GZip)
     {
-        PacketVerifier.ValidateCompressionEligibility(@this);
+        PacketVerifier.ValidateCompressionEligibility(packet);
 
-        if (!@this.Flags.HasFlag(PacketFlags.IsCompressed))
+        if (!packet.Flags.HasFlag(PacketFlags.IsCompressed))
             throw new PackageException("Payload is not marked as compressed.");
 
         try
         {
-            byte[] decompressedData = PayloadCompression.Decompress(@this.Payload, mode);
+            byte[] decompressedData = PayloadCompression.Decompress(packet.Payload, mode);
+            byte newFlags = packet.Flags.RemoveFlag(PacketFlags.IsCompressed);
 
-            return new Packet(
-                @this.Type,
-                @this.Flags.RemoveFlag(PacketFlags.IsCompressed),
-                @this.Priority,
-                @this.Command,
-                decompressedData
-            );
+            packet.UpdateFlags(newFlags);
+            packet.UpdatePayload(decompressedData);
+
+            return packet;
         }
         catch (InvalidDataException ex)
         {

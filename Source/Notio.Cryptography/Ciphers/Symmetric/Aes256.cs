@@ -13,34 +13,34 @@ public static class Aes256
 
     public static class CbcMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(
-            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Encrypt(
+            Memory<byte> plaintext, ReadOnlyMemory<byte> key)
             => AesMode.Cbc.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(
-            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Decrypt(
+            Memory<byte> ciphertext, ReadOnlyMemory<byte> key)
             => AesMode.Cbc.Decrypt(ciphertext, key);
     }
 
     public static class GcmMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(
-            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Encrypt(
+            Memory<byte> plaintext, ReadOnlyMemory<byte> key)
             => AesMode.Gcm.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(
-            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Decrypt(
+            Memory<byte> ciphertext, ReadOnlyMemory<byte> key)
             => AesMode.Gcm.Decrypt(ciphertext, key);
     }
 
     public static class CtrMode
     {
-        public static ReadOnlyMemory<byte> Encrypt(
-            ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Encrypt(
+            Memory<byte> plaintext, ReadOnlyMemory<byte> key)
             => AesMode.Ctr.Encrypt(plaintext, key);
 
-        public static ReadOnlyMemory<byte> Decrypt(
-            ReadOnlyMemory<byte> ciphertext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Decrypt(
+            Memory<byte> ciphertext, ReadOnlyMemory<byte> key)
             => AesMode.Ctr.Decrypt(ciphertext, key);
     }
 }

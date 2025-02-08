@@ -18,7 +18,7 @@ public static class Xtea
     /// <param name="key">The encryption key (must be exactly 4 elements).</param>
     /// <param name="output">The buffer to store the encrypted data (must be large enough to hold the result).</param>
     /// <exception cref="ArgumentException">Thrown when the data is empty or the key is not exactly 4 elements, or the output buffer is too small.</exception>
-    public static void Encrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
+    public static void Encrypt(Memory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
         if (data.IsEmpty)
             throw new ArgumentException("Data cannot be empty", nameof(data));
@@ -64,7 +64,7 @@ public static class Xtea
     /// <param name="key">The decryption key (must be exactly 4 elements).</param>
     /// <param name="output">The buffer to store the decrypted data (must be large enough to hold the result).</param>
     /// <exception cref="ArgumentException">Thrown when the key length is not exactly 4 elements, the data length is not a multiple of 8, or the output buffer is too small.</exception>
-    public static void Decrypt(ReadOnlyMemory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
+    public static void Decrypt(Memory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
         if (key.Length != 4 || data.Length % 8 != 0)
             throw new ArgumentException("Invalid input data or key.");

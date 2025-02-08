@@ -22,7 +22,7 @@ public static class PayloadCrypto
     /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
     /// </param>
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Memory<byte> Encrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key), "Key cannot be null.");
@@ -45,7 +45,7 @@ public static class PayloadCrypto
                 case EncryptionMode.AesGcm:
                     {
                         // Encrypt using AES-256 GCM mode
-                        ReadOnlyMemory<byte> encrypted = Aes256.GcmMode.Encrypt(data, key);
+                        Memory<byte> encrypted = Aes256.GcmMode.Encrypt(data, key);
                         return encrypted;
                     }
 
@@ -85,7 +85,7 @@ public static class PayloadCrypto
     /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
     /// </param>
     /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Memory<byte> Decrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key), "Key cannot be null.");
@@ -110,7 +110,7 @@ public static class PayloadCrypto
 
                 case EncryptionMode.AesGcm:
                     {
-                        ReadOnlyMemory<byte> decrypted = Aes256.GcmMode.Decrypt(data, key);
+                        Memory<byte> decrypted = Aes256.GcmMode.Decrypt(data, key);
                         return decrypted;
                     }
 

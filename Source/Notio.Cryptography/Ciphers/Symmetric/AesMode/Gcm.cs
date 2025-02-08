@@ -8,7 +8,7 @@ internal static class Gcm
     private static readonly int MaxTagSize = AesGcm.TagByteSizes.MaxSize;
     private static readonly int MaxNonceSize = AesGcm.NonceByteSizes.MaxSize;
 
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Encrypt(Memory<byte> plainText, ReadOnlyMemory<byte> key)
     {
         if (plainText.IsEmpty)
             throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));
@@ -41,7 +41,7 @@ internal static class Gcm
         }
     }
 
-    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> cipherText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Decrypt(Memory<byte> cipherText, ReadOnlyMemory<byte> key)
     {
         if (cipherText.Length < MaxNonceSize + MaxTagSize)
             throw new ArgumentException("Ciphertext is too short", nameof(cipherText));

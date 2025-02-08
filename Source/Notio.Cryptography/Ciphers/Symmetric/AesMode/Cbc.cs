@@ -14,7 +14,7 @@ internal static class Cbc
         return aesAlg;
     }
 
-    public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Encrypt(Memory<byte> plainText, ReadOnlyMemory<byte> key)
     {
         if (plainText.IsEmpty)
             throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));
@@ -39,7 +39,7 @@ internal static class Cbc
         }
     }
 
-    public static ReadOnlyMemory<byte> Decrypt(ReadOnlyMemory<byte> cipherText, ReadOnlyMemory<byte> key)
+    public static Memory<byte> Decrypt(Memory<byte> cipherText, ReadOnlyMemory<byte> key)
     {
         if (cipherText.Length < Aes256.IvSize)
             throw new ArgumentException("Ciphertext too short", nameof(cipherText));
