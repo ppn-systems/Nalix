@@ -65,6 +65,9 @@ public abstract partial class UdpListenerBase
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                            .IsTimeSyncEnabled = value;
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[{nameof(UdpListenerBase)}] timesync={value}");
         }
     }
 
@@ -95,7 +98,8 @@ public abstract partial class UdpListenerBase
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                        .TimeSynchronized += this.SynchronizeTime;
 
-        Config.Port = this._port;
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
     }
 
 
@@ -148,7 +152,7 @@ public abstract partial class UdpListenerBase
         }
 
         this._isDisposed = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info($"[{nameof(UdpListenerBase)}] Listener disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info($"[{nameof(UdpListenerBase)}] disposed");
     }
 
     #endregion IDisposable
