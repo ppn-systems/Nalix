@@ -1,11 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<License>Apache</License>
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
+		<PackageReleaseNotes>Introduces new features for HTTP request handling and optimizations for socket communication.</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

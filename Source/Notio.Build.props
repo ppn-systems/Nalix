@@ -3,9 +3,10 @@
 	<!-- Common settings for all projects in the solution -->
 	<PropertyGroup>
 		<!-- Common versioning settings -->
-		<Version>0.2.19</Version>
-		<PackageVersion>0.2.19</PackageVersion>
+		<Version>0.2.28</Version>
 		<Authors>Phuc Nguyen</Authors>
+		<PackageVersion>0.2.28</PackageVersion>
+
 		<Copyright>Copyright © 2025</Copyright>
 		<PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/phcnguyen/Notio</RepositoryUrl>
@@ -16,4 +17,10 @@
 		<OutputPath>..\build\bin</OutputPath>
 		<IntermediateOutputPath>..\build\obj</IntermediateOutputPath>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Include LICENSE and README.md files in the package -->
+		<None Include="..\..\LICENSE" Pack="true" />
+		<None Include="..\..\README.md" Pack="true" />
+	</ItemGroup>
 </Project>

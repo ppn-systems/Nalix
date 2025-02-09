@@ -79,13 +79,13 @@ public static class Aes256Testing
         {
             byte[] originalBytes = GenerateRandomBytes(size);
 
-            ReadOnlyMemory<byte> cbcEncrypted = Aes256.CbcMode.Encrypt(originalBytes, key);
+            Memory<byte> cbcEncrypted = Aes256.CbcMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> cbcDecrypted = Aes256.CbcMode.Decrypt(cbcEncrypted, key);
 
-            ReadOnlyMemory<byte> gcmEncrypted = Aes256.GcmMode.Encrypt(originalBytes, key);
+            Memory<byte> gcmEncrypted = Aes256.GcmMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> gcmDecrypted = Aes256.GcmMode.Decrypt(gcmEncrypted, key);
 
-            ReadOnlyMemory<byte> ctrEncrypted = Aes256.CtrMode.Encrypt(originalBytes, key);
+            Memory<byte> ctrEncrypted = Aes256.CtrMode.Encrypt(originalBytes, key);
             ReadOnlyMemory<byte> ctrDecrypted = Aes256.CtrMode.Decrypt(ctrEncrypted, key);
             if (!originalBytes.AsSpan().SequenceEqual(cbcDecrypted.Span) ||
                 !originalBytes.AsSpan().SequenceEqual(gcmDecrypted.Span) ||

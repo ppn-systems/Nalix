@@ -61,9 +61,9 @@ public class PacketTesting
     {
         var newPayload = new byte[] { 10, 11, 12 };
         var packet = new Packet(1, 0x00, 2, 100, PacketTesting.payload);
-        var updatedPacket = packet.WithPayload(newPayload);
+        packet.UpdatePayload(newPayload);
 
-        Console.WriteLine(updatedPacket.Payload.Span.SequenceEqual(newPayload)
+        Console.WriteLine(packet.Payload.Span.SequenceEqual(newPayload)
             ? "TestPacketWithPayload: Passed"
             : "TestPacketWithPayload: Failed");
     }

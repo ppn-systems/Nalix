@@ -4,6 +4,9 @@
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
+
+		<description>Notio.Cryptography is a package that provides cryptographic algorithms and utilities for secure data encryption and decryption in .NET applications.</description>
+		<releaseNotes>Includes new encryption algorithms and optimizations for existing cryptographic methods.</releaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

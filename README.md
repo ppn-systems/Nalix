@@ -1,11 +1,11 @@
-# ![Icon](Resource/Notio.ico) **Notio**
+# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/Resource/Notio.ico) **Notio**
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Notio)
 
 ## Requirements
 
 - `Visual Studio 2022` (.NET 9 and C# 13 support required)
-- [<img alt="Icon" src="Resource/Visual%20Studio.ico" height="18px" width="20px"> **Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+- [<img alt="Icon" src="https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/Resource/Visual%20Studio.ico" height="18px" width="20px"> **Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
 ## Source Code
 
