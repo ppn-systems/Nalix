@@ -3,9 +3,9 @@
 	<!-- Common settings for all projects in the solution -->
 	<PropertyGroup>
 		<!-- Common versioning settings -->
-		<Version>0.2.30</Version>
+		<Version>0.2.34</Version>
 		<Authors>Phuc Nguyen</Authors>
-		<PackageVersion>0.2.30</PackageVersion>
+		<PackageVersion>0.2.34</PackageVersion>
 
 		<Copyright>Copyright © 2025</Copyright>
 		<PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
@@ -36,7 +36,8 @@
 
 	<!-- Include License and ReadMe files for the package -->
 	<ItemGroup>
-		<None Include="..\..\LICENSE" Pack="true" />
-		<None Include="..\..\README.md" Pack="true" />
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
+		<None Include="..\..\Resource\Notio.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 </Project>

@@ -7,7 +7,10 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<Icon>..\..\Resource\Notio.ico</Icon>
+		<PackageTags>notio</PackageTags>
+		<PackageIcon>Notio.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		
 		<PackageReleaseNotes>Includes bug fixes and performance improvements.</PackageReleaseNotes>
 		<PackageDescription>Notio.Logging is a logging library that integrates with various logging providers to facilitate logging in your .NET applications.</PackageDescription>
@@ -22,4 +25,5 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 	</ItemGroup>
+
 </Project>

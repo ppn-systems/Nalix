@@ -4,6 +4,7 @@ using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -14,10 +15,16 @@ internal class PacketHandlerResolver(ILogger? logger = null)
     private readonly ILogger? _logger = logger;
     private readonly ConcurrentDictionary<int, PacketHandlerInfo> _handlers = new();
 
-    public void RegisterHandlers(Type type, PacketControllerAttribute controllerAttribute)
+    public void RegisterHandlers(
+        [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.NonPublicMethods)] Type type,
+        PacketControllerAttribute controllerAttribute)
     {
-        var methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public |
-                                      BindingFlags.NonPublic | BindingFlags.Static);
+        var methods = type.GetMethods(
+            BindingFlags.Instance | BindingFlags.Public |
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
 
         foreach (var method in methods)
         {

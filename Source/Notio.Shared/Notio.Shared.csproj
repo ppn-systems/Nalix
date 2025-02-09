@@ -6,7 +6,13 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<Icon>..\..\Resource\Notio.ico</Icon>
+		<PackageTags>notio</PackageTags>
+		<PackageIcon>Notio.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+		<ReleaseNotes>Initial release of Notio.Shared package.</ReleaseNotes>
+		<Description>Notio.Shared is a .NET library for managing shared functionality.</Description>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

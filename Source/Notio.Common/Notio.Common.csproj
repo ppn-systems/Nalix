@@ -6,7 +6,10 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<Icon>..\..\Resource\Notio.ico</Icon>
+		<PackageTags>notio</PackageTags>
+		<PackageIcon>Notio.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		
 		<ReleaseNotes>Initial release of Notio.Common package.</ReleaseNotes>
 		<Description>Notio.Common is a .NET library for managing common functionality.</Description>

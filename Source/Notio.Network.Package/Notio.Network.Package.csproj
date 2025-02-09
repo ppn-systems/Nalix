@@ -4,9 +4,14 @@
 		<License>Apache</License>
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<Icon>..\..\Resource\Notio.ico</Icon>
+		<PackageTags>notio</PackageTags>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<PackageIcon>Notio.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
 		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
 		<PackageReleaseNotes>Introduces new features for HTTP request handling and optimizations for socket communication.</PackageReleaseNotes>

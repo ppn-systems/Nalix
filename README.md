@@ -5,7 +5,22 @@
 ## Requirements
 
 - `Visual Studio 2022` (.NET 9 and C# 13 support required)
-- [<img alt="Icon" src="https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/Resource/Visual%20Studio.ico" height="18px" width="20px"> **Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+- [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+
+## Nuget
+
+| ID | Package Name              | Command                                             |
+|----|---------------------------|-----------------------------------------------------|
+| 1  | **Notio**                 | `dotnet add package Notio`                          |
+| 2  | **Notio.Common**          | `dotnet add package Notio.Common`                   |
+| 3  | **Notio.Cryptography**    | `dotnet add package Notio.Cryptography`             |
+| 4  | **Notio.Logging**         | `dotnet add package Notio.Logging`                  |
+| 5  | **Notio.Network**         | `dotnet add package Notio.Network`                  |
+| 6  | **Notio.Network.Package** | `dotnet add package Notio.Network.Package`          |
+| 7  | **Notio.Network.Web**     | `dotnet add package Notio.Network.Web`              |
+| 8  | **Notio.Serialization**   | `dotnet add package Notio.Serialization`            |
+| 9  | **Notio.Shared**          | `dotnet add package Notio.Shared`                   |
+| 10 | **Notio.Storage**         | `dotnet add package Notio.Storage`                  |
 
 ## Source Code
 
