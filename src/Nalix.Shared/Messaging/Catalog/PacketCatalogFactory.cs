@@ -149,15 +149,17 @@ public sealed class PacketCatalogFactory
     /// </summary>
     public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
     {
+        System.Type t = typeof(TPacket);
+
         if (_explicitPacketTypes.Add(typeof(TPacket)))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(PacketCatalogFactory)}] reg-type type={typeof(TPacket).FullName}");
+                                    .Trace($"[{nameof(PacketCatalogFactory)}] reg-type type={t.Namespace}.{t.Name}");
         }
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(PacketCatalogFactory)}] reg-type-skip type={typeof(TPacket).FullName}");
+                                    .Trace($"[{nameof(PacketCatalogFactory)}] reg-type-skip type={t.Namespace}.{t.Name}");
         }
 
         return this;
@@ -280,7 +282,7 @@ public sealed class PacketCatalogFactory
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
             $"[{nameof(PacketCatalogFactory)}] bind-ptr " +
-            $"type={typeof(TPacket).FullName} " +
+            $"type={typeof(TPacket).Namespace}.{typeof(TPacket).Name} " +
             $"deserialize={(miDeserialize is not null ? "yes" : "no")} " +
             $"compress={(miCompress is not null ? "yes" : "no")} " +
             $"decompress={(miDecompress is not null ? "yes" : "no")} " +
@@ -324,21 +326,24 @@ public sealed class PacketCatalogFactory
                 if (type is null || !type.IsClass || type.IsAbstract)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] skip reason=not-class type={type?.FullName}");
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                                   $"skip reason=not-class type={type?.Namespace}.{type?.Name}");
                     continue;
                 }
 
                 if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] skip reason=default-ns type={type.FullName}");
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                                   $"skip reason=default-ns type={type?.Namespace}.{type?.Name}");
                     continue;
                 }
 
                 if (!typeof(IPacket).IsAssignableFrom(type))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] skip reason=not-ipacket type={type.FullName}");
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                                   $"skip reason=not-ipacket type={type?.Namespace}.{type?.Name}");
                     continue;
                 }
 
@@ -362,7 +367,8 @@ public sealed class PacketCatalogFactory
             if (magicAttr is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] skip reason=no-magic type={type.FullName}");
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"skip reason=no-magic type={type?.Namespace}.{type?.Name}");
                 continue;
             }
 
@@ -411,14 +417,15 @@ public sealed class PacketCatalogFactory
                 if (deserializers.ContainsKey(magicAttr.MagicNumber))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Fatal($"[{nameof(PacketCatalogFactory)}] dup-magic val=0x{magicAttr.MagicNumber:X8} type={type.FullName}");
+                                            .Fatal($"[{nameof(PacketCatalogFactory)}] " +
+                                                   $"dup-magic val=0x{magicAttr.MagicNumber:X8} type={type?.Namespace}.{type?.Name}");
                 }
 
                 // Assign Deserialize pointer into Fn<TPacket>
-                _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, null, null, null, null]);
+                _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [miDeserialize, null, null, null, null]);
 
                 // Build a stable PacketDeserializer that jumps to Fn<T>.Deserialize
-                var tGeneric = typeof(Fn<>).MakeGenericType(type);
+                var tGeneric = typeof(Fn<>).MakeGenericType(type!);
                 var doDeserializeMi = tGeneric.GetMethod(nameof(Fn<IPacket>.DoDeserialize), FLAGS)!;
 
                 // Create an actual delegate instance once (no reflection in hot path)
@@ -430,7 +437,8 @@ public sealed class PacketCatalogFactory
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(PacketCatalogFactory)}] miss-deserialize type={type.FullName}");
+                                        .Error($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"miss-deserialize type={type?.Namespace}.{type?.Name}");
                 continue;
             }
 
@@ -438,23 +446,19 @@ public sealed class PacketCatalogFactory
             if (pipelineManaged)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(PacketCatalogFactory)}] pipeline-managed type={type.FullName}");
-                transformers[type] = new PacketTransformer(null, null, null, null);
+                                        .Debug($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"pipeline-managed type={type?.Namespace}.{type?.Name}");
+
+                transformers[type!] = new PacketTransformer(null, null, null, null);
 
                 continue;
             }
 
-            //if (miCompress is null || miDecompress is null || miEncrypt is null || miDecrypt is null)
-            //{
-            //    logger?.Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods on {type.FullName}. Skipping transformers.");
-            //    continue;
-            //}
-
             // Assign all pointers into Fn<TPacket>
-            _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+            _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
 
             // Create public-facing delegates once (jump to Fn<T>.DoXXX)
-            System.Type fnType = typeof(Fn<>).MakeGenericType(type);
+            System.Type fnType = typeof(Fn<>).MakeGenericType(type!);
 
             System.Func<IPacket, IPacket>? compressDel = null;
             System.Func<IPacket, IPacket>? decompressDel = null;
@@ -488,7 +492,7 @@ public sealed class PacketCatalogFactory
                 System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>), doDecryptMi);
             }
 
-            transformers[type] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
+            transformers[type!] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

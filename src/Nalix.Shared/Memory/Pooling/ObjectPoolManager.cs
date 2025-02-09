@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Shared.Injection;
@@ -11,7 +12,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.
 /// </summary>
-public sealed class ObjectPoolManager
+public sealed class ObjectPoolManager : IReportable
 {
     #region Fields
 
@@ -137,7 +138,7 @@ public sealed class ObjectPoolManager
         ObjectPool pool = GetOrCreatePool<T>();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).FullName} count={count}");
+                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).Namespace}.{typeof(T).Name} count={count}");
 
         return pool.Prealloc<T>(count);
     }
@@ -167,7 +168,7 @@ public sealed class ObjectPoolManager
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                         .Info($"[{nameof(ObjectPoolManager)}] " +
-                              $"set-max type={typeof(T).FullName} cap={maxCapacity}");
+                              $"set-max type={typeof(T).Namespace}.{typeof(T).Name} cap={maxCapacity}");
 
         return true;
     }
@@ -384,10 +385,6 @@ public sealed class ObjectPoolManager
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {
         System.Type type = typeof(T);
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ObjectPoolManager)}] create-pool type={type.FullName} max={_defaultMaxPoolSize}");
-
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
 
