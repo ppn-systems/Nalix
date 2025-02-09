@@ -3,22 +3,12 @@
 	<PropertyGroup>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
 
 		<description>Notio.Cryptography is a package that provides cryptographic algorithms and utilities for secure data encryption and decryption in .NET applications.</description>
 		<releaseNotes>Includes new encryption algorithms and optimizations for existing cryptographic methods.</releaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />

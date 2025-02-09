@@ -5,22 +5,12 @@
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>NotioTest</AssemblyName>
-		<TargetFramework>net9.0</TargetFramework>
 
 		<StartupObject>Notio.Testing.Program</StartupObject>
 		<ApplicationIcon>..\..\Resource\Test.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />

@@ -2,7 +2,6 @@
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Metadata;
-using Notio.Shared.Time;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -73,7 +72,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
 
-        this.Timestamp = Clock.UnixMillisecondsNow();
+        this.Timestamp = (ulong)(DateTime.UtcNow.Ticks / 10);
         this.Id = (byte)(Timestamp % byte.MaxValue);
         this.Type = type;
         this.Flags = flags;
@@ -97,7 +96,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("The packet size exceeds the 64KB limit.");
 
-        this.Timestamp = Clock.UnixMillisecondsNow();
+        this.Timestamp = (ulong)(DateTime.UtcNow.Ticks / 10);
         this.Id = (byte)(Timestamp % byte.MaxValue);
         this.Type = (byte)type;
         this.Flags = (byte)flags;
@@ -126,7 +125,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     public readonly bool IsValid() => Crc32.ComputeChecksum(this.Payload.Span) == this.Checksum;
 
     public readonly bool IsExpired(TimeSpan timeout) =>
-        Clock.UnixMillisecondsNow() - Timestamp > timeout.TotalMilliseconds;
+       (ulong)(DateTime.UtcNow.Ticks / 10) - Timestamp > timeout.TotalMilliseconds;
 
     // Cập nhật operator chuyển đổi ngầm định
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

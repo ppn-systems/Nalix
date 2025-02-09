@@ -3,23 +3,40 @@
 	<!-- Common settings for all projects in the solution -->
 	<PropertyGroup>
 		<!-- Common versioning settings -->
-		<Version>0.2.28</Version>
+		<Version>0.2.29</Version>
 		<Authors>Phuc Nguyen</Authors>
-		<PackageVersion>0.2.28</PackageVersion>
+		<PackageVersion>0.2.29</PackageVersion>
 
 		<Copyright>Copyright © 2025</Copyright>
 		<PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/phcnguyen/Notio</RepositoryUrl>
 
 		<!-- Target framework setting for all projects -->
-		<DebugType>none</DebugType>
-		<GenerateJson>false</GenerateJson>
-		<OutputPath>..\build\bin</OutputPath>
-		<IntermediateOutputPath>..\build\obj</IntermediateOutputPath>
+		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 
+	<!-- Configuration settings for Debug build -->
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<OutputPath>..\build\bin\Debug</OutputPath>
+		<IntermediateOutputPath>..\build\obj\Debug</IntermediateOutputPath>
+	</PropertyGroup>
+
+	<!-- Configuration settings for Release build -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<!-- Optimize code during pack for Release mode -->
+		<Optimize>true</Optimize>
+		<DebugType>none</DebugType>
+		<GenerateJson>false</GenerateJson>
+		<Deterministic>true</Deterministic>
+		<UseCompression>true</UseCompression>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+		<OutputPath>..\build\bin\Release</OutputPath>
+		<IntermediateOutputPath>..\build\obj\Release</IntermediateOutputPath>
+	</PropertyGroup>
+
+	<!-- Include License and ReadMe files for the package -->
 	<ItemGroup>
-		<!-- Include LICENSE and README.md files in the package -->
 		<None Include="..\..\LICENSE" Pack="true" />
 		<None Include="..\..\README.md" Pack="true" />
 	</ItemGroup>

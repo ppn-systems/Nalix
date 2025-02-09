@@ -6,7 +6,6 @@
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
 		<AssemblyName>Notio</AssemblyName>
-		<TargetFramework>net9.0</TargetFramework>
 
 		<!-- Application settings -->
 		<ApplicationIcon>..\..\Resource\Notio.ico</ApplicationIcon>
@@ -14,15 +13,6 @@
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />

@@ -9,15 +9,6 @@
 
 	<Import Project="..\Notio.Build.props" />
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />

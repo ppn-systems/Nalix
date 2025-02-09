@@ -5,7 +5,6 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
@@ -14,21 +13,7 @@
 
 	<Import Project="..\Notio.Build.props" />
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
-
 	<ItemGroup>
-	  <None Include="PackageExtensions.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
 		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />
 	</ItemGroup>
 

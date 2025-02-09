@@ -4,19 +4,10 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<Optimize>true</Optimize>
-		<Deterministic>true</Deterministic>
-		<UseCompression>true</UseCompression>
-	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
