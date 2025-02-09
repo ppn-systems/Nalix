@@ -1,4 +1,4 @@
-# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/Resource/Notio.ico) **Notio**
+# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Notio.ico) **Notio**
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Notio)
 
