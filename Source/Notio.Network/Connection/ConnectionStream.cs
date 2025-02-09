@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Shared.Memory.Cache;
-using Notio.Time;
+using Notio.Shared.Time;
 using System;
 using System.IO;
 using System.Net.Sockets;

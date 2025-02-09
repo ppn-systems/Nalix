@@ -4,7 +4,8 @@
 		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<Platforms>AnyCPU</Platforms>
-		<AssemblyName>NotioTest</AssemblyName>
+		<IsPackable>false</IsPackable>
+		<AssemblyName>TNotio</AssemblyName>
 
 		<StartupObject>Notio.Testing.Program</StartupObject>
 		<ApplicationIcon>..\..\Resource\Test.ico</ApplicationIcon>

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Time;
+namespace Notio.Shared.Time;
 
 /// <summary>
 /// Handles precise time for the system with high accuracy.

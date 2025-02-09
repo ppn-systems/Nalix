@@ -3,7 +3,6 @@ using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -15,15 +14,14 @@ namespace Notio.Shared;
 public static class FromString
 {
     // This method info is used for converting via TypeConverter in ConvertExpressionTo.
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
     private static readonly MethodInfo ConvertFromInvariantStringMethod =
-        new Func<string, object?>(TypeDescriptor.GetConverter(typeof(int)).ConvertFromInvariantString).Method;
+        typeof(TypeConverter).GetMethod(nameof(TypeConverter.ConvertFromInvariantString), [typeof(string)])
+        ?? throw new InvalidOperationException($"Method '{nameof(TypeConverter.ConvertFromInvariantString)}' not found.");
 
     // The non-generic internal method for converting arrays.
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
     private static readonly MethodInfo TryConvertToInternalMethod =
-        typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException($"Method '{nameof(TryConvertToInternal)}' not found.");
+            typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Method '{nameof(TryConvertToInternal)}' not found.");
 
     // Cache for compiled lambdas for converting arrays.
     private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>> GenericTryConvertToMethods = new();

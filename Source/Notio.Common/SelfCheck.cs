@@ -28,9 +28,12 @@ public static class SelfCheck
     /// <returns>
     /// A newly-created instance of <see cref="InternalErrorException"/>.
     /// </returns>
-    public static InternalErrorException Failure(string message, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
+    public static InternalErrorException Failure(string message,
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
         => new(BuildMessage(message, filePath, lineNumber));
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     private static string BuildMessage(string message, string filePath, int lineNumber)
     {
         var frames = new StackTrace().GetFrames();
@@ -45,10 +48,10 @@ public static class SelfCheck
         {
         }
 
-        var frame = frames.FirstOrDefault(f => f.GetMethod().ReflectedType != typeof(SelfCheck));
-        var sb = new StringBuilder()
-            .Append('[')
-            .Append(frame?.GetType().Assembly.GetName().Name ?? "<unknown>");
+        StackFrame frame = frames.FirstOrDefault(f => f?.GetMethod()?.ReflectedType != typeof(SelfCheck));
+        StringBuilder sb = new();
+
+        sb.Append('[').Append(frame?.GetType().Assembly.GetName().Name ?? "<unknown>");
 
         if (!string.IsNullOrEmpty(filePath))
         {

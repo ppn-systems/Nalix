@@ -3,8 +3,11 @@
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 		<Icon>..\..\Resource\Notio.ico</Icon>
+		
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
