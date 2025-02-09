@@ -30,3 +30,9 @@ Getting started with Notio couldn't be easier. Make sure you have Visual Studio 
 - Open `Notio.sln`
 - Restore Nuget packages
 - Build
+
+### Contributing
+
+When contributing please keep in mind our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+_Notio is copyright &copy; PhcNguyen - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html)._
