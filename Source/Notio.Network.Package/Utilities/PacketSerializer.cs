@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 namespace Notio.Network.Package.Utilities;
 
 [SkipLocalsInit]
-internal static class PacketSerializer
+public static class PacketSerializer
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void WritePacketFast(Span<byte> buffer, in Packet packet)
+    public static void WritePacketFast(Span<byte> buffer, in Packet packet)
     {
         try
         {
@@ -23,11 +23,14 @@ internal static class PacketSerializer
 
             ref byte bufferStart = ref MemoryMarshal.GetReference(buffer);
 
-            Unsafe.WriteUnaligned(ref bufferStart, (short)requiredSize);
+            Unsafe.WriteUnaligned(ref bufferStart, (ushort)requiredSize);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Id), packet.Id);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Type), packet.Type);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Flags), packet.Flags);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Priority), packet.Priority);
             Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Command), packet.Command);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Timestamp), packet.Timestamp);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Checksum), packet.Checksum);
 
             packet.Payload.Span.CopyTo(buffer.Slice(PacketSize.Header, packet.Payload.Length));
         }
@@ -38,7 +41,7 @@ internal static class PacketSerializer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Packet ReadPacketFast(ReadOnlySpan<byte> data)
+    public static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
         try
         {
@@ -51,12 +54,17 @@ internal static class PacketSerializer
             if (length < PacketSize.Header || length > data.Length)
                 throw new PackageException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
 
+            byte id = Unsafe.Add(ref dataRef, PacketOffset.Id);
             byte type = Unsafe.Add(ref dataRef, PacketOffset.Type);
             byte flags = Unsafe.Add(ref dataRef, PacketOffset.Flags);
             byte priority = Unsafe.Add(ref dataRef, PacketOffset.Priority);
             ushort command = Unsafe.As<byte, ushort>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
+            ulong timestamp = Unsafe.As<byte, ulong>(ref Unsafe.Add(ref dataRef, PacketOffset.Timestamp));
+            uint checksum = Unsafe.As<byte, uint>(ref Unsafe.Add(ref dataRef, PacketOffset.Checksum));
 
-            return new Packet(type, flags, priority, command, data[PacketSize.Header..length].ToArray());
+            Memory<byte> payload = data[PacketSize.Header..length].ToArray();
+
+            return new Packet(id, type, flags, priority, command, timestamp, checksum, payload);
         }
         catch (Exception ex) when (ex is not PackageException)
         {
@@ -64,13 +72,13 @@ internal static class PacketSerializer
         }
     }
 
-    internal static ValueTask WritePacketFastAsync(Memory<byte> buffer, Packet packet)
+    public static ValueTask WritePacketFastAsync(Memory<byte> buffer, Packet packet)
         => new(Task.Run(() => WritePacketFast(buffer.Span, packet)));
 
-    internal static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data)
+    public static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data)
         => new(Task.Run(() => ReadPacketFast(data.Span)));
 
-    internal static async Task WriteToStreamAsync(Stream stream, Packet packet)
+    public static async Task WriteToStreamAsync(Stream stream, Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(totalSize);
@@ -86,7 +94,7 @@ internal static class PacketSerializer
         }
     }
 
-    internal static async Task<Packet> ReadFromStreamAsync(Stream stream)
+    public static async Task<Packet> ReadFromStreamAsync(Stream stream)
     {
         byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(PacketSize.Header);
         try

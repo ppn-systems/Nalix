@@ -107,6 +107,22 @@ public struct Packet : IEquatable<Packet>, IDisposable
         (this.Payload, this.IsPooled) = AllocatePayload(payload);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(byte id, byte type, byte flags, byte priority, ushort command, ulong timestamp, uint checksum, Memory<byte> payload)
+    {
+        if (payload.Length + PacketSize.Header > MaxPacketSize)
+            throw new PackageException("The packet size exceeds the 64KB limit.");
+
+        this.Id = id;
+        this.Type = type;
+        this.Flags = flags;
+        this.Priority = priority;
+        this.Command = command;
+        this.Timestamp = timestamp;
+        this.Checksum = checksum;
+        (this.Payload, this.IsPooled) = AllocatePayload(payload);
+    }
+
     public readonly bool IsValid() => Crc32.ComputeChecksum(this.Payload.Span) == this.Checksum;
 
     public readonly bool IsExpired(TimeSpan timeout) =>
