@@ -1,7 +1,4 @@
-﻿using System;
-using System.Buffers;
-
-namespace Notio.Network.Package.Utilities;
+﻿namespace Notio.Network.Package.Utilities;
 
 public static class PacketOperations
 {
@@ -16,7 +13,9 @@ public static class PacketOperations
         byte[] payloadCopy = new byte[packet.Payload.Length];
         packet.Payload.Span.CopyTo(payloadCopy);
 
-        return new Packet(packet.Type, packet.Flags, packet.Priority, packet.Command, payloadCopy);
+        return new Packet(packet.Id, packet.Type,
+            packet.Flags, packet.Priority, packet.Command,
+            packet.Timestamp, packet.Checksum, payloadCopy);
     }
 
     /// <summary>
@@ -37,24 +36,5 @@ public static class PacketOperations
             clonedPacket = default;
             return false;
         }
-    }
-
-    /// <summary>
-    /// Creates a clone with performance optimizations.
-    /// </summary>
-    /// <param name="packet">The Packet to clone.</param>
-    /// <returns>A new Packet that is a copy of the original, with performance improvements.</returns>
-    public static Packet CloneOptimized(Packet packet)
-    {
-        // Optimize payload copy for cases where a new array is not needed
-        if (packet.Payload.Length <= Packet.MinPacketSize)
-            return packet;
-
-        byte[] payloadCopy = ArrayPool<byte>.Shared.Rent(packet.Payload.Length);
-        packet.Payload.Span.CopyTo(payloadCopy);
-        Packet newPacket = new(packet.Type, packet.Flags, packet.Priority, packet.Command,
-            new Memory<byte>(payloadCopy, 0, packet.Payload.Length));
-
-        return newPacket;
     }
 }
