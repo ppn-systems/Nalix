@@ -103,7 +103,7 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task SendAsync(byte[] message, CancellationToken cancellationToken = default)
+    public async Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         if (this.State == ConnectionState.Authenticated)
         {
@@ -169,7 +169,7 @@ public sealed class Connection : IConnection, IDisposable
         }
     }
 
-    private ReadOnlyMemory<byte> OnDataReceived(ReadOnlyMemory<byte> data)
+    private ReadOnlyMemory<byte> OnDataReceived(Memory<byte> data)
     {
         if (this.State == ConnectionState.Authenticated)
         {

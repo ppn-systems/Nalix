@@ -45,7 +45,7 @@ public class ConnectionStream : IDisposable
     /// <summary>
     /// A delegate that processes received data.
     /// </summary>
-    public Func<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>? TransformReceivedData;
+    public Func<Memory<byte>, ReadOnlyMemory<byte>>? TransformReceivedData;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionStream"/> class.
@@ -103,10 +103,8 @@ public class ConnectionStream : IDisposable
             if (message.Length < 9)
                 throw new ArgumentException("Message must be at least 9 bytes long", nameof(message));
 
-            // Allocate a key of 9 bytes.
-            Span<byte> key = stackalloc byte[9];
-            message[..4].CopyTo(key[..4]);
-            message.Slice(message.Length - 5, 5).CopyTo(key.Slice(4, 5));
+            Span<byte> key = stackalloc byte[1];
+            message[..1].CopyTo(key[0..]);
 
             // Cache the message if the key is not already present.
             if (!CacheOutgoingPacket.TryGetValue(key, out _))
@@ -130,7 +128,7 @@ public class ConnectionStream : IDisposable
     /// <param name="message">The message to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the message was sent successfully; otherwise, false.</returns>
-    public async Task<bool> SendAsync(byte[] message, CancellationToken cancellationToken = default)
+    public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -140,7 +138,7 @@ public class ConnectionStream : IDisposable
                 throw new ArgumentException("Message must be at least 1 bytes long", nameof(message));
 
             Span<byte> key = stackalloc byte[1];
-            message.AsSpan(0, 1).CopyTo(key[0..]);
+            message.Span[0..].CopyTo(key[0..]);
 
             if (!CacheOutgoingPacket.TryGetValue(key, out _))
             {
@@ -188,7 +186,7 @@ public class ConnectionStream : IDisposable
                 totalBytesRead += bytesRead;
             }
 
-            ReadOnlyMemory<byte> receivedData = _buffer.AsMemory(0, totalBytesRead);
+            Memory<byte> receivedData = _buffer.AsMemory(0, totalBytesRead);
             byte[] processedData = TransformReceivedData?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
 
             CacheIncomingPacket.Add(processedData);

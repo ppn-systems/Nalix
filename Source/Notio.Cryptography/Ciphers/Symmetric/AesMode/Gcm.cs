@@ -9,6 +9,9 @@ internal static class Gcm
     private static readonly int MaxNonceSize = AesGcm.NonceByteSizes.MaxSize;
 
     public static Memory<byte> Encrypt(Memory<byte> plainText, ReadOnlyMemory<byte> key)
+        => Encrypt(plainText, key);
+
+    public static Memory<byte> Encrypt(ReadOnlyMemory<byte> plainText, ReadOnlyMemory<byte> key)
     {
         if (plainText.IsEmpty)
             throw new ArgumentException("Plaintext cannot be empty", nameof(plainText));

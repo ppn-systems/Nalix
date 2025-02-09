@@ -95,7 +95,7 @@ public interface IConnection : IDisposable
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task SendAsync(byte[] message, CancellationToken cancellationToken = default);
+    Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.

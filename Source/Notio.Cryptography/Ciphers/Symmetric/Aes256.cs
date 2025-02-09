@@ -24,12 +24,13 @@ public static class Aes256
 
     public static class GcmMode
     {
-        public static Memory<byte> Encrypt(
-            Memory<byte> plaintext, ReadOnlyMemory<byte> key)
+        public static Memory<byte> Encrypt(Memory<byte> plaintext, ReadOnlyMemory<byte> key)
             => AesMode.Gcm.Encrypt(plaintext, key);
 
-        public static Memory<byte> Decrypt(
-            Memory<byte> ciphertext, ReadOnlyMemory<byte> key)
+        public static ReadOnlyMemory<byte> Encrypt(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> key)
+            => AesMode.Gcm.Encrypt(plaintext, key);
+
+        public static Memory<byte> Decrypt(Memory<byte> ciphertext, ReadOnlyMemory<byte> key)
             => AesMode.Gcm.Decrypt(ciphertext, key);
     }
 
