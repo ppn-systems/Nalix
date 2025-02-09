@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Memory.Pools;
+﻿namespace Notio.Common.Memory;
 
 /// <summary>
 /// Quản lý các bộ đệm có nhiều kích thước khác nhau.

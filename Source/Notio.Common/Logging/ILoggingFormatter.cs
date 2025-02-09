@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Models;
 
-namespace Notio.Common.Logging.Interfaces;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Giao diện định nghĩa trình định dạng cho các thông điệp nhật ký.

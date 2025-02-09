@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace Notio.Serialization.Diagnostics;
+namespace Notio.Diagnostics;
 
 /// <summary>
 /// A simple benchmarking class.

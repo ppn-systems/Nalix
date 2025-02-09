@@ -13,13 +13,29 @@ namespace Notio.Network.Package;
 
 /// <summary>
 /// Represents a packet structure that can be pooled and disposed.
+/// This packet contains metadata and a payload with associated checksum and flags.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct Packet : IEquatable<Packet>, IDisposable
 {
+    /// <summary>
+    /// The minimum packet size (in bytes).
+    /// </summary>
     public const ushort MinPacketSize = 256;
+
+    /// <summary>
+    /// Threshold size for deciding whether to use stack allocation or heap allocation for payload.
+    /// </summary>
     public const ushort StackAllocThreshold = 128;
+
+    /// <summary>
+    /// Threshold for optimized vectorized memory comparison.
+    /// </summary>
     public const ushort VectorCompareThreshold = 32;
+
+    /// <summary>
+    /// The maximum allowed packet size (in bytes), 64KB.
+    /// </summary>
     public const ushort MaxPacketSize = ushort.MaxValue;
 
     private Memory<byte> _payload;
@@ -33,25 +49,52 @@ public struct Packet : IEquatable<Packet>, IDisposable
     /// </summary>
     public readonly ushort Length => (ushort)(PacketSize.Header + Payload.Length);
 
+    /// <summary>
+    /// Gets the packet identifier.
+    /// </summary>
     public byte Id { get; }
+
+    /// <summary>
+    /// Gets the packet type.
+    /// </summary>
     public byte Type { get; }
 
+    /// <summary>
+    /// Gets or sets the packet flags.
+    /// </summary>
     public byte Flags
     {
         readonly get => _flags;
         private set => _flags = value;
     }
 
+    /// <summary>
+    /// Gets the packet priority.
+    /// </summary>
     public byte Priority { get; }
+
+    /// <summary>
+    /// Gets the command associated with the packet.
+    /// </summary>
     public ushort Command { get; }
+
+    /// <summary>
+    /// Gets the timestamp when the packet was created.
+    /// </summary>
     public ulong Timestamp { get; }
 
+    /// <summary>
+    /// Gets or sets the checksum of the packet, computed based on the payload.
+    /// </summary>
     public uint Checksum
     {
         readonly get => _checksum;
         private set => _checksum = value;
     }
 
+    /// <summary>
+    /// Gets the payload of the packet.
+    /// </summary>
     public Memory<byte> Payload
     {
         readonly get => _payload;
@@ -59,7 +102,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the Packet struct.
+    /// Initializes a new instance of the <see cref="Packet"/> struct.
     /// </summary>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
@@ -83,7 +126,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the Packet struct.
+    /// Initializes a new instance of the <see cref="Packet"/> struct.
     /// </summary>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
@@ -106,6 +149,18 @@ public struct Packet : IEquatable<Packet>, IDisposable
         (this.Payload, this.IsPooled) = AllocatePayload(payload);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct.
+    /// </summary>
+    /// <param name="id">The packet identifier.</param>
+    /// <param name="type">The packet type.</param>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="timestamp">The packet timestamp.</param>
+    /// <param name="checksum">The packet checksum.</param>
+    /// <param name="payload">The packet payload.</param>
+    /// <exception cref="PackageException">Thrown if the payload size exceeds the maximum allowed packet size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(byte id, byte type, byte flags, byte priority, ushort command, ulong timestamp, uint checksum, Memory<byte> payload)
     {
@@ -122,27 +177,42 @@ public struct Packet : IEquatable<Packet>, IDisposable
         (this.Payload, this.IsPooled) = AllocatePayload(payload);
     }
 
+    /// <summary>
+    /// Verifies the packet's checksum matches the computed checksum based on the payload.
+    /// </summary>
+    /// <returns>True if the checksum matches; otherwise, false.</returns>
     public readonly bool IsValid() => Crc32.ComputeChecksum(this.Payload.Span) == this.Checksum;
 
+    /// <summary>
+    /// Determines if the packet has expired based on the provided timeout.
+    /// </summary>
+    /// <param name="timeout">The timeout to compare against the packet's timestamp.</param>
+    /// <returns>True if the packet has expired; otherwise, false.</returns>
     public readonly bool IsExpired(TimeSpan timeout) =>
-       (ulong)(DateTime.UtcNow.Ticks / 10) - Timestamp > timeout.TotalMilliseconds;
+        (ulong)(DateTime.UtcNow.Ticks / 10) - Timestamp > timeout.TotalMilliseconds;
 
-    // Cập nhật operator chuyển đổi ngầm định
+    /// <summary>
+    /// Implicit conversion from <see cref="Packet"/> to <see cref="Memory{Byte}"/>.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Memory<byte>(Packet packet) => packet.Payload;
 
-    // Thêm phương thức mới để lấy ReadOnlyMemory khi cần
+    /// <summary>
+    /// Returns a <see cref="ReadOnlyMemory{Byte}"/> representation of the packet payload.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ReadOnlyMemory<byte> AsReadOnlyMemory() => this.Payload;
 
-    // Thêm phương thức mới để làm việc trực tiếp với Memory
+    /// <summary>
+    /// Returns a mutable <see cref="Memory{Byte}"/> representation of the packet payload.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Memory<byte> GetMutablePayload() => this.Payload;
 
     /// <summary>
-    /// Updates the current packet's payload directly without creating a new instance
+    /// Updates the current packet's payload without creating a new instance.
     /// </summary>
-    /// <param name="newPayload">The new payload to replace the current one</param>
+    /// <param name="newPayload">The new payload to replace the current one.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UpdatePayload(Memory<byte> newPayload)
     {
@@ -160,13 +230,17 @@ public struct Packet : IEquatable<Packet>, IDisposable
         (this.Payload, this.IsPooled) = AllocatePayload(newPayload);
     }
 
+    /// <summary>
+    /// Updates the flags of the current packet.
+    /// </summary>
+    /// <param name="flags">The new flags to set.</param>
     public void UpdateFlags(byte flags) => this.Flags = flags;
 
     /// <summary>
-    /// Determines whether the specified packet is equal to the current packet.
+    /// Compares the current packet with another packet for equality.
     /// </summary>
-    /// <param name="other">The packet to compare with the current packet.</param>
-    /// <returns>true if the specified packet is equal to the current packet; otherwise, false.</returns>
+    /// <param name="other">The packet to compare with.</param>
+    /// <returns>True if the packets are equal; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool Equals(Packet other)
     {
@@ -201,6 +275,11 @@ public struct Packet : IEquatable<Packet>, IDisposable
         return this.Payload.Span.SequenceEqual(other.Payload.Span);
     }
 
+    /// <summary>
+    /// Compares the current packet with another object for equality.
+    /// </summary>
+    /// <param name="obj">The object to compare with.</param>
+    /// <returns>True if the object is a <see cref="Packet"/> and is equal to the current packet; otherwise, false.</returns>
     public override readonly bool Equals(object? obj) => obj is Packet other && Equals(other);
 
     /// <summary>
@@ -236,12 +315,15 @@ public struct Packet : IEquatable<Packet>, IDisposable
         return hash.ToHashCode();
     }
 
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Packet left, Packet right) => left.Equals(right);
 
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Packet left, Packet right) => !(left == right);
 
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator ReadOnlyMemory<byte>(Packet packet) => packet.Payload;
 

@@ -1,48 +1,52 @@
 ﻿using System;
 
-namespace Notio.Common.Models;
+namespace Notio.Common.Logging;
 
 /// <summary>
-/// Xác định một sự kiện ghi log. Trình nhận dạng chính là thuộc tính "Id", với thuộc tính "Name" cung cấp một mô tả ngắn về loại sự kiện này.
+/// Represents a log event. The identifier is the "Id" property, with the "Name" property providing a brief description of the event type.
 /// </summary>
 /// <remarks>
-/// Khởi tạo một phiên bản của cấu trúc <see cref="EventId"/>.
+/// Initializes an instance of the <see cref="EventId"/> struct.
 /// </remarks>
-/// <param name="id">Trình nhận dạng số của sự kiện này.</param>
-/// <param name="name">Tên của sự kiện này.</param>
+/// <param name="id">The numeric identifier of this event.</param>
+/// <param name="name">The name of this event.</param>
 public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
 {
+    /// <summary>
+    /// Represents an empty or uninitialized <see cref="EventId"/> with an ID of 0.
+    /// This value is commonly used to represent a default or missing event.
+    /// </summary>
     public static readonly EventId Empty = new(0);
 
     /// <summary>
-    /// Tạo ngầm một EventId từ <see cref="int"/> được cung cấp.
+    /// Implicitly creates an EventId from the provided <see cref="int"/>.
     /// </summary>
-    /// <param name="i">Giá trị <see cref="int"/> để chuyển đổi thành EventId.</param>
+    /// <param name="i">The <see cref="int"/> value to convert into an EventId.</param>
     public static implicit operator EventId(int i) => new(i);
 
     /// <summary>
-    /// Kiểm tra xem hai phiên bản <see cref="EventId"/> được chỉ định có cùng giá trị không. Chúng bằng nhau nếu có cùng ID.
+    /// Checks if two specified <see cref="EventId"/> instances are equal. They are considered equal if they have the same ID.
     /// </summary>
-    /// <param name="left">Phiên bản đầu tiên của <see cref="EventId"/>.</param>
-    /// <param name="right">Phiên bản thứ hai của <see cref="EventId"/>.</param>
-    /// <returns><see langword="true" /> nếu các đối tượng bằng nhau.</returns>
+    /// <param name="left">The first <see cref="EventId"/> instance.</param>
+    /// <param name="right">The second <see cref="EventId"/> instance.</param>
+    /// <returns><see langword="true" /> if the instances are equal.</returns>
     public static bool operator ==(EventId left, EventId right) => left.Equals(right);
 
     /// <summary>
-    /// Kiểm tra xem hai phiên bản <see cref="EventId"/> được chỉ định có khác nhau không.
+    /// Checks if two specified <see cref="EventId"/> instances are not equal.
     /// </summary>
-    /// <param name="left">Phiên bản đầu tiên của <see cref="EventId"/>.</param>
-    /// <param name="right">Phiên bản thứ hai của <see cref="EventId"/>.</param>
-    /// <returns><see langword="true" /> nếu các đối tượng không bằng nhau.</returns>
+    /// <param name="left">The first <see cref="EventId"/> instance.</param>
+    /// <param name="right">The second <see cref="EventId"/> instance.</param>
+    /// <returns><see langword="true" /> if the instances are not equal.</returns>
     public static bool operator !=(EventId left, EventId right) => !left.Equals(right);
 
     /// <summary>
-    /// Lấy trình nhận dạng số của sự kiện này.
+    /// Gets the numeric identifier of this event.
     /// </summary>
     public int Id { get; } = id;
 
     /// <summary>
-    /// Lấy tên của sự kiện này.
+    /// Gets the name of this event.
     /// </summary>
     public string Name { get; } = name;
 
@@ -50,10 +54,10 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     public override string ToString() => Name ?? Id.ToString();
 
     /// <summary>
-    /// So sánh phiên bản hiện tại với một đối tượng khác cùng loại. Hai sự kiện bằng nhau nếu có cùng ID.
+    /// Compares the current instance with another object of the same type. Two events are considered equal if they have the same ID.
     /// </summary>
-    /// <param name="other">Một đối tượng để so sánh với đối tượng này.</param>
-    /// <returns><see langword="true" /> nếu đối tượng hiện tại bằng <paramref name="other" />; nếu không, <see langword="false" />.</returns>
+    /// <param name="other">An object to compare with this instance.</param>
+    /// <returns><see langword="true" /> if the current object is equal to <paramref name="other"/>; otherwise, <see langword="false" />.</returns>
     public bool Equals(EventId other) => Id == other.Id;
 
     /// <inheritdoc />

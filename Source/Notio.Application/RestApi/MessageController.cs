@@ -58,7 +58,11 @@ internal class MessageController(NotioContext context) : WebApiController
             Response.StatusCode = (int)HttpStatusCode.OK;
             return messages.Count > 0 ? new { Message = messages } : new { Message = "No messages available" };
         }
+#if DEBUG
         catch (Exception ex)
+#else
+        catch (Exception)
+#endif
         {
             Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             return new

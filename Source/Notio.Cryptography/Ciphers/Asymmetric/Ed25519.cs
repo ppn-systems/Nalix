@@ -5,14 +5,24 @@ using System.Threading;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
 
+/// <summary>
+/// Represents the Ed25519 cryptographic algorithm for public key signing and verification.
+/// </summary>
 public sealed class Ed25519
 {
+    /// <summary>
+    /// Size of the public key in bytes.
+    /// </summary>
     private const int PublicKeySize = 32;
+
+    /// <summary>
+    /// Size of the signature in bytes.
+    /// </summary>
     private const int SignatureSize = 64;
 
     // Precomputed constants
-    private static readonly BigInteger Q = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
 
+    private static readonly BigInteger Q = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
     private static readonly BigInteger L = BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989");
     private static readonly BigInteger D = BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740");
     private static readonly BigInteger I = BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752");
@@ -33,13 +43,27 @@ public sealed class Ed25519
     // Optimized SHA-512 with buffer reuse (thread-local instance)
     private static readonly ThreadLocal<SHA512> Sha512 = new(() => SHA512.Create());
 
+    /// <summary>
+    /// Computes the SHA-512 hash of the provided data.
+    /// </summary>
+    /// <param name="data">The data to hash.</param>
+    /// <returns>The hash of the data as a byte array.</returns>
     private static byte[] ComputeHash(ReadOnlySpan<byte> data)
         => (Sha512.Value ?? SHA512.Create()).ComputeHash(data.ToArray());
 
-    // Fast modular inverse using Fermat’s little theorem
+    /// <summary>
+    /// Computes the modular inverse of the given value using Fermat's little theorem.
+    /// </summary>
+    /// <param name="x">The value to invert.</param>
+    /// <returns>The modular inverse of the value.</returns>
     private static BigInteger Inv(BigInteger x) => BigInteger.ModPow(x, Q - 2, Q);
 
-    // Optimized point addition on Edwards curve
+    /// <summary>
+    /// Performs optimized point addition on the Edwards curve.
+    /// </summary>
+    /// <param name="p">First point to add.</param>
+    /// <param name="q">Second point to add.</param>
+    /// <returns>The result of the point addition.</returns>
     private static Point Edwards(Point p, Point q)
     {
         var a = p.Y.ModAdd(p.X, Q);
@@ -59,7 +83,12 @@ public sealed class Ed25519
         return new Point(x3, y3);
     }
 
-    // Double-and-add scalar multiplication
+    /// <summary>
+    /// Performs scalar multiplication on a point using the double-and-add algorithm.
+    /// </summary>
+    /// <param name="p">The point to multiply.</param>
+    /// <param name="e">The scalar to multiply the point by.</param>
+    /// <returns>The resulting point from the scalar multiplication.</returns>
     private static Point ScalarMul(Point p, BigInteger e)
     {
         Point result = new(BigInteger.Zero, BigInteger.One);
@@ -74,7 +103,12 @@ public sealed class Ed25519
         return result;
     }
 
-    // Memory-efficient signature generation
+    /// <summary>
+    /// Signs a message with the provided private key using the Ed25519 algorithm.
+    /// </summary>
+    /// <param name="message">The message to sign.</param>
+    /// <param name="privateKey">The private key to sign the message with.</param>
+    /// <returns>The generated signature.</returns>
     public static byte[] Sign(byte[] message, byte[] privateKey)
     {
         // Compute the hash of the private key and split into two halves
@@ -108,7 +142,13 @@ public sealed class Ed25519
         return signature;
     }
 
-    // Optimized verification with batch operations
+    /// <summary>
+    /// Verifies a signature against the given message and public key.
+    /// </summary>
+    /// <param name="signature">The signature to verify.</param>
+    /// <param name="message">The message the signature corresponds to.</param>
+    /// <param name="publicKey">The public key to verify the signature with.</param>
+    /// <returns>True if the signature is valid; otherwise, false.</returns>
     public static bool Verify(byte[] signature, byte[] message, byte[] publicKey)
     {
         if (signature.Length != SignatureSize)
@@ -132,7 +172,11 @@ public sealed class Ed25519
         return PointEquals(sB, RplusH);
     }
 
-    // Helper: Clamp the scalar as per Ed25519 specifications
+    /// <summary>
+    /// Clamps the scalar to meet the Ed25519 specifications.
+    /// </summary>
+    /// <param name="s">The scalar to clamp.</param>
+    /// <returns>The clamped scalar.</returns>
     private static BigInteger ClampScalar(ReadOnlySpan<byte> s)
     {
         // Create a 32-byte buffer to modify bits as needed
@@ -145,7 +189,11 @@ public sealed class Ed25519
         return new BigInteger(scalarBytes, isUnsigned: true, isBigEndian: true) % L;
     }
 
-    // Hash data into a scalar value modulo L
+    /// <summary>
+    /// Hashes data into a scalar value modulo L.
+    /// </summary>
+    /// <param name="data">The data to hash.</param>
+    /// <returns>The scalar result of hashing the data.</returns>
     private static BigInteger HashToScalar(ReadOnlySpan<byte> data)
         => new BigInteger(ComputeHash(data), isUnsigned: true, isBigEndian: true) % L;
 
@@ -160,7 +208,11 @@ public sealed class Ed25519
         return new BigInteger(ComputeHash(buffer), isUnsigned: true, isBigEndian: true) % L;
     }
 
-    // Encode a point to a fixed 32-byte representation using TryWriteBytes to avoid allocations.
+    /// <summary>
+    /// Encodes a point to a fixed 32-byte representation using TryWriteBytes to avoid allocations.
+    /// </summary>
+    /// <param name="p">The point to encode.</param>
+    /// <param name="destination">The destination span to write the encoded point.</param>
     private static void EncodePoint(Point p, Span<byte> destination)
     {
         // Encode y coordinate as 32 bytes in big-endian order
@@ -198,7 +250,11 @@ public sealed class Ed25519
     private static bool PointEquals(Point a, Point b)
         => a.X == b.X && a.Y == b.Y;
 
-    // Encode a scalar to a fixed 32-byte representation
+    /// <summary>
+    /// Encodes a scalar to a fixed 32-byte representation.
+    /// </summary>
+    /// <param name="s">The scalar to encode.</param>
+    /// <param name="destination">The destination span to write the encoded scalar.</param>
     private static void EncodeScalar(BigInteger s, Span<byte> destination)
     {
         if (!s.TryWriteBytes(destination, out int bytesWritten, isUnsigned: true, isBigEndian: true))

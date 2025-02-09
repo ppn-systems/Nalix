@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Exceptions;
-using Notio.Common.Logging.Interfaces;
+using Notio.Common.Logging;
 using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
 using System;

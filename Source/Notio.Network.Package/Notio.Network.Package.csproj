@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
+		<Icon>..\..\Resource\Notio.ico</Icon>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
@@ -12,6 +13,10 @@
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />

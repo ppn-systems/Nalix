@@ -1,13 +1,17 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Notio.Shared.Management.System;
+namespace Notio.Management.System;
 
+/// <summary>
+/// Provides methods to retrieve CPU-related information.
+/// </summary>
 public static class InfoCPU
 {
     /// <summary>
-    /// Lấy tên của CPU trên Windows và Linux.
+    /// Retrieves the CPU name on Windows and Linux.
     /// </summary>
-    public static string Name()
+    /// <returns>The name of the CPU.</returns>
+    public static string GetName()
     {
         string command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "wmic cpu get name"
@@ -17,9 +21,10 @@ public static class InfoCPU
     }
 
     /// <summary>
-    /// Lấy thông tin về phần trăm tải CPU trên Windows và Linux.
+    /// Retrieves the current CPU usage percentage on Windows and Linux.
     /// </summary>
-    public static string Usage()
+    /// <returns>A string representing CPU load percentage.</returns>
+    public static string GetUsage()
     {
         string command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "wmic cpu get loadpercentage"

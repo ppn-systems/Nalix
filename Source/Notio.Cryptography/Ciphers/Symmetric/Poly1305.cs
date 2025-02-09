@@ -5,6 +5,13 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
+/// <summary>
+/// Represents the Poly1305 message authentication code (MAC) algorithm, used for ensuring the integrity and authenticity of messages.
+/// </summary>
+/// <remarks>
+/// Poly1305 is a fast cryptographic MAC algorithm designed by Daniel J. Bernstein. It is used in various cryptographic protocols,
+/// including the ChaCha20-Poly1305 cipher suite in TLS and other secure communication protocols.
+/// </remarks>
 public sealed class Poly1305
 {
     // r: the first half of the key (clamped) and s: the second half.

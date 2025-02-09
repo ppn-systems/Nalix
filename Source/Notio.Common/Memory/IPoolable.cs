@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Memory.Pools;
+﻿namespace Notio.Common.Memory;
 
 /// <summary>
 /// Giao diện cho các đối tượng có thể được lưu trữ.

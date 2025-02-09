@@ -55,8 +55,16 @@ public static class CryptoKeyGen
         return nonce;
     }
 
+    /// <summary>
+    /// Converts a byte array (16 bytes) into a 32-bit unsigned integer array (4 elements).
+    /// </summary>
+    /// <param name="key">The byte array representing the key, which must be 16 bytes long.</param>
+    /// <returns>A 32-bit unsigned integer array (4 elements) representing the key.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when the length of the provided byte array is not 16 bytes.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint[] ConvertKey(this byte[] key)
+    public static uint[] ConvertKey(byte[] key)
     {
         if (key.Length != 16)
             throw new ArgumentException($"XTEA key must be {16} bytes.", nameof(key));

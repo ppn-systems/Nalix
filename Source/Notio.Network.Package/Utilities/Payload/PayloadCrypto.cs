@@ -1,5 +1,4 @@
-﻿using Notio.Common;
-using Notio.Common.Exceptions;
+﻿using Notio.Common.Exceptions;
 using Notio.Cryptography.Ciphers;
 using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Cryptography.Ciphers.Symmetric.Enums;
@@ -41,7 +40,7 @@ public static class PayloadCrypto
 
                         try
                         {
-                            Xtea.Encrypt(data, key.ConvertKey(), encryptedXtea.AsMemory(0, bufferSize));
+                            Xtea.Encrypt(data, CryptoKeyGen.ConvertKey(key), encryptedXtea.AsMemory(0, bufferSize));
                             return encryptedXtea.AsMemory(0, bufferSize);
                         }
                         finally
@@ -105,7 +104,7 @@ public static class PayloadCrypto
 
                         try
                         {
-                            if (!Xtea.TryDecrypt(data, key.ConvertKey(), decryptedXtea.AsMemory(0, bufferSize)))
+                            if (!Xtea.TryDecrypt(data, CryptoKeyGen.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize)))
                                 throw new InternalErrorException("Authentication failed.");
 
                             return decryptedXtea.AsMemory(0, bufferSize);

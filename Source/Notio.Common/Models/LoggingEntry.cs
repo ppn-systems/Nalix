@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging.Enums;
+﻿using Notio.Common.Logging;
 using System;
 
 namespace Notio.Common.Models;

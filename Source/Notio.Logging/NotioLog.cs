@@ -1,6 +1,4 @@
-﻿using Notio.Common.Logging.Enums;
-using Notio.Common.Logging.Interfaces;
-using Notio.Common.Models;
+﻿using Notio.Common.Logging;
 using Notio.Logging.Core;
 using Notio.Logging.Targets;
 using System;
@@ -8,6 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Logging;
 
+/// <summary>
+/// A singleton class that provides logging functionality for the application.
+/// </summary>
 public sealed class NotioLog : LoggingEngine, ILogger
 {
     private bool _isInitialized;
@@ -16,11 +17,15 @@ public sealed class NotioLog : LoggingEngine, ILogger
     private NotioLog()
     { }
 
+    /// <summary>
+    /// Gets the singleton instance of the NotioLog class.
+    /// </summary>
     public static NotioLog Instance => _instance.Value;
 
     /// <summary>
     /// Initializes the logging system with optional configuration.
     /// </summary>
+    /// <param name="configure">An optional action to configure the logging system.</param>
     public void Initialize(Action<NotioLogConfig>? configure = null)
     {
         if (_isInitialized)
@@ -44,8 +49,12 @@ public sealed class NotioLog : LoggingEngine, ILogger
     }
 
     /// <summary>
-    /// Writes a log entry with specified level, event ID, message, and optional exception.
+    /// Writes a log entry with the specified level, event ID, message, and optional exception.
     /// </summary>
+    /// <param name="level">The log level (e.g., Info, Warning, Error, etc.).</param>
+    /// <param name="eventId">The event ID to associate with the log entry.</param>
+    /// <param name="message">The log message.</param>
+    /// <param name="exception">Optional exception associated with the log entry.</param>
     public void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
        => base.CreateLogEntry(level, eventId, message, exception);
 
@@ -99,7 +108,7 @@ public sealed class NotioLog : LoggingEngine, ILogger
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
     // Sanitize log message to prevent log forging
+    // Removes potentially dangerous characters (e.g., newlines or control characters)
     private static string SanitizeLogMessage(string message)
-        // Remove potentially dangerous characters (e.g., newlines or control characters)
         => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
 }

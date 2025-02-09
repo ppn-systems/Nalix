@@ -84,7 +84,7 @@ public interface IConnection : IDisposable
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    void Send(ReadOnlyMemory<byte> message);
+    void Send(Memory<byte> message);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
@@ -95,7 +95,7 @@ public interface IConnection : IDisposable
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
+    Task SendAsync(Memory<byte> message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.

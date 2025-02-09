@@ -1,29 +1,34 @@
-﻿using Notio.Common.Logging.Interfaces;
+﻿using Notio.Common.Logging;
 using Notio.Common.Models;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Notio.Logging.Core;
 
+/// <summary>
+/// Manages and dispatches log entries to registered logging targets.
+/// </summary>
 public class LoggingPublisher : ILoggingPublisher
 {
-    private readonly IList<ILoggingTarget> _targets = [];
+    private readonly ConcurrentBag<ILoggingTarget> _targets = new();
 
     /// <summary>
-    /// Công khai một thông điệp nhật ký.
+    /// Publishes a log entry to all registered logging targets.
     /// </summary>
-    /// <param name="entry">Thông điệp nhật ký cần công khai.</param>
+    /// <param name="entry">The log entry to be published.</param>
     public void Publish(LoggingEntry entry)
     {
-        foreach (ILoggingTarget target in _targets)
+        foreach (var target in _targets)
+        {
             target.Publish(entry);
+        }
     }
 
     /// <summary>
-    /// Thêm một handler ghi nhật ký.
+    /// Adds a logging target to receive log entries.
     /// </summary>
-    /// <param name="target">Handler ghi nhật ký cần thêm.</param>
-    /// <returns>Instance hiện tại của <see cref="ILoggingPublisher"/>.</returns>
+    /// <param name="target">The logging target to add.</param>
+    /// <returns>The current instance of <see cref="ILoggingPublisher"/>, allowing method chaining.</returns>
     public ILoggingPublisher AddTarget(ILoggingTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
@@ -32,9 +37,9 @@ public class LoggingPublisher : ILoggingPublisher
     }
 
     /// <summary>
-    /// Xóa một handler ghi nhật ký.
+    /// Removes a logging target from the publisher.
     /// </summary>
-    /// <param name="loggerHandler">Handler ghi nhật ký cần xóa.</param>
-    /// <returns>True nếu xóa thành công, ngược lại False.</returns>
-    public bool RemoveTarget(ILoggingTarget loggerHandler) => _targets.Remove(loggerHandler);
+    /// <param name="target">The logging target to remove.</param>
+    /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
+    public bool RemoveTarget(ILoggingTarget target) => _targets.TryTake(out _);
 }

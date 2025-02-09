@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Connection;
-using Notio.Common.Logging.Interfaces;
-using Notio.Common.Memory.Pools;
+using Notio.Common.Logging;
+using Notio.Common.Memory;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;

@@ -1,5 +1,5 @@
 ﻿using Notio.Common.Connection;
-using Notio.Common.Logging.Interfaces;
+using Notio.Common.Logging;
 using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
 using System;

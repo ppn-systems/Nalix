@@ -6,6 +6,10 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
 
+/// <summary>
+/// Provides encryption and decryption utilities using the ChaCha20 stream cipher combined with Poly1305 for message authentication.
+/// ChaCha20Poly1305 is an authenticated encryption algorithm providing both confidentiality and integrity.
+/// </summary>
 public class ChaCha20Poly1305
 {
     // ----------------------------

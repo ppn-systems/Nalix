@@ -3,163 +3,186 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Targets.File;
-
-/// <summary>
-/// Nhà cung cấp bộ ghi log tệp tin tổng quát.
-/// </summary>
-public class FileLoggerProvider
+namespace Notio.Logging.Targets.File
 {
-    private readonly ConcurrentDictionary<string, FileLoggingTarget> loggers = new();
-    private readonly BlockingCollection<string> entryQueue = new(1024);
-    private readonly Task processQueueTask;
-    private readonly FileWriter fWriter;
-
-    internal FileLoggerOptions Options { get; private set; }
-
-    public string LogDirectory;
-    public string LogFileName;
-    public bool Append => Options.Append;
-    public int MaxFileSize => Options.MaxFileSize;
-
     /// <summary>
-    /// Bộ định dạng tùy chỉnh cho tên tệp log.
+    /// A provider for general file logging.
     /// </summary>
-    public Func<string, string>? FormatLogFileName
+    public class FileLoggerProvider : IDisposable
     {
-        get => Options.FormatLogFileName;
-        set { Options.FormatLogFileName = value; }
-    }
+        private readonly ConcurrentDictionary<string, FileLoggingTarget> loggers = new();
+        private readonly BlockingCollection<string> entryQueue = new(1024);
+        private readonly Task processQueueTask;
+        private readonly FileWriter fWriter;
 
-    /// <summary>
-    /// Bộ xử lý tùy chỉnh cho lỗi tệp.
-    /// </summary>
-    public Action<FileError>? HandleFileError
-    {
-        get => Options.HandleFileError;
-        set { Options.HandleFileError = value; }
-    }
+        internal FileLoggerOptions Options { get; private set; }
 
-    /// <summary>
-    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè mặc định.
-    /// </summary>
-    /// <param name="fileName">Tên tệp tin.</param>
-    public FileLoggerProvider(string directory, string fileName)
-        : this(directory, fileName, true)
-    {
-    }
+        /// <summary>
+        /// Gets or sets the directory where log files will be stored.
+        /// </summary>
+        public string LogDirectory;
 
-    /// <summary>
-    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn ghi đè.
-    /// </summary>
-    /// <param name="fileName">Tên tệp tin.</param>
-    /// <param name="append">Tùy chọn ghi đè.</param>
-    public FileLoggerProvider(string directory, string fileName, bool append)
-        : this(directory, fileName, new FileLoggerOptions() { Append = append })
-    {
-    }
+        /// <summary>
+        /// Gets or sets the name of the log file.
+        /// </summary>
+        public string LogFileName;
 
-    /// <summary>
-    /// Khởi tạo <see cref="FileLoggerProvider"/> với tên tệp tin và tùy chọn cấu hình.
-    /// </summary>
-    /// <param name="fileName">Tên tệp tin.</param>
-    /// <param name="options">Tùy chọn cấu hình.</param>
-    public FileLoggerProvider(string directory, string fileName, FileLoggerOptions options)
-    {
-        Options = options;
-        LogDirectory = directory;
-        LogFileName = Environment.ExpandEnvironmentVariables(fileName);
+        /// <summary>
+        /// Gets a value indicating whether the log file will be appended to (true) or overwritten (false).
+        /// </summary>
+        public bool Append => Options.Append;
 
-        fWriter = new FileWriter(this);
-        processQueueTask = Task.Factory.StartNew(
-            ProcessQueue,
-            this,
-            TaskCreationOptions.LongRunning);
-    }
+        /// <summary>
+        /// Gets the maximum size of the log file before it rolls over.
+        /// </summary>
+        public int MaxFileSize => Options.MaxFileSize;
 
-    /// <summary>
-    /// Giải phóng tài nguyên.
-    /// </summary>
-    public void Dispose()
-    {
-        entryQueue.CompleteAdding();
-        try
+        /// <summary>
+        /// Custom formatter for log file names.
+        /// </summary>
+        public Func<string, string>? FormatLogFileName
         {
-            processQueueTask.Wait(1500);  // giống như trong ConsoleLogger
+            get => Options.FormatLogFileName;
+            set { Options.FormatLogFileName = value; }
         }
-        catch (TaskCanceledException)
+
+        /// <summary>
+        /// Custom handler for file errors.
+        /// </summary>
+        public Action<FileError>? HandleFileError
+        {
+            get => Options.HandleFileError;
+            set { Options.HandleFileError = value; }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="FileLoggerProvider"/> with the specified file name and default overwrite option.
+        /// </summary>
+        /// <param name="directory">The directory where the log file will be stored.</param>
+        /// <param name="fileName">The log file name.</param>
+        public FileLoggerProvider(string directory, string fileName)
+            : this(directory, fileName, true)
         {
         }
-        catch (AggregateException ex) when (ex.InnerExceptions.Count == 1 && ex.InnerExceptions[0] is TaskCanceledException) { }
 
-        loggers.Clear();
-        fWriter.Close();
-    }
-
-    internal void WriteEntry(string message)
-    {
-        if (!entryQueue.IsAddingCompleted)
+        /// <summary>
+        /// Initializes a new instance of <see cref="FileLoggerProvider"/> with the specified file name and overwrite option.
+        /// </summary>
+        /// <param name="directory">The directory where the log file will be stored.</param>
+        /// <param name="fileName">The log file name.</param>
+        /// <param name="append">The overwrite option.</param>
+        public FileLoggerProvider(string directory, string fileName, bool append)
+            : this(directory, fileName, new FileLoggerOptions() { Append = append })
         {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="FileLoggerProvider"/> with the specified file name and configuration options.
+        /// </summary>
+        /// <param name="directory">The directory where the log file will be stored.</param>
+        /// <param name="fileName">The log file name.</param>
+        /// <param name="options">The configuration options.</param>
+        public FileLoggerProvider(string directory, string fileName, FileLoggerOptions options)
+        {
+            Options = options;
+            LogDirectory = directory;
+            LogFileName = Environment.ExpandEnvironmentVariables(fileName);
+
+            fWriter = new FileWriter(this);
+            processQueueTask = Task.Factory.StartNew(
+                ProcessQueue,
+                this,
+                TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// Releases the resources used by the <see cref="FileLoggerProvider"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            entryQueue.CompleteAdding();
             try
             {
-                entryQueue.Add(message);
-                return;
+                processQueueTask.Wait(1500);  // similar to ConsoleLogger
             }
-            catch (InvalidOperationException) { }
-        }
-        // không làm gì
-    }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions.Count == 1 && ex.InnerExceptions[0] is TaskCanceledException) { }
 
-    private void ProcessQueue()
-    {
-        var writeMessageFailed = false;
-        foreach (var message in entryQueue.GetConsumingEnumerable())
+            loggers.Clear();
+            fWriter.Close();
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Writes a log entry to the queue.
+        /// </summary>
+        /// <param name="message">The log message.</param>
+        internal void WriteEntry(string message)
         {
-            try
+            if (!entryQueue.IsAddingCompleted)
             {
-                if (!writeMessageFailed)
-                    fWriter.WriteMessage(message, entryQueue.Count == 0);
-            }
-            catch (Exception ex)
-            {
-                // có lỗi xảy ra. Mã ứng dụng có thể xử lý nếu 'HandleFileError' được cung cấp
-                var stopLogging = true;
-                if (HandleFileError != null)
+                try
                 {
-                    var fileErr = new FileError(LogFileName, ex);
-                    try
+                    entryQueue.Add(message);
+                    return;
+                }
+                catch (InvalidOperationException) { }
+            }
+            // Do nothing if unable to add message
+        }
+
+        private void ProcessQueue()
+        {
+            var writeMessageFailed = false;
+            foreach (var message in entryQueue.GetConsumingEnumerable())
+            {
+                try
+                {
+                    if (!writeMessageFailed)
+                        fWriter.WriteMessage(message, entryQueue.Count == 0);
+                }
+                catch (Exception ex)
+                {
+                    // Handle errors if 'HandleFileError' is provided
+                    var stopLogging = true;
+                    if (HandleFileError != null)
                     {
-                        HandleFileError(fileErr);
-                        if (fileErr.NewLogFileName != null)
+                        var fileErr = new FileError(LogFileName, ex);
+                        try
                         {
-                            fWriter.UseNewLogFile(fileErr.NewLogFileName);
-                            // ghi lại thông báo thất bại vào tệp log mới
-                            fWriter.WriteMessage(message, entryQueue.Count == 0);
-                            stopLogging = false;
+                            HandleFileError(fileErr);
+                            if (fileErr.NewLogFileName != null)
+                            {
+                                fWriter.UseNewLogFile(fileErr.NewLogFileName);
+                                // Write the failed message to the new log file
+                                fWriter.WriteMessage(message, entryQueue.Count == 0);
+                                stopLogging = false;
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore errors in HandleFileError or invalid file name proposals
                         }
                     }
-                    catch
+                    if (stopLogging)
                     {
-                        // có thể xảy ra ngoại lệ trong HandleFileError hoặc tên tệp đề xuất không thể sử dụng
-                        // bỏ qua trong trường hợp đó -> bộ ghi log sẽ ngừng xử lý thông báo log
+                        // Stop processing log messages as we cannot write to the log file
+                        entryQueue.CompleteAdding();
+                        writeMessageFailed = true;
                     }
-                }
-                if (stopLogging)
-                {
-                    // Ngừng xử lý thông báo log do không thể ghi vào tệp log
-                    entryQueue.CompleteAdding();
-                    writeMessageFailed = true;
                 }
             }
         }
-    }
 
-    private static void ProcessQueue(object? state)
-    {
-        if (state == null)
-            return;
+        private static void ProcessQueue(object? state)
+        {
+            if (state == null)
+                return;
 
-        FileLoggerProvider fileLogger = (FileLoggerProvider)state;
-        fileLogger.ProcessQueue();
+            FileLoggerProvider fileLogger = (FileLoggerProvider)state;
+            fileLogger.ProcessQueue();
+        }
     }
 }

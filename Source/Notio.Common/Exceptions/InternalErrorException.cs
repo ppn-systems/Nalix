@@ -18,6 +18,13 @@ namespace Notio.Common.Exceptions;
 [Serializable]
 public class InternalErrorException : Exception
 {
+    /// <summary>
+    /// Gets the detailed information related to this log entry.
+    /// </summary>
+    /// <remarks>
+    /// This property typically contains additional context about the log event, such as
+    /// stack traces, exception messages, or other relevant debugging information.
+    /// </remarks>
     public string Details { get; }
 
     /// <summary>

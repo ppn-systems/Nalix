@@ -14,12 +14,11 @@ public static class Crc32
 
     /// <summary>
     /// Computes the CRC32 checksum for the specified range in the byte array.
-    /// Tính toán checksum CRC32 cho một phạm vi của mảng byte.
     /// </summary>
-    /// <param name="bytes">The input byte array. (Mảng byte đầu vào.)</param>
-    /// <param name="start">The starting index to begin CRC computation. (Chỉ số bắt đầu tính toán CRC.)</param>
-    /// <param name="length">The number of bytes to process. (Số lượng byte cần xử lý.)</param>
-    /// <returns>The 32-bit CRC value. (Giá trị CRC32 4 byte.)</returns>
+    /// <param name="bytes">The input byte array.</param>
+    /// <param name="start">The starting index to begin CRC computation.</param>
+    /// <param name="length">The number of bytes to process.</param>
+    /// <returns>The 32-bit CRC value.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the input array is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
     public static uint ComputeChecksum(byte[] bytes, int start, int length)
@@ -47,10 +46,9 @@ public static class Crc32
 
     /// <summary>
     /// Computes the CRC32 checksum for the specified span of bytes.
-    /// Tính toán checksum CRC32 cho một phạm vi của Span<byte>.
     /// </summary>
-    /// <param name="bytes">The input span of bytes. (Span<byte> đầu vào.)</param>
-    /// <returns>The 32-bit CRC value. (Giá trị CRC32 4 byte.)</returns>
+    /// <param name="bytes">The input span of bytes.</param>
+    /// <returns>The 32-bit CRC value.</returns>
     public static uint ComputeChecksum(ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
@@ -64,10 +62,9 @@ public static class Crc32
 
     /// <summary>
     /// Computes the CRC32 checksum for the provided bytes.
-    /// Tính toán checksum CRC32 cho mảng byte được cung cấp.
     /// </summary>
-    /// <param name="bytes">The input byte array. (Mảng byte đầu vào.)</param>
-    /// <returns>The 32-bit CRC value. (Giá trị CRC32 4 byte.)</returns>
+    /// <param name="bytes">The input byte array.</param>
+    /// <returns>The 32-bit CRC value.</returns>
     public static uint ComputeChecksum(params byte[] bytes)
         => ComputeChecksum(bytes, 0, bytes?.Length ?? 0);
 

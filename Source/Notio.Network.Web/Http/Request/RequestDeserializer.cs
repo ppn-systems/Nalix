@@ -1,9 +1,9 @@
-﻿using Notio.Common.Logging.Debugging;
-using Notio.Serialization;
+﻿using Notio.Serialization;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
 using System;
 using System.Threading.Tasks;
+using Notio.Common.Logging;
 
 namespace Notio.Network.Web.Http.Request;
 

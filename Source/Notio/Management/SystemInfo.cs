@@ -6,10 +6,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Notio.Shared.Management;
+namespace Notio.Management;
 
 /// <summary>
-/// Lớp chứa các phương thức để lấy thông tin hệ thống.
+/// A class containing methods to retrieve system information.
 /// </summary>
 internal static class SystemInfo
 {
@@ -32,17 +32,19 @@ internal static class SystemInfo
     }
 
     /// <summary>
-    /// Phân tích chuỗi thông tin mặc định.
+    /// Parses the provided string for general information.
     /// </summary>
-    /// <param name="info">Thông tin cần phân tích.</param>
+    /// <param name="info">The information string to parse.</param>
+    /// <returns>A parsed string or "null" if empty.</returns>
     public static string ParseDefault(this string info)
         => !string.IsNullOrEmpty(info)
         ? info.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)[1].Trim() : "null";
 
     /// <summary>
-    /// Phân tích chuỗi thông tin CPU.
+    /// Parses the provided string for CPU information.
     /// </summary>
-    /// <param name="cpu">Chuỗi thông tin CPU cần phân tích.</param>
+    /// <param name="cpu">The CPU information string to parse.</param>
+    /// <returns>A string representing the CPU usage percentage.</returns>
     public static string ParseCPU(this string cpu)
     {
         if (string.IsNullOrEmpty(cpu)) return "Error";
@@ -52,9 +54,10 @@ internal static class SystemInfo
     }
 
     /// <summary>
-    /// Phân tích chuỗi thông tin bộ nhớ.
+    /// Parses the provided string for memory information.
     /// </summary>
-    /// <param name="memory">Chuỗi thông tin bộ nhớ cần phân tích.</param>
+    /// <param name="memory">The memory information string to parse.</param>
+    /// <returns>A string representing used memory and percentage of usage.</returns>
     public static string ParseMemory(this string memory)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -75,9 +78,10 @@ internal static class SystemInfo
     }
 
     /// <summary>
-    /// Chạy lệnh hệ thống và trả về kết quả.
+    /// Executes a system command and returns the result.
     /// </summary>
-    /// <param name="command">Lệnh cần chạy.</param>
+    /// <param name="command">The command to execute.</param>
+    /// <returns>The output of the executed command or an error message.</returns>
     public static string RunCommand(string command)
     {
         try
@@ -102,7 +106,7 @@ internal static class SystemInfo
     }
 
     /// <summary>
-    /// Dừng quá trình.
+    /// Terminates the running process if not already exited.
     /// </summary>
     public static void StopProcess()
     {

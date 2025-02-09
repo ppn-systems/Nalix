@@ -1,6 +1,6 @@
 ﻿using Notio.Common.Models;
 
-namespace Notio.Common.Logging.Interfaces;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Định nghĩa giao diện cho mục tiêu xử lý nhật ký.

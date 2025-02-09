@@ -1,13 +1,17 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Notio.Shared.Management.System;
+namespace Notio.Management.System;
 
+/// <summary>
+/// Provides methods to retrieve memory usage information.
+/// </summary>
 public static class InfoMemory
 {
     /// <summary>
-    /// Lấy thông tin về việc sử dụng bộ nhớ.
+    /// Retrieves memory usage details of the system.
     /// </summary>
-    public static string Usage()
+    /// <returns>A string containing memory usage information.</returns>
+    public static string GetUsage()
     {
         string command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value"

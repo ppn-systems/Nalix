@@ -1,7 +1,7 @@
 ﻿using Notio.Common.Connection;
 using Notio.Common.Connection.Enums;
-using Notio.Common.Logging.Interfaces;
-using Notio.Common.Memory.Pools;
+using Notio.Common.Logging;
+using Notio.Common.Memory;
 using Notio.Common.Models;
 using Notio.Cryptography.Ciphers.Symmetric;
 using Notio.Shared.Identification;
@@ -83,7 +83,7 @@ public sealed class Connection : IConnection, IDisposable
         => _cstream.BeginReceive(cancellationToken);
 
     /// <inheritdoc />
-    public void Send(ReadOnlyMemory<byte> message)
+    public void Send(Memory<byte> message)
     {
         if (this.State == ConnectionState.Authenticated)
         {
@@ -103,7 +103,7 @@ public sealed class Connection : IConnection, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    public async Task SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
     {
         if (this.State == ConnectionState.Authenticated)
         {

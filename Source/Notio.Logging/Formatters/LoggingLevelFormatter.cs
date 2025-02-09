@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging.Enums;
+﻿using Notio.Common.Logging;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

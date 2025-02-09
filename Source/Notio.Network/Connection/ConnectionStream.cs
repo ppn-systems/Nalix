@@ -1,5 +1,5 @@
-﻿using Notio.Common.Logging.Interfaces;
-using Notio.Common.Memory.Pools;
+﻿using Notio.Common.Logging;
+using Notio.Common.Memory;
 using Notio.Shared.Memory.Cache;
 using Notio.Shared.Time;
 using System;

@@ -1,5 +1,5 @@
-﻿using Notio.Common.Logging.Interfaces;
-using Notio.Common.Memory.Pools;
+﻿using Notio.Common.Logging;
+using Notio.Common.Memory;
 using Notio.Shared.Configuration;
 using System;
 using System.Linq;

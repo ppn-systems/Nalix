@@ -1,7 +1,6 @@
-﻿using Notio.Common.Models;
-using System;
+﻿using System;
 
-namespace Notio.Common.Logging.Interfaces;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Defines the contract for a logging system.

@@ -4,6 +4,13 @@ using System.Text;
 
 namespace Notio.Cryptography.Hash;
 
+/// <summary>
+/// Provides methods for securely protecting and unprotecting passwords.
+/// </summary>
+/// <remarks>
+/// This class uses encryption or secure storage techniques to protect sensitive password data. It is designed
+/// to ensure that passwords can be securely stored and retrieved without exposing them in plaintext.
+/// </remarks>
 public static class PasswordProtector
 {
     /// <summary>

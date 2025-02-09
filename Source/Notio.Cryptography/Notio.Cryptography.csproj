@@ -3,7 +3,8 @@
 	<PropertyGroup>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-
+		<Icon>..\..\Resource\Notio.ico</Icon>
+		
 		<description>Notio.Cryptography is a package that provides cryptographic algorithms and utilities for secure data encryption and decryption in .NET applications.</description>
 		<releaseNotes>Includes new encryption algorithms and optimizations for existing cryptographic methods.</releaseNotes>
 	</PropertyGroup>
@@ -13,5 +14,9 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 	</ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
 
 </Project>

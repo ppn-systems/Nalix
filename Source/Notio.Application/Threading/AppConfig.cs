@@ -1,7 +1,6 @@
 ﻿using Notio.Application.RestApi;
 using Notio.Application.TcpHandlers;
-using Notio.Common.Logging.Debugging;
-using Notio.Common.Logging.Enums;
+using Notio.Common.Logging;
 using Notio.Database;
 using Notio.Logging;
 using Notio.Logging.Core;

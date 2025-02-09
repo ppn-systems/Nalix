@@ -5,6 +5,13 @@ using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
 
+/// <summary>
+/// Provides methods for the X25519 elliptic curve Diffie-Hellman (ECDH) key exchange protocol.
+/// </summary>
+/// <remarks>
+/// X25519 is a specific elliptic curve designed for use in cryptographic protocols like TLS.
+/// It allows two parties to securely exchange keys without needing to share a secret in advance.
+/// </remarks>
 public static class X25519
 {
     // Prime p = 2^255 - 19

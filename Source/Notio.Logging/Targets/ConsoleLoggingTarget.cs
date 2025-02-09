@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging.Interfaces;
+﻿using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Formatters;
 using System;
@@ -6,24 +6,28 @@ using System;
 namespace Notio.Logging.Targets;
 
 /// <summary>
-/// Lớp ConsoleLoggingTarget cung cấp khả năng xuất thông điệp nhật ký ra console với màu sắc tương ứng với mức độ log.
+/// The ConsoleLoggingTarget class provides the ability to output log messages to the console,
+/// with colors corresponding to the log severity levels.
 /// </summary>
 /// <remarks>
-/// Khởi tạo đối tượng ConsoleLoggingTarget với định dạng log cụ thể.
+/// This class is initialized with a specific log formatting object.
 /// </remarks>
-/// <param name="loggerFormatter">Đối tượng thực hiện định dạng log.</param>
+/// <param name="loggerFormatter">The object responsible for formatting the log message.</param>
 public sealed class ConsoleLoggingTarget(ILoggingFormatter loggerFormatter) : ILoggingTarget
 {
     private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class with a default log formatter.
+    /// </summary>
     public ConsoleLoggingTarget() : this(new LoggingFormatter(true))
     {
     }
 
     /// <summary>
-    /// Xuất thông điệp log ra console.
+    /// Outputs the log message to the console.
     /// </summary>
-    /// <param name="logMessage">Thông điệp log cần xuất.</param>
+    /// <param name="logMessage">The log message to be outputted.</param>
     public void Publish(LoggingEntry logMessage)
         => Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
 }

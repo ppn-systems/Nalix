@@ -1,30 +1,50 @@
-﻿using Notio.Common.Logging.Enums;
-using Notio.Common.Logging.Interfaces;
-using Notio.Common.Models;
+﻿using Notio.Common.Models;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Common.Logging.Debugging;
+namespace Notio.Common.Logging;
 
+/// <summary>
+/// Provides a centralized logging interface for the Notio framework.
+/// </summary>
 public static class NotioDebug
 {
     private static ILoggingPublisher Publisher;
     private static LoggingLevel MinimumLevel = LoggingLevel.Trace;
 
+    /// <summary>
+    /// Sets the logging publisher that will handle log messages.
+    /// </summary>
+    /// <param name="publisher">The logging publisher instance to use.</param>
     public static void SetPublisher(ILoggingPublisher publisher)
-        => Publisher = publisher;
+        => Publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
 
-    public static ILoggingPublisher AddTarget(ILoggingTarget ltg)
+    /// <summary>
+    /// Adds a logging target to the current logging publisher.
+    /// </summary>
+    /// <param name="target">The logging target to add.</param>
+    /// <returns>The updated <see cref="ILoggingPublisher"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the logging publisher has not been set.</exception>
+    public static ILoggingPublisher AddTarget(ILoggingTarget target)
     {
         if (Publisher is null)
             throw new InvalidOperationException("Logging publisher has not been set.");
 
-        return Publisher.AddTarget(ltg);
+        return Publisher.AddTarget(target);
     }
 
+    /// <summary>
+    /// Sets the minimum logging level. Messages below this level will be ignored.
+    /// </summary>
+    /// <param name="level">The minimum logging level to set.</param>
     public static void SetMinimumLevel(LoggingLevel level)
         => MinimumLevel = level;
 
+    /// <summary>
+    /// Determines whether a message at the given logging level should be logged.
+    /// </summary>
+    /// <param name="level">The logging level to check.</param>
+    /// <returns><c>true</c> if the message should be logged; otherwise, <c>false</c>.</returns>
     public static bool CanLog(LoggingLevel level)
         => level >= MinimumLevel;
 
