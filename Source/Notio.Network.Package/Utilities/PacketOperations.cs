@@ -1,12 +1,15 @@
 ﻿namespace Notio.Network.Package.Utilities;
 
+/// <summary>
+/// Provides utility methods for working with packets.
+/// </summary>
 public static class PacketOperations
 {
     /// <summary>
-    /// Creates an independent copy of a Packet.
+    /// Creates an independent copy of a <see cref="Packet"/>.
     /// </summary>
-    /// <param name="packet">The Packet instance to be cloned.</param>
-    /// <returns>A new Packet that is a copy of the original.</returns>
+    /// <param name="packet">The <see cref="Packet"/> instance to be cloned.</param>
+    /// <returns>A new <see cref="Packet"/> that is a copy of the original.</returns>
     public static Packet Clone(Packet packet)
     {
         // Copy payload with safety check
@@ -19,10 +22,10 @@ public static class PacketOperations
     }
 
     /// <summary>
-    /// Attempts to clone the packet without throwing an error, returning success or failure.
+    /// Attempts to clone the <see cref="Packet"/> without throwing an error, returning success or failure.
     /// </summary>
-    /// <param name="packet">The Packet to clone.</param>
-    /// <param name="clonedPacket">The cloned Packet, if successful.</param>
+    /// <param name="packet">The <see cref="Packet"/> to clone.</param>
+    /// <param name="clonedPacket">The cloned <see cref="Packet"/>, if successful.</param>
     /// <returns>True if the packet was cloned successfully, otherwise false.</returns>
     public static bool TryClone(Packet packet, out Packet clonedPacket)
     {

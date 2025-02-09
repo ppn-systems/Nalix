@@ -1,4 +1,5 @@
 ﻿using Notio.Common.Memory;
+using Notio.Shared.Injection;
 using System;
 using System.Collections.Concurrent;
 using System.Text;

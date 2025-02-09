@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Notio.Shared.Injection;
+using System;
 using System.Collections.Generic;
 using System.IO;
 

@@ -1,8 +1,8 @@
 ﻿using Notio.Common.Connection;
-using Notio.Common.Diagnostics;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Common.Models;
+using Notio.Diagnostics;
 using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
 using Notio.Shared.Injection;

@@ -3,20 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Application", "Notio.Application\Notio.Application.csproj", "{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55} = {0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}
-		{11498769-178D-4904-9DEF-9FC37B349797} = {11498769-178D-4904-9DEF-9FC37B349797}
-		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D} = {2F731F1B-BF8D-4F70-95A6-DBE57B16753D}
-		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090} = {7BA61F59-C06D-4728-B5B3-A8CE05BAA090}
-		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB} = {F01710B4-39AF-44B2-BCFC-B20DD45F41EB}
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Common", "Notio.Common\Notio.Common.csproj", "{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Cryptography", "Notio.Cryptography\Notio.Cryptography.csproj", "{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Database", "Notio.Database\Notio.Database.csproj", "{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Logging", "Notio.Logging\Notio.Logging.csproj", "{55CB6D4F-749E-4E35-A35C-B8926838D4FE}"
 EndProject
@@ -42,10 +31,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{583494B4-DDD1-4B74-AC93-A8DE4AC8F554}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -54,10 +39,6 @@ Global
 		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0F7044F6-FCD5-4F64-85F0-EF547FC3DE55}.Release|Any CPU.Build.0 = Release|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Release|Any CPU.ActiveCfg = Release|Any CPU

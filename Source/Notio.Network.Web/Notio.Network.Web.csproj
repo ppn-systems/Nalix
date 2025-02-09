@@ -4,13 +4,14 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
+		<Icon>..\..\Resource\Notio.ico</Icon>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Notio.Serialization\Notio.Serialization.csproj" />
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+		<ProjectReference Include="..\Notio.Serialization\Notio.Serialization.csproj" />
 	</ItemGroup>
   
 </Project>

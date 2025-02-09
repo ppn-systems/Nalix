@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Notio.Shared.Randomization;
+namespace Notio.Randomization;
 
 /// <summary>
 /// Lớp hỗ trợ sinh số ngẫu nhiên với nhiều kiểu dữ liệu và phạm vi khác nhau.

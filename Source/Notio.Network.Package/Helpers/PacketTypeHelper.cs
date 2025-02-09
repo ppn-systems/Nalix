@@ -3,6 +3,9 @@ using System;
 
 namespace Notio.Network.Package.Helpers;
 
+/// <summary>
+/// Provides helper methods for packet types.
+/// </summary>
 public static class PacketTypeHelper
 {
     /// <summary>

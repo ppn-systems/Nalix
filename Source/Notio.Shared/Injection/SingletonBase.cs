@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Shared;
+namespace Notio.Shared.Injection;
 
 /// <summary>
 /// A generic thread-safe Singleton implementation using <see cref="Lazy{T}"/>.

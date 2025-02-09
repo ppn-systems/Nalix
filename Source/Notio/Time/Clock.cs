@@ -2,19 +2,26 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Shared.Time;
+namespace Notio.Time;
 
 /// <summary>
 /// Handles precise time for the system with high accuracy.
 /// </summary>
 public static class Clock
 {
+    /// <summary>
+    /// The Unix timestamp representing the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
+    /// </summary>
     public const ulong TimeEpochTimestamp = 1577836800UL; // (Wed Jan 01 2020 00:00:00)
+
+    /// <summary>
+    /// The <see cref="DateTime"/> representation of the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
+    /// </summary>
     public static readonly DateTime TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-    private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
 
     private static readonly DateTime _utcBase = DateTime.UtcNow;
     private static readonly Stopwatch _utcStopwatch = Stopwatch.StartNew();
+    private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.

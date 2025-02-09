@@ -6,9 +6,51 @@ using System.Threading;
 namespace Notio.Shared;
 
 /// <summary>
+/// Enumeration of Operating Systems.
+/// </summary>
+public enum OSType
+{
+    /// <summary>
+    /// Unknown OS
+    /// </summary>
+    Unknown,
+
+    /// <summary>
+    /// Windows
+    /// </summary>
+    Windows,
+
+    /// <summary>
+    /// UNIX/Linux
+    /// </summary>
+    Unix,
+
+    /// <summary>
+    /// macOS (OSX)
+    /// </summary>
+    Osx,
+}
+
+/// <summary>
+/// Defines Endianness, big or little.
+/// </summary>
+public enum Endianness
+{
+    /// <summary>
+    /// In big endian, you store the most significant byte in the smallest address.
+    /// </summary>
+    Big,
+
+    /// <summary>
+    /// In little endian, you store the least significant byte in the smallest address.
+    /// </summary>
+    Little,
+}
+
+/// <summary>
 /// Provides utility methods to retrieve information about the current application.
 /// </summary>
-public static class Runtime
+public static class EnvironmentInfo
 {
     // Lazy-load the entry assembly.
     private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
@@ -110,7 +152,7 @@ public static class Runtime
     /// <summary>
     /// Gets a value indicating whether this application instance is using the MONO runtime.
     /// </summary>
-    public static bool IsUsingMonoRuntime => Type.GetType("Mono.Runtime") != null;
+    public static bool IsUsingMonoRuntime => Type.GetType("Mono.EnvironmentInfo") != null;
 
     /// <summary>
     /// Gets the assembly that started the application.
@@ -183,46 +225,4 @@ public static class Runtime
     }
 
     #endregion Methods
-}
-
-/// <summary>
-/// Enumeration of Operating Systems.
-/// </summary>
-public enum OSType
-{
-    /// <summary>
-    /// Unknown OS
-    /// </summary>
-    Unknown,
-
-    /// <summary>
-    /// Windows
-    /// </summary>
-    Windows,
-
-    /// <summary>
-    /// UNIX/Linux
-    /// </summary>
-    Unix,
-
-    /// <summary>
-    /// macOS (OSX)
-    /// </summary>
-    Osx,
-}
-
-/// <summary>
-/// Defines Endianness, big or little.
-/// </summary>
-public enum Endianness
-{
-    /// <summary>
-    /// In big endian, you store the most significant byte in the smallest address.
-    /// </summary>
-    Big,
-
-    /// <summary>
-    /// In little endian, you store the least significant byte in the smallest address.
-    /// </summary>
-    Little,
 }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Notio.Shared.Randomization;
+namespace Notio.Randomization;
 
 /// <summary>
 /// Lớp cung cấp các phương thức tạo số ngẫu nhiên sử dụng thuật toán Multiply-with-carry (MWC).

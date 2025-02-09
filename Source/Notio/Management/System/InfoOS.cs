@@ -22,7 +22,7 @@ public static class InfoOS
     /// <returns>A string containing the OS details, or "Unsupported OS" if not recognized.</returns>
     public static string GetDetails()
     {
-        string? command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        string command = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "wmic os get caption"
             : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
             ? "lsb_release -a"
