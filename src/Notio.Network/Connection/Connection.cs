@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection;
+using Notio.Common.Connection;
 using Notio.Common.Connection.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
@@ -12,6 +12,9 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Connection;
 
+/// <summary>
+/// Represents a network connection that manages socket communication, stream transformation, and event handling.
+/// </summary>
 public sealed class Connection : IConnection, IDisposable
 {
     private readonly Socket _socket;
@@ -23,6 +26,13 @@ public sealed class Connection : IConnection, IDisposable
 
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
+    /// </summary>
+    /// <param name="socket">The socket used for the connection.</param>
+    /// <param name="bufferAllocator">The buffer pool used for data allocation.</param>
+    /// <param name="logger">The logger used for logging connection events. If null, no logging will occur.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
     public Connection(Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));

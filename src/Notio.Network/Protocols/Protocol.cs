@@ -1,42 +1,51 @@
-﻿using Notio.Common.Connection;
+using Notio.Common.Connection;
 
 namespace Notio.Network.Protocols;
 
 /// <summary>
-/// Lớp cơ sở đại diện cho một giao thức mạng.
+/// Represents an abstract base class for network protocols.
+/// This class defines the common logic for handling connections and processing messages.
 /// </summary>
 public abstract class Protocol : IProtocol
 {
+    /// <inheritdoc />
     /// <summary>
-    /// Chỉ ra liệu giao thức có nên giữ kết nối mở sau khi nhận được một gói tin hay không.
+    /// Gets or sets a value indicating whether the connection should be kept open after processing.
     /// </summary>
     public virtual bool KeepConnectionOpen { get; protected set; }
 
+    /// <inheritdoc />
     /// <summary>
-    /// Xử lý một kết nối mới.
+    /// Called when a connection is accepted. This method can be overridden to add custom behavior.
+    /// It starts receiving data on the connection and may include logic for IP ban validation.
     /// </summary>
-    /// <param name="connection">Kết nối mới.</param>
+    /// <param name="connection">The connection to be processed.</param>
     public virtual void OnAccept(IConnection connection)
     {
         connection.BeginReceive();
 
-        //Để thực hiện xác thực lệnh cấm IP
+        // Implement logic for validating banned IPs if necessary
     }
 
+    /// <inheritdoc />
     /// <summary>
-    /// Chạy sau khi xử lý một tin nhắn từ kết nối.
+    /// Post-processes a message after it has been handled.
+    /// If the connection should not remain open, it will be disconnected.
     /// </summary>
-    /// <param name="sender">Nguồn gốc của sự kiện.</param>
-    /// <param name="args">Tham số của sự kiện kết nối.</param>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="args">Event arguments containing the connection and additional data.</param>
     public void PostProcessMessage(object sender, IConnectEventArgs args)
     {
-        if (!KeepConnectionOpen) args.Connection.Disconnect();
+        if (!KeepConnectionOpen)
+            args.Connection.Disconnect();
     }
 
+    /// <inheritdoc />
     /// <summary>
-    /// Xử lý một tin nhắn đến từ kết nối.
+    /// Processes a message received on the connection.
+    /// This method must be implemented by derived classes to handle specific message processing.
     /// </summary>
-    /// <param name="sender">Nguồn gốc của sự kiện.</param>
-    /// <param name="args">Tham số của sự kiện kết nối.</param>
+    /// <param name="sender">The sender of the message.</param>
+    /// <param name="args">Event arguments containing the connection and message data.</param>
     public abstract void ProcessMessage(object sender, IConnectEventArgs args);
 }
