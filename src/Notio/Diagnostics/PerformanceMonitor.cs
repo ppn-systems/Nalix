@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace Notio.Diagnostics;
 
@@ -49,10 +49,7 @@ public sealed class PerformanceMonitor
     /// <summary>
     /// Stops the timer completely, and prevents any further measurements.
     /// </summary>
-    public void Stop()
-    {
-        _stopwatch.Stop();
-    }
+    public void Stop() => _stopwatch.Stop();
 
     /// <summary>
     /// Gets the total elapsed time in milliseconds, including time before any pause.

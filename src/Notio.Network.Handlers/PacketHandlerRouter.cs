@@ -9,8 +9,6 @@ using Notio.Shared.Injection;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
@@ -50,9 +48,7 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
     /// Routes the incoming packet to the appropriate handler based on the command.
     /// </summary>
     /// <param name="connection">The connection from which the packet was received.</param>
-    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    public async Task RoutePacketAsync(IConnection connection, CancellationToken cancellationToken = default)
+    public void RoutePacket(IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ThrowIfDisposed();
@@ -63,29 +59,30 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 
         try
         {
-            Packet packet = connection.IncomingPacket?.Deserialize() ?? throw new Exception();
+            Packet? packet = connection.IncomingPacket?.Deserialize();
+            if (packet is null) return;
 
-            if (!_handlerResolver.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
+            if (!_handlerResolver.TryGetHandler(packet?.Command ?? default, out PacketHandlerInfo? handlerInfo)
                 || handlerInfo == null)
             {
-                _logger?.Warn($"No handler found for command <{packet.Command}>");
+                _logger?.Warn($"No handler found for command <{packet?.Command}>");
                 return;
             }
 
             if (!ValidateAuthority(connection, handlerInfo.RequiredAuthority))
             {
-                _logger?.Warn($"Access denied for command <{packet.Command}>. Required: <{handlerInfo.RequiredAuthority}>, User: <{connection.Authority}>");
+                _logger?.Warn($"Access denied for command <{packet?.Command}>. Required: <{handlerInfo.RequiredAuthority}>, User: <{connection.Authority}>");
                 return;
             }
 
             var instance = _instanceManager.GetOrCreateInstance(handlerInfo.ControllerType);
-            var response = await InvokeHandlerMethodAsync(handlerInfo, instance, connection, packet);
+            Packet? response = (Packet?)handlerInfo.Method.Invoke(instance, [connection, packet]);
 
             if (response != null)
             {
-                await connection.SendAsync(response.Value.Serialize(), cancellationToken);
+                connection.Send(response.Value.Serialize());
                 performanceMonitor.Stop();
-                _logger?.Debug($"Command <{packet.Command}> processed in {performanceMonitor.ElapsedMilliseconds}ms");
+                _logger?.Debug($"Command <{packet?.Command}> processed in {performanceMonitor.ElapsedMilliseconds}ms");
             }
         }
         catch (PackageException ex)
@@ -104,33 +101,6 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
         if (_isDisposed) return;
         _isDisposed = true;
         GC.SuppressFinalize(this);
-    }
-
-    private async Task<Packet?> InvokeHandlerMethodAsync(PacketHandlerInfo handlerInfo, object instance, IConnection connection, Packet packet)
-    {
-        try
-        {
-            var result = handlerInfo.Method.Invoke(instance, [connection, packet]);
-
-            if (handlerInfo.IsAsync)
-            {
-                if (result is Task<Packet> taskResult)
-                    return await taskResult;
-                else if (result is ValueTask<Packet> valueTaskResult)
-                    return await valueTaskResult;
-                else
-                    throw new InvalidOperationException("Async method did not return Task<Packet> or ValueTask<Packet>");
-            }
-            else
-            {
-                return (Packet?)result;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error($"Error executing command {packet.Command}: {ex}");
-            return null;
-        }
     }
 
     private static bool ValidateAuthority(IConnection connection, Authoritys required)

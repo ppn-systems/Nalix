@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection;
+using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Network.Handlers.Metadata;
 using Notio.Network.Package;
@@ -6,7 +6,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
@@ -55,7 +54,7 @@ internal class PacketHandlerResolver(ILogger? logger = null)
                 method,
                 handlerAttribute.RequiredAuthority,
                 type,
-                IsAsyncMethod(method));
+                false); // No async method required
 
             _handlers.TryAdd(commandId, handlerInfo);
             _logger?.Info($"Registered {type.Name}.{method.Name} for command {commandId}");
@@ -74,18 +73,12 @@ internal class PacketHandlerResolver(ILogger? logger = null)
         }
 
         var returnType = method.ReturnType;
-        if (returnType != typeof(Packet) &&
-            returnType != typeof(Task<Packet>) &&
-            returnType != typeof(ValueTask<Packet>))
+        if (returnType != typeof(Packet))
         {
             throw new InvalidOperationException(
-                $"Handler method {method.Name} must return Packet or Task<Packet> or ValueTask<Packet>");
+                $"Handler method {method.Name} must return Packet.");
         }
     }
-
-    private static bool IsAsyncMethod(MethodInfo method)
-        => method.ReturnType == typeof(Task<Packet>) ||
-           method.ReturnType == typeof(ValueTask<Packet>);
 
     public bool TryGetHandler(int commandId, out PacketHandlerInfo? handlerInfo)
         => _handlers.TryGetValue(commandId, out handlerInfo);
