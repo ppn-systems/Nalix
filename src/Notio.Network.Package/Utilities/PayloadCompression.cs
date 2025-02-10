@@ -1,11 +1,11 @@
-﻿using Notio.Network.Package.Enums;
+using Notio.Network.Package.Enums;
 using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities.Payload;
+namespace Notio.Network.Package.Utilities;
 
 /// <summary>
 /// Provides methods to compress and decompress raw payload data using multiple compression algorithms.

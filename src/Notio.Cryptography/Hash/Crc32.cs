@@ -1,5 +1,3 @@
-﻿using System;
-
 namespace Notio.Cryptography.Hash;
 
 /// <summary>
@@ -19,18 +17,20 @@ public static class Crc32
     /// <param name="start">The starting index to begin CRC computation.</param>
     /// <param name="length">The number of bytes to process.</param>
     /// <returns>The 32-bit CRC value.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if the input array is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
     public static uint ComputeChecksum(byte[] bytes, int start, int length)
     {
-        ArgumentNullException.ThrowIfNull(bytes);
+        System.ArgumentNullException.ThrowIfNull(bytes);
 
         if (bytes.Length == 0)
-            throw new ArgumentOutOfRangeException(nameof(bytes), "Byte array cannot be empty.");
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Byte array cannot be empty.");
+
         if (start < 0 || start >= bytes.Length)
-            throw new ArgumentOutOfRangeException(nameof(start));
+            throw new System.ArgumentOutOfRangeException(nameof(start));
+
         if (length < 0 || start + length > bytes.Length)
-            throw new ArgumentOutOfRangeException(nameof(length));
+            throw new System.ArgumentOutOfRangeException(nameof(length));
 
         uint crc = InitialValue;
         int end = start + length;
@@ -49,7 +49,7 @@ public static class Crc32
     /// </summary>
     /// <param name="bytes">The input span of bytes.</param>
     /// <returns>The 32-bit CRC value.</returns>
-    public static uint ComputeChecksum(ReadOnlySpan<byte> bytes)
+    public static uint ComputeChecksum(System.ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
         foreach (byte b in bytes)

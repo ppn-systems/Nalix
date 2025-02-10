@@ -1,16 +1,15 @@
-﻿using Notio.Common.Exceptions;
-using Notio.Cryptography.Ciphers;
+using Notio.Common.Cryptography;
+using Notio.Common.Exceptions;
 using Notio.Cryptography.Ciphers.Symmetric;
-using Notio.Cryptography.Ciphers.Symmetric.Enums;
 using System;
 using System.Buffers;
 
-namespace Notio.Network.Package.Utilities.Payload;
+namespace Notio.Cryptography;
 
 /// <summary>
-/// Provides methods to encrypt and decrypt raw data payloads.
+/// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public static class PayloadCrypto
+public class Cipher
 {
     /// <summary>
     /// Encrypts the provided data using the specified algorithm.
@@ -19,15 +18,16 @@ public static class PayloadCrypto
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">
     /// The encryption algorithm to use.
-    /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
+    /// (Example: Xtea, ChaCha20Poly1305,...)
     /// </param>
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Encrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
-            throw new ArgumentNullException(nameof(key), "Key cannot be null.");
+            throw new ArgumentNullException(nameof(key), "Encryption key cannot be null. Please provide a valid key.");
+
         if (data.IsEmpty)
-            throw new ArgumentException("Data cannot be empty.", nameof(data));
+            throw new ArgumentException("Data cannot be empty. Please provide data to encrypt.", nameof(data));
 
         try
         {
@@ -35,12 +35,12 @@ public static class PayloadCrypto
             {
                 case EncryptionMode.Xtea:
                     {
-                        int bufferSize = (data.Length + 7) & ~7;
+                        int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] encryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
 
                         try
                         {
-                            Xtea.Encrypt(data, CryptoKeyGen.ConvertKey(key), encryptedXtea.AsMemory(0, bufferSize));
+                            Xtea.Encrypt(data, RandomizedGenerator.ConvertKey(key), encryptedXtea.AsMemory(0, bufferSize));
                             return encryptedXtea.AsMemory(0, bufferSize);
                         }
                         finally
@@ -49,16 +49,13 @@ public static class PayloadCrypto
                         }
                     }
 
-                case EncryptionMode.AesGcm:
-                    return Aes256.GcmMode.Encrypt(data, key);
-
                 case EncryptionMode.ChaCha20Poly1305:
                     {
-                        Span<byte> nonce = CryptoKeyGen.CreateNonce();
+                        Span<byte> nonce = RandomizedGenerator.CreateNonce();
 
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null, out byte[] ciphertext, out byte[] tag);
 
-                        byte[] result = new byte[12 + ciphertext.Length + 16];
+                        byte[] result = new byte[12 + ciphertext.Length + 16]; // 12 for nonce, 16 for tag
                         nonce.CopyTo(result);
                         ciphertext.CopyTo(result.AsSpan(12));
                         tag.CopyTo(result.AsSpan(12 + ciphertext.Length));
@@ -67,12 +64,13 @@ public static class PayloadCrypto
                     }
 
                 default:
-                    throw new PackageException("The specified encryption algorithm is not supported.");
+                    throw new CryptographicException(
+                        $"The specified encryption algorithm '{algorithm}' is not supported. Please choose a valid algorithm.");
             }
         }
         catch (Exception ex)
         {
-            throw new PackageException("Failed to encrypt data.", ex);
+            throw new CryptographicException("Encryption failed. An unexpected error occurred during the encryption process.", ex);
         }
     }
 
@@ -89,9 +87,10 @@ public static class PayloadCrypto
     public static Memory<byte> Decrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         if (key == null)
-            throw new ArgumentNullException(nameof(key), "Key cannot be null.");
+            throw new ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
+
         if (data.IsEmpty)
-            throw new ArgumentException("Data cannot be empty.", nameof(data));
+            throw new ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
 
         try
         {
@@ -99,13 +98,13 @@ public static class PayloadCrypto
             {
                 case EncryptionMode.Xtea:
                     {
-                        int bufferSize = (data.Length + 7) & ~7;
+                        int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] decryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
 
                         try
                         {
-                            if (!Xtea.TryDecrypt(data, CryptoKeyGen.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize)))
-                                throw new InternalErrorException("Authentication failed.");
+                            if (!Xtea.TryDecrypt(data, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize)))
+                                throw new CryptographicException("Decryption failed. Authentication of the data has failed.");
 
                             return decryptedXtea.AsMemory(0, bufferSize);
                         }
@@ -115,32 +114,31 @@ public static class PayloadCrypto
                         }
                     }
 
-                case EncryptionMode.AesGcm:
-                    return Aes256.GcmMode.Decrypt(data, key);
-
                 case EncryptionMode.ChaCha20Poly1305:
                     {
                         ReadOnlySpan<byte> input = data.Span;
                         if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
-                            throw new ArgumentException("Invalid data length.", nameof(data));
+                            throw new ArgumentException(
+                                "Invalid data length. Encrypted data must contain a nonce (12 bytes) and a tag (16 bytes).", nameof(data));
 
                         ReadOnlySpan<byte> nonce = input[..12];
                         ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
                         ReadOnlySpan<byte> ciphertext = input[12..^16];
 
                         if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
-                            throw new PackageException("Authentication failed.");
+                            throw new CryptographicException("Decryption failed. Authentication of the encrypted data has failed.");
 
                         return plaintext;
                     }
 
                 default:
-                    throw new PackageException("The specified encryption algorithm is not supported.");
+                    throw new CryptographicException(
+                        $"The specified encryption algorithm '{algorithm}' is not supported. Please choose a valid algorithm.");
             }
         }
         catch (Exception ex)
         {
-            throw new PackageException("Failed to decrypt data.", ex);
+            throw new CryptographicException("Decryption failed. An unexpected error occurred during the decryption process.", ex);
         }
     }
 }

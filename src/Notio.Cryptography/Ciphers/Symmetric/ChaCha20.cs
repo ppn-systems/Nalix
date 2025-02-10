@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2015, 2018 Scott Bennett
  *           (c) 2018-2023 Kaarlo Räihä
  *
@@ -15,7 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-using Notio.Cryptography.Utilities;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;

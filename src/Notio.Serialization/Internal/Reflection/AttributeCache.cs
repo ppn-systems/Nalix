@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,6 @@ namespace Notio.Serialization.Internal.Reflection;
 /// <remarks>
 /// Initializes a new instance of the <see cref="AttributeCache"/> class.
 /// </remarks>
-/// <param name="propertyCache">The property cache object.</param>
 internal class AttributeCache
 {
     private readonly Lazy<ConcurrentDictionary<Tuple<object, Type>, IEnumerable<object>>> _data =

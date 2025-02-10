@@ -1,20 +1,21 @@
-﻿using System;
+using Notio.Common.Exceptions;
+using Notio.Cryptography.Hash;
+using System;
 using System.Linq;
 using System.Numerics;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
 
 /// <summary>
-/// Lớp cung cấp các phương thức mã hóa và xác thực sử dụng SRP-6.
+/// Class that provides encryption and authentication methods using SRP-6.
 /// </summary>
 /// <remarks>
-/// Khởi tạo một đối tượng SRP-6 với tên người dùng, chuỗi khóa và bộ xác thực.
+/// Initializes an SRP-6 object with a username, key string, and authenticator.
 /// </remarks>
-/// <param name="I">Tên người dùng.</param>
-/// <param name="s">Chuỗi khóa.</param>
-/// <param name="v">Bộ xác thực.</param>
+/// <param name="I">User name.</param>
+/// <param name="s">Key string.</param>
+/// <param name="v">Authentication set.</param>
 public sealed class Srp6(string I, byte[] s, byte[] v)
 {
     private readonly byte[] I = Encoding.UTF8.GetBytes(I);
@@ -29,12 +30,12 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     private BigInteger K;
 
     /// <summary>
-    /// Cơ số g.
+    /// Base g.
     /// </summary>
     public static readonly BigInteger g = 2;
 
     /// <summary>
-    /// Số nguyên tố lớn N.
+    /// Largest prime number N.
     /// </summary>
     public static readonly BigInteger N = new([
         0xE3, 0x06, 0xEB, 0xC0, 0x2F, 0x1D, 0xC6, 0x9F, 0x5B, 0x43, 0x76, 0x83, 0xFE, 0x38, 0x51, 0xFD,
@@ -47,40 +48,43 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
         0xE8, 0xC5, 0x8F, 0xFA, 0x0A, 0xF8, 0x33, 0x9C, 0xD6, 0x8D, 0xB3, 0xAD, 0xB9, 0x0A, 0xAF, 0xEE ], true);
 
     /// <summary>
-    /// Tạo bộ xác thực từ chuỗi khóa, tên người dùng và mật khẩu.
+    /// Create an authenticator from a key string, username, and password.
     /// </summary>
-    /// <param name="s">Chuỗi khóa.</param>
-    /// <param name="I">Tên người dùng.</param>
-    /// <param name="p">Mật khẩu.</param>
-    /// <returns>Bộ xác thực dưới dạng mảng byte.</returns>
+    /// <param name="s">Key string.</param>
+    /// <param name="I">Username.</param>
+    /// <param name="p">Password.</param>
+    /// <returns>Authentication set as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] s, string I, string p)
     {
         byte[] P = SHA256.HashData(Encoding.UTF8.GetBytes($"{I}:{p}"));
         BigInteger x = Hash(true, new BigInteger(s, true), new BigInteger(P, true));
+
         return BigInteger.ModPow(g, x, N).ToByteArray();
     }
 
     /// <summary>
-    /// Tạo thông tin xác thực của máy chủ để gửi cho máy khách.
+    /// Create server credentials to send to the client.
     /// </summary>
-    /// <returns>Thông tin xác thực của máy chủ dưới dạng mảng byte.</returns>
+    /// <returns>Server credentials as a byte array.</returns>
     public byte[] GenerateServerCredentials()
     {
-        b = new BigInteger(RandomNumberGenerator.GetBytes((int)128u), true);
+        b = new BigInteger(RandomizedGenerator.GetBytes((int)128u), true);
         BigInteger k = Hash(true, N, g);
         B = (k * v + BigInteger.ModPow(g, b, N)) % N;
+
         return B.ToByteArray(true);
     }
 
     /// <summary>
-    /// Xử lý thông tin xác thực của máy khách. Nếu hợp lệ, chia sẻ bí mật được tạo và trả về.
+    /// Processes the client's authentication information. If valid, the shared secret is generated and returned.
     /// </summary>
-    /// <param name="clientA">Thông tin xác thực của máy khách.</param>
+    /// <param name="clientA">The client's authentication information.</param>
     public void CalculateSecret(byte[] clientA)
     {
         var a = new BigInteger(clientA, true);
+
         if (a % N == BigInteger.Zero)
-            throw new CryptographicException();
+            throw new CryptographicException("The value of a cannot be divisible by N");
 
         A = a;
         BigInteger u = Hash(true, A, B);
@@ -88,9 +92,9 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     }
 
     /// <summary>
-    /// Tính toán khóa phiên từ chia sẻ bí mật.
+    /// Calculate session key from shared secret.
     /// </summary>
-    /// <returns>Khóa phiên dưới dạng mảng byte.</returns>
+    /// <returns>Session key as byte array.</returns>
     public byte[] CalculateSessionKey()
     {
         if (S == BigInteger.Zero)
@@ -101,14 +105,15 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     }
 
     /// <summary>
-    /// Xác thực thông điệp bằng chứng của máy khách M1 và lưu lại nếu đúng.
+    /// Validate the client M1 proof message and save it if it is correct.
     /// </summary>
-    /// <param name="clientM1">Thông điệp bằng chứng của máy khách.</param>
-    /// <returns>True nếu thông điệp bằng chứng của máy khách hợp lệ, ngược lại false.</returns>
+    /// <param name="clientM1">The client proof message.</param>
+    /// <returns>True if the client proof message is valid, otherwise false.</returns>
     public bool VerifyClientEvidenceMessage(byte[] clientM1)
     {
         if (A == BigInteger.Zero || B == BigInteger.Zero || S == BigInteger.Zero)
             throw new CryptographicException("Missing data from previous operations: A, B, S");
+
         var IHash = SHA256.HashData(I);
         BigInteger serverM1 = Hash(false, Hash(false, N) ^ Hash(false, g),
             new BigInteger(IHash, true), s, A, B, K);
@@ -121,9 +126,9 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     }
 
     /// <summary>
-    /// Tính toán thông điệp bằng chứng của máy chủ M2 sử dụng các giá trị đã được xác minh trước đó.
+    /// Compute the M2 server's proof message using previously verified values.
     /// </summary>
-    /// <returns>Thông điệp bằng chứng của máy chủ M2 dưới dạng mảng byte.</returns>
+    /// <returns>The M2 server's proof message as a byte array.</returns>
     public byte[] CalculateServerEvidenceMessage()
     {
         if (A == BigInteger.Zero || M1 == BigInteger.Zero || K == BigInteger.Zero)
@@ -138,7 +143,7 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
 
     private static BigInteger Hash(bool reverse, params BigInteger[] integers)
     {
-        using SHA256 sha256 = SHA256.Create();
+        using SHA256 sha256 = new();
         sha256.Initialize();
 
         for (int i = 0; i < integers.Length; i++)

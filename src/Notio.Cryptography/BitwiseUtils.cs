@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Utilities;
+namespace Notio.Cryptography;
 
 /// <summary>
 /// Utilities that are used during compression
 /// </summary>
-public static class BitwiseUtils
+internal static class BitwiseUtils
 {
     /// <summary>
     /// n-bit left rotation operation (towards the high bits) for 32-bit integers.

@@ -1,27 +1,26 @@
-﻿using System;
-
 namespace Notio.Common.Exceptions;
 
 /// <summary>
-/// Ngoại lệ tùy chỉnh cho các lỗi liên quan đến packet.
+/// Custom exception for errors related to packets.
 /// </summary>
-public class PackageException : Exception
+[System.Serializable]
+public class PackageException : System.Exception
 {
     /// <summary>
-    /// Khởi tạo một ngoại lệ packet với thông báo lỗi.
+    /// Initializes a new instance of the <see cref="PackageException"/> class with a specified error message.
     /// </summary>
-    /// <param name="message">Thông báo lỗi.</param>
+    /// <param name="message">The message that describes the error.</param>
     public PackageException(string message)
         : base(message)
     {
     }
 
     /// <summary>
-    /// Khởi tạo một ngoại lệ packet với thông báo và ngoại lệ gốc.
+    /// Initializes a new instance of the <see cref="PackageException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
     /// </summary>
-    /// <param name="message">Thông báo lỗi.</param>
-    /// <param name="innerException">Ngoại lệ gốc.</param>
-    public PackageException(string message, Exception innerException)
+    /// <param name="message">The error message that explains the reason for the exception.</param>
+    /// <param name="innerException">The exception that is the cause of the current exception.</param>
+    public PackageException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }

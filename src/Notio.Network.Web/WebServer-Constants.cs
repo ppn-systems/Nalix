@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,7 +29,7 @@ public partial class WebServer
     /// <summary>
     /// <para>An <see cref="Encoding"/> that can be used to send UTF-8 responses without a byte order mark (BOM).</para>
     /// <para>This is the default encoding used by <see cref="WebServer"/> and should be used instead of <see cref="Encoding.UTF8"/>
-    /// when specifying an encoding for <see cref="HttpContextExtensions.OpenResponseText"/>.</para>
+    /// when specifying an encoding for <see cref="Http.Extensions.HttpContextExtensions.OpenResponseText"/>.</para>
     /// </summary>
     public static readonly Encoding Utf8NoBomEncoding = new UTF8Encoding(false);
 

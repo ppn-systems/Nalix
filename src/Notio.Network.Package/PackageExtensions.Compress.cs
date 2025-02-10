@@ -2,7 +2,6 @@
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Utilities;
-using Notio.Network.Package.Utilities.Payload;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;

@@ -1,4 +1,4 @@
-﻿using Notio.Common;
+using Notio.Common;
 using Notio.Network.Web.Utilities;
 using System;
 
@@ -20,7 +20,7 @@ public static partial class HttpContextExtensions
     /// <exception cref="ArgumentNullException">
     /// <paramref name="this"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="EmbedIOInternalErrorException">
+    /// <exception cref="Common.Exceptions.InternalErrorException">
     /// <paramref name="this"/> does not implement <see cref="IHttpContextImpl"/>.
     /// </exception>
     public static IHttpContextImpl GetImplementation(this IHttpContext @this)

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Platforms>AnyCPU</Platforms>
@@ -7,6 +7,8 @@
 		<OutputType>Library</OutputType>
 		<PackageTags>notio</PackageTags>
 		<PackageIcon>Notio.png</PackageIcon>
+    <DefineConstants>UNSAFE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		
@@ -23,5 +25,10 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+  </ItemGroup>
 
 </Project>

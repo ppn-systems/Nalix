@@ -1,4 +1,5 @@
-﻿using Notio.Common.Connection.Enums;
+using Notio.Common.Connection.Enums;
+using Notio.Common.Cryptography;
 using Notio.Common.Models;
 using System;
 using System.Threading;
@@ -35,6 +36,11 @@ public interface IConnection : IDisposable
     /// Gets the encryption key used for securing communication.
     /// </summary>
     byte[] EncryptionKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encryption mode used.
+    /// </summary>
+    public EncryptionMode Mode { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.

@@ -1,6 +1,3 @@
-﻿using System;
-using System.Runtime.Serialization;
-
 /*
  * NOTE TO CONTRIBUTORS:
  *
@@ -15,8 +12,8 @@ namespace Notio.Common.Exceptions;
 /// most probably caused by an error in Notio.</para>
 /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
 /// </summary>
-[Serializable]
-public class InternalErrorException : Exception
+[System.Serializable]
+public class InternalErrorException : System.Exception
 {
     /// <summary>
     /// Gets the detailed information related to this log entry.
@@ -52,7 +49,7 @@ public class InternalErrorException : Exception
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception,
     /// or <see langword="null"/> if no inner exception is specified.</param>
-    public InternalErrorException(string message, Exception innerException)
+    public InternalErrorException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }
@@ -74,10 +71,12 @@ public class InternalErrorException : Exception
     /// Initializes a new instance of the <see cref="InternalErrorException"/> class.
     /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
     /// </summary>
-    /// <param name="info">The <see cref="SerializationInfo"></see> that holds the serialized object data about the exception being thrown.</param>
-    /// <param name="context">The <see cref="StreamingContext"></see> that contains contextual information about the source or destination.</param>
-    [Obsolete("This API supports obsolete formatter-based serialization and should not be used.", DiagnosticId = "SYSLIB0051")]
-    protected InternalErrorException(SerializationInfo info, StreamingContext context)
+    /// <param name="info">The <see cref="System.Runtime.Serialization.SerializationInfo"></see> that holds the serialized object data about the exception being thrown.</param>
+    /// <param name="context">The <see cref="System.Runtime.Serialization.StreamingContext"></see> that contains contextual information about the source or destination.</param>
+    [System.Obsolete("This API supports obsolete formatter-based serialization and should not be used.", DiagnosticId = "SYSLIB0051")]
+    protected InternalErrorException(
+        System.Runtime.Serialization.SerializationInfo info,
+        System.Runtime.Serialization.StreamingContext context)
         : base(info, context)
     {
     }

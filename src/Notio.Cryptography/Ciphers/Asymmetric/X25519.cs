@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
 
@@ -29,7 +28,7 @@ public static class X25519
     {
         // Generate a random 32-byte scalar.
         byte[] privateKey = new byte[32];
-        RandomNumberGenerator.Fill(privateKey);
+        RandomizedGenerator.Fill(privateKey);
         // Clamp the scalar.
         privateKey = ClampScalar(privateKey);
 

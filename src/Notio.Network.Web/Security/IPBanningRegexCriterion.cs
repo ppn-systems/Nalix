@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -103,6 +103,7 @@ public class IPBanningRegexCriterion : IIPBanningCriterion
         GC.SuppressFinalize(this);
     }
 
+    /// <inheritdoc />
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)

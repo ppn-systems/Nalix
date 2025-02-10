@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http;
 using Notio.Network.Web.Internal;
 using System;
 using System.Collections.Specialized;
@@ -27,7 +27,7 @@ public static class UrlEncodedDataParser
     /// <see cref="HttpListenerRequest.QueryString" /> properties.</para>
     /// <para>If this parameter is <see langword="false" />, tokens not followed by an equal sign
     /// (e.g. <c>this</c> in <c>a=1&amp;this&amp;b=2</c>) will be considered keys with an empty
-    /// value. This is the same behavior as the <see cref="HttpContextExtensions.GetRequestQueryData" />
+    /// value. This is the same behavior as the <see cref="Http.Extensions.HttpContextExtensions.GetRequestQueryData" />
     /// extension method.</para></param>
     /// <param name="mutableResult"><see langword="true" /> (the default) to return
     /// a mutable (non-read-only) collection; <see langword="false" /> to return a read-only collection.</param>

@@ -1,26 +1,26 @@
-﻿namespace Notio.Network.Web.Utilities;
+namespace Notio.Network.Web.Utilities;
 
 /// <summary>
 /// Exposes constants for possible values of the <c>Content-Encoding</c> HTTP header.
 /// </summary>
-/// <see cref="CompressionMethod"/>
+/// <see cref="Enums.CompressionMethod"/>
 public static class CompressionMethodNames
 {
     /// <summary>
     /// Specifies no compression.
     /// </summary>
-    /// <see cref="CompressionMethod.None"/>
+    /// <see cref="Enums.CompressionMethod.None"/>
     public const string None = "identity";
 
     /// <summary>
     /// Specifies the "Deflate" compression method.
     /// </summary>
-    /// <see cref="CompressionMethod.Deflate"/>
+    /// <see cref="Enums.CompressionMethod.Deflate"/>
     public const string Deflate = "deflate";
 
     /// <summary>
     /// Specifies the GZip compression method.
     /// </summary>
-    /// <see cref="CompressionMethod.Gzip"/>
+    /// <see cref="Enums.CompressionMethod.Gzip"/>
     public const string Gzip = "gzip";
 }

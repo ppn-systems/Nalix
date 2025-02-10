@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
@@ -88,6 +88,7 @@ public class IPBanningRequestsCriterion : IIPBanningCriterion
         GC.SuppressFinalize(this);
     }
 
+    /// <inheritdoc />
     protected virtual void Dispose(bool disposing)
     {
         if (_disposed)

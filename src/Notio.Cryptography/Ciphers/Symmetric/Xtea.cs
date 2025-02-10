@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Notio.Cryptography.Ciphers.Symmetric;
@@ -8,8 +8,8 @@ namespace Notio.Cryptography.Ciphers.Symmetric;
 /// </summary>
 public static class Xtea
 {
-    private const uint Delta = 0x9E3779B9;
     private const int NumRounds = 32;
+    private const uint Delta = 0x9E3779B9;
 
     /// <summary>
     /// Encrypts the specified data using the XTEA algorithm.
@@ -33,8 +33,7 @@ public static class Xtea
 
         data.CopyTo(output);
 
-        if (paddedLength > length)
-            output.Slice(length, paddedLength - length).Span.Clear();
+        if (paddedLength > length) output[length..paddedLength].Span.Clear();
 
         Span<uint> words = MemoryMarshal.Cast<byte, uint>(output.Span);
         ReadOnlySpan<uint> keySpan = key.Span;

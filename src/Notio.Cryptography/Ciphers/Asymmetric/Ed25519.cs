@@ -1,6 +1,6 @@
-﻿using System;
+using Notio.Cryptography.Hash;
+using System;
 using System.Numerics;
-using System.Security.Cryptography;
 using System.Threading;
 
 namespace Notio.Cryptography.Ciphers.Asymmetric;
@@ -41,7 +41,7 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<SHA512> Sha512 = new(() => SHA512.Create());
+    private static readonly ThreadLocal<SHA256> Sha512 = new();
 
     /// <summary>
     /// Computes the SHA-512 hash of the provided data.
@@ -49,7 +49,7 @@ public sealed class Ed25519
     /// <param name="data">The data to hash.</param>
     /// <returns>The hash of the data as a byte array.</returns>
     private static byte[] ComputeHash(ReadOnlySpan<byte> data)
-        => (Sha512.Value ?? SHA512.Create()).ComputeHash(data.ToArray());
+        => (Sha512.Value ?? new SHA256()).ComputeHash(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.

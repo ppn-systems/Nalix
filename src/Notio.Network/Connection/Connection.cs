@@ -1,9 +1,10 @@
 using Notio.Common.Connection;
 using Notio.Common.Connection.Enums;
+using Notio.Common.Cryptography;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;
-using Notio.Cryptography.Ciphers.Symmetric;
+using Notio.Cryptography;
 using Notio.Shared.Identification;
 using System;
 using System.Net.Sockets;
@@ -53,6 +54,9 @@ public sealed class Connection : IConnection, IDisposable
     public byte[] EncryptionKey { get; set; } = [];
 
     /// <inheritdoc />
+    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
+
+    /// <inheritdoc />
     public long PingTime => _cstream.LastPingTime;
 
     /// <inheritdoc />
@@ -99,7 +103,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             try
             {
-                message = Aes256.GcmMode.Encrypt(message, EncryptionKey);
+                message = Cipher.Encrypt(message, EncryptionKey, Mode);
             }
             catch
             {
@@ -119,7 +123,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             try
             {
-                message = Aes256.GcmMode.Encrypt(message, EncryptionKey).ToArray();
+                message = Cipher.Encrypt(message, EncryptionKey, Mode);
             }
             catch
             {
@@ -185,7 +189,7 @@ public sealed class Connection : IConnection, IDisposable
         {
             try
             {
-                return Aes256.GcmMode.Decrypt(data, EncryptionKey);
+                return Cipher.Encrypt(data, EncryptionKey, Mode);
             }
             catch
             {

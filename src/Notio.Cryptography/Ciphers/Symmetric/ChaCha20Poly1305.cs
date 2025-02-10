@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers.Binary;
 using System.Linq;
 using System.Numerics;
@@ -25,7 +25,9 @@ public class ChaCha20Poly1305
     /// <param name="aad">Additional authenticated data (AAD) – can be empty.</param>
     /// <param name="ciphertext">Output: the resulting ciphertext.</param>
     /// <param name="tag">Output: the authentication tag (16 bytes).</param>
-    public static void Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> aad,
+    public static void Encrypt(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
+        ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> aad,
         out byte[] ciphertext, out byte[] tag)
     {
         if (key.Length != 32)
@@ -68,8 +70,9 @@ public class ChaCha20Poly1305
     /// <param name="tag">The authentication tag (16 bytes) to verify.</param>
     /// <param name="plaintext">Output: the resulting plaintext if authentication succeeds.</param>
     /// <returns>True if authentication passes and decryption is successful; otherwise, false.</returns>
-    public static bool Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> aad, ReadOnlySpan<byte> tag,
-        out byte[] plaintext)
+    public static bool Decrypt(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> ciphertext,
+        ReadOnlySpan<byte> aad, ReadOnlySpan<byte> tag, out byte[] plaintext)
     {
         plaintext = new byte[ciphertext.Length];
         if (key.Length != 32)

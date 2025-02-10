@@ -1,9 +1,9 @@
-﻿using Notio.Serialization;
+using Notio.Common.Logging;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
+using Notio.Serialization;
 using System;
 using System.Threading.Tasks;
-using Notio.Common.Logging;
 
 namespace Notio.Network.Web.Http.Request;
 
@@ -14,7 +14,7 @@ public static class RequestDeserializer
 {
     /// <summary>
     /// <para>The default request deserializer used by Notio.</para>
-    /// <para>Equivalent to <see cref="Json{TData}"/>.</para>
+    /// <para>Equivalent to <see cref="Json{TData}(IHttpContext)"/>.</para>
     /// </summary>
     /// <typeparam name="TData">The expected type of the deserialized data.</typeparam>
     /// <param name="context">The <see cref="IHttpContext"/> whose request body is to be deserialized.</param>
