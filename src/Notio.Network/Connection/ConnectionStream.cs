@@ -67,7 +67,11 @@ public class ConnectionStream : IDisposable
         try
         {
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
-                   .ContinueWith((task, state) => OnReceiveCompleted(task, cancellationToken), cancellationToken);
+                   .ContinueWith(async (task, state) =>
+                   {
+                       var self = (ConnectionStream)state!;
+                       await self.OnReceiveCompleted(task, cancellationToken);
+                   }, this, cancellationToken);
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
         {

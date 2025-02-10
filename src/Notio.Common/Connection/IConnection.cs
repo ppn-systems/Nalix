@@ -20,7 +20,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the incoming packet of data.
     /// </summary>
-    byte[] IncomingPacket { get; }
+    ReadOnlyMemory<byte>? IncomingPacket { get; }
 
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.

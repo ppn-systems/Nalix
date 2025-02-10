@@ -81,11 +81,11 @@ public sealed class Connection : IConnection, IDisposable
         => _socket.Connected ? _socket.RemoteEndPoint?.ToString() ?? "0.0.0.0" : "Disconnected";
 
     /// <inheritdoc />
-    public byte[]? IncomingPacket
+    public ReadOnlyMemory<byte>? IncomingPacket
     {
         get
         {
-            if (_cstream.CacheIncoming.TryGetValue(out byte[]? data))
+            if (_cstream.CacheIncoming.TryGetValue(out ReadOnlyMemory<byte> data))
                 return data;
             return null;
         }

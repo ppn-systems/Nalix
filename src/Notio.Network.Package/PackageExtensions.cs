@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
@@ -90,6 +90,16 @@ public static partial class PackageExtensions
 
         return PacketSerializer.ReadPacketFast(data[..length]);
     }
+
+    /// <summary>
+    /// Tạo Packet từ mảng byte một cách an toàn và hiệu quả.
+    /// </summary>
+    /// <param name="data">Mảng byte chứa dữ liệu của gói tin.</param>
+    /// <returns>Gói tin được tạo từ dữ liệu đầu vào.</returns>
+    /// <exception cref="PackageException">Ném lỗi khi dữ liệu không hợp lệ.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Packet Deserialize(this ReadOnlyMemory<byte> data)
+        => Deserialize(data.Span);
 
     /// <summary>
     /// Chuyển đổi mảng byte thành Packet.

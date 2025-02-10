@@ -63,7 +63,7 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 
         try
         {
-            var packet = connection.IncomingPacket.Deserialize();
+            Packet packet = connection.IncomingPacket?.Deserialize() ?? throw new Exception();
 
             if (!_handlerResolver.TryGetHandler(packet.Command, out PacketHandlerInfo? handlerInfo)
                 || handlerInfo == null)
