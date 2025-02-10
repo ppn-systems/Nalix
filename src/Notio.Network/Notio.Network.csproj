@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -16,6 +16,10 @@
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio\Notio.csproj" />

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 
 namespace Notio.Shared.Extensions;
@@ -47,7 +47,7 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="Task" /> on which this method is called.</param>
     /// <param name="continueOnCapturedContext">If set to <see langword="true"/>,
     /// attempts to marshal the continuation back to the original context captured.
-    /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait"/>
+    /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait(bool)"/>
     /// method.</param>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static void Await(this Task @this, bool continueOnCapturedContext)

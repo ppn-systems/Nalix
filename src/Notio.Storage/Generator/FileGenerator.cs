@@ -1,9 +1,8 @@
-﻿using Notio.Storage.FileFormats;
-using Notio.Storage.Generator.Response;
+using Notio.Storage.FileFormats;
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Storage.Generator.Services;
+namespace Notio.Storage.Generator;
 
 /// <summary>
 /// File generator class that supports multiple file formats.

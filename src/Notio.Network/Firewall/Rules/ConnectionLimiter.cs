@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Firewall.Rules;
 
 /// <summary>
-/// Lớp xử lý giới hạn và theo dõi số lượng kết nối đồng thời từ mỗi địa chỉ IP.
+/// A class responsible for limiting and tracking the number of simultaneous connections from each IP address.
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
 {
@@ -21,9 +21,14 @@ public sealed class ConnectionLimiter : IDisposable
     private readonly SemaphoreSlim _cleanupLock;
     private readonly FirewallConfig _firewallConfig;
     private readonly ConcurrentDictionary<string, ConnectionInfo> _connectionInfo;
-
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with the specified firewall configuration and logger.
+    /// </summary>
+    /// <param name="networkConfig">The firewall configuration. If null, the default configuration is used.</param>
+    /// <param name="logger">The logger used for logging connection events. If null, no logging is performed.</param>
+    /// <exception cref="InternalErrorException">Thrown if <paramref name="networkConfig"/> specifies a max connections per IP address less than or equal to 0.</exception>
     public ConnectionLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
     {
         _logger = logger;
@@ -44,6 +49,12 @@ public sealed class ConnectionLimiter : IDisposable
         );
     }
 
+    /// <summary>
+    /// Determines whether a new connection is allowed for the specified IP address.
+    /// </summary>
+    /// <param name="endPoint">The IP address or endpoint to check.</param>
+    /// <returns><c>true</c> if the connection is allowed; otherwise, <c>false</c>.</returns>
+    /// <exception cref="InternalErrorException">Thrown if <paramref name="endPoint"/> is null or whitespace.</exception>
     public bool IsConnectionAllowed(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
@@ -81,6 +92,12 @@ public sealed class ConnectionLimiter : IDisposable
         ).CurrentConnections <= _maxConnectionsPerIp;
     }
 
+    /// <summary>
+    /// Marks a connection as closed for the specified IP address.
+    /// </summary>
+    /// <param name="endPoint">The IP address or endpoint to mark as closed.</param>
+    /// <returns><c>true</c> if the connection was successfully marked as closed; otherwise, <c>false</c>.</returns>
+    /// <exception cref="InternalErrorException">Thrown if <paramref name="endPoint"/> is null or whitespace.</exception>
     public bool ConnectionClosed(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
@@ -102,6 +119,12 @@ public sealed class ConnectionLimiter : IDisposable
         ).CurrentConnections >= 0;
     }
 
+    /// <summary>
+    /// Retrieves the connection statistics for the specified IP address.
+    /// </summary>
+    /// <param name="endPoint">The IP address or endpoint to retrieve statistics for.</param>
+    /// <returns>A tuple containing the current number of connections, total connections today, and the last connection time.</returns>
+    /// <exception cref="InternalErrorException">Thrown if <paramref name="endPoint"/> is null or whitespace.</exception>
     public (int CurrentConnections, int TotalToday, DateTime LastConnection) GetConnectionInfo(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
@@ -113,6 +136,9 @@ public sealed class ConnectionLimiter : IDisposable
         return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
     }
 
+    /// <summary>
+    /// Cleans up stale connection data that has no active connections.
+    /// </summary>
     private async Task CleanupStaleConnectionsAsync()
     {
         if (_disposed) return;
@@ -149,6 +175,10 @@ public sealed class ConnectionLimiter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Retrieves the connection statistics for all IP addresses.
+    /// </summary>
+    /// <returns>A dictionary containing the current and total connections for each IP address.</returns>
     public IReadOnlyDictionary<string, (int Current, int Total)> GetAllConnections()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
@@ -161,6 +191,9 @@ public sealed class ConnectionLimiter : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Releases all resources used by the <see cref="ConnectionLimiter"/> instance.
+    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Notio.Storage.MimeTypes;
 
+/// <summary>
+/// Provides MIME type resolution based on file extensions.
+/// </summary>
 public class MimeTypeResolver : IMimeTypeResolver
 {
     private readonly string _defaultMimeType = "application/octet-stream";

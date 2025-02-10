@@ -1,4 +1,4 @@
-﻿using Notio.Storage.Generator;
+using Notio.Storage.Generator;
 
 namespace Notio.Storage;
 

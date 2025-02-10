@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Shared.Configuration;
 using System;
@@ -29,12 +29,20 @@ public sealed class BufferAllocator : IBufferPool
     /// </summary>
     public int MaxBufferSize => _bufferAllocations.Max(alloc => alloc.BufferSize);
 
+    /// <summary>
+    /// Gets the largest buffer size from the buffer allocations list.
+    /// </summary>
     public int MinBufferSize => _bufferAllocations.Min(alloc => alloc.BufferSize);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferAllocator"/> class with buffer allocation settings and total buffer count.
     /// </summary>
-    /// <param name="bufferConfig">The buffer configuration to use. If null, the default configuration is used.</param>
+    /// <param name="bufferConfig">
+    /// The buffer configuration to use. If null, the default configuration from <see cref="ConfiguredShared"/> is used.
+    /// </param>
+    /// <param name="logger">
+    /// An optional logger instance for logging buffer allocation events. If null, logging is disabled.
+    /// </param>
     public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
         _bufferConfig = bufferConfig ?? ConfiguredShared.Instance.Get<BufferConfig>();
@@ -99,7 +107,7 @@ public sealed class BufferAllocator : IBufferPool
     /// <summary>
     /// Parses the buffer allocation settings from a configuration string.
     /// </summary>
-    /// <param name="bufferAllocationsString">The buffer allocations string in the format '<size>,<ratio>;...'</param>
+    /// <param name="bufferAllocationsString">The buffer allocations string in the format '&lt;size&gt;,&lt;ratio&gt;;&lt;size&gt;,&lt;ratio&gt;'</param>
     /// <returns>An array of tuples representing the buffer size and allocation ratio.</returns>
     /// <exception cref="ArgumentException">Thrown if the input string is malformed.</exception>
     private static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)

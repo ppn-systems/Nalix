@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection;
+using Notio.Common.Connection;
 using Notio.Common.Models;
 using Notio.Cryptography.Ciphers.Asymmetric;
 using Notio.Network.Package;
@@ -7,9 +7,11 @@ using System.Security.Cryptography;
 
 namespace Notio.Network.Handlers;
 
+/// <inheritdoc />
 [PacketController]
 public static class PacketDefault
 {
+    /// <inheritdoc />
     [PacketCommand(1, Authoritys.Guests)]
     public static Packet InitiateSecureConnection(IConnection connection, Packet packet)
     {

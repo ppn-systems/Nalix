@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
@@ -27,6 +27,13 @@ public sealed class RequestLimiter : IDisposable
 
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RequestLimiter"/> class with the provided firewall configuration and optional logger.
+    /// </summary>
+    /// <param name="networkConfig">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
+    /// <param name="logger">An optional logger for logging purposes. If <see langword="null"/>, no logging will be done.</param>
+    /// <exception cref="InternalErrorException">
+    /// </exception>
     public RequestLimiter(FirewallConfig? networkConfig, ILogger? logger = null)
     {
         _logger = logger;
@@ -138,6 +145,7 @@ public sealed class RequestLimiter : IDisposable
         }
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         if (_disposed) return;

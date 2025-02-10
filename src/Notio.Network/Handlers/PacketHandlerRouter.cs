@@ -1,4 +1,4 @@
-﻿using Notio.Common.Connection;
+using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Common.Models;
@@ -14,6 +14,11 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
+/// <summary>
+/// A router that handles incoming packets and routes them to the appropriate handler method
+/// based on the command specified in the packet.
+/// </summary>
+/// <param name="logger">An optional logger to log the operations of the packet handler router.</param>
 public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 {
     private readonly ILogger? _logger = logger;
@@ -23,13 +28,11 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
 
     private bool _isDisposed;
 
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-        _isDisposed = true;
-        GC.SuppressFinalize(this);
-    }
-
+    /// <summary>
+    /// Registers a packet handler type with the router.
+    /// </summary>
+    /// <typeparam name="T">The type of the handler, which must be decorated with <see cref="PacketControllerAttribute"/>.</typeparam>
+    /// <exception cref="InvalidOperationException">Thrown if the handler type is not decorated with <see cref="PacketControllerAttribute"/>.</exception>
     public void RegisterHandler<[DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicMethods |
         DynamicallyAccessedMemberTypes.NonPublicMethods)] T>() where T : class
@@ -43,6 +46,12 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
         _handlerResolver.RegisterHandlers(type, controllerAttribute);
     }
 
+    /// <summary>
+    /// Routes the incoming packet to the appropriate handler based on the command.
+    /// </summary>
+    /// <param name="connection">The connection from which the packet was received.</param>
+    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public async Task RoutePacketAsync(IConnection connection, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -87,6 +96,14 @@ public sealed class PacketHandlerRouter(ILogger? logger = null) : IDisposable
         {
             _logger?.Error($"Error processing packet: {ex}");
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+        GC.SuppressFinalize(this);
     }
 
     private async Task<Packet?> InvokeHandlerMethodAsync(PacketHandlerInfo handlerInfo, object instance, IConnection connection, Packet packet)

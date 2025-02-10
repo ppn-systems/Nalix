@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Network.Firewall.Models;
 using Notio.Shared.Configuration;
@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Firewall.Rules;
 
 /// <summary>
-/// Lớp quản lý và giới hạn băng thông cho mỗi kết nối
+/// Manages and limits bandwidth for each connection.
 /// </summary>
 public sealed class BandwidthLimiter : IDisposable
 {
@@ -26,12 +26,18 @@ public sealed class BandwidthLimiter : IDisposable
 
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BandwidthLimiter"/> class.
+    /// </summary>
+    /// <param name="networkConfig">The firewall configuration.</param>
+    /// <param name="logger">The logger instance.</param>
+    /// <exception cref="ArgumentException">Thrown when the bandwidth limits are not greater than 0.</exception>
     public BandwidthLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
     {
         _logger = logger;
         _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
 
-        // Kiểm tra cấu hình
+        // Validate configuration
         if (_firewallConfig.Bandwidth.MaxUploadBytesPerSecond <= 0 || _firewallConfig.Bandwidth.MaxDownloadBytesPerSecond <= 0)
             throw new ArgumentException("Bandwidth limits must be greater than 0");
 
@@ -49,7 +55,7 @@ public sealed class BandwidthLimiter : IDisposable
         _throttles = new ConcurrentDictionary<string, SemaphoreSlim>();
         _resetInterval = TimeSpan.FromSeconds(_firewallConfig.Bandwidth.BandwidthResetIntervalSeconds);
 
-        // Tạo timer để reset số liệu định kỳ
+        // Create timer to reset stats periodically
         _resetTimer = new Timer(
             _ => ResetBandwidthStats(),
             null,
@@ -59,8 +65,13 @@ public sealed class BandwidthLimiter : IDisposable
     }
 
     /// <summary>
-    /// Kiểm tra và ghi nhận dữ liệu gửi đi
+    /// Checks and records the uploaded data for a given endpoint.
     /// </summary>
+    /// <param name="endPoint">The endpoint to track.</param>
+    /// <param name="byteCount">The number of bytes uploaded.</param>
+    /// <param name="cancellationToken">The cancellation token for the operation.</param>
+    /// <returns>Returns <see langword="true"/> if upload is within the limits; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="InternalErrorException">Thrown when the endpoint is invalid or byte count is not positive.</exception>
     public async Task<bool> TryUploadAsync(string endPoint, int byteCount, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
@@ -115,8 +126,13 @@ public sealed class BandwidthLimiter : IDisposable
     }
 
     /// <summary>
-    /// Kiểm tra và ghi nhận dữ liệu nhận về
+    /// Checks and records the downloaded data for a given endpoint.
     /// </summary>
+    /// <param name="endPoint">The endpoint to track.</param>
+    /// <param name="byteCount">The number of bytes downloaded.</param>
+    /// <param name="cancellationToken">The cancellation token for the operation.</param>
+    /// <returns>Returns <see langword="true"/> if download is within the limits; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="InternalErrorException">Thrown when the endpoint is invalid or byte count is not positive.</exception>
     public async Task<bool> TryDownloadAsync(string endPoint, int byteCount, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
@@ -171,8 +187,10 @@ public sealed class BandwidthLimiter : IDisposable
     }
 
     /// <summary>
-    /// Lấy thông tin băng thông hiện tại của một IP
+    /// Retrieves the current bandwidth stats for a given endpoint.
     /// </summary>
+    /// <param name="endPoint">The endpoint to retrieve stats for.</param>
+    /// <returns>A tuple containing bytes sent, bytes received, and last activity time.</returns>
     public (long BytesSent, long BytesReceived, DateTime LastActivity) GetBandwidthInfo(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(BandwidthLimiter));
@@ -185,7 +203,7 @@ public sealed class BandwidthLimiter : IDisposable
     }
 
     /// <summary>
-    /// Reset số liệu thống kê băng thông định kỳ
+    /// Resets bandwidth statistics periodically.
     /// </summary>
     private void ResetBandwidthStats()
     {
@@ -210,6 +228,9 @@ public sealed class BandwidthLimiter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Disposes of the <see cref="BandwidthLimiter"/> and cleans up resources.
+    /// </summary>
     public void Dispose()
     {
         if (_disposed) return;

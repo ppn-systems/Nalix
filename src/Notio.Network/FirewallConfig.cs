@@ -1,4 +1,4 @@
-﻿using Notio.Network.Firewall.Configuration;
+using Notio.Network.Firewall.Configuration;
 using Notio.Network.Firewall.Enums;
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
@@ -6,36 +6,68 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Notio.Network;
 
+/// <summary>
+/// Represents the firewall configuration settings including rate limiting, connection limits, and bandwidth limits.
+/// </summary>
 public sealed class FirewallConfig : ConfiguredBinder
 {
-    // Cấu hình Chung
+    /// <summary>
+    /// Gets or sets a value indicating whether logging is enabled.
+    /// </summary>
+    /// <value><c>true</c> if logging is enabled; otherwise, <c>false</c>.</value>
     public bool EnableLogging { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether metrics collection is enabled.
+    /// </summary>
+    /// <value><c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.</value>
     public bool EnableMetrics { get; set; } = true;
 
-    // Cấu hình giới hạn băng thông
+    /// <summary>
+    /// Gets or sets the bandwidth configuration.
+    /// </summary>
+    /// <value>The bandwidth configuration.</value>
     [ConfiguredIgnore]
     public BandwidthConfig Bandwidth { get; set; } = new BandwidthConfig();
 
-    // Cấu hình giới hạn kết nối
+    /// <summary>
+    /// Gets or sets the connection configuration.
+    /// </summary>
+    /// <value>The connection configuration.</value>
     [ConfiguredIgnore]
     public ConnectionConfig Connection { get; set; } = new ConnectionConfig();
 
-    // Cấu hình Rate Limit
+    /// <summary>
+    /// Gets or sets the rate limit configuration.
+    /// </summary>
+    /// <value>The rate limit configuration.</value>
     [ConfiguredIgnore]
     public RateLimitConfig RateLimit { get; set; } = new RateLimitConfig();
 
-    // Cấu hình mức độ giới hạn
+    /// <summary>
+    /// Gets or sets the bandwidth limit level.
+    /// </summary>
+    /// <value>The bandwidth limit level.</value>
     [ConfiguredIgnore]
     public BandwidthLimit BandwidthLimit { get; set; } = BandwidthLimit.Medium;
 
+    /// <summary>
+    /// Gets or sets the connection limit level.
+    /// </summary>
+    /// <value>The connection limit level.</value>
     [ConfiguredIgnore]
     public ConnectionLimit ConnectionLimit { get; set; } = ConnectionLimit.Medium;
 
+    /// <summary>
+    /// Gets or sets the request limit level.
+    /// </summary>
+    /// <value>The request limit level.</value>
     [ConfiguredIgnore]
     public RequestLimit RequestLimit { get; set; } = RequestLimit.Medium;
 
-    // Phương thức để áp dụng cấu hình theo mức độ
+    /// <summary>
+    /// Applies the configuration limits for request, bandwidth, and connection.
+    /// </summary>
     public void ApplyLimits()
     {
         this.ApplyRequestLimit();
@@ -43,6 +75,9 @@ public sealed class FirewallConfig : ConfiguredBinder
         this.ApplyConnectionLimit();
     }
 
+    /// <summary>
+    /// Applies the request limit configuration.
+    /// </summary>
     private void ApplyRequestLimit()
     {
         switch (RequestLimit)
@@ -73,6 +108,9 @@ public sealed class FirewallConfig : ConfiguredBinder
         }
     }
 
+    /// <summary>
+    /// Applies the bandwidth limit configuration.
+    /// </summary>
     private void ApplyBandwidthLimit()
     {
         switch (BandwidthLimit)
@@ -107,6 +145,9 @@ public sealed class FirewallConfig : ConfiguredBinder
         }
     }
 
+    /// <summary>
+    /// Applies the connection limit configuration.
+    /// </summary>
     private void ApplyConnectionLimit()
     {
         switch (ConnectionLimit)
@@ -129,7 +170,11 @@ public sealed class FirewallConfig : ConfiguredBinder
         }
     }
 
-    // Helper method để validate cấu hình
+    /// <summary>
+    /// Validates the firewall configuration.
+    /// </summary>
+    /// <param name="error">Returns the error message if validation fails.</param>
+    /// <returns><c>true</c> if validation is successful; otherwise, <c>false</c>.</returns>
     [RequiresUnreferencedCode("Validation might not work correctly when trimming application code.")]
     public bool Validate(out string error)
     {

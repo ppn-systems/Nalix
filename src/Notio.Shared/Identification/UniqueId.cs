@@ -1,4 +1,4 @@
-﻿using Notio.Shared.Time;
+using Notio.Shared.Time;
 using System;
 using System.Linq;
 
@@ -87,6 +87,21 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         return new string(chars[index..]).PadLeft(7, '0');
     }
 
+    /// <summary>
+    /// Parses a <see cref="UniqueId"/> from a given <see cref="ReadOnlySpan{Char}"/> input.
+    /// </summary>
+    /// <param name="input">
+    /// The input span of characters representing the identifier. It can be either a hexadecimal (8-character) or Base36-encoded value.
+    /// </param>
+    /// <returns>
+    /// A <see cref="UniqueId"/> instance parsed from the input.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="input"/> is empty.
+    /// </exception>
+    /// <exception cref="FormatException">
+    /// Thrown if the input is neither a valid hexadecimal nor a valid Base36 representation.
+    /// </exception>
     public static UniqueId Parse(ReadOnlySpan<char> input)
     {
         if (input.IsEmpty)
@@ -193,23 +208,67 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         return true;
     }
 
+    /// <summary>
+    /// Determines whether the current instance is equal to a specified object.
+    /// </summary>
+    /// <param name="obj">The object to compare with the current instance.</param>
+    /// <returns><see langword="true"/> if the specified object is a <see cref="UniqueId"/> and equals the current instance; otherwise, <see langword="false"/>.</returns>
     public override bool Equals(object? obj) => obj is UniqueId other && Equals(other);
 
+    /// <summary>
+    /// Determines whether the current instance is equal to another <see cref="UniqueId"/>.
+    /// </summary>
+    /// <param name="other">The <see cref="UniqueId"/> to compare with the current instance.</param>
+    /// <returns><see langword="true"/> if both instances have the same value; otherwise, <see langword="false"/>.</returns>
     public bool Equals(UniqueId other) => _value == other._value;
 
+    /// <summary>
+    /// Returns the hash code for the current instance.
+    /// </summary>
+    /// <returns>A hash code for the current <see cref="UniqueId"/>.</returns>
     public override int GetHashCode() => _value.GetHashCode();
 
+    /// <summary>
+    /// Compares the current instance with another <see cref="UniqueId"/> and returns an integer that indicates whether the current instance precedes, follows, or occurs in the same position in the sort order as the other instance.
+    /// </summary>
+    /// <param name="other">The <see cref="UniqueId"/> to compare with.</param>
+    /// <returns>
+    /// A signed integer that indicates the relative values of the instances:
+    /// <list type="bullet">
+    /// <item><description>&lt; 0: This instance precedes <paramref name="other"/> in the sort order.</description></item>
+    /// <item><description>0: This instance occurs in the same position as <paramref name="other"/>.</description></item>
+    /// <item><description>&gt; 0: This instance follows <paramref name="other"/> in the sort order.</description></item>
+    /// </list>
+    /// </returns>
     public int CompareTo(UniqueId other) => _value.CompareTo(other._value);
 
+    /// <summary>
+    /// Determines whether one <see cref="UniqueId"/> is less than another.
+    /// </summary>
     public static bool operator <(UniqueId left, UniqueId right) => left._value < right._value;
 
+    /// <summary>
+    /// Determines whether one <see cref="UniqueId"/> is less than or equal to another.
+    /// </summary>
     public static bool operator <=(UniqueId left, UniqueId right) => left._value <= right._value;
 
+    /// <summary>
+    /// Determines whether one <see cref="UniqueId"/> is greater than another.
+    /// </summary>
     public static bool operator >(UniqueId left, UniqueId right) => left._value > right._value;
 
+    /// <summary>
+    /// Determines whether one <see cref="UniqueId"/> is greater than or equal to another.
+    /// </summary>
     public static bool operator >=(UniqueId left, UniqueId right) => left._value >= right._value;
 
+    /// <summary>
+    /// Determines whether two <see cref="UniqueId"/> instances are equal.
+    /// </summary>
     public static bool operator ==(UniqueId left, UniqueId right) => left.Equals(right);
 
+    /// <summary>
+    /// Determines whether two <see cref="UniqueId"/> instances are not equal.
+    /// </summary>
     public static bool operator !=(UniqueId left, UniqueId right) => !(left == right);
 }

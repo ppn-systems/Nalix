@@ -1,4 +1,4 @@
-﻿namespace Notio.Storage.Generator.Response;
+﻿namespace Notio.Storage.Generator;
 
 /// <summary>
 /// Represents the response of a file generation process.
