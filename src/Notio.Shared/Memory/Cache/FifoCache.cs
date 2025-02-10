@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -62,7 +62,7 @@ public sealed class FifoCache<T>
     /// <exception cref="InvalidOperationException">Thrown when the cache is empty.</exception>
     public T GetValue()
     {
-        if (_queue.TryDequeue(out var item))
+        if (_queue.TryDequeue(out T? item))
         {
             Interlocked.Decrement(ref _currentSize);
             return item;

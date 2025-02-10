@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using Notio.Logging.Core;
 using Notio.Logging.Targets;
 using System;
@@ -11,28 +11,12 @@ namespace Notio.Logging;
 /// </summary>
 public sealed class NotioLog : LoggingEngine, ILogger
 {
-    private bool _isInitialized;
-    private static readonly Lazy<NotioLog> _instance = new(() => new());
-
-    private NotioLog()
-    { }
-
-    /// <summary>
-    /// Gets the singleton instance of the NotioLog class.
-    /// </summary>
-    public static NotioLog Instance => _instance.Value;
-
     /// <summary>
     /// Initializes the logging system with optional configuration.
     /// </summary>
     /// <param name="configure">An optional action to configure the logging system.</param>
-    public void Initialize(Action<NotioLogConfig>? configure = null)
+    public NotioLog(Action<NotioLogConfig>? configure = null)
     {
-        if (_isInitialized)
-            throw new InvalidOperationException("Logging has already been initialized.");
-
-        _isInitialized = true;
-
         NotioLogConfig builder = new(base.Publisher);
         configure?.Invoke(builder);
 
@@ -46,6 +30,8 @@ public sealed class NotioLog : LoggingEngine, ILogger
                 return cfg;
             });
         }
+
+        base.MinimumLevel = builder.MinimumLevel;
     }
 
     /// <summary>

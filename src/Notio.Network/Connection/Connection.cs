@@ -4,7 +4,6 @@ using Notio.Common.Cryptography;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;
-using Notio.Cryptography;
 using Notio.Shared.Identification;
 using System;
 using System.Net.Sockets;
@@ -38,12 +37,12 @@ public sealed class Connection : IConnection, IDisposable
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
-        _cstream = new ConnectionStream(socket, bufferAllocator, logger);
-
-        _cstream.TransformReceivedData += OnDataReceived;
-        _cstream.PacketCached = () =>
+        _cstream = new ConnectionStream(socket, bufferAllocator, logger)
         {
-            OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+            PacketCached = () =>
+            {
+                OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+            }
         };
     }
 
@@ -86,7 +85,7 @@ public sealed class Connection : IConnection, IDisposable
     {
         get
         {
-            if (_cstream.CacheIncomingPacket.TryGetValue(out byte[]? data))
+            if (_cstream.CacheIncoming.TryGetValue(out byte[]? data))
                 return data;
             return null;
         }
@@ -99,39 +98,13 @@ public sealed class Connection : IConnection, IDisposable
     /// <inheritdoc />
     public void Send(Memory<byte> message)
     {
-        if (this.State == ConnectionState.Authenticated)
-        {
-            try
-            {
-                message = Cipher.Encrypt(message, EncryptionKey, Mode);
-            }
-            catch
-            {
-                this.State = ConnectionState.Connected;
-                return;
-            }
-        }
-
-        if (_cstream.Send(message.Span))
+        if (_cstream.Send(message))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
 
     /// <inheritdoc />
     public async Task SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
     {
-        if (this.State == ConnectionState.Authenticated)
-        {
-            try
-            {
-                message = Cipher.Encrypt(message, EncryptionKey, Mode);
-            }
-            catch
-            {
-                this.State = ConnectionState.Connected;
-                return;
-            }
-        }
-
         if (await _cstream.SendAsync(message, cancellationToken))
             OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
     }
@@ -181,22 +154,5 @@ public sealed class Connection : IConnection, IDisposable
             _cstream.Dispose();
             GC.SuppressFinalize(this);
         }
-    }
-
-    private ReadOnlyMemory<byte> OnDataReceived(Memory<byte> data)
-    {
-        if (this.State == ConnectionState.Authenticated)
-        {
-            try
-            {
-                return Cipher.Encrypt(data, EncryptionKey, Mode);
-            }
-            catch
-            {
-                this.State = ConnectionState.Connected;
-            }
-        }
-
-        return data;
     }
 }

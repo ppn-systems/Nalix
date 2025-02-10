@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Shared.Memory.Cache;
 using Notio.Shared.Time;
@@ -23,6 +23,11 @@ public class ConnectionStream : IDisposable
     private bool _disposed;
 
     /// <summary>
+    /// Event triggered when a new packet is added to the cache.
+    /// </summary>
+    public Action? PacketCached;
+
+    /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
     public long LastPingTime { get; private set; }
@@ -30,22 +35,12 @@ public class ConnectionStream : IDisposable
     /// <summary>
     /// Cache for outgoing packets.
     /// </summary>
-    public readonly BinaryCache CacheOutgoingPacket;
+    public readonly BinaryCache CacheOutgoing = new(20);
 
     /// <summary>
     /// Cache for incoming packets.
     /// </summary>
-    public readonly FifoCache<byte[]> CacheIncomingPacket;
-
-    /// <summary>
-    /// Event triggered when a new packet is added to the cache.
-    /// </summary>
-    public Action? PacketCached;
-
-    /// <summary>
-    /// A delegate that processes received data.
-    /// </summary>
-    public Func<Memory<byte>, ReadOnlyMemory<byte>>? TransformReceivedData;
+    public readonly FifoCache<ReadOnlyMemory<byte>> CacheIncoming = new(20);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionStream"/> class.
@@ -59,8 +54,6 @@ public class ConnectionStream : IDisposable
         _bufferPool = bufferPool;
         _buffer = _bufferPool.Rent(256);
         _stream = new NetworkStream(socket);
-        CacheOutgoingPacket = new BinaryCache(20);
-        CacheIncomingPacket = new FifoCache<byte[]>(20);
     }
 
     /// <summary>
@@ -91,66 +84,48 @@ public class ConnectionStream : IDisposable
     }
 
     /// <summary>
-    /// Sends a message synchronously.
+    /// Sends a data synchronously.
     /// </summary>
-    /// <param name="message">The message to send.</param>
-    /// <returns>true if the message was sent successfully; otherwise, false.</returns>
-    public bool Send(ReadOnlySpan<byte> message)
+    /// <param name="data">The data to send.</param>
+    /// <returns>true if the data was sent successfully; otherwise, false.</returns>
+    public bool Send(ReadOnlyMemory<byte> data)
     {
         try
         {
-            // Validate that the message is long enough to extract the key.
-            if (message.Length < 9)
-                throw new ArgumentException("Message must be at least 9 bytes long", nameof(message));
+            if (data.IsEmpty) return false;
 
-            Span<byte> key = stackalloc byte[1];
-            message[..1].CopyTo(key[0..]);
+            _stream.Write(data.Span);
 
-            // Cache the message if the key is not already present.
-            if (!CacheOutgoingPacket.TryGetValue(key, out _))
-            {
-                CacheOutgoingPacket.Add(key, message.ToArray());
-            }
-
-            _stream.Write(message);
+            CacheOutgoing.Add(data.Span[0..2].ToArray(), data);
             return true;
         }
         catch (Exception ex)
         {
-            _logger?.Error(ex);
+            _logger?.Error("Send failed", ex);
             return false;
         }
     }
 
     /// <summary>
-    /// Sends a message asynchronously.
+    /// Sends a data asynchronously.
     /// </summary>
-    /// <param name="message">The message to send.</param>
+    /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the message was sent successfully; otherwise, false.</returns>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
+    public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (data.IsEmpty) return false;
 
-            if (message.Length < 1)
-                throw new ArgumentException("Message must be at least 1 bytes long", nameof(message));
+            await _stream.WriteAsync(data, cancellationToken);
 
-            Span<byte> key = stackalloc byte[1];
-            message.Span[0..].CopyTo(key[0..]);
-
-            if (!CacheOutgoingPacket.TryGetValue(key, out _))
-            {
-                CacheOutgoingPacket.Add(key, message);
-            }
-
-            await _stream.WriteAsync(message, cancellationToken);
+            CacheOutgoing.Add(data.Span[0..2].ToArray(), data);
             return true;
         }
         catch (Exception ex)
         {
-            _logger?.Error(ex);
+            _logger?.Error("SendAsync failed", ex);
             return false;
         }
     }
@@ -182,16 +157,24 @@ public class ConnectionStream : IDisposable
             while (totalBytesRead < size)
             {
                 int bytesRead = await _stream.ReadAsync(_buffer.AsMemory(totalBytesRead, size - totalBytesRead), cancellationToken);
-                if (bytesRead == 0) break;
+                if (bytesRead == 0)
+                    break; // End of stream; optionally handle partial packet
+
                 totalBytesRead += bytesRead;
             }
 
-            Memory<byte> receivedData = _buffer.AsMemory(0, totalBytesRead);
-            byte[] processedData = TransformReceivedData?.Invoke(receivedData).ToArray() ?? receivedData.ToArray();
+            // Optionally, check if totalBytesRead equals size before caching
+            if (totalBytesRead == size)
+            {
+                CacheIncoming.Add(_buffer.AsMemory(0, totalBytesRead));
 
-            CacheIncomingPacket.Add(processedData);
-            LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
-            PacketCached?.Invoke();
+                LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
+                PacketCached?.Invoke();
+            }
+            else
+            {
+                _logger?.Error("Incomplete packet received.");
+            }
         }
         catch (Exception ex)
         {
@@ -223,8 +206,8 @@ public class ConnectionStream : IDisposable
             _stream.Dispose();
         }
 
-        CacheOutgoingPacket.Clear();
-        CacheIncomingPacket.Clear();
+        CacheOutgoing.Clear();
+        CacheIncoming.Clear();
 
         _disposed = true;
     }

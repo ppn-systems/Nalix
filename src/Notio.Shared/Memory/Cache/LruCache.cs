@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Notio.Shared.Memory.Cache;
 
@@ -7,7 +7,7 @@ namespace Notio.Shared.Memory.Cache;
 /// </summary>
 /// <typeparam name="TKey">The type of the cache key.</typeparam>
 /// <typeparam name="TValue">The type of the cache value.</typeparam>
-public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
+public class LruCache<TKey, TValue>(int capacity) where TKey : notnull
 {
     private class CacheItem
     {
@@ -23,8 +23,8 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
     }
 
     private readonly int _capacity = capacity;
+    private readonly LinkedList<CacheItem> _usageOrder = new();
     private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap = [];
-    private readonly LinkedList<CacheItem> _lruList = new();
 
     /// <summary>
     /// Adds an item to the cache.
@@ -36,7 +36,7 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
         if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
             // Remove the old node, update the value, and move it to the front
-            _lruList.Remove(node);
+            _usageOrder.Remove(node);
             node.Value.Value = value;
         }
         else
@@ -44,10 +44,10 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
             // If the cache is full, evict the least recently used item
             if (_cacheMap.Count >= _capacity)
             {
-                var lastNode = _lruList.Last;
+                var lastNode = _usageOrder.Last;
                 if (lastNode != null)
                 {
-                    _lruList.RemoveLast();
+                    _usageOrder.RemoveLast();
                     if (lastNode.Value.Key != null)
                         _cacheMap.Remove(lastNode.Value.Key);
                 }
@@ -55,7 +55,7 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
 
             // Add the new item to the front of the list and map
             LinkedListNode<CacheItem> newNode = new(new CacheItem { Key = key, Value = value });
-            _lruList.AddFirst(newNode);
+            _usageOrder.AddFirst(newNode);
             _cacheMap[key] = newNode;
         }
     }
@@ -71,8 +71,8 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
         if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
             // Move the node to the front to mark it as most recently used
-            _lruList.Remove(node);
-            _lruList.AddFirst(node);
+            _usageOrder.Remove(node);
+            _usageOrder.AddFirst(node);
 
             if (node.Value.Value == null)
                 throw new KeyNotFoundException("The key was not found in the cache.");
@@ -93,8 +93,8 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
     {
         if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
         {
-            _lruList.Remove(node);
-            _lruList.AddFirst(node);
+            _usageOrder.Remove(node);
+            _usageOrder.AddFirst(node);
             value = node.Value.Value!;
             return true;
         }
@@ -109,6 +109,6 @@ public sealed class LruCache<TKey, TValue>(int capacity) where TKey : notnull
     public void Clear()
     {
         _cacheMap.Clear();
-        _lruList.Clear();
+        _usageOrder.Clear();
     }
 }

@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using System;
 using System.IO;
 
@@ -11,6 +11,11 @@ public sealed class NotioLogConfig
 {
     private static readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private readonly ILoggingPublisher _publisher;
+
+    /// <summary>
+    /// The minimum logging level required to log messages.
+    /// </summary>
+    public LoggingLevel MinimumLevel = LoggingLevel.Trace;
 
     /// <summary>
     /// Indicates whether the default configuration is being used.
@@ -63,7 +68,8 @@ public sealed class NotioLogConfig
     {
         IsDefaults = false;
 
-        NotioLog.Instance.MinimumLevel = level;
+        MinimumLevel = level;
+
         return this;
     }
 
