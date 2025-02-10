@@ -1,4 +1,4 @@
-﻿using Notio.Common.Models;
+using Notio.Common.Models;
 using System;
 
 namespace Notio.Network.Handlers;
@@ -7,12 +7,12 @@ namespace Notio.Network.Handlers;
 /// Attribute to define a packet command and its required authority level.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public class PacketCommandAttribute(short command, Authoritys authoritys = Authoritys.User) : Attribute
+public class PacketCommandAttribute(ushort command, Authoritys authoritys = Authoritys.User) : Attribute
 {
     /// <summary>
     /// The unique command identifier for the packet.
     /// </summary>
-    public short CommandId { get; } = command;
+    public ushort CommandId { get; } = command;
 
     /// <summary>
     /// The minimum authority level required to execute this command.
