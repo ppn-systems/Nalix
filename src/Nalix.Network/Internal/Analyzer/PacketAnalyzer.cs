@@ -13,7 +13,7 @@ using Nalix.Shared.Injection;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Dispatch;
+namespace Nalix.Network.Internal.Analyzer;
 
 /// <summary>
 /// High-performance controller scanner with caching and zero-allocation lookups.
@@ -62,13 +62,15 @@ internal sealed class PacketAnalyzer<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] scan controller={controllerType.FullName}");
+                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                      $"scan controller={controllerType.Namespace}.{controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] found count={compiledMethods.Count}");
+                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                       $"found count={compiledMethods.Count}");
 
         // Create the controller instance
         TController controllerInstance = factory();
