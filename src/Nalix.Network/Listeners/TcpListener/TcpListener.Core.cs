@@ -77,7 +77,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     #endregion Properties
 
-    #region Class
+    #region Enums
 
     private enum ListenerState : System.Int32
     {
@@ -87,7 +87,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         Stopping = 3
     }
 
-    #endregion Class
+    #endregion Enums
 
     #region Constructors
 

@@ -4,6 +4,7 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Timing;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
@@ -53,6 +54,12 @@ public abstract partial class TcpListenerBase
             connection.OnCloseEvent += this.HandleConnectionClose;
             connection.OnProcessEvent += _protocol.ProcessMessage!;
             connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
+
+            if (Config.TimeoutOnConnect)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
+                                        .Register(connection);
+            }
 
             return connection;
         }
