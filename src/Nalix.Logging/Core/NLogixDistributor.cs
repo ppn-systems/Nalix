@@ -101,9 +101,21 @@ public sealed class NLogixDistributor : ILogDistributor
             }
         }
 
-        // For best performance, always publish synchronously
-        // The individual targets handle async operations internally if needed
-        Publish(entry.Value);
+        // Multiple targets: iterate and publish to each
+        foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
+        {
+            try
+            {
+                kvp.Key.Publish(entry.Value);
+                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+            }
+            catch (System.Exception ex)
+            {
+                // Count the error but continue operation
+                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                HandleTargetError(kvp.Key, ex, entry.Value);
+            }
+        }
     }
 
     /// <summary>
@@ -153,9 +165,8 @@ public sealed class NLogixDistributor : ILogDistributor
             }
         }
 
-        // For best performance, always publish synchronously
-        // The individual targets handle async operations internally if needed
-        Publish(entry.Value);
+        // For best performance, publish synchronously and let targets handle async internally
+        Publish(entry);
         return System.Threading.Tasks.ValueTask.CompletedTask;
     }
 
