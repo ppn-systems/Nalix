@@ -32,7 +32,7 @@ public abstract partial class TcpListenerBase
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Debug($"[{nameof(TcpListenerBase)}] activate-request port={_port}");
+                                .Debug($"[{nameof(TcpListenerBase)}] activate-request port={_port}");
 
         // Acquire lifecycle lock WITHOUT external token
         await _lock.WaitAsync(System.Threading.CancellationToken.None).ConfigureAwait(false);
@@ -136,13 +136,23 @@ public abstract partial class TcpListenerBase
             {
                 if (started)
                 {
-                    try { _cts?.Cancel(); } catch { }
-                    try { _listener?.Close(); } catch { }
+                    try
+                    {
+                        _cts?.Cancel();
+                    }
+                    catch { }
+                    try
+                    {
+                        _listener?.Close();
+                    }
+                    catch { }
                     _listener = null;
 
-                    await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                    await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None)
+                                                     .ConfigureAwait(false);
 
-                    InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().StopTicking();
+                    InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                                            .StopTicking();
                 }
             }
             catch (System.Exception ex)
@@ -152,8 +162,16 @@ public abstract partial class TcpListenerBase
             }
             finally
             {
-                try { registration.Dispose(); } catch { }
-                try { _cts?.Dispose(); } catch { }
+                try
+                {
+                    registration.Dispose();
+                }
+                catch { }
+                try
+                {
+                    _cts?.Dispose();
+                }
+                catch { }
                 _cts = null;
 
                 if (started)
@@ -208,13 +226,19 @@ public abstract partial class TcpListenerBase
 
             _listener = null;
 
-            InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.CloseAllConnections();
+            InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
+                                    .CloseAllConnections();
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
         }
         finally
         {
-            try { cts?.Dispose(); } catch { }
+            try
+            {
+                cts?.Dispose();
+            }
+            catch { }
             _cts = null;
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
         }
