@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Core;
+using Nalix.Logging.Internal.Console;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
@@ -17,124 +17,79 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
-    private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _queue = new();
-    private readonly ConsoleLogTarget _consoleLoggingTarget;
-    private readonly System.Threading.Timer _flushTimer;
-    private readonly System.Int32 _maxBufferSize;
-    private readonly System.Boolean _autoFlush;
-
-    private System.Int32 _count;
-    private volatile System.Boolean _disposed;
+    private readonly ChannelConsoleLoggerProvider _provider;
 
     #endregion Fields
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the total number of log entries successfully written to the console.
+    /// </summary>
+    public System.Int64 WrittenCount => _provider.WrittenCount;
+
+    /// <summary>
+    /// Gets the total number of log entries that were dropped and not written to the console.
+    /// </summary>
+    public System.Int64 DroppedCount => _provider.DroppedCount;
+
+    #endregion Properties
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class using an existing <see cref="ConsoleLogTarget"/>.
+    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class.
+    /// Optionally configures the batch console log options.
     /// </summary>
-    /// <param name="consoleLoggingTarget">The underlying console logging target to write entries to.</param>
-    /// <param name="flushInterval">The time interval between automatic buffer flushes.</param>
-    /// <param name="maxBufferSize">The maximum number of log entries before triggering a flush.</param>
-    /// <param name="autoFlush">Determines whether to automatically flush when the buffer is full.</param>
-    public BatchConsoleLogTarget(
-        ConsoleLogTarget consoleLoggingTarget,
-        System.TimeSpan flushInterval,
-        System.Int32 maxBufferSize = 100,
-        System.Boolean autoFlush = true)
-    {
-        System.ArgumentNullException.ThrowIfNull(consoleLoggingTarget);
-        System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBufferSize);
-        System.ArgumentOutOfRangeException.ThrowIfNegative(flushInterval.Ticks);
-
-        _consoleLoggingTarget = consoleLoggingTarget;
-        _maxBufferSize = maxBufferSize;
-        _autoFlush = autoFlush;
-
-        _flushTimer = new System.Threading.Timer(_ => Flush(), null, flushInterval, flushInterval);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class using configured options.
-    /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BatchConsoleLogTarget"/>.</param>
+    /// <param name="options">
+    /// An optional delegate to configure <see cref="BatchConsoleLogOptions"/> for this log target.
+    /// </param>
     public BatchConsoleLogTarget(BatchConsoleLogOptions options)
-        : this(
-            consoleLoggingTarget: new ConsoleLogTarget(new NLogixFormatter(options.EnableColors)),
-            flushInterval: options.FlushInterval,
-            maxBufferSize: options.MaxBufferSize,
-            autoFlush: options.AutoFlushOnFull)
+    {
+        System.ArgumentNullException.ThrowIfNull(options);
+
+        System.Console.Title = "Nx";
+        _provider = new ChannelConsoleLoggerProvider(options);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
+    /// </summary>
+    /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
+    public BatchConsoleLogTarget(System.Action<BatchConsoleLogOptions> options)
+        : this(Configure(options))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class using an options builder.
+    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with default options.
     /// </summary>
-    /// <param name="configureOptions">The action used to configure the options.</param>
-    public BatchConsoleLogTarget(System.Action<BatchConsoleLogOptions> configureOptions)
-        : this(ConfigureOptions(configureOptions))
-    {
-    }
-
-    /// <summary>
-    /// Basic constructor that initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with default options.
-    /// </summary>
-    public BatchConsoleLogTarget()
-        : this(new BatchConsoleLogOptions())
+    public BatchConsoleLogTarget() : this(new BatchConsoleLogOptions())
     {
     }
 
     #endregion Constructors
 
-    #region Public Methods
+    #region API
 
-    /// <summary>
-    /// Publishes a log entry to the buffer. If <see cref="_autoFlush"/> is enabled
-    /// and the buffer exceeds <see cref="_maxBufferSize"/>, the buffer is flushed asynchronously.
-    /// </summary>
-    /// <param name="logMessage">The log entry to publish.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry logMessage)
+    /// <inheritdoc/>
+    public void Publish(LogEntry entry)
     {
-        if (_disposed)
+        if (!_provider.TryEnqueue(entry))
         {
-            return;
-        }
-
-        _queue.Enqueue(logMessage);
-        System.Int32 currentCount = System.Threading.Interlocked.Increment(ref _count);
-
-        if (_autoFlush && currentCount >= _maxBufferSize)
-        {
-            _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(_ => Flush(), null);
+            System.Diagnostics.Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={entry.Message}");
         }
     }
 
     /// <summary>
-    /// Flushes the current log buffer to the underlying console logging target.
-    /// This method is thread-safe and can be called manually or triggered automatically.
+    /// Asynchronously writes a single <see cref="LogEntry"/> to the console log buffer.
+    /// The entry will be batched and written to the console according to the configured batch options.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Flush()
-    {
-        if (_disposed)
-        {
-            return;
-        }
+    /// <param name="entry">The log entry to write.</param>
+    /// <returns>A <see cref="System.Threading.Tasks.ValueTask"/> representing the asynchronous write operation.</returns>
+    public System.Threading.Tasks.ValueTask WriteAsync(LogEntry entry) => _provider.WriteAsync(entry);
 
-        while (_queue.TryDequeue(out LogEntry log))
-        {
-            _consoleLoggingTarget.Publish(log);
-        }
-
-        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
-    }
-
-    #endregion Public Methods
+    #endregion API
 
     #region Private Methods
 
@@ -147,7 +102,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static BatchConsoleLogOptions ConfigureOptions(System.Action<BatchConsoleLogOptions> configureOptions)
+    private static BatchConsoleLogOptions Configure(System.Action<BatchConsoleLogOptions> configureOptions)
     {
         BatchConsoleLogOptions options = new();
         configureOptions(options);
@@ -166,19 +121,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        this.Flush();
-
-        _flushTimer.Dispose();
-
-        _disposed = true;
-    }
+    public void Dispose() => _provider.Dispose();
 
     #endregion IDisposable
 }

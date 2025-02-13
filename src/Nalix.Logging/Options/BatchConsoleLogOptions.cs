@@ -3,27 +3,37 @@
 namespace Nalix.Logging.Options;
 
 /// <summary>
-/// Options for configuring <see cref="Nalix.Logging.Sinks.BatchConsoleLogTarget"/>.
+/// Configuration options for the console logger.
 /// </summary>
 public sealed class BatchConsoleLogOptions
 {
     /// <summary>
-    /// Gets or sets the flush interval for the in-memory buffer.
+    /// Gets or sets the maximum number of log entries to batch before flushing to the console.
     /// </summary>
-    public System.TimeSpan FlushInterval { get; set; } = System.TimeSpan.FromMilliseconds(200);
+    public System.Int32 BatchSize { get; set; } = 32;
 
     /// <summary>
-    /// Gets or sets the maximum number of buffered entries before triggering an auto flush.
+    /// Gets or sets the maximum number of log entries that can be queued. 0 means unlimited.
     /// </summary>
-    public System.Int32 MaxBufferSize { get; set; } = 100;
+    public System.Int32 MaxQueueSize { get; set; } = 0;
 
     /// <summary>
-    /// Gets or sets whether a flush should be triggered automatically when the buffer is full.
+    /// Gets or sets a value indicating whether adaptive flush is enabled.
     /// </summary>
-    public System.Boolean AutoFlushOnFull { get; set; } = true;
+    public System.Boolean AdaptiveFlush { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets whether to use colored console output (will be passed to the underlying console target/formatter).
+    /// Gets or sets a value indicating whether to block when the queue is full.
+    /// </summary>
+    public System.Boolean BlockWhenQueueFull { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether colored output is enabled.
     /// </summary>
     public System.Boolean EnableColors { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the delay between batch flushes.
+    /// </summary>
+    public System.TimeSpan BatchDelay { get; set; } = System.TimeSpan.FromMilliseconds(70);
 }
