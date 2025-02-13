@@ -1,7 +1,7 @@
 ﻿namespace Notio.Network.Package.Enums;
 
 /// <summary>
-/// Packet flags indicating different states of a packet.
+/// IPacket flags indicating different states of a packet.
 /// </summary>
 [System.Flags]
 public enum PacketFlags : byte
@@ -12,42 +12,42 @@ public enum PacketFlags : byte
     None = 0x00,                    // Không có cờ nào
 
     /// <summary>
-    /// Packet requires acknowledgment.
+    /// IPacket requires acknowledgment.
     /// </summary>
     AckRequired = 0x01,             // Gói tin yêu cầu xác nhận
 
     /// <summary>
-    /// Packet has been acknowledged.
+    /// IPacket has been acknowledged.
     /// </summary>
     IsAcknowledged = 0x02,          // Gói tin đã được xác nhận
 
     /// <summary>
-    /// Packet is compressed.
+    /// IPacket is compressed.
     /// </summary>
     IsCompressed = 0x04,            // Gói tin đã được nén
 
     /// <summary>
-    /// Packet is encrypted.
+    /// IPacket is encrypted.
     /// </summary>
     IsEncrypted = 0x08,             // Gói tin đã được mã hóa
 
     /// <summary>
-    /// Packet is reliable (guaranteed delivery).
+    /// IPacket is reliable (guaranteed delivery).
     /// </summary>
     IsReliable = 0x10,              // Gói tin có độ tin cậy cao
 
     /// <summary>
-    /// Packet is fragmented.
+    /// IPacket is fragmented.
     /// </summary>
     IsFragmented = 0x20,            // Gói tin đã bị phân mảnh
 
     /// <summary>
-    /// Packet belongs to a continuous data stream.
+    /// IPacket belongs to a continuous data stream.
     /// </summary>
     IsStream = 0x40,                // Gói tin thuộc luồng dữ liệu liên tục
 
     /// <summary>
-    /// Packet is signed.
+    /// IPacket is signed.
     /// </summary>
     IsSigned = 0x80,                // Gói tin đã được ký
 }

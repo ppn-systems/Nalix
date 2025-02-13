@@ -1,16 +1,20 @@
-﻿namespace Notio.Network.Package.Utilities;
+using Notio.Common;
+using System.Runtime.CompilerServices;
+
+namespace Notio.Network.Package.Utilities;
 
 /// <summary>
 /// Provides utility methods for working with packets.
 /// </summary>
+[SkipLocalsInit]
 public static class PacketOperations
 {
     /// <summary>
-    /// Creates an independent copy of a <see cref="Packet"/>.
+    /// Creates an independent copy of a <see cref="IPacket"/>.
     /// </summary>
-    /// <param name="packet">The <see cref="Packet"/> instance to be cloned.</param>
-    /// <returns>A new <see cref="Packet"/> that is a copy of the original.</returns>
-    public static Packet Clone(Packet packet)
+    /// <param name="packet">The <see cref="IPacket"/> instance to be cloned.</param>
+    /// <returns>A new <see cref="IPacket"/> that is a copy of the original.</returns>
+    public static IPacket Clone(IPacket packet)
     {
         // Copy payload with safety check
         byte[] payloadCopy = new byte[packet.Payload.Length];
@@ -22,12 +26,12 @@ public static class PacketOperations
     }
 
     /// <summary>
-    /// Attempts to clone the <see cref="Packet"/> without throwing an error, returning success or failure.
+    /// Attempts to clone the <see cref="IPacket"/> without throwing an error, returning success or failure.
     /// </summary>
-    /// <param name="packet">The <see cref="Packet"/> to clone.</param>
-    /// <param name="clonedPacket">The cloned <see cref="Packet"/>, if successful.</param>
+    /// <param name="packet">The <see cref="IPacket"/> to clone.</param>
+    /// <param name="clonedPacket">The cloned <see cref="IPacket"/>, if successful.</param>
     /// <returns>True if the packet was cloned successfully, otherwise false.</returns>
-    public static bool TryClone(Packet packet, out Packet clonedPacket)
+    public static bool TryClone(IPacket packet, out IPacket? clonedPacket)
     {
         try
         {

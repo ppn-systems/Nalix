@@ -1,4 +1,4 @@
-using Notio.Common.Cryptography;
+using Notio.Common.Enums;
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Ciphers.Symmetric;
 using System;

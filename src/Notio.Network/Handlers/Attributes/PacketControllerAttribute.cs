@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Handlers.Attributes;
 
 /// <summary>
 /// Attribute used to mark packet controllers responsible for handling packet commands.

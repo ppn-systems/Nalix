@@ -1,4 +1,5 @@
-﻿using Notio.Network.Package.Enums;
+using Notio.Common;
+using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Metadata;
 using System;
@@ -9,6 +10,7 @@ using System.Security.Cryptography;
 
 namespace Notio.Network.Package.Utilities;
 
+[SkipLocalsInit]
 internal class PacketSigner
 {
     private const int MaxStackAlloc = 512;
@@ -22,7 +24,7 @@ internal class PacketSigner
     /// <param name="packet">The data packet to sign.</param>
     /// <returns>The signed data packet, including the signature in the payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet SignPacket(in Packet packet)
+    public static IPacket SignPacket(in IPacket packet)
     {
         int dataSize = PacketSize.Header + packet.Payload.Length;
         Span<byte> dataToSign = dataSize <= MaxStackAlloc
@@ -63,7 +65,7 @@ internal class PacketSigner
     /// <param name="packet">The data packet to verify.</param>
     /// <returns>Returns true if the packet is valid and the signature is correct; false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool VerifyPacket(in Packet packet)
+    public static bool VerifyPacket(in IPacket packet)
     {
         if (!packet.Flags.HasFlag(PacketFlags.IsSigned))
             return false;
@@ -105,7 +107,7 @@ internal class PacketSigner
     /// <param name="packet">The data packet to remove the signature from.</param>
     /// <returns>The data packet without a signature.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet StripSignature(in Packet packet)
+    public static IPacket StripSignature(in IPacket packet)
     {
         if (packet.Payload.Length <= SignatureSize)
             return packet; // If no signature, return the original packet
@@ -127,7 +129,7 @@ internal class PacketSigner
     /// <param name="packet">The data packet to write the header from.</param>
     /// <param name="originalLength">The original length of the data packet (excluding the signature).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(Span<byte> buffer, in Packet packet, int originalLength)
+    private static void WriteHeader(Span<byte> buffer, in IPacket packet, int originalLength)
     {
         // Using Unsafe to write quickly to memory
         Unsafe.WriteUnaligned(ref buffer[0], originalLength);

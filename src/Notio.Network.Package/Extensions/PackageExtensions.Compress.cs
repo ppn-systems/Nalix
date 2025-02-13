@@ -1,4 +1,5 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common;
+using Notio.Common.Exceptions;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Utilities;
@@ -6,7 +7,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package;
+namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// Provides operations for compressing and decompressing packets.
@@ -18,13 +19,13 @@ public static partial class PackageExtensions
     /// (Nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(this in Packet packet, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static IPacket CompressPayload(this in Packet packet)
     {
         PacketVerifier.ValidateCompressionEligibility(packet);
 
         try
         {
-            byte[] compressedData = PayloadCompression.Compress(packet.Payload, mode);
+            byte[] compressedData = PayloadCompression.Compress(packet.Payload);
 
             byte newFlags = packet.Flags.AddFlag(PacketFlags.IsCompressed);
 
@@ -44,7 +45,7 @@ public static partial class PackageExtensions
     /// (Giải nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(this in Packet packet, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static IPacket DecompressPayload(this in Packet packet)
     {
         PacketVerifier.ValidateCompressionEligibility(packet);
 
@@ -53,7 +54,7 @@ public static partial class PackageExtensions
 
         try
         {
-            byte[] decompressedData = PayloadCompression.Decompress(packet.Payload, mode);
+            byte[] decompressedData = PayloadCompression.Decompress(packet.Payload);
             byte newFlags = packet.Flags.RemoveFlag(PacketFlags.IsCompressed);
 
             packet.UpdateFlags(newFlags);
@@ -75,11 +76,11 @@ public static partial class PackageExtensions
     /// Tries to compress the payload of the packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryCompressPayload(this Packet @this, out Packet @out, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static bool TryCompressPayload(this Packet @this, out IPacket? @out)
     {
         try
         {
-            @out = @this.CompressPayload(mode);
+            @out = @this.CompressPayload();
             return true;
         }
         catch (PackageException)
@@ -93,11 +94,11 @@ public static partial class PackageExtensions
     /// Tries to decompress the payload of the packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecompressPayload(this Packet @this, out Packet @out, PacketCompressionMode mode = PacketCompressionMode.GZip)
+    public static bool TryDecompressPayload(this Packet @this, out IPacket? @out)
     {
         try
         {
-            @out = @this.DecompressPayload(mode);
+            @out = @this.DecompressPayload();
             return true;
         }
         catch (PackageException)

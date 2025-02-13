@@ -1,6 +1,6 @@
 using Notio.Common.Connection;
 using Notio.Common.Connection.Enums;
-using Notio.Common.Cryptography;
+using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;

@@ -1,5 +1,5 @@
 using Notio.Common.Connection.Enums;
-using Notio.Common.Cryptography;
+using Notio.Common.Enums;
 using Notio.Common.Models;
 using System;
 using System.Threading;

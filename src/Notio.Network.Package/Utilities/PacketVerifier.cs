@@ -1,4 +1,5 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common;
+using Notio.Common.Exceptions;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Metadata;
@@ -7,27 +8,28 @@ using System.Runtime.CompilerServices;
 namespace Notio.Network.Package.Utilities;
 
 /// <summary>
-/// Provides methods to validate and verify the validity of a Packet.
+/// Provides methods to validate and verify the validity of a IPacket.
 /// </summary>
+[SkipLocalsInit]
 public static class PacketVerifier
 {
     /// <summary>
-    /// Checks if the Packet is valid based on its payload size and header size.
+    /// Checks if the IPacket is valid based on its payload size and header size.
     /// </summary>
-    /// <param name="packet">The Packet instance to be validated.</param>
-    /// <returns>True if the Packet is valid, otherwise false.</returns>
+    /// <param name="packet">The IPacket instance to be validated.</param>
+    /// <returns>True if the IPacket is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidPacket(Packet packet)
+    public static bool IsValidPacket(IPacket packet)
         => packet.Payload.Length <= ushort.MaxValue &&
                packet.Payload.Length + PacketSize.Header <= ushort.MaxValue;
 
     /// <summary>
-    /// Validates the Packet for compression by ensuring that the payload is not empty and is not encrypted.
+    /// Validates the IPacket for compression by ensuring that the payload is not empty and is not encrypted.
     /// </summary>
-    /// <param name="packet">The Packet to be validated for compression.</param>
+    /// <param name="packet">The IPacket to be validated for compression.</param>
     /// <exception cref="PackageException">Thrown if the payload is empty or encrypted.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ValidateCompressionEligibility(Packet packet)
+    public static void ValidateCompressionEligibility(IPacket packet)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
@@ -36,7 +38,7 @@ public static class PacketVerifier
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void CheckEncryptionConditions(Packet packet, byte[] key, bool isEncryption)
+    internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
     {
         if (key == null || key.Length != 32)
             throw new PackageException(isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");

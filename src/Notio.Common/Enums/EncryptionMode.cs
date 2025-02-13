@@ -1,4 +1,4 @@
-namespace Notio.Common.Cryptography;
+namespace Notio.Common.Enums;
 
 /// <summary>
 /// Specifies the encryption modes available for symmetric encryption.

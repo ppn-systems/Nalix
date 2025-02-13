@@ -6,10 +6,20 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Utilities;
 
+/// <summary>
+/// Provides methods for compressing and decompressing payloads using Brotli compression.
+/// </summary>
+[SkipLocalsInit]
 public static class PayloadCompression
 {
     private const int BufferSize = 8192; // 8KB buffer for streaming
 
+    /// <summary>
+    /// Compresses the provided data using Brotli compression.
+    /// </summary>
+    /// <param name="data">The data to compress.</param>
+    /// <returns>The compressed data as a byte array.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when compression fails.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Compress(ReadOnlyMemory<byte> data)
     {
@@ -29,6 +39,12 @@ public static class PayloadCompression
         }
     }
 
+    /// <summary>
+    /// Decompresses the provided Brotli compressed data.
+    /// </summary>
+    /// <param name="compressedData">The compressed data to decompress.</param>
+    /// <returns>The decompressed data as a byte array.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when decompression fails or data is invalid.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decompress(ReadOnlyMemory<byte> compressedData)
     {

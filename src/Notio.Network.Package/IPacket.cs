@@ -1,4 +1,5 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common;
+using Notio.Common.Exceptions;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Metadata;
@@ -16,7 +17,7 @@ namespace Notio.Network.Package;
 /// This packet contains metadata and a payload with associated checksum and flags.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct Packet : IEquatable<Packet>, IDisposable
+public struct Packet : IPacket
 {
     /// <summary>
     /// The minimum packet size (in bytes).
@@ -102,7 +103,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct.
+    /// Initializes a new instance of the <see cref="IPacket"/> struct.
     /// </summary>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
@@ -126,7 +127,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct.
+    /// Initializes a new instance of the <see cref="IPacket"/> struct.
     /// </summary>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
@@ -150,7 +151,7 @@ public struct Packet : IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct.
+    /// Initializes a new instance of the <see cref="IPacket"/> struct.
     /// </summary>
     /// <param name="id">The packet identifier.</param>
     /// <param name="type">The packet type.</param>
@@ -242,8 +243,9 @@ public struct Packet : IEquatable<Packet>, IDisposable
     /// <param name="other">The packet to compare with.</param>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Packet other)
+    public readonly bool Equals(Common.IPacket? other)
     {
+        if (other is null) return false;
         if (this.Type != other.Type ||
             this.Flags != other.Flags ||
             this.Command != other.Command ||
@@ -279,8 +281,8 @@ public struct Packet : IEquatable<Packet>, IDisposable
     /// Compares the current packet with another object for equality.
     /// </summary>
     /// <param name="obj">The object to compare with.</param>
-    /// <returns>True if the object is a <see cref="Packet"/> and is equal to the current packet; otherwise, false.</returns>
-    public override readonly bool Equals(object? obj) => obj is Packet other && Equals(other);
+    /// <returns>True if the object is a <see cref="IPacket"/> and is equal to the current packet; otherwise, false.</returns>
+    public override readonly bool Equals(object? obj) => obj is IPacket other && Equals(other);
 
     /// <summary>
     /// Returns a hash code for the current packet.

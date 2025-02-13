@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
