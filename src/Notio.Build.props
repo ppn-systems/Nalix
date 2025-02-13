@@ -3,9 +3,9 @@
   <!-- Common settings for all projects in the solution -->
   <PropertyGroup>
     <!-- Common versioning settings -->
-    <Version>0.2.34</Version>
+    <Version>0.2.54</Version>
     <Authors>Phuc Nguyen</Authors>
-    <PackageVersion>0.2.34</PackageVersion>
+    <PackageVersion>0.2.54</PackageVersion>
 
     <Copyright>Copyright © 2025</Copyright>
     <PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>

@@ -1,4 +1,5 @@
 using Notio.Common.Connection;
+using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Network.Handlers.Attributes;
 using System;
@@ -14,7 +15,17 @@ namespace Notio.Network.Handlers;
 /// </summary>
 public class PacketDispatcherOptions
 {
+    internal ILogger? Logger;
     internal readonly Dictionary<ushort, Action<IPacket, IConnection>> PacketHandlers = [];
+
+    /// <summary>
+    /// Registers logging.
+    /// </summary>
+    public PacketDispatcherOptions WithLogging(ILogger logger)
+    {
+        Logger = logger;
+        return this;
+    }
 
     /// <summary>
     /// Registers controller types automatically, finding methods with the PacketCommandAttribute.
@@ -25,10 +36,9 @@ public class PacketDispatcherOptions
             where TController : new()
     {
         // Get methods from the controller that are decorated with PacketCommandAttribute
-        List<MethodInfo> methods = typeof(TController)
+        List<MethodInfo> methods = [.. typeof(TController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)
-            .ToList();
+            .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
 
         // For each method found, register it with the corresponding commandId
         foreach (MethodInfo method in methods)

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Notio.Network.Package.Helpers;
 
+/// <summary>
+/// Provides helper methods for working with PacketFlags and byte flags.
+/// </summary>
 public class PacketFlagsHelper
 {
     /// <summary>
@@ -24,6 +27,9 @@ public class PacketFlagsHelper
         return flagStrings.Count > 0 ? string.Join(", ", flagStrings) : "None";
     }
 
+    /// <summary>
+    /// Converts the PacketFlags to a human-readable string.
+    /// </summary>
     public static string ToReadableString(byte flags)
         => ToReadableString((PacketFlags)flags);
 }

@@ -3,6 +3,9 @@ using System;
 
 namespace Notio.Network.Package.Extensions;
 
+/// <summary>
+/// Provides extensions methods for the PacketPriority enum.
+/// </summary>
 public static class PacketPriorityExtensions
 {
     /// <summary>

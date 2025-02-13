@@ -3,6 +3,9 @@ using System;
 
 namespace Notio.Network.Package.Extensions;
 
+/// <summary>
+/// Provides extension methods for packet types.
+/// </summary>
 public static class PacketTypeExtensions
 {
     /// <summary>

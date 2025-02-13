@@ -1,5 +1,4 @@
 using Notio.Common.Connection;
-using Notio.Common.Logging;
 using Notio.Common.Package;
 using System;
 
@@ -11,8 +10,6 @@ namespace Notio.Network.Handlers;
 /// </summary>
 public class PacketDispatcher(Action<PacketDispatcherOptions> options) : PacketDispatcherBase(options), IPacketDispatcher
 {
-    private readonly ILogger? _logger;
-
     /// <summary>
     /// Processes an incoming packet based on the command ID and invokes the corresponding handler method.
     /// </summary>
@@ -20,7 +17,7 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options) : PacketD
     {
         if (packet == null || connection == null)
         {
-            _logger?.Error("Invalid packet or connection.");
+            Options.Logger?.Error("Invalid packet or connection.");
             return;
         }
 
@@ -34,12 +31,12 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options) : PacketD
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
+                Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
             }
         }
         else
         {
-            _logger?.Warn($"No handler found for CommandId {commandId}");
+            Options.Logger?.Warn($"No handler found for CommandId {commandId}");
         }
     }
 }
