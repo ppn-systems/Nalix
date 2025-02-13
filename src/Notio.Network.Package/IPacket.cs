@@ -1,5 +1,5 @@
-using Notio.Common;
 using Notio.Common.Exceptions;
+using Notio.Common.Package;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Metadata;
@@ -243,7 +243,7 @@ public struct Packet : IPacket
     /// <param name="other">The packet to compare with.</param>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Common.IPacket? other)
+    public readonly bool Equals(IPacket? other)
     {
         if (other is null) return false;
         if (this.Type != other.Type ||

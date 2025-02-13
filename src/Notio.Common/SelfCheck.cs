@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using System;
 using System.Diagnostics;
 using System.IO;
