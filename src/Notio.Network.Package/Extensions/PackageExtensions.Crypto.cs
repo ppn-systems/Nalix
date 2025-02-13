@@ -1,6 +1,5 @@
 using Notio.Common.Enums;
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
 using Notio.Cryptography;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Helpers;
@@ -22,7 +21,7 @@ public static partial class PackageExtensions
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">The encryption algorithm to use (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
-    public static IPacket EncryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         // Validate encryption conditions.
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
@@ -32,13 +31,8 @@ public static partial class PackageExtensions
             // Encrypt the payload using the helper class.
             Memory<byte> encryptedPayload = Cipher.Encrypt(packet.Payload, key, algorithm);
 
-            byte newFlags = packet.Flags.AddFlag(PacketFlags.IsEncrypted);
-
-            // Return a new IPacket with the updated payload and flags.
-            packet.UpdateFlags(newFlags);
-            packet.UpdatePayload(encryptedPayload);
-
-            return packet;
+            return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsEncrypted),
+                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, encryptedPayload);
         }
         catch (Exception ex)
         {
@@ -54,7 +48,7 @@ public static partial class PackageExtensions
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">The encryption algorithm that was used (e.g., Xtea, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
-    public static IPacket DecryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
     {
         // Validate decryption conditions.
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);
@@ -64,14 +58,8 @@ public static partial class PackageExtensions
             // Decrypt the payload using the helper class.
             Memory<byte> decryptedPayload = Cipher.Decrypt(packet.Payload, key, algorithm);
 
-            // Remove the encryption flag on decryption.
-            byte newFlags = packet.Flags.RemoveFlag(PacketFlags.IsEncrypted);
-
-            // Return a new IPacket with the updated payload and flags.
-            packet.UpdateFlags(newFlags);
-            packet.UpdatePayload(decryptedPayload);
-
-            return packet;
+            return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsEncrypted),
+                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decryptedPayload);
         }
         catch (Exception ex)
         {

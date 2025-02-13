@@ -1,5 +1,4 @@
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
@@ -25,7 +24,7 @@ public static class PackageHelper
     /// <param name="packet">The packet to verify.</param>
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     public static bool IsValidChecksum(in Packet packet)
-        => packet.Checksum == Crc32.ComputeChecksum(packet.Payload.Span);
+        => packet.Checksum == Crc32.HashToUInt32(packet.Payload.Span);
 
     /// <summary>
     /// Verifies if the checksum in the byte array packet matches the computed checksum from its payload.
@@ -34,7 +33,7 @@ public static class PackageHelper
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     public static bool IsValidChecksum(byte[] packet)
         => BitConverter.ToUInt32(packet, PacketOffset.Checksum)
-        == Crc32.ComputeChecksum(packet[PacketOffset.Payload..]);
+        == Crc32.HashToUInt32(packet[PacketOffset.Payload..]);
 
     /// <summary>
     /// Serializes the specified packet to a byte array.
@@ -74,7 +73,7 @@ public static class PackageHelper
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static IPacket Deserialize(ReadOnlySpan<byte> data)
+    public static Packet Deserialize(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException("Invalid data length: smaller than header size.");
@@ -91,7 +90,7 @@ public static class PackageHelper
     /// </summary>
     /// <param name="data">The ReadOnlyMemory to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static IPacket Deserialize(ReadOnlyMemory<byte> data)
+    public static Packet Deserialize(ReadOnlyMemory<byte> data)
         => Deserialize(data.Span);
 
     /// <summary>
@@ -99,7 +98,7 @@ public static class PackageHelper
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static IPacket Deserialize(byte[] data)
+    public static Packet Deserialize(byte[] data)
         => Deserialize((ReadOnlySpan<byte>)data);
 
     /// <summary>

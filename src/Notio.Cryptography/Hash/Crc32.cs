@@ -19,7 +19,7 @@ public static class Crc32
     /// <returns>The 32-bit CRC value.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
-    public static uint ComputeChecksum(byte[] bytes, int start, int length)
+    public static uint HashToUInt32(byte[] bytes, int start, int length)
     {
         System.ArgumentNullException.ThrowIfNull(bytes);
 
@@ -49,7 +49,7 @@ public static class Crc32
     /// </summary>
     /// <param name="bytes">The input span of bytes.</param>
     /// <returns>The 32-bit CRC value.</returns>
-    public static uint ComputeChecksum(System.ReadOnlySpan<byte> bytes)
+    public static uint HashToUInt32(System.ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
         foreach (byte b in bytes)
@@ -65,8 +65,8 @@ public static class Crc32
     /// </summary>
     /// <param name="bytes">The input byte array.</param>
     /// <returns>The 32-bit CRC value.</returns>
-    public static uint ComputeChecksum(params byte[] bytes)
-        => ComputeChecksum(bytes, 0, bytes?.Length ?? 0);
+    public static uint HashToUInt32(params byte[] bytes)
+        => HashToUInt32(bytes, 0, bytes?.Length ?? 0);
 
     // Precomputed lookup table for the default polynomial.
     private static readonly uint[] LookupTable =

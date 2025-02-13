@@ -168,9 +168,7 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     private static BigInteger ShaInterleave(BigInteger key)
     {
         byte[] keyBytes = key.ToByteArray(true);
-        byte[] T = keyBytes
-            .Reverse()
-            .ToArray();
+        byte[] T = [.. keyBytes.Reverse()];
 
         int first0 = Array.IndexOf<byte>(keyBytes, 0);
         int length = 4;

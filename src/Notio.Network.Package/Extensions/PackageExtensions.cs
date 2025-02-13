@@ -54,7 +54,7 @@ public static partial class PackageExtensions
     /// </summary>
     /// <param name="data">The byte array containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
-    public static IPacket Deserialize(this byte[] data)
+    public static Packet Deserialize(this byte[] data)
         => PackageHelper.Deserialize(data);
 
     /// <summary>

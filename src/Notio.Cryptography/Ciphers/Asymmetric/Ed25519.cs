@@ -48,7 +48,7 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="data">The data to hash.</param>
     /// <returns>The hash of the data as a byte array.</returns>
-    private static byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public static byte[] ComputeHash(ReadOnlySpan<byte> data)
         => (Sha512.Value ?? new SHA256()).ComputeHash(data);
 
     /// <summary>

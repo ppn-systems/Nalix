@@ -19,7 +19,7 @@ public static partial class PackageExtensions
     /// (Nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IPacket CompressPayload(this in Packet packet)
+    public static Packet CompressPayload(this in Packet packet)
     {
         PacketVerifier.ValidateCompressionEligibility(packet);
 
@@ -27,12 +27,8 @@ public static partial class PackageExtensions
         {
             byte[] compressedData = PayloadCompression.Compress(packet.Payload);
 
-            byte newFlags = packet.Flags.AddFlag(PacketFlags.IsCompressed);
-
-            packet.UpdateFlags(newFlags);
-            packet.UpdatePayload(compressedData);
-
-            return packet;
+            return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
+                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, compressedData);
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
@@ -45,7 +41,7 @@ public static partial class PackageExtensions
     /// (Giải nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IPacket DecompressPayload(this in Packet packet)
+    public static Packet DecompressPayload(this in Packet packet)
     {
         PacketVerifier.ValidateCompressionEligibility(packet);
 
@@ -55,12 +51,9 @@ public static partial class PackageExtensions
         try
         {
             byte[] decompressedData = PayloadCompression.Decompress(packet.Payload);
-            byte newFlags = packet.Flags.RemoveFlag(PacketFlags.IsCompressed);
 
-            packet.UpdateFlags(newFlags);
-            packet.UpdatePayload(decompressedData);
-
-            return packet;
+            return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
+                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decompressedData);
         }
         catch (InvalidDataException ex)
         {
