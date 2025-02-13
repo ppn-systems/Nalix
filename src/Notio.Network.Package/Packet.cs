@@ -1,7 +1,7 @@
+using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
-using Notio.Network.Package.Helpers;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
@@ -123,7 +123,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
         ushort command, ulong? timestamp, uint? checksum, Memory<byte> payload)
     {
         if (payload.Length + PacketSize.Header > MaxPacketSize)
-            ThrowHelpers.ThrowInvalidPacketSize();
+            throw new PackageException("Packet size exceeds 64KB limit");
 
         Timestamp = timestamp ?? GetMicrosecondTimestamp();
         Id = id ?? (byte)(Timestamp % byte.MaxValue);

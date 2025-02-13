@@ -13,7 +13,7 @@ namespace Notio.Network.Package.Helpers;
 /// Provides high-performance scaling methods for the IPacket class.
 /// </summary>
 [SkipLocalsInit]
-public static class PackageHelper
+public static class PackageSerializeHelper
 {
     private const int MaxStackAlloc = 512;
     private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;

@@ -1,6 +1,6 @@
 using Notio.Common.Package;
 using Notio.Network.Package.Enums;
-using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
