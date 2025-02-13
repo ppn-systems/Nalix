@@ -180,9 +180,10 @@ public sealed class SHA256 : IDisposable
     {
         if (_finalized) return _state.AsSpan().NonPortableCast<uint, byte>().ToArray();
 
-        Span<byte> padding = stackalloc byte[64];
-        int padLen = (_byteCount % 64 < 56) ? 56 - (int)(_byteCount % 64) : 120 - (int)(_byteCount % 64);
+        int current_mod = (int)(_byteCount % 64);
+        int padLen = current_mod < 56 ? 55 - current_mod : 119 - current_mod;
 
+        Span<byte> padding = stackalloc byte[64];
         padding[0] = 0x80;
         Update(padding[..(padLen + 1)]);
 
@@ -207,36 +208,36 @@ public sealed class SHA256 : IDisposable
     private void ProcessBlock(ReadOnlySpan<byte> block)
     {
 #if UNSAFE
-    unsafe
-    {
-        uint* W = stackalloc uint[64];
-        uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
-        uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
-
-        for (int i = 0; i < 16; i++)
+        unsafe
         {
-            W[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(block[(i * 4)..]);
-        }
+            uint* W = stackalloc uint[64];
+            uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
+            uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
-        for (int i = 16; i < 64; i++)
-        {
-            uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
-            W[i] = W[i - 16] + s0 + W[i - 7] + s1;
-        }
+            for (int i = 0; i < 16; i++)
+            {
+                W[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(block[(i * 4)..]);
+            }
 
-        // Main computation loop unrolled x4
-        for (int i = 0; i < 64;)
-        {
-            Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]); i++;
-            Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i], K[i]); i++;
-            Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i], K[i]); i++;
-            Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i], K[i]); i++;
-        }
+            for (int i = 16; i < 64; i++)
+            {
+                uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
+                uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
+                W[i] = W[i - 16] + s0 + W[i - 7] + s1;
+            }
 
-        _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
-        _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
-    }
+            // Main computation loop unrolled x4
+            for (int i = 0; i < 64;)
+            {
+                Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]); i++;
+                Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i], K[i]); i++;
+                Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i], K[i]); i++;
+                Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i], K[i]); i++;
+            }
+
+            _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
+            _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
+        }
 #else
         // Safe implementation without unsafe code
         uint[] W = new uint[64];

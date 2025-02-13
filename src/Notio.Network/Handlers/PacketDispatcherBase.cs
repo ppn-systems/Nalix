@@ -5,7 +5,7 @@ namespace Notio.Network.Handlers;
 /// <summary>
 /// Base class for packet dispatchers, providing configuration options.
 /// </summary>
-public class PacketDispatcherBase
+public abstract class PacketDispatcherBase
 {
     /// <summary>
     /// Gets the options object used to configure this instance.
