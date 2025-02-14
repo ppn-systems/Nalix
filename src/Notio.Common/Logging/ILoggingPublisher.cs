@@ -1,6 +1,7 @@
-﻿namespace Notio.Common.Logging;
+namespace Notio.Common.Logging;
 
 using Notio.Common.Models;
+using System;
 
 /// <summary>
 /// Defines the interface for a logging publisher.
@@ -9,7 +10,7 @@ using Notio.Common.Models;
 /// A logging publisher is responsible for managing the collection of log targets (e.g., file, console).
 /// It provides functionality to add, remove, and publish log entries to different targets.
 /// </remarks>
-public interface ILoggingPublisher
+public interface ILoggingPublisher : IDisposable
 {
     /// <summary>
     /// Adds a log handler (target) to the publisher, which will be used for publishing log entries.

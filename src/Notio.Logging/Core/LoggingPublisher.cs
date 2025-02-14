@@ -1,7 +1,8 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using Notio.Common.Models;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace Notio.Logging.Core;
 
@@ -10,7 +11,7 @@ namespace Notio.Logging.Core;
 /// </summary>
 public class LoggingPublisher : ILoggingPublisher
 {
-    private readonly ConcurrentBag<ILoggingTarget> _targets = new();
+    private readonly ConcurrentDictionary<ILoggingTarget, byte> _targets = new();
 
     /// <summary>
     /// Publishes a log entry to all registered logging targets.
@@ -18,7 +19,7 @@ public class LoggingPublisher : ILoggingPublisher
     /// <param name="entry">The log entry to be published.</param>
     public void Publish(LoggingEntry entry)
     {
-        foreach (var target in _targets)
+        foreach (var target in _targets.Keys)
         {
             target.Publish(entry);
         }
@@ -32,7 +33,7 @@ public class LoggingPublisher : ILoggingPublisher
     public ILoggingPublisher AddTarget(ILoggingTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        _targets.Add(target);
+        _targets.TryAdd(target, 0);
         return this;
     }
 
@@ -41,5 +42,18 @@ public class LoggingPublisher : ILoggingPublisher
     /// </summary>
     /// <param name="target">The logging target to remove.</param>
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
-    public bool RemoveTarget(ILoggingTarget target) => _targets.TryTake(out _);
+    public bool RemoveTarget(ILoggingTarget target) => _targets.TryRemove(target, out _);
+
+    /// <summary>
+    /// Disposes of the logging publisher and its targets if applicable.
+    /// </summary>
+    public void Dispose()
+    {
+        foreach (var target in _targets.Keys.OfType<IDisposable>())
+            target.Dispose();
+
+        _targets.Clear();
+
+        GC.SuppressFinalize(this);
+    }
 }

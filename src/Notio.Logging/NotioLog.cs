@@ -17,9 +17,9 @@ public sealed class NotioLog : LoggingEngine, ILogger
     /// Initializes the logging system with optional configuration.
     /// </summary>
     /// <param name="configure">An optional action to configure the logging system.</param>
-    public NotioLog(Action<NotioLogConfig>? configure = null)
+    public NotioLog(Action<LoggingOptions>? configure = null)
     {
-        NotioLogConfig builder = new(base.Publisher);
+        LoggingOptions builder = new(base.Publisher);
         configure?.Invoke(builder);
 
         if (builder.IsDefaults)

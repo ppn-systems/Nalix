@@ -1,9 +1,10 @@
-﻿namespace Notio.Logging.Targets;
+namespace Notio.Logging.Targets;
 
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Formatters;
 using Notio.Logging.Targets.File;
+using System;
 
 /// <summary>
 /// Standard file logger implementation that writes log messages to a file.
@@ -12,7 +13,7 @@ using Notio.Logging.Targets.File;
 /// This logger uses a specified formatter to format the log message before writing it to a file.
 /// The default behavior can be customized by providing a custom <see cref="ILoggingFormatter"/>.
 /// </remarks>
-public class FileLoggingTarget(ILoggingFormatter loggerFormatter, string directory, string filename) : ILoggingTarget
+public class FileLoggingTarget(ILoggingFormatter loggerFormatter, string directory, string filename) : ILoggingTarget, IDisposable
 {
     /// <summary>
     /// The provider responsible for writing logs to a file.
@@ -36,4 +37,13 @@ public class FileLoggingTarget(ILoggingFormatter loggerFormatter, string directo
     /// <param name="logMessage">The log entry to be published.</param>
     public void Publish(LoggingEntry logMessage)
         => LoggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
+
+    /// <summary>
+    /// Disposes of the file logger and any resources it uses.
+    /// </summary>
+    public void Dispose()
+    {
+        LoggerPrv?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }

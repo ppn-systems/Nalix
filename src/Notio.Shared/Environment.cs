@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -50,7 +50,7 @@ public enum Endianness
 /// <summary>
 /// Provides utility methods to retrieve information about the current application.
 /// </summary>
-public static class EnvironmentInfo
+public static class Environment
 {
     // Lazy-load the entry assembly.
     private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
@@ -84,7 +84,7 @@ public static class EnvironmentInfo
     // Lazy-load the operating system type.
     private static readonly Lazy<OSType> OsLazy = new(() =>
     {
-        var windir = Environment.GetEnvironmentVariable("windir");
+        var windir = System.Environment.GetEnvironmentVariable("windir");
         if (!string.IsNullOrEmpty(windir) && windir.Contains('\\') && Directory.Exists(windir))
         {
             return OSType.Windows;
@@ -98,7 +98,7 @@ public static class EnvironmentInfo
     {
         var assemblyName = EntryAssemblyName.Name
             ?? throw new InvalidOperationException("Entry assembly name is null.");
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var localAppData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
         var basePath = Path.Combine(localAppData, assemblyName);
         var version = EntryAssemblyVersion?.ToString()
             ?? throw new InvalidOperationException("Entry assembly version is null.");
@@ -152,7 +152,7 @@ public static class EnvironmentInfo
     /// <summary>
     /// Gets a value indicating whether this application instance is using the MONO runtime.
     /// </summary>
-    public static bool IsUsingMonoRuntime => Type.GetType("Mono.EnvironmentInfo") != null;
+    public static bool IsUsingMonoRuntime => Type.GetType("Mono.Environment") != null;
 
     /// <summary>
     /// Gets the assembly that started the application.
@@ -219,7 +219,7 @@ public static class EnvironmentInfo
     {
         if (string.IsNullOrWhiteSpace(filename))
             throw new ArgumentNullException(nameof(filename));
-        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var desktopPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.DesktopDirectory);
         var fullPath = Path.Combine(desktopPath, filename);
         return Path.GetFullPath(fullPath);
     }
