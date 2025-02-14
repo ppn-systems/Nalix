@@ -1,4 +1,4 @@
-namespace Notio.Network.Firewall.Models;
+namespace Notio.Network.Firewall.Metadata;
 
 /// <summary>
 /// Represents a data rate limit configuration, including maximum transfer rate and burst size.

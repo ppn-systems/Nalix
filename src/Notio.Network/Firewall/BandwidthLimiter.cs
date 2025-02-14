@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Models;
+using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Firewall.Rules;
+namespace Notio.Network.Firewall;
 
 /// <summary>
 /// Manages and limits bandwidth for each connection.

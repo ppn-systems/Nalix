@@ -154,9 +154,7 @@ public abstract class Listener : TcpListener, IListener
         socket.SendTimeout = 30000;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
             socket.IOControl(IOControlCode.KeepAliveValues, GetKeepAliveValues(), null);
-        }
     }
 
     /// <summary>

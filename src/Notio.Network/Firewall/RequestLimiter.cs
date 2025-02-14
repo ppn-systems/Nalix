@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Models;
+using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Firewall.Rules;
+namespace Notio.Network.Firewall;
 
 /// <summary>
 /// Lớp xử lý giới hạn tốc độ yêu cầu với các tính năng nâng cao về hiệu suất và bảo mật

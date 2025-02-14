@@ -13,7 +13,7 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
 /// </summary>
-public class ConnectionStream : IDisposable
+internal class ConnectionStream : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly NetworkStream _stream;

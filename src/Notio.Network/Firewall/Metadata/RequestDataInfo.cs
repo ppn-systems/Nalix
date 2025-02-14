@@ -1,4 +1,4 @@
-namespace Notio.Network.Firewall.Models;
+namespace Notio.Network.Firewall.Metadata;
 
 /// <summary>
 /// Represents the data of a request, including the history of request timestamps and optional block expiration time.
