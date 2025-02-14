@@ -1,22 +1,22 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Notio.Randomization;
 
 /// <summary>
-/// Lớp hỗ trợ sinh số ngẫu nhiên với nhiều kiểu dữ liệu và phạm vi khác nhau.
+/// A class that supports generating random numbers with various data types and ranges.
 /// </summary>
 public sealed class GRandom
 {
     /// <summary>
-    /// Giá trị lớn nhất có thể sinh ra.
+    /// The maximum possible generated value.
     /// </summary>
     public const int RandMax = 0x7fffffff;
 
-    private int _seed;           // Hạt giống cho bộ sinh số ngẫu nhiên
-    private readonly Rand _rand; // Bộ xử lý sinh số ngẫu nhiên
+    private int _seed;           // Seed for the random number generator
+    private readonly Rand _rand; // Random number generator instance
 
     /// <summary>
-    /// Khởi tạo với hạt giống mặc định là 0.
+    /// Initializes with the default seed value of 0.
     /// </summary>
     public GRandom()
     {
@@ -25,7 +25,7 @@ public sealed class GRandom
     }
 
     /// <summary>
-    /// Khởi tạo với hạt giống do người dùng cung cấp
+    /// Initializes with a user-provided seed value.
     /// </summary>
     public GRandom(int seed)
     {
@@ -34,7 +34,7 @@ public sealed class GRandom
     }
 
     /// <summary>
-    /// Đặt lại hạt giống cho bộ sinh số ngẫu nhiên.
+    /// Resets the seed for the random number generator.
     /// </summary>
     public void Seed(int seed)
     {
@@ -43,22 +43,22 @@ public sealed class GRandom
     }
 
     /// <summary>
-    /// Lấy giá trị hạt giống hiện tại.
+    /// Gets the current seed value.
     /// </summary>
     public int GetSeed() => _seed;
 
     /// <summary>
-    /// Sinh số nguyên ngẫu nhiên trong khoảng [0, RandMax].
+    /// Generates a random integer in the range [0, RandMax].
     /// </summary>
     public int Next() => Next(RandMax);
 
     /// <summary>
-    /// Sinh số nguyên ngẫu nhiên trong khoảng [0, max).
+    /// Generates a random integer in the range [0, max).
     /// </summary>
     public int Next(int max) => Next(0, max);
 
     /// <summary>
-    /// Sinh số nguyên ngẫu nhiên trong khoảng [min, max).
+    /// Generates a random integer in the range [min, max).
     /// </summary>
     public int Next(int min, int max)
     {
@@ -69,42 +69,42 @@ public sealed class GRandom
     }
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên trong khoảng [0.0f, 1.0f].
+    /// Generates a random floating-point number in the range [0.0f, 1.0f].
     /// </summary>
     public float NextFloat() => _rand.GetFloat();
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên trong khoảng [0.0f, max).
+    /// Generates a random floating-point number in the range [0.0f, max).
     /// </summary>
     public float NextFloat(float max) => _rand.Get(0.0f, max);
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên trong khoảng [min, max).
+    /// Generates a random floating-point number in the range [min, max).
     /// </summary>
     public float NextFloat(float min, float max) => _rand.Get(min, max);
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên (double) trong khoảng [0.0, 1.0].
+    /// Generates a random double-precision floating-point number in the range [0.0, 1.0].
     /// </summary>
     public double NextDouble() => _rand.GetDouble();
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên (double) trong khoảng [0.0, max).
+    /// Generates a random double-precision floating-point number in the range [0.0, max).
     /// </summary>
     public double NextDouble(double max) => _rand.Get(0.0, max);
 
     /// <summary>
-    /// Sinh số thực ngẫu nhiên (double) trong khoảng [min, max).
+    /// Generates a random double-precision floating-point number in the range [min, max).
     /// </summary>
     public double NextDouble(double min, double max) => _rand.Get(min, max);
 
     /// <summary>
-    /// Kiểm tra ngẫu nhiên với tỷ lệ phần trăm (percent).
+    /// Performs a random check with a given percentage probability.
     /// </summary>
     public bool NextPct(int pct) => Next(0, 100) < pct;
 
     /// <summary>
-    /// Trộn ngẫu nhiên một danh sách.
+    /// Randomly shuffles a list.
     /// </summary>
     public void ShuffleList<T>(List<T> list)
     {
@@ -117,7 +117,7 @@ public sealed class GRandom
     }
 
     /// <summary>
-    /// Trả về chuỗi đại diện cho trạng thái của bộ sinh số ngẫu nhiên.
+    /// Returns a string representation of the random number generator state.
     /// </summary>
     public override string ToString() => _rand.ToString();
 }

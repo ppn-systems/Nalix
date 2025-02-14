@@ -1,36 +1,36 @@
-﻿using System;
+using System;
 
 namespace Notio.Randomization;
 
 /// <summary>
-/// Lớp cung cấp các phương thức tạo số ngẫu nhiên sử dụng thuật toán Multiply-with-carry (MWC).
+/// A class that provides methods for generating random numbers using the Multiply-with-carry (MWC) algorithm.
 /// </summary>
 public abstract class RandMwc
 {
     private ulong _seed;
 
     /// <summary>
-    /// Giá trị lớn nhất có thể sinh ra.
+    /// The maximum possible value that can be generated.
     /// </summary>
     public const uint RandMax = 0xffffffff;
 
     /// <summary>
-    /// Khởi tạo một đối tượng RandMwc với giá trị seed cho trước.
+    /// Initializes a RandMwc instance with a given seed value.
     /// </summary>
-    /// <param name="seed">Giá trị seed để khởi tạo bộ sinh số ngẫu nhiên.</param>
+    /// <param name="seed">The seed value to initialize the random number generator.</param>
     public RandMwc(uint seed)
         => SetSeed(seed == 0 ? (uint)DateTime.Now.Ticks : seed);
 
     /// <summary>
-    /// Thiết lập giá trị seed cho bộ sinh số ngẫu nhiên.
+    /// Sets the seed value for the random number generator.
     /// </summary>
-    /// <param name="seed">Giá trị seed mới.</param>
+    /// <param name="seed">The new seed value.</param>
     public void SetSeed(uint seed) => _seed = (ulong)666 << 32 | seed;
 
     /// <summary>
-    /// Trả về một số ngẫu nhiên.
+    /// Returns a random number.
     /// </summary>
-    /// <returns>Số ngẫu nhiên dưới dạng uint.</returns>
+    /// <returns>A random number as a uint.</returns>
     public uint Get()
     {
         _seed = 698769069UL * (_seed & 0xffffffff) + (_seed >> 32);
@@ -38,14 +38,14 @@ public abstract class RandMwc
     }
 
     /// <summary>
-    /// Trả về một số ngẫu nhiên 64-bit.
+    /// Returns a 64-bit random number.
     /// </summary>
-    /// <returns>Số ngẫu nhiên dưới dạng ulong.</returns>
+    /// <returns>A random number as a ulong.</returns>
     public ulong Get64() => (ulong)Get() << 32 | Get();
 
     /// <summary>
-    /// Trả về chuỗi biểu diễn giá trị seed hiện tại.
+    /// Returns a string representation of the current seed value.
     /// </summary>
-    /// <returns>Chuỗi biểu diễn giá trị seed.</returns>
+    /// <returns>A string representing the seed value.</returns>
     public override string ToString() => $"0x{_seed:X16}";
 }

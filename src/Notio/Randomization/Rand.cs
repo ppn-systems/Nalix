@@ -1,152 +1,144 @@
-﻿using System;
+using System;
 
 namespace Notio.Randomization;
 
 /// <summary>
-/// Lớp cung cấp các phương thức tạo số ngẫu nhiên.
+/// A class that provides methods for generating random numbers.
 /// </summary>
 /// <remarks>
-/// Khởi tạo một đối tượng Rand với giá trị seed cho trước.
+/// Initializes a Rand instance with a given seed value.
 /// </remarks>
-/// <param name="seed">Giá trị seed để khởi tạo bộ sinh số ngẫu nhiên.</param>
+/// <param name="seed">The seed value to initialize the random number generator.</param>
 public sealed class Rand(uint seed) : RandMwc(seed)
 {
     /// <summary>
-    /// Trả về một số thực dấu phẩy động ngẫu nhiên từ 0.0 đến 1.0.
+    /// Returns a random floating-point number between 0.0 and 1.0.
     /// </summary>
-    /// <returns>Số thực dấu phẩy động ngẫu nhiên từ 0.0 đến 1.0.</returns>
-    public float GetFloat()
-    {
-        uint value = Get() & 0x7fffff | 0x3f800000;
-        return BitConverter.UInt32BitsToSingle(value) - 1.0f;
-    }
+    /// <returns>A random floating-point number between 0.0 and 1.0.</returns>
+    public float GetFloat() => BitConverter.UInt32BitsToSingle(Get() & 0x7fffff | 0x3f800000) - 1.0f;
 
     /// <summary>
-    /// Trả về một số thực dấu phẩy động đôi ngẫu nhiên từ 0.0 đến 1.0.
+    /// Returns a random double-precision floating-point number between 0.0 and 1.0.
     /// </summary>
-    /// <returns>Số thực dấu phẩy động đôi ngẫu nhiên từ 0.0 đến 1.0.</returns>
-    public double GetDouble()
-    {
-        ulong value = Get64() & 0xfffffffffffff | 0x3ff0000000000000;
-        return BitConverter.UInt64BitsToDouble(value) - 1.0;
-    }
+    /// <returns>A random double-precision floating-point number between 0.0 and 1.0.</returns>
+    public double GetDouble() => BitConverter.UInt64BitsToDouble(Get64() & 0xfffffffffffff | 0x3ff0000000000000) - 1.0;
 
     /// <summary>
-    /// Trả về một số ngẫu nhiên từ 0 đến max (không bao gồm max).
+    /// Returns a random number from 0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số ngẫu nhiên từ 0 đến max - 1.</returns>
-    public uint Get(uint max)
-    {
-        if (max == 0)
-            return 0;
-        return Get() % max;
-    }
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random number from 0 to max - 1.</returns>
+    public uint Get(uint max) => max == 0 ? 0 : Get() % max;
 
     /// <summary>
-    /// Trả về một số nguyên ngẫu nhiên từ 0 đến max (không bao gồm max).
+    /// Returns a random integer from 0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên ngẫu nhiên từ 0 đến max - 1.</returns>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random integer from 0 to max - 1.</returns>
     public int Get(int max) => max <= 0 ? 0 : (int)(Get() & 0x7fffffff) % max;
 
     /// <summary>
-    /// Trả về một số nguyên không dấu ngẫu nhiên từ 0 đến max (không bao gồm max).
+    /// Returns a random unsigned integer from 0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên không dấu ngẫu nhiên từ 0 đến max - 1.</returns>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random unsigned integer from 0 to max - 1.</returns>
     public ulong Get(ulong max) => max == 0 ? 0 : Get64() % max;
 
     /// <summary>
-    /// Trả về một số nguyên dấu ngẫu nhiên từ 0 đến max (không bao gồm max).
+    /// Returns a random signed integer from 0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên dấu ngẫu nhiên từ 0 đến max - 1.</returns>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random signed integer from 0 to max - 1.</returns>
     public long Get(long max) => max == 0 ? 0 : (long)(Get64() & 0x7fffffffffffffffUL) % max;
 
     /// <summary>
-    /// Trả về một số thực dấu phẩy động đôi ngẫu nhiên từ 0.0 đến max (không bao gồm max).
+    /// Returns a random double-precision floating-point number from 0.0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số thực dấu phẩy động đôi ngẫu nhiên từ 0.0 đến max.</returns>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random double-precision floating-point number from 0.0 to max.</returns>
     public double Get(double max) => max <= 0.0f ? 0.0f : GetDouble() * max;
 
     /// <summary>
-    /// Trả về một số ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random number from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random number from min to max.</returns>
     public uint Get(uint min, uint max)
     {
         if (max < min)
             return max;
+
         uint range = max - min + 1;
         return range == 0 ? Get() : Get(range) + min;
     }
 
     /// <summary>
-    /// Trả về một số thực dấu phẩy động ngẫu nhiên từ 0.0 đến max (không bao gồm max).
+    /// Returns a random floating-point number from 0.0 to max (excluding max).
     /// </summary>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số thực dấu phẩy động ngẫu nhiên từ 0.0 đến max.</returns>
-    public float Get(float max) => max <= 0.0f ? 0.0f : GetFloat() * max;
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random floating-point number from 0.0 to max.</returns>
+    public float Get(float max)
+        => max <= 0.0f ? 0.0f : GetFloat() * max;
 
     /// <summary>
-    /// Trả về một số nguyên ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random integer from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random integer from min to max.</returns>
     public int Get(int min, int max)
     {
         if (max < min)
             return max;
+
         uint range = (uint)max - (uint)min + 1;
         return (int)(range == 0 ? Get() : Get(range) + min);
     }
 
     /// <summary>
-    /// Trả về một số nguyên không dấu ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random unsigned integer from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên không dấu ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random unsigned integer from min to max.</returns>
     public ulong Get(ulong min, ulong max)
     {
         if (max < min)
             return max;
+
         ulong range = max - min + 1;
         return range == 0 ? Get64() : Get(range) + min;
     }
 
     /// <summary>
-    /// Trả về một số nguyên dấu ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random signed integer from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số nguyên dấu ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random signed integer from min to max.</returns>
     public long Get(ulong min, long max)    // ulong min <-- same as in the client
     {
         if (max < (long)min)
             return max;
+
         ulong range = (ulong)max - min + 1;
         return (long)(range == 0 ? Get() : Get(range) + min);
     }
 
     /// <summary>
-    /// Trả về một số thực dấu phẩy động ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random floating-point number from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số thực dấu phẩy động ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random floating-point number from min to max.</returns>
     public float Get(float min, float max) => max < min ? max : GetFloat() * (max - min) + min;
 
     /// <summary>
-    /// Trả về một số thực dấu phẩy động đôi ngẫu nhiên từ min đến max (bao gồm cả min và max).
+    /// Returns a random double-precision floating-point number from min to max (inclusive).
     /// </summary>
-    /// <param name="min">Giới hạn dưới của giá trị ngẫu nhiên.</param>
-    /// <param name="max">Giới hạn trên của giá trị ngẫu nhiên.</param>
-    /// <returns>Số thực dấu phẩy động đôi ngẫu nhiên từ min đến max.</returns>
+    /// <param name="min">The lower limit of the random value.</param>
+    /// <param name="max">The upper limit of the random value.</param>
+    /// <returns>A random double-precision floating-point number from min to max.</returns>
     public double Get(double min, double max) => max < min ? max : GetDouble() * (max - min) + min;
 }
