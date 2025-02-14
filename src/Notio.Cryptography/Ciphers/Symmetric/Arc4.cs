@@ -58,7 +58,7 @@ public class Arc4
             Swap(s, i, j);
 
             // XOR with generated keystream
-            buffer[k] ^= s[(s[i] + s[j])];
+            buffer[k] ^= s[(s[i] + s[j]) & 0xFF];
         }
     }
 

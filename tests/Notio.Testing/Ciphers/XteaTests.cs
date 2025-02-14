@@ -1,116 +1,64 @@
-//using Notio.Cryptography.Ciphers.Symmetric;
-//using System;
-//using System.Linq;
-//using Xunit;
+using Notio.Cryptography.Ciphers.Symmetric;
+using System;
+using Xunit;
 
-//namespace Notio.Testing.Ciphers;
+namespace Notio.Testing.Ciphers;
 
-//public class XteaTests
-//{
-//    // Test case 1: Test invalid key length (key not exactly 4 elements)
-//    [Fact]
-//    public void Encrypt_InvalidKeyLength_ThrowsArgumentException()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3 }; // Invalid key length
-//        var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }; // Example data
-//        var output = new byte[8];
+public class XteaTests
+{
+    private static readonly uint[] TestKey = [0x01234567, 0x89ABCDEF, 0xFEDCBA98, 0x76543210];
 
-//        // Act & Assert
-//        var exception = Assert.Throws<ArgumentException>(() => Xtea.Encrypt(data, key, output));
-//        Assert.Equal("Key must be exactly 4 elements (Parameter 'key')", exception.Message);
-//    }
+    [Fact]
+    public void EncryptDecrypt_ShouldReturnOriginalData()
+    {
+        byte[] originalData = "ABCDEFGH"u8.ToArray();
+        byte[] encryptedData = new byte[originalData.Length];
+        byte[] decryptedData = new byte[originalData.Length];
 
-//    // Test case 2: Test data encryption and decryption
-//    [Fact]
-//    public void Encrypt_Decrypt_Correctly()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3, 4 }; // Valid key
-//        var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }; // Example data
-//        var encryptedData = new byte[8];
-//        var decryptedData = new byte[8];
+        Xtea.Encrypt(originalData, TestKey, encryptedData);
+        Xtea.Decrypt(encryptedData, TestKey, decryptedData);
 
-//        // Act: Encrypt the data
-//        Xtea.Encrypt(data, key, encryptedData);
+        Assert.Equal(originalData, decryptedData);
+    }
 
-//        // Assert: Encrypted data should not match original data
-//        Assert.False(data.SequenceEqual(encryptedData), "Encrypted data should be different from the original data.");
+    [Fact]
+    public void Encrypt_ThrowsException_WhenDataIsEmpty()
+    {
+        byte[] emptyData = [];
+        byte[] output = new byte[8];
 
-//        // Act: Decrypt the data
-//        Xtea.Decrypt(encryptedData, key, decryptedData);
+        Assert.Throws<ArgumentException>(() => Xtea.Encrypt(emptyData, TestKey, output));
+    }
 
-//        // Assert: Decrypted data should match the original data
-//        Assert.True(data.SequenceEqual(decryptedData), "Decrypted data should match the original data.");
-//    }
+    [Fact]
+    public void Encrypt_ThrowsException_WhenKeyIsInvalid()
+    {
+        byte[] data = new byte[8];
+        uint[] invalidKey = [0x12345678, 0x9ABCDEF0]; // Key length must be 4
+        byte[] output = new byte[8];
 
-//    // Test case 3: Test TryDecrypt method with valid data
-//    [Fact]
-//    public void TryDecrypt_ValidData_ReturnsTrue()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3, 4 }; // Valid key
-//        var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }; // Example data
-//        var encryptedData = new byte[8];
-//        var decryptedData = new byte[8];
+        Assert.Throws<ArgumentException>(() => Xtea.Encrypt(data, invalidKey, output));
+    }
 
-//        // Act: Encrypt the data
-//        Xtea.Encrypt(data, key, encryptedData);
+    [Fact]
+    public void Decrypt_ThrowsException_WhenDataIsNotMultipleOf8()
+    {
+        byte[] invalidData = new byte[7];
+        byte[] output = new byte[8];
 
-//        // Act: Try to decrypt the encrypted data
-//        var result = Xtea.TryDecrypt(encryptedData, key, decryptedData);
+        Assert.Throws<ArgumentException>(() => Xtea.Decrypt(invalidData, TestKey, output));
+    }
 
-//        // Assert: Decryption should succeed
-//        Assert.True(result, "Decryption should succeed.");
-//        Assert.True(data.SequenceEqual(decryptedData), "Decrypted data should match the original data.");
-//    }
+    [Fact]
+    public void EncryptDecrypt_ShouldWorkWithDifferentDataSizes()
+    {
+        byte[] originalData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        byte[] encryptedData = new byte[16];
+        byte[] decryptedData = new byte[16];
 
-//    // Test case 4: Test TryDecrypt method with invalid data (wrong key)
-//    [Fact]
-//    public void TryDecrypt_InvalidData_ReturnsFalse()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3, 4 }; // Correct key
-//        var wrongKey = new uint[] { 5, 6, 7, 8 }; // Wrong key
-//        var data = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }; // Example data
-//        var encryptedData = new byte[8];
-//        var decryptedData = new byte[8];
+        Xtea.Encrypt(originalData, TestKey, encryptedData);
+        Xtea.Decrypt(encryptedData, TestKey, decryptedData);
 
-//        // Act: Encrypt the data with the correct key
-//        Xtea.Encrypt(data, key, encryptedData);
-
-//        // Act: Try to decrypt the data with the wrong key
-//        var result = Xtea.TryDecrypt(encryptedData, wrongKey, decryptedData);
-
-//        // Assert: Decryption should fail
-//        Assert.False(result, "Decryption should fail with the wrong key.");
-//    }
-
-//    // Test case 5: Test empty data input (Encrypt)
-//    [Fact]
-//    public void Encrypt_EmptyData_ThrowsArgumentException()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3, 4 }; // Valid key
-//        var data = new byte[0]; // Empty data
-//        var output = new byte[0];
-
-//        // Act & Assert
-//        var exception = Assert.Throws<ArgumentException>(() => Xtea.Encrypt(data, key, output));
-//        Assert.Equal("Data cannot be empty (Parameter 'data')", exception.Message);
-//    }
-
-//    // Test case 6: Test invalid data length for Decrypt (non-multiple of 8)
-//    [Fact]
-//    public void Decrypt_InvalidDataLength_ThrowsArgumentException()
-//    {
-//        // Arrange
-//        var key = new uint[] { 1, 2, 3, 4 }; // Valid key
-//        var data = new byte[] { 1, 2, 3, 4, 5 }; // Invalid data length (not multiple of 8)
-//        var output = new byte[8];
-
-//        // Act & Assert
-//        var exception = Assert.Throws<ArgumentException>(() => Xtea.Decrypt(data, key, output));
-//        Assert.Equal("Invalid input data or key. (Parameter 'data')", exception.Message);
-//    }
-//}
+        Assert.Equal(originalData, decryptedData);
+    }
+}

@@ -1,90 +1,78 @@
-//using Notio.Cryptography.Ciphers.Symmetric;
-//using System;
-//using Xunit;
+using Notio.Cryptography.Ciphers.Symmetric;
+using System;
+using System.Linq;
+using Xunit;
 
-//namespace Notio.Testing.Ciphers
-//{
-//    public class Arc4Tests
-//    {
-//        [Fact]
-//        public void Encrypt_Decrypt_ShouldReturnOriginalData()
-//        {
-//            // Arrange
-//            byte[] key = { 1, 2, 3, 4, 5 };
-//            byte[] plaintext = { 72, 101, 108, 108, 111 }; // "Hello"
-//            byte[] encrypted = new byte[plaintext.Length];
-//            byte[] decrypted = new byte[plaintext.Length];
+namespace Notio.Testing.Ciphers;
 
-//            plaintext.CopyTo(encrypted, 0);
+public class Arc4Tests
+{
+    [Fact]
+    public void EncryptDecrypt_ShouldReturnOriginalData()
+    {
+        byte[] key = { 1, 2, 3, 4, 5 };
+        byte[] data = { 10, 20, 30, 40, 50 };
+        byte[] originalData = data.ToArray();
 
-//            // Dùng một instance để mã hóa
-//            var arc4Encryptor = new Arc4(key);
-//            arc4Encryptor.Process(encrypted);
+        var cipher = new Arc4(key);
+        cipher.Process(data); // Encrypt
 
-//            encrypted.CopyTo(decrypted, 0);
+        Assert.NotEqual(originalData, data); // Ensure data is changed
 
-//            // Dùng một instance khác để giải mã
-//            var arc4Decryptor = new Arc4(key);
-//            arc4Decryptor.Process(decrypted);
+        cipher = new Arc4(key);
+        cipher.Process(data); // Decrypt
 
-//            // Assert
-//            Assert.Equal(plaintext, decrypted);
-//        }
+        Assert.Equal(originalData, data); // Ensure it matches original
+    }
 
-//        [Fact]
-//        public void DifferentKeys_ShouldProduceDifferentResults()
-//        {
-//            // Arrange
-//            byte[] key1 = { 1, 2, 3, 4, 5 };
-//            byte[] key2 = { 6, 7, 8, 9, 10 };
-//            byte[] plaintext = { 72, 101, 108, 108, 111 }; // "Hello"
-//            byte[] encryptedWithKey1 = new byte[plaintext.Length];
-//            byte[] encryptedWithKey2 = new byte[plaintext.Length];
+    [Fact]
+    public void EmptyData_ShouldRemainUnchanged()
+    {
+        byte[] key = { 1, 2, 3, 4, 5 };
+        byte[] data = Array.Empty<byte>();
 
-//            plaintext.CopyTo(encryptedWithKey1, 0);
-//            plaintext.CopyTo(encryptedWithKey2, 0);
+        var cipher = new Arc4(key);
+        cipher.Process(data);
 
-//            var arc4Encryptor1 = new Arc4(key1);
-//            arc4Encryptor1.Process(encryptedWithKey1);
+        Assert.Empty(data);
+    }
 
-//            var arc4Encryptor2 = new Arc4(key2);
-//            arc4Encryptor2.Process(encryptedWithKey2);
+    [Fact]
+    public void InvalidKey_ShouldThrowException()
+    {
+        Assert.Throws<ArgumentException>(() => new Arc4(new byte[4])); // Too short
+        Assert.Throws<ArgumentException>(() => new Arc4(new byte[257])); // Too long
+        Assert.Throws<ArgumentException>(() => new Arc4(null)); // Null key
+    }
 
-//            // Assert
-//            Assert.NotEqual(encryptedWithKey1, encryptedWithKey2);
-//        }
+    [Fact]
+    public void IdenticalKeys_ShouldProduceSameOutput()
+    {
+        byte[] key = { 1, 2, 3, 4, 5 };
+        byte[] data1 = { 10, 20, 30, 40, 50 };
+        byte[] data2 = data1.ToArray();
 
-//        [Fact]
-//        public void EmptyInput_ShouldRemainEmpty()
-//        {
-//            // Arrange
-//            byte[] key = { 1, 2, 3, 4, 5 };
-//            byte[] emptyData = Array.Empty<byte>();
+        var cipher1 = new Arc4(key);
+        var cipher2 = new Arc4(key);
+        cipher1.Process(data1);
+        cipher2.Process(data2);
 
-//            var arc4 = new Arc4(key);
-//            arc4.Process(emptyData);
+        Assert.Equal(data1, data2);
+    }
 
-//            // Assert
-//            Assert.Empty(emptyData);
-//        }
+    [Fact]
+    public void DifferentKeys_ShouldProduceDifferentOutput()
+    {
+        byte[] key1 = { 1, 2, 3, 4, 5 };
+        byte[] key2 = { 5, 4, 3, 2, 1 };
+        byte[] data1 = { 10, 20, 30, 40, 50 };
+        byte[] data2 = data1.ToArray();
 
-//        [Fact]
-//        public void InvalidKey_ShouldThrowArgumentException()
-//        {
-//            // Arrange
-//            byte[] shortKey = { 1, 2, 3, 4 };  // Too short
-//            byte[] longKey = new byte[257]; // Too long
+        var cipher1 = new Arc4(key1);
+        var cipher2 = new Arc4(key2);
+        cipher1.Process(data1);
+        cipher2.Process(data2);
 
-//            // Act & Assert
-//            Assert.Throws<ArgumentException>(() => new Arc4(shortKey));
-//            Assert.Throws<ArgumentException>(() => new Arc4(longKey));
-//        }
-
-//        [Fact]
-//        public void NullKey_ShouldThrowArgumentException()
-//        {
-//            // Act & Assert
-//            Assert.Throws<ArgumentException>(() => new Arc4(null));
-//        }
-//    }
-//}
+        Assert.NotEqual(data1, data2);
+    }
+}

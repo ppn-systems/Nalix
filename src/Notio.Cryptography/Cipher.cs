@@ -103,10 +103,13 @@ public class Cipher
 
                         try
                         {
-                            if (!Xtea.TryDecrypt(data, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize)))
-                                throw new CryptographicException("Decryption failed. Authentication of the data has failed.");
+                            Xtea.Decrypt(data, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize));
 
                             return decryptedXtea.AsMemory(0, bufferSize);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new CryptographicException("Decryption failed. Authentication of the data has failed.", ex);
                         }
                         finally
                         {

@@ -65,11 +65,11 @@ public static class Xtea
     /// <exception cref="ArgumentException">Thrown when the key length is not exactly 4 elements, the data length is not a multiple of 8, or the output buffer is too small.</exception>
     public static void Decrypt(Memory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
     {
-        if (key.Length != 4 || data.Length % 8 != 0)
-            throw new ArgumentException("Invalid input data or key.");
+        if (data.Length % 8 != 0)
+            throw new ArgumentException("Invalid input data or key.", nameof(data));
 
-        if (output.Length < data.Length)
-            throw new ArgumentException("Output buffer is too small", nameof(output));
+        if (key.Length != 4)
+            throw new ArgumentException("Key must be exactly 4 elements.", nameof(key));
 
         data.CopyTo(output);
 
@@ -91,26 +91,6 @@ public static class Xtea
 
             words[pos] = v0;
             words[pos + 1] = v1;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to decrypt the specified data using the XTEA algorithm.
-    /// </summary>
-    /// <param name="data">The data to decrypt.</param>
-    /// <param name="key">The decryption key (must be exactly 4 elements).</param>
-    /// <param name="output">The buffer to store the decrypted data (must be large enough to hold the result).</param>
-    /// <returns>True if the decryption succeeds; otherwise, false.</returns>
-    public static bool TryDecrypt(Memory<byte> data, ReadOnlyMemory<uint> key, Memory<byte> output)
-    {
-        try
-        {
-            Decrypt(data, key, output);
-            return true;
-        }
-        catch
-        {
-            return false;
         }
     }
 }

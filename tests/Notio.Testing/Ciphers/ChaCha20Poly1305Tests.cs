@@ -33,6 +33,8 @@ public class ChaCha20Poly1305Tests
 
         // Assert that the decrypted text matches the original plaintext
         Assert.True(decrypted.SequenceEqual(plaintext), "Decrypted text does not match the original.");
+
+        Console.WriteLine("TestEncryptionAndDecryption: Passed");
     }
 
     [Fact]
@@ -54,5 +56,7 @@ public class ChaCha20Poly1305Tests
 
         // Assert that decryption fails
         Assert.False(success, "Authentication failure test failed. Decryption should have failed.");
+
+        Console.WriteLine("TestAuthenticationFailure: Passed");
     }
 }
