@@ -1,47 +1,47 @@
 namespace Notio.Common.Enums;
 
 /// <summary>
-/// Đại diện cho các mức độ nghiêm trọng của một thông điệp nhật ký.
+/// Represents the severity levels of a log message.
 /// </summary>
 public enum LoggingLevel
 {
     /// <summary>
-    /// Mức độ dùng để đại diện cho các thông điệp liên quan đến các metrics (thống kê, dữ liệu đo đạc).
+    /// Level used to represent messages related to metrics (statistics, measurement data).
     /// </summary>
     Meta,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp ở mức theo dõi (trace-level).
+    /// Used to represent trace-level messages.
     /// </summary>
     Trace,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp ở mức gỡ lỗi (debug-level).
+    /// Used to represent debug-level messages.
     /// </summary>
     Debug,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp mang tính thông tin (informational).
+    /// Used to represent informational messages.
     /// </summary>
     Information,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp ở mức cảnh báo (warning-level).
+    /// Used to represent warning-level messages.
     /// </summary>
     Warning,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp ở mức lỗi (error-level).
+    /// Used to represent error-level messages.
     /// </summary>
     Error,
 
     /// <summary>
-    /// Dùng để đại diện cho các thông điệp ở mức nghiêm trọng (critical-level).
+    /// Used to represent critical-level messages.
     /// </summary>
     Critical,
 
     /// <summary>
-    /// Đại diện cho mức độ không cụ thể hoặc không xác định (non-specific).
+    /// Represents an unspecified or undefined level.
     /// </summary>
     None
 }

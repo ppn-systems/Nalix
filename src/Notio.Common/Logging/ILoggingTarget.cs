@@ -1,15 +1,15 @@
-﻿using Notio.Common.Models;
+using Notio.Common.Models;
 
 namespace Notio.Common.Logging;
 
 /// <summary>
-/// Định nghĩa giao diện cho mục tiêu xử lý nhật ký.
+/// Defines an interface for a log processing target.
 /// </summary>
 public interface ILoggingTarget
 {
     /// <summary>
-    /// Gửi một thông điệp log đến mục tiêu xử lý.
+    /// Sends a log message to the processing target.
     /// </summary>
-    /// <param name="logMessage">Đối tượng thông điệp log.</param>
+    /// <param name="logMessage">The log message object.</param>
     void Publish(LoggingEntry logMessage);
 }

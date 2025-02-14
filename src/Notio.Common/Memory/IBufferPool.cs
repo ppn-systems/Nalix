@@ -1,32 +1,32 @@
-﻿namespace Notio.Common.Memory;
+namespace Notio.Common.Memory;
 
 /// <summary>
-/// Quản lý các bộ đệm có nhiều kích thước khác nhau.
+/// Manages buffers of various sizes.
 /// </summary>
 public interface IBufferPool
 {
     /// <summary>
-    /// Lấy kích thước lớn nhất của buffer từ danh sách cấu hình.
+    /// Gets the maximum buffer size from the configuration list.
     /// </summary>
     int MaxBufferSize { get; }
 
     /// <summary>
-    /// Thuê một bộ đệm với kích thước cụ thể.
+    /// Rents a buffer with a specific size.
     /// </summary>
-    /// <param name="size">Kích thước của bộ đệm cần thuê. Giá trị mặc định là 256.</param>
-    /// <returns>Mảng byte đại diện cho bộ đệm đã thuê.</returns>
+    /// <param name="size">The size of the buffer to rent. Default value is 256.</param>
+    /// <returns>A byte array representing the rented buffer.</returns>
     byte[] Rent(int size = 256);
 
     /// <summary>
-    /// Trả lại một bộ đệm để tái sử dụng.
+    /// Returns a buffer for reuse.
     /// </summary>
-    /// <param name="buffer">Bộ đệm cần trả lại.</param>
+    /// <param name="buffer">The buffer to return.</param>
     void Return(byte[] buffer);
 
     /// <summary>
-    /// Lấy thông tin phân bổ bộ nhớ cho một kích thước cụ thể.
+    /// Gets memory allocation information for a specific size.
     /// </summary>
-    /// <param name="size">Kích thước của bộ nhớ cần kiểm tra.</param>
-    /// <returns>Giá trị phân bổ cho kích thước đã cho.</returns>
+    /// <param name="size">The size of the memory to check.</param>
+    /// <returns>The allocation value for the given size.</returns>
     double GetAllocationForSize(int size);
 }

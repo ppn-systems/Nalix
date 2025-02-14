@@ -1,16 +1,16 @@
-﻿using Notio.Common.Models;
+using Notio.Common.Models;
 
 namespace Notio.Common.Logging;
 
 /// <summary>
-/// Giao diện định nghĩa trình định dạng cho các thông điệp nhật ký.
+/// Interface defining a formatter for log messages.
 /// </summary>
 public interface ILoggingFormatter
 {
     /// <summary>
-    /// Định dạng một thông điệp nhật ký dựa trên thông tin đã cung cấp.
+    /// Formats a log message based on the provided information.
     /// </summary>
-    /// <param name="logMsg">Thông điệp nhật ký cần định dạng.</param>
-    /// <returns>Một chuỗi đã được định dạng đại diện cho thông điệp nhật ký.</returns>
-    string FormatLog(LoggingEntry logMsg);
+    /// <param name="message">The log message to format.</param>
+    /// <returns>A formatted string representing the log message.</returns>
+    string FormatLog(LoggingEntry message);
 }

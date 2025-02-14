@@ -1,12 +1,12 @@
-﻿namespace Notio.Common.Memory;
+namespace Notio.Common.Memory;
 
 /// <summary>
-/// Giao diện cho các đối tượng có thể được lưu trữ.
+/// Interface for objects that can be pooled.
 /// </summary>
 public interface IPoolable
 {
     /// <summary>
-    /// Đặt lại một instance <see cref="IPoolable"/> trước khi nó được trả về pool.
+    /// Resets an <see cref="IPoolable"/> instance before it is returned to the pool.
     /// </summary>
-    public void ResetForPool();
+    void ResetForPool();
 }

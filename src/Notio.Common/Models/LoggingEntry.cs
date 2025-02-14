@@ -4,36 +4,36 @@ using System;
 namespace Notio.Common.Models;
 
 /// <summary>
-/// Đại diện một thông điệp nhật ký trong hệ thống logging.
+/// Represents a log entry in the logging system.
 /// </summary>
-/// <param name="level">Mức độ nhật ký của thông điệp.</param>
-/// <param name="eventId">ID sự kiện liên quan đến thông điệp.</param>
-/// <param name="message">Nội dung của thông điệp nhật ký.</param>
-/// <param name="exception">Ngoại lệ đi kèm (nếu có).</param>
+/// <param name="level">The log level of the entry.</param>
+/// <param name="eventId">The event ID associated with the log entry.</param>
+/// <param name="message">The content of the log message.</param>
+/// <param name="exception">The accompanying exception (if any).</param>
 public readonly struct LoggingEntry(LoggingLevel level, EventId eventId, string message, System.Exception exception = null)
 {
     /// <summary>
-    /// Thời gian của nhật ký.
+    /// The timestamp of the log entry.
     /// </summary>
     public readonly DateTime TimeStamp = DateTime.UtcNow;
 
     /// <summary>
-    /// Nội dung của thông điệp nhật ký.
+    /// The content of the log message.
     /// </summary>
     public readonly string Message = message;
 
     /// <summary>
-    /// Mức độ nhật ký của thông điệp.
+    /// The log level of the entry.
     /// </summary>
     public readonly LoggingLevel LogLevel = level;
 
     /// <summary>
-    /// ID sự kiện liên quan đến thông điệp nhật ký.
+    /// The event ID associated with the log entry.
     /// </summary>
     public readonly EventId EventId = eventId;
 
     /// <summary>
-    /// Ngoại lệ đi kèm thông điệp, nếu có.
+    /// The accompanying exception, if any.
     /// </summary>
     public readonly System.Exception Exception = exception;
 }
