@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Hash;
@@ -10,16 +11,21 @@ public sealed class SHA256 : IDisposable
 {
     private static readonly uint[] K =
     [
-        0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1,
-        0x923F82A4, 0xAB1C5ED5, 0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
-        0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174, 0xE49B69C1, 0xEFBE4786,
-        0x0FC19DC6, 0x240CA1CC, 0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
-        0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7, 0xC6E00BF3, 0xD5A79147,
-        0x06CA6351, 0x14292967, 0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
-        0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85, 0xA2BFE8A1, 0xA81A664B,
-        0xC24B8B70, 0xC76C51A3, 0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
-        0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5, 0x391C0CB3, 0x4ED8AA4A,
-        0x5B9CCA4F, 0x682E6FF3, 0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
+        0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
+        0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
+        0xD807AA98, 0x12835B01, 0x243185BE, 0x550C7DC3,
+        0x72BE5D74, 0x80DEB1FE, 0x9BDC06A7, 0xC19BF174,
+        0xE49B69C1, 0xEFBE4786, 0x0FC19DC6, 0x240CA1CC,
+        0x2DE92C6F, 0x4A7484AA, 0x5CB0A9DC, 0x76F988DA,
+        0x983E5152, 0xA831C66D, 0xB00327C8, 0xBF597FC7,
+        0xC6E00BF3, 0xD5A79147, 0x06CA6351, 0x14292967,
+        0x27B70A85, 0x2E1B2138, 0x4D2C6DFC, 0x53380D13,
+        0x650A7354, 0x766A0ABB, 0x81C2C92E, 0x92722C85,
+        0xA2BFE8A1, 0xA81A664B, 0xC24B8B70, 0xC76C51A3,
+        0xD192E819, 0xD6990624, 0xF40E3585, 0x106AA070,
+        0x19A4C116, 0x1E376C08, 0x2748774C, 0x34B0BCB5,
+        0x391C0CB3, 0x4ED8AA4A, 0x5B9CCA4F, 0x682E6FF3,
+        0x748F82EE, 0x78A5636F, 0x84C87814, 0x8CC70208,
         0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2
     ];
 
@@ -78,6 +84,56 @@ public sealed class SHA256 : IDisposable
     }
 
     /// <summary>
+    /// Updates the hash computation with the given data.
+    /// </summary>
+    /// <param name="data">The data to process.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the hash has already been finalized.</exception>
+    public void Update(ReadOnlySpan<byte> data)
+    {
+        if (_finalized)
+            throw new InvalidOperationException("Cannot update after finalization.");
+
+        _byteCount += (ulong)data.Length;
+    }
+
+    /// <summary>
+    /// Finalizes the hash computation and returns the result.
+    /// </summary>
+    /// <returns>The final hash value.</returns>
+    public byte[] FinalizeHash()
+    {
+        if (_finalized)
+            throw new InvalidOperationException("Hash already finalized.");
+
+        // Tính toán số byte padding cần thiết
+        int padLength = (_byteCount % 64 < 56) ? (55 - (int)(_byteCount % 64)) : (119 - (int)(_byteCount % 64));
+
+        // Tạo padding buffer
+        Span<byte> padding = stackalloc byte[64];
+        padding[0] = 0x80; // Bit 1 đầu tiên
+        padding.Slice(1, padLength).Clear(); // Phần còn lại là 0
+
+        // Thêm độ dài message vào 8 bytes cuối
+        Span<byte> lengthBytes = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt64BigEndian(lengthBytes, _byteCount * 8);
+
+        // Update với toàn bộ padding và length
+        Update(padding[..(padLength + 1)]);
+        Update(lengthBytes);
+
+        _finalized = true;
+        byte[] finalHash = new byte[32];
+
+        // Chuyển state thành bytes theo big-endian
+        for (int i = 0; i < 8; i++)
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(finalHash.AsSpan(i * 4), _state[i]);
+        }
+
+        return finalHash;
+    }
+
+    /// <summary>
     /// Gets the computed hash value after the finalization.
     /// Throws an exception if the hash has not been finalized.
     /// </summary>
@@ -133,81 +189,12 @@ public sealed class SHA256 : IDisposable
         return finalBlock;
     }
 
-    /// <summary>
-    /// Updates the hash computation with the given data.
-    /// </summary>
-    /// <param name="data">The data to process.</param>
-    /// <exception cref="InvalidOperationException">Thrown if the hash has already been finalized.</exception>
-    public void Update(ReadOnlySpan<byte> data)
-    {
-        if (_finalized) ThrowAlreadyFinalized();
-
-        _byteCount += (ulong)data.Length;
-        int offset = 0;
-
-        if (_bufferLength > 0)
-        {
-            int fill = Math.Min(64 - _bufferLength, data.Length);
-            data[..fill].CopyTo(_buffer.AsSpan(_bufferLength));
-            _bufferLength += fill;
-            offset += fill;
-
-            if (_bufferLength == 64)
-            {
-                ProcessBlock(_buffer);
-                _bufferLength = 0;
-            }
-        }
-
-        while (data.Length - offset >= 64)
-        {
-            ProcessBlock(data[offset..]);
-            offset += 64;
-        }
-
-        if (offset < data.Length)
-        {
-            data[offset..].CopyTo(_buffer);
-            _bufferLength = data.Length - offset;
-        }
-    }
-
-    /// <summary>
-    /// Finalizes the hash computation and returns the result.
-    /// </summary>
-    /// <returns>The final hash value.</returns>
-    public byte[] FinalizeHash()
-    {
-        if (_finalized) return _state.AsSpan().NonPortableCast<uint, byte>().ToArray();
-
-        int current_mod = (int)(_byteCount % 64);
-        int padLen = current_mod < 56 ? 55 - current_mod : 119 - current_mod;
-
-        Span<byte> padding = stackalloc byte[64];
-        padding[0] = 0x80;
-        Update(padding[..(padLen + 1)]);
-
-        Span<byte> lengthBytes = stackalloc byte[8];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(lengthBytes, _byteCount << 3);
-        Update(lengthBytes);
-
-        _finalized = true;
-
-        Span<byte> result = stackalloc byte[32];
-        for (int i = 0; i < 8; i++)
-        {
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(result[(i * 4)..], _state[i]);
-        }
-        return result.ToArray();
-    }
-
     /// <inheritdoc />
     public void Dispose() => Initialize();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ProcessBlock(ReadOnlySpan<byte> block)
     {
-#if UNSAFE
         unsafe
         {
             uint* W = stackalloc uint[64];
@@ -238,67 +225,20 @@ public sealed class SHA256 : IDisposable
             _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
             _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
         }
-#else
-        // Safe implementation without unsafe code
-        uint[] W = new uint[64];
-        uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
-        uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
-
-        // Parse the block into the first 16 words of W
-        for (int i = 0; i < 16; i++)
-        {
-            W[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(block.Slice(i * 4, 4));
-        }
-
-        // Extend the first 16 words into the remaining 48 words of W
-        for (int i = 16; i < 64; i++)
-        {
-            uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
-            W[i] = W[i - 16] + s0 + W[i - 7] + s1;
-        }
-
-        // Main computation loop
-        for (int i = 0; i < 64; i++)
-        {
-            uint S1 = RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
-            uint ch = (e & f) ^ (~e & g);
-            uint temp1 = h + S1 + ch + K[i] + W[i];
-            uint S0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
-            uint maj = (a & b) ^ (a & c) ^ (b & c);
-            uint temp2 = S0 + maj;
-
-            h = g;
-            g = f;
-            f = e;
-            e = d + temp1;
-            d = c;
-            c = b;
-            b = a;
-            a = temp1 + temp2;
-        }
-
-        // Update the state
-        _state[0] += a;
-        _state[1] += b;
-        _state[2] += c;
-        _state[3] += d;
-        _state[4] += e;
-        _state[5] += f;
-        _state[6] += g;
-        _state[7] += h;
-#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Round(ref uint a, ref uint b, ref uint c, ref uint d,
-    ref uint e, ref uint f, ref uint g, ref uint h, uint w, uint k)
+    private static void Round(
+    ref uint a, ref uint b, ref uint c, ref uint d,
+    ref uint e, ref uint f, ref uint g, ref uint h,
+    uint w, uint k)
     {
-        uint ch = (e & f) ^ (~e & g);
-        uint maj = (a & b) ^ (a & c) ^ (b & c);
-        uint s0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
         uint s1 = RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
+        uint ch = (e & f) ^ (~e & g);
         uint temp1 = h + s1 + ch + k + w;
+
+        uint s0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
+        uint maj = (a & b) ^ (a & c) ^ (b & c);
         uint temp2 = s0 + maj;
 
         h = g;

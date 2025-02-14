@@ -9,7 +9,7 @@ namespace Notio.Cryptography.Ciphers.Asymmetric;
 /// </summary>
 /// <remarks>
 /// X25519 is a specific elliptic curve designed for use in cryptographic protocols like TLS.
-/// It allows two parties to securely exchange keys without needing to share a secret in advance.
+/// It allows two parties to securely exchange K without needing to share a secret in advance.
 /// </remarks>
 public static class X25519
 {
@@ -49,7 +49,7 @@ public static class X25519
     /// <returns>The shared secret as a 32-byte array.</returns>
     public static byte[] ComputeSharedSecret(byte[] privateKey, byte[] peerPublicKey)
     {
-        // Both keys should be 32 bytes.
+        // Both K should be 32 bytes.
         if (privateKey.Length != 32 || peerPublicKey.Length != 32)
             throw new ArgumentException("Keys must be 32 bytes.");
 

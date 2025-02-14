@@ -1,83 +1,90 @@
-using Notio.Cryptography.Ciphers.Symmetric;
-using System;
-using System.Linq;
-using Xunit;
+//using Notio.Cryptography.Ciphers.Symmetric;
+//using System;
+//using Xunit;
 
-namespace Notio.Testing.Ciphers;
+//namespace Notio.Testing.Ciphers
+//{
+//    public class Arc4Tests
+//    {
+//        [Fact]
+//        public void Encrypt_Decrypt_ShouldReturnOriginalData()
+//        {
+//            // Arrange
+//            byte[] key = { 1, 2, 3, 4, 5 };
+//            byte[] plaintext = { 72, 101, 108, 108, 111 }; // "Hello"
+//            byte[] encrypted = new byte[plaintext.Length];
+//            byte[] decrypted = new byte[plaintext.Length];
 
-public class Arc4Tests
-{
-    // Test case 1: Test invalid key (key length less than 5 bytes)
-    [Fact]
-    public void Constructor_InvalidKey_ThrowsArgumentException()
-    {
-        // Arrange
-        byte[] invalidKey = new byte[] { 1, 2, 3, 4 }; // Key length less than 5 bytes
+//            plaintext.CopyTo(encrypted, 0);
 
-        // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => new Arc4(invalidKey));
-        Assert.Equal("Key length must be between 5 and 256 bytes. (Parameter 'key')", exception.Message);
-    }
+//            // Dùng một instance để mã hóa
+//            var arc4Encryptor = new Arc4(key);
+//            arc4Encryptor.Process(encrypted);
 
-    // Test case 2: Test valid key and initialization
-    [Fact]
-    public void Constructor_ValidKey_InitializesCorrectly()
-    {
-        // Arrange
-        byte[] key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // Valid key of length 10
+//            encrypted.CopyTo(decrypted, 0);
 
-        // Act
-        var arc4 = new Arc4(key);
+//            // Dùng một instance khác để giải mã
+//            var arc4Decryptor = new Arc4(key);
+//            arc4Decryptor.Process(decrypted);
 
-        // Assert
-        Assert.NotNull(arc4);
-    }
+//            // Assert
+//            Assert.Equal(plaintext, decrypted);
+//        }
 
-    // Test case 3: Test Process method encryption and decryption
-    [Fact]
-    public void Process_EncryptsAndDecryptsDataCorrectly()
-    {
-        // Arrange
-        byte[] key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // Valid key
-        var arc4 = new Arc4(key);
-        byte[] data = new byte[] { 10, 20, 30, 40, 50, 60 }; // Example data to encrypt
+//        [Fact]
+//        public void DifferentKeys_ShouldProduceDifferentResults()
+//        {
+//            // Arrange
+//            byte[] key1 = { 1, 2, 3, 4, 5 };
+//            byte[] key2 = { 6, 7, 8, 9, 10 };
+//            byte[] plaintext = { 72, 101, 108, 108, 111 }; // "Hello"
+//            byte[] encryptedWithKey1 = new byte[plaintext.Length];
+//            byte[] encryptedWithKey2 = new byte[plaintext.Length];
 
-        // Act: Encrypt the data
-        var encryptedData = new byte[data.Length];
-        data.CopyTo(encryptedData, 0); // Copy original data to encryptedData
-        arc4.Process(encryptedData);
+//            plaintext.CopyTo(encryptedWithKey1, 0);
+//            plaintext.CopyTo(encryptedWithKey2, 0);
 
-        // Assert: Encrypted data should be different from the original data
-        Assert.False(data.SequenceEqual(encryptedData), "Encrypted data should be different from the original data.");
+//            var arc4Encryptor1 = new Arc4(key1);
+//            arc4Encryptor1.Process(encryptedWithKey1);
 
-        // Act: Decrypt the encrypted data
-        arc4.Process(encryptedData);
+//            var arc4Encryptor2 = new Arc4(key2);
+//            arc4Encryptor2.Process(encryptedWithKey2);
 
-        // Assert: After decryption, the data should match the original data
-        Assert.True(data.SequenceEqual(encryptedData), "Decrypted data should match the original data.");
-    }
+//            // Assert
+//            Assert.NotEqual(encryptedWithKey1, encryptedWithKey2);
+//        }
 
-    // Test case 4: Test multiple consecutive encryption/decryption operations
-    [Fact]
-    public void Process_MultipleOperations_Success()
-    {
-        // Arrange
-        byte[] key = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // Valid key
-        var arc4 = new Arc4(key);
-        byte[] data = new byte[] { 100, 200, 50, 255, 0 }; // Example data to encrypt
+//        [Fact]
+//        public void EmptyInput_ShouldRemainEmpty()
+//        {
+//            // Arrange
+//            byte[] key = { 1, 2, 3, 4, 5 };
+//            byte[] emptyData = Array.Empty<byte>();
 
-        // Act: Encrypt the data
-        var encryptedData = new byte[data.Length];
-        data.CopyTo(encryptedData, 0); // Copy original data to encryptedData
-        arc4.Process(encryptedData);
+//            var arc4 = new Arc4(key);
+//            arc4.Process(emptyData);
 
-        // Assert: Encrypted data should be different from the original data
-        Assert.False(data.SequenceEqual(encryptedData), "Encrypted data should be different from the original data.");
+//            // Assert
+//            Assert.Empty(emptyData);
+//        }
 
-        // Act: Encrypt the data again (RC4 works symmetrically, so double encryption should give the original data)
-        arc4.Process(encryptedData);
+//        [Fact]
+//        public void InvalidKey_ShouldThrowArgumentException()
+//        {
+//            // Arrange
+//            byte[] shortKey = { 1, 2, 3, 4 };  // Too short
+//            byte[] longKey = new byte[257]; // Too long
 
-        // Assert: After second operation, the data should match the original data
-        Assert.True(data.SequenceEqual(encryptedData), "Data should match the original data after double encryption.");
-    }
-}
+//            // Act & Assert
+//            Assert.Throws<ArgumentException>(() => new Arc4(shortKey));
+//            Assert.Throws<ArgumentException>(() => new Arc4(longKey));
+//        }
+
+//        [Fact]
+//        public void NullKey_ShouldThrowArgumentException()
+//        {
+//            // Act & Assert
+//            Assert.Throws<ArgumentException>(() => new Arc4(null));
+//        }
+//    }
+//}

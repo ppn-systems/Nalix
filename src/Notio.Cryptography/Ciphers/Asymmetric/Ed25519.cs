@@ -111,6 +111,11 @@ public sealed class Ed25519
     /// <returns>The generated signature.</returns>
     public static byte[] Sign(byte[] message, byte[] privateKey)
     {
+        if (message == null || message.Length == 0)
+            throw new ArgumentException("Message cannot be null or empty.", nameof(message));
+        if (privateKey == null || privateKey.Length != 32)
+            throw new ArgumentException("Private key must be 32 bytes long.", nameof(privateKey));
+
         // Compute the hash of the private key and split into two halves
         var h = ComputeHash(privateKey);
         var a = ClampScalar(h.AsSpan(0, 32));
@@ -143,16 +148,40 @@ public sealed class Ed25519
     }
 
     /// <summary>
-    /// Verifies a signature against the given message and public key.
+    /// Verifies a digital signature against the given message and public key.
     /// </summary>
-    /// <param name="signature">The signature to verify.</param>
-    /// <param name="message">The message the signature corresponds to.</param>
-    /// <param name="publicKey">The public key to verify the signature with.</param>
-    /// <returns>True if the signature is valid; otherwise, false.</returns>
+    /// <param name="signature">
+    /// A byte array representing the signature.
+    /// It must be exactly <c>SignatureSize</c> bytes long.
+    /// </param>
+    /// <param name="message">
+    /// The original message as a byte array. This is the data that was signed.
+    /// </param>
+    /// <param name="publicKey">
+    /// A byte array representing the public key used to verify the signature.
+    /// It must be exactly 32 bytes long.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if the signature is valid for the given message and public key; otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if any of the inputs (<paramref name="signature"/>, <paramref name="message"/>, or <paramref name="publicKey"/>) is null
+    /// or if their lengths are invalid.
+    /// </exception>
     public static bool Verify(byte[] signature, byte[] message, byte[] publicKey)
     {
+        // Validate input arguments
+        if (signature == null)
+            throw new ArgumentException("Signature cannot be null.", nameof(signature));
+        if (message == null)
+            throw new ArgumentException("Message cannot be null.", nameof(message));
+        if (publicKey == null)
+            throw new ArgumentException("Public key cannot be null.", nameof(publicKey));
+
         if (signature.Length != SignatureSize)
-            return false;
+            throw new ArgumentException($"Signature must be {SignatureSize} bytes long.", nameof(signature));
+        if (publicKey.Length != 32)
+            throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 
         // Decode R, A, and s from the signature and publicKey
         var R = DecodePoint(signature.AsSpan(0, 32));
@@ -165,10 +194,12 @@ public sealed class Ed25519
         publicKey.CopyTo(data, 32);
         message.CopyTo(data, 64);
 
+        // Compute hash and perform verification
         var h = HashToScalar(data.AsSpan());
         var sB = ScalarMul(B, s);
         var hA = ScalarMul(A, h);
         var RplusH = Edwards(R, hA);
+
         return PointEquals(sB, RplusH);
     }
 
