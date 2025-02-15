@@ -1,63 +1,66 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Reflection;
 
-namespace Notio.Shared.Helpers;
+namespace Notio.Helpers;
 
 /// <summary>
-/// Lớp helper cho các tác vụ liên quan đến Assembly.
+/// Helper class for tasks related to Assembly.
 /// </summary>
 public static class AssemblyHelper
 {
     /// <summary>
-    /// Trả về phiên bản của assembly đang gọi phương thức này dưới dạng chuỗi.
+    /// Returns the version of the calling assembly as a string.
     /// </summary>
+    /// <returns>
+    /// The version of the calling assembly, or "Unknown Version" if the version is not available.
+    /// </returns>
     public static string GetAssemblyVersion()
     {
         Assembly assembly = Assembly.GetCallingAssembly();
-        Version? version = assembly.GetName().Version;
+        Version version = assembly.GetName().Version;
 
         return version?.ToString() ?? "Unknown Version";
     }
 
     /// <summary>
-    /// Trả về thông tin phiên bản của assembly đang gọi phương thức này dưới dạng chuỗi.
-    /// Thông tin phiên bản được lấy từ thuộc tính <see cref="AssemblyInformationalVersionAttribute"/>.
+    /// Returns the informational version of the calling assembly as a string.
+    /// The informational version is retrieved from the <see cref="AssemblyInformationalVersionAttribute"/> attribute.
     /// </summary>
+    /// <returns>
+    /// The informational version of the calling assembly, or an empty string if the attribute is not defined.
+    /// </returns>
     public static string GetAssemblyInformationalVersion()
     {
         var assembly = Assembly.GetCallingAssembly();
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
-        // Kiểm tra xem thuộc tính thông tin phiên bản có được định nghĩa không
         if (attribute?.InformationalVersion == null)
             return string.Empty;
 
-        // Trả về chuỗi thông tin trước ký tự '+', thường là phần build time
         return attribute.InformationalVersion.Split('+')[0];
     }
 
     /// <summary>
-    /// Phân tích thời gian build của assembly dựa trên chuỗi thông tin từ <see cref="AssemblyInformationalVersionAttribute"/>.
+    /// Parses the build time of the calling assembly based on the informational version string from the <see cref="AssemblyInformationalVersionAttribute"/> attribute.
     /// </summary>
-    /// <param name="prefix">Chuỗi tiền tố để tìm thời gian build (ví dụ: "+build").</param>
-    /// <param name="format">Định dạng ngày giờ của thời gian build (mặc định: "yyyyMMddHHmmss").</param>
-    /// <returns>Thời gian build dưới dạng <see cref="DateTime"/> hoặc <c>default</c> nếu không thể phân tích.</returns>
+    /// <param name="prefix">The prefix string to locate the build time (e.g., "+build").</param>
+    /// <param name="format">The date-time format of the build time (default: "yyyyMMddHHmmss").</param>
+    /// <returns>
+    /// The build time as a <see cref="DateTime"/> object, or <c>default</c> if parsing fails.
+    /// </returns>
     public static DateTime ParseAssemblyBuildTime(string prefix = "+build", string format = "yyyyMMddHHmmss")
     {
         var assembly = Assembly.GetCallingAssembly();
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
-        // Kiểm tra xem thuộc tính chứa thời gian build có được định nghĩa không
         if (attribute?.InformationalVersion == null)
             return default;
 
-        // Tìm vị trí của chuỗi tiền tố (prefix) trong thông tin phiên bản
         int buildTimeIndex = attribute.InformationalVersion.IndexOf(prefix);
         if (buildTimeIndex == -1)
             return default;
 
-        // Lấy chuỗi thời gian build từ thuộc tính
         string buildTimeString = attribute.InformationalVersion[(buildTimeIndex + prefix.Length)..];
         if (!DateTime.TryParseExact(buildTimeString, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var buildTime))
             return default;

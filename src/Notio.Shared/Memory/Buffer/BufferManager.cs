@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 
@@ -126,7 +126,13 @@ public sealed class BufferManager : IDisposable
         {
             pool.Dispose();
         }
+
         _pools.Clear();
         _sortedKeys = [];
     }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="BufferManager"/> class.
+    /// </summary>
+    ~BufferManager() => Dispose();
 }

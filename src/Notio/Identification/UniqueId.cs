@@ -1,23 +1,22 @@
-using Notio.Shared.Time;
 using System;
 using System.Linq;
 
-namespace Notio.Shared.Identification;
+namespace Notio.Identification;
 
 /// <summary>
-/// Đại diện cho một ID phiên duy nhất.
+/// Represents a unique session ID.
 /// </summary>
 /// <remarks>
-/// Khởi tạo một thể hiện mới của lớp <see cref="UniqueId"/> với giá trị được chỉ định.
+/// Initializes a new instance of the <see cref="UniqueId"/> class with the specified value.
 /// </remarks>
-/// <param name="value">Giá trị của ID.</param>
+/// <param name="value">The value of the ID.</param>
 public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<UniqueId>
 {
     private const string Alphabet = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const int Base = 36;
 
     // Lookup table for converting characters to their Base36 values.
-    private static readonly byte[] CharToValue = new byte[128].Select(_ => byte.MaxValue).ToArray();
+    private static readonly byte[] CharToValue = [.. new byte[128].Select(_ => byte.MaxValue)];
 
     private readonly uint _value = value;
 
@@ -35,38 +34,38 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     }
 
     /// <summary>
-    /// Tạo ID mới từ các yếu tố ngẫu nhiên và hệ thống.
+    /// Generate a new ID from random and system elements.
     /// </summary>
-    /// <param name="type">Loại ID duy nhất cần tạo.</param>
-    /// <param name="machineId">Loại ID duy nhất cho từng máy chủ khác nhau.</param>
-    /// <returns>Đối tượng <see cref="UniqueId"/></returns>
+    /// <param name="type">The unique ID type to generate.</param>
+    /// <param name="machineId">The unique ID type for each different server.</param>
+    /// <returns>Object <see cref="UniqueId"/></returns>
     public static UniqueId NewId(TypeId type = TypeId.Generic, ushort machineId = 0)
     {
         // Generate 4 random bytes.
         byte[] randomBytes = new byte[4];
-        System.Random.Shared.NextBytes(randomBytes);
+        Random.Shared.NextBytes(randomBytes);
         uint randomValue = BitConverter.ToUInt32(randomBytes, 0);
 
         // Use the current Unix time in milliseconds (masked to 32 bits).
-        uint timestamp = (uint)(Clock.UnixTime().Milliseconds & 0xFFFFFFFF);
+        uint timestamp = (uint)(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() & 0xFFFFFFFF);
 
         // Combine the random value and timestamp via XOR, with a bit-shift mix.
-        uint uniqueValue = randomValue ^ ((timestamp << 5) | (timestamp >> 27));
+        uint uniqueValue = randomValue ^ (timestamp << 5 | timestamp >> 27);
 
         // Incorporate the type ID (shifted into the high 8 bits) and the machine ID.
         uint typeId = (uint)type << 24;
         uint machineValue = (uint)(machineId & 0xFFFF);
 
         // Combine: use the top 8 bits for type, next 24 bits for unique value, then OR in the machine value.
-        return new UniqueId(typeId | (uniqueValue & 0xFFFFFF) | machineValue);
+        return new UniqueId(typeId | uniqueValue & 0xFFFFFF | machineValue);
     }
 
     /// <summary>
-    /// Chuyển đổi ID thành chuỗi Base36 hoặc chuỗi Hexadecimal (nếu được chỉ định).
+    /// Converts the ID to a Base36 string or a Hexadecimal string (if specified).
     /// </summary>
-    /// <param name="isHex">Nếu là chuỗi Hex, chuyển đổi thành số thập lục phân 8 chữ số.</param>
-    /// <returns>Chuỗi đại diện ID.</returns>
-    /// <exception cref="ArgumentException">Ném ra nếu chỉ số của chuỗi không hợp lệ.</exception>
+    /// <param name="isHex">If a Hex string, converts it to an 8-digit hexadecimal number.</param>
+    /// <returns>The string representing the ID.</returns>
+    /// <exception cref="ArgumentException">Throwed if the index of the string is invalid.</exception>
     public string ToString(bool isHex = false)
     {
         if (isHex) return _value.ToString("X8");
@@ -126,35 +125,15 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
             : ParseBase36(input);
     }
 
-    private static UniqueId ParseBase36(ReadOnlySpan<char> input)
-    {
-        if (input.Length > 13)
-            throw new ArgumentException("Input is too long", nameof(input));
-
-        Span<byte> values = stackalloc byte[input.Length];
-        for (int i = 0; i < input.Length; i++)
-        {
-            char c = char.ToUpperInvariant(input[i]);
-            if (c > 127 || (values[i] = CharToValue[c]) == byte.MaxValue)
-                throw new FormatException($"Invalid character '{input[i]}'");
-        }
-
-        uint result = 0;
-        for (int i = 0; i < values.Length; i++)
-            result = result * Base + values[i];
-
-        return new UniqueId(result);
-    }
-
     /// <summary>
-    /// Chuyển đổi chuỗi (Base36, Hex) thành <see cref="UniqueId"/>.
+    /// Converts a string (Base36, Hex) to <see cref="UniqueId"/>.
     /// </summary>
-    /// <param name="input">Chuỗi cần chuyển đổi.</param>
-    /// <param name="isHex">Nếu là chuỗi Hex, chuyển đổi thành số thập lục phân.</param>
-    /// <returns>Đối tượng <see cref="UniqueId"/> từ chuỗi đã cho.</returns>
-    /// <exception cref="ArgumentNullException">Nếu chuỗi nhập vào rỗng hoặc chỉ chứa khoảng trắng.</exception>
-    /// <exception cref="ArgumentException">Nếu chuỗi nhập vào dài quá hoặc có ký tự không hợp lệ khi chuyển đổi Base36.</exception>
-    /// <exception cref="FormatException">Nếu chuỗi nhập vào chứa ký tự không hợp lệ trong hệ cơ số 36 hoặc trong trường hợp chuỗi Hex.</exception>
+    /// <param name="input">The string to convert.</param>
+    /// <param name="isHex">If it is a Hex string, convert it to a hexadecimal number.</param>
+    /// <returns>The <see cref="UniqueId"/> object from the given string.</returns>
+    /// <exception cref="ArgumentNullException">If the input string is empty or contains only spaces.</exception>
+    /// <exception cref="ArgumentException">If the input string is too long or contains invalid characters when converted to Base36.</exception>
+    /// <exception cref="FormatException">If the input string contains invalid characters in the base 36 system or in the case of a Hex string.</exception>
     public static UniqueId Parse(ReadOnlySpan<char> input, bool isHex = false)
     {
         if (isHex)
@@ -185,11 +164,11 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     }
 
     /// <summary>
-    /// Cố gắng phân tích đầu vào thành <see cref="UniqueId"/>.
+    /// Attempts to parse the input into <see cref="UniqueId"/>.
     /// </summary>
-    /// <param name="input">Chuỗi đầu vào cần phân tích.</param>
-    /// <param name="result">Kết quả của quá trình phân tích nếu thành công, ngược lại là giá trị mặc định.</param>
-    /// <returns>True nếu phân tích thành công, ngược lại false.</returns>
+    /// <param name="input">The input string to parse.</param>
+    /// <param name="result">The result of the parse, if successful, will be reversed to the default value.</param>
+    /// <returns>True if the parse is successful, otherwise false.</returns>
     public static bool TryParse(ReadOnlySpan<char> input, out UniqueId result)
     {
         result = Empty;
@@ -213,7 +192,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// </summary>
     /// <param name="obj">The object to compare with the current instance.</param>
     /// <returns><see langword="true"/> if the specified object is a <see cref="UniqueId"/> and equals the current instance; otherwise, <see langword="false"/>.</returns>
-    public override bool Equals(object? obj) => obj is UniqueId other && Equals(other);
+    public override bool Equals(object obj) => obj is UniqueId other && Equals(other);
 
     /// <summary>
     /// Determines whether the current instance is equal to another <see cref="UniqueId"/>.
@@ -271,4 +250,24 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// Determines whether two <see cref="UniqueId"/> instances are not equal.
     /// </summary>
     public static bool operator !=(UniqueId left, UniqueId right) => !(left == right);
+
+    private static UniqueId ParseBase36(ReadOnlySpan<char> input)
+    {
+        if (input.Length > 13)
+            throw new ArgumentException("Input is too long", nameof(input));
+
+        Span<byte> values = stackalloc byte[input.Length];
+        for (int i = 0; i < input.Length; i++)
+        {
+            char c = char.ToUpperInvariant(input[i]);
+            if (c > 127 || (values[i] = CharToValue[c]) == byte.MaxValue)
+                throw new FormatException($"Invalid character '{input[i]}'");
+        }
+
+        uint result = 0;
+        for (int i = 0; i < values.Length; i++)
+            result = result * Base + values[i];
+
+        return new UniqueId(result);
+    }
 }

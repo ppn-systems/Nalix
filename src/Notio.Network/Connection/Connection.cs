@@ -4,7 +4,7 @@ using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;
-using Notio.Shared.Identification;
+using Notio.Identification;
 using System;
 using System.Net.Sockets;
 using System.Threading;

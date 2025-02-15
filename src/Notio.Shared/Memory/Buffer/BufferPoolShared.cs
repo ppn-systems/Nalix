@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,8 +13,8 @@ public sealed class BufferPoolShared : IDisposable
 {
     private static readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
     private readonly ConcurrentQueue<byte[]> _freeBuffers;
-    private readonly Lock _disposeLock = new();
     private readonly ArrayPool<byte> _arrayPool;
+    private readonly Lock _disposeLock = new();
     private readonly int _bufferSize;
 
     private BufferInfo _poolInfo;

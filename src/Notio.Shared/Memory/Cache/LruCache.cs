@@ -111,4 +111,12 @@ public class LruCache<TKey, TValue>(int capacity) where TKey : notnull
         _cacheMap.Clear();
         _usageOrder.Clear();
     }
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="LruCache{TKey, TValue}"/> class.
+    /// </summary>
+    ~LruCache()
+    {
+        Clear();
+    }
 }

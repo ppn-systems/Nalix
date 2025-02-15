@@ -121,7 +121,7 @@ public sealed class BufferAllocator : IBufferPool
 
         try
         {
-            return bufferAllocationsString
+            return [.. bufferAllocationsString
                 .Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(pair =>
                 {
@@ -149,8 +149,7 @@ public sealed class BufferAllocator : IBufferPool
                     }
 
                     return (allocationSize, ratio);
-                })
-                .ToArray();
+                })];
         }
         catch (Exception ex) when (ex is FormatException
                                 || ex is ArgumentException
@@ -178,11 +177,7 @@ public sealed class BufferAllocator : IBufferPool
         int excessBuffers = poolInfo.FreeBuffers - targetBuffers;
         int safetyMargin = Math.Min(20, minimumBuffers);
 
-        int buffersToShrink = Math.Clamp(
-            excessBuffers - safetyMargin,
-            0,
-            20
-        );
+        int buffersToShrink = Math.Clamp(excessBuffers - safetyMargin, 0, 20);
 
         if (buffersToShrink > 0)
         {
@@ -272,4 +267,9 @@ public sealed class BufferAllocator : IBufferPool
     /// Releases all resources of the buffer pools.
     /// </summary>
     public void Dispose() => _poolManager.Dispose();
+
+    /// <summary>
+    /// Finalizes an instance of the <see cref="BufferAllocator"/> class.
+    /// </summary>
+    ~BufferAllocator() => Dispose();
 }
