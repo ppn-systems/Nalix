@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography;
+namespace Notio.Cryptography.Utilities;
 
 /// <summary>
 /// Utilities that are used during compression
@@ -29,10 +29,7 @@ internal static class BitwiseUtils
     /// <param name="w"></param>
     /// <returns>The result of (v XOR w)</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint XOr(uint v, uint w)
-    {
-        return unchecked(v ^ w);
-    }
+    public static uint XOr(uint v, uint w) => unchecked(v ^ w);
 
     /// <summary>
     /// Unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
@@ -44,10 +41,7 @@ internal static class BitwiseUtils
     /// <param name="w"></param>
     /// <returns>The result of (v + w) modulo 2^32</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint Add(uint v, uint w)
-    {
-        return unchecked(v + w);
-    }
+    public static uint Add(uint v, uint w) => unchecked(v + w);
 
     /// <summary>
     /// Add 1 to the input parameter using unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
@@ -58,10 +52,7 @@ internal static class BitwiseUtils
     /// <param name="v"></param>
     /// <returns>The result of (v + 1) modulo 2^32</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint AddOne(uint v)
-    {
-        return unchecked(v + 1);
-    }
+    public static uint AddOne(uint v) => unchecked(v + 1);
 
     /// <summary>
     /// Convert four bytes of the input buffer into an unsigned 32-bit integer, beginning at the inputOffset.

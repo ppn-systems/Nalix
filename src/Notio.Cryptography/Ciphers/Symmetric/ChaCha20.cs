@@ -15,6 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+using Notio.Cryptography.Utilities;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;

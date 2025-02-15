@@ -2,6 +2,7 @@ using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography.Hash;
 using Notio.Network.Package.Enums;
+using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
@@ -18,6 +19,9 @@ namespace Notio.Network.Package;
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Packet : IPacket, IEquatable<Packet>
 {
+    private const int StackAllocThreshold = 256;
+    private const int HeapAllocThreshold = 1024;
+
     /// <summary>
     /// The minimum packet size (in bytes).
     /// </summary>
@@ -32,6 +36,8 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     /// Threshold for optimized vectorized memory comparison.
     /// </summary>
     private const int Vector256Size = 32;
+
+    private readonly bool IsPooled;
 
     /// <summary>
     /// Gets the total length of the packet.
@@ -140,25 +146,54 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new PackageException("Packet size exceeds 64KB limit");
 
-        Timestamp = timestamp ?? GetMicrosecondTimestamp();
-        Id = id ?? (byte)(Timestamp % byte.MaxValue);
-        Type = type;
-        Flags = flags;
-        Command = command;
-        Priority = priority;
-        Payload = AllocateAndCopyPayload(payload);
-        Checksum = checksum ?? Crc32.HashToUInt32(payload.Span);
+        this.Timestamp = timestamp ?? GetMicrosecondTimestamp();
+        this.Id = id ?? (byte)(this.Timestamp % byte.MaxValue);
+        this.Type = type;
+        this.Flags = flags;
+        this.Command = command;
+        this.Priority = priority;
+        (this.Payload, this.IsPooled) = AllocateAndCopyPayload(payload);
+        this.Checksum = checksum ?? Crc32.HashToUInt32(payload.Span);
     }
 
-    public Packet WithPayload(Memory<byte> payload)
+    /// <summary>
+    /// Adds new payload to the packet.
+    /// </summary>
+    /// <param name="payload">The memory payload to be added.</param>
+    /// <returns>A new Packet with the specified payload.</returns>
+    public Packet WithPayload(Memory<byte> payload, bool dispose = true)
     {
         try
         {
-            return new Packet(this.Id, this.Type, this.Flags, this.Priority, this.Command, payload);
+            return new Packet(
+                this.Id, this.Type, this.Flags,
+                this.Priority, this.Command, payload);
         }
         finally
         {
-            this.Dispose();
+            if (dispose)
+                this.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Adds new payload and flags to the packet.
+    /// </summary>
+    /// <param name="flags">The byte flags to be added.</param>
+    /// <param name="payload">The memory payload to be added.</param>
+    /// <returns>A new Packet with the specified payload and flags.</returns>
+    public Packet WithPayload(byte flags, Memory<byte> payload, bool dispose = true)
+    {
+        try
+        {
+            return new Packet(
+                this.Id, this.Type, flags.AddFlag((PacketFlags)this.Flags),
+                this.Priority, this.Command, payload);
+        }
+        finally
+        {
+            if (dispose)
+                this.Dispose();
         }
     }
 
@@ -236,8 +271,8 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void Dispose()
     {
-        if (MemoryMarshal.TryGetArray<byte>(Payload, out var segment) && segment.Array is { } array)
-            if (segment.Array != null && array != null && array.Length > 1024)
+        if (IsPooled && MemoryMarshal.TryGetArray<byte>(Payload, out var segment) && segment.Array is { } array)
+            if (array.Length > 1024)
                 ArrayPool<byte>.Shared.Return(array);
 
         GC.SuppressFinalize(this);
@@ -255,16 +290,29 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     private ReadOnlySpan<byte> PayloadSpan => Payload.Span;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Memory<byte> AllocateAndCopyPayload(Memory<byte> payload)
+    private static (Memory<byte> payload, bool isPooled) AllocateAndCopyPayload(Memory<byte> payload)
     {
-        if (payload.IsEmpty) return Memory<byte>.Empty;
+        if (payload.IsEmpty) return (Memory<byte>.Empty, false);
 
         int length = payload.Length;
-        Memory<byte> result = length <= 1024
-            ? GC.AllocateUninitializedArray<byte>(length, pinned: true)
-            : ArrayPool<byte>.Shared.Rent(length);
 
-        payload.Span.CopyTo(result.Span);
-        return result;
+        if (length <= StackAllocThreshold)
+        {
+            Span<byte> stackBuffer = stackalloc byte[length]; // Stack allocation for small sizes
+            payload.Span.CopyTo(stackBuffer);
+            return (stackBuffer.ToArray(), false); // Copy to heap before returning
+        }
+        else if (length <= HeapAllocThreshold)
+        {
+            byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true); // Heap allocation for mid-size
+            payload.Span.CopyTo(buffer);
+            return (buffer, false);
+        }
+        else
+        {
+            var result = ArrayPool<byte>.Shared.Rent(length); // Use ArrayPool for large sizes
+            payload.Span.CopyTo(result);
+            return (result, true);
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -96,14 +96,10 @@ public sealed class Poly1305
 
         // Ensure tag is exactly 16 bytes.
         if (tag.Length < 16)
-        {
-            // Pad with zeros if necessary.
-            Array.Resize(ref tag, 16);
-        }
+            Array.Resize(ref tag, 16); // Pad with zeros if necessary.
         else if (tag.Length > 16)
-        {
-            tag = tag.Take(16).ToArray();
-        }
+            tag = [.. tag.Take(16)];
+
         return tag;
     }
 

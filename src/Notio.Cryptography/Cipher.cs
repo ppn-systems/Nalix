@@ -18,7 +18,6 @@ public class Cipher
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">
     /// The encryption algorithm to use.
-    /// (Example: Xtea, ChaCha20Poly1305,...)
     /// </param>
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Encrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
@@ -81,7 +80,6 @@ public class Cipher
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">
     /// The encryption algorithm that was used.
-    /// (Example: Xtea, AesGcm, ChaCha20Poly1305)
     /// </param>
     /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Decrypt(Memory<byte> data, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)

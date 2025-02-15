@@ -1,4 +1,4 @@
-namespace Notio.Cryptography;
+namespace Notio.Cryptography.Extensions;
 
 internal static class SpanExtensions
 {
@@ -27,6 +27,6 @@ internal static class SpanExtensions
     }
 
     public static uint ReverseEndian(this uint value)
-        => ((value & 0x000000FF) << 24) | ((value & 0x0000FF00) << 8) |
-           ((value & 0x00FF0000) >> 8) | ((value & 0xFF000000) >> 24);
+        => (value & 0x000000FF) << 24 | (value & 0x0000FF00) << 8 |
+           (value & 0x00FF0000) >> 8 | (value & 0xFF000000) >> 24;
 }

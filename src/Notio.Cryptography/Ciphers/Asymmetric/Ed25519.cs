@@ -1,3 +1,4 @@
+using Notio.Cryptography.Extensions;
 using Notio.Cryptography.Hash;
 using System;
 using System.Numerics;
@@ -299,36 +300,4 @@ public sealed class Ed25519
 
     private static BigInteger DecodeScalar(ReadOnlySpan<byte> data)
         => new BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
-}
-
-internal static class BigIntegerExtensions
-{
-    public static BigInteger ModAdd(this BigInteger a, BigInteger b, BigInteger mod)
-    {
-        a += b;
-        if (a >= mod)
-            a -= mod;
-        else if (a < 0)
-            a += mod;
-        return a;
-    }
-
-    public static BigInteger ModSub(this BigInteger a, BigInteger b, BigInteger mod)
-    {
-        a -= b;
-        if (a < 0)
-            a += mod;
-        else if (a >= mod)
-            a -= mod;
-        return a;
-    }
-
-    public static BigInteger MultiplyMod(this BigInteger a, BigInteger b, BigInteger mod)
-        => (a * b) % mod;
-
-    public static BigInteger Mod(this BigInteger num, BigInteger modulo)
-    {
-        var result = num % modulo;
-        return result < 0 ? result + modulo : result;
-    }
 }
