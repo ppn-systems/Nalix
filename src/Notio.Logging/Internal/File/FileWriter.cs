@@ -1,8 +1,7 @@
-﻿using Notio.Logging.Storage;
 using System;
 using System.IO;
 
-namespace Notio.Logging.Targets.File;
+namespace Notio.Logging.Internal.File;
 
 /// <summary>
 /// Lớp quản lý ghi log vào tệp tin.

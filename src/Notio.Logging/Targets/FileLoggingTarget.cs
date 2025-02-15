@@ -3,7 +3,7 @@ namespace Notio.Logging.Targets;
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Formatters;
-using Notio.Logging.Targets.File;
+using Notio.Logging.Internal.File;
 using System;
 
 /// <summary>

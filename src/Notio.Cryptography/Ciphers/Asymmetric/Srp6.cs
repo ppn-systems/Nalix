@@ -1,5 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Hash;
+using Notio.Randomization;
 using System;
 using System.Linq;
 using System.Numerics;

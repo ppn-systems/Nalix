@@ -18,16 +18,12 @@
 
 	<Import Project="..\Notio.Build.props" />
 
-	<ItemGroup>
-		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-	</ItemGroup>
-
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
-
   <ItemGroup>
+    <ProjectReference Include="..\Notio\Notio.csproj" />
     <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
   </ItemGroup>
 

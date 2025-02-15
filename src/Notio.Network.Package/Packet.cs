@@ -160,6 +160,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     /// Adds new payload to the packet.
     /// </summary>
     /// <param name="payload">The memory payload to be added.</param>
+    /// <param name="dispose">Indicates whether to dispose the current packet after creating a new one. Default is true.</param>
     /// <returns>A new Packet with the specified payload.</returns>
     public Packet WithPayload(Memory<byte> payload, bool dispose = true)
     {
@@ -181,6 +182,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     /// </summary>
     /// <param name="flags">The byte flags to be added.</param>
     /// <param name="payload">The memory payload to be added.</param>
+    /// <param name="dispose">Indicates whether to dispose the current packet after creating a new one. Default is true.</param>
     /// <returns>A new Packet with the specified payload and flags.</returns>
     public Packet WithPayload(byte flags, Memory<byte> payload, bool dispose = true)
     {

@@ -1,6 +1,6 @@
-﻿using Notio.Common.Enums;
+using Notio.Common.Enums;
 
-namespace Notio.Logging.Formatters;
+namespace Notio.Logging.Internal;
 
 internal class ColorAnsi
 {
@@ -51,14 +51,14 @@ internal class ColorAnsi
     {
         return level switch
         {
-            LoggingLevel.Trace => ColorAnsi.Orange,   // Nhẹ nhàng cho thông báo kiểm tra
-            LoggingLevel.Information => ColorAnsi.LightGreen,  // Thông tin
-            LoggingLevel.Debug => ColorAnsi.LightCyan,   // Debug tốt cho việc kiểm tra thêm
-            LoggingLevel.Warning => ColorAnsi.LightYellow,  // Cảnh báo với màu dễ nhận thấy
-            LoggingLevel.Error => ColorAnsi.LightMagenta,  // Lỗi nhẹ nhàng nhưng nổi bật
-            LoggingLevel.Critical => ColorAnsi.Red,      // Lỗi nghiêm trọng (đỏ)
-            LoggingLevel.None => ColorAnsi.Cyan,         // Màu dễ nhìn cho trường hợp không có mức độ log
-            _ => ColorAnsi.White, // Mặc định
+            LoggingLevel.Trace => Orange,   // Nhẹ nhàng cho thông báo kiểm tra
+            LoggingLevel.Information => LightGreen,  // Thông tin
+            LoggingLevel.Debug => LightCyan,   // Debug tốt cho việc kiểm tra thêm
+            LoggingLevel.Warning => LightYellow,  // Cảnh báo với màu dễ nhận thấy
+            LoggingLevel.Error => LightMagenta,  // Lỗi nhẹ nhàng nhưng nổi bật
+            LoggingLevel.Critical => Red,      // Lỗi nghiêm trọng (đỏ)
+            LoggingLevel.None => Cyan,         // Màu dễ nhìn cho trường hợp không có mức độ log
+            _ => White, // Mặc định
         };
     }
 }

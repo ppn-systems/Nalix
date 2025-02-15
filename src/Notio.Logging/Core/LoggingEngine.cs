@@ -1,7 +1,7 @@
-﻿using Notio.Common.Enums;
+using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Models;
-using Notio.Logging.Targets.File;
+using Notio.Logging.Internal.File;
 using System;
 
 namespace Notio.Logging.Core;

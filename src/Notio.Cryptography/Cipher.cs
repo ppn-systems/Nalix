@@ -1,6 +1,7 @@
 using Notio.Common.Enums;
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Ciphers.Symmetric;
+using Notio.Randomization;
 using System;
 using System.Buffers;
 

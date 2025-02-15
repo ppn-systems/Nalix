@@ -1,9 +1,9 @@
-﻿using Notio.Logging.Storage;
+using Notio.Logging.Targets;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Targets.File
+namespace Notio.Logging.Internal.File
 {
     /// <summary>
     /// A provider for general file logging.

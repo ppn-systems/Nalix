@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography;
+namespace Notio.Randomization;
 
 /// <summary>
 /// Provides secure cryptographic key and nonce generation without using System.Security.Cryptography.

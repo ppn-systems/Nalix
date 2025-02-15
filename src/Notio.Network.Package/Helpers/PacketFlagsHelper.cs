@@ -15,12 +15,12 @@ public class PacketFlagsHelper
     {
         var flagStrings = new List<string>();
 
-        if (flags.HasFlag(PacketFlags.AckRequired)) flagStrings.Add("AckRequired");
         if (flags.HasFlag(PacketFlags.IsAcknowledged)) flagStrings.Add("IsAcknowledged");
         if (flags.HasFlag(PacketFlags.IsCompressed)) flagStrings.Add("IsCompressed");
+        if (flags.HasFlag(PacketFlags.IsFragmented)) flagStrings.Add("IsFragmented");
+        if (flags.HasFlag(PacketFlags.AckRequired)) flagStrings.Add("AckRequired");
         if (flags.HasFlag(PacketFlags.IsEncrypted)) flagStrings.Add("IsEncrypted");
         if (flags.HasFlag(PacketFlags.IsReliable)) flagStrings.Add("IsReliable");
-        if (flags.HasFlag(PacketFlags.IsFragmented)) flagStrings.Add("IsFragmented");
         if (flags.HasFlag(PacketFlags.IsStream)) flagStrings.Add("IsStream");
         if (flags.HasFlag(PacketFlags.IsSigned)) flagStrings.Add("IsSigned");
 
