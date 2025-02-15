@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 
 namespace Notio.Diagnostics;
@@ -7,7 +7,7 @@ namespace Notio.Diagnostics;
 /// Provides access to a high-resolution, time measuring device.
 /// </summary>
 /// <seealso cref="Stopwatch" />
-public class HighResolutionTimer : Stopwatch
+public sealed class HighResolutionTimer : Stopwatch
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="HighResolutionTimer"/> class.

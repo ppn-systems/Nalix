@@ -117,6 +117,21 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IPacket"/> struct.
+    /// </summary>
+    /// <param name="id">The packet id.</param>
+    /// <param name="type">The packet type.</param>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Packet(byte id, byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
+        : this(id, type, flags, priority, command, null, null, payload)
+    {
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(
         byte? id, byte type, byte flags, byte priority,
@@ -133,6 +148,18 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
         Priority = priority;
         Payload = AllocateAndCopyPayload(payload);
         Checksum = checksum ?? Crc32.HashToUInt32(payload.Span);
+    }
+
+    public Packet WithPayload(Memory<byte> payload)
+    {
+        try
+        {
+            return new Packet(this.Id, this.Type, this.Flags, this.Priority, this.Command, payload);
+        }
+        finally
+        {
+            this.Dispose();
+        }
     }
 
     /// <summary>

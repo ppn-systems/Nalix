@@ -1,6 +1,5 @@
 using Notio.Cryptography.Ciphers.Symmetric;
 using System;
-using System.Linq;
 using Xunit;
 
 namespace Notio.Testing.Ciphers;
@@ -10,9 +9,9 @@ public class Arc4Tests
     [Fact]
     public void EncryptDecrypt_ShouldReturnOriginalData()
     {
-        byte[] key = { 1, 2, 3, 4, 5 };
-        byte[] data = { 10, 20, 30, 40, 50 };
-        byte[] originalData = data.ToArray();
+        byte[] key = [1, 2, 3, 4, 5];
+        byte[] data = [10, 20, 30, 40, 50];
+        byte[] originalData = [.. data];
 
         var cipher = new Arc4(key);
         cipher.Process(data); // Encrypt
@@ -28,8 +27,8 @@ public class Arc4Tests
     [Fact]
     public void EmptyData_ShouldRemainUnchanged()
     {
-        byte[] key = { 1, 2, 3, 4, 5 };
-        byte[] data = Array.Empty<byte>();
+        byte[] key = [1, 2, 3, 4, 5];
+        byte[] data = [];
 
         var cipher = new Arc4(key);
         cipher.Process(data);
@@ -48,9 +47,9 @@ public class Arc4Tests
     [Fact]
     public void IdenticalKeys_ShouldProduceSameOutput()
     {
-        byte[] key = { 1, 2, 3, 4, 5 };
-        byte[] data1 = { 10, 20, 30, 40, 50 };
-        byte[] data2 = data1.ToArray();
+        byte[] key = [1, 2, 3, 4, 5];
+        byte[] data1 = [10, 20, 30, 40, 50];
+        byte[] data2 = [.. data1];
 
         var cipher1 = new Arc4(key);
         var cipher2 = new Arc4(key);
@@ -63,10 +62,10 @@ public class Arc4Tests
     [Fact]
     public void DifferentKeys_ShouldProduceDifferentOutput()
     {
-        byte[] key1 = { 1, 2, 3, 4, 5 };
-        byte[] key2 = { 5, 4, 3, 2, 1 };
-        byte[] data1 = { 10, 20, 30, 40, 50 };
-        byte[] data2 = data1.ToArray();
+        byte[] key1 = [1, 2, 3, 4, 5];
+        byte[] key2 = [5, 4, 3, 2, 1];
+        byte[] data1 = [10, 20, 30, 40, 50];
+        byte[] data2 = [.. data1];
 
         var cipher1 = new Arc4(key1);
         var cipher2 = new Arc4(key2);
