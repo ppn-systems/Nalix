@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Serialization;
+using System.Linq;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
@@ -23,6 +24,14 @@ internal static partial class FieldCache<
 
     #endregion Static Fields
 
+    #region Compiled Delegates Cache
+
+    // Store as object delegates, will be cast at runtime
+    private static readonly System.Delegate[] _getters;
+    private static readonly System.Delegate[] _setters;
+
+    #endregion
+
     #region Static Constructor
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
@@ -35,6 +44,18 @@ internal static partial class FieldCache<
         _layout = GetSerializeLayout();
         _metadata = DiscoverFields<T>();
         _fieldIndex = BuildFieldIndex();
+
+        // Create compiled getters/setters for each field
+        _getters = new System.Delegate[_metadata.Length];
+        _setters = new System.Delegate[_metadata.Length];
+
+        for (System.Int32 i = 0; i < _metadata.Length; i++)
+        {
+            var field = _metadata[i].FieldInfo;
+            _getters[i] = CreateGetter(field);
+            _setters[i] = CreateSetter(field);
+        }
+
         EnsureExplicitLayoutIsValid();
     }
 
@@ -102,9 +123,14 @@ internal static partial class FieldCache<
             includedFields.Add(metadata);
         }
 
-        // Sort theo order nếu là Explicit layout
+        if (includedFields.Count == 0)
+        {
+            // Log warning or throw exception
+            throw new System.InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
+        }
+
         return _layout is SerializeLayout.Explicit
-            ? [.. System.Linq.Enumerable.OrderBy(includedFields, f => f.Order)]
+            ? [.. includedFields.OrderBy(f => f.Order)]
             : [.. includedFields];
     }
 
