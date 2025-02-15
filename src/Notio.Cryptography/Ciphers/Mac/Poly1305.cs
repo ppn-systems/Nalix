@@ -3,7 +3,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
+namespace Notio.Cryptography.Ciphers.Mac;
 
 /// <summary>
 /// Represents the Poly1305 message authentication code (MAC) algorithm, used for ensuring the integrity and authenticity of messages.
@@ -83,7 +83,7 @@ public sealed class Poly1305
 
             // Add block value and multiply by r modulo prime.
             accumulator = (accumulator + n) % prime;
-            accumulator = (accumulator * r) % prime;
+            accumulator = accumulator * r % prime;
 
             offset += blockSize;
         }

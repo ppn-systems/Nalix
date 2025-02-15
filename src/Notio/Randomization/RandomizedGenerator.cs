@@ -1,4 +1,6 @@
+using System;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Notio.Randomization;
 
@@ -7,15 +9,14 @@ namespace Notio.Randomization;
 /// </summary>
 public static class RandomizedGenerator
 {
-    private static readonly System.Random _random = new();
     private static readonly ulong[] _state = new ulong[4];
 
     static RandomizedGenerator()
     {
-        _state[0] = (ulong)_random.NextInt64();
-        _state[1] = (ulong)_random.NextInt64();
-        _state[2] = (ulong)_random.NextInt64();
-        _state[3] = (ulong)_random.NextInt64();
+        _state[0] = (ulong)DateTime.UtcNow.Ticks;
+        _state[1] = (ulong)Environment.TickCount64;
+        _state[2] = (ulong)new Random().NextInt64();
+        _state[3] = (ulong)new Random().NextInt64();
     }
 
     /// <summary>
@@ -27,37 +28,10 @@ public static class RandomizedGenerator
     public static byte[] CreateKey(int length = 32)
     {
         if (length <= 0)
-            throw new System.ArgumentException("Key length must be greater than zero.", nameof(length));
+            throw new ArgumentException("Key length must be greater than zero.", nameof(length));
 
         byte[] key = new byte[length];
-        _random.NextBytes(key); // Using _random instead of cryptographic generator
-        return key;
-    }
-
-    /// <summary>
-    /// Derives a cryptographic key from a passphrase with the specified length.
-    /// </summary>
-    /// <param name="passphrase">The input passphrase.</param>
-    /// <param name="length">The desired key length in bytes.</param>
-    /// <returns>A derived key of the specified length.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] DeriveKey(string passphrase, int length = 32)
-    {
-        if (string.IsNullOrEmpty(passphrase))
-            throw new System.ArgumentException("Passphrase cannot be null or empty.", nameof(passphrase));
-        if (length <= 0)
-            throw new System.ArgumentException("Key length must be greater than zero.", nameof(length));
-
-        byte[] passphraseBytes = System.Text.Encoding.UTF8.GetBytes(passphrase);
-        byte[] key = new byte[length];
-        int i = 0;
-        while (i < length)
-        {
-            for (int j = 0; j < passphraseBytes.Length && i < length; j++, i++)
-            {
-                key[i] = passphraseBytes[j];
-            }
-        }
+        Fill(key);
         return key;
     }
 
@@ -68,8 +42,41 @@ public static class RandomizedGenerator
     public static byte[] CreateNonce()
     {
         byte[] nonce = new byte[12];
-        _random.NextBytes(nonce); // Using _random instead of cryptographic generator
+        Fill(nonce);
         return nonce;
+    }
+
+    /// <summary>
+    /// Fills the provided span with cryptographically strong random bytes using Xoshiro256++.
+    /// </summary>
+    /// <param name="data">The span to fill with random bytes.</param>
+    public static void Fill(Span<byte> data)
+    {
+        int i = 0;
+        while (i + 8 <= data.Length)
+        {
+            BitConverter.TryWriteBytes(data.Slice(i, 8), Next());
+            i += 8;
+        }
+        if (i < data.Length)
+        {
+            ulong last = Next();
+            for (int j = 0; j < data.Length - i; j++)
+                data[i + j] = (byte)(last >> (j * 8));
+        }
+    }
+
+    /// <summary>
+    /// Generates a random byte array of the specified length.
+    /// </summary>
+    /// <param name="length">The number of random bytes to generate.</param>
+    /// <returns>A byte array filled with random data.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte[] GetBytes(int length)
+    {
+        byte[] bytes = new byte[length];
+        Fill(bytes);
+        return bytes;
     }
 
     /// <summary>
@@ -92,36 +99,41 @@ public static class RandomizedGenerator
     }
 
     /// <summary>
-    /// Fills the provided span with cryptographically strong random bytes using Xoshiro256++.
+    /// Derives a cryptographic key from a passphrase with the specified length.
     /// </summary>
-    /// <param name="data">The span to fill with random bytes.</param>
-    public static void Fill(System.Span<byte> data)
-    {
-        int i = 0;
-        while (i + 8 <= data.Length)
-        {
-            System.BitConverter.TryWriteBytes(data.Slice(i, 8), Next());
-            i += 8;
-        }
-        if (i < data.Length)
-        {
-            ulong last = Next();
-            for (int j = 0; j < data.Length - i; j++)
-                data[i + j] = (byte)(last >> j * 8);
-        }
-    }
-
-    /// <summary>
-    /// Generates a random byte array of the specified length.
-    /// </summary>
-    /// <param name="length">The number of random bytes to generate.</param>
-    /// <returns>A byte array filled with random data.</returns>
+    /// <param name="passphrase">The input passphrase.</param>
+    /// <param name="length">The desired key length in bytes.</param>
+    /// <param name="iterations">The number of iterations for key stretching.</param>
+    /// <returns>A derived key of the specified length.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] GetBytes(int length)
+    public static byte[] DeriveKey(string passphrase, int length = 32, int iterations = 100000)
     {
-        byte[] data = new byte[length];
-        Fill(data);
-        return data;
+        if (string.IsNullOrEmpty(passphrase))
+            throw new ArgumentException("Passphrase cannot be null or empty.", nameof(passphrase));
+
+        if (length <= 0)
+            throw new ArgumentException("Key length must be greater than zero.", nameof(length));
+
+        if (iterations <= 0)
+            throw new ArgumentException("Iterations must be greater than zero.", nameof(iterations));
+
+        byte[] passphraseBytes = Encoding.UTF8.GetBytes(passphrase);
+        byte[] key = new byte[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            byte hash = (byte)(i + 1);
+            for (int iter = 0; iter < iterations; iter++)
+            {
+                foreach (byte b in passphraseBytes)
+                {
+                    hash ^= (byte)RotateLeft((byte)(b + iter), (i % 8) + 1);
+                }
+            }
+            key[i] = hash;
+        }
+
+        return key;
     }
 
     /// <summary>
@@ -149,4 +161,7 @@ public static class RandomizedGenerator
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong RotateLeft(ulong x, int k) => x << k | x >> 64 - k;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static byte RotateLeft(byte x, int k) => (byte)((x << k) | (x >> (8 - k)));
 }
