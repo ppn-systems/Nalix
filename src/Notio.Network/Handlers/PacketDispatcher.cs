@@ -16,8 +16,31 @@ namespace Notio.Network.Handlers;
 /// <param name="options">
 /// A delegate used to configure <see cref="PacketDispatcherOptions"/> before processing packets.
 /// </param>
-public class PacketDispatcher(Action<PacketDispatcherOptions> options) : PacketDispatcherBase(options), IPacketDispatcher
+public class PacketDispatcher(Action<PacketDispatcherOptions> options)
+    : PacketDispatcherBase(options), IPacketDispatcher
 {
+    /// <summary>
+    /// Processes an incoming byte array packet by deserializing it and invoking the associated handler method.
+    /// </summary>
+    /// <param name="packet">The byte array representing the received packet to be processed.</param>
+    /// <param name="connection">The connection through which the packet was received.</param>
+    /// <remarks>
+    /// If a handler is registered for the packet's command ID, it will be invoked.
+    /// If no handler is found, a warning is logged. Errors occurring during execution are also logged.
+    /// </remarks>
+    public void HandlePacket(byte[] packet, IConnection connection)
+    {
+        if (Options.DeserializationMethod == null)
+        {
+            Options.Logger?.Error("No deserialization method specified.");
+            return;
+        }
+
+        IPacket parsedPacket = Options.DeserializationMethod(packet);
+
+        this.HandlePacket(parsedPacket, connection);
+    }
+
     /// <summary>
     /// Processes an incoming packet by looking up the command ID and invoking the associated handler method.
     /// </summary>

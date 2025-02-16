@@ -4,9 +4,11 @@ using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Network.Handlers.Attributes;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -21,6 +23,14 @@ namespace Notio.Network.Handlers;
 /// </remarks>
 public class PacketDispatcherOptions
 {
+    private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> MethodHandlers;
+
+    private Func<IPacket, IConnection, IPacket>? EncryptionMethod;
+    private Func<IPacket, IConnection, IPacket>? DecryptionMethod;
+
+    private Func<IPacket, IPacket>? CompressionMethod;
+    private Func<IPacket, IPacket>? DecompressionMethod;
+
     /// <summary>
     /// The logger instance used for logging.
     /// </summary>
@@ -54,6 +64,163 @@ public class PacketDispatcherOptions
     /// The callback receives the packet handler name and execution time in milliseconds.
     /// </remarks>
     internal Action<string, long>? MetricsCallback { get; set; }
+
+    /// <summary>
+    /// A function that serializes an <see cref="IPacket"/> into a <see cref="Memory{Byte}"/>.
+    /// </summary>
+    /// <remarks>
+    /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
+    /// for transmission over the network or for storage.
+    /// </remarks>
+    internal Func<IPacket, Memory<byte>>? SerializationMethod;
+
+    /// <summary>
+    /// A function that deserializes a <see cref="Memory{Byte}"/> into an <see cref="IPacket"/>.
+    /// </summary>
+    /// <remarks>
+    /// This function is responsible for converting the byte array received over the network or from storage
+    /// back into an <see cref="IPacket"/> object for further processing.
+    /// </remarks>
+    internal Func<Memory<byte>, IPacket>? DeserializationMethod;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketDispatcherOptions"/> class.
+    /// </summary>
+    /// <remarks>
+    /// The constructor sets up the default packet handler methods and initializes the dictionary
+    /// that stores the handlers for various return types. It also prepares fields for encryption,
+    /// decryption, serialization, and compression methods, which can later be customized using
+    /// the appropriate configuration methods (e.g., <see cref="WithPacketCrypto"/> or
+    /// <see cref="WithPacketSerialization"/>).
+    /// </remarks>
+    public PacketDispatcherOptions()
+    {
+        MethodHandlers = new Dictionary<Type, Func<object?, IPacket, IConnection, Task>>
+        {
+            [typeof(void)] = (_, _, _) => Task.CompletedTask,
+
+            [typeof(byte[])] = async (result, _, connection) =>
+            {
+                if (result is byte[] data)
+                {
+                    using MemoryStream ms = new();
+
+                    byte[] lengthBytes = new byte[2];
+
+                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+
+                    await ms.WriteAsync(lengthBytes);
+                    await ms.WriteAsync(data);
+
+                    await connection.SendAsync(ms.ToArray());
+                }
+            },
+
+            [typeof(IEnumerable<byte>)] = async (result, _, connection) =>
+            {
+                if (result is IEnumerable<byte> bytes)
+                {
+                    using MemoryStream ms = new();
+
+                    byte[] data = [.. bytes];
+                    byte[] lengthBytes = new byte[2];
+
+                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+
+                    await ms.WriteAsync(lengthBytes);
+                    await ms.WriteAsync(data);
+
+                    await connection.SendAsync(ms.ToArray());
+                }
+            },
+
+            [typeof(IPacket)] = async (result, _, connection) =>
+            {
+                if (result is IPacket packet)
+                {
+                    if (this.SerializationMethod is null)
+                    {
+                        if (this.Logger is not null)
+                            this.Logger.Error("Serialization method is not set.");
+                        else
+                            throw new InvalidOperationException("Serialization method is not set.");
+
+                        return;
+                    }
+
+                    if (this.CompressionMethod is not null)
+                        packet = this.CompressionMethod(packet);
+
+                    if (this.EncryptionMethod is not null)
+                        packet = this.EncryptionMethod(packet, connection);
+
+                    await connection.SendAsync(this.SerializationMethod(packet));
+                }
+            },
+
+            [typeof(Task)] = async (result, _, _) => await (Task)result!,
+
+            [typeof(Task<byte[]>)] = async (result, _, connection) =>
+            {
+                if (result is Task<byte[]> task)
+                {
+                    byte[] data = await task;
+                    using var ms = new MemoryStream();
+
+                    byte[] lengthBytes = new byte[2];
+                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+
+                    await ms.WriteAsync(lengthBytes);
+                    await ms.WriteAsync(data);
+
+                    await connection.SendAsync(ms.ToArray());
+                }
+            },
+
+            [typeof(Task<IEnumerable<byte>>)] = async (result, _, connection) =>
+            {
+                if (result is Task<IEnumerable<byte>> task)
+                {
+                    using MemoryStream ms = new();
+
+                    IEnumerable<byte> taskResult = await task;
+
+                    byte[] data = [.. taskResult];
+                    byte[] lengthBytes = new byte[2];
+
+                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+
+                    await ms.WriteAsync(lengthBytes);
+                    await ms.WriteAsync(data);
+
+                    await connection.SendAsync(ms.ToArray());
+                }
+            },
+
+            [typeof(Task<IPacket>)] = async (result, _, connection) =>
+            {
+                IPacket packet = await (Task<IPacket>)result!;
+
+                if (this.SerializationMethod is null)
+                {
+                    if (this.Logger is not null)
+                        this.Logger.Error("Serialization method is not set.");
+                    else
+                        throw new InvalidOperationException("Serialization method is not set.");
+
+                    return;
+                }
+
+                if (this.CompressionMethod is not null)
+                    packet = this.CompressionMethod(packet);
+
+                if (this.EncryptionMethod is not null)
+                    packet = this.EncryptionMethod(packet, connection);
+
+                await connection.SendAsync(this.SerializationMethod(packet));
+            }
+        };
+    }
 
     /// <summary>
     /// Enables metrics tracking and sets the callback function for reporting execution times.
@@ -104,11 +271,9 @@ public class PacketDispatcherOptions
         where TController : new()
     {
         // Get methods from the controller that are decorated with PacketCommandAttribute
-        Lazy<TController> lazyController = new(() => new TController());
-
         List<MethodInfo> methods = [.. typeof(TController)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
+        .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+        .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
 
         IEnumerable<ushort> duplicateCommandIds = methods
             .GroupBy(m => m.GetCustomAttribute<PacketCommandAttribute>()!.CommandId)
@@ -138,15 +303,19 @@ public class PacketDispatcherOptions
                 try
                 {
                     if (EnableMetrics)
-                    {
                         stopwatch = Stopwatch.StartNew();
-                    }
 
-                    TController controller = lazyController.Value;
+                    TController controller = Activator.CreateInstance<TController>();
                     object? result;
 
                     try
                     {
+                        if (DecompressionMethod != null)
+                            packet = DecompressionMethod(packet);
+
+                        if (DecryptionMethod != null)
+                            packet = DecryptionMethod(packet, connection);
+
                         result = method.Invoke(controller, [packet, connection]);
                     }
                     catch (Exception ex)
@@ -174,25 +343,94 @@ public class PacketDispatcherOptions
         return this;
     }
 
-    public PacketDispatcherOptions WithPacketCtypto(
-        Func<IPacket, IPacket> encryptionMethod,
-        Func<IPacket, IPacket> decryptionMethod)
+    /// <summary>
+    /// Configures packet compression and decompression for the packet dispatcher.
+    /// </summary>
+    /// <param name="compressionMethod">
+    /// A function that compresses a packet before sending. The function receives an <see cref="IPacket"/>
+    /// and returns the compressed <see cref="IPacket"/>. If this is null, compression will not be applied.
+    /// </param>
+    /// <param name="decompressionMethod">
+    /// A function that decompresses a packet before processing. The function receives an <see cref="IPacket"/>
+    /// and returns the decompressed <see cref="IPacket"/>. If this is null, decompression will not be applied.
+    /// </param>
+    /// <remarks>
+    /// This method allows you to specify compression and decompression functions that will be applied to packets
+    /// before they are sent or received. The compression and decompression methods are applied based on packet flags,
+    /// which help determine if a packet should be compressed or decompressed. If either method is null, the corresponding
+    /// compression or decompression step will be skipped.
+    /// </remarks>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// </returns>
+    public PacketDispatcherOptions WithPacketCompression
+    (
+        Func<IPacket, IPacket>? compressionMethod,
+        Func<IPacket, IPacket>? decompressionMethod
+    )
     {
+        CompressionMethod = compressionMethod;
+        DecompressionMethod = decompressionMethod;
+
         return this;
     }
 
-    private static readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> MethodHandlers = new()
+    /// <summary>
+    /// Configures packet encryption and decryption for the packet dispatcher.
+    /// </summary>
+    /// <param name="encryptionMethod">
+    /// A function that encrypts a packet before sending. The function receives an <see cref="IPacket"/> and a byte array (encryption key),
+    /// and returns the encrypted <see cref="IPacket"/>.
+    /// </param>
+    /// <param name="decryptionMethod">
+    /// A function that decrypts a packet before processing. The function receives an <see cref="IPacket"/> and a byte array (decryption key),
+    /// and returns the decrypted <see cref="IPacket"/>.
+    /// </param>
+    /// <remarks>
+    /// This method allows you to specify encryption and decryption functions that will be applied to packets
+    /// before they are sent or received. The encryption and decryption methods will be invoked based on certain conditions,
+    /// which are determined by the packet's flags (as checked by <see cref="IPacket.Flags"/>).
+    /// Ensure that the encryption and decryption functions are compatible with the packet's structure.
+    /// </remarks>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// </returns>
+    public PacketDispatcherOptions WithPacketCrypto
+    (
+        Func<IPacket, IConnection, IPacket>? encryptionMethod,
+        Func<IPacket, IConnection, IPacket>? decryptionMethod
+    )
     {
-        [typeof(Task)] = async (result, _, _) =>
-            await (Task)result!,
+        EncryptionMethod = encryptionMethod;
+        DecryptionMethod = decryptionMethod;
 
-        [typeof(byte[])] = async (result, _, connection) =>
-            await connection.SendAsync((byte[])result!),
+        return this;
+    }
 
-        [typeof(IEnumerable<byte>)] = async (result, _, connection) =>
-            await connection.SendAsync(((IEnumerable<byte>)result!).ToArray()),
+    /// <summary>
+    /// Configures the packet serialization and deserialization methods.
+    /// </summary>
+    /// <param name="serializationMethod">
+    /// A function that serializes a packet into a <see cref="Memory{Byte}"/>.
+    /// </param>
+    /// <param name="deserializationMethod">
+    /// A function that deserializes a <see cref="Memory{Byte}"/> back into an <see cref="IPacket"/>.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method allows customizing how packets are serialized before sending and deserialized upon receiving.
+    /// </remarks>
+    public PacketDispatcherOptions WithPacketSerialization
+    (
+        Func<IPacket, Memory<byte>>? serializationMethod,
+        Func<Memory<byte>, IPacket>? deserializationMethod
+    )
+    {
+        SerializationMethod = serializationMethod;
+        DeserializationMethod = deserializationMethod;
 
-        [typeof(void)] = (_, _, _) =>
-            Task.CompletedTask
-    };
+        return this;
+    }
 }
