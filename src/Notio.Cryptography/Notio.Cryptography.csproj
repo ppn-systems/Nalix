@@ -27,8 +27,4 @@
     <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Hash\Argon\" />
-  </ItemGroup>
-
 </Project>

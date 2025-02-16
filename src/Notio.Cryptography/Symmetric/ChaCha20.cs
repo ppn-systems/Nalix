@@ -675,16 +675,16 @@ public sealed class ChaCha20 : IDisposable
     private static void QuarterRound(uint[] x, uint a, uint b, uint c, uint d)
     {
         x[a] = BitwiseUtils.Add(x[a], x[b]);
-        x[d] = BitwiseUtils.Rotate(BitwiseUtils.XOr(x[d], x[a]), 16);
+        x[d] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[d], x[a]), 16);
 
         x[c] = BitwiseUtils.Add(x[c], x[d]);
-        x[b] = BitwiseUtils.Rotate(BitwiseUtils.XOr(x[b], x[c]), 12);
+        x[b] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[b], x[c]), 12);
 
         x[a] = BitwiseUtils.Add(x[a], x[b]);
-        x[d] = BitwiseUtils.Rotate(BitwiseUtils.XOr(x[d], x[a]), 8);
+        x[d] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[d], x[a]), 8);
 
         x[c] = BitwiseUtils.Add(x[c], x[d]);
-        x[b] = BitwiseUtils.Rotate(BitwiseUtils.XOr(x[b], x[c]), 7);
+        x[b] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[b], x[c]), 7);
     }
 
     #region Destructor and Disposer

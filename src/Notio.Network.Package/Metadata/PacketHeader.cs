@@ -15,7 +15,7 @@ namespace Notio.Network.Package.Metadata;
 public readonly struct PacketHeader(in IPacket packet)
 {
     /// <summary>
-    /// Gets the total length of the packet header, including length, id, type, flags, priority, command, timestamp, and checksum.
+    /// Gets the total length of the packet header, including length, id, type, flags, priority, command, timestamp, checksum and payload.
     /// </summary>
     public readonly ushort Length = packet.Length;
 

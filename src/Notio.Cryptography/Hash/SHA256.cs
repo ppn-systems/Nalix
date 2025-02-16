@@ -1,3 +1,4 @@
+using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,7 @@ public sealed class SHA256 : IDisposable
 {
     private readonly byte[] _buffer = new byte[64];
     private readonly uint[] _state = new uint[8];
+
     private byte[] _finalHash;
     private int _bufferLength;
     private ulong _byteCount;
@@ -123,7 +125,8 @@ public sealed class SHA256 : IDisposable
         if (_finalized) return (byte[])_finalHash.Clone();
 
         // Compute padding.
-        int padLength = (_byteCount % 64 < 56) ? (56 - (int)(_byteCount % 64)) : (120 - (int)(_byteCount % 64));
+        int remainder = (int)(_byteCount & 0x3F);
+        int padLength = (remainder < 56) ? (56 - remainder) : (120 - remainder);
 
         Span<byte> padding = stackalloc byte[64];
         padding[0] = 0x80; // append the '1' bit
@@ -166,20 +169,43 @@ public sealed class SHA256 : IDisposable
     }
 
     /// <summary>
-    /// Processes a block of 64 bytes.
-    /// This method chooses an intrinsic–based implementation when available.
+    /// Updates the hash state with a block of data (similar to TransformBlock).
     /// </summary>
-    /// <param name="block">A 64-byte block to process.</param>
+    public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
+    {
+        ArgumentNullException.ThrowIfNull(inputBuffer);
+        if (inputOffset < 0 || inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
+            throw new ArgumentOutOfRangeException(nameof(inputOffset), "The input offset or count is out of range.");
+
+        Update(new ReadOnlySpan<byte>(inputBuffer, inputOffset, inputCount));
+
+        if (outputBuffer != null)
+            Buffer.BlockCopy(inputBuffer, inputOffset, outputBuffer, outputOffset, inputCount);
+
+        return inputCount;
+    }
+
+    /// <summary>
+    /// Updates the final block of data and completes the hash computation (similar to TransformFinalBlock).
+    /// </summary>
+    public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
+    {
+        byte[] finalBlock = new byte[inputCount];
+        Buffer.BlockCopy(inputBuffer, inputOffset, finalBlock, 0, inputCount);
+        Update(finalBlock);
+        _finalHash = FinalizeHash();
+        return finalBlock;
+    }
+
+    /// <inheritdoc />
+    public void Dispose() => Initialize();
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ProcessBlock(ReadOnlySpan<byte> block)
     {
         if (Avx2.IsSupported)
         {
             ProcessBlockAvx2(block);
-        }
-        else if (Avx.IsSupported)
-        {
-            ProcessBlockAvx(block);
         }
         else if (Ssse3.IsSupported)
         {
@@ -191,10 +217,6 @@ public sealed class SHA256 : IDisposable
         }
     }
 
-    /// <summary>
-    /// Scalar (fallback) implementation of block processing.
-    /// </summary>
-    /// <param name="block">A 64-byte block.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlockScalar(ReadOnlySpan<byte> block)
     {
@@ -215,32 +237,28 @@ public sealed class SHA256 : IDisposable
         // Message schedule expansion.
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
+            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
             W[i] = W[i - 16] + s0 + W[i - 7] + s1;
         }
 
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
 
-    /// <summary>
-    /// Intrinsics–based implementation using SSSE3 for fast byte–swapping.
-    /// </summary>
-    /// <param name="block">A 64-byte block.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlockIntrinsic(ReadOnlySpan<byte> block)
     {
@@ -279,34 +297,28 @@ public sealed class SHA256 : IDisposable
         // Message schedule expansion (scalar).
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
+            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
             W[i] = W[i - 16] + s0 + W[i - 7] + s1;
         }
 
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
 
-    /// <summary>
-    /// Optimized block processing using AVX2 intrinsics.
-    /// This implementation uses 256–bit loads and shuffles for the initial 32 bytes
-    /// of the block. (Message schedule expansion and rounds remain scalar for simplicity.)
-    /// </summary>
-    /// <param name="block">A 64-byte block.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlockAvx2(ReadOnlySpan<byte> block)
     {
@@ -346,104 +358,27 @@ public sealed class SHA256 : IDisposable
         // Message schedule expansion (scalar).
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = RotateRight(W[i - 15], 7) ^ RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = RotateRight(W[i - 2], 17) ^ RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
+            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
             W[i] = W[i - 16] + s0 + W[i - 7] + s1;
         }
 
         // Process rounds (scalar).
         for (int i = 0; i < 64; i += 8)
         {
-            Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
-
-    /// <summary>
-    /// Optimized block processing using AVX intrinsics.
-    /// This stub currently falls back to the scalar implementation.
-    /// </summary>
-    /// <param name="block">A 64-byte block.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlockAvx(ReadOnlySpan<byte> block)
-    {
-        // A proper AVX implementation might use 256–bit loads and operations.
-        // For now, we fall back to the scalar implementation.
-        ProcessBlockScalar(block);
-    }
-
-    /// <summary>
-    /// Performs one SHA-256 round.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Round(
-        ref uint a, ref uint b, ref uint c, ref uint d,
-        ref uint e, ref uint f, ref uint g, ref uint h,
-        uint w, uint k)
-    {
-        uint s1 = RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
-        uint ch = (e & f) ^ (~e & g);
-        uint temp1 = h + s1 + ch + k + w;
-
-        uint s0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
-        uint maj = (a & b) ^ (a & c) ^ (b & c);
-        uint temp2 = s0 + maj;
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + temp1;
-        d = c;
-        c = b;
-        b = a;
-        a = temp1 + temp2;
-    }
-
-    /// <summary>
-    /// Rotate a 32–bit word right by the specified number of bits.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RotateRight(uint value, int bits) =>
-        (value >> bits) | (value << (32 - bits));
-
-    /// <summary>
-    /// Updates the hash state with a block of data (similar to TransformBlock).
-    /// </summary>
-    public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
-    {
-        byte[] temp = new byte[inputCount];
-        Buffer.BlockCopy(inputBuffer, inputOffset, temp, 0, inputCount);
-        Update(temp);
-
-        if (outputBuffer != null)
-            Buffer.BlockCopy(inputBuffer, inputOffset, outputBuffer, outputOffset, inputCount);
-
-        return inputCount;
-    }
-
-    /// <summary>
-    /// Updates the final block of data and completes the hash computation (similar to TransformFinalBlock).
-    /// </summary>
-    public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
-    {
-        byte[] finalBlock = new byte[inputCount];
-        Buffer.BlockCopy(inputBuffer, inputOffset, finalBlock, 0, inputCount);
-        Update(finalBlock);
-        _finalHash = FinalizeHash();
-        return finalBlock;
-    }
-
-    /// <inheritdoc />
-    public void Dispose() => Initialize();
 
     // SHA-256 constants
     private static readonly uint[] K =
