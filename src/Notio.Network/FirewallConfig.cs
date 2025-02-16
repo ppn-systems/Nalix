@@ -1,4 +1,4 @@
-using Notio.Network.Firewall;
+using Notio.Network.Firewall.Config;
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
