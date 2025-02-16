@@ -15,6 +15,8 @@ namespace Notio.Network.Package.Utilities;
 [SkipLocalsInit]
 public static class PacketSerializer
 {
+    private static readonly ArrayPool<byte> SharedPool = ArrayPool<byte>.Shared;
+
     /// <summary>
     /// Writes a packet to a given buffer in a fast and efficient way.
     /// </summary>
@@ -24,24 +26,15 @@ public static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WritePacketFast(Span<byte> buffer, in Packet packet)
     {
+        if (buffer.Length < (PacketSize.Header + packet.Payload.Length))
+            throw new PackageException("Buffer size is too small to write the packet.");
+
         try
         {
-            int requiredSize = PacketSize.Header + packet.Payload.Length;
-            if (buffer.Length < requiredSize)
-                throw new PackageException("Buffer size is too small to write the packet.");
+            PacketHeader header = new(packet);
+            MemoryMarshal.Write(buffer, in header);
 
-            ref byte bufferStart = ref MemoryMarshal.GetReference(buffer);
-
-            Unsafe.WriteUnaligned(ref bufferStart, (ushort)requiredSize);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Id), packet.Id);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Type), packet.Type);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Flags), packet.Flags);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Priority), packet.Priority);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Command), packet.Command);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Timestamp), packet.Timestamp);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref bufferStart, PacketOffset.Checksum), packet.Checksum);
-
-            packet.Payload.Span.CopyTo(buffer.Slice(PacketSize.Header, packet.Payload.Length));
+            packet.Payload.Span.CopyTo(buffer[PacketSize.Header..]);
         }
         catch (Exception ex) when (ex is not PackageException)
         {
@@ -58,11 +51,11 @@ public static class PacketSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
+        if (data.Length < PacketSize.Header)
+            throw new PackageException("Data size is smaller than the minimum header size.");
+
         try
         {
-            if (data.Length < PacketSize.Header)
-                throw new PackageException("Data size is smaller than the minimum header size.");
-
             ref byte dataRef = ref MemoryMarshal.GetReference(data);
 
             ushort length = Unsafe.As<byte, ushort>(ref dataRef);
@@ -135,6 +128,7 @@ public static class PacketSerializer
     public static async Task<Packet> ReadFromStreamAsync(Stream stream)
     {
         byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(PacketSize.Header);
+
         try
         {
             int bytesRead = await stream.ReadAsync(headerBuffer.AsMemory(0, PacketSize.Header));

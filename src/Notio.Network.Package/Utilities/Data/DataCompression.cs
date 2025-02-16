@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities;
+namespace Notio.Network.Package.Utilities.Data;
 
 /// <summary>
 /// Provides methods for compressing and decompressing payloads using Brotli compression.
