@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Configurations;
@@ -13,7 +14,7 @@ namespace Nalix.Network.Throttling;
 /// Uses lock-free CAS updates on a ConcurrentDictionary to avoid lost updates under contention.
 /// Supports cleanup of stale entries to bound memory usage.
 /// </summary>
-public sealed class ConnectionLimiter : System.IDisposable
+public sealed class ConnectionLimiter : System.IDisposable, IReportable
 {
     #region Constants
 
@@ -24,14 +25,13 @@ public sealed class ConnectionLimiter : System.IDisposable
 
     #region Fields
 
-    private readonly ConnLimitOptions _config;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo> _map;
-    private readonly System.Threading.Timer _cleanupTimer;
-    private readonly System.Threading.SemaphoreSlim _cleanupGate = new(1, 1);
-
     private readonly System.Int32 _maxPerIp;
+    private readonly ConnectionLimitOptions _config;
     private readonly System.TimeSpan _inactivityThreshold;
     private readonly System.TimeSpan _cleanupInterval;
+    private readonly System.Threading.Timer _cleanupTimer;
+    private readonly System.Threading.SemaphoreSlim _cleanupGate = new(1, 1);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo> _map;
 
     private System.Boolean _disposed;
 
@@ -43,16 +43,16 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Initializes a new <see cref="ConnectionLimiter"/> using configuration from <see cref="ConfigurationManager"/>.
     /// </summary>
     public ConnectionLimiter()
-        : this((ConnLimitOptions?)null)
+        : this(null)
     {
     }
 
     /// <summary>
     /// Initializes a new <see cref="ConnectionLimiter"/> with an optional config. If <paramref name="config"/> is null, global config is used.
     /// </summary>
-    public ConnectionLimiter(ConnLimitOptions? config)
+    public ConnectionLimiter(ConnectionLimitOptions? config)
     {
-        _config = config ?? ConfigurationManager.Instance.Get<ConnLimitOptions>();
+        _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
         Validate(_config);
 
         _maxPerIp = _config.MaxConnectionsPerIpAddress;
@@ -72,14 +72,6 @@ public sealed class ConnectionLimiter : System.IDisposable
                                        $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
     }
 
-    /// <summary>
-    /// Initializes a new <see cref="ConnectionLimiter"/> and allows caller to mutate the config prior to use.
-    /// </summary>
-    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure)
-        : this(CreateConfigured(configure))
-    {
-    }
-
     #endregion Constructors
 
     #region Public API
@@ -88,8 +80,10 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Attempts to acquire a connection slot for the given IP address.
     /// Returns <c>true</c> if allowed (and increments counters), otherwise <c>false</c>.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsConnectionAllowed(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
@@ -153,8 +147,10 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <summary>
     /// Marks a connection as closed for the given IP address. Returns <c>true</c> if the counter was decremented.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean ConnectionClosed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean ConnectionClosed(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
@@ -200,7 +196,8 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <summary>
     /// Gets per-IP counters. If IP is unknown, returns zeros and <see cref="UnixEpochUtc"/>.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (System.Int32 Current, System.Int32 TotalToday, System.DateTime LastUtc) GetConnectionInfo(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
     {
@@ -240,7 +237,8 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <summary>
     /// Returns the total number of concurrently open connections across all IPs.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 GetTotalConnectionCount()
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
@@ -267,10 +265,87 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <summary>
     /// RAII-style helper: acquire on success and auto-decrement on dispose.
     /// </summary>
-    public ConnectionLease TryAcquire([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint, out System.Boolean allowed)
+    public ConnectionLease TryAcquire(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint, out System.Boolean allowed)
     {
         allowed = IsConnectionAllowed(endPoint);
         return new ConnectionLease(this, endPoint, allowed);
+    }
+
+    /// <summary>
+    /// Generates a human-readable diagnostic report for the current limiter state.
+    /// The report includes config overview, global counters, and top IPs by load.
+    /// </summary>
+    /// <remarks>
+    /// This method is allocation-friendly: uses a single StringBuilder, limits sorting,
+    /// and caps the number of displayed rows for readability.
+    /// </remarks>
+    public System.String GenerateReport()
+    {
+        // Take a stable snapshot to minimize contention and keep the report consistent.
+        // Copy to a local list once to avoid enumerating the concurrent map multiple times.
+        var snapshot = new System.Collections.Generic.List<
+            System.Collections.Generic.KeyValuePair<System.Net.IPAddress, ConnectionLimitInfo>>(_map.Count);
+
+        foreach (var kv in _map)
+        {
+            snapshot.Add(kv);
+        }
+
+        // Sort by current connections (desc), then by TotalToday (desc)
+        snapshot.Sort(static (a, b) =>
+        {
+            System.Int32 byCurrent = b.Value.CurrentConnections.CompareTo(a.Value.CurrentConnections);
+            return byCurrent != 0 ? byCurrent : b.Value.TotalConnectionsToday.CompareTo(a.Value.TotalConnectionsToday);
+        });
+
+        // Global totals
+        System.Int32 totalIps = snapshot.Count;
+        System.Int32 totalConcurrent = 0;
+        foreach (var kv in snapshot)
+        {
+            totalConcurrent += kv.Value.CurrentConnections;
+        }
+
+        // Build report
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionLimiter Status:");
+        _ = sb.AppendLine($"MaxPerIp           : {_maxPerIp}");
+        _ = sb.AppendLine($"InactivityThreshold: {_inactivityThreshold.TotalSeconds:F0}s");
+        _ = sb.AppendLine($"CleanupInterval    : {_cleanupInterval.TotalSeconds:F0}s");
+        _ = sb.AppendLine($"TrackedIPs         : {totalIps}");
+        _ = sb.AppendLine($"TotalConcurrent    : {totalConcurrent}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Top IPs by CurrentConnections:");
+        _ = sb.AppendLine("---------------------------------------------------------------");
+        _ = sb.AppendLine("IP Address                 | Current | Today     | LastUtc");
+        _ = sb.AppendLine("---------------------------------------------------------------");
+
+        System.Int32 rows = 0;
+        foreach (var kv in snapshot)
+        {
+            if (rows++ >= 100)
+            {
+                break;
+            }
+
+            var ip = kv.Key.ToString();
+            var info = kv.Value;
+
+            // Pad/truncate IP for neat column alignment (IPv6 can be long).
+            System.String ipCol = ip.Length > 27 ? System.String.Concat(System.MemoryExtensions.AsSpan(ip, 0, 27), "…") : ip.PadRight(27);
+
+            _ = sb.AppendLine($"{ipCol} | {info.CurrentConnections,7} | {info.TotalConnectionsToday,9} | {info.LastConnectionTime:u}");
+        }
+
+        if (rows == 0)
+        {
+            _ = sb.AppendLine("(no tracked IPs)");
+        }
+
+        _ = sb.AppendLine("---------------------------------------------------------------");
+        return sb.ToString();
     }
 
     #endregion Public API
@@ -366,30 +441,22 @@ public sealed class ConnectionLimiter : System.IDisposable
     #region Helpers
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Validate(ConnLimitOptions opt)
+    private static void Validate(ConnectionLimitOptions opt)
     {
         if (opt.MaxConnectionsPerIpAddress <= 0)
         {
-            throw new InternalErrorException($"{nameof(ConnLimitOptions.MaxConnectionsPerIpAddress)} must be > 0");
+            throw new InternalErrorException($"{nameof(ConnectionLimitOptions.MaxConnectionsPerIpAddress)} must be > 0");
         }
 
         if (opt.InactivityThreshold <= System.TimeSpan.Zero)
         {
-            throw new InternalErrorException($"{nameof(ConnLimitOptions.InactivityThreshold)} must be > 0");
+            throw new InternalErrorException($"{nameof(ConnectionLimitOptions.InactivityThreshold)} must be > 0");
         }
 
         if (opt.CleanupInterval <= System.TimeSpan.Zero)
         {
-            throw new InternalErrorException($"{nameof(ConnLimitOptions.CleanupInterval)} must be > 0");
+            throw new InternalErrorException($"{nameof(ConnectionLimitOptions.CleanupInterval)} must be > 0");
         }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ConnLimitOptions CreateConfigured(System.Action<ConnLimitOptions>? configure)
-    {
-        var cfg = ConfigurationManager.Instance.Get<ConnLimitOptions>();
-        configure?.Invoke(cfg);
-        return cfg;
     }
 
     /// <summary>
