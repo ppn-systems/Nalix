@@ -1,6 +1,6 @@
 using Notio.Common.Enums;
 using Notio.Common.Exceptions;
-using Notio.Cryptography.Ciphers.Symmetric;
+using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
 using System;
 using System.Buffers;
@@ -10,7 +10,7 @@ namespace Notio.Cryptography;
 /// <summary>
 /// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public class Cipher
+public class Ciphers
 {
     /// <summary>
     /// Encrypts the provided data using the specified algorithm.

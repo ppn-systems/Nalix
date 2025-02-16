@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Ciphers.Asymmetric;
+namespace Notio.Cryptography.Asymmetric;
 
 /// <summary>
 /// Provides methods for the X25519 elliptic curve Diffie-Hellman (ECDH) key exchange protocol.

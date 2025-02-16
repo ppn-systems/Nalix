@@ -1,4 +1,4 @@
-namespace Notio.Cryptography.Ciphers.Integrity;
+namespace Notio.Cryptography.Integrity;
 
 /// <summary>
 /// Class providing methods for CRC16 checksum calculation.
@@ -31,7 +31,7 @@ public class Crc16
         int end = start + length;
         for (int i = start; i < end; i++)
         {
-            crc = (ushort)((crc >> 8) ^ table[(crc ^ bytes[i]) & 0xFF]);
+            crc = (ushort)(crc >> 8 ^ table[(crc ^ bytes[i]) & 0xFF]);
         }
         return crc;
     }
@@ -46,7 +46,7 @@ public class Crc16
         ushort crc = 0x0000;
         foreach (byte b in bytes)
         {
-            crc = (ushort)((crc >> 8) ^ table[(crc ^ b) & 0xFF]);
+            crc = (ushort)(crc >> 8 ^ table[(crc ^ b) & 0xFF]);
         }
         return crc;
     }

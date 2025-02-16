@@ -1,4 +1,4 @@
-namespace Notio.Cryptography.Ciphers.Integrity;
+namespace Notio.Cryptography.Integrity;
 
 /// <summary>
 /// Provides functionality to compute a 32-bit CRC checksum using the

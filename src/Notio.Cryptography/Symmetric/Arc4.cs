@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
+namespace Notio.Cryptography.Symmetric;
 
 /// <summary>
 /// Implements the ARC4 (Alleged RC4) symmetric stream cipher.
@@ -58,7 +58,7 @@ public class Arc4
             Swap(s, i, j);
 
             // XOR with generated keystream
-            buffer[k] ^= s[(s[i] + s[j]) & 0xFF];
+            buffer[k] ^= s[s[i] + s[j] & 0xFF];
         }
     }
 

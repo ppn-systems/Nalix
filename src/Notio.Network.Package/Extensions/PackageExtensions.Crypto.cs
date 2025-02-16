@@ -28,7 +28,7 @@ public static partial class PackageExtensions
         try
         {
             // Encrypt the payload using the helper class.
-            Memory<byte> encryptedPayload = Cipher.Encrypt(packet.Payload, key, algorithm);
+            Memory<byte> encryptedPayload = Ciphers.Encrypt(packet.Payload, key, algorithm);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsEncrypted),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, encryptedPayload);
@@ -55,7 +55,7 @@ public static partial class PackageExtensions
         try
         {
             // Decrypt the payload using the helper class.
-            Memory<byte> decryptedPayload = Cipher.Decrypt(packet.Payload, key, algorithm);
+            Memory<byte> decryptedPayload = Ciphers.Decrypt(packet.Payload, key, algorithm);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsEncrypted),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decryptedPayload);

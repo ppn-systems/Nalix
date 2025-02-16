@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Cryptography.Ciphers.Integrity;
+namespace Notio.Cryptography.Integrity;
 
 /// <summary>
 /// A CRC 8 Utility using x^8 + x^7 + x^6 + x^4 + x^2 + 1

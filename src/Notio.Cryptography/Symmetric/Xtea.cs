@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
+namespace Notio.Cryptography.Symmetric;
 
 /// <summary>
 /// Provides static methods for encrypting and decrypting data using the XTEA algorithm.
@@ -26,7 +26,7 @@ public static class Xtea
             throw new ArgumentException("Key must be exactly 4 elements", nameof(key));
 
         int length = data.Length;
-        int paddedLength = (length + 7) & ~7;
+        int paddedLength = length + 7 & ~7;
 
         if (output.Length < paddedLength)
             throw new ArgumentException("Output buffer is too small", nameof(output));
@@ -46,9 +46,9 @@ public static class Xtea
 
             for (int i = 0; i < NumRounds; i++)
             {
-                v0 += ((v1 << 4) ^ (v1 >> 5)) + v1 ^ sum + keySpan[(int)(sum & 3)];
+                v0 += (v1 << 4 ^ v1 >> 5) + v1 ^ sum + keySpan[(int)(sum & 3)];
                 sum += Delta;
-                v1 += ((v0 << 4) ^ (v0 >> 5)) + v0 ^ sum + keySpan[(int)((sum >> 11) & 3)];
+                v1 += (v0 << 4 ^ v0 >> 5) + v0 ^ sum + keySpan[(int)(sum >> 11 & 3)];
             }
 
             words[pos] = v0;
@@ -84,9 +84,9 @@ public static class Xtea
 
             for (int i = 0; i < NumRounds; i++)
             {
-                v1 -= ((v0 << 4) ^ (v0 >> 5)) + v0 ^ sum + keySpan[(int)((sum >> 11) & 3)];
+                v1 -= (v0 << 4 ^ v0 >> 5) + v0 ^ sum + keySpan[(int)(sum >> 11 & 3)];
                 sum -= Delta;
-                v0 -= ((v1 << 4) ^ (v1 >> 5)) + v1 ^ sum + keySpan[(int)(sum & 3)];
+                v0 -= (v1 << 4 ^ v1 >> 5) + v1 ^ sum + keySpan[(int)(sum & 3)];
             }
 
             words[pos] = v0;

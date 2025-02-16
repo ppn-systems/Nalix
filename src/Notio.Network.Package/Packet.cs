@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Cryptography.Ciphers.Integrity;
+using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Metadata;

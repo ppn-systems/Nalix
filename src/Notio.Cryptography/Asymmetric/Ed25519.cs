@@ -4,7 +4,7 @@ using System;
 using System.Numerics;
 using System.Threading;
 
-namespace Notio.Cryptography.Ciphers.Asymmetric;
+namespace Notio.Cryptography.Asymmetric;
 
 /// <summary>
 /// Represents the Ed25519 cryptographic algorithm for public key signing and verification.
@@ -42,7 +42,7 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<Sha256> Sha512 = new();
+    private static readonly ThreadLocal<SHA256> Sha512 = new();
 
     /// <summary>
     /// Computes the SHA-512 hash of the provided data.
@@ -50,7 +50,7 @@ public sealed class Ed25519
     /// <param name="data">The data to hash.</param>
     /// <returns>The hash of the data as a byte array.</returns>
     public static byte[] ComputeHash(ReadOnlySpan<byte> data)
-        => (Sha512.Value ?? new Sha256()).ComputeHash(data);
+        => (Sha512.Value ?? new SHA256()).ComputeHash(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
@@ -276,7 +276,7 @@ public sealed class Ed25519
         var denominator = (D * y * y + BigInteger.One).Mod(Q);
         var xx = numerator * Inv(denominator) % Q;
         var x = BigInteger.ModPow(xx, (Q + 3) / 8, Q);
-        return (x * x % Q == xx) ? x : (x * I) % Q;
+        return x * x % Q == xx ? x : x * I % Q;
     }
 
     private static bool PointEquals(Point a, Point b)

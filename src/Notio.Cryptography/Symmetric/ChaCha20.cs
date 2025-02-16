@@ -22,7 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Threading.Tasks;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
+namespace Notio.Cryptography.Symmetric;
 
 /// <summary>
 /// Chosen SIMD mode
@@ -104,8 +104,8 @@ public sealed class ChaCha20 : IDisposable
     /// </param>
     public ChaCha20(byte[] key, byte[] nonce, uint counter)
     {
-        this.KeySetup(key);
-        this.IvSetup(nonce, counter);
+        KeySetup(key);
+        IvSetup(nonce, counter);
     }
 
     /// <summary>
@@ -119,8 +119,8 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="counter">A 4-byte (32-bit) block counter, treated as a 32-bit little-endian unsigned integer</param>
     public ChaCha20(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, uint counter)
     {
-        this.KeySetup(key.ToArray());
-        this.IvSetup(nonce.ToArray(), counter);
+        KeySetup(key.ToArray());
+        IvSetup(nonce.ToArray(), counter);
     }
 
     /// <summary>
@@ -155,23 +155,23 @@ public sealed class ChaCha20 : IDisposable
             throw new ArgumentException($"Key length must be {allowedKeyLength}. Actual: {key.Length}");
         }
 
-        this.state[4] = BitwiseUtils.U8To32Little(key, 0);
-        this.state[5] = BitwiseUtils.U8To32Little(key, 4);
-        this.state[6] = BitwiseUtils.U8To32Little(key, 8);
-        this.state[7] = BitwiseUtils.U8To32Little(key, 12);
+        state[4] = BitwiseUtils.U8To32Little(key, 0);
+        state[5] = BitwiseUtils.U8To32Little(key, 4);
+        state[6] = BitwiseUtils.U8To32Little(key, 8);
+        state[7] = BitwiseUtils.U8To32Little(key, 12);
 
         byte[] constants = key.Length == allowedKeyLength ? sigma : tau;
         int keyIndex = key.Length - 16;
 
-        this.state[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
-        this.state[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
-        this.state[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
-        this.state[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
+        state[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
+        state[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
+        state[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
+        state[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
 
-        this.state[0] = BitwiseUtils.U8To32Little(constants, 0);
-        this.state[1] = BitwiseUtils.U8To32Little(constants, 4);
-        this.state[2] = BitwiseUtils.U8To32Little(constants, 8);
-        this.state[3] = BitwiseUtils.U8To32Little(constants, 12);
+        state[0] = BitwiseUtils.U8To32Little(constants, 0);
+        state[1] = BitwiseUtils.U8To32Little(constants, 4);
+        state[2] = BitwiseUtils.U8To32Little(constants, 8);
+        state[3] = BitwiseUtils.U8To32Little(constants, 12);
     }
 
     /// <summary>
@@ -188,21 +188,21 @@ public sealed class ChaCha20 : IDisposable
         if (nonce == null)
         {
             // There has already been some state set up. Clear it before exiting.
-            this.Dispose();
+            Dispose();
             throw new ArgumentNullException(nameof(nonce));
         }
 
         if (nonce.Length != allowedNonceLength)
         {
             // There has already been some state set up. Clear it before exiting.
-            this.Dispose();
+            Dispose();
             throw new ArgumentException($"Nonce length must be {allowedNonceLength}. Actual: {nonce.Length}", nameof(nonce));
         }
 
-        this.state[12] = counter;
-        this.state[13] = BitwiseUtils.U8To32Little(nonce, 0);
-        this.state[14] = BitwiseUtils.U8To32Little(nonce, 4);
-        this.state[15] = BitwiseUtils.U8To32Little(nonce, 8);
+        state[12] = counter;
+        state[13] = BitwiseUtils.U8To32Little(nonce, 0);
+        state[14] = BitwiseUtils.U8To32Little(nonce, 4);
+        state[15] = BitwiseUtils.U8To32Little(nonce, 8);
     }
 
     private static SimdMode DetectSimdMode()
@@ -552,7 +552,7 @@ public sealed class ChaCha20 : IDisposable
         while ((readBytes = input.Read(inputBuffer, 0, howManyBytesToProcessAtTime)) > 0)
         {
             // Encrypt or decrypt
-            this.WorkBytes(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
+            WorkBytes(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
 
             // Write buffer
             output.Write(outputBuffer, 0, readBytes);
@@ -568,7 +568,7 @@ public sealed class ChaCha20 : IDisposable
         while (howManyBytesWereRead > 0)
         {
             // Encrypt or decrypt
-            this.WorkBytes(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
+            WorkBytes(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
 
             // Write
             await output.WriteAsync(writeBytesBuffer.AsMemory(0, howManyBytesWereRead));

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Ciphers.Symmetric;
+namespace Notio.Cryptography.Symmetric;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the ChaCha20 stream cipher combined with Poly1305 for message authentication.
@@ -112,7 +112,7 @@ public class ChaCha20Poly1305
     // ----------------------------
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Rotl(uint x, int n) => x << n | x >> (32 - n);
+    private static uint Rotl(uint x, int n) => x << n | x >> 32 - n;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QuarterRound(ref uint a, ref uint b, ref uint c, ref uint d)
@@ -195,8 +195,8 @@ public class ChaCha20Poly1305
     private static byte[] Poly1305Compute(byte[] polyKey, byte[] aad, byte[] ciphertext)
     {
         // Calculate necessary padding for AAD and ciphertext.
-        int aadPad = (16 - (aad.Length % 16)) % 16;
-        int ctPad = (16 - (ciphertext.Length % 16)) % 16;
+        int aadPad = (16 - aad.Length % 16) % 16;
+        int ctPad = (16 - ciphertext.Length % 16) % 16;
         int totalLength = aad.Length + aadPad + ciphertext.Length + ctPad + 16; // 16 bytes for AAD and CT lengths (8 each)
         byte[] msg = new byte[totalLength];
         int offset = 0;

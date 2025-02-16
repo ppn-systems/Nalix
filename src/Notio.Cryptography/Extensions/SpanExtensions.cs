@@ -17,16 +17,8 @@ internal static class SpanExtensions
         if (System.Runtime.CompilerServices.Unsafe.SizeOf<TFrom>() != System.Runtime.CompilerServices.Unsafe.SizeOf<TTo>())
             throw new System.InvalidOperationException("Size mismatch between TFrom and TTo.");
 
-#if UNSAFE
         ref TFrom fromRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span);
         ref TTo toRef = ref System.Runtime.CompilerServices.Unsafe.As<TFrom, TTo>(ref fromRef);
         return System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref toRef, span.Length);
-#else
-        return System.Runtime.InteropServices.MemoryMarshal.Cast<TFrom, TTo>(span);
-#endif
     }
-
-    public static uint ReverseEndian(this uint value)
-        => (value & 0x000000FF) << 24 | (value & 0x0000FF00) << 8 |
-           (value & 0x00FF0000) >> 8 | (value & 0xFF000000) >> 24;
 }

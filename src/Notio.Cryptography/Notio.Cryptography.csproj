@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Platforms>AnyCPU</Platforms>
@@ -25,6 +25,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Notio\Notio.csproj" />
     <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Hash\Argon\" />
   </ItemGroup>
 
 </Project>

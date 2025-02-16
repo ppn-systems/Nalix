@@ -3,7 +3,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Cryptography.Ciphers.Mac;
+namespace Notio.Cryptography.Mac;
 
 /// <summary>
 /// Represents the Poly1305 message authentication code (MAC) algorithm, used for ensuring the integrity and authenticity of messages.

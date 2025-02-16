@@ -6,7 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 
-namespace Notio.Cryptography.Ciphers.Asymmetric;
+namespace Notio.Cryptography.Asymmetric;
 
 /// <summary>
 /// Class that provides encryption and authentication methods using SRP-6.
@@ -57,7 +57,7 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
     /// <returns>Authentication set as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] s, string I, string p)
     {
-        byte[] P = Sha256.HashData(Encoding.UTF8.GetBytes($"{I}:{p}"));
+        byte[] P = SHA256.HashData(Encoding.UTF8.GetBytes($"{I}:{p}"));
         BigInteger x = Hash(true, new BigInteger(s, true), new BigInteger(P, true));
 
         return BigInteger.ModPow(g, x, N).ToByteArray();
@@ -115,7 +115,7 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
         if (A == BigInteger.Zero || B == BigInteger.Zero || S == BigInteger.Zero)
             throw new CryptographicException("Missing data from previous operations: A, B, S");
 
-        var IHash = Sha256.HashData(I);
+        var IHash = SHA256.HashData(I);
         BigInteger serverM1 = Hash(false, Hash(false, N) ^ Hash(false, g),
             new BigInteger(IHash, true), s, A, B, K);
 
@@ -144,7 +144,7 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
 
     private static BigInteger Hash(bool reverse, params BigInteger[] integers)
     {
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
         sha256.Initialize();
 
         for (int i = 0; i < integers.Length; i++)
@@ -184,8 +184,8 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
         byte[] F = new byte[length / 2];
         for (uint i = 0u; i < F.Length; i++)
             F[i] = T[i * 2 + 1];
-        byte[] G = Sha256.HashData(E);
-        byte[] H = Sha256.HashData(F);
+        byte[] G = SHA256.HashData(E);
+        byte[] H = SHA256.HashData(F);
 
         byte[] K = new byte[G.Length + H.Length];
         for (uint i = 0u; i < K.Length; i++)
