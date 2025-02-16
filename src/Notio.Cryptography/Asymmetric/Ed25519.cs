@@ -14,35 +14,12 @@ public sealed class Ed25519
     /// <summary>
     /// Size of the public key in bytes.
     /// </summary>
-    private const int PublicKeySize = 32;
+    public const int PublicKeySize = 32;
 
     /// <summary>
     /// Size of the signature in bytes.
     /// </summary>
-    private const int SignatureSize = 64;
-
-    // Precomputed constants
-
-    private static readonly BigInteger Q = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
-    private static readonly BigInteger L = BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989");
-    private static readonly BigInteger D = BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740");
-    private static readonly BigInteger I = BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752");
-
-    // Base point B
-    private static readonly Point B = new(
-        BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202").Mod(Q),
-        BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974").Mod(Q)
-    );
-
-    // Point struct (immutable)
-    private readonly struct Point(BigInteger x, BigInteger y)
-    {
-        public readonly BigInteger X = x;
-        public readonly BigInteger Y = y;
-    }
-
-    // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<SHA256> Sha512 = new();
+    public const int SignatureSize = 64;
 
     /// <summary>
     /// Computes the SHA-512 hash of the provided data.
@@ -51,58 +28,6 @@ public sealed class Ed25519
     /// <returns>The hash of the data as a byte array.</returns>
     public static byte[] ComputeHash(ReadOnlySpan<byte> data)
         => (Sha512.Value ?? new SHA256()).ComputeHash(data);
-
-    /// <summary>
-    /// Computes the modular inverse of the given value using Fermat's little theorem.
-    /// </summary>
-    /// <param name="x">The value to invert.</param>
-    /// <returns>The modular inverse of the value.</returns>
-    private static BigInteger Inv(BigInteger x) => BigInteger.ModPow(x, Q - 2, Q);
-
-    /// <summary>
-    /// Performs optimized point addition on the Edwards curve.
-    /// </summary>
-    /// <param name="p">First point to add.</param>
-    /// <param name="q">Second point to add.</param>
-    /// <returns>The result of the point addition.</returns>
-    private static Point Edwards(Point p, Point q)
-    {
-        var a = p.Y.ModAdd(p.X, Q);
-        var b = q.Y.ModAdd(q.X, Q);
-        var c = p.Y.ModSub(p.X, Q);
-        var d = q.Y.ModSub(q.X, Q);
-        var e = a.MultiplyMod(b, Q);
-        var f = c.MultiplyMod(d, Q);
-
-        // Precompute factor for x3 and y3
-        var factor = D.MultiplyMod(e.MultiplyMod(f, Q), Q);
-        var inv1 = Inv(factor.ModAdd(BigInteger.One, Q));
-        var inv2 = Inv(BigInteger.One.ModSub(factor, Q));
-
-        var x3 = e.ModSub(f, Q).MultiplyMod(inv1, Q);
-        var y3 = e.ModAdd(f, Q).MultiplyMod(inv2, Q);
-        return new Point(x3, y3);
-    }
-
-    /// <summary>
-    /// Performs scalar multiplication on a point using the double-and-add algorithm.
-    /// </summary>
-    /// <param name="p">The point to multiply.</param>
-    /// <param name="e">The scalar to multiply the point by.</param>
-    /// <returns>The resulting point from the scalar multiplication.</returns>
-    private static Point ScalarMul(Point p, BigInteger e)
-    {
-        Point result = new(BigInteger.Zero, BigInteger.One);
-        Point current = p;
-        while (e > 0)
-        {
-            if (!e.IsEven)
-                result = Edwards(result, current);
-            current = Edwards(current, current);
-            e >>= 1;
-        }
-        return result;
-    }
 
     /// <summary>
     /// Signs a message with the provided private key using the Ed25519 algorithm.
@@ -205,6 +130,58 @@ public sealed class Ed25519
     }
 
     /// <summary>
+    /// Computes the modular inverse of the given value using Fermat's little theorem.
+    /// </summary>
+    /// <param name="x">The value to invert.</param>
+    /// <returns>The modular inverse of the value.</returns>
+    private static BigInteger Inv(BigInteger x) => BigInteger.ModPow(x, Q - 2, Q);
+
+    /// <summary>
+    /// Performs optimized point addition on the Edwards curve.
+    /// </summary>
+    /// <param name="p">First point to add.</param>
+    /// <param name="q">Second point to add.</param>
+    /// <returns>The result of the point addition.</returns>
+    private static Point Edwards(Point p, Point q)
+    {
+        var a = p.Y.ModAdd(p.X, Q);
+        var b = q.Y.ModAdd(q.X, Q);
+        var c = p.Y.ModSub(p.X, Q);
+        var d = q.Y.ModSub(q.X, Q);
+        var e = a.MultiplyMod(b, Q);
+        var f = c.MultiplyMod(d, Q);
+
+        // Precompute factor for x3 and y3
+        var factor = D.MultiplyMod(e.MultiplyMod(f, Q), Q);
+        var inv1 = Inv(factor.ModAdd(BigInteger.One, Q));
+        var inv2 = Inv(BigInteger.One.ModSub(factor, Q));
+
+        var x3 = e.ModSub(f, Q).MultiplyMod(inv1, Q);
+        var y3 = e.ModAdd(f, Q).MultiplyMod(inv2, Q);
+        return new Point(x3, y3);
+    }
+
+    /// <summary>
+    /// Performs scalar multiplication on a point using the double-and-add algorithm.
+    /// </summary>
+    /// <param name="p">The point to multiply.</param>
+    /// <param name="e">The scalar to multiply the point by.</param>
+    /// <returns>The resulting point from the scalar multiplication.</returns>
+    private static Point ScalarMul(Point p, BigInteger e)
+    {
+        Point result = new(BigInteger.Zero, BigInteger.One);
+        Point current = p;
+        while (e > 0)
+        {
+            if (!e.IsEven)
+                result = Edwards(result, current);
+            current = Edwards(current, current);
+            e >>= 1;
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Clamps the scalar to meet the Ed25519 specifications.
     /// </summary>
     /// <param name="s">The scalar to clamp.</param>
@@ -300,4 +277,27 @@ public sealed class Ed25519
 
     private static BigInteger DecodeScalar(ReadOnlySpan<byte> data)
         => new BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
+
+    // Precomputed constants
+
+    private static readonly BigInteger Q = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
+    private static readonly BigInteger L = BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989");
+    private static readonly BigInteger D = BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740");
+    private static readonly BigInteger I = BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752");
+
+    // Base point B
+    private static readonly Point B = new(
+        BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202").Mod(Q),
+        BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974").Mod(Q)
+    );
+
+    // Point struct (immutable)
+    private readonly struct Point(BigInteger x, BigInteger y)
+    {
+        public readonly BigInteger X = x;
+        public readonly BigInteger Y = y;
+    }
+
+    // Optimized SHA-512 with buffer reuse (thread-local instance)
+    private static readonly ThreadLocal<SHA256> Sha512 = new();
 }

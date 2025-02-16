@@ -19,17 +19,6 @@ namespace Notio.Cryptography.Asymmetric;
 /// <param name="v">Authentication set.</param>
 public sealed class Srp6(string I, byte[] s, byte[] v)
 {
-    private readonly byte[] I = Encoding.UTF8.GetBytes(I);
-    private readonly BigInteger v = new(v, true);
-    private readonly BigInteger s = new(s, true);
-
-    private BigInteger A;
-    private BigInteger b;
-    private BigInteger B;
-    private BigInteger S;
-    private BigInteger M1;
-    private BigInteger K;
-
     /// <summary>
     /// Base g.
     /// </summary>
@@ -47,6 +36,17 @@ public sealed class Srp6(string I, byte[] s, byte[] v)
         0xE0, 0xC6, 0x92, 0xD6, 0x13, 0x48, 0x3B, 0x38, 0xD3, 0x81, 0xEA, 0x96, 0x74, 0xDF, 0x74, 0xD6,
         0x76, 0x65, 0x25, 0x9C, 0x4C, 0x31, 0xA2, 0x9E, 0x0B, 0x3C, 0xFF, 0x75, 0x87, 0x61, 0x72, 0x60,
         0xE8, 0xC5, 0x8F, 0xFA, 0x0A, 0xF8, 0x33, 0x9C, 0xD6, 0x8D, 0xB3, 0xAD, 0xB9, 0x0A, 0xAF, 0xEE ], true);
+
+    private readonly byte[] I = Encoding.UTF8.GetBytes(I);
+    private readonly BigInteger v = new(v, true);
+    private readonly BigInteger s = new(s, true);
+
+    private BigInteger A;
+    private BigInteger b;
+    private BigInteger B;
+    private BigInteger S;
+    private BigInteger M1;
+    private BigInteger K;
 
     /// <summary>
     /// Create an authenticator from a key string, username, and password.

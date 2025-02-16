@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015, 2018 Scott Bennett
- *           (c) 2018-2023 Kaarlo Räihä
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
 using Notio.Cryptography.Utilities;
 using System;
 using System.IO;
@@ -23,37 +6,6 @@ using System.Runtime.Intrinsics;
 using System.Threading.Tasks;
 
 namespace Notio.Cryptography.Symmetric;
-
-/// <summary>
-/// Chosen SIMD mode
-/// </summary>
-public enum SimdMode
-{
-    /// <summary>
-    /// Autodetect
-    /// </summary>
-    AutoDetect = 0,
-
-    /// <summary>
-    /// 128 bit SIMD
-    /// </summary>
-    V128,
-
-    /// <summary>
-    /// 256 bit SIMD
-    /// </summary>
-    V256,
-
-    /// <summary>
-    /// 512 bit SIMD
-    /// </summary>
-    V512,
-
-    /// <summary>
-    /// No SIMD
-    /// </summary>
-    None
-}
 
 /// <summary>
 /// Class for ChaCha20 encryption / decryption
@@ -780,4 +732,35 @@ public sealed class ChaCha20 : IDisposable
     }
 
     #endregion Destructor and Disposer
+}
+
+/// <summary>
+/// Chosen SIMD mode
+/// </summary>
+public enum SimdMode
+{
+    /// <summary>
+    /// Autodetect
+    /// </summary>
+    AutoDetect = 0,
+
+    /// <summary>
+    /// 128 bit SIMD
+    /// </summary>
+    V128,
+
+    /// <summary>
+    /// 256 bit SIMD
+    /// </summary>
+    V256,
+
+    /// <summary>
+    /// 512 bit SIMD
+    /// </summary>
+    V512,
+
+    /// <summary>
+    /// No SIMD
+    /// </summary>
+    None
 }
