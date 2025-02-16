@@ -10,7 +10,7 @@ namespace Nalix.Shared.Memory.Pools;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ListPool{T}"/> class.
 /// </remarks>
-/// <param name="maxPoolSize">The maximum ProtocolType of lists to keep in the pool.</param>
+/// <param name="maxPoolSize">The maximum number of lists to keep in the pool.</param>
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
 public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCapacity)
 {
@@ -54,32 +54,32 @@ public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCa
     public static ListPool<T> Instance { get; } = new();
 
     /// <summary>
-    /// Gets the ProtocolType of lists currently available in the pool.
+    /// Gets the number of lists currently available in the pool.
     /// </summary>
     public System.Int32 AvailableCount => _listBag.Count;
 
     /// <summary>
-    /// Gets the total ProtocolType of lists created by this pool.
+    /// Gets the total number of lists created by this pool.
     /// </summary>
     public System.Int64 CreatedCount => System.Threading.Interlocked.Read(ref _created);
 
     /// <summary>
-    /// Gets the ProtocolType of lists currently rented from the pool.
+    /// Gets the number of lists currently rented from the pool.
     /// </summary>
     public System.Int64 RentedCount => System.Threading.Interlocked.Read(ref _rented) - System.Threading.Interlocked.Read(ref _returned);
 
     /// <summary>
-    /// Gets the total ProtocolType of rent operations performed.
+    /// Gets the total number of rent operations performed.
     /// </summary>
     public System.Int64 TotalRentOperations => System.Threading.Interlocked.Read(ref _rented);
 
     /// <summary>
-    /// Gets the total ProtocolType of return operations performed.
+    /// Gets the total number of return operations performed.
     /// </summary>
     public System.Int64 TotalReturnOperations => System.Threading.Interlocked.Read(ref _returned);
 
     /// <summary>
-    /// Gets the ProtocolType of lists that have been trimmed from the pool.
+    /// Gets the number of lists that have been trimmed from the pool.
     /// </summary>
     public System.Int64 TrimmedCount => System.Threading.Interlocked.Read(ref _trimmed);
 
@@ -172,7 +172,7 @@ public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCa
     /// <summary>
     /// Creates and initializes multiple lists in the pool.
     /// </summary>
-    /// <param name="count">The ProtocolType of lists to preallocate.</param>
+    /// <param name="count">The number of lists to preallocate.</param>
     /// <param name="capacity">The capacity for each preallocated list.</param>
     public void Prealloc(System.Int32 count, System.Int32 capacity = 0)
     {
@@ -202,8 +202,8 @@ public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCa
     /// <summary>
     /// Trims the pool to a specified size.
     /// </summary>
-    /// <param name="maximumSize">The maximum ProtocolType of lists to keep in the pool.</param>
-    /// <returns>The ProtocolType of lists removed from the pool.</returns>
+    /// <param name="maximumSize">The maximum number of lists to keep in the pool.</param>
+    /// <returns>The number of lists removed from the pool.</returns>
     public System.Int32 Trim(System.Int32 maximumSize = 0)
     {
         System.Int32 targetSize = maximumSize > 0 ? maximumSize : _maxPoolSize / 2;
@@ -226,7 +226,7 @@ public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCa
     /// <summary>
     /// Clears all lists from the pool.
     /// </summary>
-    /// <returns>The ProtocolType of lists removed from the pool.</returns>
+    /// <returns>The number of lists removed from the pool.</returns>
     public System.Int32 Clear()
     {
         System.Int32 count = _listBag.Count;
@@ -281,15 +281,7 @@ public sealed class ListPool<T>(System.Int32 maxPoolSize, System.Int32 initialCa
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 ValidateCapacity(System.Int32 capacity)
-    {
-        if (capacity <= 0)
-        {
-            return DefaultInitialCapacity;
-        }
-
-        return capacity > MaxInitialCapacity ? MaxInitialCapacity : capacity;
-    }
+    private static System.Int32 ValidateCapacity(System.Int32 capacity) => capacity <= 0 ? DefaultInitialCapacity : capacity > MaxInitialCapacity ? MaxInitialCapacity : capacity;
 
     #endregion Private Methods
 }
