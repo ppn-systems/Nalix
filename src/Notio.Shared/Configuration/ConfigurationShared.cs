@@ -1,4 +1,4 @@
-﻿using Notio.Shared.Injection;
+using Notio.Shared.Injection;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +17,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     /// Khởi tạo một instance của <see cref="ConfiguredShared"/>.
     /// </summary>
     private ConfiguredShared()
-        => _iniFile = new(Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini"));
+        => _iniFile = new(Path.Combine(DirectoriesDefault.ConfigPath, "Configured.ini"));
 
     /// <summary>
     /// Khởi tạo nếu cần và trả về <typeparamref name="TClass"/>.

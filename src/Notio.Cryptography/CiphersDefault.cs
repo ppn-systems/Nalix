@@ -3,7 +3,7 @@ namespace Notio.Cryptography;
 /// <summary>
 /// Provides default values for cryptographic ciphers.
 /// </summary>
-public static class CiphersDefaults
+public static class CiphersDefault
 {
     /// <summary>
     /// The number of iterations

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 
 namespace Notio.Shared;
@@ -6,7 +6,7 @@ namespace Notio.Shared;
 /// <summary>
 /// Class that defines default directories for the application.
 /// </summary>
-public static class DefaultDirectories
+public static class DirectoriesDefault
 {
     private static readonly Lazy<string> _basePath = new(() => AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
     private static readonly Lazy<string> _dataPath = new(() => Path.Combine(BasePath, "Data"));
@@ -49,7 +49,7 @@ public static class DefaultDirectories
     /// Static constructor to initialize the default directories.
     /// Ensures that all necessary directories are created.
     /// </summary>
-    static DefaultDirectories()
+    static DirectoriesDefault()
         => EnsureDirectoriesExist(LogsPath, DataPath, ConfigPath, TempPath, StoragePath);
 
     /// <summary>

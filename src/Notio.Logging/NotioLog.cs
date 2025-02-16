@@ -14,6 +14,15 @@ namespace Notio.Logging;
 public sealed class NotioLog : LoggingEngine, ILogger
 {
     /// <summary>
+    /// Gets the single instance of the <see cref="NotioLog"/> class.
+    /// </summary>
+    public static NotioLog Instance { get; } = new(cfg => cfg
+        .SetMinLevel(LoggingLevel.Information)
+        .AddTarget(new ConsoleLoggingTarget())
+        .AddTarget(new FileLoggingTarget(cfg.LogDirectory, cfg.LogFileName))
+    );
+
+    /// <summary>
     /// Initializes the logging system with optional configuration.
     /// </summary>
     /// <param name="configure">An optional action to configure the logging system.</param>
