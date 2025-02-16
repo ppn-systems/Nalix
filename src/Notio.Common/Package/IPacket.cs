@@ -5,7 +5,7 @@ namespace Notio.Common.Package;
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
-public interface IPacket : IDisposable
+public interface IPacket : IDisposable, IEquatable<IPacket>
 {
     /// <summary>
     /// Gets the total length of the packet.

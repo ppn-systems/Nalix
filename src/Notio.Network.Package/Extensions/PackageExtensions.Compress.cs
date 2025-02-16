@@ -24,7 +24,7 @@ public static partial class PackageExtensions
 
         try
         {
-            byte[] compressedData = PayloadCompression.Compress(packet.Payload);
+            byte[] compressedData = DataCompression.Compress(packet.Payload);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, compressedData);
@@ -49,7 +49,7 @@ public static partial class PackageExtensions
 
         try
         {
-            byte[] decompressedData = PayloadCompression.Decompress(packet.Payload);
+            byte[] decompressedData = DataCompression.Decompress(packet.Payload);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decompressedData);

@@ -4,6 +4,7 @@ using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Metadata;
+using Notio.Network.Package.Utilities;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -17,11 +18,8 @@ namespace Notio.Network.Package;
 /// This packet contains metadata and a payload with associated checksum and flags.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Packet : IPacket, IEquatable<Packet>
+public readonly struct Packet : IPacket
 {
-    private const int StackAllocThreshold = 256;
-    private const int HeapAllocThreshold = 1024;
-
     /// <summary>
     /// The minimum packet size (in bytes).
     /// </summary>
@@ -152,7 +150,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
         this.Flags = flags;
         this.Command = command;
         this.Priority = priority;
-        (this.Payload, this.IsPooled) = AllocateAndCopyPayload(payload);
+        (this.Payload, this.IsPooled) = DataMemory.Allocate(payload);
         this.Checksum = checksum ?? Crc32.HashToUInt32(payload.Span);
     }
 
@@ -219,12 +217,13 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
     /// <param name="other">The packet to compare with.</param>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Packet other)
+    public readonly bool Equals(IPacket? other)
     {
-        if (Type != other.Type || Flags != other.Flags || Command != other.Command || Priority != other.Priority)
+        if (other is null || Type != other.Type || Flags != other.Flags ||
+            Command != other.Command || Priority != other.Priority)
             return false;
 
-        return PayloadSpan.SequenceEqual(other.PayloadSpan);
+        return Payload.Span.SequenceEqual(other.Payload.Span);
     }
 
     /// <summary>
@@ -288,33 +287,4 @@ public readonly struct Packet : IPacket, IEquatable<Packet>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong GetMicrosecondTimestamp() => (ulong)(Stopwatch.GetTimestamp() / (Stopwatch.Frequency / 1_000_000L));
-
-    private ReadOnlySpan<byte> PayloadSpan => Payload.Span;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (Memory<byte> payload, bool isPooled) AllocateAndCopyPayload(Memory<byte> payload)
-    {
-        if (payload.IsEmpty) return (Memory<byte>.Empty, false);
-
-        int length = payload.Length;
-
-        if (length <= StackAllocThreshold)
-        {
-            Span<byte> stackBuffer = stackalloc byte[length]; // Stack allocation for small sizes
-            payload.Span.CopyTo(stackBuffer);
-            return (stackBuffer.ToArray(), false); // Copy to heap before returning
-        }
-        else if (length <= HeapAllocThreshold)
-        {
-            byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true); // Heap allocation for mid-size
-            payload.Span.CopyTo(buffer);
-            return (buffer, false);
-        }
-        else
-        {
-            var result = ArrayPool<byte>.Shared.Rent(length); // Use ArrayPool for large sizes
-            payload.Span.CopyTo(result);
-            return (result, true);
-        }
-    }
 }

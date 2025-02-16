@@ -10,7 +10,7 @@ namespace Notio.Network.Package.Utilities;
 /// Provides methods for compressing and decompressing payloads using Brotli compression.
 /// </summary>
 [SkipLocalsInit]
-public static class PayloadCompression
+public static class DataCompression
 {
     private const int BufferSize = 8192; // 8KB buffer for streaming
 
