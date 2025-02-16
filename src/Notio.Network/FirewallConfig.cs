@@ -1,5 +1,4 @@
-using Notio.Network.Firewall.Configuration;
-using Notio.Network.Firewall.Enums;
+using Notio.Network.Firewall;
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
@@ -8,51 +7,39 @@ namespace Notio.Network;
 
 /// <summary>
 /// Represents the firewall configuration settings including rate limiting, connection limits, and bandwidth limits.
+/// This configuration helps manage and enforce security rules for traffic, connections, and request limits.
 /// </summary>
 public sealed class FirewallConfig : ConfiguredBinder
 {
     /// <summary>
     /// Gets or sets a value indicating whether logging is enabled.
+    /// <c>true</c> if logging is enabled; otherwise, <c>false</c>.
     /// </summary>
-    /// <value><c>true</c> if logging is enabled; otherwise, <c>false</c>.</value>
     public bool EnableLogging { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether metrics collection is enabled.
+    /// <c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.
     /// </summary>
-    /// <value><c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.</value>
     public bool EnableMetrics { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the bandwidth configuration.
-    /// </summary>
-    /// <value>The bandwidth configuration.</value>
-    [ConfiguredIgnore]
-    public BandwidthConfig Bandwidth { get; set; } = new BandwidthConfig();
 
     /// <summary>
     /// Gets or sets the connection configuration.
     /// </summary>
-    /// <value>The connection configuration.</value>
+    /// <value>The connection configuration, which includes the maximum connections per IP address.</value>
     [ConfiguredIgnore]
     public ConnectionConfig Connection { get; set; } = new ConnectionConfig();
 
     /// <summary>
     /// Gets or sets the rate limit configuration.
     /// </summary>
-    /// <value>The rate limit configuration.</value>
+    /// <value>The rate limit configuration, which defines the limits for requests per time window.</value>
     [ConfiguredIgnore]
     public RateLimitConfig RateLimit { get; set; } = new RateLimitConfig();
 
     /// <summary>
-    /// Gets or sets the bandwidth limit level.
-    /// </summary>
-    /// <value>The bandwidth limit level.</value>
-    [ConfiguredIgnore]
-    public BandwidthLimit BandwidthLimit { get; set; } = BandwidthLimit.Medium;
-
-    /// <summary>
     /// Gets or sets the connection limit level.
+    /// Specifies the level of connection limits applied to each IP address.
     /// </summary>
     /// <value>The connection limit level.</value>
     [ConfiguredIgnore]
@@ -60,6 +47,7 @@ public sealed class FirewallConfig : ConfiguredBinder
 
     /// <summary>
     /// Gets or sets the request limit level.
+    /// Specifies the level of request limits applied to the system.
     /// </summary>
     /// <value>The request limit level.</value>
     [ConfiguredIgnore]
@@ -67,16 +55,16 @@ public sealed class FirewallConfig : ConfiguredBinder
 
     /// <summary>
     /// Applies the configuration limits for request, bandwidth, and connection.
+    /// This method sets up limits according to the configured levels for requests and connections.
     /// </summary>
     public void ApplyLimits()
     {
         this.ApplyRequestLimit();
-        this.ApplyBandwidthLimit();
         this.ApplyConnectionLimit();
     }
 
     /// <summary>
-    /// Applies the request limit configuration.
+    /// Applies the request limit configuration based on the <see cref="RequestLimit"/> setting.
     /// </summary>
     private void ApplyRequestLimit()
     {
@@ -109,44 +97,7 @@ public sealed class FirewallConfig : ConfiguredBinder
     }
 
     /// <summary>
-    /// Applies the bandwidth limit configuration.
-    /// </summary>
-    private void ApplyBandwidthLimit()
-    {
-        switch (BandwidthLimit)
-        {
-            case BandwidthLimit.Low:
-                Bandwidth.MaxUploadBytesPerSecond = 512 * 1024; // 512KB/s
-                Bandwidth.MaxDownloadBytesPerSecond = 512 * 1024;
-                Bandwidth.UploadBurstSize = 1024 * 1024; // 1MB burst
-                Bandwidth.DownloadBurstSize = 1024 * 1024;
-                break;
-
-            case BandwidthLimit.Medium:
-                Bandwidth.MaxUploadBytesPerSecond = 1024 * 1024; // 1MB/s
-                Bandwidth.MaxDownloadBytesPerSecond = 1024 * 1024;
-                Bandwidth.UploadBurstSize = 2 * 1024 * 1024; // 2MB burst
-                Bandwidth.DownloadBurstSize = 2 * 1024 * 1024;
-                break;
-
-            case BandwidthLimit.High:
-                Bandwidth.MaxUploadBytesPerSecond = 5 * 1024 * 1024; // 5MB/s
-                Bandwidth.MaxDownloadBytesPerSecond = 5 * 1024 * 1024;
-                Bandwidth.UploadBurstSize = 10 * 1024 * 1024; // 10MB burst
-                Bandwidth.DownloadBurstSize = 10 * 1024 * 1024;
-                break;
-
-            case BandwidthLimit.Unlimited:
-                Bandwidth.MaxUploadBytesPerSecond = long.MaxValue;
-                Bandwidth.MaxDownloadBytesPerSecond = long.MaxValue;
-                Bandwidth.UploadBurstSize = int.MaxValue;
-                Bandwidth.DownloadBurstSize = int.MaxValue;
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Applies the connection limit configuration.
+    /// Applies the connection limit configuration based on the <see cref="ConnectionLimit"/> setting.
     /// </summary>
     private void ApplyConnectionLimit()
     {
@@ -171,7 +122,7 @@ public sealed class FirewallConfig : ConfiguredBinder
     }
 
     /// <summary>
-    /// Validates the firewall configuration.
+    /// Validates the firewall configuration to ensure all settings are within acceptable ranges.
     /// </summary>
     /// <param name="error">Returns the error message if validation fails.</param>
     /// <returns><c>true</c> if validation is successful; otherwise, <c>false</c>.</returns>

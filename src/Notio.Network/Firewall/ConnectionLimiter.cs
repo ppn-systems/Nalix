@@ -1,6 +1,5 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -12,6 +11,7 @@ namespace Notio.Network.Firewall;
 
 /// <summary>
 /// A class responsible for limiting and tracking the number of simultaneous connections from each IP address.
+/// It enforces connection limits to prevent abuse and provides monitoring of connection statistics for each IP address.
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
 {
@@ -211,3 +211,11 @@ public sealed class ConnectionLimiter : IDisposable
         }
     }
 }
+
+/// <summary>
+/// Represents connection-related information for monitoring and managing network traffic.
+/// </summary>
+internal readonly record struct ConnectionInfo(
+    int CurrentConnections, DateTime LastConnectionTime,
+    int TotalConnectionsToday, DateTime LastCleanupTime
+);

@@ -1,6 +1,5 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -12,8 +11,16 @@ using System.Threading.Tasks;
 namespace Notio.Network.Firewall;
 
 /// <summary>
-/// Lớp xử lý giới hạn tốc độ yêu cầu với các tính năng nâng cao về hiệu suất và bảo mật
+/// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.
+/// It tracks the number of requests from each IP address within a defined time window
+/// and blocks further requests when a threshold is exceeded.
 /// </summary>
+/// <remarks>
+/// This class provides a mechanism for tracking request attempts and enforcing rate limits.
+/// It uses a concurrent dictionary to track requests for each IP and enforces a lockout
+/// duration when the maximum number of requests is exceeded. A cleanup timer is used to periodically
+/// remove inactive request data.
+/// </remarks>
 public sealed class RequestLimiter : IDisposable
 {
     private readonly ILogger? _logger;
@@ -23,7 +30,7 @@ public sealed class RequestLimiter : IDisposable
     private readonly int _lockoutDurationSeconds;
     private readonly TimeSpan _timeWindowDuration;
     private readonly FirewallConfig _firewallConfig;
-    private readonly ConcurrentDictionary<string, RequestDataInfo> _ipData;
+    private readonly ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
 
     private bool _disposed;
 
@@ -33,6 +40,7 @@ public sealed class RequestLimiter : IDisposable
     /// <param name="networkConfig">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
     /// <param name="logger">An optional logger for logging purposes. If <see langword="null"/>, no logging will be done.</param>
     /// <exception cref="InternalErrorException">
+    /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
     public RequestLimiter(FirewallConfig? networkConfig, ILogger? logger = null)
     {
@@ -51,10 +59,10 @@ public sealed class RequestLimiter : IDisposable
         _maxAllowedRequests = _firewallConfig.RateLimit.MaxAllowedRequests;
         _lockoutDurationSeconds = _firewallConfig.RateLimit.LockoutDurationSeconds;
         _timeWindowDuration = TimeSpan.FromMilliseconds(_firewallConfig.RateLimit.TimeWindowInMilliseconds);
-        _ipData = new ConcurrentDictionary<string, RequestDataInfo>();
+        _ipData = new ConcurrentDictionary<string, RequestLimiterInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 
-        // Khởi tạo timer để tự động dọn dẹp
+        // Initialize the cleanup timer for automatic request cleanup
         _cleanupTimer = new Timer(
             async _ => await CleanupInactiveRequestsAsync(),
             null,
@@ -64,11 +72,12 @@ public sealed class RequestLimiter : IDisposable
     }
 
     /// <summary>
-    /// Kiểm tra và ghi nhận yêu cầu từ một địa chỉ IP
+    /// Checks the number of requests from an IP address and determines whether further requests are allowed based on rate-limiting rules.
     /// </summary>
-    /// <param name="endPoint">Địa chỉ IP cần kiểm tra</param>
-    /// <returns>true nếu yêu cầu được chấp nhận, false nếu bị từ chối</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the object is disposed</exception>
+    /// <param name="endPoint">The IP address to check the request limit for.</param>
+    /// <returns>true if the request is accepted, false if rejected.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
+    /// <exception cref="InternalErrorException">Thrown if the IP address is invalid.</exception>
     public bool CheckLimit(string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
@@ -80,7 +89,7 @@ public sealed class RequestLimiter : IDisposable
 
         bool status = _ipData.AddOrUpdate(
             endPoint,
-            _ => new RequestDataInfo(new Queue<DateTime>([currentTime]), null),
+            _ => new RequestLimiterInfo(new Queue<DateTime>([currentTime]), null),
             (_, data) => ProcessRequest(data, currentTime)
         ).BlockedUntil?.CompareTo(currentTime) <= 0;
 
@@ -90,28 +99,28 @@ public sealed class RequestLimiter : IDisposable
         return status;
     }
 
-    private RequestDataInfo ProcessRequest(RequestDataInfo data, DateTime currentTime)
+    private RequestLimiterInfo ProcessRequest(RequestLimiterInfo data, DateTime currentTime)
     {
         var (requests, blockedUntil) = data;
 
-        // Kiểm tra nếu IP đang bị khóa
+        // Check if the IP is currently blocked
         if (blockedUntil.HasValue && currentTime < blockedUntil.Value)
             return data;
 
-        // Loại bỏ các yêu cầu cũ
+        // Remove old requests
         while (requests.Count > 0 && currentTime - requests.Peek() > _timeWindowDuration)
             requests.Dequeue();
 
-        // Kiểm tra và cập nhật trạng thái
+        // If the maximum requests are reached, block the IP for the lockout duration
         if (requests.Count >= _maxAllowedRequests)
-            return new RequestDataInfo(requests, currentTime.AddSeconds(_lockoutDurationSeconds));
+            return new RequestLimiterInfo(requests, currentTime.AddSeconds(_lockoutDurationSeconds));
 
         requests.Enqueue(currentTime);
-        return new RequestDataInfo(requests, null);
+        return new RequestLimiterInfo(requests, null);
     }
 
     /// <summary>
-    /// Dọn dẹp các yêu cầu không còn hoạt động
+    /// Periodically cleans up inactive requests to remove expired data from the IP request tracking.
     /// </summary>
     private async Task CleanupInactiveRequestsAsync()
     {
@@ -133,7 +142,7 @@ public sealed class RequestLimiter : IDisposable
                 if (cleanedRequests.Count == 0 && (!data.BlockedUntil.HasValue || currentTime > data.BlockedUntil.Value))
                     keysToRemove.Add(ip);
                 else
-                    _ipData.TryUpdate(ip, new RequestDataInfo(cleanedRequests, data.BlockedUntil), data);
+                    _ipData.TryUpdate(ip, new RequestLimiterInfo(cleanedRequests, data.BlockedUntil), data);
             }
 
             foreach (var key in keysToRemove)
@@ -156,3 +165,11 @@ public sealed class RequestLimiter : IDisposable
         _ipData.Clear();
     }
 }
+
+/// <summary>
+/// Represents the data of a request, including the history of request timestamps and optional block expiration time.
+/// </summary>
+internal readonly record struct RequestLimiterInfo(
+    Queue<DateTime> Requests,
+    DateTime? BlockedUntil
+);
