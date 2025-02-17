@@ -7,8 +7,6 @@ namespace Notio.Cryptography.Integrity;
 /// </summary>
 public static class Crc8
 {
-    private const byte InitialValue = 0xFF;
-
     /// <summary>
     /// Computes the CRC 8 checksum of the specified bytes
     /// </summary>
@@ -30,7 +28,7 @@ public static class Crc8
         ArgumentOutOfRangeException.ThrowIfNegative(start);
         ArgumentOutOfRangeException.ThrowIfNegative(length);
 
-        byte crc = InitialValue;
+        byte crc = 0xFF;
         int end = start + length - 1;
 
         if (bytes.Length == 0)

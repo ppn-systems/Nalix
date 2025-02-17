@@ -5,8 +5,6 @@ namespace Notio.Cryptography.Integrity;
 /// </summary>
 public class Crc16
 {
-    private const ushort InitialValue = 0xFFFF;
-
     /// <summary>
     /// Calculates the CRC16 for a chunk of data in a byte array.
     /// </summary>
@@ -27,7 +25,7 @@ public class Crc16
         if (length < 0 || start + length > bytes.Length)
             throw new System.ArgumentOutOfRangeException(nameof(length));
 
-        ushort crc = InitialValue;
+        ushort crc = 0xFFFF;
         int end = start + length;
         for (int i = start; i < end; i++)
         {

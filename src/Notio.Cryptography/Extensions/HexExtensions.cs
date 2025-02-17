@@ -37,14 +37,14 @@ internal static class HexExtensions
     /// <param name="encoding">The encoding to use</param>
     /// <returns>
     /// The bytes of the string using the encoding if provided,
-    /// otherwise the default encoding is used. <see cref="CiphersDefault.DefaultEncoding"/>
+    /// otherwise the default encoding is used. <see cref="CiphersConstants.DefaultEncoding"/>
     /// </returns>
     public static byte[] ToBytes(this string str, Encoding encoding = null)
     {
         if (string.IsNullOrEmpty(str))
             throw new ArgumentException("Value cannot be null or an empty.", nameof(str));
 
-        encoding ??= CiphersDefault.DefaultEncoding;
+        encoding ??= CiphersConstants.DefaultEncoding;
         return encoding.GetBytes(str);
     }
 }
