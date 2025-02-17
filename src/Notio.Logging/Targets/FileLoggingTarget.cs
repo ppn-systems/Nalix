@@ -1,10 +1,10 @@
-namespace Notio.Logging.Targets;
-
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Formatters;
 using Notio.Logging.Internal.File;
 using System;
+
+namespace Notio.Logging.Targets;
 
 /// <summary>
 /// Standard file logger implementation that writes log messages to a file.
@@ -13,22 +13,42 @@ using System;
 /// This logger uses a specified formatter to format the log message before writing it to a file.
 /// The default behavior can be customized by providing a custom <see cref="ILoggingFormatter"/>.
 /// </remarks>
-public class FileLoggingTarget(ILoggingFormatter loggerFormatter, string directory, string filename) : ILoggingTarget, IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="FileLoggingTarget"/> class.
+/// </remarks>
+/// <param name="loggerFormatter">The log message formatter.</param>
+/// <param name="fileLoggerOptions">The file logger options.</param>
+public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions) : ILoggingTarget, IDisposable
 {
+    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter ?? throw new ArgumentNullException(nameof(loggerFormatter));
+
     /// <summary>
     /// The provider responsible for writing logs to a file.
     /// </summary>
-    public readonly FileLoggerProvider LoggerPrv = new(directory, filename);
-
-    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter;
+    public readonly FileLoggerProvider LoggerPrv = new(fileLoggerOptions);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
     /// </summary>
-    /// <param name="directory">The directory where the log file will be stored.</param>
-    /// <param name="filename">The name of the log file.</param>
-    public FileLoggingTarget(string directory, string filename) : this(new LoggingFormatter(false), directory, filename)
+    public FileLoggingTarget()
+        : this(new LoggingFormatter(false), new FileLoggerOptions())
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
+    /// </summary>
+    /// <param name="options">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
+    public FileLoggingTarget(Action<FileLoggerOptions> options)
+        : this(new LoggingFormatter(false), ConfigureOptions(options))
+    {
+    }
+
+    private static FileLoggerOptions ConfigureOptions(Action<FileLoggerOptions> options)
+    {
+        var fileLoggerOptions = new FileLoggerOptions();
+        options?.Invoke(fileLoggerOptions);
+        return fileLoggerOptions;
     }
 
     /// <summary>

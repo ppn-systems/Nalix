@@ -1,8 +1,6 @@
-﻿using Notio.Common.Enums;
+using Notio.Common.Enums;
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 
 namespace Notio.Logging.Formatters;
@@ -34,32 +32,12 @@ internal static class LoggingLevelFormatter
 
     static LoggingLevelFormatter()
     {
-        // Pre-cache tất cả log level strings
         Span<char> buffer = stackalloc char[LOG_LEVEL_LENGTH];
         for (var i = 0; i < MAX_LOG_LEVELS; i++)
         {
             LOG_LEVEL_CHARS.Slice(i * (LOG_LEVEL_LENGTH + 1), LOG_LEVEL_LENGTH).CopyTo(buffer);
             CACHED_LOG_LEVELS[i] = new string(buffer);
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool TryGetShortLogLevel(LoggingLevel logLevel, Span<char> destination)
-    {
-        if (!IsValidLogLevel(logLevel) || destination.Length < LOG_LEVEL_LENGTH)
-            return false;
-
-        ref char sourceRef = ref MemoryMarshal.GetReference(LOG_LEVEL_CHARS);
-        ref char destRef = ref MemoryMarshal.GetReference(destination);
-
-        var offset = (int)logLevel * (LOG_LEVEL_LENGTH + 1);
-        Unsafe.CopyBlockUnaligned(
-            ref Unsafe.As<char, byte>(ref destRef),
-            ref Unsafe.As<char, byte>(ref Unsafe.Add(ref sourceRef, offset)),
-            (uint)(LOG_LEVEL_LENGTH * sizeof(char))
-        );
-
-        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,55 +62,5 @@ internal static class LoggingLevelFormatter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool IsValidLogLevel(LoggingLevel logLevel) =>
-        (uint)logLevel < MAX_LOG_LEVELS;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void AppendLogLevel(StringBuilder builder, LoggingLevel logLevel)
-    {
-        if (!IsValidLogLevel(logLevel))
-        {
-            builder.Append(logLevel.ToString().ToUpperInvariant());
-            return;
-        }
-
-        // Sử dụng string đã cache
-        builder.Append(CACHED_LOG_LEVELS[(int)logLevel]);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool FormatLogLevel(LoggingLevel logLevel, Span<char> buffer, out int charsWritten)
-    {
-        if (!IsValidLogLevel(logLevel))
-        {
-            var str = logLevel.ToString().ToUpperInvariant();
-            if (buffer.Length < str.Length)
-            {
-                charsWritten = 0;
-                return false;
-            }
-            str.AsSpan().CopyTo(buffer);
-            charsWritten = str.Length;
-            return true;
-        }
-
-        if (buffer.Length < LOG_LEVEL_LENGTH)
-        {
-            charsWritten = 0;
-            return false;
-        }
-
-        ref char sourceRef = ref MemoryMarshal.GetReference(LOG_LEVEL_CHARS);
-        ref char destRef = ref MemoryMarshal.GetReference(buffer);
-
-        var offset = (int)logLevel * (LOG_LEVEL_LENGTH + 1);
-        Unsafe.CopyBlockUnaligned(
-            ref Unsafe.As<char, byte>(ref destRef),
-            ref Unsafe.As<char, byte>(ref Unsafe.Add(ref sourceRef, offset)),
-            (uint)(LOG_LEVEL_LENGTH * sizeof(char))
-        );
-
-        charsWritten = LOG_LEVEL_LENGTH;
-        return true;
-    }
+    internal static bool IsValidLogLevel(LoggingLevel logLevel) => (uint)logLevel < MAX_LOG_LEVELS;
 }

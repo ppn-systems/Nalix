@@ -19,7 +19,10 @@ public sealed class NotioLog : LoggingEngine, ILogger
     public static NotioLog Instance { get; } = new(cfg => cfg
         .SetMinLevel(LoggingLevel.Information)
         .AddTarget(new ConsoleLoggingTarget())
-        .AddTarget(new FileLoggingTarget(cfg.LogDirectory, cfg.LogFileName))
+        .AddTarget(new FileLoggingTarget(cfg =>
+        {
+            cfg.MinLevel = LoggingLevel.None;
+        }))
     );
 
     /// <summary>
@@ -37,7 +40,10 @@ public sealed class NotioLog : LoggingEngine, ILogger
             {
                 cfg.SetMinLevel(LoggingLevel.Information);
                 cfg.AddTarget(new ConsoleLoggingTarget());
-                cfg.AddTarget(new FileLoggingTarget(cfg.LogDirectory, cfg.LogFileName));
+                cfg.AddTarget(new FileLoggingTarget(cfg =>
+                {
+                    cfg.MinLevel = LoggingLevel.None;
+                }));
                 return cfg;
             });
         }

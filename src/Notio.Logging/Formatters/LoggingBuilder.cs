@@ -10,11 +10,6 @@ namespace Notio.Logging.Formatters;
 
 internal static class LoggingBuilder
 {
-    private const int DefaultBufferSize = 60;
-    private const char OpenBracket = '[';
-    private const char CloseBracket = ']';
-    private const char DefaultSpaceSeparator = ' ';
-    private const char DefaultDashSeparator = '-';
     private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,17 +44,17 @@ internal static class LoggingBuilder
         {
             if (useColor)
             {
-                builder.Append(OpenBracket)
+                builder.Append(LoggingConstants.LogBracketOpen)
                        .Append(ColorAnsi.Blue)
                        .Append(dateBuffer[..charsWritten])
                        .Append(ColorAnsi.White)
-                       .Append(CloseBracket);
+                       .Append(LoggingConstants.LogBracketClose);
             }
             else
             {
-                builder.Append(OpenBracket)
+                builder.Append(LoggingConstants.LogBracketOpen)
                        .Append(dateBuffer[..charsWritten])
-                       .Append(CloseBracket);
+                       .Append(LoggingConstants.LogBracketClose);
             }
         }
     }
@@ -69,19 +64,19 @@ internal static class LoggingBuilder
     {
         if (useColor)
         {
-            builder.Append(DefaultSpaceSeparator)
-                   .Append(OpenBracket)
+            builder.Append(LoggingConstants.LogSpaceSeparator)
+                   .Append(LoggingConstants.LogBracketOpen)
                    .Append(ColorAnsi.GetColorCode(logLevel))
                    .Append(LoggingLevelFormatter.GetShortLogLevelString(logLevel))
                    .Append(ColorAnsi.White)
-                   .Append(CloseBracket);
+                   .Append(LoggingConstants.LogBracketClose);
         }
         else
         {
-            builder.Append(DefaultSpaceSeparator)
-                   .Append(OpenBracket)
+            builder.Append(LoggingConstants.LogSpaceSeparator)
+                   .Append(LoggingConstants.LogBracketOpen)
                    .Append(LoggingLevelFormatter.GetShortLogLevel(logLevel))
-                   .Append(CloseBracket);
+                   .Append(LoggingConstants.LogBracketClose);
         }
     }
 
@@ -90,8 +85,8 @@ internal static class LoggingBuilder
     {
         if (eventId.Id == 0) return;
 
-        builder.Append(DefaultSpaceSeparator)
-               .Append(OpenBracket);
+        builder.Append(LoggingConstants.LogSpaceSeparator)
+               .Append(LoggingConstants.LogBracketOpen);
 
         if (eventId.Name is not null)
         {
@@ -115,15 +110,15 @@ internal static class LoggingBuilder
             builder.Append(eventId.Id);
         }
 
-        builder.Append(CloseBracket);
+        builder.Append(LoggingConstants.LogBracketClose);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AppendMessage(StringBuilder builder, string message, bool useColor)
     {
-        builder.Append(DefaultSpaceSeparator)
-               .Append(DefaultDashSeparator)
-               .Append(DefaultSpaceSeparator);
+        builder.Append(LoggingConstants.LogSpaceSeparator)
+               .Append(LoggingConstants.LogDashSeparator)
+               .Append(LoggingConstants.LogSpaceSeparator);
 
         if (useColor)
         {
@@ -142,9 +137,9 @@ internal static class LoggingBuilder
     {
         if (exception is null) return;
 
-        builder.Append(DefaultSpaceSeparator)
-               .Append(DefaultDashSeparator)
-               .Append(DefaultSpaceSeparator)
+        builder.Append(LoggingConstants.LogSpaceSeparator)
+               .Append(LoggingConstants.LogDashSeparator)
+               .Append(LoggingConstants.LogSpaceSeparator)
                .AppendLine();
 
         if (useColor)
@@ -172,7 +167,7 @@ internal static class LoggingBuilder
 
         if (useColor) length += 30;
 
-        return length + DefaultBufferSize;
+        return length + LoggingConstants.DefaultLogBufferSize;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

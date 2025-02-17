@@ -3,17 +3,17 @@ using System;
 namespace Notio.Logging.Internal.File;
 
 /// <summary>
-/// Đại diện cho ngữ cảnh lỗi tệp tin.
+/// Represents the file error context.
 /// </summary>
 public class FileError
 {
     /// <summary>
-    /// Ngoại lệ xảy ra trong thao tác tệp tin.
+    /// An exception occurred during a file operation.
     /// </summary>
     public Exception ErrorException { get; private set; }
 
     /// <summary>
-    /// Tên tệp log hiện tại.
+    /// Current log file name.
     /// </summary>
     public string LogFileName { get; private set; }
 
@@ -26,11 +26,9 @@ public class FileError
     }
 
     /// <summary>
-    /// Đề xuất một tên tệp log mới để sử dụng thay cho tên hiện tại.
+    /// Suggest a new log file name to use in place of the current one.
     /// </summary>
-    /// <param name="newLogFileName">Tên tệp log mới</param>
+    /// <param name="newLogFileName">New log file name</param>
     public void UseNewLogFileName(string newLogFileName)
-    {
-        NewLogFileName = newLogFileName;
-    }
+        => NewLogFileName = newLogFileName;
 }

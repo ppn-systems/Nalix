@@ -4,137 +4,119 @@ using System.IO;
 namespace Notio.Logging.Internal.File;
 
 /// <summary>
-/// Lớp quản lý ghi log vào tệp tin.
+/// Manages writing logs to a file.
 /// </summary>
 internal class FileWriter
 {
     private int _count = 0;
-
     private FileStream? _logFileStream;
     private StreamWriter? _logFileWriter;
     private readonly FileLoggerProvider _fileLogProvider;
 
     /// <summary>
-    /// Khởi tạo một instance mới của <see cref="FileWriter"/>.
+    /// Initializes a new instance of <see cref="FileWriter"/>.
     /// </summary>
-    /// <param name="fileLogProvider">Nhà cung cấp file log.</param>
+    /// <param name="fileLogProvider">The file logger provider.</param>
     internal FileWriter(FileLoggerProvider fileLogProvider)
     {
-        _fileLogProvider = fileLogProvider;
+        _fileLogProvider = fileLogProvider ?? throw new ArgumentNullException(nameof(fileLogProvider));
         OpenFile(_fileLogProvider.Append);
     }
 
     /// <summary>
-    /// Lấy tên cơ sở của tệp log.
+    /// Generates a unique log file name.
     /// </summary>
-    /// <returns>Tên tệp log cơ sở.</returns>
-    private string GetBaseLogFileName()
-    {
-        string fileName = GenerateUniqueLogFileName();
-        return Path.Combine(_fileLogProvider.LogDirectory, _fileLogProvider.FormatLogFileName?.Invoke(fileName) ?? fileName);
-    }
-
-    /// <summary>
-    /// Tạo dòng tệp log.
-    /// </summary>
-    /// <param name="append">Chế độ nối thêm vào tệp log hiện có hay không.</param>
-    private void CreateLogFileStream(bool append)
-    {
-        string logFilePath = GetBaseLogFileName();
-        Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
-
-        // Nếu append là true, tiếp tục nối vào cuối tệp
-        // Nếu append là false, tạo tệp mới từ đầu
-        _logFileStream = new FileStream(logFilePath, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.Read);
-
-        _logFileWriter = new StreamWriter(_logFileStream)
-        {
-            AutoFlush = true // Đảm bảo ghi liền vào tệp khi cần
-        };
-
-        // Nếu tệp vượt quá kích thước tối đa, cần tạo tệp mới
-        if (_logFileStream.Length >= _fileLogProvider.MaxFileSize && append)
-        {
-            CreateNewLogFileDirectory();
-        }
-    }
-
-    /// <summary>
-    /// Tạo thư mục tệp log mới.
-    /// </summary>
-    private void CreateNewLogFileDirectory()
-    {
-        // Khi tệp hiện tại quá lớn, tạo tệp mới trong thư mục log.
-        string newFileName = GenerateUniqueLogFileName();
-        UseNewLogFile(Path.Combine(_fileLogProvider.LogDirectory, newFileName));
-    }
-
     private string GenerateUniqueLogFileName()
     {
+        string baseFileName = _fileLogProvider.Options.LogFileName;
+        string logDirectory = _fileLogProvider.Options.LogDirectory;
         string newFileName;
 
         do
         {
-            newFileName = $"{_fileLogProvider.LogFileName}_{_count++}.log";
-        } while (System.IO.File.Exists(Path.Combine(_fileLogProvider.LogDirectory, newFileName)));
-
-        if (_count != 0)
-        {
-            _count -= 2;
-            if (_count < 0) _count = 0;
-            return Path.Combine(_fileLogProvider.LogDirectory, $"{_fileLogProvider.LogFileName}_{_count}.log");
-        }
+            newFileName = $"{baseFileName}_{_count++}.log";
+        } while (System.IO.File.Exists(Path.Combine(logDirectory, newFileName)));
 
         return newFileName;
     }
 
     /// <summary>
-    /// Sử dụng tệp log mới.
+    /// Creates a new log file when the existing one exceeds size limits.
     /// </summary>
-    /// <param name="newLogFileName">Tên tệp log mới.</param>
+    private void CreateNewLogFile()
+    {
+        Close(); // Ensure the old file is closed properly
+        string newFileName = GenerateUniqueLogFileName();
+        _fileLogProvider.Options.LogFileName = newFileName;
+        CreateLogFileStream(false);
+    }
+
+    /// <summary>
+    /// Creates and opens the log file stream.
+    /// </summary>
+    private void CreateLogFileStream(bool append)
+    {
+        try
+        {
+            string logFilePath = Path.Combine(_fileLogProvider.Options.LogDirectory, _fileLogProvider.Options.LogFileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(logFilePath)!);
+
+            // If the file already exists and is too large, create a new one before opening
+            if (System.IO.File.Exists(logFilePath) && new FileInfo(logFilePath).Length >= _fileLogProvider.MaxFileSize)
+            {
+                CreateNewLogFile();
+                return;
+            }
+
+            _logFileStream = new FileStream(logFilePath, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.Read);
+            _logFileWriter = new StreamWriter(_logFileStream) { AutoFlush = true };
+        }
+        catch (Exception ex)
+        {
+            _fileLogProvider.HandleFileError?.Invoke(new FileError(_fileLogProvider.Options.LogFileName, ex));
+        }
+    }
+
+    /// <summary>
+    /// Opens a log file.
+    /// </summary>
+    private void OpenFile(bool append) => CreateLogFileStream(append);
+
+    /// <summary>
+    /// Use the new log file.
+    /// </summary>
+    /// <param name="newLogFileName">New log file name.</param>
     internal void UseNewLogFile(string newLogFileName)
     {
-        _fileLogProvider.LogFileName = Path.GetFileName(newLogFileName);
+        _fileLogProvider.Options.LogFileName = Path.GetFileName(newLogFileName);
         CreateLogFileStream(_fileLogProvider.Append);
     }
 
     /// <summary>
-    /// Mở tệp log.
+    /// Writes a message to the log file.
     /// </summary>
-    /// <param name="append">Chế độ nối thêm vào tệp log hiện có hay không.</param>
-    private void OpenFile(bool append)
-    {
-        try
-        {
-            CreateLogFileStream(append);
-            if (_logFileStream!.Length >= _fileLogProvider.MaxFileSize && append)
-            {
-                CreateNewLogFileDirectory();
-            }
-        }
-        catch (Exception ex)
-        {
-            _fileLogProvider.HandleFileError?.Invoke(new FileError(_fileLogProvider.LogFileName, ex));
-        }
-    }
-
-    /// <summary>
-    /// Ghi thông điệp vào tệp log.
-    /// </summary>
-    /// <param name="message">Thông điệp để ghi.</param>
-    /// <param name="flush">Có làm tươi bộ đệm hay không.</param>
     internal void WriteMessage(string message, bool flush)
     {
-        _logFileWriter?.WriteLine(message);
-        if (flush) _logFileWriter?.Flush();
+        if (_logFileStream == null || _logFileWriter == null) return;
+
+        _logFileWriter.WriteLine(message);
+        if (flush) _logFileWriter.Flush();
+
+        // Check if file exceeded max size and rotate if necessary
+        if (_logFileStream.Length >= _fileLogProvider.MaxFileSize)
+        {
+            CreateNewLogFile();
+        }
     }
 
     /// <summary>
-    /// Đóng tệp log.
+    /// Closes the log file.
     /// </summary>
     internal void Close()
     {
         _logFileWriter?.Dispose();
         _logFileStream?.Dispose();
+        _logFileWriter = null;
+        _logFileStream = null;
     }
 }

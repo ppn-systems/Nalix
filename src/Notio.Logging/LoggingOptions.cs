@@ -1,7 +1,6 @@
 using Notio.Common.Enums;
 using Notio.Common.Logging;
 using System;
-using System.IO;
 
 namespace Notio.Logging;
 
@@ -10,29 +9,18 @@ namespace Notio.Logging;
 /// </summary>
 public sealed class LoggingOptions : IDisposable
 {
-    private static readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     private readonly ILoggingPublisher _publisher;
     private bool _disposed;
 
     /// <summary>
     /// The minimum logging level required to log messages.
     /// </summary>
-    public LoggingLevel MinimumLevel { get; private set; } = LoggingLevel.Trace;
+    internal LoggingLevel MinimumLevel { get; private set; } = LoggingLevel.Trace;
 
     /// <summary>
     /// Indicates whether the default configuration is being used.
     /// </summary>
     internal bool IsDefaults { get; private set; } = true;
-
-    /// <summary>
-    /// Gets the directory path where log files are stored.
-    /// </summary>
-    public string LogDirectory { get; private set; } = Path.Combine(_baseDirectory, "Logs");
-
-    /// <summary>
-    /// Gets the default log file name.
-    /// </summary>
-    public string LogFileName { get; private set; } = "Logging-Notio";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingOptions"/> class.
@@ -72,56 +60,6 @@ public sealed class LoggingOptions : IDisposable
 
         MinimumLevel = level;
         return this;
-    }
-
-    /// <summary>
-    /// Sets the directory path for storing log files.
-    /// </summary>
-    /// <param name="directory">The new directory path.</param>
-    /// <returns>The current <see cref="LoggingOptions"/> instance.</returns>
-    /// <exception cref="ArgumentException">Thrown when the directory path is invalid.</exception>
-    public LoggingOptions SetLogDirectory(string directory)
-    {
-        if (string.IsNullOrWhiteSpace(directory))
-            throw new ArgumentException("Invalid directory.", nameof(directory));
-
-        if (!Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
-
-        IsDefaults = false;
-
-        LogDirectory = directory;
-        return this;
-    }
-
-    /// <summary>
-    /// Sets the name of the log file.
-    /// </summary>
-    /// <param name="fileName">The new log file name.</param>
-    /// <returns>The current <see cref="LoggingOptions"/> instance.</returns>
-    /// <exception cref="ArgumentException">Thrown when the file name is invalid.</exception>
-    public LoggingOptions SetLogFileName(string fileName)
-    {
-        if (string.IsNullOrWhiteSpace(fileName))
-            throw new ArgumentException("Invalid file name.", nameof(fileName));
-
-        IsDefaults = false;
-
-        LogFileName = fileName;
-        return this;
-    }
-
-    /// <summary>
-    /// Validates the current configuration.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when configuration is invalid.</exception>
-    public void Validate()
-    {
-        if (string.IsNullOrWhiteSpace(LogDirectory))
-            throw new InvalidOperationException("Log directory is not set.");
-
-        if (string.IsNullOrWhiteSpace(LogFileName))
-            throw new InvalidOperationException("Log file name is not set.");
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using Notio.Common.Enums;
+using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using System;
@@ -7,22 +7,22 @@ using System.Text;
 namespace Notio.Logging.Formatters;
 
 /// <summary>
-/// Lớp LoggingFormatter cung cấp các phương thức để định dạng log đầu ra.
+/// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
 public class LoggingFormatter(bool color = false) : ILoggingFormatter
 {
     private readonly bool _color = color;
 
     /// <summary>
-    /// Instance singleton của <see cref="LoggingFormatter"/> có thể tái sử dụng.
+    /// Singleton instances of <see cref="LoggingFormatter"/> can be reused.
     /// </summary>
     internal static readonly LoggingFormatter Instance = new();
 
     /// <summary>
-    /// Định dạng một thông điệp log với timestamp, cấp độ log, ID sự kiện, thông điệp và ngoại lệ.
+    /// Format a log message with timestamp, log level, event ID, message and exception.
     /// </summary>
-    /// <param name="logMsg">Thông điệp log cần định dạng.</param>
-    /// <returns>Chuỗi định dạng log.</returns>
+    /// <param name="logMsg">The log message to format.</param>
+    /// <returns>The log format string.</returns>
     /// <example>
     /// var formatter = new LoggingFormatter();
     /// string log = formatter.FormatLog(logEntry);
@@ -32,14 +32,14 @@ public class LoggingFormatter(bool color = false) : ILoggingFormatter
             logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
-    /// Định dạng một thông điệp log tĩnh.
+    /// Formats a static log message.
     /// </summary>
-    /// <param name="timeStamp">Thời gian tạo log.</param>
-    /// <param name="logLevel">Cấp độ log.</param>
-    /// <param name="eventId">ID sự kiện.</param>
-    /// <param name="message">Thông điệp log.</param>
-    /// <param name="exception">Ngoại lệ kèm theo (nếu có).</param>
-    /// <returns>Chuỗi định dạng log.</returns>
+    /// <param name="timeStamp">Time of log creation.</param>
+    /// <param name="logLevel">Log level.</param>
+    /// <param name="eventId">Event ID.</param>
+    /// <param name="message">Log message.</param>
+    /// <param name="exception">The exception included (if any).</param>
+    /// <returns>Log format string.</returns>
     /// <example>
     /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
     /// </example>

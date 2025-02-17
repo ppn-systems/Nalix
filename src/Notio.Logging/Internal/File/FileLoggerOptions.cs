@@ -1,42 +1,55 @@
 using Notio.Common.Enums;
 using System;
+using System.IO;
 
 namespace Notio.Logging.Internal.File;
 
 /// <summary>
-/// Tùy chọn cấu hình cho bộ ghi log tệp tin.
+/// Configuration options for the file logger.
 /// </summary>
 public class FileLoggerOptions
 {
+    private static readonly string _baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+
     /// <summary>
-    /// Ghi thêm vào các tệp log hiện có hay ghi đè chúng.
+    /// Specifies whether to append to existing log files or overwrite them.
     /// </summary>
     public bool Append { get; set; } = true;
 
     /// <summary>
-    /// Giới hạn kích thước tối đa của một tệp log.
+    /// The maximum allowed file size for a log file.
     /// </summary>
     public int MaxFileSize = 10 * 1024 * 1024;
 
     /// <summary>
-    /// Giới hạn kích thước tối đa của một tệp log.
+    /// The file size limit in bytes.
     /// </summary>
     /// <remarks>
-    /// Nếu giới hạn kích thước tệp được đặt, logger sẽ tạo tệp mới khi đạt giới hạn.
+    /// If a file size limit is set, the logger will create a new log file once the limit is reached.
     /// </remarks>
     public int FileSizeLimitBytes { get; set; } = 3;
 
     /// <summary>
-    /// Mức ghi log tối thiểu cho bộ ghi log tệp tin.
+    /// Gets or sets the name of the log file.
+    /// </summary>
+    public string LogFileName { get; set; } = "logging_";
+
+    /// <summary>
+    /// Gets or sets the directory where log files will be stored.
+    /// </summary>
+    public string LogDirectory { get; set; } = Path.Combine(_baseDirectory, "Logs");
+
+    /// <summary>
+    /// The minimum logging level for the file logger.
     /// </summary>
     public LoggingLevel MinLevel { get; set; } = LoggingLevel.Trace;
 
     /// <summary>
-    /// Bộ định dạng tùy chỉnh cho tên tệp log.
+    /// A custom formatter for the log file name.
     /// </summary>
     /// <remarks>
-    /// Bằng cách xác định bộ định dạng tùy chỉnh, bạn có thể đặt tiêu chí của riêng mình cho việc tạo tệp log.
-    /// Lưu ý rằng bộ định dạng này được gọi mỗi khi ghi thông báo log; bạn nên lưu trữ kết quả để tránh ảnh hưởng hiệu suất.
+    /// By providing a custom formatter, you can define your own criteria for generating log file names.
+    /// Note that this formatter is invoked each time a log message is written; it is recommended to cache its result to avoid performance issues.
     /// </remarks>
     /// <example>
     /// fileLoggerOpts.FormatLogFileName = (fname) => {
@@ -46,11 +59,12 @@ public class FileLoggerOptions
     public Func<string, string>? FormatLogFileName { get; set; }
 
     /// <summary>
-    /// Bộ xử lý tùy chỉnh cho lỗi tệp log.
+    /// A custom handler for file errors.
     /// </summary>
     /// <remarks>
-    /// Nếu bộ xử lý này được cung cấp, ngoại lệ mở tệp (khi tạo <code>FileLoggerProvider</code>) sẽ bị loại bỏ.
-    /// Bạn có thể xử lý lỗi tệp theo logic của ứng dụng và đề xuất một tên tệp log thay thế (nếu muốn giữ bộ ghi log hoạt động).
+    /// If this handler is provided, exceptions occurring during file opening (when creating the <code>FileLoggerProvider</code>)
+    /// will be suppressed. You can handle file errors according to your application's logic and propose an alternative log file name
+    /// to keep the logger operational.
     /// </remarks>
     /// <example>
     /// fileLoggerOpts.HandleFileError = (err) => {
