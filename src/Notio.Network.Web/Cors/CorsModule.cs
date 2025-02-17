@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Utilities;
@@ -44,16 +44,14 @@ public class CorsModule(
     private readonly string _methods = methods ?? throw new ArgumentNullException(nameof(methods));
 
     private readonly string[] _validOrigins =
-            origins.ToLowerInvariant()
+            [.. origins.ToLowerInvariant()
                 .SplitByComma(StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim())
-                .ToArray();
+                .Select(x => x.Trim())];
 
     private readonly string[] _validMethods =
-            methods.ToLowerInvariant()
+            [.. methods.ToLowerInvariant()
                 .SplitByComma(StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim())
-                .ToArray();
+                .Select(x => x.Trim())];
 
     /// <inheritdoc />
     public override bool IsFinalHandler => false;

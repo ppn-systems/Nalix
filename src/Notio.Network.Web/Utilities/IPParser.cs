@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Common.Logging;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -196,6 +196,7 @@ public static class IpParser
         return GetAllIpAddresses(beginIp, endIp);
     }
 
+    /// <inheritdoc />
     public static List<IPAddress> GetAllIpAddresses(byte[] beginIp, byte[] endIp)
     {
         for (int i = 0; i < 4; i++)

@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Net.Internal;
 using Notio.Shared;
 using System;
@@ -61,8 +61,7 @@ internal class PayloadData
             return ret;
         }
 
-        List<byte> buff = new(ret);
-        buff.AddRange(Encoding.UTF8.GetBytes(reason));
+        List<byte> buff = [.. ret, .. Encoding.UTF8.GetBytes(reason)];
 
         return [.. buff];
     }
