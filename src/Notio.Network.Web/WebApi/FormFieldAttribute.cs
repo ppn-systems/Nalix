@@ -152,14 +152,14 @@ public sealed class FormFieldAttribute :
 
         if (type.IsArray)
         {
-            string[] fieldValues = data.GetValues(fieldName) ?? Array.Empty<string>();
+            string[] fieldValues = data.GetValues(fieldName) ?? [];
             return !FromString.TryConvertTo(type, fieldValues, out object? result)
                 ? throw HttpException.BadRequest($"Cannot convert field {fieldName} to an array of {type.GetElementType()?.Name}.")
                 : result;
         }
         else
         {
-            string[]? fieldValue = data.GetValues(fieldName)?.LastOrDefault() is string lastValue
+            string[]? fieldValue = data.GetValues(fieldName)?.LastOrDefault() is { } lastValue
                     ? [lastValue]
                     : null;
             return fieldValue == null

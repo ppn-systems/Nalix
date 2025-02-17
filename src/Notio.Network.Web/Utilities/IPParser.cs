@@ -11,14 +11,14 @@ namespace Notio.Network.Web.Utilities;
 /// <summary>
 /// Provides standard methods to parse IP address strings.
 /// </summary>
-public static class IPParser
+public static class IpParser
 {
     /// <summary>
     /// Parses the specified IP address.
     /// </summary>
     /// <param name="address">The IP address.</param>
     /// <returns>A collection of <see cref="IPAddress"/> parsed correctly from <paramref name="address"/>.</returns>
-    public static async Task<IEnumerable<IPAddress>> ParseAsync(string address)
+    public static async Task<IEnumerable<IPAddress>> ParseAsync(string? address)
     {
         if (address == null)
         {
@@ -36,14 +36,14 @@ public static class IPParser
         }
         catch (SocketException socketEx)
         {
-            socketEx.Log(nameof(IPParser));
+            socketEx.Log(nameof(IpParser));
         }
         catch
         {
             // Ignore
         }
 
-        return IsCidrNotation(address) ? ParseCidrNotation(address) : IsSimpleIPRange(address) ? TryParseSimpleIPRange(address) : [];
+        return IsCidrNotation(address) ? ParseCidrNotation(address) : IsSimpleIpRange(address) ? TryParseSimpleIpRange(address) : [];
     }
 
     /// <summary>
@@ -120,16 +120,16 @@ public static class IPParser
             ip2 = (ip2 << 1) + 1;
         }
 
-        byte[] beginIP = new byte[4];
-        byte[] endIP = new byte[4];
+        byte[] beginIp = new byte[4];
+        byte[] endIp = new byte[4];
 
         for (int i = 0; i < 4; i++)
         {
-            beginIP[i] = (byte)(ip1 >> (3 - i) * 8 & 255);
-            endIP[i] = (byte)(ip2 >> (3 - i) * 8 & 255);
+            beginIp[i] = (byte)(ip1 >> (3 - i) * 8 & 255);
+            endIp[i] = (byte)(ip2 >> (3 - i) * 8 & 255);
         }
 
-        return GetAllIPAddresses(beginIP, endIP);
+        return GetAllIpAddresses(beginIp, endIp);
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public static class IPParser
     /// <returns>
     ///   <c>true</c> if the IP-range string is in simple IP range notation; otherwise, <c>false</c>.
     /// </returns>
-    public static bool IsSimpleIPRange(string range)
+    public static bool IsSimpleIpRange(string range)
     {
         if (string.IsNullOrWhiteSpace(range))
         {
@@ -175,32 +175,32 @@ public static class IPParser
     /// </summary>
     /// <param name="range">The IP-range string.</param>
     /// <returns>A collection of <see cref="IPAddress"/> parsed correctly from <paramref name="range"/>.</returns>
-    public static IEnumerable<IPAddress> TryParseSimpleIPRange(string range)
+    public static IEnumerable<IPAddress> TryParseSimpleIpRange(string range)
     {
-        if (!IsSimpleIPRange(range))
+        if (!IsSimpleIpRange(range))
         {
             return [];
         }
 
-        byte[] beginIP = new byte[4];
-        byte[] endIP = new byte[4];
+        byte[] beginIp = new byte[4];
+        byte[] endIp = new byte[4];
 
         string[] parts = range.Split('.');
         for (int i = 0; i < 4; i++)
         {
             string[] rangeParts = parts[i].Split('-');
-            beginIP[i] = byte.Parse(rangeParts[0], NumberFormatInfo.InvariantInfo);
-            endIP[i] = rangeParts.Length == 1 ? beginIP[i] : byte.Parse(rangeParts[1], NumberFormatInfo.InvariantInfo);
+            beginIp[i] = byte.Parse(rangeParts[0], NumberFormatInfo.InvariantInfo);
+            endIp[i] = rangeParts.Length == 1 ? beginIp[i] : byte.Parse(rangeParts[1], NumberFormatInfo.InvariantInfo);
         }
 
-        return GetAllIPAddresses(beginIP, endIP);
+        return GetAllIpAddresses(beginIp, endIp);
     }
 
-    private static List<IPAddress> GetAllIPAddresses(byte[] beginIP, byte[] endIP)
+    public static List<IPAddress> GetAllIpAddresses(byte[] beginIp, byte[] endIp)
     {
         for (int i = 0; i < 4; i++)
         {
-            if (endIP[i] < beginIP[i])
+            if (endIp[i] < beginIp[i])
             {
                 return [];
             }
@@ -209,17 +209,17 @@ public static class IPParser
         int capacity = 1;
         for (int i = 0; i < 4; i++)
         {
-            capacity *= endIP[i] - beginIP[i] + 1;
+            capacity *= endIp[i] - beginIp[i] + 1;
         }
 
         List<IPAddress> ips = new(capacity);
-        for (int i0 = beginIP[0]; i0 <= endIP[0]; i0++)
+        for (int i0 = beginIp[0]; i0 <= endIp[0]; i0++)
         {
-            for (int i1 = beginIP[1]; i1 <= endIP[1]; i1++)
+            for (int i1 = beginIp[1]; i1 <= endIp[1]; i1++)
             {
-                for (int i2 = beginIP[2]; i2 <= endIP[2]; i2++)
+                for (int i2 = beginIp[2]; i2 <= endIp[2]; i2++)
                 {
-                    for (int i3 = beginIP[3]; i3 <= endIP[3]; i3++)
+                    for (int i3 = beginIp[3]; i3 <= endIp[3]; i3++)
                     {
                         ips.Add(new IPAddress([(byte)i0, (byte)i1, (byte)i2, (byte)i3]));
                     }

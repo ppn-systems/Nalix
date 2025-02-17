@@ -50,7 +50,7 @@ public abstract class WebApiController
     /// <summary>
     /// Gets the user.
     /// </summary>
-    public IPrincipal? User => HttpContext.User;
+    public IPrincipal User => HttpContext.User;
 
     /// <summary>
     /// Gets the session proxy associated with the HTTP context.

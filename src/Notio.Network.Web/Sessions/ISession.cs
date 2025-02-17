@@ -59,7 +59,7 @@ public interface ISession
     /// </value>
     /// <param name="key">The key of the value to get or set.</param>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
-    object this[string key] { get; set; }
+    object? this[string key] { get; set; }
 
     /// <summary>
     /// Removes all keys and values from a session.

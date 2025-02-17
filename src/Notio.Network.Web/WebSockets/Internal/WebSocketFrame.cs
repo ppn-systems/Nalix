@@ -1,7 +1,6 @@
 ﻿using Notio.Network.Web.Enums;
 using Notio.Network.Web.Net.Internal;
 using Notio.Shared;
-using Notio.Shared.Extensions;
 using System;
 using System.Globalization;
 using System.IO;
@@ -23,7 +22,7 @@ internal class WebSocketFrame
     {
     }
 
-    internal WebSocketFrame(
+    private WebSocketFrame(
         Fin fin,
         Opcode opcode,
         PayloadData payloadData,
@@ -87,7 +86,7 @@ internal class WebSocketFrame
 
     public bool IsMasked => Mask == Mask.On;
 
-    public Mask Mask { get; internal set; }
+    private Mask Mask { get; set; }
 
     public byte[] MaskingKey { get; internal set; }
 
@@ -97,11 +96,11 @@ internal class WebSocketFrame
 
     public byte PayloadLength { get; internal set; }
 
-    public Rsv Rsv1 { get; internal set; }
+    private Rsv Rsv1 { get; set; }
 
-    public Rsv Rsv2 { get; internal set; }
+    private Rsv Rsv2 { get; set; }
 
-    public Rsv Rsv3 { get; internal set; }
+    private Rsv Rsv3 { get; set; }
 
     internal int ExtendedPayloadLengthCount => PayloadLength < 126 ? 0 : PayloadLength == 126 ? 2 : 8;
 
@@ -187,7 +186,7 @@ Extended Payload Length: {extPayloadLen}
     internal static WebSocketFrame CreateCloseFrame(PayloadData? payloadData)
         => new(Fin.Final, Opcode.Close, payloadData ?? new PayloadData());
 
-    internal static WebSocketFrame CreatePingFrame()
+    private static WebSocketFrame CreatePingFrame()
         => new(Fin.Final, Opcode.Ping, new PayloadData());
 
     internal static WebSocketFrame CreatePingFrame(byte[] data)

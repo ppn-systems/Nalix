@@ -352,7 +352,7 @@ public abstract class WebApiModuleBase(string baseRoute, ResponseSerializerCallb
         List<ParameterExpression> locals = [];
 
         // Local variable for controller
-        Type? controllerType = method.ReflectedType ?? throw new InvalidOperationException("Controller type cannot be null.");
+        Type controllerType = method.ReflectedType ?? throw new InvalidOperationException("Controller type cannot be null.");
         ParameterExpression controller = Expression.Variable(controllerType, "controller");
         locals.Add(controller);
 

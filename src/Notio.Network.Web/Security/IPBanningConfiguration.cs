@@ -113,7 +113,7 @@ public class IPBanningConfiguration : ConfiguredObject, IDisposable
 
         foreach (string whiteAddress in whitelist)
         {
-            IEnumerable<IPAddress> parsedAddresses = await IPParser.ParseAsync(whiteAddress).ConfigureAwait(false);
+            IEnumerable<IPAddress> parsedAddresses = await IpParser.ParseAsync(whiteAddress).ConfigureAwait(false);
             foreach (IPAddress? address in parsedAddresses.Where(x => !_whiteListBag.Contains(x)))
             {
                 _whiteListBag.Add(address);

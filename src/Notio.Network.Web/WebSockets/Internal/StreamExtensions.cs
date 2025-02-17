@@ -26,7 +26,7 @@ internal static class StreamExtensions
             case CompressionMethod.Deflate:
                 if (compress)
                 {
-                    using DeflateStream compressor = new(targetStream, CompressionMode.Compress, true);
+                    await using DeflateStream compressor = new(targetStream, CompressionMode.Compress, true);
                     await @this.CopyToAsync(compressor, 1024, cancellationToken).ConfigureAwait(false);
                     await @this.CopyToAsync(compressor, cancellationToken).ConfigureAwait(false);
 
@@ -36,7 +36,7 @@ internal static class StreamExtensions
                 }
                 else
                 {
-                    using DeflateStream compressor = new(@this, CompressionMode.Decompress);
+                    await using DeflateStream compressor = new(@this, CompressionMode.Decompress);
                     await compressor.CopyToAsync(targetStream, cancellationToken).ConfigureAwait(false);
                 }
 
@@ -45,12 +45,12 @@ internal static class StreamExtensions
             case CompressionMethod.Gzip:
                 if (compress)
                 {
-                    using GZipStream compressor = new(targetStream, CompressionMode.Compress, true);
+                    await using GZipStream compressor = new(targetStream, CompressionMode.Compress, true);
                     await @this.CopyToAsync(compressor, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    using GZipStream compressor = new(@this, CompressionMode.Decompress);
+                    await using GZipStream compressor = new(@this, CompressionMode.Decompress);
                     await compressor.CopyToAsync(targetStream, cancellationToken).ConfigureAwait(false);
                 }
 

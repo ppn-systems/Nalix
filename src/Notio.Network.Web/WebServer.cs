@@ -31,8 +31,8 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     /// that will respond on the specified HTTP port on all network interfaces.
     /// </summary>
     /// <param name="port">The port.</param>
-    public WebServer(int port)
-        : this($"http://*:{port}/")
+    private WebServer(int port)
+        : this($"http" + $"://*:{port}/")
     {
     }
 
@@ -47,7 +47,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     /// <para>- or -</para>
     /// <para>One or more of the elements of <paramref name="urlPrefixes"/> is already registered.</para>
     /// </exception>
-    public WebServer(params string[] urlPrefixes)
+    private WebServer(params string[] urlPrefixes)
         : this(new WebServerOptions().WithUrlPrefixes(urlPrefixes))
     {
     }
@@ -93,7 +93,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     /// </summary>
     /// <param name="options">A <see cref="WebServerOptions"/> object used to configure this instance.</param>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
-    public WebServer(WebServerOptions options)
+    private WebServer(WebServerOptions options)
         : base(options)
     {
         Listener = CreateHttpListener();
@@ -114,7 +114,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     /// <summary>
     /// Gets the underlying HTTP listener.
     /// </summary>
-    public IHttpListener Listener { get; }
+    private IHttpListener Listener { get; }
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
@@ -143,13 +143,13 @@ public partial class WebServer : WebServerBase<WebServerOptions>
         "Started HTTP Listener".Info(LogSource);
 
         // close port when the cancellation token is cancelled
-        _ = cancellationToken.Register(() => Listener?.Stop());
+        _ = cancellationToken.Register(() => Listener.Stop());
     }
 
     /// <inheritdoc />
     protected override async Task ProcessRequestsAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested && (Listener?.IsListening ?? false))
+        while (!cancellationToken.IsCancellationRequested && (Listener.IsListening))
         {
             IHttpContextImpl context = await Listener.GetContextAsync(cancellationToken).ConfigureAwait(false);
             context.CancellationToken = cancellationToken;
@@ -161,7 +161,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     /// <inheritdoc />
     protected override void OnFatalException()
     {
-        Listener?.Dispose();
+        Listener.Dispose();
     }
 
     private IHttpListener CreateHttpListener()
@@ -182,7 +182,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
 
         foreach (string prefix in Options.UrlPrefixes)
         {
-            string urlPrefix = new(prefix?.ToCharArray());
+            string urlPrefix = new(prefix.ToCharArray());
 
             if (!urlPrefix.EndsWith('/'))
             {

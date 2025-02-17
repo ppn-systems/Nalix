@@ -37,8 +37,9 @@ internal sealed class WebSocket : IWebSocket
     private AutoResetEvent? _receivePong;
     private Stream? _stream;
 
-    private WebSocket(HttpConnection connection)
+    private WebSocket(HttpConnection connection, bool emitOnPing)
     {
+        EmitOnPing = emitOnPing;
         _closeConnection = connection.ForceClose;
         _stream = connection.Stream;
         _readyState = WebSocketState.Open;
@@ -54,7 +55,7 @@ internal sealed class WebSocket : IWebSocket
     /// <inheritdoc />
     public WebSocketState State => _readyState;
 
-    internal CompressionMethod Compression { get; } = CompressionMethod.None;
+    internal CompressionMethod Compression => CompressionMethod.None;
 
     internal bool EmitOnPing { get; set; }
 
@@ -76,25 +77,20 @@ internal sealed class WebSocket : IWebSocket
     {
         bool CheckParametersForClose()
         {
-            if (code == CloseStatusCode.NoStatus && !string.IsNullOrEmpty(reason))
+            switch (code)
             {
-                "'code' cannot have a reason.".Trace(nameof(WebSocket));
-                return false;
+                case CloseStatusCode.NoStatus when !string.IsNullOrEmpty(reason):
+                    "'code' cannot have a reason.".Trace(nameof(WebSocket));
+                    return false;
+                case CloseStatusCode.MandatoryExtension:
+                    "'code' cannot be used by a server.".Trace(nameof(WebSocket));
+                    return false;
             }
 
-            if (code == CloseStatusCode.MandatoryExtension)
-            {
-                "'code' cannot be used by a server.".Trace(nameof(WebSocket));
-                return false;
-            }
+            if (string.IsNullOrEmpty(reason) || Encoding.UTF8.GetBytes(reason).Length <= 123) return true;
+            "The size of 'reason' is greater than the allowable max size.".Trace(nameof(WebSocket));
+            return false;
 
-            if (!string.IsNullOrEmpty(reason) && Encoding.UTF8.GetBytes(reason).Length > 123)
-            {
-                "The size of 'reason' is greater than the allowable max size.".Trace(nameof(WebSocket));
-                return false;
-            }
-
-            return true;
         }
 
         if (_readyState != WebSocketState.Open)
@@ -174,7 +170,7 @@ internal sealed class WebSocket : IWebSocket
             throw new WebSocketException(CloseStatusCode.Normal, $"This operation isn\'t available in: {_readyState}");
         }
 
-        using WebSocketStream stream = new(data, opcode, Compression);
+        await using WebSocketStream stream = new(data, opcode, Compression);
         foreach (WebSocketFrame frame in stream.GetFrames())
         {
             await Send(frame).ConfigureAwait(false);
@@ -192,9 +188,9 @@ internal sealed class WebSocket : IWebSocket
     {
         static string CreateResponseKey(string clientKey)
         {
-            const string Guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+            const string guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-            StringBuilder buff = new StringBuilder(clientKey, 64).Append(Guid);
+            StringBuilder buff = new StringBuilder(clientKey, 64).Append(guid);
             return Convert.ToBase64String(SHA1.HashData(Encoding.UTF8.GetBytes(buff.ToString())));
         }
 
@@ -216,9 +212,13 @@ internal sealed class WebSocket : IWebSocket
                 $"Includes no {HttpHeaderNames.SecWebSocketVersion} header, or it has an invalid value.");
         }
 
-        WebSocketHandshakeResponse handshakeResponse = new(httpContext);
-
-        handshakeResponse.Headers[HttpHeaderNames.SecWebSocketAccept] = CreateResponseKey(webSocketKey);
+        WebSocketHandshakeResponse handshakeResponse = new(httpContext)
+        {
+            Headers =
+            {
+                [HttpHeaderNames.SecWebSocketAccept] = CreateResponseKey(webSocketKey)
+            }
+        };
 
         if (acceptedProtocol.Length > 0)
         {
@@ -231,7 +231,7 @@ internal sealed class WebSocket : IWebSocket
         // Signal the original response that headers have been sent.
         httpContext.HttpListenerResponse.HeadersSent = true;
 
-        WebSocket socket = new(httpContext.Connection);
+        WebSocket socket = new(httpContext.Connection, false);
         socket.Open();
         return socket;
     }
@@ -428,7 +428,7 @@ internal sealed class WebSocket : IWebSocket
 
         if (frame.Fin == Fin.Final)
         {
-            using (_fragmentsBuffer)
+            await using (_fragmentsBuffer)
             {
                 if (_fragmentsBuffer != null)
                 {

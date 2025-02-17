@@ -94,7 +94,7 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
     /// <summary>
     /// Gets the options object used to configure this instance.
     /// </summary>
-    public TOptions Options { get; }
+    protected TOptions Options { get; }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">The server's configuration is locked.</exception>

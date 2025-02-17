@@ -31,16 +31,13 @@ internal class PayloadData
 
     internal ulong Length => (ulong)_data.Length;
 
-    internal ushort Code
+    private ushort Code
     {
         get
         {
-            if (!_code.HasValue)
-            {
-                _code = _data.Length > 1
-                        ? BitConverter.ToUInt16(_data.Take(2).ToArray().ToHostOrder(Endianness.Big), 0)
-                        : (ushort)1005;
-            }
+            _code ??= _data.Length > 1
+                ? BitConverter.ToUInt16(_data.Take(2).ToArray().ToHostOrder(Endianness.Big), 0)
+                : (ushort)1005;
 
             return _code.Value;
         }
@@ -56,7 +53,7 @@ internal class PayloadData
         return BitConverter.ToString(_data);
     }
 
-    internal static byte[] Append(ushort code, string? reason)
+    private static byte[] Append(ushort code, string? reason)
     {
         byte[] ret = code.ToByteArray(Endianness.Big);
         if (string.IsNullOrEmpty(reason))

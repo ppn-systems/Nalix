@@ -1,5 +1,4 @@
-﻿using Notio.Network.Web.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
@@ -112,7 +111,7 @@ public static class NameValueCollectionExtensions
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <remarks>White space is trimmed from the start and end of each value before comparison.</remarks>
     /// <seealso cref="Contains(NameValueCollection,string,string)"/>
-    public static bool Contains(this NameValueCollection @this, string name, string? value, StringComparison comparisonType)
+    private static bool Contains(this NameValueCollection @this, string name, string? value, StringComparison comparisonType)
     {
         value = value?.Trim();
         return @this[name]?.SplitByComma()

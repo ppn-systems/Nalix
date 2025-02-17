@@ -9,7 +9,7 @@ namespace Notio.Network.Web.WebSockets.Internal;
 
 internal class WebSocketStream(byte[] data, Opcode opcode, CompressionMethod compression) : MemoryStream(data)
 {
-    internal const int FragmentLength = 1016;
+    private const int FragmentLength = 1016;
 
     private readonly CompressionMethod _compression = compression;
     private readonly Opcode _opcode = opcode;

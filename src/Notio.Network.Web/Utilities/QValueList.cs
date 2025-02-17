@@ -169,7 +169,7 @@ public sealed class QValueList
         return result;
     }
 
-    private static IReadOnlyDictionary<string, (int Weight, int Ordinal)> Parse(IEnumerable<string> headerValues)
+    private static IReadOnlyDictionary<string, (int Weight, int Ordinal)> Parse(IEnumerable<string>? headerValues)
     {
         Dictionary<string, (int Weight, int Ordinal)> result = [];
 
@@ -275,11 +275,6 @@ public sealed class QValueList
         int i = 0;
         foreach (string value in values)
         {
-            if (value == null)
-            {
-                continue;
-            }
-
             if (TryGetCandidateValue(value, out (int Weight, int Ordinal) candidateValue) && CompareQualities(candidateValue, bestValue) > 0)
             {
                 result = value;

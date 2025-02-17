@@ -77,7 +77,7 @@ public sealed class SessionProxy : ISessionProxy
     public bool IsEmpty => _session?.IsEmpty ?? true;
 
     /// <inheritdoc/>
-    public object this[string key]
+    public object? this[string key]
     {
         get
         {

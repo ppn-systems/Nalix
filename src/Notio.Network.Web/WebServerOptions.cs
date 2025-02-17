@@ -210,7 +210,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
         string? thumbprint = null;
 
-        netsh.ErrorDataReceived += (s, e) =>
+        netsh.ErrorDataReceived += (_, e) =>
         {
             if (string.IsNullOrWhiteSpace(e.Data))
             {
@@ -220,7 +220,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
             e.Data.Error(NetShLogSource);
         };
 
-        netsh.OutputDataReceived += (s, e) =>
+        netsh.OutputDataReceived += (_, e) =>
         {
             if (string.IsNullOrWhiteSpace(e.Data))
             {

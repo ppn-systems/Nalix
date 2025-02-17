@@ -35,7 +35,7 @@ public class WebSocketException : Exception
     /// </value>
     public CloseStatusCode Code { get; }
 
-    internal static string GetMessage(CloseStatusCode code)
+    private static string GetMessage(CloseStatusCode code)
     {
         return code switch
         {

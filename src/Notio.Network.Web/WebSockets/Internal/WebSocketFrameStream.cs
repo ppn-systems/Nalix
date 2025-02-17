@@ -1,5 +1,4 @@
 ﻿using Notio.Network.Web.Enums;
-using Notio.Shared.Extensions;
 using System;
 using System.IO;
 using System.Threading.Tasks;

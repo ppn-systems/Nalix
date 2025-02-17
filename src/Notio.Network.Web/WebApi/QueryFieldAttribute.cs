@@ -149,7 +149,7 @@ public sealed class QueryFieldAttribute :
 
         if (type.IsArray)
         {
-            string[] fieldValues = data.GetValues(fieldName) ?? Array.Empty<string>();
+            string[] fieldValues = data.GetValues(fieldName) ?? [];
             return !FromString.TryConvertTo(type, fieldValues, out object? result)
                 ? throw HttpException.BadRequest($"Cannot convert field {fieldName} to an array of {type.GetElementType()?.Name}.")
                 : Task.FromResult(result);

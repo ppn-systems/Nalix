@@ -62,7 +62,7 @@ public static class QValueListExtensions
         if (acceptableMethodIndex < 0)
         {
             compressionMethod = default;
-            compressionMethodName = default;
+            compressionMethodName = null;
             return false;
         }
 

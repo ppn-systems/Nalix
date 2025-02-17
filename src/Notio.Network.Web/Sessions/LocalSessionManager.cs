@@ -207,7 +207,7 @@ public partial class LocalSessionManager : ISessionManager
         SessionImpl? session;
         lock (_sessions)
         {
-            if (!string.IsNullOrEmpty(id) && _sessions.TryGetValue(id!, out session))
+            if (!string.IsNullOrEmpty(id) && _sessions.TryGetValue(id, out session))
             {
                 session.BeginUse();
             }
@@ -306,10 +306,5 @@ public partial class LocalSessionManager : ISessionManager
                 session.UnregisterIfNeeded(() => _sessions.TryRemove(id, out _));
             }
         }
-    }
-
-    private string GetSessionId(IHttpContext context)
-    {
-        return context.Request.Cookies.FirstOrDefault(IsSessionCookie)?.Value.Trim() ?? string.Empty;
     }
 }

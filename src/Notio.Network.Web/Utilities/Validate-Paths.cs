@@ -27,8 +27,8 @@ public static partial class Validate
     /// <seealso cref="UrlPath.Normalize"/>
     public static string UrlPath(string argumentName, string value, bool isBasePath)
     {
-        Exception? exception = Network.Web.Utilities.UrlPath.ValidateInternal(argumentName, value);
-        return exception != null ? throw exception : Network.Web.Utilities.UrlPath.Normalize(value, isBasePath);
+        Exception? exception = Utilities.UrlPath.ValidateInternal(argumentName, value);
+        return exception != null ? throw exception : Utilities.UrlPath.Normalize(value, isBasePath);
     }
 
     /// <summary>

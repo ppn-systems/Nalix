@@ -85,7 +85,7 @@ public abstract class WebModuleBase : ConfiguredObject, IWebModule
     /// <summary>
     /// Gets a string to use as a source for log messages.
     /// </summary>
-    protected string LogSource { get; }
+    private string LogSource { get; }
 
     /// <inheritdoc />
     /// <remarks>
@@ -104,11 +104,11 @@ public abstract class WebModuleBase : ConfiguredObject, IWebModule
     /// <inheritdoc />
     public async Task HandleRequestAsync(IHttpContext context)
     {
-        IHttpContextImpl? contextImpl = context.GetImplementation();
+        IHttpContextImpl contextImpl = context.GetImplementation();
         IMimeTypeProvider? mimeTypeProvider = this as IMimeTypeProvider;
         if (mimeTypeProvider != null)
         {
-            contextImpl?.MimeTypeProviders.Push(mimeTypeProvider);
+            contextImpl.MimeTypeProviders.Push(mimeTypeProvider);
         }
 
         try
@@ -143,7 +143,7 @@ public abstract class WebModuleBase : ConfiguredObject, IWebModule
         {
             if (mimeTypeProvider != null)
             {
-                contextImpl?.MimeTypeProviders.Pop();
+                contextImpl.MimeTypeProviders.Pop();
             }
         }
     }

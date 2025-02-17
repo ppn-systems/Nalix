@@ -29,7 +29,7 @@ internal sealed class DummySessionProxy : ISessionProxy
     public bool IsEmpty => true;
 
     /// <inheritdoc/>
-    public object this[string key]
+    public object? this[string key]
     {
         get => throw NoSessionManager();
         set => throw NoSessionManager();
@@ -76,7 +76,5 @@ internal sealed class DummySessionProxy : ISessionProxy
     }
 
     private InvalidOperationException NoSessionManager()
-    {
-        return new("No session manager registered in the web server.");
-    }
+        => new("No session manager registered in the web server.");
 }

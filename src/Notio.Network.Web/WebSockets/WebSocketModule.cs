@@ -57,13 +57,13 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     private readonly List<string> _protocols = [];
     private readonly ConcurrentDictionary<string, IWebSocketContext> _contexts = new();
     private bool _isDisposing;
-    private int _maxMessageSize = 0;
+    private int _maxMessageSize;
     private TimeSpan _keepAliveInterval = TimeSpan.FromSeconds(30);
     private Encoding _encoding = Encoding.UTF8;
     private PeriodicTask? _connectionWatchdog;
 
     /// <inheritdoc />
-    public override sealed bool IsFinalHandler => true;
+    public sealed override bool IsFinalHandler => true;
 
     /// <summary>
     /// <para>Gets or sets the maximum size of a received message.
@@ -146,7 +146,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     }
 
     /// <inheritdoc />
-    protected override sealed async Task OnRequestAsync(IHttpContext context)
+    protected sealed override async Task OnRequestAsync(IHttpContext context)
     {
         // The WebSocket endpoint must match exactly, giving a RequestedPath of "/".
         // In all other cases the path is longer, so there's no need to compare strings here.
@@ -216,7 +216,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
             }
             else
             {
-                await ProcessEmbedIOContext(webSocketContext, context.CancellationToken)
+                await ProcessNotioContext(webSocketContext, context.CancellationToken)
                     .ConfigureAwait(false);
             }
         }
@@ -242,7 +242,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         {
             _connectionWatchdog = new PeriodicTask(
                 TimeSpan.FromSeconds(30),
-                ct =>
+                _ =>
                 {
                     PurgeDisconnectedContexts();
                     return Task.CompletedTask;
@@ -370,11 +370,11 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="context">The web socket.</param>
     /// <param name="payload">The payload.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
-    protected async Task SendAsync(IWebSocketContext context, string payload)
+    private async Task SendAsync(IWebSocketContext context, string payload)
     {
         try
         {
-            byte[] buffer = _encoding.GetBytes(payload ?? string.Empty);
+            byte[] buffer = _encoding.GetBytes(payload);
 
             await context.WebSocket.SendAsync(buffer, true, context.CancellationToken).ConfigureAwait(false);
         }
@@ -390,11 +390,11 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// <param name="context">The web socket.</param>
     /// <param name="payload">The payload.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
-    protected async Task SendAsync(IWebSocketContext context, byte[] payload)
+    private async Task SendAsync(IWebSocketContext context, byte[] payload)
     {
         try
         {
-            await context.WebSocket.SendAsync(payload ?? [], false, context.CancellationToken)
+            await context.WebSocket.SendAsync(payload, false, context.CancellationToken)
                 .ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -444,7 +444,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     /// </summary>
     /// <param name="context">The web socket.</param>
     /// <returns>A <see cref="Task"/> representing the ongoing operation.</returns>
-    protected async Task CloseAsync(IWebSocketContext context)
+    private async Task CloseAsync(IWebSocketContext? context)
     {
         if (context == null)
         {
@@ -529,7 +529,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     private void RemoveWebSocket(IWebSocketContext context)
     {
         _ = _contexts.TryRemove(context.Id, out _);
-        context.WebSocket?.Dispose();
+        context.WebSocket.Dispose();
 
         // OnClientDisconnectedAsync is better called in its own task,
         // so it may call methods that require a lock on _contextsAccess.
@@ -558,7 +558,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         int purgedCount = 0;
         foreach (IWebSocketContext context in contexts)
         {
-            if (context.WebSocket == null || context.WebSocket.State == WebSocketState.Open)
+            if (context.WebSocket.State == WebSocketState.Open)
             {
                 continue;
             }
@@ -571,9 +571,9 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
             .Debug(nameof(WebSocketModule));
     }
 
-    private async Task ProcessEmbedIOContext(IWebSocketContext context, CancellationToken cancellationToken)
+    private async Task ProcessNotioContext(IWebSocketContext context, CancellationToken cancellationToken)
     {
-        ((Internal.WebSocket)context.WebSocket).OnMessage += async (s, e) =>
+        ((Internal.WebSocket)context.WebSocket).OnMessage += async (_, e) =>
         {
             if (e.Opcode == Opcode.Close)
             {

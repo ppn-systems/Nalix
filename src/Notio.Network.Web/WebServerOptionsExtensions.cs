@@ -46,7 +46,7 @@ public static class WebServerOptionsExtensions
     /// <para>- or -</para>
     /// <para>One or more of the elements of <paramref name="urlPrefixes"/> is already registered.</para>
     /// </exception>
-    public static WebServerOptions WithUrlPrefixes(this WebServerOptions @this, IEnumerable<string> urlPrefixes)
+    private static WebServerOptions WithUrlPrefixes(this WebServerOptions @this, IEnumerable<string> urlPrefixes)
     {
         foreach (string? urlPrefix in Validate.NotNull(nameof(urlPrefixes), urlPrefixes))
         {
@@ -99,7 +99,7 @@ public static class WebServerOptionsExtensions
     /// set to <see cref="HttpListenerMode.Notio"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The configuration of <paramref name="this"/> is locked.</exception>
-    public static WebServerOptions WithEmbedIOHttpListener(this WebServerOptions @this)
+    public static WebServerOptions WithNotioHttpListener(this WebServerOptions @this)
     {
         @this.Mode = HttpListenerMode.Notio;
         return @this;

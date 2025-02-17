@@ -30,7 +30,7 @@ namespace Notio.Network.Web.WebModule;
 /// See the help for the property for more information.</param>
 /// <seealso cref="IWebModule.BaseRoute" />
 /// <seealso cref="IWebModule.IsFinalHandler" />
-public class ModuleGroup(string baseRoute, bool isFinalHandler) : WebModuleBase(baseRoute), IDisposable, IWebModuleContainer, IMimeTypeCustomizer
+public class ModuleGroup(string baseRoute, bool isFinalHandler) : WebModuleBase(baseRoute), IWebModuleContainer, IMimeTypeCustomizer
 {
     private readonly WebModuleCollection _modules = new WebModuleCollection(nameof(ModuleGroup));
     private readonly MimeTypeCustomizer _mimeTypeCustomizer = new();
@@ -44,7 +44,7 @@ public class ModuleGroup(string baseRoute, bool isFinalHandler) : WebModuleBase(
     }
 
     /// <inheritdoc />
-    public override sealed bool IsFinalHandler { get; } = isFinalHandler;
+    public sealed override bool IsFinalHandler { get; } = isFinalHandler;
 
     /// <inheritdoc />
     public IComponentCollection<IWebModule> Modules => _modules;
