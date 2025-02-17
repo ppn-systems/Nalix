@@ -1,8 +1,9 @@
 using Notio.Common.Enums;
 using Notio.Common.Logging;
+using Notio.Logging.Internal.File;
 using System;
 
-namespace Notio.Logging;
+namespace Notio.Logging.Core;
 
 /// <summary>
 /// Configures logging settings for the application.
@@ -12,15 +13,12 @@ public sealed class LoggingOptions : IDisposable
     private readonly ILoggingPublisher _publisher;
     private bool _disposed;
 
-    /// <summary>
-    /// The minimum logging level required to log messages.
-    /// </summary>
-    internal LoggingLevel MinimumLevel { get; private set; } = LoggingLevel.Trace;
+    internal FileLoggerOptions FileOptions { get; init; } = new();
 
     /// <summary>
-    /// Indicates whether the default configuration is being used.
+    /// The minimum logging level for the file logger.
     /// </summary>
-    internal bool IsDefaults { get; private set; } = true;
+    public LoggingLevel MinLevel { get; set; } = LoggingLevel.Trace;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingOptions"/> class.
@@ -43,8 +41,6 @@ public sealed class LoggingOptions : IDisposable
     /// <returns>The current <see cref="LoggingOptions"/> instance.</returns>
     public LoggingOptions AddTarget(ILoggingTarget target)
     {
-        IsDefaults = false;
-
         _publisher.AddTarget(target);
         return this;
     }
@@ -56,9 +52,23 @@ public sealed class LoggingOptions : IDisposable
     /// <returns>The current <see cref="LoggingOptions"/> instance.</returns>
     public LoggingOptions SetMinLevel(LoggingLevel level)
     {
-        IsDefaults = false;
+        MinLevel = level;
+        return this;
+    }
 
-        MinimumLevel = level;
+    /// <summary>
+    /// Sets the configuration options for file logging.
+    /// </summary>
+    /// <param name="configure">
+    /// An action that allows configuration of the <see cref="FileLoggerOptions"/>.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="LoggingOptions"/> instance, allowing for method chaining.
+    /// </returns>
+    public LoggingOptions SetFileOptions(Action<FileLoggerOptions> configure)
+    {
+        // Apply the configuration to the FileLoggerOptions instance
+        configure(FileOptions);
         return this;
     }
 

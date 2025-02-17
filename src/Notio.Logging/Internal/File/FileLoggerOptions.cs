@@ -1,4 +1,3 @@
-using Notio.Common.Enums;
 using System;
 using System.IO;
 
@@ -38,11 +37,6 @@ public class FileLoggerOptions
     /// Gets or sets the directory where log files will be stored.
     /// </summary>
     public string LogDirectory { get; set; } = Path.Combine(_baseDirectory, "Logs");
-
-    /// <summary>
-    /// The minimum logging level for the file logger.
-    /// </summary>
-    public LoggingLevel MinLevel { get; set; } = LoggingLevel.Trace;
 
     /// <summary>
     /// A custom formatter for the log file name.

@@ -11,45 +11,19 @@ namespace Notio.Logging;
 /// <summary>
 /// A singleton class that provides logging functionality for the application.
 /// </summary>
-public sealed class NotioLog : LoggingEngine, ILogger
+/// <remarks>
+/// Initializes the logging system with optional configuration.
+/// </remarks>
+/// <param name="configure">An optional action to configure the logging system.</param>
+public sealed class NLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
 {
     /// <summary>
-    /// Gets the single instance of the <see cref="NotioLog"/> class.
+    /// Gets the single instance of the <see cref="NLogging"/> class.
     /// </summary>
-    public static NotioLog Instance { get; } = new(cfg => cfg
-        .SetMinLevel(LoggingLevel.Information)
+    public static NLogging Instance { get; } = new(cfg => cfg
         .AddTarget(new ConsoleLoggingTarget())
-        .AddTarget(new FileLoggingTarget(cfg =>
-        {
-            cfg.MinLevel = LoggingLevel.None;
-        }))
+        .AddTarget(new FileLoggingTarget())
     );
-
-    /// <summary>
-    /// Initializes the logging system with optional configuration.
-    /// </summary>
-    /// <param name="configure">An optional action to configure the logging system.</param>
-    public NotioLog(Action<LoggingOptions>? configure = null)
-    {
-        LoggingOptions builder = new(base.Publisher);
-        configure?.Invoke(builder);
-
-        if (builder.IsDefaults)
-        {
-            builder.ConfigureDefaults(cfg =>
-            {
-                cfg.SetMinLevel(LoggingLevel.Information);
-                cfg.AddTarget(new ConsoleLoggingTarget());
-                cfg.AddTarget(new FileLoggingTarget(cfg =>
-                {
-                    cfg.MinLevel = LoggingLevel.None;
-                }));
-                return cfg;
-            });
-        }
-
-        base.MinimumLevel = builder.MinimumLevel;
-    }
 
     /// <summary>
     /// Writes a log entry with the specified level, event ID, message, and optional exception.

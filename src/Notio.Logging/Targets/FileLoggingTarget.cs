@@ -39,16 +39,9 @@ public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOpti
     /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
     /// </summary>
     /// <param name="options">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
-    public FileLoggingTarget(Action<FileLoggerOptions> options)
-        : this(new LoggingFormatter(false), ConfigureOptions(options))
+    public FileLoggingTarget(FileLoggerOptions options)
+        : this(new LoggingFormatter(false), options)
     {
-    }
-
-    private static FileLoggerOptions ConfigureOptions(Action<FileLoggerOptions> options)
-    {
-        var fileLoggerOptions = new FileLoggerOptions();
-        options?.Invoke(fileLoggerOptions);
-        return fileLoggerOptions;
     }
 
     /// <summary>
