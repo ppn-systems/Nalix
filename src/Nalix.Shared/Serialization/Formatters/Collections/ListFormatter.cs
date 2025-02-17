@@ -59,14 +59,14 @@ internal sealed class ListFormatter<
     /// <returns>The deserialized list of elements, or null if the serialized data represents a null list.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
+    public System.Collections.Generic.List<T>? Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
                                                 .Deserialize(ref reader);
 
         if (length == SerializerBounds.Null)
         {
-            return null!;
+            return null;
         }
 
         if (length == 0)

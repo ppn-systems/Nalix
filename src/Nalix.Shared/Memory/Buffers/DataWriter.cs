@@ -83,7 +83,7 @@ public ref struct DataWriter
         _span = span;       // direct span view (stackalloc, sliced array, etc.)
         _owner = null;      // no backing array ownership
         _rent = false;      // not rented → cannot Expand()
-        s
+
         this.WrittenCount = 0;
     }
 
