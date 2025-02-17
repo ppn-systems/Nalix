@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Notio.Storage.Helpers;
 
@@ -37,11 +37,11 @@ public class UrlExpiration
     /// <exception cref="OverflowException">Thrown when the time difference exceeds the maximum value of a <see cref="uint"/>.</exception>
     public UrlExpiration(DateTime utcDate)
     {
-        var diff = Convert.ToUInt32((utcDate - DateTime.UtcNow).TotalSeconds);
+        double totalSeconds = (utcDate - DateTime.UtcNow).TotalSeconds;
 
-        if (diff > uint.MaxValue || diff < 0)
+        if (totalSeconds is < 0 or > uint.MaxValue)
             throw new OverflowException();
 
-        InSeconds = Convert.ToUInt32(diff);
+        InSeconds = Convert.ToUInt32((uint)totalSeconds);
     }
 }

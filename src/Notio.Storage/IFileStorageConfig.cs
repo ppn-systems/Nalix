@@ -6,7 +6,7 @@ namespace Notio.Storage;
 /// Defines configuration options for file storage settings.
 /// </summary>
 /// <typeparam name="TConfig">The type of the configuration object.</typeparam>
-public interface IFileStorageConfig<TConfig> where TConfig : class
+public interface IFileStorageConfig<out TConfig> where TConfig : class
 {
     /// <summary>
     /// Gets the file generator used in the configuration.

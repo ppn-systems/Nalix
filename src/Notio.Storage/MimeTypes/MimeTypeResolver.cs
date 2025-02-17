@@ -9,7 +9,7 @@ namespace Notio.Storage.MimeTypes;
 /// </summary>
 public class MimeTypeResolver : IMimeTypeResolver
 {
-    private readonly string _defaultMimeType = "application/octet-stream";
+    private const string MimeTypeDefault = "application/octet-stream";
 
     private readonly IList<MimeTypeMapper> _mappings =
     [
@@ -175,7 +175,7 @@ public class MimeTypeResolver : IMimeTypeResolver
     ];
 
     /// <inheritdoc />
-    public string DefaultMimeType => _defaultMimeType;
+    public string DefaultMimeType => MimeTypeDefault;
 
     /// <inheritdoc />
     public IReadOnlyCollection<string> SupportedTypes
@@ -193,15 +193,6 @@ public class MimeTypeResolver : IMimeTypeResolver
     /// <inheritdoc />
     public string GetMimeType(byte[] data)
     {
-        // Obsolete method
-        //foreach (var mapping in _mappings)
-        //{
-        //    if (mapping.Pattern.IsMatch(data))
-        //        return mapping.Mime;
-        //}
-
-        //return DefaultMimeType;
-
         var matches = _mappings
             .Select(m => new { m.Mime, Score = m.Pattern.MatchScore(data), PatternLength = m.Pattern.Bytes.Length })
             .Where(x => x.Score > 0)

@@ -7,12 +7,17 @@ namespace Notio.Storage.Config;
 /// <summary>
 /// Configured for in-memory file storage.
 /// </summary>
-public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
+/// <remarks>
+/// Initializes a new instance of the <see cref="InMemoryConfig"/> class.
+/// </remarks>
+/// <param name="generator">The file generator to use.</param>
+/// <exception cref="ArgumentNullException">Thrown if <paramref name="generator"/> is null.</exception>
+public class InMemoryConfig(IFileGenerator generator) : IFileStorageConfig<InMemoryConfig>
 {
     /// <summary>
     /// Gets the file generator instance for generating files in memory.
     /// </summary>
-    public IFileGenerator Generator { get; private set; } = null!;
+    public IFileGenerator Generator { get; private set; } = generator ?? throw new ArgumentNullException(nameof(generator));
 
     /// <summary>
     /// Gets the MIME type resolver instance.
@@ -20,21 +25,18 @@ public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
     public IMimeTypeResolver? MimeTypeResolver { get; private set; }
 
     /// <summary>
-    /// Indicates whether file generation is enabled in this configuration.
+    /// Indicates whether file generation is enabled.
     /// </summary>
-    public bool IsGenerationEnabled => Generator is not null;
+    public bool IsGenerationEnabled => Generator != null;
 
     /// <summary>
-    /// Indicates whether the MIME type resolver is enabled in this configuration.
+    /// Indicates whether the MIME type resolver is enabled.
     /// </summary>
-    public bool IsMimeTypeResolverEnabled => MimeTypeResolver is not null;
+    public bool IsMimeTypeResolverEnabled => MimeTypeResolver != null;
 
     /// <summary>
-    /// Configures the file generator to use for this in-memory storage configuration.
+    /// Configures the file generator.
     /// </summary>
-    /// <param name="generator">The file generator to use.</param>
-    /// <returns>The updated <see cref="InMemoryConfig"/> instance.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="generator"/> is null.</exception>
     public InMemoryConfig UseFileGenerator(IFileGenerator generator)
     {
         Generator = generator ?? throw new ArgumentNullException(nameof(generator));
@@ -42,11 +44,8 @@ public class InMemoryConfig : IFileStorageConfig<InMemoryConfig>
     }
 
     /// <summary>
-    /// Configures the MIME type resolver to use for this in-memory storage configuration.
+    /// Configures the MIME type resolver.
     /// </summary>
-    /// <param name="resolver">The MIME type resolver to use.</param>
-    /// <returns>The updated <see cref="InMemoryConfig"/> instance.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="resolver"/> is null.</exception>
     public InMemoryConfig UseMimeTypeResolver(IMimeTypeResolver resolver)
     {
         MimeTypeResolver = resolver ?? throw new ArgumentNullException(nameof(resolver));

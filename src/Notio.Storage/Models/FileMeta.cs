@@ -1,9 +1,9 @@
-﻿namespace Notio.Storage.Models;
+namespace Notio.Storage.Models;
 
 /// <summary>
 /// Represents metadata associated with a file.
 /// </summary>
-public class FileMeta(string key, string value)
+public abstract class FileMeta(string key, string value)
 {
     /// <summary>
     /// Gets the key of the metadata.
