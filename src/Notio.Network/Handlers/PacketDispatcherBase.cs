@@ -15,7 +15,7 @@ public abstract class PacketDispatcherBase
     /// <remarks>
     /// The options object allows registering packet handlers and configuring logging.
     /// </remarks>
-    public PacketDispatcherOptions Options { get; } = new();
+    protected PacketDispatcherOptions Options { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase" /> class

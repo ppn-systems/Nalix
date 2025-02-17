@@ -13,7 +13,7 @@ public sealed class PeriodicTask : IDisposable
     /// <para>The minimum interval between action invocations.</para>
     /// <para>The value of this field is equal to 100 milliseconds.</para>
     /// </summary>
-    public static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly Func<CancellationToken, Task> _action;
     private readonly CancellationTokenSource _cancellationTokenSource;
@@ -32,7 +32,7 @@ public sealed class PeriodicTask : IDisposable
         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _interval = ValidateInterval(interval);
 
-        Task.Run(() => ActionLoop(), _cancellationTokenSource.Token);
+        Task.Run(ActionLoop, _cancellationTokenSource.Token);
     }
 
     /// <summary>
@@ -63,11 +63,10 @@ public sealed class PeriodicTask : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _cancellationTokenSource.Cancel();
-            _cancellationTokenSource.Dispose();
-        }
+        if (!disposing) return;
+
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
     }
 
     private static TimeSpan ValidateInterval(TimeSpan value)
@@ -92,6 +91,7 @@ public sealed class PeriodicTask : IDisposable
             }
             catch (Exception)
             {
+                // ignored
             }
         }
     }

@@ -11,7 +11,7 @@ namespace Notio.Shared.Memory.Buffer;
 /// </summary>
 public sealed class BufferPoolShared : IDisposable
 {
-    private static readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
+    private static readonly ConcurrentDictionary<int, BufferPoolShared> Pools = new();
     private readonly ConcurrentQueue<byte[]> _freeBuffers;
     private readonly ArrayPool<byte> _arrayPool;
     private readonly Lock _disposeLock = new();
@@ -59,7 +59,7 @@ public sealed class BufferPoolShared : IDisposable
     /// <returns>A <see cref="BufferPoolShared"/> object for the specified buffer size.</returns>
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
     {
-        return _pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
+        return Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public sealed class BufferPoolShared : IDisposable
                     _arrayPool.Return(buffer);
                 }
 
-                _pools.TryRemove(_bufferSize, out _);
+                Pools.TryRemove(_bufferSize, out _);
             }
 
             _disposed = true;

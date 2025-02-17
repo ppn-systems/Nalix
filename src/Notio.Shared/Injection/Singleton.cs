@@ -9,10 +9,9 @@ namespace Notio.Shared.Injection;
 /// </summary>
 public static class Singleton
 {
-    private static readonly ConcurrentDictionary<Type, Type> _typeMapping = new();
-    private static readonly ConcurrentDictionary<Type, Lazy<object>> _services = new();
-    private static readonly ConcurrentDictionary<Type, Func<object>> _factories = new();
-    private static bool _disposed = false;
+    private static readonly ConcurrentDictionary<Type, Type> TypeMapping = new();
+    private static readonly ConcurrentDictionary<Type, Lazy<object>> Services = new();
+    private static readonly ConcurrentDictionary<Type, Func<object>> Factories = new();
 
     /// <summary>
     /// Registers an instance of a class for dependency injection.
@@ -32,9 +31,9 @@ public static class Singleton
 
         if (allowOverwrite)
         {
-            _services.AddOrUpdate(type, lazy, (_, _) => lazy);
+            Services.AddOrUpdate(type, lazy, (_, _) => lazy);
         }
-        else if (!_services.TryAdd(type, lazy))
+        else if (!Services.TryAdd(type, lazy))
         {
             throw new InvalidOperationException($"Type {type.Name} has been registered.");
         }
@@ -53,14 +52,14 @@ public static class Singleton
         Type interfaceType = typeof(TInterface);
         Type implementationType = typeof(TImplementation);
 
-        if (!_typeMapping.TryAdd(interfaceType, implementationType))
+        if (!TypeMapping.TryAdd(interfaceType, implementationType))
         {
             throw new InvalidOperationException($"Type {interfaceType.Name} has been registered.");
         }
 
         if (factory != null)
         {
-            _factories.TryAdd(interfaceType, () => factory());
+            Factories.TryAdd(interfaceType, () => factory());
         }
     }
 
@@ -75,21 +74,21 @@ public static class Singleton
     {
         Type type = typeof(TClass);
 
-        if (_services.TryGetValue(type, out var lazyService))
+        if (Services.TryGetValue(type, out var lazyService))
         {
             return (TClass)lazyService.Value;
         }
 
-        if (_factories.TryGetValue(type, out var factory))
+        if (Factories.TryGetValue(type, out var factory))
         {
             Lazy<object> lazyInstance = new(() => factory(), isThreadSafe: true);
-            _services.TryAdd(type, lazyInstance);
+            Services.TryAdd(type, lazyInstance);
             return (TClass)lazyInstance.Value;
         }
 
-        if (_typeMapping.TryGetValue(type, out Type? implementationType))
+        if (TypeMapping.TryGetValue(type, out Type? implementationType))
         {
-            if (!_services.TryGetValue(implementationType, out var lazyImpl))
+            if (!Services.TryGetValue(implementationType, out var lazyImpl))
             {
                 if (!createIfNotExists)
                 {
@@ -100,14 +99,14 @@ public static class Singleton
                 {
                     Lazy<object> lazyInstance = new(() =>
                     {
-                        object? instance = Activator.CreateInstance(implementationType)
+                        object instance = Activator.CreateInstance(implementationType)
                         ?? throw new InvalidOperationException($"Failed to create instance of type {implementationType.Name}");
 
                         return instance;
                     }, isThreadSafe: true);
 
-                    _services.TryAdd(implementationType, lazyInstance);
-                    _services.TryAdd(type, lazyInstance);
+                    Services.TryAdd(implementationType, lazyInstance);
+                    Services.TryAdd(type, lazyInstance);
                     return (TClass)lazyInstance.Value;
                 }
                 catch (Exception ex)
@@ -133,9 +132,9 @@ public static class Singleton
     /// <typeparam name="TClass">The type to check for registration.</typeparam>
     /// <returns>True if the type is registered, otherwise false.</returns>
     public static bool IsRegistered<TClass>() where TClass : class
-        => _services.ContainsKey(typeof(TClass)) ||
-           _typeMapping.ContainsKey(typeof(TClass)) ||
-           _factories.ContainsKey(typeof(TClass));
+        => Services.ContainsKey(typeof(TClass)) ||
+           TypeMapping.ContainsKey(typeof(TClass)) ||
+           Factories.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes the registration of a specific type.
@@ -144,9 +143,9 @@ public static class Singleton
     public static void Remove<TClass>() where TClass : class
     {
         Type type = typeof(TClass);
-        _services.TryRemove(type, out _);
-        _typeMapping.TryRemove(type, out _);
-        _factories.TryRemove(type, out _);
+        Services.TryRemove(type, out _);
+        TypeMapping.TryRemove(type, out _);
+        Factories.TryRemove(type, out _);
     }
 
     /// <summary>
@@ -154,9 +153,9 @@ public static class Singleton
     /// </summary>
     public static void Clear()
     {
-        _services.Clear();
-        _typeMapping.Clear();
-        _factories.Clear();
+        Services.Clear();
+        TypeMapping.Clear();
+        Factories.Clear();
     }
 
     /// <summary>
@@ -164,16 +163,12 @@ public static class Singleton
     /// </summary>
     public static void Dispose()
     {
-        if (_disposed) return;
-
-        _disposed = true;
-
-        foreach (var lazyService in _services.Values)
+        foreach (var lazyService in Services.Values)
             if (lazyService.Value is IDisposable disposable)
                 disposable.Dispose();
 
-        _services.Clear();
-        _factories.Clear();
-        _typeMapping.Clear();
+        Services.Clear();
+        Factories.Clear();
+        TypeMapping.Clear();
     }
 }

@@ -40,7 +40,7 @@ public static class PacketOperations
         }
         catch
         {
-            clonedPacket = default;
+            clonedPacket = null;
             return false;
         }
     }

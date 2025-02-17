@@ -36,23 +36,23 @@ internal class AttributeCache
     /// <param name="member">The member.</param>
     /// <param name="inherit"><c>true</c> to inspect the ancestors of element; otherwise, <c>false</c>.</param>
     /// <returns>An attribute stored for the specified type.</returns>
-    internal T? RetrieveOne<T>(MemberInfo member, bool inherit = false)
+    internal T? RetrieveOne<T>(MemberInfo? member, bool inherit = false)
         where T : Attribute
     {
         if (member == null)
-            return default;
+            return null;
 
         var key = new Tuple<object, Type>(member, typeof(T));
 
-        var attr = Retrieve(key, k => member.GetCustomAttributes(typeof(T), inherit));
+        var attr = Retrieve(key, _ => member.GetCustomAttributes(typeof(T), inherit));
 
-        return attr?.SingleOrDefault() as T;
+        return attr.SingleOrDefault() as T;
     }
 
     private IEnumerable<object> Retrieve(Tuple<object, Type> key, Func<Tuple<object, Type>, IEnumerable<object>> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        return _data.Value.GetOrAdd(key, k => factory.Invoke(k));
+        return _data.Value.GetOrAdd(key, factory.Invoke);
     }
 }

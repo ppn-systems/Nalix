@@ -32,8 +32,8 @@ public sealed class NLogging(Action<LoggingOptions>? configure = null) : Logging
     /// <param name="eventId">The event ID to associate with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception associated with the log entry.</param>
-    public void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
-       => base.CreateLogEntry(level, eventId, message, exception);
+    private void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
+       => CreateLogEntry(level, eventId, message, exception);
 
     /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
@@ -86,6 +86,6 @@ public sealed class NLogging(Action<LoggingOptions>? configure = null) : Logging
 
     // Sanitize log message to prevent log forging
     // Removes potentially dangerous characters (e.g., newlines or control characters)
-    private static string SanitizeLogMessage(string message)
+    private static string SanitizeLogMessage(string? message)
         => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
 }

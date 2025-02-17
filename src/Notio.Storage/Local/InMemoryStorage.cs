@@ -38,7 +38,7 @@ public class InMemoryStorage : IFileStorageAsync
     /// <summary>
     /// Initializes a new instance of <see cref="InMemoryStorage"/> with default settings.
     /// </summary>
-    public InMemoryStorage() => _storageConfig = new InMemoryConfig()
+    public InMemoryStorage() => _storageConfig = new InMemoryConfig(new FileGenerator())
         .UseFileGenerator(new FileGenerator())
         .UseMimeTypeResolver(new MimeTypeResolver());
 

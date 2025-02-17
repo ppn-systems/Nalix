@@ -20,23 +20,26 @@ public static class DataMemory
     {
         int length = payload.Length;
 
-        if (length <= PacketConstants.MaxStackAllocSize)
+        switch (length)
         {
-            Span<byte> stackBuffer = stackalloc byte[length];
-            payload.Span.CopyTo(stackBuffer);
-            return stackBuffer.ToArray();
-        }
-        else if (length <= PacketConstants.MaxHeapAllocSize)
-        {
-            byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true);
-            payload.Span.CopyTo(buffer);
-            return buffer;
-        }
-        else
-        {
-            byte[] result = ArrayPool<byte>.Shared.Rent(length);
-            payload.Span.CopyTo(result);
-            return result;
+            case <= PacketConstants.MaxStackAllocSize:
+            {
+                Span<byte> stackBuffer = stackalloc byte[length];
+                payload.Span.CopyTo(stackBuffer);
+                return stackBuffer.ToArray();
+            }
+            case <= PacketConstants.MaxHeapAllocSize:
+            {
+                byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true);
+                payload.Span.CopyTo(buffer);
+                return buffer;
+            }
+            default:
+            {
+                byte[] result = ArrayPool<byte>.Shared.Rent(length);
+                payload.Span.CopyTo(result);
+                return result;
+            }
         }
     }
 }

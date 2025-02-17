@@ -4,7 +4,7 @@ namespace Notio.Network.Package;
 /// Represents default values and constants for packet configurations.
 /// This class contains minimum and maximum packet sizes, as well as thresholds for optimized memory operations.
 /// </summary>
-public class PacketConstants
+public static class PacketConstants
 {
     /// <summary>
     /// The number of microseconds in one second (1,000,000).

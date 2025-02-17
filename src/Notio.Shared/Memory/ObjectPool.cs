@@ -31,17 +31,15 @@ public sealed class ObjectPool
     /// </summary>
     public T Get<T>() where T : IPoolable, new()
     {
-        if (AvailableCount == 0)
-        {
-            T @object = new();
+        if (AvailableCount != 0) return (T)_objects.Pop();
+        
+        T @object = new();
 
-            TotalCount++;
-            TraceOccurred?.Invoke($"Get<TClass>(): Created a new instance of {typeof(T).Name} (TotalCount={TotalCount})");
+        TotalCount++;
+        TraceOccurred?.Invoke($"Get<TClass>(): Created a new instance of {typeof(T).Name} (TotalCount={TotalCount})");
 
-            return @object;
-        }
+        return @object;
 
-        return (T)_objects.Pop();
     }
 
     /// <summary>

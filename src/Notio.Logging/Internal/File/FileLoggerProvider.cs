@@ -34,7 +34,7 @@ public class FileLoggerProvider : IDisposable
     public Func<string, string>? FormatLogFileName
     {
         get => Options.FormatLogFileName;
-        set { Options.FormatLogFileName = value; }
+        set => Options.FormatLogFileName = value;
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ public class FileLoggerProvider : IDisposable
     public Action<FileError>? HandleFileError
     {
         get => Options.HandleFileError;
-        set { Options.HandleFileError = value; }
+        set => Options.HandleFileError = value;
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public class FileLoggerProvider : IDisposable
         catch (TaskCanceledException)
         {
         }
-        catch (AggregateException ex) when (ex.InnerExceptions.Count == 1 && ex.InnerExceptions[0] is TaskCanceledException) { }
+        catch (AggregateException ex) when (ex.InnerExceptions is [TaskCanceledException]) { }
 
         _loggers.Clear();
         _fWriter.Close();
@@ -92,7 +92,6 @@ public class FileLoggerProvider : IDisposable
             try
             {
                 _entryQueue.Add(message);
-                return;
             }
             catch (InvalidOperationException) { }
         }
@@ -115,7 +114,7 @@ public class FileLoggerProvider : IDisposable
                 var stopLogging = true;
                 if (HandleFileError != null)
                 {
-                    var fileErr = new FileError(Options.LogFileName, ex);
+                    var fileErr = new FileError(ex);
                     try
                     {
                         HandleFileError(fileErr);

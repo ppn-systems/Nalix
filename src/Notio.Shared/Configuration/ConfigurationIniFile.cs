@@ -125,7 +125,7 @@ internal sealed class ConfiguredIniFile
     public char? GetChar(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : (char?)null;
+        return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ internal sealed class ConfiguredIniFile
     public bool? GetBool(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return bool.TryParse(stringValue, out bool parsedValue) ? parsedValue : (bool?)null;
+        return bool.TryParse(stringValue, out bool parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -144,8 +144,7 @@ internal sealed class ConfiguredIniFile
     {
         string stringValue = GetString(section, key);
         return decimal.TryParse(stringValue, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal parsedValue)
-            ? parsedValue
-            : (decimal?)null;
+            ? parsedValue : null;
     }
 
     /// <summary>
@@ -154,7 +153,7 @@ internal sealed class ConfiguredIniFile
     public byte? GetByte(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return byte.TryParse(stringValue, out byte parsedValue) ? parsedValue : (byte?)null;
+        return byte.TryParse(stringValue, out byte parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -163,7 +162,7 @@ internal sealed class ConfiguredIniFile
     public sbyte? GetSByte(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return sbyte.TryParse(stringValue, out sbyte parsedValue) ? parsedValue : (sbyte?)null;
+        return sbyte.TryParse(stringValue, out sbyte parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -172,7 +171,7 @@ internal sealed class ConfiguredIniFile
     public short? GetInt16(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return short.TryParse(stringValue, out short parsedValue) ? parsedValue : (short?)null;
+        return short.TryParse(stringValue, out short parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -181,7 +180,7 @@ internal sealed class ConfiguredIniFile
     public ushort? GetUInt16(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return ushort.TryParse(stringValue, out ushort parsedValue) ? parsedValue : (ushort?)null;
+        return ushort.TryParse(stringValue, out ushort parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -190,7 +189,7 @@ internal sealed class ConfiguredIniFile
     public int? GetInt32(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return int.TryParse(stringValue, out int parsedValue) ? parsedValue : (int?)null;
+        return int.TryParse(stringValue, out int parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -199,7 +198,7 @@ internal sealed class ConfiguredIniFile
     public uint? GetUInt32(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return uint.TryParse(stringValue, out uint parsedValue) ? parsedValue : (uint?)null;
+        return uint.TryParse(stringValue, out uint parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -208,7 +207,7 @@ internal sealed class ConfiguredIniFile
     public long? GetInt64(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return long.TryParse(stringValue, out long parsedValue) ? parsedValue : (long?)null;
+        return long.TryParse(stringValue, out long parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -217,7 +216,7 @@ internal sealed class ConfiguredIniFile
     public ulong? GetUInt64(string section, string key)
     {
         string stringValue = GetString(section, key);
-        return ulong.TryParse(stringValue, out ulong parsedValue) ? parsedValue : (ulong?)null;
+        return ulong.TryParse(stringValue, out ulong parsedValue) ? parsedValue : null;
     }
 
     /// <summary>
@@ -227,8 +226,7 @@ internal sealed class ConfiguredIniFile
     {
         string stringValue = GetString(section, key);
         return float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsedValue)
-            ? parsedValue
-            : (float?)null;
+            ? parsedValue : null;
     }
 
     /// <summary>
@@ -238,8 +236,7 @@ internal sealed class ConfiguredIniFile
     {
         string stringValue = GetString(section, key);
         return double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedValue)
-            ? parsedValue
-            : (double?)null;
+            ? parsedValue : null;
     }
 
     /// <summary>
@@ -249,8 +246,7 @@ internal sealed class ConfiguredIniFile
     {
         string stringValue = GetString(section, key);
         return DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedValue)
-            ? parsedValue
-            : (DateTime?)null;
+            ? parsedValue : null;
     }
 
     /// <summary>

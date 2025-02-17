@@ -43,7 +43,7 @@ public sealed class FirewallConfig : ConfiguredBinder
     /// </summary>
     /// <value>The connection limit level.</value>
     [ConfiguredIgnore]
-    public ConnectionLimit ConnectionLimit { get; set; } = ConnectionLimit.Medium;
+    private ConnectionLimit ConnectionLimit { get; set; } = ConnectionLimit.Medium;
 
     /// <summary>
     /// Gets or sets the request limit level.
@@ -51,7 +51,7 @@ public sealed class FirewallConfig : ConfiguredBinder
     /// </summary>
     /// <value>The request limit level.</value>
     [ConfiguredIgnore]
-    public RequestLimit RequestLimit { get; set; } = RequestLimit.Medium;
+    private RequestLimit RequestLimit { get; set; } = RequestLimit.Medium;
 
     /// <summary>
     /// Applies the configuration limits for request, bandwidth, and connection.

@@ -78,7 +78,7 @@ public static partial class PackageExtensions
         }
         catch (PackageException)
         {
-            @out = default;
+            @out = null;
             return false;
         }
     }
@@ -96,7 +96,7 @@ public static partial class PackageExtensions
         }
         catch (PackageException)
         {
-            @out = default;
+            @out = null;
             return false;
         }
     }

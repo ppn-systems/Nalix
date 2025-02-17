@@ -1,4 +1,4 @@
-using Notio.Common.Exceptions;
+﻿using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
@@ -40,19 +40,18 @@ public static class PacketVerifier
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
     {
-        if (key == null || key.Length != 32)
+        if (key is not { Length: 32 })
             throw new PackageException(isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");
 
         if (packet.Payload.IsEmpty)
             throw new PackageException("Payload is empty and cannot be processed.");
 
-        if (isEncryption && packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PackageException("Payload is already encrypted.");
-
-        if (!isEncryption && !packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PackageException("Payload is not encrypted and cannot be decrypted.");
-
-        if (packet.Flags.HasFlag(PacketFlags.IsSigned))
-            throw new PackageException("Payload is signed. Please remove the signature before processing.");
+        switch (isEncryption)
+        {
+            case true when packet.Flags.HasFlag(PacketFlags.IsEncrypted):
+                throw new PackageException("Payload is already encrypted.");
+            case false when !packet.Flags.HasFlag(PacketFlags.IsEncrypted):
+                throw new PackageException("Payload is not encrypted and cannot be decrypted.");
+        }
     }
 }

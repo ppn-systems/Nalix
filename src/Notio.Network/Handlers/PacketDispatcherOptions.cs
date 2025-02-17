@@ -23,13 +23,13 @@ namespace Notio.Network.Handlers;
 /// </remarks>
 public class PacketDispatcherOptions
 {
-    private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> MethodHandlers;
+    private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> _methodHandlers;
 
-    private Func<IPacket, IConnection, IPacket>? EncryptionMethod;
-    private Func<IPacket, IConnection, IPacket>? DecryptionMethod;
+    private Func<IPacket, IConnection, IPacket>? _encryptionMethod;
+    private Func<IPacket, IConnection, IPacket>? _decryptionMethod;
 
-    private Func<IPacket, IPacket>? CompressionMethod;
-    private Func<IPacket, IPacket>? DecompressionMethod;
+    private Func<IPacket, IPacket>? _compressionMethod;
+    private Func<IPacket, IPacket>? _decompressionMethod;
 
     /// <summary>
     /// The logger instance used for logging.
@@ -55,7 +55,7 @@ public class PacketDispatcherOptions
     /// <summary>
     /// Indicates whether metrics tracking is enabled.
     /// </summary>
-    internal bool EnableMetrics { get; set; }
+    private bool EnableMetrics { get; set; }
 
     /// <summary>
     /// Callback function to collect execution time metrics for packet processing.
@@ -63,7 +63,7 @@ public class PacketDispatcherOptions
     /// <remarks>
     /// The callback receives the packet handler name and execution time in milliseconds.
     /// </remarks>
-    internal Action<string, long>? MetricsCallback { get; set; }
+    private Action<string, long>? MetricsCallback { get; set; }
 
     /// <summary>
     /// A function that serializes an <see cref="IPacket"/> into a <see cref="Memory{Byte}"/>.
@@ -95,7 +95,7 @@ public class PacketDispatcherOptions
     /// </remarks>
     public PacketDispatcherOptions()
     {
-        MethodHandlers = new Dictionary<Type, Func<object?, IPacket, IConnection, Task>>
+        _methodHandlers = new Dictionary<Type, Func<object?, IPacket, IConnection, Task>>
         {
             [typeof(void)] = (_, _, _) => Task.CompletedTask,
 
@@ -148,11 +148,11 @@ public class PacketDispatcherOptions
                         return;
                     }
 
-                    if (this.CompressionMethod is not null)
-                        packet = this.CompressionMethod(packet);
+                    if (this._compressionMethod is not null)
+                        packet = this._compressionMethod(packet);
 
-                    if (this.EncryptionMethod is not null)
-                        packet = this.EncryptionMethod(packet, connection);
+                    if (this._encryptionMethod is not null)
+                        packet = this._encryptionMethod(packet, connection);
 
                     await connection.SendAsync(this.SerializationMethod(packet));
                 }
@@ -211,11 +211,11 @@ public class PacketDispatcherOptions
                     return;
                 }
 
-                if (this.CompressionMethod is not null)
-                    packet = this.CompressionMethod(packet);
+                if (this._compressionMethod is not null)
+                    packet = this._compressionMethod(packet);
 
-                if (this.EncryptionMethod is not null)
-                    packet = this.EncryptionMethod(packet, connection);
+                if (this._encryptionMethod is not null)
+                    packet = this._encryptionMethod(packet, connection);
 
                 await connection.SendAsync(this.SerializationMethod(packet));
             }
@@ -280,9 +280,10 @@ public class PacketDispatcherOptions
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);
 
-        if (duplicateCommandIds.Any())
+        IEnumerable<ushort> commandIds = duplicateCommandIds as ushort[] ?? duplicateCommandIds.ToArray();
+        if (commandIds.Any())
             throw new InvalidOperationException(
-                $"Duplicate CommandIds found: {string.Join(", ", duplicateCommandIds)}");
+                $"Duplicate CommandIds found: {string.Join(", ", commandIds)}");
 
         // Register each method with its corresponding commandId
         foreach (MethodInfo method in methods)
@@ -290,7 +291,7 @@ public class PacketDispatcherOptions
             ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.CommandId;
             Type returnType = method.ReturnType;
 
-            if (!MethodHandlers.TryGetValue(returnType, out Func<object?, IPacket, IConnection, Task>? value))
+            if (!_methodHandlers.TryGetValue(returnType, out Func<object?, IPacket, IConnection, Task>? value))
             {
                 throw new InvalidOperationException(
                     $"Method {method.Name} has unsupported return type: {returnType}");
@@ -310,11 +311,11 @@ public class PacketDispatcherOptions
 
                     try
                     {
-                        if (DecompressionMethod != null)
-                            packet = DecompressionMethod(packet);
+                        if (_decompressionMethod != null)
+                            packet = _decompressionMethod(packet);
 
-                        if (DecryptionMethod != null)
-                            packet = DecryptionMethod(packet, connection);
+                        if (_decryptionMethod != null)
+                            packet = _decryptionMethod(packet, connection);
 
                         result = method.Invoke(controller, [packet, connection]);
                     }
@@ -369,8 +370,8 @@ public class PacketDispatcherOptions
         Func<IPacket, IPacket>? decompressionMethod
     )
     {
-        CompressionMethod = compressionMethod;
-        DecompressionMethod = decompressionMethod;
+        _compressionMethod = compressionMethod;
+        _decompressionMethod = decompressionMethod;
 
         return this;
     }
@@ -401,8 +402,8 @@ public class PacketDispatcherOptions
         Func<IPacket, IConnection, IPacket>? decryptionMethod
     )
     {
-        EncryptionMethod = encryptionMethod;
-        DecryptionMethod = decryptionMethod;
+        _encryptionMethod = encryptionMethod;
+        _decryptionMethod = decryptionMethod;
 
         return this;
     }

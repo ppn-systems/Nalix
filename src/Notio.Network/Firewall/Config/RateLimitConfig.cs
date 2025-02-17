@@ -1,5 +1,4 @@
 using Notio.Shared.Configuration;
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Notio.Network.Firewall.Config;

@@ -23,7 +23,7 @@ public class LruCache<TKey, TValue>(int capacity) where TKey : notnull
     }
 
     private readonly int _capacity = capacity;
-    private readonly LinkedList<CacheItem> _usageOrder = new();
+    private readonly LinkedList<CacheItem> _usageOrder = [];
     private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap = [];
 
     /// <summary>
@@ -68,19 +68,18 @@ public class LruCache<TKey, TValue>(int capacity) where TKey : notnull
     /// <exception cref="KeyNotFoundException">Thrown when the key is not found in the cache.</exception>
     public TValue GetValue(TKey key)
     {
-        if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
-        {
-            // Move the node to the front to mark it as most recently used
-            _usageOrder.Remove(node);
-            _usageOrder.AddFirst(node);
+        if (!_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            throw new KeyNotFoundException("The key was not found in the cache.");
 
-            if (node.Value.Value == null)
-                throw new KeyNotFoundException("The key was not found in the cache.");
+        // Move the node to the front to mark it as most recently used
+        _usageOrder.Remove(node);
+        _usageOrder.AddFirst(node);
 
-            return node.Value.Value;
-        }
+        if (node.Value.Value == null)
+            throw new KeyNotFoundException("The key was not found in the cache.");
 
-        throw new KeyNotFoundException("The key was not found in the cache.");
+        return node.Value.Value;
+
     }
 
     /// <summary>

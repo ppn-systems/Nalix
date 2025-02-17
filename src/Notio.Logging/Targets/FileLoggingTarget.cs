@@ -25,13 +25,13 @@ public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOpti
     /// <summary>
     /// The provider responsible for writing logs to a file.
     /// </summary>
-    public readonly FileLoggerProvider LoggerPrv = new(fileLoggerOptions);
+    private readonly FileLoggerProvider _loggerPrv = new(fileLoggerOptions);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
     /// </summary>
     public FileLoggingTarget()
-        : this(new LoggingFormatter(false), new FileLoggerOptions())
+        : this(new LoggingFormatter(), new FileLoggerOptions())
     {
     }
 
@@ -40,7 +40,7 @@ public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOpti
     /// </summary>
     /// <param name="options">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
     public FileLoggingTarget(FileLoggerOptions options)
-        : this(new LoggingFormatter(false), options)
+        : this(new LoggingFormatter(), options)
     {
     }
 
@@ -49,14 +49,14 @@ public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOpti
     /// </summary>
     /// <param name="logMessage">The log entry to be published.</param>
     public void Publish(LoggingEntry logMessage)
-        => LoggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
+        => _loggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
 
     /// <summary>
     /// Disposes of the file logger and any resources it uses.
     /// </summary>
     public void Dispose()
     {
-        LoggerPrv?.Dispose();
+        _loggerPrv.Dispose();
         GC.SuppressFinalize(this);
     }
 }

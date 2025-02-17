@@ -7,22 +7,10 @@ namespace Notio.Logging.Internal.File;
 /// </summary>
 public class FileError
 {
-    /// <summary>
-    /// An exception occurred during a file operation.
-    /// </summary>
-    public Exception ErrorException { get; private set; }
-
-    /// <summary>
-    /// Current log file name.
-    /// </summary>
-    public string LogFileName { get; private set; }
-
     internal string? NewLogFileName { get; private set; }
 
-    internal FileError(string logFileName, Exception ex)
+    internal FileError(Exception ex)
     {
-        LogFileName = logFileName;
-        ErrorException = ex;
     }
 
     /// <summary>

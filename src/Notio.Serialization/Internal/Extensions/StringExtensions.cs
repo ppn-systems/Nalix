@@ -34,8 +34,7 @@ internal static class StringExtensions
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
     internal static string ToStringInvariant<T>(this T item)
         => typeof(string) == typeof(T) ? item as string
-        ?? string.Empty : (item as object).ToStringInvariant()
-        ?? string.Empty;
+        ?? string.Empty : (item as object).ToStringInvariant();
 
     /// <summary>
     /// Retrieves a section of the string, inclusive of both, the start and end indexes.

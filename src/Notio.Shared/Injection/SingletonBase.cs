@@ -9,7 +9,7 @@ namespace Notio.Shared.Injection;
 public abstract class SingletonBase<T> : IDisposable
     where T : class
 {
-    private static readonly Lazy<T> _instance = new(
+    private static readonly Lazy<T> Instances = new(
         valueFactory: () => CreateInstance() ?? throw new MissingMethodException(typeof(T).Name, ".ctor"),
         isThreadSafe: true);
 
@@ -18,7 +18,7 @@ public abstract class SingletonBase<T> : IDisposable
     /// <summary>
     /// Gets the single instance of the <typeparamref name="T"/> class.
     /// </summary>
-    public static T Instance => _instance.Value;
+    public static T Instance => Instances.Value;
 
     /// <inheritdoc />
     public void Dispose()
@@ -62,9 +62,7 @@ public abstract class SingletonBase<T> : IDisposable
         _isDisposing = true;
 
         // Only dispose the instance if it has been created.
-        if (_instance.IsValueCreated && _instance.Value is IDisposable disposableInstance)
-        {
+        if (Instances is { IsValueCreated: true, Value: IDisposable disposableInstance })
             disposableInstance.Dispose();
-        }
     }
 }

@@ -18,7 +18,7 @@ public sealed class LoggingOptions : IDisposable
     /// <summary>
     /// The minimum logging level for the file logger.
     /// </summary>
-    public LoggingLevel MinLevel { get; set; } = LoggingLevel.Trace;
+    public LoggingLevel MinLevel { get; private set; } = LoggingLevel.Trace;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingOptions"/> class.
@@ -91,7 +91,7 @@ public sealed class LoggingOptions : IDisposable
         {
             if (disposing)
             {
-                _publisher?.Dispose();
+                _publisher.Dispose();
             }
 
             _disposed = true;

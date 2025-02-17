@@ -22,7 +22,7 @@ internal static class ReflectionExtensions
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        return type.IsValueType ? Activator.CreateInstance(type) : default;
+        return type.IsValueType ? Activator.CreateInstance(type) : null;
     }
 
     /// <summary>
@@ -35,17 +35,14 @@ internal static class ReflectionExtensions
     ///   <c>true</c> if parsing was successful; otherwise, <c>false</c>.
     /// </returns>
     /// <exception cref="ArgumentNullException">type</exception>
-    internal static bool TryParseBasicType(this Type type, object value, out object? result)
+    private static bool TryParseBasicType(this Type type, object value, out object? result)
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        if (type == typeof(bool))
-        {
-            result = value.ToBoolean();
-            return true;
-        }
+        if (type != typeof(bool)) return type.TryParseBasicType(value.ToStringInvariant(), out result);
+        result = value.ToBoolean();
+        return true;
 
-        return type.TryParseBasicType(value.ToStringInvariant() ?? string.Empty, out result);
     }
 
     /// <summary>
@@ -102,7 +99,7 @@ internal static class ReflectionExtensions
     ///   <c>true</c> if parsing was successful; otherwise, <c>false</c>.
     /// </returns>
     /// <exception cref="ArgumentNullException">type</exception>
-    internal static bool TrySetArrayBasicType(this Type type, object value, Array target, int index)
+    private static bool TrySetArrayBasicType(this Type type, object value, Array? target, int index)
     {
         ArgumentNullException.ThrowIfNull(type);
 
@@ -127,7 +124,7 @@ internal static class ReflectionExtensions
     ///   <c>true</c> if parsing was successful; otherwise, <c>false</c>.
     /// </returns>
     /// <exception cref="ArgumentNullException">propertyInfo.</exception>
-    internal static bool TrySetArray(this PropertyInfo propertyInfo, IEnumerable<object> value, object obj)
+    internal static bool TrySetArray(this PropertyInfo propertyInfo, IEnumerable<object>? value, object obj)
     {
         ArgumentNullException.ThrowIfNull(propertyInfo);
 
@@ -153,7 +150,7 @@ internal static class ReflectionExtensions
     /// <returns>
     ///   <c>true</c> if the string represents a valid truly value, otherwise <c>false</c>.
     /// </returns>
-    internal static bool ToBoolean(this string str) =>
+    private static bool ToBoolean(this string str) =>
         bool.TryParse(str, out var boolResult) ? boolResult :
         int.TryParse(str, out var intResult) && intResult != 0;
 
@@ -164,11 +161,11 @@ internal static class ReflectionExtensions
     /// <returns>
     ///   <c>true</c> if the string represents a valid truly value, otherwise <c>false</c>.
     /// </returns>
-    internal static bool ToBoolean(this object value) =>
+    private static bool ToBoolean(this object value) =>
         value switch
         {
             bool b => b,
             int i => i != 0,
-            _ => value.ToStringInvariant()?.ToBoolean() ?? false
+            _ => value.ToStringInvariant() is { } s && value.ToStringInvariant().ToBoolean()
         };
 }

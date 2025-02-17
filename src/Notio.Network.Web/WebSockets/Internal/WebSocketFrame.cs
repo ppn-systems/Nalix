@@ -5,6 +5,7 @@ using Notio.Shared.Extensions;
 using System;
 using System.Globalization;
 using System.IO;
+using Notio.Shared.Extensions.Primitives;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

@@ -68,10 +68,10 @@ public partial class Json
             // Choose the resolution method based on the type of obj.
             _result = obj switch
             {
-                IDictionary dict when dict.Count == 0 => EmptyObjectLiteral,
+                IDictionary { Count: 0 } => EmptyObjectLiteral,
                 IDictionary dict => ResolveDictionary(dict, depth),
                 IEnumerable enumerable when !enumerable.Cast<object>().Any() => EmptyArrayLiteral,
-                IEnumerable enumerable when enumerable is byte[] bytes => Serialize(bytes.ToBase64(), depth, _options, _excludedNames),
+                IEnumerable and byte[] bytes => Serialize(bytes.ToBase64(), depth, _options, _excludedNames),
                 IEnumerable enumerable => ResolveEnumerable(enumerable, depth),
                 _ => ResolveObject(obj!, depth)
             };
@@ -89,12 +89,13 @@ public partial class Json
                 .Where(x => AttributeCache.DefaultCache.Value.RetrieveOne<JsonPropertyAttribute>(x)?.Ignored == true)
                 .Select(x => x.Name));
 
-            if (excludedByAttr?.Any() != true)
+            IEnumerable<string> byAttr = excludedByAttr as string[] ?? excludedByAttr.ToArray();
+            if (byAttr.Any() != true)
                 return excludedNames;
 
             return excludedNames?.Any(name => !string.IsNullOrWhiteSpace(name)) == true
-                ? excludedByAttr.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y))).ToArray()
-                : excludedByAttr.ToArray();
+                ? byAttr.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y))).ToArray()
+                : byAttr.ToArray();
         }
 
         private static string ResolveBasicType(object? obj)
@@ -128,7 +129,7 @@ public partial class Json
             return serialized.TrimStart().FirstOrDefault() is OpenObjectChar or OpenArrayChar;
         }
 
-        private static string Escape(string str, bool quoted)
+        private static string Escape(string? str, bool quoted)
         {
             if (str == null)
                 return string.Empty;
@@ -236,7 +237,7 @@ public partial class Json
             if (fields.Count == 0 && string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 return EmptyObjectLiteral;
 
-            var dict = CreateDictionary(fields, targetType.ToString()!, target);
+            var dict = CreateDictionary(fields, targetType.ToString(), target);
             return Serialize(dict, depth, _options, _excludedNames);
         }
 
@@ -304,20 +305,5 @@ public partial class Json
             if (_format)
                 _builder.Append(_newLine);
         }
-
-        // Constants and special characters.
-        private const char OpenObjectChar = '{';
-
-        private const char CloseObjectChar = '}';
-        private const char OpenArrayChar = '[';
-        private const char CloseArrayChar = ']';
-        private const char StringQuotedChar = '"';
-        private const char FieldSeparatorChar = ',';
-        private const char ValueSeparatorChar = ':';
-        private const string NullLiteral = "null";
-        private const string TrueLiteral = "true";
-        private const string FalseLiteral = "false";
-        private const string EmptyObjectLiteral = "{ }";
-        private const string EmptyArrayLiteral = "[ ]";
     }
 }

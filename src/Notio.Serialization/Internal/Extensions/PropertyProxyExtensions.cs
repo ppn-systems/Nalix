@@ -19,7 +19,7 @@ internal static class PropertyProxyExtensions
     /// <summary>
     /// Gets the property proxies associated with a given type.
     /// </summary>
-    internal static Dictionary<string, IPropertyProxy> PropertyProxies(
+    private static Dictionary<string, IPropertyProxy> PropertyProxies(
         [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.NonPublicProperties)] this Type t)

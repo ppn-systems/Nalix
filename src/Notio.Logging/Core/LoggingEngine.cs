@@ -16,7 +16,7 @@ public abstract class LoggingEngine
     /// <summary>
     /// Gets the logging publisher instance.
     /// </summary>
-    public ILoggingPublisher Publisher => _publisher;
+    private ILoggingPublisher Publisher => _publisher;
 
     /// <summary>
     /// The logging configuration options for the application.

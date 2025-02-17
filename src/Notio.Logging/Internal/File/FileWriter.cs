@@ -8,7 +8,7 @@ namespace Notio.Logging.Internal.File;
 /// </summary>
 internal class FileWriter
 {
-    private int _count = 0;
+    private int _count;
     private FileStream? _logFileStream;
     private StreamWriter? _logFileWriter;
     private readonly FileLoggerProvider _fileLogProvider;
@@ -73,7 +73,7 @@ internal class FileWriter
         }
         catch (Exception ex)
         {
-            _fileLogProvider.HandleFileError?.Invoke(new FileError(_fileLogProvider.Options.LogFileName, ex));
+            _fileLogProvider.HandleFileError?.Invoke(new FileError(ex));
         }
     }
 

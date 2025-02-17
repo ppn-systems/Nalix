@@ -46,12 +46,11 @@ public sealed class FifoCache<T>
         Interlocked.Increment(ref _currentSize);
 
         // Remove oldest element if capacity is exceeded
-        if (_currentSize > _capacity)
+        if (_currentSize <= _capacity) return;
+
+        while (_currentSize > _capacity && _queue.TryDequeue(out _))
         {
-            while (_currentSize > _capacity && _queue.TryDequeue(out _))
-            {
-                Interlocked.Decrement(ref _currentSize);
-            }
+            Interlocked.Decrement(ref _currentSize);
         }
     }
 
@@ -62,13 +61,10 @@ public sealed class FifoCache<T>
     /// <exception cref="InvalidOperationException">Thrown when the cache is empty.</exception>
     public T GetValue()
     {
-        if (_queue.TryDequeue(out T? item))
-        {
-            Interlocked.Decrement(ref _currentSize);
-            return item;
-        }
+        if (!_queue.TryDequeue(out T? item)) throw new InvalidOperationException("FifoCache is empty.");
+        Interlocked.Decrement(ref _currentSize);
+        return item;
 
-        throw new InvalidOperationException("FifoCache is empty.");
     }
 
     /// <summary>

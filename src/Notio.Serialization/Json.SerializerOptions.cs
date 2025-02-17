@@ -29,7 +29,6 @@ public class SerializerOptions
     /// <param name="typeSpecifier">The type specifier.</param>
     /// <param name="includeProperties">The include properties.</param>
     /// <param name="excludeProperties">The exclude properties.</param>
-    /// <param name="includeNonPublic">if set to <c>true</c> [include non public].</param>
     /// <param name="parentReferences">The parent references.</param>
     /// <param name="jsonSerializerCase">The json serializer case.</param>
     public SerializerOptions(
@@ -37,14 +36,12 @@ public class SerializerOptions
         string? typeSpecifier,
         string[]? includeProperties,
         string[]? excludeProperties = null,
-        bool includeNonPublic = true,
         IReadOnlyCollection<WeakReference>? parentReferences = null,
         JsonSerializerCase jsonSerializerCase = JsonSerializerCase.None)
     {
         _includeProperties = includeProperties;
 
         ExcludeProperties = excludeProperties;
-        IncludeNonPublic = includeNonPublic;
         Format = format;
         TypeSpecifier = typeSpecifier;
         JsonSerializerCase = jsonSerializerCase;
@@ -52,7 +49,7 @@ public class SerializerOptions
         if (parentReferences == null)
             return;
 
-        foreach (var parentReference in parentReferences.Where(x => x.IsAlive && x.Target != null))
+        foreach (var parentReference in parentReferences.Where(x => x is { IsAlive: true, Target: not null }))
         {
             IsObjectPresent(parentReference.Target!);
         }
@@ -74,13 +71,7 @@ public class SerializerOptions
     /// </value>
     public string? TypeSpecifier { get; }
 
-    /// <summary>
-    /// Gets a value indicating whether [include non public].
-    /// </summary>
-    /// <value>
-    ///   <c>true</c> if [include non public]; otherwise, <c>false</c>.
-    /// </value>
-    public bool IncludeNonPublic { get; }
+
 
     /// <summary>
     /// Gets the json serializer case.
@@ -88,7 +79,7 @@ public class SerializerOptions
     /// <value>
     /// The json serializer case.
     /// </value>
-    public JsonSerializerCase JsonSerializerCase { get; }
+    private JsonSerializerCase JsonSerializerCase { get; }
 
     /// <summary>
     /// Gets or sets the exclude properties.

@@ -32,13 +32,13 @@ public class InDiskConfig : ConfiguredBinder, IFileStorageConfig<InDiskConfig>
     /// Indicates whether file generation is enabled.
     /// </summary>
     [ConfiguredIgnore]
-    public bool IsGenerationEnabled => Generator is not null;
+    public bool IsGenerationEnabled => Generator != null;
 
     /// <summary>
     /// Indicates whether the MIME type resolver is enabled.
     /// </summary>
     [ConfiguredIgnore]
-    public bool IsMimeTypeResolverEnabled => MimeTypeResolver is not null;
+    public bool IsMimeTypeResolverEnabled => MimeTypeResolver != null;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InDiskConfig"/> class.

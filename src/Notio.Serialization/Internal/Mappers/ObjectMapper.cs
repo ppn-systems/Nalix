@@ -79,7 +79,7 @@ namespace Notio.Serialization.Internal.Mappers;
 /// }
 /// </code>
 /// </example>
-internal partial class ObjectMapper
+internal abstract class ObjectMapper
 {
     /// <summary>
     /// Copies the specified source.
@@ -134,7 +134,7 @@ internal partial class ObjectMapper
         {
             var (type, value) = property;
 
-            if (value == null || propertyInfo.PropertyType.IsAssignableFrom(type))
+            if (propertyInfo.PropertyType.IsAssignableFrom(type))
             {
                 propertyInfo.SetValue(target, value);
                 return true;
@@ -164,7 +164,7 @@ internal partial class ObjectMapper
         }
     }
 
-    private static object? GetValue(object source, Type targetType)
+    private static object? GetValue(object? source, Type targetType)
     {
         if (source == null)
             return null;
@@ -179,7 +179,7 @@ internal partial class ObjectMapper
 
             case IList sourceList when target is IList targetList:
                 var addMethod = targetType.GetMethods()
-                    .FirstOrDefault(m => m.Name == Json.AddMethodName && m.IsPublic && m.GetParameters().Length == 1);
+                    .FirstOrDefault(m => m is { Name: Json.AddMethodName, IsPublic: true } && m.GetParameters().Length == 1);
 
                 if (addMethod == null) return target;
 

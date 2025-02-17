@@ -29,10 +29,9 @@ public readonly struct PooledMemory<T>(T[] array, int length, ArrayPool<T> pool)
     /// </summary>
     public void Dispose()
     {
-        if (_array != null)
-        {
-            Array.Clear(_array, 0, _length);
-            _pool.Return(_array);
-        }
+        if (_array == null) return;
+        
+        Array.Clear(_array, 0, _length);
+        _pool.Return(_array);
     }
 }

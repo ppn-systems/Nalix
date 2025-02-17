@@ -18,6 +18,12 @@ public interface IConnection : IDisposable
     string Id { get; }
 
     /// <summary>
+    /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
+    /// This value can help determine the latency of the network connection.
+    /// </summary>
+    long PingTime { get; }
+
+    /// <summary>
     /// Gets the incoming packet of data.
     /// </summary>
     ReadOnlyMemory<byte>? IncomingPacket { get; }

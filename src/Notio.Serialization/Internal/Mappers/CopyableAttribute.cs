@@ -7,6 +7,6 @@ namespace Notio.Serialization.Internal.Mappers;
 /// </summary>
 /// <seealso cref="Attribute" />
 [AttributeUsage(AttributeTargets.Property)]
-internal class CopyableAttribute : Attribute
+internal abstract class CopyableAttribute : Attribute
 {
 }

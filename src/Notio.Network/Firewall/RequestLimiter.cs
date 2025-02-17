@@ -64,7 +64,7 @@ public sealed class RequestLimiter : IDisposable
 
         // Initialize the cleanup timer for automatic request cleanup
         _cleanupTimer = new Timer(
-            async _ => await CleanupInactiveRequestsAsync(),
+            async void (_) => await CleanupInactiveRequestsAsync(),
             null,
             TimeSpan.FromMinutes(1),
             TimeSpan.FromMinutes(1)

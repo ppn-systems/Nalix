@@ -64,9 +64,11 @@ public sealed class BufferManager : IDisposable
     /// </summary>
     /// <param name="buffer">The buffer to return.</param>
     /// <exception cref="ArgumentException">Thrown if the buffer size is invalid.</exception>
-    public void ReturnBuffer(byte[] buffer)
+    public void ReturnBuffer(byte[]? buffer)
     {
-        if (buffer == null || !_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
+        if (buffer == null) return;
+        
+        if (!_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
             throw new ArgumentException("Invalid buffer size.");
 
         pool.ReleaseBuffer(buffer);
@@ -85,8 +87,8 @@ public sealed class BufferManager : IDisposable
     private bool AdjustCounter(int poolSize, bool isRent)
     {
         return _adjustmentCounters.AddOrUpdate(poolSize,
-            key => isRent ? (1, 0) : (0, 1),
-            (key, current) =>
+            _ => isRent ? (1, 0) : (0, 1),
+            (_, current) =>
             {
                 var newRentCounter = isRent ? current.RentCounter + 1 : current.RentCounter;
                 var newReturnCounter = isRent ? current.ReturnCounter : current.ReturnCounter + 1;

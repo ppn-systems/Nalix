@@ -19,7 +19,7 @@ namespace Notio.Network.Listeners;
 /// </summary>
 public abstract class Listener : TcpListener, IListener
 {
-    private static readonly NetworkConfig _networkConfig = ConfiguredShared.Instance.Get<NetworkConfig>();
+    private static readonly NetworkConfig NetworkConfig = ConfiguredShared.Instance.Get<NetworkConfig>();
 
     private readonly int _port;
     private readonly ILogger _logger;
@@ -33,7 +33,7 @@ public abstract class Listener : TcpListener, IListener
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    public Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
         : base(IPAddress.Any, port)
     {
         _port = port;
@@ -49,10 +49,10 @@ public abstract class Listener : TcpListener, IListener
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    public Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
-        : base(IPAddress.Any, _networkConfig.Port)
+    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+        : base(IPAddress.Any, NetworkConfig.Port)
     {
-        _port = _networkConfig.Port;
+        _port = NetworkConfig.Port;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
         _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
@@ -69,8 +69,8 @@ public abstract class Listener : TcpListener, IListener
         {
             try
             {
-                base.Start();
-                _logger?.Info($"{_protocol} is online on port {_port}");
+                Start();
+                _logger.Info($"{_protocol} is online on port {_port}");
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     IConnection connection = await CreateConnection(cancellationToken);
@@ -80,23 +80,21 @@ public abstract class Listener : TcpListener, IListener
             }
             catch (OperationCanceledException)
             {
-                _logger?.Info($"Listener on port {_port} stopped gracefully");
+                _logger.Info($"Listener on port {_port} stopped gracefully");
             }
             catch (SocketException ex)
             {
-                _logger?.Error($"Could not start {_protocol} on port {_port}", ex);
+                _logger.Error($"Could not start {_protocol} on port {_port}", ex);
                 Environment.Exit(1);
-                return;
             }
             catch (Exception ex)
             {
-                _logger?.Error($"Critical error in listener on port {_port}", ex);
+                _logger.Error($"Critical error in listener on port {_port}", ex);
                 Environment.Exit(1);
-                return;
             }
             finally
             {
-                base.Stop();
+                Stop();
             }
         }, cancellationToken);
     }
@@ -104,7 +102,7 @@ public abstract class Listener : TcpListener, IListener
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
-    public void EndListening() => base.Stop();
+    public void EndListening() => Stop();
 
     /// <summary>
     /// Creates a new connection from an incoming socket.
@@ -118,7 +116,7 @@ public abstract class Listener : TcpListener, IListener
 
         Connection.Connection connection = new(socket, _bufferPool, _logger); // Fully qualify the Connection class
 
-        connection.OnCloseEvent += this.OnConnectionClose!;
+        connection.OnCloseEvent += OnConnectionClose;
         connection.OnProcessEvent += _protocol.ProcessMessage!;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
         return connection;
@@ -132,7 +130,7 @@ public abstract class Listener : TcpListener, IListener
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
         // De-subscribe to this event first.
-        args.Connection.OnCloseEvent -= this.OnConnectionClose!;
+        args.Connection.OnCloseEvent -= OnConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
     }
@@ -168,10 +166,8 @@ public abstract class Listener : TcpListener, IListener
         return
         [
             1, 0, 0, 0,
-            (byte)(time & 0xFF), (byte)((time >> 8) & 0xFF),
-            (byte)((time >> 16) & 0xFF), (byte)((time >> 24) & 0xFF),
-            (byte)(interval & 0xFF), (byte)((interval >> 8) & 0xFF),
-            (byte)((interval >> 16) & 0xFF), (byte)((interval >> 24) & 0xFF)
+            (byte)(time & 0xFF), (byte)((time >> 8) & 0xFF), 0, 0,
+            (byte)(interval & 0xFF), (byte)((interval >> 8) & 0xFF), 0, 0
         ];
     }
 }

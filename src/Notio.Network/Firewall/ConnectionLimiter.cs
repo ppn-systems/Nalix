@@ -42,7 +42,10 @@ public sealed class ConnectionLimiter : IDisposable
         _cleanupLock = new SemaphoreSlim(1, 1);
 
         _cleanupTimer = new Timer(
-            async _ => await CleanupStaleConnectionsAsync(),
+            async void (_) =>
+            {
+                await CleanupStaleConnectionsAsync();
+            },
             null,
             TimeSpan.FromMinutes(1),
             TimeSpan.FromMinutes(1)

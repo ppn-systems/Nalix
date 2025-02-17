@@ -104,5 +104,5 @@ public sealed class NetworkConfig : ConfiguredBinder
     /// This property is not configured and is only for validation purposes.
     /// </summary>
     [ConfiguredIgnore]
-    public bool IsValidPort => Port >= 1 && Port <= 65535;
+    public bool IsValidPort => Port is >= 1 and <= 65535;
 }

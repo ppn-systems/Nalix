@@ -28,13 +28,11 @@ public sealed class ListPool<T>
     {
         lock (_listStack)
         {
-            if (_listStack.Count == 0)
-            {
-                TraceOccurred?.Invoke($"Rent(): Tạo một instance mới của List<{typeof(T).Name}> (TotalCount={++_totalCount})");
-                return [];
-            }
+            if (_listStack.Count != 0) return _listStack.Pop();
+            
+            TraceOccurred?.Invoke($"Rent(): Tạo một instance mới của List<{typeof(T).Name}> (TotalCount={++_totalCount})");
+            return [];
 
-            return _listStack.Pop();
         }
     }
 

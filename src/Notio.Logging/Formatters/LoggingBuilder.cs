@@ -2,7 +2,6 @@ using Notio.Common.Enums;
 using Notio.Common.Models;
 using Notio.Logging.Internal;
 using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -10,8 +9,6 @@ namespace Notio.Logging.Formatters;
 
 internal static class LoggingBuilder
 {
-    private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void BuildLog(
         StringBuilder builder,

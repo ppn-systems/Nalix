@@ -8,42 +8,74 @@ namespace Notio.Shared;
 /// </summary>
 public static class DirectoriesDefault
 {
-    private static readonly Lazy<string> _basePath = new(() => AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
-    private static readonly Lazy<string> _dataPath = new(() => Path.Combine(BasePath, "Data"));
-    private static readonly Lazy<string> _logsPath = new(() => Path.Combine(DataPath, "Logs"));
-    private static readonly Lazy<string> _tempPath = new(() => Path.Combine(DataPath, "Temp"));
-    private static readonly Lazy<string> _configPath = new(() => Path.Combine(DataPath, "Config"));
-    private static readonly Lazy<string> _storagePath = new(() => Path.Combine(DataPath, "Storage"));
+    private static readonly Lazy<string> BasePathLazy = new(() =>
+        AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
+
+    private static readonly Lazy<string> DataPathLazy = new(() =>
+    {
+        string path = Path.Combine(BasePathLazy.Value, "Data");
+        Directory.CreateDirectory(path);
+        return path;
+    });
+
+    private static readonly Lazy<string> LogsPathLazy = new(() =>
+    {
+        string path = Path.Combine(DataPathLazy.Value, "Logs");
+        Directory.CreateDirectory(path);
+        return path;
+    });
+
+    private static readonly Lazy<string> TempPathLazy = new(() =>
+    {
+        string path = Path.Combine(DataPathLazy.Value, "Temp");
+        Directory.CreateDirectory(path);
+        return path;
+    });
+
+    private static readonly Lazy<string> ConfigPathLazy = new(() =>
+    {
+        string path = Path.Combine(DataPathLazy.Value, "Config");
+        Directory.CreateDirectory(path);
+        return path;
+    });
+
+    private static readonly Lazy<string> StoragePathLazy = new(() =>
+    {
+        string path = Path.Combine(DataPathLazy.Value, "Storage");
+        Directory.CreateDirectory(path);
+        return path;
+    });
+
 
     /// <summary>
     /// The base directory of the application.
     /// </summary>
-    public static string BasePath => _basePath.Value;
+    public static string BasePath => BasePathLazy.Value;
 
     /// <summary>
     /// Directory for storing log files.
     /// </summary>
-    public static string LogsPath => _logsPath.Value;
+    public static string LogsPath => LogsPathLazy.Value;
 
     /// <summary>
     /// Directory for storing application data files.
     /// </summary>
-    public static string DataPath => _dataPath.Value;
+    public static string DataPath => DataPathLazy.Value;
 
     /// <summary>
     /// Directory for storing system configuration files.
     /// </summary>
-    public static string ConfigPath => _configPath.Value;
+    public static string ConfigPath => ConfigPathLazy.Value;
 
     /// <summary>
     /// Directory for storing temporary files.
     /// </summary>
-    public static string TempPath => _tempPath.Value;
+    public static string TempPath => TempPathLazy.Value;
 
     /// <summary>
     /// Directory for storing metric-related files.
     /// </summary>
-    public static string StoragePath => _storagePath.Value;
+    public static string StoragePath => StoragePathLazy.Value;
 
     /// <summary>
     /// Static constructor to initialize the default directories.

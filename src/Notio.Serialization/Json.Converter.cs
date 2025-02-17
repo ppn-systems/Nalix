@@ -44,7 +44,7 @@ public static partial class Json
             }
 
             var sourceType = source.GetType();
-            if (_targetType == null || _targetType == typeof(object))
+            if (_targetType == typeof(object))
                 _targetType = sourceType;
 
             if (sourceType == _targetType)
@@ -148,8 +148,8 @@ public static partial class Json
 
                 default:
                     {
-                        var sourceStringValue = source?.ToStringInvariant();
-                        if (sourceStringValue != null && !_targetType.TryParseBasicType(sourceStringValue, out target))
+                        var sourceStringValue = source.ToStringInvariant();
+                        if (!_targetType.TryParseBasicType(sourceStringValue, out target))
                         {
                             GetEnumValue(sourceStringValue, ref target);
                         }
@@ -212,8 +212,7 @@ public static partial class Json
         {
             // Locate an Add method that accepts (string, T) parameters.
             var addMethod = _targetType.GetMethods().FirstOrDefault(m =>
-                m.Name == AddMethodName &&
-                m.IsPublic &&
+                m is { Name: AddMethodName, IsPublic: true } &&
                 m.GetParameters().Length == 2 &&
                 m.GetParameters()[0].ParameterType == typeof(string));
 
@@ -234,7 +233,7 @@ public static partial class Json
             }
         }
 
-        private void PopulateObject(IDictionary<string, object> sourceProperties)
+        private void PopulateObject(IDictionary<string, object>? sourceProperties)
         {
             if (sourceProperties is null) return;
             if (_targetType.IsValueType)

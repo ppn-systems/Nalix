@@ -19,15 +19,15 @@ public static class Clock
     /// </summary>
     public static readonly DateTime TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    private static readonly DateTime _utcBase = DateTime.UtcNow;
-    private static readonly Stopwatch _utcStopwatch = Stopwatch.StartNew();
+    private static readonly DateTime UtcBase = DateTime.UtcNow;
+    private static readonly Stopwatch UtcStopwatch = Stopwatch.StartNew();
     private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime GetUtcNowPrecise() => _utcBase.Add(_utcStopwatch.Elapsed);
+    public static DateTime GetUtcNowPrecise() => UtcBase.Add(UtcStopwatch.Elapsed);
 
     /// <summary>
     /// Current Unix timestamp (seconds) as ulong.

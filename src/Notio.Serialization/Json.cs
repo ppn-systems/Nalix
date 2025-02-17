@@ -28,7 +28,6 @@ public static partial class Json
     private const char FieldSeparatorChar = ',';
     private const char ValueSeparatorChar = ':';
 
-    private const char StringEscapeChar = '\\';
     private const char StringQuotedChar = '"';
 
     private const string EmptyObjectLiteral = "{ }";
@@ -49,7 +48,6 @@ public static partial class Json
     /// <param name="obj">The object.</param>
     /// <param name="format">if set to <c>true</c> it formats and indents the output.</param>
     /// <param name="typeSpecifier">The type specifier. Leave null or empty to avoid setting.</param>
-    /// <param name="includeNonPublic">if set to <c>true</c> non-public getters will be also read.</param>
     /// <param name="includedNames">The included property names.</param>
     /// <param name="excludedNames">The excluded property names.</param>
     /// <returns>
@@ -102,10 +100,9 @@ public static partial class Json
         object? obj,
         bool format = false,
         string? typeSpecifier = null,
-        bool includeNonPublic = false,
         string[]? includedNames = null,
         params string[] excludedNames) =>
-        Serialize(obj, format, typeSpecifier, includeNonPublic, includedNames, excludedNames, null, JsonSerializerCase.None);
+        Serialize(obj, format, typeSpecifier, includedNames, excludedNames, null, JsonSerializerCase.None);
 
     /// <summary>
     /// Serializes the specified object into a JSON string.
@@ -121,7 +118,7 @@ public static partial class Json
         object? obj,
         JsonSerializerCase jsonSerializerCase,
         bool format = false,
-        string? typeSpecifier = null) => Serialize(obj, format, typeSpecifier, false, null, null, null, jsonSerializerCase);
+        string? typeSpecifier = null) => Serialize(obj, format, typeSpecifier, null, null, null, jsonSerializerCase);
 
     /// <summary>
     /// Serializes the specified object into a JSON string.
@@ -129,7 +126,6 @@ public static partial class Json
     /// <param name="obj">The object.</param>
     /// <param name="format">if set to <c>true</c> it formats and indents the output.</param>
     /// <param name="typeSpecifier">The type specifier. Leave null or empty to avoid setting.</param>
-    /// <param name="includeNonPublic">if set to <c>true</c> non-public getters will be also read.</param>
     /// <param name="includedNames">The included property names.</param>
     /// <param name="excludedNames">The excluded property names.</param>
     /// <param name="parentReferences">The parent references.</param>
@@ -137,11 +133,10 @@ public static partial class Json
     /// <returns>
     /// A <see cref="string" /> that represents the current object.
     /// </returns>
-    public static string Serialize(
+    private static string Serialize(
         object? obj,
         bool format,
         string? typeSpecifier,
-        bool includeNonPublic,
         string[]? includedNames,
         string[]? excludedNames,
         List<WeakReference>? parentReferences,
@@ -157,7 +152,6 @@ public static partial class Json
             typeSpecifier,
             includedNames,
             Serializer.GetExcludedNames(obj?.GetType(), excludedNames),
-            includeNonPublic,
             parentReferences,
             jsonSerializerCase);
 
@@ -262,7 +256,7 @@ public static partial class Json
     /// }
     /// }
     /// </code></example>
-    public static object? Deserialize(string json, JsonSerializerCase jsonSerializerCase) =>
+    private static object? Deserialize(string json, JsonSerializerCase jsonSerializerCase) =>
         json == null
             ? throw new ArgumentNullException(nameof(json))
             : Converter.FromJsonResult(Deserializer.DeserializeInternal(json), jsonSerializerCase);

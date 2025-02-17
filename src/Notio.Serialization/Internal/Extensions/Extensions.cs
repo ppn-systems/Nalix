@@ -4,13 +4,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Notio.Serialization.Internal.Extensions;
 
 /// <summary>
 /// Extension methods.
 /// </summary>
-internal static partial class Extensions
+internal static class Extensions
 {
     /// <summary>
     /// Converts an array of bytes to a base-64 encoded string.
@@ -116,14 +117,15 @@ internal static partial class Extensions
     /// </returns>
     /// <exception cref="ArgumentNullException">model.</exception>
     /// <seealso cref="AttributeCache"/>
-    internal static IEnumerable<string> GetCopyableProperties(this object @this)
+    private static IEnumerable<string> GetCopyableProperties(this object @this)
     {
         ArgumentNullException.ThrowIfNull(@this);
 
         var collection = PropertyTypeCache.DefaultCache.Value
             .RetrieveAllProperties(@this.GetType(), true);
 
-        var properties = collection
+        var propertyInfos = collection as PropertyInfo[] ?? collection.ToArray();
+        var properties = propertyInfos
             .Select(x => new
             {
                 x.Name,
@@ -132,9 +134,10 @@ internal static partial class Extensions
             .Where(x => x.HasAttribute)
             .Select(x => x.Name);
 
-        return properties.Any()
-            ? properties
-            : collection.Select(x => x.Name);
+        IEnumerable<string> copyableProperties = properties as string[] ?? properties.ToArray();
+        return copyableProperties.Any()
+            ? copyableProperties
+            : propertyInfos.Select(x => x.Name);
     }
 
     /// <summary>
@@ -179,13 +182,12 @@ internal static partial class Extensions
         ArgumentNullException.ThrowIfNull(dict);
         ArgumentNullException.ThrowIfNull(valueFactory);
 
-        if (!dict.TryGetValue(key, out TValue? value))
-        {
-            var newValue = valueFactory(key);
-            if (Equals(newValue, default)) return default;
-            value = newValue;
-            dict[key] = value;
-        }
+        if (dict.TryGetValue(key, out TValue? value)) return value;
+
+        var newValue = valueFactory(key);
+        if (Equals(newValue, null)) return default;
+        value = newValue;
+        dict[key] = value;
 
         return value;
     }
@@ -215,13 +217,14 @@ internal static partial class Extensions
                     .RetrieveAllConstructors(targetType, includeNonPublic);
 
                 // Try to check if empty constructor is available
-                if (constructors.Any(x => x.Item2.Length == 0))
+                IEnumerable<Tuple<ConstructorInfo,ParameterInfo[]>> enumerable = constructors as Tuple<ConstructorInfo, ParameterInfo[]>[] ?? constructors.ToArray();
+                if (enumerable.Any(x => x.Item2.Length == 0))
                 {
                     target = Activator.CreateInstance(targetType, includeNonPublic);
                 }
                 else
                 {
-                    var firstCtor = constructors
+                    var firstCtor = enumerable
                         .OrderBy(x => x.Item2.Length)
                         .FirstOrDefault();
 

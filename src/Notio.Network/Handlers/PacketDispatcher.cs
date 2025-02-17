@@ -52,12 +52,6 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// </remarks>
     public void HandlePacket(IPacket packet, IConnection connection)
     {
-        if (packet == null || connection == null)
-        {
-            Options.Logger?.Error("Invalid packet or connection.");
-            return;
-        }
-
         ushort commandId = packet.Command;
 
         if (Options.PacketHandlers.TryGetValue(commandId, out Func<IPacket, IConnection, Task>? handlerAction))

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 
 namespace Notio.Serialization.Internal.Reflection;
@@ -19,21 +18,6 @@ internal class ExtendedTypeInfo
     private const string TryParseMethodName = nameof(byte.TryParse);
     private const string ToStringMethodName = nameof(ToString);
 
-    private static readonly Type[] NumericTypes =
-    [
-        typeof(byte),
-        typeof(sbyte),
-        typeof(decimal),
-        typeof(double),
-        typeof(float),
-        typeof(int),
-        typeof(uint),
-        typeof(long),
-        typeof(ulong),
-        typeof(short),
-        typeof(ushort),
-    ];
-
     private readonly ParameterInfo[]? _tryParseParameters;
     private readonly int _toStringArgumentLength;
 
@@ -43,14 +27,13 @@ internal class ExtendedTypeInfo
     /// Initializes a new instance of the <see cref="ExtendedTypeInfo"/> class.
     /// </summary>
     /// <param name="t">The t.</param>
-    public ExtendedTypeInfo(Type t)
+    protected ExtendedTypeInfo(Type t)
     {
         Type = t ?? throw new ArgumentNullException(nameof(t));
 
         IsNullableValueType = Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(Nullable<>);
         IsValueType = t.IsValueType;
         UnderlyingType = IsNullableValueType ? new NullableConverter(Type).UnderlyingType : Type;
-        IsNumeric = NumericTypes.Contains(UnderlyingType);
 
         // Cache TryParse method info if it exists
         TryParseMethodInfo = GetTryParseMethodInfo();
@@ -72,7 +55,7 @@ internal class ExtendedTypeInfo
     /// <value>
     /// The type.
     /// </value>
-    public Type Type { get; }
+    private Type Type { get; }
 
     /// <summary>
     /// Gets a value indicating whether the type is a nullable value type.
@@ -80,15 +63,8 @@ internal class ExtendedTypeInfo
     /// <value>
     /// <c>true</c> if this instance is nullable value type; otherwise, <c>false</c>.
     /// </value>
-    public bool IsNullableValueType { get; }
+    private bool IsNullableValueType { get; }
 
-    /// <summary>
-    /// Gets a value indicating whether the type or underlying type is numeric.
-    /// </summary>
-    /// <value>
-    ///  <c>true</c> if this instance is numeric; otherwise, <c>false</c>.
-    /// </value>
-    public bool IsNumeric { get; }
 
     /// <summary>
     /// Gets a value indicating whether the type is value type.
@@ -104,7 +80,7 @@ internal class ExtendedTypeInfo
     /// <value>
     /// The type of the underlying.
     /// </value>
-    public Type UnderlyingType { get; }
+    private Type UnderlyingType { get; }
 
     /// <summary>
     /// Gets the try parse method information. If the type does not contain
@@ -113,7 +89,7 @@ internal class ExtendedTypeInfo
     /// <value>
     /// The try parse method information.
     /// </value>
-    public MethodInfo? TryParseMethodInfo { get; }
+    private MethodInfo? TryParseMethodInfo { get; }
 
     /// <summary>
     /// Gets the ToString method info
@@ -122,7 +98,7 @@ internal class ExtendedTypeInfo
     /// <value>
     /// To string method information.
     /// </value>
-    public MethodInfo? ToStringMethodInfo { get; }
+    private MethodInfo? ToStringMethodInfo { get; }
 
     /// <summary>
     /// Gets a value indicating whether the type contains a suitable TryParse method.
@@ -130,7 +106,7 @@ internal class ExtendedTypeInfo
     /// <value>
     /// <c>true</c> if this instance can parse natively; otherwise, <c>false</c>.
     /// </value>
-    public bool CanParseNatively => TryParseMethodInfo != null;
+    private bool CanParseNatively => TryParseMethodInfo != null;
 
     #endregion Properties
 
@@ -165,7 +141,7 @@ internal class ExtendedTypeInfo
             AddTryParseArguments(dynamicArguments);
 
             var parseArguments = dynamicArguments.ToArray();
-            if (TryParseMethodInfo != null && TryParseMethodInfo.Invoke(null, parseArguments) is bool parseResult && parseResult)
+            if (TryParseMethodInfo != null && TryParseMethodInfo.Invoke(null, parseArguments) is bool and true)
             {
                 result = parseArguments[^1];
                 return true;
@@ -186,7 +162,7 @@ internal class ExtendedTypeInfo
     /// </summary>
     /// <param name="instance">The instance.</param>
     /// <returns>A <see cref="string" /> that represents the current object.</returns>
-    public string ToStringInvariant(object instance)
+    public string ToStringInvariant(object? instance)
     {
         if (instance == null) return string.Empty;
 

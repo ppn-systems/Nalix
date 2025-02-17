@@ -18,7 +18,6 @@ public sealed class BufferAllocator : IBufferPool
 
     private readonly ILogger? _logger;
     private readonly int _totalBuffers;
-    private readonly BufferConfig _bufferConfig;
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly BufferManager _poolManager = new();
 
@@ -45,11 +44,11 @@ public sealed class BufferAllocator : IBufferPool
     /// </param>
     public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
-        _bufferConfig = bufferConfig ?? ConfiguredShared.Instance.Get<BufferConfig>();
+        var bufferConfig1 = bufferConfig ?? ConfiguredShared.Instance.Get<BufferConfig>();
 
         _logger = logger;
-        _totalBuffers = _bufferConfig.TotalBuffers;
-        _bufferAllocations = ParseBufferAllocations(_bufferConfig.BufferAllocations);
+        _totalBuffers = bufferConfig1.TotalBuffers;
+        _bufferAllocations = ParseBufferAllocations(bufferConfig1.BufferAllocations);
 
         _poolManager.EventShrink += ShrinkBufferPoolSize;
         _poolManager.EventIncrease += IncreaseBufferPoolSize;

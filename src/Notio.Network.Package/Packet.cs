@@ -165,14 +165,14 @@ public readonly struct Packet : IPacket
     /// </summary>
     /// <param name="obj">The object to compare with.</param>
     /// <returns>True if the object is a <see cref="Packet"/> and is equal to the current packet; otherwise, false.</returns>
-    public override readonly bool Equals(object? obj) => obj is Packet other && Equals(other);
+    public override bool Equals(object? obj) => obj is Packet other && Equals(other);
 
     /// <summary>
     /// Returns a hash code for the current packet based on its fields and payload.
     /// </summary>
     /// <returns>A hash code for the current packet.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override readonly int GetHashCode()
+    public override int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Type);
@@ -210,15 +210,22 @@ public readonly struct Packet : IPacket
         if (this.Payload.Length > PacketConstants.MaxHeapAllocSize &&
             MemoryMarshal.TryGetArray<byte>(this.Payload, out var segment) && segment.Array is { } array)
             ArrayPool<byte>.Shared.Return(array);
-
-        GC.SuppressFinalize(this);
     }
 
-    /// <inheritdoc />
-    public static bool operator ==(Packet left, Packet right)
-        => left.Equals(right);
+    /// <summary>
+    /// Determines whether two <see cref="Packet"/> objects are equal.
+    /// </summary>
+    /// <param name="left">The first <see cref="Packet"/> to compare.</param>
+    /// <param name="right">The second <see cref="Packet"/> to compare.</param>
+    /// <returns><c>true</c> if the two <see cref="Packet"/> objects are equal; otherwise, <c>false</c>.</returns>
+    public static bool operator ==(Packet left, Packet right) => left.Equals(right);
 
-    /// <inheritdoc />
-    public static bool operator !=(Packet left, Packet right)
-        => !(left == right);
+    /// <summary>
+    /// Determines whether two <see cref="Packet"/> objects are not equal.
+    /// </summary>
+    /// <param name="left">The first <see cref="Packet"/> to compare.</param>
+    /// <param name="right">The second <see cref="Packet"/> to compare.</param>
+    /// <returns><c>true</c> if the two <see cref="Packet"/> objects are not equal; otherwise, <c>false</c>.</returns>
+    public static bool operator !=(Packet left, Packet right) => !(left == right);
+
 }

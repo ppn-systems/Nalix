@@ -15,14 +15,13 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.
 /// </summary>
-public sealed class Connection : IConnection, IDisposable
+public sealed class Connection : IConnection
 {
     private readonly Socket _socket;
     private readonly ILogger? _logger;
     private readonly ConnectionStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
-    private readonly DateTimeOffset _connectedTimestamp = DateTimeOffset.UtcNow;
 
     private bool _disposed;
 
@@ -59,7 +58,7 @@ public sealed class Connection : IConnection, IDisposable
     public long PingTime => _cstream.LastPingTime;
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp => _connectedTimestamp;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnCloseEvent;
@@ -152,7 +151,6 @@ public sealed class Connection : IConnection, IDisposable
         {
             _ctokens.Dispose();
             _cstream.Dispose();
-            GC.SuppressFinalize(this);
         }
     }
 }

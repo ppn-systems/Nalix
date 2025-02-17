@@ -3,6 +3,7 @@ using Notio.Shared.Extensions;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Notio.Shared.Extensions.Primitives;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

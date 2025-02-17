@@ -69,17 +69,11 @@ internal static class Definitions
     public static readonly Encoding Windows1252Encoding;
 
     /// <summary>
-    /// The encoding associated with the default ANSI code page in the operating
-    /// system's regional and language settings.
-    /// </summary>
-    public static readonly Encoding CurrentAnsiEncoding;
-
-    /// <summary>
     /// Initializes the <see cref="Definitions"/> class.
     /// </summary>
     static Definitions()
     {
-        CurrentAnsiEncoding = Encoding.GetEncoding(default(int));
+        var currentAnsiEncoding = Encoding.GetEncoding(0);
         try
         {
             Windows1252Encoding = Encoding.GetEncoding(1252);
@@ -87,7 +81,7 @@ internal static class Definitions
         catch (ArgumentException)
         {
             // Log exception if necessary
-            Windows1252Encoding = CurrentAnsiEncoding;
+            Windows1252Encoding = currentAnsiEncoding;
         }
     }
 

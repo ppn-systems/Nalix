@@ -35,7 +35,7 @@ internal class ConnectionStream : IDisposable
     /// <summary>
     /// Cache for outgoing packets.
     /// </summary>
-    public readonly BinaryCache CacheOutgoing = new(20);
+    private readonly BinaryCache _cacheOutgoing = new(20);
 
     /// <summary>
     /// Cache for incoming packets.
@@ -52,7 +52,7 @@ internal class ConnectionStream : IDisposable
     {
         _logger = logger;
         _bufferPool = bufferPool;
-        _buffer = _bufferPool.Rent(256);
+        _buffer = _bufferPool.Rent();
         _stream = new NetworkStream(socket);
     }
 
@@ -77,7 +77,7 @@ internal class ConnectionStream : IDisposable
         {
             _logger?.Debug("Connection reset by remote host.");
         }
-        catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionReset)
+        catch (IOException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionReset })
         {
             _logger?.Debug("Connection forcibly closed by remote host.");
         }
@@ -100,7 +100,7 @@ internal class ConnectionStream : IDisposable
 
             _stream.Write(data.Span);
 
-            CacheOutgoing.Add(data.Span[0..2].ToArray(), data);
+            _cacheOutgoing.Add(data.Span[0..2].ToArray(), data);
             return true;
         }
         catch (Exception ex)
@@ -124,7 +124,7 @@ internal class ConnectionStream : IDisposable
 
             await _stream.WriteAsync(data, cancellationToken);
 
-            CacheOutgoing.Add(data.Span[0..2].ToArray(), data);
+            _cacheOutgoing.Add(data.Span[0..2].ToArray(), data);
             return true;
         }
         catch (Exception ex)
@@ -210,7 +210,7 @@ internal class ConnectionStream : IDisposable
             _stream.Dispose();
         }
 
-        CacheOutgoing.Clear();
+        _cacheOutgoing.Clear();
         CacheIncoming.Clear();
 
         _disposed = true;

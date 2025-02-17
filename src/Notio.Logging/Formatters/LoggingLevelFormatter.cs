@@ -1,17 +1,16 @@
 using Notio.Common.Enums;
 using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Notio.Logging.Formatters;
 
 internal static class LoggingLevelFormatter
 {
-    private const int MAX_LOG_LEVELS = 8;
-    private const int LOG_LEVEL_LENGTH = 4;
+    private const int MaxLogLevels = 8;
+    private const int LogLevelLength = 4;
 
     // Sử dụng ReadOnlySpan trực tiếp thay vì array
-    private static ReadOnlySpan<char> LOG_LEVEL_CHARS =>
+    private static ReadOnlySpan<char> LogLevelChars =>
     [
         'M', 'E', 'T', 'A', '\0', // LoggingLevel.Meta        (0)
         'T', 'R', 'C', 'E', '\0', // LoggingLevel.Trace       (1)
@@ -24,19 +23,15 @@ internal static class LoggingLevelFormatter
     ];
 
     // Cache các string phổ biến để tránh allocations
-    private static readonly string[] CACHED_LOG_LEVELS = new string[MAX_LOG_LEVELS];
-
-    // ThreadLocal buffer với kích thước cố định
-    private static readonly ThreadLocal<char[]> LogLevelBuffer =
-        new(() => GC.AllocateUninitializedArray<char>(LOG_LEVEL_LENGTH, pinned: true));
+    private static readonly string[] CachedLogLevels = new string[MaxLogLevels];
 
     static LoggingLevelFormatter()
     {
-        Span<char> buffer = stackalloc char[LOG_LEVEL_LENGTH];
-        for (var i = 0; i < MAX_LOG_LEVELS; i++)
+        Span<char> buffer = stackalloc char[LogLevelLength];
+        for (var i = 0; i < MaxLogLevels; i++)
         {
-            LOG_LEVEL_CHARS.Slice(i * (LOG_LEVEL_LENGTH + 1), LOG_LEVEL_LENGTH).CopyTo(buffer);
-            CACHED_LOG_LEVELS[i] = new string(buffer);
+            LogLevelChars.Slice(i * (LogLevelLength + 1), LogLevelLength).CopyTo(buffer);
+            CachedLogLevels[i] = new string(buffer);
         }
     }
 
@@ -46,9 +41,9 @@ internal static class LoggingLevelFormatter
         if (!IsValidLogLevel(logLevel))
             return logLevel.ToString().ToUpperInvariant().AsSpan();
 
-        return LOG_LEVEL_CHARS.Slice(
-            (int)logLevel * (LOG_LEVEL_LENGTH + 1),
-            LOG_LEVEL_LENGTH
+        return LogLevelChars.Slice(
+            (int)logLevel * (LogLevelLength + 1),
+            LogLevelLength
         );
     }
 
@@ -58,9 +53,9 @@ internal static class LoggingLevelFormatter
         if (!IsValidLogLevel(logLevel))
             return logLevel.ToString().ToUpperInvariant();
 
-        return CACHED_LOG_LEVELS[(int)logLevel];
+        return CachedLogLevels[(int)logLevel];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool IsValidLogLevel(LoggingLevel logLevel) => (uint)logLevel < MAX_LOG_LEVELS;
+    private static bool IsValidLogLevel(LoggingLevel logLevel) => (uint)logLevel < MaxLogLevels;
 }

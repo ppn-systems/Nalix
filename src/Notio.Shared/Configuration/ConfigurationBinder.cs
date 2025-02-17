@@ -47,7 +47,7 @@ public abstract class ConfiguredBinder
             }
             catch (Exception ex)
             {
-                NotioDebug.Warn($"Error setting value for {property.Name}: {ex.Message}");
+                $"Error setting value for {property.Name}: {ex.Message}".Warn();
             }
         }
     }
@@ -87,21 +87,20 @@ public abstract class ConfiguredBinder
     {
         // Attempt to write a default or existing value to the configuration file if empty
         configFile.WriteValue(section, property.Name, property.GetValue(this)?.ToString() ?? string.Empty);
-        NotioDebug.Warn($"Attribute value {property.Name} is empty, writing to the file");
+        $"Attribute value {property.Name} is empty, writing to the file".Warn();
     }
 
     private void AssignValueToProperty(PropertyInfo property, object value)
     {
         // Ensure that the value is compatible with the property type before setting it
-        if (property.PropertyType.IsAssignableFrom(value?.GetType()))
+        if (property.PropertyType.IsInstanceOfType(value))
         {
             property.SetValue(this, value);
         }
         else
         {
-            NotioDebug.Warn(
-                $"Type mismatch for property {property.Name}: " +
-                $"Expected {property.PropertyType}, but got {value?.GetType()}");
+            ($"Type mismatch for property {property.Name}: " +
+             $"Expected {property.PropertyType}, but got {value.GetType()}").Warn();
         }
     }
 }
