@@ -37,8 +37,6 @@ public static class SelfCheck
     private static string BuildMessage(string message, string filePath, int lineNumber)
     {
         var frames = new StackTrace().GetFrames();
-        if (frames == null)
-            return message;
 
         try
         {
@@ -48,17 +46,15 @@ public static class SelfCheck
         {
         }
 
-        StackFrame frame = frames.FirstOrDefault(f => f?.GetMethod()?.ReflectedType != typeof(SelfCheck));
+        StackFrame frame = frames.FirstOrDefault(f => f.GetMethod()?.ReflectedType != typeof(SelfCheck));
         StringBuilder sb = new();
 
         sb.Append('[').Append(frame?.GetType().Assembly.GetName().Name ?? "<unknown>");
 
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            sb.Append(": ").Append(filePath);
-            if (lineNumber > 0)
-                sb.Append('(').Append(lineNumber).Append(')');
-        }
+        if (string.IsNullOrEmpty(filePath)) return sb.Append("] ").Append(message).ToString();
+        sb.Append(": ").Append(filePath);
+        if (lineNumber > 0)
+            sb.Append('(').Append(lineNumber).Append(')');
 
         return sb.Append("] ").Append(message).ToString();
     }

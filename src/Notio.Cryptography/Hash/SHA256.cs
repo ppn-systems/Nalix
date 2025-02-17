@@ -10,7 +10,7 @@ namespace Notio.Cryptography.Hash;
 /// <summary>
 /// Provides an optimized implementation of the SHA-256 cryptographic hash algorithm.
 /// </summary>
-public sealed class SHA256 : IDisposable
+public sealed class Sha256 : IDisposable
 {
     private readonly byte[] _buffer = new byte[64];
     private readonly uint[] _state = new uint[8];
@@ -21,9 +21,9 @@ public sealed class SHA256 : IDisposable
     private bool _finalized;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SHA256"/> class.
+    /// Initializes a new instance of the <see cref="Sha256"/> class.
     /// </summary>
-    public SHA256() => Initialize();
+    public Sha256() => Initialize();
 
     /// <summary>
     /// Initializes the hash state.
@@ -51,7 +51,7 @@ public sealed class SHA256 : IDisposable
     /// <returns>The computed hash.</returns>
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
-        using SHA256 sha256 = new();
+        using Sha256 sha256 = new();
         sha256.Update(data);
         return sha256.FinalizeHash();
     }
@@ -72,7 +72,7 @@ public sealed class SHA256 : IDisposable
     /// </summary>
     /// <param name="data">The data to process.</param>
     /// <exception cref="InvalidOperationException">Thrown if the hash has already been finalized.</exception>
-    public void Update(ReadOnlySpan<byte> data)
+    private void Update(ReadOnlySpan<byte> data)
     {
         if (_finalized)
             throw new InvalidOperationException("Cannot update after finalization.");
@@ -120,7 +120,7 @@ public sealed class SHA256 : IDisposable
     /// Finalizes the hash computation and returns the result.
     /// </summary>
     /// <returns>The final hash value.</returns>
-    public byte[] FinalizeHash()
+    private byte[] FinalizeHash()
     {
         if (_finalized) return (byte[])_finalHash.Clone();
 
@@ -224,35 +224,35 @@ public sealed class SHA256 : IDisposable
             throw new ArgumentException("Invalid block size.");
 
         // Allocate W[64] on the stack.
-        uint* W = stackalloc uint[64];
+        uint* w = stackalloc uint[64];
         uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
         uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
         // Load the first 16 words (big-endian)
         for (int i = 0; i < 16; i++)
         {
-            W[i] = BinaryPrimitives.ReadUInt32BigEndian(block[(i * 4)..]);
+            w[i] = BinaryPrimitives.ReadUInt32BigEndian(block[(i * 4)..]);
         }
 
         // Message schedule expansion.
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
-            W[i] = W[i - 16] + s0 + W[i - 7] + s1;
+            uint s0 = BitwiseUtils.RotateRight(w[i - 15], 7) ^ BitwiseUtils.RotateRight(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(w[i - 2], 17) ^ BitwiseUtils.RotateRight(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
         }
 
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -266,7 +266,7 @@ public sealed class SHA256 : IDisposable
             throw new ArgumentException("Invalid block size.");
 
         // Allocate W[64] on the stack.
-        uint* W = stackalloc uint[64];
+        uint* w = stackalloc uint[64];
         uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
         uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
@@ -275,10 +275,10 @@ public sealed class SHA256 : IDisposable
         {
             // Shuffle mask to convert big-endian to little-endian.
             Vector128<byte> shuffleMask = Vector128.Create(
-                (byte)3, (byte)2, (byte)1, (byte)0,
-                (byte)7, (byte)6, (byte)5, (byte)4,
-                (byte)11, (byte)10, (byte)9, (byte)8,
-                (byte)15, (byte)14, (byte)13, (byte)12
+                3, 2, 1, 0,
+                7, 6, 5, 4,
+                11, 10, 9, 8,
+                15, 14, 13, (byte)12
             );
 
             // Load 16 bytes at a time and shuffle.
@@ -288,31 +288,31 @@ public sealed class SHA256 : IDisposable
             Vector128<uint> v3 = Ssse3.Shuffle(Sse2.LoadVector128(p + 48), shuffleMask).AsUInt32();
 
             // Store the shuffled words into W.
-            Sse2.Store(&W[0], v0);
-            Sse2.Store(&W[4], v1);
-            Sse2.Store(&W[8], v2);
-            Sse2.Store(&W[12], v3);
+            Sse2.Store(&w[0], v0);
+            Sse2.Store(&w[4], v1);
+            Sse2.Store(&w[8], v2);
+            Sse2.Store(&w[12], v3);
         }
 
         // Message schedule expansion (scalar).
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
-            W[i] = W[i - 16] + s0 + W[i - 7] + s1;
+            uint s0 = BitwiseUtils.RotateRight(w[i - 15], 7) ^ BitwiseUtils.RotateRight(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(w[i - 2], 17) ^ BitwiseUtils.RotateRight(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
         }
 
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -325,7 +325,7 @@ public sealed class SHA256 : IDisposable
         if (block.Length < 64)
             throw new ArgumentException("Invalid block size.");
 
-        uint* W = stackalloc uint[64];
+        uint* w = stackalloc uint[64];
         uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
         uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
@@ -335,14 +335,14 @@ public sealed class SHA256 : IDisposable
             Vector256<byte> v0 = Avx.LoadVector256(p);
             // Create a 256–bit shuffle mask for byte–swapping.
             Vector256<byte> shuffleMask = Vector256.Create(
-                (byte)3, (byte)2, (byte)1, (byte)0,
-                (byte)7, (byte)6, (byte)5, (byte)4,
-                (byte)11, (byte)10, (byte)9, (byte)8,
-                (byte)15, (byte)14, (byte)13, (byte)12,
-                (byte)3, (byte)2, (byte)1, (byte)0,
-                (byte)7, (byte)6, (byte)5, (byte)4,
-                (byte)11, (byte)10, (byte)9, (byte)8,
-                (byte)15, (byte)14, (byte)13, (byte)12
+                3, 2, 1, 0,
+                7, 6, 5, 4,
+                11, 10, 9, 8,
+                15, 14, 13, 12,
+                3, 2, 1, 0,
+                7, 6, 5, 4,
+                11, 10, 9, 8,
+                15, 14, 13, (byte)12
             );
             Vector256<byte> swapped0 = Avx2.Shuffle(v0, shuffleMask);
 
@@ -351,29 +351,29 @@ public sealed class SHA256 : IDisposable
             Vector256<byte> swapped1 = Avx2.Shuffle(v1, shuffleMask);
 
             // Store into the message schedule W (first 16 words).
-            Avx.Store(W, swapped0.AsUInt32());
-            Avx.Store(W + 8, swapped1.AsUInt32());
+            Avx.Store(w, swapped0.AsUInt32());
+            Avx.Store(w + 8, swapped1.AsUInt32());
         }
 
         // Message schedule expansion (scalar).
         for (int i = 16; i < 64; i++)
         {
-            uint s0 = BitwiseUtils.RotateRight(W[i - 15], 7) ^ BitwiseUtils.RotateRight(W[i - 15], 18) ^ (W[i - 15] >> 3);
-            uint s1 = BitwiseUtils.RotateRight(W[i - 2], 17) ^ BitwiseUtils.RotateRight(W[i - 2], 19) ^ (W[i - 2] >> 10);
-            W[i] = W[i - 16] + s0 + W[i - 7] + s1;
+            uint s0 = BitwiseUtils.RotateRight(w[i - 15], 7) ^ BitwiseUtils.RotateRight(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            uint s1 = BitwiseUtils.RotateRight(w[i - 2], 17) ^ BitwiseUtils.RotateRight(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
         }
 
         // Process rounds (scalar).
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, W[i], K[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, W[i + 1], K[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, W[i + 2], K[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, W[i + 3], K[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, W[i + 4], K[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, W[i + 5], K[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, W[i + 6], K[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, W[i + 7], K[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], K[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], K[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], K[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], K[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], K[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], K[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], K[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], K[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;

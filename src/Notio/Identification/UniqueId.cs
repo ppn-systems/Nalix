@@ -23,7 +23,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
     /// <summary>
     /// ID Default
     /// </summary>
-    public static readonly UniqueId Empty = new(0);
+    private static readonly UniqueId Empty = new(0);
 
     static UniqueId()
     {
@@ -140,6 +140,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         {
             if (input.IsEmpty || input.Length != 8)
                 throw new ArgumentException("Invalid Hex length. Must be 8 characters.", nameof(input));
+
             return new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
@@ -157,8 +158,8 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         }
 
         uint result = 0;
-        for (int i = 0; i < values.Length; i++)
-            result = result * Base + values[i];
+        foreach (var t in values)
+            result = result * Base + t;
 
         return new UniqueId(result);
     }
@@ -264,9 +265,14 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
                 throw new FormatException($"Invalid character '{input[i]}'");
         }
 
+        int index = 0;
         uint result = 0;
-        for (int i = 0; i < values.Length; i++)
-            result = result * Base + values[i];
+       
+        for (; index < values.Length; index++)
+        {
+            var t = values[index];
+            result = result * Base + t;
+        }
 
         return new UniqueId(result);
     }

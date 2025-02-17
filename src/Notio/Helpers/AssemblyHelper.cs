@@ -57,7 +57,7 @@ public static class AssemblyHelper
         if (attribute?.InformationalVersion == null)
             return default;
 
-        int buildTimeIndex = attribute.InformationalVersion.IndexOf(prefix);
+        int buildTimeIndex = attribute.InformationalVersion.IndexOf(prefix, StringComparison.Ordinal);
         if (buildTimeIndex == -1)
             return default;
 

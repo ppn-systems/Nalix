@@ -18,7 +18,7 @@ public abstract class RandMwc
     /// Initializes a RandMwc instance with a given seed value.
     /// </summary>
     /// <param name="seed">The seed value to initialize the random number generator.</param>
-    public RandMwc(uint seed)
+    protected RandMwc(uint seed)
         => SetSeed(seed == 0 ? (uint)DateTime.Now.Ticks : seed);
 
     /// <summary>
@@ -41,7 +41,7 @@ public abstract class RandMwc
     /// Returns a 64-bit random number.
     /// </summary>
     /// <returns>A random number as a ulong.</returns>
-    public ulong Get64() => (ulong)Get() << 32 | Get();
+    protected ulong Get64() => (ulong)Get() << 32 | Get();
 
     /// <summary>
     /// Returns a string representation of the current seed value.

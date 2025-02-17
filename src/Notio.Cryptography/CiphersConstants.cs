@@ -6,6 +6,21 @@ namespace Notio.Cryptography;
 public static class CiphersConstants
 {
     /// <summary>
+    /// Only allowed key lenght in bytes
+    /// </summary>
+    public const int AllowedKeyLength = 32;
+
+    /// <summary>
+    /// Only allowed nonce lenght in bytes
+    /// </summary>
+    public const int AllowedNonceLength = 12;
+
+    /// <summary>
+    /// How many bytes are processed per loop
+    /// </summary>
+    public const int ProcessBytesAtTime = 64;
+    
+    /// <summary>
     /// Size of the public key in bytes.
     /// </summary>
     public const int PublicKeySize = 32;

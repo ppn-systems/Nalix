@@ -10,7 +10,7 @@ namespace Notio.Cryptography;
 /// <summary>
 /// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public class Ciphers
+public static class Ciphers
 {
     /// <summary>
     /// Encrypts the provided data using the specified algorithm.

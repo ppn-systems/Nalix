@@ -9,14 +9,14 @@ namespace Notio.Randomization;
 /// </summary>
 public static class RandomizedGenerator
 {
-    private static readonly ulong[] _state = new ulong[4];
+    private static readonly ulong[] State = new ulong[4];
 
     static RandomizedGenerator()
     {
-        _state[0] = (ulong)DateTime.UtcNow.Ticks;
-        _state[1] = (ulong)Environment.TickCount64;
-        _state[2] = (ulong)new Random().NextInt64();
-        _state[3] = (ulong)new Random().NextInt64();
+        State[0] = (ulong)DateTime.UtcNow.Ticks;
+        State[1] = (ulong)Environment.TickCount64;
+        State[2] = (ulong)new Random().NextInt64();
+        State[3] = (ulong)new Random().NextInt64();
     }
 
     /// <summary>
@@ -91,10 +91,10 @@ public static class RandomizedGenerator
     public static uint[] ConvertKey(byte[] key)
     {
         if (key.Length != 16)
-            throw new System.ArgumentException($"XTEA key must be {16} bytes.", nameof(key));
+            throw new ArgumentException("XTEA key must be {16} bytes.", nameof(key));
 
         uint[] uintKey = new uint[4];
-        System.Buffer.BlockCopy(key, 0, uintKey, 0, 16);
+        Buffer.BlockCopy(key, 0, uintKey, 0, 16);
         return uintKey;
     }
 
@@ -127,7 +127,7 @@ public static class RandomizedGenerator
             {
                 foreach (byte b in passphraseBytes)
                 {
-                    hash ^= (byte)RotateLeft((byte)(b + iter), (i % 8) + 1);
+                    hash ^= RotateLeft((byte)(b + iter), (i % 8) + 1);
                 }
             }
             key[i] = hash;
@@ -143,18 +143,18 @@ public static class RandomizedGenerator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong Next()
     {
-        ulong result = _state[0] + _state[3];
+        ulong result = State[0] + State[3];
 
-        ulong t = _state[1] << 17;
+        ulong t = State[1] << 17;
 
-        _state[2] ^= _state[0];
-        _state[3] ^= _state[1];
-        _state[1] ^= _state[2];
-        _state[0] ^= _state[3];
+        State[2] ^= State[0];
+        State[3] ^= State[1];
+        State[1] ^= State[2];
+        State[0] ^= State[3];
 
-        _state[2] ^= t;
+        State[2] ^= t;
 
-        _state[3] = RotateLeft(_state[3], 45);
+        State[3] = RotateLeft(State[3], 45);
 
         return result;
     }

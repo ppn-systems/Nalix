@@ -7,21 +7,21 @@ namespace Notio.Cryptography.Hash;
 /// Represents the PBKDF2 (Password-Based Key Derivation Function 2) algorithm implementation.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="PBKDF2"/> class.
+/// Initializes a new instance of the <see cref="Pbkdf2"/> class.
 /// </remarks>
-public class PBKDF2
+public class Pbkdf2
 {
     private readonly byte[] _salt;
     private readonly int _keyLength;
     private readonly int _iterations;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PBKDF2"/> class.
+    /// Initializes a new instance of the <see cref="Pbkdf2"/> class.
     /// </summary>
     /// <param name="salt">The salt to use for the key derivation.</param>
     /// <param name="iterations">The number of iterations for the key derivation.</param>
     /// <param name="keyLength">The length of the derived key in bytes.</param>
-    public PBKDF2(byte[] salt, int iterations, int keyLength)
+    public Pbkdf2(byte[] salt, int iterations, int keyLength)
     {
         if (salt == null || salt.Length == 0)
             throw new ArgumentException("Salt cannot be null or empty", nameof(salt));
@@ -74,15 +74,15 @@ public class PBKDF2
         if (BitConverter.IsLittleEndian)
             Array.Reverse(intBlockIndex);
 
-        byte[] U = ComputeHmacSha1(password, CombineArrays(salt, intBlockIndex));
-        byte[] result = (byte[])U.Clone();
+        byte[] u = ComputeHmacSha1(password, CombineArrays(salt, intBlockIndex));
+        byte[] result = (byte[])u.Clone();
 
         for (int i = 1; i < iterations; i++)
         {
-            U = ComputeHmacSha1(password, U);
+            u = ComputeHmacSha1(password, u);
             for (int j = 0; j < result.Length; j++)
             {
-                result[j] ^= U[j];
+                result[j] ^= u[j];
             }
         }
         return result;
@@ -96,7 +96,7 @@ public class PBKDF2
 
         // If key is longer than block size, shorten it by hashing
         if (key.Length > blockSize)
-            key = SHA1.ComputeHash(key);
+            key = Sha1.ComputeHash(key);
 
         // Pad key to block size if needed
         key = key.Length < blockSize ? PadKeyToBlockSize(key, blockSize) : key;
@@ -107,8 +107,8 @@ public class PBKDF2
             opad[i] = (byte)(key[i] ^ 0x5C);
         }
 
-        byte[] innerHash = SHA1.ComputeHash(CombineArrays(ipad, message));
-        return SHA1.ComputeHash(CombineArrays(opad, innerHash));
+        byte[] innerHash = Sha1.ComputeHash(CombineArrays(ipad, message));
+        return Sha1.ComputeHash(CombineArrays(opad, innerHash));
     }
 
     private static byte[] PadKeyToBlockSize(byte[] key, int length)

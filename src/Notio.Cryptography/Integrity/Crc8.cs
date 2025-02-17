@@ -22,7 +22,7 @@ public static class Crc8
     /// <param name="start">The start index upon which to compute the CRC</param>
     /// <param name="length">The length of the buffer upon which to compute the CRC</param>
     /// <returns>The specified CRC</returns>
-    public static byte HashToByte(byte[] bytes, int start, int length)
+    private static byte HashToByte(byte[] bytes, int start, int length)
     {
         ArgumentNullException.ThrowIfNull(bytes);
         ArgumentOutOfRangeException.ThrowIfNegative(start);
@@ -41,12 +41,12 @@ public static class Crc8
             throw new ArgumentOutOfRangeException(nameof(length));
 
         for (int i = start; i <= end; ++i)
-            crc = _table[crc ^ bytes[i]];
+            crc = Table[crc ^ bytes[i]];
 
         return crc;
     }
 
-    private static readonly byte[] _table = [
+    private static readonly byte[] Table = [
        0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29,
         0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D, 0x52, 0x87,
         0x2D, 0xF8, 0xAC, 0x79, 0xD3, 0x06, 0x7B, 0xAE, 0x04,

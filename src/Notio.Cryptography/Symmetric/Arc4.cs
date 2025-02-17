@@ -10,9 +10,9 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public class Arc4
 {
-    private byte i;
-    private byte j;
-    private readonly byte[] s;
+    private byte _i;
+    private byte _j;
+    private readonly byte[] _s;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Arc4"/> class with the given key.
@@ -26,22 +26,22 @@ public class Arc4
         if (key == null || key.Length < 5 || key.Length > 256)
             throw new ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
 
-        s = new byte[256];
+        _s = new byte[256];
 
         // Initialize the permutation array
         for (int k = 0; k < 256; k++)
-            s[k] = (byte)k;
+            _s[k] = (byte)k;
 
         // Key scheduling algorithm (KSA)
         byte index2 = 0;
         for (int k = 0; k < 256; k++)
         {
-            index2 += (byte)(key[k % key.Length] + s[k]);  // No need for & 0xFF as byte wraps automatically
-            Swap(s, k, index2);
+            index2 += (byte)(key[k % key.Length] + _s[k]);  // No need for & 0xFF as byte wraps automatically
+            Swap(_s, k, index2);
         }
 
-        i = 0;
-        j = 0;
+        _i = 0;
+        _j = 0;
     }
 
     /// <summary>
@@ -52,13 +52,13 @@ public class Arc4
     {
         for (int k = 0; k < buffer.Length; k++)
         {
-            i++;  // Implicitly wraps at 255 due to byte type
-            j += s[i];
+            _i++;  // Implicitly wraps at 255 due to byte type
+            _j += _s[_i];
 
-            Swap(s, i, j);
+            Swap(_s, _i, _j);
 
             // XOR with generated keystream
-            buffer[k] ^= s[s[i] + s[j] & 0xFF];
+            buffer[k] ^= _s[_s[_i] + _s[_j] & 0xFF];
         }
     }
 

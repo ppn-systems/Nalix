@@ -37,7 +37,7 @@ internal static class BitwiseUtils
     /// <param name="w"></param>
     /// <returns>The result of (value XOR w)</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint XOr(uint v, uint w) => unchecked(v ^ w);
+    public static uint XOr(uint v, uint w) => v ^ w;
 
     /// <summary>
     /// Unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
@@ -109,10 +109,11 @@ internal static class BitwiseUtils
         if (Ssse3.IsSupported)
         {
             Vector128<byte> vec = Vector128.CreateScalarUnsafe(value).AsByte();
-            Vector128<byte> mask = Vector128.Create((byte)3, (byte)2, (byte)1, (byte)0,
-                                                      0, 0, 0, 0,
-                                                      0, 0, 0, 0,
-                                                      0, 0, 0, 0);
+            Vector128<byte> mask = Vector128.Create(
+                3, 2, 1, (byte)0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0);
             Vector128<byte> shuffled = Ssse3.Shuffle(vec, mask);
             return shuffled.AsUInt32().GetElement(0);
         }

@@ -15,9 +15,9 @@ namespace Notio.Cryptography.Mac;
 public sealed class Poly1305
 {
     // r: the first half of the key (clamped) and s: the second half.
-    private readonly BigInteger r;
+    private readonly BigInteger _r;
 
-    private readonly BigInteger s;
+    private readonly BigInteger _s;
 
     /// <summary>
     /// Initializes a new instance of the Poly1305 class using a 32-byte key.
@@ -42,14 +42,14 @@ public sealed class Poly1305
         // Extend with an extra byte to ensure non-negative BigInteger.
         byte[] rExtended = new byte[rBytes.Length + 1];
         Array.Copy(rBytes, rExtended, rBytes.Length);
-        r = new BigInteger(rExtended);
+        _r = new BigInteger(rExtended);
 
         // Extract s (the last 16 bytes).
         byte[] sBytes = new byte[16];
         Array.Copy(key, 16, sBytes, 0, 16);
         byte[] sExtended = new byte[sBytes.Length + 1];
         Array.Copy(sBytes, sExtended, sBytes.Length);
-        s = new BigInteger(sExtended);
+        _s = new BigInteger(sExtended);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public sealed class Poly1305
     /// </summary>
     /// <param name="message">The message to authenticate (as a byte array).</param>
     /// <returns>A 16-byte authentication tag.</returns>
-    public byte[] ComputeTag(byte[] message)
+    private byte[] ComputeTag(byte[] message)
     {
         ArgumentNullException.ThrowIfNull(message);
 
@@ -83,13 +83,13 @@ public sealed class Poly1305
 
             // Add block value and multiply by r modulo prime.
             accumulator = (accumulator + n) % prime;
-            accumulator = accumulator * r % prime;
+            accumulator = accumulator * _r % prime;
 
             offset += blockSize;
         }
 
         // After processing all blocks, add s modulo 2^128.
-        BigInteger tagInt = (accumulator + s) % (BigInteger.One << 128);
+        BigInteger tagInt = (accumulator + _s) % (BigInteger.One << 128);
 
         // Convert the tag to a 16-byte array (little‑endian).
         byte[] tag = tagInt.ToByteArray();

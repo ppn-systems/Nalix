@@ -7,7 +7,7 @@ namespace Notio.Cryptography.Hash;
 /// <summary>
 /// Provides an implementation of the SHA-1 hash algorithm.
 /// </summary>
-public class SHA1
+public static class Sha1
 {
     private static readonly uint[] K =
     [
@@ -35,7 +35,7 @@ public class SHA1
     private static byte[] PadMessage(byte[] message)
     {
         long bitLength = message.Length * 8L;
-        int paddingLength = (int)((56 - (message.Length + 1) % 64 + 64) % 64);
+        int paddingLength = ((56 - (message.Length + 1) % 64 + 64) % 64);
         byte[] padded = new byte[message.Length + 1 + paddingLength + 8];
 
         Array.Copy(message, padded, message.Length);

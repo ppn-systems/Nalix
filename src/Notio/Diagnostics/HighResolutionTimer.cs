@@ -22,7 +22,7 @@ public sealed class HighResolutionTimer : Stopwatch
     /// <summary>
     /// Gets the number of microseconds per timer tick.
     /// </summary>
-    public static double MicrosecondsPerTick { get; } = 1000000d / Frequency;
+    private static double MicrosecondsPerTick { get; } = 1000000d / Frequency;
 
     /// <summary>
     /// Gets the elapsed microseconds.

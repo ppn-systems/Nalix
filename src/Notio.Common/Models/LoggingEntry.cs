@@ -1,5 +1,5 @@
-using Notio.Common.Enums;
 using System;
+using Notio.Common.Logging;
 
 namespace Notio.Common.Models;
 

@@ -16,8 +16,8 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="data">The data to hash.</param>
     /// <returns>The hash of the data as a byte array.</returns>
-    public static byte[] ComputeHash(ReadOnlySpan<byte> data)
-        => (Sha512.Value ?? new SHA256()).ComputeHash(data);
+    private static byte[] ComputeHash(ReadOnlySpan<byte> data)
+        => (Sha512.Value ?? new Sha256()).ComputeHash(data);
 
     /// <summary>
     /// Signs a message with the provided private key using the Ed25519 algorithm.
@@ -39,17 +39,17 @@ public sealed class Ed25519
 
         // r = Hash(prefix || message) mod L, using Span overload
         var r = HashToScalar(prefix, message);
-        var R = ScalarMul(B, r);
+        var mul = ScalarMul(B, r);
 
         // Compute public key A = ScalarMul(B, a) and encode it
-        var A = ScalarMul(B, a);
-        Span<byte> AEncoded = stackalloc byte[CiphersConstants.PublicKeySize];
-        EncodePoint(A, AEncoded);
+        var mul2 = ScalarMul(B, a);
+        Span<byte> aEncoded = stackalloc byte[CiphersConstants.PublicKeySize];
+        EncodePoint(mul2, aEncoded);
 
         // Build the data: R (32 bytes) || AEncoded (32 bytes) || message
         byte[] data = new byte[32 + CiphersConstants.PublicKeySize + message.Length];
-        EncodePoint(R, data.AsSpan(0, 32));
-        AEncoded.CopyTo(data.AsSpan(32, CiphersConstants.PublicKeySize));
+        EncodePoint(mul, data.AsSpan(0, 32));
+        aEncoded.CopyTo(data.AsSpan(32, CiphersConstants.PublicKeySize));
         message.CopyTo(data, 64);
 
         // s = (r + Hash(data) * a) mod L
@@ -58,7 +58,7 @@ public sealed class Ed25519
 
         // Create signature: R (32 bytes) || s (32 bytes)
         byte[] signature = new byte[CiphersConstants.SignatureSize];
-        EncodePoint(R, signature.AsSpan(0, 32));
+        EncodePoint(mul, signature.AsSpan(0, 32));
         EncodeScalar(s, signature.AsSpan(32, 32));
         return signature;
     }
@@ -100,8 +100,8 @@ public sealed class Ed25519
             throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 
         // Decode R, A, and s from the signature and publicKey
-        var R = DecodePoint(signature.AsSpan(0, 32));
-        var A = DecodePoint(publicKey);
+        var r = DecodePoint(signature.AsSpan(0, 32));
+        var a = DecodePoint(publicKey);
         var s = DecodeScalar(signature.AsSpan(32, 32));
 
         // Build data: R (32 bytes) || publicKey (32 bytes) || message
@@ -113,10 +113,10 @@ public sealed class Ed25519
         // Compute hash and perform verification
         var h = HashToScalar(data.AsSpan());
         var sB = ScalarMul(B, s);
-        var hA = ScalarMul(A, h);
-        var RplusH = Edwards(R, hA);
+        var hA = ScalarMul(a, h);
+        var rplusH = Edwards(r, hA);
 
-        return PointEquals(sB, RplusH);
+        return PointEquals(sB, rplusH);
     }
 
     /// <summary>
@@ -289,5 +289,5 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<SHA256> Sha512 = new();
+    private static readonly ThreadLocal<Sha256> Sha512 = new();
 }

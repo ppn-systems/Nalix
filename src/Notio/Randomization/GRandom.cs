@@ -10,7 +10,7 @@ public sealed class GRandom
     /// <summary>
     /// The maximum possible generated value.
     /// </summary>
-    public const int RandMax = 0x7fffffff;
+    private const int RandMax = 0x7fffffff;
 
     private int _seed;           // Seed for the random number generator
     private readonly Rand _rand; // Random number generator instance
@@ -55,12 +55,12 @@ public sealed class GRandom
     /// <summary>
     /// Generates a random integer in the range [0, max).
     /// </summary>
-    public int Next(int max) => Next(0, max);
+    private int Next(int max) => Next(0, max);
 
     /// <summary>
     /// Generates a random integer in the range [min, max).
     /// </summary>
-    public int Next(int min, int max)
+    private int Next(int min, int max)
     {
         if (min == max)
             return min;

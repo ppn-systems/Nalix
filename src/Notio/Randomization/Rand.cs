@@ -28,7 +28,7 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     /// </summary>
     /// <param name="max">The upper limit of the random value.</param>
     /// <returns>A random number from 0 to max - 1.</returns>
-    public uint Get(uint max) => max == 0 ? 0 : Get() % max;
+    private uint Get(uint max) => max == 0 ? 0 : Get() % max;
 
     /// <summary>
     /// Returns a random integer from 0 to max (excluding max).
@@ -42,7 +42,7 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     /// </summary>
     /// <param name="max">The upper limit of the random value.</param>
     /// <returns>A random unsigned integer from 0 to max - 1.</returns>
-    public ulong Get(ulong max) => max == 0 ? 0 : Get64() % max;
+    private ulong Get(ulong max) => max == 0 ? 0 : Get64() % max;
 
     /// <summary>
     /// Returns a random signed integer from 0 to max (excluding max).

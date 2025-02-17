@@ -38,7 +38,7 @@ public static partial class Benchmark
 
             if (alsoManaged)
             {
-                Add(_identifier, _stopwatch?.Elapsed ?? default);
+                Add(_identifier, _stopwatch?.Elapsed ?? TimeSpan.Zero);
                 _stopwatch?.Stop();
             }
 

@@ -12,32 +12,14 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class ChaCha20 : IDisposable
 {
-    /// <summary>
-    /// Only allowed key lenght in bytes
-    /// </summary>
-    public const int allowedKeyLength = 32;
 
-    /// <summary>
-    /// Only allowed nonce lenght in bytes
-    /// </summary>
-    public const int allowedNonceLength = 12;
 
-    /// <summary>
-    /// How many bytes are processed per loop
-    /// </summary>
-    public const int processBytesAtTime = 64;
-
-    private const int stateLength = 16;
-
-    /// <summary>
-    /// The ChaCha20 state (aka "context")
-    /// </summary>
-    private readonly uint[] state = new uint[stateLength];
+    private const int StateLength = 16;
 
     /// <summary>
     /// Determines if the objects in this class have been disposed of. Set to true by the Dispose() method.
     /// </summary>
-    private bool isDisposed = false;
+    private bool _isDisposed;
 
     /// <summary>
     /// Set up a new ChaCha20 state. The lengths of the given parameters are checked before encryption happens.
@@ -78,19 +60,13 @@ public sealed class ChaCha20 : IDisposable
     /// <summary>
     /// The ChaCha20 state (aka "context"). Read-Only.
     /// </summary>
-    public uint[] State
-    {
-        get
-        {
-            return state;
-        }
-    }
+    private uint[] State { get; } = new uint[StateLength];
 
     // These are the same constants defined in the reference implementation.
     // http://cr.yp.to/streamciphers/timings/estreambench/submissions/salsa20/chacha8/ref/chacha.c
-    private static readonly byte[] sigma = "expand 32-byte k"u8.ToArray();
+    private static readonly byte[] Sigma = "expand 32-byte k"u8.ToArray();
 
-    private static readonly byte[] tau = "expand 16-byte k"u8.ToArray();
+    private static readonly byte[] Tau = "expand 16-byte k"u8.ToArray();
 
     /// <summary>
     /// Set up the ChaCha state with the given key. A 32-byte key is required and enforced.
@@ -102,28 +78,28 @@ public sealed class ChaCha20 : IDisposable
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        if (key.Length != allowedKeyLength)
+        if (key.Length != CiphersConstants.AllowedKeyLength)
         {
-            throw new ArgumentException($"Key length must be {allowedKeyLength}. Actual: {key.Length}");
+            throw new ArgumentException($"Key length must be {CiphersConstants.AllowedKeyLength}. Actual: {key.Length}");
         }
 
-        state[4] = BitwiseUtils.U8To32Little(key, 0);
-        state[5] = BitwiseUtils.U8To32Little(key, 4);
-        state[6] = BitwiseUtils.U8To32Little(key, 8);
-        state[7] = BitwiseUtils.U8To32Little(key, 12);
+        State[4] = BitwiseUtils.U8To32Little(key, 0);
+        State[5] = BitwiseUtils.U8To32Little(key, 4);
+        State[6] = BitwiseUtils.U8To32Little(key, 8);
+        State[7] = BitwiseUtils.U8To32Little(key, 12);
 
-        byte[] constants = key.Length == allowedKeyLength ? sigma : tau;
+        byte[] constants = key.Length == CiphersConstants.AllowedKeyLength ? Sigma : Tau;
         int keyIndex = key.Length - 16;
 
-        state[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
-        state[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
-        state[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
-        state[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
+        State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
+        State[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
+        State[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
+        State[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
 
-        state[0] = BitwiseUtils.U8To32Little(constants, 0);
-        state[1] = BitwiseUtils.U8To32Little(constants, 4);
-        state[2] = BitwiseUtils.U8To32Little(constants, 8);
-        state[3] = BitwiseUtils.U8To32Little(constants, 12);
+        State[0] = BitwiseUtils.U8To32Little(constants, 0);
+        State[1] = BitwiseUtils.U8To32Little(constants, 4);
+        State[2] = BitwiseUtils.U8To32Little(constants, 8);
+        State[3] = BitwiseUtils.U8To32Little(constants, 12);
     }
 
     /// <summary>
@@ -144,17 +120,17 @@ public sealed class ChaCha20 : IDisposable
             throw new ArgumentNullException(nameof(nonce));
         }
 
-        if (nonce.Length != allowedNonceLength)
+        if (nonce.Length != CiphersConstants.AllowedNonceLength)
         {
             // There has already been some state set up. Clear it before exiting.
             Dispose();
-            throw new ArgumentException($"Nonce length must be {allowedNonceLength}. Actual: {nonce.Length}", nameof(nonce));
+            throw new ArgumentException($"Nonce length must be {CiphersConstants.AllowedNonceLength}. Actual: {nonce.Length}", nameof(nonce));
         }
 
-        state[12] = counter;
-        state[13] = BitwiseUtils.U8To32Little(nonce, 0);
-        state[14] = BitwiseUtils.U8To32Little(nonce, 4);
-        state[15] = BitwiseUtils.U8To32Little(nonce, 8);
+        State[12] = counter;
+        State[13] = BitwiseUtils.U8To32Little(nonce, 0);
+        State[14] = BitwiseUtils.U8To32Little(nonce, 4);
+        State[15] = BitwiseUtils.U8To32Little(nonce, 8);
     }
 
     private static SimdMode DetectSimdMode()
@@ -477,7 +453,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
-    public string DecryptUTF8ByteArray(byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    public string DecryptUtf8ByteArray(byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
 
@@ -539,21 +515,21 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     private void WorkBytes(byte[] output, byte[] input, int numBytes, SimdMode simdMode)
     {
-        if (isDisposed)
+        if (_isDisposed)
         {
             throw new ObjectDisposedException("state", "The ChaCha state has been disposed");
         }
 
-        uint[] x = new uint[stateLength];    // Working buffer
-        byte[] tmp = new byte[processBytesAtTime];  // Temporary buffer
+        uint[] x = new uint[StateLength];    // Working buffer
+        byte[] tmp = new byte[CiphersConstants.ProcessBytesAtTime];  // Temporary buffer
         int offset = 0;
 
-        int howManyFullLoops = numBytes / processBytesAtTime;
-        int tailByteCount = numBytes - howManyFullLoops * processBytesAtTime;
+        int howManyFullLoops = numBytes / CiphersConstants.ProcessBytesAtTime;
+        int tailByteCount = numBytes - howManyFullLoops * CiphersConstants.ProcessBytesAtTime;
 
         for (int loop = 0; loop < howManyFullLoops; loop++)
         {
-            UpdateStateAndGenerateTemporaryBuffer(state, x, tmp);
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
 
             if (simdMode == SimdMode.V512)
             {
@@ -601,7 +577,7 @@ public sealed class ChaCha20 : IDisposable
             }
             else
             {
-                for (int i = 0; i < processBytesAtTime; i += 4)
+                for (int i = 0; i < CiphersConstants.ProcessBytesAtTime; i += 4)
                 {
                     // Small unroll
                     int start = i + offset;
@@ -612,13 +588,13 @@ public sealed class ChaCha20 : IDisposable
                 }
             }
 
-            offset += processBytesAtTime;
+            offset += CiphersConstants.ProcessBytesAtTime;
         }
 
         // In case there are some bytes left
         if (tailByteCount > 0)
         {
-            UpdateStateAndGenerateTemporaryBuffer(state, x, tmp);
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
 
             for (int i = 0; i < tailByteCount; i++)
             {
@@ -631,7 +607,7 @@ public sealed class ChaCha20 : IDisposable
     private static void UpdateStateAndGenerateTemporaryBuffer(uint[] stateToModify, uint[] workingBuffer, byte[] temporaryBuffer)
     {
         // Copy state to working buffer
-        Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, stateLength * sizeof(uint));
+        Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, StateLength * sizeof(uint));
 
         for (int i = 0; i < 10; i++)
         {
@@ -646,7 +622,7 @@ public sealed class ChaCha20 : IDisposable
             QuarterRound(workingBuffer, 3, 4, 9, 14);
         }
 
-        for (int i = 0; i < stateLength; i++)
+        for (int i = 0; i < StateLength; i++)
         {
             BitwiseUtils.ToBytes(temporaryBuffer, BitwiseUtils.Add(workingBuffer[i], stateToModify[i]), 4 * i);
         }
@@ -717,7 +693,7 @@ public sealed class ChaCha20 : IDisposable
     /// </param>
     private void Dispose(bool disposing)
     {
-        if (!isDisposed)
+        if (!_isDisposed)
         {
             if (disposing)
             {
@@ -725,10 +701,10 @@ public sealed class ChaCha20 : IDisposable
             }
 
             /* Cleanup any unmanaged objects here */
-            Array.Clear(state, 0, stateLength);
+            Array.Clear(State, 0, StateLength);
         }
 
-        isDisposed = true;
+        _isDisposed = true;
     }
 
     #endregion Destructor and Disposer

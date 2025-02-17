@@ -18,7 +18,7 @@ public static class Crc32
     /// <returns>The 32-bit CRC value.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
-    public static uint HashToUInt32(byte[] bytes, int start, int length)
+    private static uint HashToUInt32(byte[] bytes, int start, int length)
     {
         System.ArgumentNullException.ThrowIfNull(bytes);
 
@@ -37,7 +37,7 @@ public static class Crc32
         {
             // Calculate the next CRC value:
             //   crc = (crc >> 8) XOR _table[(crc & 0xFF) XOR current byte]
-            crc = crc >> 8 ^ _table[crc & 0xFF ^ bytes[i]];
+            crc = crc >> 8 ^ Table[crc & 0xFF ^ bytes[i]];
         }
 
         return ~crc;
@@ -53,7 +53,7 @@ public static class Crc32
         uint crc = InitialValue;
         foreach (byte b in bytes)
         {
-            crc = crc >> 8 ^ _table[crc & 0xFF ^ b];
+            crc = crc >> 8 ^ Table[crc & 0xFF ^ b];
         }
 
         return ~crc;
@@ -68,7 +68,7 @@ public static class Crc32
         => HashToUInt32(bytes, 0, bytes?.Length ?? 0);
 
     // Precomputed lookup _table for the default polynomial.
-    private static readonly uint[] _table =
+    private static readonly uint[] Table =
     [
             0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419,
             0x706AF48F, 0xE963A535, 0x9E6495A3, 0x0EDB8832, 0x79DCB8A4,

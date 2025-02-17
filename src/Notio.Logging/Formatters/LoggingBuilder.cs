@@ -4,6 +4,7 @@ using Notio.Logging.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Notio.Common.Logging;
 
 namespace Notio.Logging.Formatters;
 
