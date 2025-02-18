@@ -21,7 +21,7 @@ namespace Nalix.Network.Internal.Compilation;
 /// </summary>
 /// <typeparam name="TController">The controller type to scan.</typeparam>
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
-internal sealed class PacketHandlerCompiler<
+internal sealed class HandlerCompiler<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
     where TController : class
@@ -51,7 +51,7 @@ internal sealed class PacketHandlerCompiler<
     /// <returns>An array of compiled packet handler delegates.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketHandler<TPacket>[] ScanController(System.Func<TController> factory)
+    public static PacketHandler<TPacket>[] CompileHandlers(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
 
@@ -62,14 +62,14 @@ internal sealed class PacketHandlerCompiler<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                .Info($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                       $"scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                        $"found count={compiledMethods.Count}");
 
         // Create the controller instance
@@ -97,7 +97,7 @@ internal sealed class PacketHandlerCompiler<
                                               .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                        $"found count={compiledMethods.Count} " +
                                        $"controller={controllerType.FullName} " +
                                        $"ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : System.String.Empty)}]");
@@ -131,12 +131,12 @@ internal sealed class PacketHandlerCompiler<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                    .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                           $"no-method controller={controllerType.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                        $"compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
@@ -151,7 +151,7 @@ internal sealed class PacketHandlerCompiler<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] dup-opcode " +
+                                            .Warn($"[{nameof(HandlerCompiler<TController, TPacket>)}] dup-opcode " +
                                                   $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
@@ -163,14 +163,14 @@ internal sealed class PacketHandlerCompiler<
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] compiled " +
+                                            .Trace($"[{nameof(HandlerCompiler<TController, TPacket>)}] compiled " +
                                                    $"{Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
                     System.String ctx = Ctx(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(PacketHandlerCompiler<TController, TPacket>)}] " +
+                                            .Error($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
                                                    $"failed-compile {ctx} ex={ex.GetType().Name}", ex);
                 }
             }
@@ -356,10 +356,8 @@ internal sealed class PacketHandlerCompiler<
     }
 
     private static System.String Ctx(
-        System.String controller,
-        System.UInt16 opcode,
-        System.Reflection.MethodInfo? method = null,
-        System.Type? returnType = null)
+        System.String controller, System.UInt16 opcode,
+        System.Reflection.MethodInfo? method = null, System.Type? returnType = null)
     {
         // opcode in hex cho dễ trace với wire logs
         var op = $"opcode=0x{opcode:X4}";
