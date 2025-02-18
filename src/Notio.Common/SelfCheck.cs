@@ -30,9 +30,6 @@ public static class SelfCheck
         [CallerMemberName] string callerMethod = "",
         [CallerFilePath] string filePath = "",
         [CallerLineNumber] int lineNumber = 0)
-        => new(BuildMessage(message, callerMethod, filePath, lineNumber));
-
-    private static string BuildMessage(string message, string callerMethod, string filePath, int lineNumber)
     {
         try
         {
@@ -46,11 +43,16 @@ public static class SelfCheck
 
         sb.Append('[').Append(callerMethod);
 
-        if (string.IsNullOrEmpty(filePath)) return sb.Append("] ").Append(message).ToString();
+        if (string.IsNullOrEmpty(filePath))
+        {
+            return new InternalErrorException(sb.Append("] ").Append(message).ToString());
+        }
+
         sb.Append(": ").Append(filePath);
+
         if (lineNumber > 0)
             sb.Append('(').Append(lineNumber).Append(')');
 
-        return sb.Append("] ").Append(message).ToString();
+        return new InternalErrorException(sb.Append("] ").Append(message).ToString());
     }
 }
