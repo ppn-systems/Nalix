@@ -1,4 +1,3 @@
-using Notio.Common.Enums;
 using Notio.Common.Models;
 using System;
 using System.Runtime.CompilerServices;
