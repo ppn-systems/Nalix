@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Logging;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Http.Handlers;
 using Notio.Network.Web.WebModule;
@@ -53,6 +53,7 @@ public static class ExceptionHandler
     /// <param name="exception">The unhandled exception.</param>
     /// <returns>A <see cref="Task" /> representing the ongoing operation.</returns>
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public static Task EmptyResponse(IHttpContext context, Exception exception)
     {
         context.Response.SetEmptyResponse((int)HttpStatusCode.InternalServerError);

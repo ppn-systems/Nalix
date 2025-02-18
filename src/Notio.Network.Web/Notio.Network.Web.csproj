@@ -21,6 +21,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+    <ProjectReference Include="..\Notio.Logging\Notio.Logging.csproj" />
 		<ProjectReference Include="..\Notio.Serialization\Notio.Serialization.csproj" />
 	</ItemGroup>
   

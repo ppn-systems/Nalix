@@ -1,4 +1,3 @@
-﻿using Notio.Common.Logging;
 using Notio.Network.Web.Net.Internal;
 using System;
 using System.Collections.Concurrent;
@@ -35,10 +34,8 @@ public static class EndPointManager
                 added.Add(prefix);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ex.Log(nameof(AddListener));
-
             foreach (string prefix in added)
             {
                 RemovePrefix(prefix, listener);

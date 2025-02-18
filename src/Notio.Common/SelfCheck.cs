@@ -1,8 +1,6 @@
 using Notio.Common.Exceptions;
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -29,15 +27,13 @@ public static class SelfCheck
     /// A newly-created instance of <see cref="InternalErrorException"/>.
     /// </returns>
     public static InternalErrorException Failure(string message,
+        [CallerMemberName] string callerMethod = "",
         [CallerFilePath] string filePath = "",
         [CallerLineNumber] int lineNumber = 0)
-        => new(BuildMessage(message, filePath, lineNumber));
+        => new(BuildMessage(message, callerMethod, filePath, lineNumber));
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
-    private static string BuildMessage(string message, string filePath, int lineNumber)
+    private static string BuildMessage(string message, string callerMethod, string filePath, int lineNumber)
     {
-        var frames = new StackTrace().GetFrames();
-
         try
         {
             filePath = Path.GetFileName(filePath);
@@ -46,10 +42,9 @@ public static class SelfCheck
         {
         }
 
-        StackFrame frame = frames.FirstOrDefault(f => f.GetMethod()?.ReflectedType != typeof(SelfCheck));
         StringBuilder sb = new();
 
-        sb.Append('[').Append(frame?.GetType().Assembly.GetName().Name ?? "<unknown>");
+        sb.Append('[').Append(callerMethod);
 
         if (string.IsNullOrEmpty(filePath)) return sb.Append("] ").Append(message).ToString();
         sb.Append(": ").Append(filePath);

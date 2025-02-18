@@ -1,4 +1,4 @@
-﻿using Notio.Common.Logging;
+using Notio.Logging;
 using System;
 using System.Reflection;
 

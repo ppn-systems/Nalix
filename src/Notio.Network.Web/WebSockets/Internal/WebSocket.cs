@@ -1,6 +1,9 @@
+using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
+using Notio.Network.Web.WebSockets.Internal.Enums;
+using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -9,9 +12,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Shared.Extensions;
-using Notio.Common.Logging;
-using Notio.Network.Web.WebSockets.Internal.Enums;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 
@@ -56,7 +56,7 @@ internal sealed class WebSocket : IWebSocket
     /// <inheritdoc />
     public WebSocketState State => _readyState;
 
-    internal CompressionMethod Compression => CompressionMethod.None;
+    internal static CompressionMethod Compression => CompressionMethod.None;
 
     internal bool EmitOnPing { get; set; }
 
@@ -83,6 +83,7 @@ internal sealed class WebSocket : IWebSocket
                 case CloseStatusCode.NoStatus when !string.IsNullOrEmpty(reason):
                     "'code' cannot have a reason.".Trace(nameof(WebSocket));
                     return false;
+
                 case CloseStatusCode.MandatoryExtension:
                     "'code' cannot be used by a server.".Trace(nameof(WebSocket));
                     return false;
@@ -91,7 +92,6 @@ internal sealed class WebSocket : IWebSocket
             if (string.IsNullOrEmpty(reason) || Encoding.UTF8.GetBytes(reason).Length <= 123) return true;
             "The size of 'reason' is greater than the allowable max size.".Trace(nameof(WebSocket));
             return false;
-
         }
 
         if (_readyState != WebSocketState.Open)

@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
@@ -16,7 +16,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Notio.Shared.Extensions;
-using Notio.Common.Logging;
+using Notio.Logging;
 
 namespace Notio.Network.Web.WebSockets;
 

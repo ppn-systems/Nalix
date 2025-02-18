@@ -206,7 +206,7 @@ Extended Payload Length: {extPayloadLen}
                 "A data frame has been received while receiving continuation frames.");
         }
 
-        if (IsCompressed && webSocket.Compression == CompressionMethod.None)
+        if (IsCompressed && WebSocket.Compression == CompressionMethod.None)
         {
             throw new WebSocketException(CloseStatusCode.ProtocolError,
                 "A compressed frame has been received without any agreement for it.");

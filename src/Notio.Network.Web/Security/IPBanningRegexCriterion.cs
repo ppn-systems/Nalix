@@ -1,4 +1,4 @@
-using Notio.Common.Logging;
+using Notio.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -84,8 +84,8 @@ public class IPBanningRegexCriterion : IIPBanningCriterion
                 continue;
             }
 
-            ConcurrentBag<long> recentMatches = new(failRegexMatches.Where(x => x >= minTime));
-            if (!recentMatches.Any())
+            ConcurrentBag<long> recentMatches = [.. failRegexMatches.Where(x => x >= minTime)];
+            if (recentMatches.IsEmpty)
             {
                 _ = _failRegexMatches.TryRemove(k, out _);
             }
