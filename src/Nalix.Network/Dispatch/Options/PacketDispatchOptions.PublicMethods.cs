@@ -5,7 +5,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Network.Internal.Analyzer;
+using Nalix.Network.Internal.Compilation;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
@@ -180,7 +180,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketHandler<TPacket>[] handlerDescriptors =
-            PacketAnalyzer<TController, TPacket>.ScanController(factory);
+            PacketHandlerCompiler<TController, TPacket>.ScanController(factory);
 
         foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {
