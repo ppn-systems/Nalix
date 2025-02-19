@@ -10,6 +10,52 @@ namespace Notio.Network.Firewall.Config;
 public sealed class ConnectionConfig : ConfiguredBinder
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a specified connection limit.
+    /// </summary>
+    /// <param name="limit">The predefined connection limit to apply.</param>
+    public ConnectionConfig(ConnectionLimit limit)
+    {
+        switch (limit)
+        {
+            case ConnectionLimit.Low:
+                this.MaxConnectionsPerIpAddress = 20;
+                break;
+
+            case ConnectionLimit.Medium:
+                this.MaxConnectionsPerIpAddress = 100;
+                break;
+
+            case ConnectionLimit.High:
+                this.MaxConnectionsPerIpAddress = 500;
+                break;
+
+            case ConnectionLimit.Unlimited:
+                this.MaxConnectionsPerIpAddress = 1000;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimit.Medium"/>.
+    /// </summary>
+    public ConnectionConfig()
+        : this(ConnectionLimit.Medium)
+    {
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether logging is enabled.
+    /// <c>true</c> if logging is enabled; otherwise, <c>false</c>.
+    /// </summary>
+    public bool EnableLogging { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether metrics collection is enabled.
+    /// <c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.
+    /// </summary>
+    public bool EnableMetrics { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the maximum number of connections allowed per IP address.
     /// </summary>
     /// <remarks>

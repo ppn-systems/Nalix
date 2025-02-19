@@ -1,5 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
+using Notio.Network.Firewall.Config;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -25,11 +26,8 @@ public sealed class RequestLimiter : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
-    private readonly int _maxAllowedRequests;
     private readonly SemaphoreSlim _cleanupLock;
-    private readonly int _lockoutDurationSeconds;
-    private readonly TimeSpan _timeWindowDuration;
-    private readonly FirewallConfig _firewallConfig;
+    private readonly RateLimitConfig _RequestConfig;
     private readonly ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
 
     private bool _disposed;
@@ -37,28 +35,25 @@ public sealed class RequestLimiter : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimiter"/> class with the provided firewall configuration and optional logger.
     /// </summary>
-    /// <param name="networkConfig">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
+    /// <param name="requestConfig">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
     /// <param name="logger">An optional logger for logging purposes. If <see langword="null"/>, no logging will be done.</param>
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(FirewallConfig? networkConfig, ILogger? logger = null)
+    public RequestLimiter(RateLimitConfig? requestConfig, ILogger? logger = null)
     {
         _logger = logger;
-        _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
+        _RequestConfig = requestConfig ?? ConfiguredShared.Instance.Get<RateLimitConfig>();
 
-        if (_firewallConfig.RateLimit.MaxAllowedRequests <= 0)
+        if (_RequestConfig.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
 
-        if (_firewallConfig.RateLimit.LockoutDurationSeconds <= 0)
+        if (_RequestConfig.LockoutDurationSeconds <= 0)
             throw new InternalErrorException("LockoutDurationSeconds must be greater than 0");
 
-        if (_firewallConfig.RateLimit.TimeWindowInMilliseconds <= 0)
+        if (_RequestConfig.TimeWindowInMilliseconds <= 0)
             throw new InternalErrorException("TimeWindowInMilliseconds must be greater than 0");
 
-        _maxAllowedRequests = _firewallConfig.RateLimit.MaxAllowedRequests;
-        _lockoutDurationSeconds = _firewallConfig.RateLimit.LockoutDurationSeconds;
-        _timeWindowDuration = TimeSpan.FromMilliseconds(_firewallConfig.RateLimit.TimeWindowInMilliseconds);
         _ipData = new ConcurrentDictionary<string, RequestLimiterInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 
@@ -93,7 +88,7 @@ public sealed class RequestLimiter : IDisposable
             (_, data) => ProcessRequest(data, currentTime)
         ).BlockedUntil?.CompareTo(currentTime) <= 0;
 
-        if (_firewallConfig.EnableMetrics)
+        if (_RequestConfig.EnableMetrics)
             _logger?.Meta($"{endPoint}|{status}|{currentTime.Minute}ms");
 
         return status;
@@ -108,12 +103,13 @@ public sealed class RequestLimiter : IDisposable
             return data;
 
         // Remove old requests
-        while (requests.Count > 0 && currentTime - requests.Peek() > _timeWindowDuration)
+        while (requests.Count > 0 && currentTime - requests.Peek() >
+            TimeSpan.FromMilliseconds(_RequestConfig.TimeWindowInMilliseconds))
             requests.Dequeue();
 
         // If the maximum requests are reached, block the IP for the lockout duration
-        if (requests.Count >= _maxAllowedRequests)
-            return new RequestLimiterInfo(requests, currentTime.AddSeconds(_lockoutDurationSeconds));
+        if (requests.Count >= _RequestConfig.MaxAllowedRequests)
+            return new RequestLimiterInfo(requests, currentTime.AddSeconds(_RequestConfig.LockoutDurationSeconds));
 
         requests.Enqueue(currentTime);
         return new RequestLimiterInfo(requests, null);
@@ -136,7 +132,8 @@ public sealed class RequestLimiter : IDisposable
             {
                 var (ip, data) = kvp;
                 var cleanedRequests = new Queue<DateTime>(
-                    data.Requests.Where(time => currentTime - time <= _timeWindowDuration)
+                    data.Requests.Where(time => currentTime - time <=
+                    TimeSpan.FromMilliseconds(_RequestConfig.TimeWindowInMilliseconds))
                 );
 
                 if (cleanedRequests.Count == 0 && (!data.BlockedUntil.HasValue || currentTime > data.BlockedUntil.Value))

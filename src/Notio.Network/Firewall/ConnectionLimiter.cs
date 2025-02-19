@@ -1,5 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
+using Notio.Network.Firewall.Config;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -17,39 +18,43 @@ public sealed class ConnectionLimiter : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
-    private readonly int _maxConnectionsPerIp;
     private readonly SemaphoreSlim _cleanupLock;
-    private readonly FirewallConfig _firewallConfig;
+    private readonly ConnectionConfig _connectionConfig;
     private readonly ConcurrentDictionary<string, ConnectionInfo> _connectionInfo;
     private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with the specified firewall configuration and logger.
     /// </summary>
-    /// <param name="networkConfig">The firewall configuration. If null, the default configuration is used.</param>
+    /// <param name="connectionConfig">The firewall configuration. If null, the default configuration is used.</param>
     /// <param name="logger">The logger used for logging connection events. If null, no logging is performed.</param>
-    /// <exception cref="InternalErrorException">Thrown if <paramref name="networkConfig"/> specifies a max connections per IP address less than or equal to 0.</exception>
-    public ConnectionLimiter(FirewallConfig? networkConfig = null, ILogger? logger = null)
+    /// <exception cref="InternalErrorException">Thrown if <paramref name="connectionConfig"/> specifies a max connections per IP address less than or equal to 0.</exception>
+    public ConnectionLimiter(ConnectionConfig? connectionConfig = null, ILogger? logger = null)
     {
         _logger = logger;
-        _firewallConfig = networkConfig ?? ConfiguredShared.Instance.Get<FirewallConfig>();
+        _connectionConfig = connectionConfig ?? ConfiguredShared.Instance.Get<ConnectionConfig>();
 
-        if (_firewallConfig.Connection.MaxConnectionsPerIpAddress <= 0)
+        if (_connectionConfig.MaxConnectionsPerIpAddress <= 0)
             throw new InternalErrorException("MaxConnectionsPerIpAddress must be greater than 0");
 
-        _maxConnectionsPerIp = _firewallConfig.Connection.MaxConnectionsPerIpAddress;
         _connectionInfo = new ConcurrentDictionary<string, ConnectionInfo>();
         _cleanupLock = new SemaphoreSlim(1, 1);
 
         _cleanupTimer = new Timer(
             async void (_) =>
             {
-                await CleanupStaleConnectionsAsync();
+                await this.CleanupStaleConnectionsAsync();
             },
             null,
             TimeSpan.FromMinutes(1),
             TimeSpan.FromMinutes(1)
         );
+    }
+
+    /// <inheritdoc />
+    public ConnectionLimiter(ILogger? logger = null)
+        : this(ConfiguredShared.Instance.Get<ConnectionConfig>(), logger)
+    {
     }
 
     /// <summary>
@@ -68,7 +73,7 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime now = DateTime.UtcNow;
         DateTime currentDate = now.Date;
 
-        if (_firewallConfig.EnableMetrics)
+        if (_connectionConfig.EnableMetrics)
             _logger?.Trace($"{endPoint}|New");
 
         return _connectionInfo.AddOrUpdate(
@@ -78,9 +83,9 @@ public sealed class ConnectionLimiter : IDisposable
             {
                 int totalToday = currentDate > stats.LastConnectionTime.Date ? 1 : stats.TotalConnectionsToday + 1;
 
-                if (stats.CurrentConnections >= _maxConnectionsPerIp)
+                if (stats.CurrentConnections >= _connectionConfig.MaxConnectionsPerIpAddress)
                 {
-                    if (_firewallConfig.EnableLogging)
+                    if (_connectionConfig.EnableLogging)
                         _logger?.Trace($"Connection limit exceeded for IP: {endPoint}");
                     return stats;
                 }
@@ -92,7 +97,7 @@ public sealed class ConnectionLimiter : IDisposable
                     TotalConnectionsToday = totalToday
                 };
             }
-        ).CurrentConnections <= _maxConnectionsPerIp;
+        ).CurrentConnections <= _connectionConfig.MaxConnectionsPerIpAddress;
     }
 
     /// <summary>
@@ -108,7 +113,7 @@ public sealed class ConnectionLimiter : IDisposable
         if (string.IsNullOrWhiteSpace(endPoint))
             throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
-        if (_firewallConfig.EnableMetrics)
+        if (_connectionConfig.EnableMetrics)
             _logger?.Trace($"{endPoint}|Closed");
 
         return _connectionInfo.AddOrUpdate(
@@ -159,7 +164,7 @@ public sealed class ConnectionLimiter : IDisposable
                 {
                     keysToRemove.Add(ip);
 
-                    if (_firewallConfig.EnableLogging)
+                    if (_connectionConfig.EnableLogging)
                         _logger?.Trace($"Removing stale connection data for IP: {ip}");
                 }
             }
@@ -169,7 +174,7 @@ public sealed class ConnectionLimiter : IDisposable
         }
         catch (Exception ex)
         {
-            if (_firewallConfig.EnableLogging)
+            if (_connectionConfig.EnableLogging)
                 _logger?.Error($"Error during connection cleanup: {ex.Message}");
         }
         finally

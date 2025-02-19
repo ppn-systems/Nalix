@@ -11,6 +11,54 @@ namespace Notio.Network.Firewall.Config;
 public sealed class RateLimitConfig : ConfiguredBinder
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="RateLimitConfig"/> class with a specified request limit.
+    /// </summary>
+    /// <param name="limit">The predefined request limit to apply.</param>
+    public RateLimitConfig(RequestLimit limit)
+    {
+        switch (limit)
+        {
+            case RequestLimit.Low:
+                this.MaxAllowedRequests = 50;
+                this.LockoutDurationSeconds = 600;
+                this.TimeWindowInMilliseconds = 30000;
+                break;
+
+            case RequestLimit.Medium:
+                this.MaxAllowedRequests = 100;
+                this.LockoutDurationSeconds = 300;
+                this.TimeWindowInMilliseconds = 60000;
+                break;
+
+            case RequestLimit.High:
+                this.MaxAllowedRequests = 500;
+                this.LockoutDurationSeconds = 150;
+                this.TimeWindowInMilliseconds = 120000;
+                break;
+
+            case RequestLimit.Unlimited:
+                this.MaxAllowedRequests = 1000;
+                this.LockoutDurationSeconds = 60;
+                this.TimeWindowInMilliseconds = 300000;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RateLimitConfig"/> class with a default request limit of <see cref="RequestLimit.Medium"/>.
+    /// </summary>
+    public RateLimitConfig()
+        : this(RequestLimit.Medium)
+    {
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether metrics collection is enabled.
+    /// <c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.
+    /// </summary>
+    public bool EnableMetrics { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the maximum allowed requests per time window.
     /// </summary>
     /// <value>The maximum number of requests allowed in a given time window.</value>
