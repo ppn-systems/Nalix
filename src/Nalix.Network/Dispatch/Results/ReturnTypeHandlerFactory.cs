@@ -33,7 +33,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
             throw new System.ArgumentException($"TPacket must implement {nameof(IPacket)}.");
         }
 
-        _handlers = CreateHandlers();
+        _handlers = CreateReturnTypeHandlerMap();
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static IReturnHandler<TPacket> GetHandler(
+    public static IReturnHandler<TPacket> ResolveHandler(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type returnType)
     {
         if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket> handler))
@@ -58,14 +58,14 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
             if (genericType == typeof(System.Threading.Tasks.Task<>))
             {
-                IReturnHandler<TPacket> innerHandler = GetHandler(genericArg);
-                return CreateTaskHandler(innerHandler, genericArg);
+                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
+                return CreateTaskWrapperHandler(innerHandler, genericArg);
             }
 
             if (genericType == typeof(System.Threading.Tasks.ValueTask<>))
             {
-                IReturnHandler<TPacket> innerHandler = GetHandler(genericArg);
-                return CreateValueTaskHandler(innerHandler, genericArg);
+                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
+                return CreateValueTaskWrapperHandler(innerHandler, genericArg);
             }
         }
 
@@ -78,7 +78,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> CreateHandlers()
+    private static System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> CreateReturnTypeHandlerMap()
     {
         System.Collections.Generic.Dictionary<System.Type, IReturnHandler<TPacket>> handlers = new()
         {
@@ -97,7 +97,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static IReturnHandler<TPacket> CreateTaskHandler(
+    private static IReturnHandler<TPacket> CreateTaskWrapperHandler(
         [System.Diagnostics.CodeAnalysis.NotNull] IReturnHandler<TPacket> innerHandler,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
@@ -107,7 +107,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static IReturnHandler<TPacket> CreateValueTaskHandler(
+    private static IReturnHandler<TPacket> CreateValueTaskWrapperHandler(
         [System.Diagnostics.CodeAnalysis.NotNull] IReturnHandler<TPacket> innerHandler,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
