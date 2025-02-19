@@ -3,8 +3,8 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Buffers;
 
 #if DEBUG

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Caching;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 #if DEBUG

@@ -7,10 +7,10 @@ using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Middleware.Inbound;

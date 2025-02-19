@@ -5,7 +5,7 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Connection;
 

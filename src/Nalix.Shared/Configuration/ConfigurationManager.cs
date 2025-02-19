@@ -2,10 +2,10 @@
 
 using Nalix.Common.Environment;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Injection.DI;
 using Nalix.Shared.Configuration.Binding;
 using Nalix.Shared.Configuration.Internal;
-using Nalix.Shared.Injection;
-using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Shared.Configuration;
 

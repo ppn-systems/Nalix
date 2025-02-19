@@ -2,10 +2,10 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
