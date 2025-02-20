@@ -1,7 +1,6 @@
-using Notio.Common.Enums;
+using Notio.Common.Logging;
 using System;
 using System.Runtime.CompilerServices;
-using Notio.Common.Logging;
 
 namespace Notio.Logging.Formatters;
 

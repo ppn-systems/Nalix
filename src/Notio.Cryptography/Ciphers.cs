@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;

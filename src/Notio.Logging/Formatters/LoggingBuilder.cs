@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Cryptography;
 using Notio.Common.Models;
 using Notio.Logging.Internal;
 using System;
