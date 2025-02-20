@@ -1,7 +1,7 @@
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network.Firewall.Config;
+namespace Notio.Network.Config;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.
@@ -19,27 +19,27 @@ public sealed class RateLimitConfig : ConfiguredBinder
         switch (limit)
         {
             case RequestLimit.Low:
-                this.MaxAllowedRequests = 50;
-                this.LockoutDurationSeconds = 600;
-                this.TimeWindowInMilliseconds = 30000;
+                MaxAllowedRequests = 50;
+                LockoutDurationSeconds = 600;
+                TimeWindowInMilliseconds = 30000;
                 break;
 
             case RequestLimit.Medium:
-                this.MaxAllowedRequests = 100;
-                this.LockoutDurationSeconds = 300;
-                this.TimeWindowInMilliseconds = 60000;
+                MaxAllowedRequests = 100;
+                LockoutDurationSeconds = 300;
+                TimeWindowInMilliseconds = 60000;
                 break;
 
             case RequestLimit.High:
-                this.MaxAllowedRequests = 500;
-                this.LockoutDurationSeconds = 150;
-                this.TimeWindowInMilliseconds = 120000;
+                MaxAllowedRequests = 500;
+                LockoutDurationSeconds = 150;
+                TimeWindowInMilliseconds = 120000;
                 break;
 
             case RequestLimit.Unlimited:
-                this.MaxAllowedRequests = 1000;
-                this.LockoutDurationSeconds = 60;
-                this.TimeWindowInMilliseconds = 300000;
+                MaxAllowedRequests = 1000;
+                LockoutDurationSeconds = 60;
+                TimeWindowInMilliseconds = 300000;
                 break;
         }
     }

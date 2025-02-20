@@ -2,7 +2,7 @@ using Notio.Shared.Configuration;
 
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network;
+namespace Notio.Network.Config;
 
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.

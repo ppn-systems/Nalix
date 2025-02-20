@@ -1,7 +1,7 @@
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network.Firewall.Config;
+namespace Notio.Network.Config;
 
 /// <summary>
 /// Configuration for limiting the number of concurrent connections per IP address.
@@ -18,19 +18,19 @@ public sealed class ConnectionConfig : ConfiguredBinder
         switch (limit)
         {
             case ConnectionLimit.Low:
-                this.MaxConnectionsPerIpAddress = 20;
+                MaxConnectionsPerIpAddress = 20;
                 break;
 
             case ConnectionLimit.Medium:
-                this.MaxConnectionsPerIpAddress = 100;
+                MaxConnectionsPerIpAddress = 100;
                 break;
 
             case ConnectionLimit.High:
-                this.MaxConnectionsPerIpAddress = 500;
+                MaxConnectionsPerIpAddress = 500;
                 break;
 
             case ConnectionLimit.Unlimited:
-                this.MaxConnectionsPerIpAddress = 1000;
+                MaxConnectionsPerIpAddress = 10000;
                 break;
         }
     }

@@ -64,10 +64,10 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
             {
                 Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
             }
+
+            return;
         }
-        else
-        {
-            Options.Logger?.Warn($"No handler found for CommandId {commandId}");
-        }
+
+        Options.Logger?.Warn($"No handler found for CommandId {commandId}");
     }
 }

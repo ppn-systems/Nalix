@@ -2,7 +2,6 @@ using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Common.Package;
-using Notio.Network.Handlers.Attributes;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;

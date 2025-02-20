@@ -1,7 +1,7 @@
 using Notio.Common.Models;
 using System;
 
-namespace Notio.Network.Handlers.Attributes;
+namespace Notio.Network.Handlers;
 
 /// <summary>
 /// Attribute to define a packet command and its required authority level.
