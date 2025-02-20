@@ -86,10 +86,10 @@ public sealed partial class Connection : IConnection
     public IConnection.IUdp UDP { get; }
 
     /// <inheritdoc />
-    public System.Net.EndPoint RemoteEndPoint { get; }
+    public INetworkEndpoint EndPoint { get; }
 
     /// <inheritdoc />
-    public INetworkEndpoint EndPoint { get; }
+    public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
