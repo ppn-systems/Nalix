@@ -57,6 +57,12 @@ public sealed class ConnectionLimiter : IDisposable
     {
     }
 
+    /// <inheritdoc />
+    public ConnectionLimiter(Action<ConnectionConfig>? configure = null, ILogger? logger = null)
+        : this(CreateConfiguredConfig(configure), logger)
+    {
+    }
+
     /// <summary>
     /// Determines whether a new connection is allowed for the specified IP address.
     /// </summary>
@@ -217,6 +223,13 @@ public sealed class ConnectionLimiter : IDisposable
         {
             _logger?.Error($"Dispose error: {ex.Message}");
         }
+    }
+
+    private static ConnectionConfig CreateConfiguredConfig(Action<ConnectionConfig>? configure)
+    {
+        var config = ConfiguredShared.Instance.Get<ConnectionConfig>();
+        configure?.Invoke(config);
+        return config;
     }
 }
 
