@@ -21,7 +21,7 @@ namespace Notio.Network.Handlers;
 /// <remarks>
 /// This class allows registering packet handlers, configuring logging, and defining error-handling strategies.
 /// </remarks>
-public class PacketDispatcherOptions
+public sealed class PacketDispatcherOptions
 {
     private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> _methodHandlers;
 
@@ -280,7 +280,7 @@ public class PacketDispatcherOptions
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);
 
-        IEnumerable<ushort> commandIds = duplicateCommandIds as ushort[] ?? duplicateCommandIds.ToArray();
+        IEnumerable<ushort> commandIds = duplicateCommandIds as ushort[] ?? [.. duplicateCommandIds];
         if (commandIds.Any())
             throw new InvalidOperationException(
                 $"Duplicate CommandIds found: {string.Join(", ", commandIds)}");
@@ -370,8 +370,8 @@ public class PacketDispatcherOptions
         Func<IPacket, IPacket>? decompressionMethod
     )
     {
-        _compressionMethod = compressionMethod;
-        _decompressionMethod = decompressionMethod;
+        if (compressionMethod is not null) _compressionMethod = compressionMethod;
+        if (decompressionMethod is not null) _decompressionMethod = decompressionMethod;
 
         return this;
     }
@@ -402,8 +402,8 @@ public class PacketDispatcherOptions
         Func<IPacket, IConnection, IPacket>? decryptionMethod
     )
     {
-        _encryptionMethod = encryptionMethod;
-        _decryptionMethod = decryptionMethod;
+        if (encryptionMethod is not null) _encryptionMethod = encryptionMethod;
+        if (decryptionMethod is not null) _decryptionMethod = decryptionMethod;
 
         return this;
     }
@@ -429,8 +429,8 @@ public class PacketDispatcherOptions
         Func<Memory<byte>, IPacket>? deserializationMethod
     )
     {
-        SerializationMethod = serializationMethod;
-        DeserializationMethod = deserializationMethod;
+        if (serializationMethod is not null) SerializationMethod = serializationMethod;
+        if (deserializationMethod is not null) DeserializationMethod = deserializationMethod;
 
         return this;
     }

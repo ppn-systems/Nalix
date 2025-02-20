@@ -52,12 +52,6 @@ public sealed class NetworkConfig : ConfiguredBinder
     public int SendTimeoutMilliseconds { get; set; } = 5000;
 
     /// <summary>
-    /// Gets or sets whether TCP KeepAlive is enabled.
-    /// Default is true.
-    /// </summary>
-    public bool KeepAlive { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency communication).
     /// Default is true.
     /// </summary>
@@ -68,36 +62,6 @@ public sealed class NetworkConfig : ConfiguredBinder
     /// Default is false.
     /// </summary>
     public bool ReuseAddress { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets whether the socket supports both IPv4 and IPv6.
-    /// Default is false.
-    /// </summary>
-    public bool DualMode { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets the timeout for accepting a connection in milliseconds.
-    /// Default is 10000 milliseconds (10 seconds).
-    /// </summary>
-    public int AcceptConnectionTimeoutMilliseconds { get; set; } = 10000;
-
-    /// <summary>
-    /// Gets or sets the low watermark for receiving data in bytes.
-    /// Default is 1MB (1024 * 1024 bytes).
-    /// </summary>
-    public int SocketReceiveLowWatermark { get; set; } = 1024 * 1024;
-
-    /// <summary>
-    /// Gets or sets the low watermark for sending data in bytes.
-    /// Default is 1MB (1024 * 1024 bytes).
-    /// </summary>
-    public int SocketSendLowWatermark { get; set; } = 1024 * 1024;
-
-    /// <summary>
-    /// Gets or sets whether the socket is in blocking mode.
-    /// Default is true.
-    /// </summary>
-    public bool IsBlocking { get; set; } = true;
 
     /// <summary>
     /// Gets a value indicating whether the port is valid (within the range 1 to 65535).

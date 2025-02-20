@@ -141,15 +141,15 @@ public abstract class Listener : TcpListener, IListener
     /// <param name="socket">The socket to configure.</param>
     private static void ConfigureHighPerformanceSocket(Socket socket)
     {
-        socket.LingerState = new LingerOption(false, 0); // No delay when closing
-        socket.NoDelay = true;
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+        socket.LingerState = new LingerOption(false, NetworkConfig.LingerTimeoutSeconds); // No delay when closing
+        socket.NoDelay = NetworkConfig.NoDelay;
+        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, NetworkConfig.ReuseAddress);
 
         // Performance tuning for short-lived connections
-        socket.ReceiveBufferSize = ushort.MaxValue;
-        socket.SendBufferSize = ushort.MaxValue;
-        socket.ReceiveTimeout = 30000;
-        socket.SendTimeout = 30000;
+        socket.SendBufferSize = NetworkConfig.SendBufferSize;
+        socket.SendTimeout = NetworkConfig.SendTimeoutMilliseconds;
+        socket.ReceiveBufferSize = NetworkConfig.ReceiveBufferSize;
+        socket.ReceiveTimeout = NetworkConfig.ReceiveTimeoutMilliseconds;
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             socket.IOControl(IOControlCode.KeepAliveValues, GetKeepAliveValues(), null);
