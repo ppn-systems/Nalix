@@ -1,4 +1,3 @@
-using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Core;
@@ -15,12 +14,12 @@ namespace Notio.Logging;
 /// Initializes the logging system with optional configuration.
 /// </remarks>
 /// <param name="configure">An optional action to configure the logging system.</param>
-public sealed class NLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
+public sealed class CLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
 {
     /// <summary>
-    /// Gets the single instance of the <see cref="NLogging"/> class.
+    /// Gets the single instance of the <see cref="CLogging"/> class.
     /// </summary>
-    public static NLogging Instance { get; } = new(cfg => cfg
+    public static CLogging Instance { get; } = new(cfg => cfg
         .AddTarget(new ConsoleLoggingTarget())
         .AddTarget(new FileLoggingTarget())
     );

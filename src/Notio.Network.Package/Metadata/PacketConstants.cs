@@ -1,4 +1,4 @@
-namespace Notio.Network.Package;
+namespace Notio.Network.Package.Metadata;
 
 /// <summary>
 /// Represents default values and constants for packet configurations.
