@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Enums;
+
 namespace Nalix.Common.Tasks.Options;
 
 /// <summary>
@@ -14,6 +16,16 @@ public interface IWorkerOptions
     [System.ComponentModel.DataAnnotations.MinLength(1)]
     [System.ComponentModel.DataAnnotations.MaxLength(32)]
     System.String Tag { get; init; }
+
+    /// <summary>
+    /// Gets the optional machine identifier for the worker instance.
+    /// </summary>
+    System.UInt16 MachineId { get; init; }
+
+    /// <summary>
+    /// Gets the optional identifier type for the worker instance.
+    /// </summary>
+    IdentifierType IdType { get; init; }
 
     /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
@@ -35,4 +47,9 @@ public interface IWorkerOptions
     /// </summary>
     [System.ComponentModel.DefaultValue(false)]
     System.Boolean TryAcquireGroupSlotImmediately { get; init; }
+
+    /// <summary>
+    /// Gets the cancellation token that is linked to the worker's execution.
+    /// </summary>
+    System.Threading.CancellationToken CancellationToken { get; init; }
 }

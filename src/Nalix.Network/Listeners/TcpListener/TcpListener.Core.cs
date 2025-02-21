@@ -1,10 +1,12 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
+using Nalix.Network.Connection;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
@@ -31,8 +33,10 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
     private readonly IProtocol _protocol;
     private readonly System.Threading.Lock _socketLock;
     private readonly System.Threading.SemaphoreSlim _lock;
+    private readonly System.Collections.Generic.List<IIdentifier> _acceptWorkerIds;
 
     private System.Boolean _isDisposed;
+    private System.Int32 _stopInitiated;
     private System.Net.Sockets.Socket? _listener;
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
@@ -41,6 +45,11 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Name of the listener instance.
+    /// </summary>
+    public readonly System.String GroupName;
 
     /// <summary>
     /// Gets the current state of the listener.
@@ -128,9 +137,10 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
         _isDisposed = false;
 
         _socketLock = new();
+        _acceptWorkerIds = new(Config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
-
+        this.GroupName = $"net/accept/{_port}";
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
@@ -157,6 +167,64 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
     }
 
     #endregion Constructors
+
+    #region Private Methods
+
+    [System.Diagnostics.DebuggerStepThrough]
+    private void ScheduleStop()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _stopInitiated, 1) != 0)
+        {
+            return;
+        }
+
+        static void cb(System.Object? state)
+        {
+            TcpListenerBase self = (TcpListenerBase)state!;
+
+            try
+            {
+                try { self._cts?.Cancel(); } catch { }
+                try { self._listener?.Close(); } catch { }
+                self._listener = null;
+
+                try
+                {
+                    _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?.CancelGroup(self.GroupName));
+                }
+                catch { }
+
+                try
+                {
+                    InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.CloseAllConnections();
+                }
+                catch { }
+
+                _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.Stopped);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
+            }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Error($"[{nameof(TcpListenerBase)}] stop-error port={self._port} ex={ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    self._cts?.Dispose();
+                }
+                catch { }
+                self._cts = null;
+            }
+        }
+
+        _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(cb, this);
+    }
+
+    #endregion Private Methods
 
     #region IDispose
 
