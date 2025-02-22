@@ -58,12 +58,18 @@ public sealed class NLogixOptions : System.IDisposable
 
     #endregion Properties
 
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixOptions"/> class.
     /// </summary>
     /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
     internal NLogixOptions(ILogDistributor publisher)
         => _publisher = publisher ?? throw new System.ArgumentNullException(nameof(publisher));
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
@@ -169,4 +175,6 @@ public sealed class NLogixOptions : System.IDisposable
 
         System.GC.SuppressFinalize(this);
     }
+
+    #endregion APIs
 }
