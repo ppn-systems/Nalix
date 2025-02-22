@@ -48,6 +48,7 @@ public abstract partial class TcpListenerBase
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[{nameof(TcpListenerBase)}] ignored-activate state={State}");
+
                 return;
             }
 
@@ -58,7 +59,6 @@ public abstract partial class TcpListenerBase
             _cancellationToken = _cts.Token;
             linkedToken = _cts.Token;
 
-            _ = linkedToken.Register(() => { try { _listener?.Close(); } catch { } });
             _ = linkedToken.Register(static s => ((TcpListenerBase)s!).ScheduleStop(), this);
 
             System.Boolean needInit;
@@ -83,10 +83,8 @@ public abstract partial class TcpListenerBase
             if (Config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Activate();
+                                        .Activate(cancellationToken);
             }
-
-            System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = new(Config.MaxParallel);
 
             _acceptWorkerIds.Clear();
 
@@ -109,6 +107,8 @@ public abstract partial class TcpListenerBase
 
                 _acceptWorkerIds.Add(h.Id);
             }
+
+            return;
         }
         catch (System.OperationCanceledException)
         {
@@ -124,6 +124,10 @@ public abstract partial class TcpListenerBase
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[{nameof(TcpListenerBase)}] critical-error port={_port}", ex);
+        }
+        finally
+        {
+            _ = _lock.Release();
         }
     }
 
@@ -158,7 +162,7 @@ public abstract partial class TcpListenerBase
         if (Config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                    .Deactivate();
+                                    .Deactivate(cancellationToken);
         }
 
         var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
@@ -168,6 +172,9 @@ public abstract partial class TcpListenerBase
             try { _listener?.Close(); } catch { }
 
             _listener = null;
+
+            _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
+                                        .CancelGroup(this.GroupName);
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
