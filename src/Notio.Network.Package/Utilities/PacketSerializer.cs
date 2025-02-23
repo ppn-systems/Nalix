@@ -1,5 +1,4 @@
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
@@ -23,7 +22,7 @@ public static class PacketSerializer
     /// <param name="packet">The packet to be written.</param>
     /// <exception cref="PackageException">Thrown if the buffer size is too small or any other error occurs during writing.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void WritePacketFast(Span<byte> buffer, in IPacket packet)
+    public static void WritePacketFast(Span<byte> buffer, in Packet packet)
     {
         if (buffer.Length < (PacketSize.Header + packet.Payload.Length))
             throw new PackageException("Buffer size is too small to write the packet.");
@@ -48,7 +47,7 @@ public static class PacketSerializer
     /// <returns>The deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if the data size is too small or any other error occurs during reading.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IPacket ReadPacketFast(ReadOnlySpan<byte> data)
+    public static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException("Data size is smaller than the minimum header size.");
@@ -85,7 +84,7 @@ public static class PacketSerializer
     /// <param name="buffer">The buffer to write the packet data to.</param>
     /// <param name="packet">The packet to be written.</param>
     /// <returns>A value task representing the asynchronous write operation.</returns>
-    public static ValueTask WritePacketFastAsync(Memory<byte> buffer, IPacket packet)
+    public static ValueTask WritePacketFastAsync(Memory<byte> buffer, Packet packet)
         => new(Task.Run(() => WritePacketFast(buffer.Span, packet)));
 
     /// <summary>
@@ -93,7 +92,7 @@ public static class PacketSerializer
     /// </summary>
     /// <param name="data">The data to read the packet from.</param>
     /// <returns>A value task representing the asynchronous read operation, returning the deserialized packet.</returns>
-    public static ValueTask<IPacket> ReadPacketFastAsync(ReadOnlyMemory<byte> data)
+    public static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data)
         => new(Task.Run(() => ReadPacketFast(data.Span)));
 
     /// <summary>
@@ -102,7 +101,7 @@ public static class PacketSerializer
     /// <param name="stream">The stream to write the packet to.</param>
     /// <param name="packet">The packet to be written.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
-    public static async Task WriteToStreamAsync(Stream stream, IPacket packet)
+    public static async Task WriteToStreamAsync(Stream stream, Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
         byte[] buffer = ArrayPool<byte>.Shared.Rent(totalSize);
@@ -124,7 +123,7 @@ public static class PacketSerializer
     /// <param name="stream">The stream to read the packet from.</param>
     /// <returns>A task representing the asynchronous read operation, returning the deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if any error occurs during reading from the stream.</exception>
-    public static async Task<IPacket> ReadFromStreamAsync(Stream stream)
+    public static async Task<Packet> ReadFromStreamAsync(Stream stream)
     {
         byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(PacketSize.Header);
 
