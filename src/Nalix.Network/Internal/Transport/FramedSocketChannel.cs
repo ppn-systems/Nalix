@@ -283,6 +283,52 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     #region Private Methods
 
+    /// <summary>
+    /// Returns true when the exception indicates a peer-initiated close or shutdown flow
+    /// that should be treated as a normal disconnect (not an error).
+    /// </summary>
+    private static System.Boolean IsBenignDisconnect(System.Exception ex)
+    {
+        if (ex is System.OperationCanceledException or
+            System.ObjectDisposedException)
+        {
+            return true;
+        }
+
+        if (ex is System.Net.Sockets.SocketException se)
+        {
+            return se.SocketErrorCode
+                is System.Net.Sockets.SocketError.ConnectionReset
+                or System.Net.Sockets.SocketError.ConnectionAborted
+                or System.Net.Sockets.SocketError.Shutdown
+                or System.Net.Sockets.SocketError.OperationAborted;
+        }
+
+        if (ex is System.IO.IOException ioex && ioex.InnerException is System.Net.Sockets.SocketException ise)
+        {
+            return ise.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset
+                or System.Net.Sockets.SocketError.ConnectionAborted
+                or System.Net.Sockets.SocketError.Shutdown
+                or System.Net.Sockets.SocketError.OperationAborted;
+        }
+
+        if (ex is System.AggregateException agg)
+        {
+            agg = agg.Flatten();
+            foreach (var inner in agg.InnerExceptions)
+            {
+                if (!IsBenignDisconnect(inner))
+                {
+                    return false;
+                }
+            }
+
+            return agg.InnerExceptions.Count > 0;
+        }
+
+        return false;
+    }
+
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask ReceiveExactlyAsync(
         System.Memory<System.Byte> dst,
@@ -295,7 +341,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                           .ConfigureAwait(false);
             if (n == 0)
             {
-                throw new System.OperationCanceledException("Peer closed the connection");
+                throw new System.IO.IOException("Peer closed (FIN)",
+                    new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.Shutdown));
             }
 
             read += n;
@@ -351,6 +398,23 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 _buffer = BufferLease.Pool.Rent(256); // prepare for next read
             }
+        }
+        catch (System.Exception ex) when (IsBenignDisconnect(ex))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(FramedSocketChannel)}] " +
+                                           $"receive-loop ended (peer closed/shutdown) ep={_socket.RemoteEndPoint}");
+        }
+        catch (System.OperationCanceledException)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(FramedSocketChannel)}] receive-loop cancelled");
+        }
+        catch (System.Exception ex)
+        {
+            var e = (ex as System.AggregateException)?.Flatten() ?? ex;
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(FramedSocketChannel)}] receive-loop faulted", e);
         }
         finally
         {
