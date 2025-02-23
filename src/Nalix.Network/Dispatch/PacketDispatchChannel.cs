@@ -5,9 +5,13 @@ using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
+using Nalix.Network.Internal;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch;
@@ -48,7 +52,6 @@ public sealed class PacketDispatchChannel
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private System.Int32 _running;
-    private System.Threading.Tasks.Task? _loopTask;
 
     #endregion Fields
 
@@ -90,7 +93,23 @@ public sealed class PacketDispatchChannel
         }
 
         Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
-        _loopTask = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
+
+        System.Threading.CancellationToken linkedToken = cancellationToken.CanBeCanceled
+                ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
+                : _cts.Token;
+
+        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            name: TaskNames.Workers.PacketDispatch,
+            group: TaskNames.Groups.Dispatch,
+            work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
+            options: new WorkerOptions
+            {
+                CancellationToken = linkedToken,
+                Retention = System.TimeSpan.Zero,
+                Tag = "dispatch"
+            });
     }
 
     /// <summary>
@@ -114,13 +133,6 @@ public sealed class PacketDispatchChannel
             }
 
             try { _ = _semaphore.Release(); } catch { /* ignore over-release */ }
-
-            System.Threading.Tasks.Task? t = _loopTask;
-            if (t is not null)
-            {
-                try { _ = t.Wait(System.TimeSpan.FromSeconds(2), cancellationToken); }
-                catch { /* ignore */ }
-            }
         }
         catch (System.ObjectDisposedException)
         {
@@ -192,12 +204,13 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
-    private async System.Threading.Tasks.Task RunDispatchLoopAsync()
+    private async System.Threading.Tasks.Task RunLoop(
+        IWorkerContext ctx,
+        System.Threading.CancellationToken ct)
     {
         try
         {
-            while (System.Threading.Volatile.Read(ref _running) == 1 &&
-                  !_cts.Token.IsCancellationRequested)
+            while (System.Threading.Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 // Wait for packets to be available
                 await this._semaphore.WaitAsync(this._cts.Token).ConfigureAwait(false);
@@ -210,6 +223,9 @@ public sealed class PacketDispatchChannel
                 }
 
                 await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+
+                ctx.AddProgress(1);
+                ctx.Heartbeat();
             }
         }
         catch (System.OperationCanceledException)
