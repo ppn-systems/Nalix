@@ -14,9 +14,20 @@ namespace Notio.Logging;
 /// </summary>
 public static class DLoggingExtensions
 {
+    /// <summary>
+    /// The global logging publisher used for distributing log messages to various targets.
+    /// </summary>
     public static readonly ILoggingPublisher Publisher;
+
+    /// <summary>
+    /// Gets or sets the minimum logging level. Messages below this level will not be logged.
+    /// </summary>
     public static LoggingLevel MinimumLevel { get; set; } = LoggingLevel.Trace;
 
+    /// <summary>
+    /// Initializes static members of the <see cref="DLoggingExtensions"/> class.
+    /// Configures the logging system with default targets and settings.
+    /// </summary>
     static DLoggingExtensions()
     {
         FileLoggerOptions fileLoggerOpts = new()
@@ -28,6 +39,10 @@ public static class DLoggingExtensions
         };
 
         Publisher = new LoggingPublisher().AddTarget(new FileLoggingTarget(fileLoggerOpts));
+
+#if DEBUG
+        Publisher.AddTarget(new ConsoleLoggingTarget());
+#endif
     }
 
     /// <summary>

@@ -28,8 +28,14 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// If a handler is registered for the packet's command ID, it will be invoked.
     /// If no handler is found, a warning is logged. Errors occurring during execution are also logged.
     /// </remarks>
-    public void HandlePacket(byte[] packet, IConnection connection)
+    public void HandlePacket(byte[]? packet, IConnection connection)
     {
+        if (packet == null)
+        {
+            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            return;
+        }
+
         if (Options.DeserializationMethod == null)
         {
             Options.Logger?.Error("No deserialization method specified.");
@@ -37,6 +43,25 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
         }
 
         IPacket parsedPacket = Options.DeserializationMethod(packet);
+
+        this.HandlePacket(parsedPacket, connection);
+    }
+
+    public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
+    {
+        if (packet == null)
+        {
+            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            return;
+        }
+
+        if (Options.DeserializationMethod == null)
+        {
+            Options.Logger?.Error("No deserialization method specified.");
+            return;
+        }
+
+        IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
 
         this.HandlePacket(parsedPacket, connection);
     }
@@ -50,8 +75,14 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// If a handler is registered for the packet's command ID, it will be invoked.
     /// If no handler is found, a warning is logged. Errors occurring during execution are also logged.
     /// </remarks>
-    public void HandlePacket(IPacket packet, IConnection connection)
+    public void HandlePacket(IPacket? packet, IConnection connection)
     {
+        if (packet == null)
+        {
+            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            return;
+        }
+
         ushort commandId = packet.Command;
 
         if (Options.PacketHandlers.TryGetValue(commandId, out Func<IPacket, IConnection, Task>? handlerAction))

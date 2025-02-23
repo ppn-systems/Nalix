@@ -65,7 +65,7 @@ public sealed class PacketDispatcherOptions
     private Action<string, long>? MetricsCallback { get; set; }
 
     /// <summary>
-    /// A function that serializes an <see cref="IPacket"/> into a <see cref="Memory{Byte}"/>.
+    /// A function that serializes an <see cref="IPacket"/> into a <see cref="ReadOnlyMemory{Byte}"/>.
     /// </summary>
     /// <remarks>
     /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
@@ -80,7 +80,7 @@ public sealed class PacketDispatcherOptions
     /// This function is responsible for converting the byte array received over the network or from storage
     /// back into an <see cref="IPacket"/> object for further processing.
     /// </remarks>
-    internal Func<Memory<byte>, IPacket>? DeserializationMethod;
+    internal Func<ReadOnlyMemory<byte>, IPacket>? DeserializationMethod;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherOptions"/> class.
@@ -425,7 +425,7 @@ public sealed class PacketDispatcherOptions
     public PacketDispatcherOptions WithPacketSerialization
     (
         Func<IPacket, Memory<byte>>? serializationMethod,
-        Func<Memory<byte>, IPacket>? deserializationMethod
+        Func<ReadOnlyMemory<byte>, IPacket>? deserializationMethod
     )
     {
         if (serializationMethod is not null) SerializationMethod = serializationMethod;

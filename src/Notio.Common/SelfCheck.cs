@@ -18,6 +18,7 @@ public static class SelfCheck
     /// <paramref name="message"/>, preceded by an indication of the assembly, source file,
     /// and line number of the failed check.</para>
     /// </summary>
+    /// <param name="callerMethod">The name of the method where this failure occurs.</param>
     /// <param name="message">The exception message.</param>
     /// <param name="filePath">The path of the source file where this method is called.
     /// This parameter is automatically added by the compiler and should never be provided explicitly.</param>
