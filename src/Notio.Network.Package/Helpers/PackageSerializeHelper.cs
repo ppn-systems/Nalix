@@ -1,4 +1,5 @@
 using Notio.Common.Exceptions;
+using Notio.Common.Package;
 using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
@@ -23,7 +24,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="packet">The packet to verify.</param>
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
-    public static bool IsValidChecksum(in Packet packet)
+    public static bool IsValidChecksum(in IPacket packet)
         => packet.Checksum == Crc32.HashToUInt32(packet.Payload.Span);
 
     /// <summary>
@@ -40,7 +41,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="packet">The packet to serialize.</param>
     /// <returns>The serialized byte array representing the packet.</returns>
-    public static byte[] Serialize(in Packet packet)
+    public static byte[] Serialize(in IPacket packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -73,7 +74,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlySpan<byte> data)
+    public static IPacket Deserialize(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException("Invalid data length: smaller than header size.");
@@ -90,7 +91,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="data">The ReadOnlyMemory to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlyMemory<byte> data)
+    public static IPacket Deserialize(ReadOnlyMemory<byte> data)
         => Deserialize(data.Span);
 
     /// <summary>
@@ -98,7 +99,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(byte[] data)
+    public static IPacket Deserialize(byte[] data)
         => Deserialize((ReadOnlySpan<byte>)data);
 
     /// <summary>
@@ -108,7 +109,7 @@ public static class PackageSerializeHelper
     /// <param name="destination">The destination span to hold the serialized packet.</param>
     /// <param name="bytesWritten">The number of bytes written to the destination span.</param>
     /// <returns>Returns true if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(in Packet packet, Span<byte> destination, out int bytesWritten)
+    public static bool TrySerialize(in IPacket packet, Span<byte> destination, out int bytesWritten)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -137,7 +138,7 @@ public static class PackageSerializeHelper
     /// <param name="source">The source span to deserialize.</param>
     /// <param name="packet">When this method returns, contains the deserialized packet if the operation was successful; otherwise, the default packet value.</param>
     /// <returns>Returns true if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(ReadOnlySpan<byte> source, out Packet packet)
+    public static bool TryDeserialize(ReadOnlySpan<byte> source, out IPacket packet)
     {
         packet = default;
 
@@ -164,7 +165,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="packet">The packet to convert.</param>
     /// <returns>A string representation of the packet.</returns>
-    public static string ToReadableString(in Packet packet)
+    public static string ToReadableString(in IPacket packet)
         => $"Type: {packet.Type}, " +
            $"Flags: {packet.Flags}, " +
            $"Priority: {packet.Priority}, " +
