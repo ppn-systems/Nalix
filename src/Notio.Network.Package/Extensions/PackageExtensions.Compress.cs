@@ -1,10 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Network.Package.Enums;
-using Notio.Network.Package.Utilities;
-using Notio.Network.Package.Utilities.Data;
-using System;
-using System.IO;
+using Notio.Network.Package.Helpers;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Extensions;
@@ -16,54 +12,17 @@ public static partial class PackageExtensions
 {
     /// <summary>
     /// Compresses the payload of the packet using the specified compression algorithm.
-    /// (Nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet CompressPayload(this in Packet packet)
-    {
-        PacketVerifier.ValidateCompressionEligibility(packet);
-
-        try
-        {
-            byte[] compressedData = DataCompression.Compress(packet.Payload);
-
-            return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, compressedData);
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-        {
-            throw new PackageException("Error occurred during payload compression.", ex);
-        }
-    }
+        => PacketCompressionHelper.CompressPayload(packet);
 
     /// <summary>
     /// Decompresses the payload of the packet using the specified compression algorithm.
-    /// (Giải nén payload của packet bằng thuật toán chỉ định.)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet DecompressPayload(this in Packet packet)
-    {
-        PacketVerifier.ValidateCompressionEligibility(packet);
-
-        if (!packet.Flags.HasFlag(PacketFlags.IsCompressed))
-            throw new PackageException("Payload is not marked as compressed.");
-
-        try
-        {
-            byte[] decompressedData = DataCompression.Decompress(packet.Payload);
-
-            return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decompressedData);
-        }
-        catch (InvalidDataException ex)
-        {
-            throw new PackageException("Invalid compressed data.", ex);
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
-        {
-            throw new PackageException("Error occurred during payload decompression.", ex);
-        }
-    }
+        => PacketCompressionHelper.DecompressPayload(packet);
 
     /// <summary>
     /// Tries to compress the payload of the packet.
