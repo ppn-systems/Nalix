@@ -1,5 +1,4 @@
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
 using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
@@ -165,7 +164,7 @@ public static class PackageSerializeHelper
     /// </summary>
     /// <param name="packet">The packet to convert.</param>
     /// <returns>A string representation of the packet.</returns>
-    public static string ToReadableString(in IPacket packet)
+    public static string ToReadableString(in Packet packet)
         => $"Type: {packet.Type}, " +
            $"Flags: {packet.Flags}, " +
            $"Priority: {packet.Priority}, " +

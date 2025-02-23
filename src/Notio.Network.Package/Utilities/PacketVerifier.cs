@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
@@ -22,20 +22,6 @@ public static class PacketVerifier
     public static bool IsValidPacket(IPacket packet)
         => packet.Payload.Length <= ushort.MaxValue &&
                packet.Payload.Length + PacketSize.Header <= ushort.MaxValue;
-
-    /// <summary>
-    /// Validates the IPacket for compression by ensuring that the payload is not empty and is not encrypted.
-    /// </summary>
-    /// <param name="packet">The IPacket to be validated for compression.</param>
-    /// <exception cref="PackageException">Thrown if the payload is empty or encrypted.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ValidateCompressionEligibility(IPacket packet)
-    {
-        if (packet.Payload.IsEmpty)
-            throw new PackageException("Cannot compress an empty payload.");
-        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
-            throw new PackageException("Payload is encrypted and cannot be compressed.");
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
