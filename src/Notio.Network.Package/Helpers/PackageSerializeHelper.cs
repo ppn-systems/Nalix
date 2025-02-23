@@ -137,7 +137,7 @@ public static class PackageSerializeHelper
     /// <param name="source">The source span to deserialize.</param>
     /// <param name="packet">When this method returns, contains the deserialized packet if the operation was successful; otherwise, the default packet value.</param>
     /// <returns>Returns true if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(ReadOnlySpan<byte> source, out Packet packet)
+    public static bool TryDeserialize(ReadOnlySpan<byte> source, out Packet? packet)
     {
         packet = default;
 
