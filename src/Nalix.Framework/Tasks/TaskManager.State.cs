@@ -45,6 +45,9 @@ public partial class TaskManager
 
         public System.DateTimeOffset? LastHeartbeatUtc { get; private set; }
 
+        // Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo Retention
+        internal System.DateTimeOffset? CompletedUtc { get; private set; }
+
         #endregion Properties
 
         #region Computed Properties
@@ -56,15 +59,28 @@ public partial class TaskManager
             IsRunning = true;
             StartedUtc = System.DateTimeOffset.UtcNow;
             LastHeartbeatUtc = StartedUtc;
+            CompletedUtc = null;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void MarkStop() => IsRunning = false;
+        public void MarkStop()
+        {
+            IsRunning = false;
+            TotalRuns++;
+            CompletedUtc = System.DateTimeOffset.UtcNow;
+            LastHeartbeatUtc = CompletedUtc;
+        }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void MarkError(System.Exception _) => IsRunning = false; // could store last error detail if needed
+        public void MarkError(System.Exception _)
+        {
+            IsRunning = false;
+            TotalRuns++;
+            CompletedUtc = System.DateTimeOffset.UtcNow;
+            // có thể lưu chi tiết lỗi sau nếu cần
+        }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
