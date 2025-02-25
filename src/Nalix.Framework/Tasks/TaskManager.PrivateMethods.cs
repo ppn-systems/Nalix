@@ -3,6 +3,7 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Randomization;
+using System.Linq;
 
 namespace Nalix.Framework.Tasks;
 
@@ -242,13 +243,15 @@ public partial class TaskManager
         System.TimeSpan? keep = st.Options.Retention;
         if (keep is null || keep <= System.TimeSpan.Zero)
         {
-            // remove immediately + dispose CTS
             _ = _workers.TryRemove(st.Id, out _);
-            try
+            try { st.Cts.Dispose(); } catch { }
+            if (!_workers.Values.Any(w => System.String.Equals(w.Group, st.Group, System.StringComparison.Ordinal)))
             {
-                st.Cts.Dispose();
+                if (_groupGates.TryRemove(st.Group, out var g))
+                {
+                    try { g.SemaphoreSlim.Dispose(); } catch { }
+                }
             }
-            catch { }
 
             return;
         }
