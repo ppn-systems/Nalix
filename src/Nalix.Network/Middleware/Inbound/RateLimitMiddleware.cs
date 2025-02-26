@@ -11,14 +11,14 @@ using Nalix.Network.Dispatch;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Middleware.Outbound;
+namespace Nalix.Network.Middleware.Inbound;
 
 /// <summary>
 /// Middleware that enforces rate limiting for incoming packets.
 /// If a connection exceeds the allowed request rate, a rate limit response is sent
 /// and further processing is halted.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Outbound, order: 0, name: "RateLimit")]
+[PacketMiddleware(MiddlewareStage.Inbound, order: 0, name: "RateLimit")]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly TokenBucketLimiter _limiter;
