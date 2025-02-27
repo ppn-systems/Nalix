@@ -22,7 +22,7 @@ public abstract partial class UdpListenerBase
         System.Threading.CancellationToken cancellationToken)
     {
         System.ArgumentNullException.ThrowIfNull(_udpClient);
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
 
         while (!cancellationToken.IsCancellationRequested)
         {

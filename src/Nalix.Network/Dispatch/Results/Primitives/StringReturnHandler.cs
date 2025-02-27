@@ -42,8 +42,29 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                     {
                         c.Initialize(pkt, data);
                         System.Byte[] buffer = c.Serialize(pkt);
-                        _ = await context.Connection.TCP.SendAsync(buffer)
-                                                        .ConfigureAwait(false);
+
+                        if (context?.Connection?.TCP == null)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[{nameof(StringReturnHandler<>)}] connection or TCP transport is null");
+                            return;
+                        }
+
+                        try
+                        {
+                            System.Boolean sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
+                            if (!sent)
+                            {
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                        .Warn($"[{nameof(StringReturnHandler<>)}] send failed for single packet");
+                            }
+                        }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Error($"[{nameof(StringReturnHandler<>)}] error sending single packet", ex);
+                        }
+
                         return;
                     }
                     finally
@@ -54,6 +75,13 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             }
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
+            if (context?.Connection?.TCP == null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(StringReturnHandler<>)}] connection or TCP transport is null for chunked send");
+                return;
+            }
+
             Candidate max = UTF8_STRING.Candidates[^1];
             foreach (System.String part in UTF8_STRING.Split(data, max.MaxBytes))
             {
@@ -62,8 +90,21 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                 {
                     max.Initialize(pkt, part);
                     System.Byte[] buffer = max.Serialize(pkt);
-                    _ = await context.Connection.TCP.SendAsync(buffer)
-                                                    .ConfigureAwait(false);
+
+                    try
+                    {
+                        System.Boolean sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
+                        if (!sent)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send failed for chunk");
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error($"[{nameof(StringReturnHandler<>)}] error sending chunk", ex);
+                    }
                 }
                 finally
                 {

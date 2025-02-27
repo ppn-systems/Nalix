@@ -30,7 +30,7 @@ public abstract partial class UdpListenerBase : IListener
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
 
         if (this._isRunning)
         {
@@ -134,7 +134,7 @@ public abstract partial class UdpListenerBase : IListener
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
 
         this._cts?.Cancel();
 

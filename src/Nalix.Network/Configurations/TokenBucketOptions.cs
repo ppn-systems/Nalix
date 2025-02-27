@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Configuration.Binding;
+using System.ComponentModel.DataAnnotations;
 
 namespace Nalix.Network.Configurations;
 
@@ -22,6 +23,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Determines the maximum burst size allowed.
     /// Default is 12.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "CapacityTokens must be positive")]
     public System.Int32 CapacityTokens { get; set; } = 12;
 
     /// <summary>
@@ -32,6 +34,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Controls the sustained throughput rate.
     /// Default is 6.0 tokens per second.
     /// </remarks>
+    [Range(0.001, System.Double.MaxValue, ErrorMessage = "RefillTokensPerSecond must be positive")]
     public System.Double RefillTokensPerSecond { get; set; } = 6.0;
 
     /// <summary>
@@ -42,6 +45,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Use this to enforce stricter penalties on abusive clients.
     /// Default is 0 (disabled).
     /// </remarks>
+    [Range(0, System.Int32.MaxValue, ErrorMessage = "HardLockoutSeconds cannot be negative")]
     public System.Int32 HardLockoutSeconds { get; set; } = 30;
 
     /// <summary>
@@ -51,6 +55,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// <remarks>
     /// Default is 300 seconds (5 minutes).
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "StaleEntrySeconds must be positive")]
     public System.Int32 StaleEntrySeconds { get; set; } = 300;
 
     /// <summary>
@@ -60,6 +65,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 60 seconds (1 minute).
     /// Controls how often stale entries are removed.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "CleanupIntervalSeconds must be positive")]
     public System.Int32 CleanupIntervalSeconds { get; set; } = 60;
 
     /// <summary>
@@ -70,6 +76,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 1,000.
     /// Higher values improve precision but may add overhead.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "TokenScale must be positive")]
     public System.Int32 TokenScale { get; set; } = 1_000;
 
     /// <summary>
@@ -80,6 +87,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Sharding reduces contention on hot paths by distributing state.
     /// Default is 32.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "ShardCount must be positive")]
     public System.Int32 ShardCount { get; set; } = 32;
 
     /// <summary>
@@ -89,6 +97,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Determines the period during which soft violations are counted before escalation.
     /// Default is 5 seconds.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "SoftViolationWindowSeconds must be positive")]
     public System.Int32 SoftViolationWindowSeconds { get; set; } = 5;
 
     /// <summary>
@@ -99,6 +108,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// stricter rate limiting or penalties may be applied.
     /// Default is 3.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "MaxSoftViolations must be positive")]
     public System.Int32 MaxSoftViolations { get; set; } = 3;
 
     /// <summary>
@@ -108,6 +118,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// After a hard or soft violation, this value determines how long before the violation count or lockout state is reset.
     /// Default is 10 seconds.
     /// </remarks>
+    [Range(1, System.Int32.MaxValue, ErrorMessage = "CooldownResetSec must be positive")]
     public System.Int32 CooldownResetSec { get; set; } = 10;
 
     /// <summary>
@@ -119,5 +130,18 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// A value of 0 means no limit (not recommended for production).
     /// Default is 10,000 endpoints.
     /// </remarks>
+    [Range(0, System.Int32.MaxValue, ErrorMessage = "MaxTrackedEndpoints cannot be negative")]
     public System.Int32 MaxTrackedEndpoints { get; set; } = 10_000;
+
+    /// <summary>
+    /// Validates the configuration options and throws an exception if validation fails.
+    /// </summary>
+    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// Thrown when one or more validation attributes fail.
+    /// </exception>
+    public void Validate()
+    {
+        var context = new ValidationContext(this);
+        Validator.ValidateObject(this, context, validateAllProperties: true);
+    }
 }

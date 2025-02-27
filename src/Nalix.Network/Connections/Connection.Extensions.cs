@@ -80,7 +80,22 @@ public static class ConnectionExtensions
             }
             else
             {
-                _ = await connection.TCP.SendAsync(pkt.Serialize()).ConfigureAwait(false);
+                try
+                {
+                    System.Boolean sent = await connection.TCP.SendAsync(pkt.Serialize()).ConfigureAwait(false);
+                    if (!sent)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
+                                                      $"type={controlType} reason={reason} action={action} seq={sequenceId}");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
+                                                   $"type={controlType} reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
+                }
             }
         }
         finally
