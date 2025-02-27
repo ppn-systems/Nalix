@@ -46,15 +46,7 @@ public static class ConnectionExtensions
 
         try
         {
-            pkt.Initialize(
-                controlType,
-                reason,
-                action,
-                sequenceId: sequenceId,
-                flags: flags,
-                arg0: arg0,
-                arg1: arg1,
-                arg2: arg2);
+            pkt.Initialize(controlType, reason, action, sequenceId: sequenceId, flags: flags, arg0: arg0, arg1: arg1, arg2: arg2);
 
             System.Int32 len = pkt.Length;
 
