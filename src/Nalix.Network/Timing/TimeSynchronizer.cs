@@ -127,7 +127,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     public TimeSynchronizer()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[NW.{nameof(TimeSynchronizer)}] init");
+                                .Debug($"[NW.{nameof(TimeSynchronizer)}] init");
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         }
 
         System.Threading.Volatile.Write(ref _enabled, 1);
-        StartLoopIfNeeded();
+        InitializeSyncLoop();
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         }
 
         System.Threading.Volatile.Write(ref _enabled, 0);
-        StopLoop();
+        TerminateSyncLoop();
     }
 
     /// <summary>Starts or restarts the loop to apply new settings.</summary>
@@ -172,14 +172,14 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             return;
         }
 
-        StopLoop();
-        StartLoopIfNeeded();
+        TerminateSyncLoop();
+        InitializeSyncLoop();
     }
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void StartLoopIfNeeded()
+    private void InitializeSyncLoop()
     {
         if (System.Threading.Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
         {
@@ -205,7 +205,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             {
                 try
                 {
-                    using var timer = new System.Threading.PeriodicTimer(_period);
+                    using System.Threading.PeriodicTimer timer = new(_period);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Info($"[{nameof(TimeSynchronizer)}:Internal] start period={_period.TotalMilliseconds:0.#}ms");
 
@@ -222,16 +222,19 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                         }
 
                         System.Int64 t0 = Clock.UnixMillisecondsNow();
+                        System.Action<System.Int64> handler = TimeSynchronized;
 
-                        var handler = TimeSynchronized;
                         if (handler is not null)
                         {
                             if (_fireAndForget)
                             {
                                 _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
                                 {
-                                    var (h, ts) = ((System.Action<System.Int64>, System.Int64))state!;
-                                    try { h(ts); }
+                                    (System.Action<System.Int64> h, System.Int64 ts) = ((System.Action<System.Int64>, System.Int64))state!;
+                                    try
+                                    {
+                                        h(ts);
+                                    }
                                     catch (System.Exception ex)
                                     {
                                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -241,7 +244,10 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                             }
                             else
                             {
-                                try { handler(t0); }
+                                try
+                                {
+                                    handler(t0);
+                                }
                                 catch (System.Exception ex)
                                 {
                                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -289,7 +295,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void StopLoop()
+    private void TerminateSyncLoop()
     {
         if (System.Threading.Interlocked.Exchange(ref _isRunning, 0) == 0)
         {
