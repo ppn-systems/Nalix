@@ -196,7 +196,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(System.ReadOnlySpan<System.Byte> id)
-        => this._connections.TryGetValue(Identifier.Deserialize(id), out IConnection? connection) ? connection : null;
+        => this._connections.TryGetValue(Identifier.FromBytes(id), out IConnection? connection) ? connection : null;
 
     /// <summary>
     /// Retrieves a connection by its associated username.

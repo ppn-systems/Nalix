@@ -83,7 +83,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
                 System.MemoryExtensions.AsMemory(buffer, 0, length - 2),
                 cancellationToken).ConfigureAwait(false);
 
-            // Deserialize from buffer
+            // FromBytes from buffer
             return (TPacket)(_catalog.TryDeserialize(
                 System.MemoryExtensions.AsSpan(buffer, 0, length - 2), out IPacket packet)
                 ? packet : throw new System.InvalidOperationException("Failed to deserialize packet."));

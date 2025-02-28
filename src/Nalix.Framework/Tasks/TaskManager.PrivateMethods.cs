@@ -245,7 +245,7 @@ public partial class TaskManager
             _ = _workers.TryRemove(st.Id, out _);
             try { st.Cts.Dispose(); } catch { }
 
-            bool hasSameGroup = false;
+            System.Boolean hasSameGroup = false;
             foreach (var kv in _workers)
             {
                 WorkerState other = kv.Value;

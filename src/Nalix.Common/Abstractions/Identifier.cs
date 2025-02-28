@@ -60,5 +60,5 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <see langword="true"/> if the identifier was successfully serialized;  
     /// otherwise, <see langword="false"/> if the destination is too small.
     /// </returns>
-    System.Boolean TrySerialize(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
+    System.Boolean TryFormat(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
 }
