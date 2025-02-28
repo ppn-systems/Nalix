@@ -12,8 +12,6 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class ChaCha20 : IDisposable
 {
-
-
     private const int StateLength = 16;
 
     /// <summary>
