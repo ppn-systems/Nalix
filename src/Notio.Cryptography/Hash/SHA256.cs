@@ -296,25 +296,14 @@ public sealed class Sha256 : IDisposable
     private void ProcessBlock(ReadOnlySpan<byte> block)
     {
         if (AdvSimd.IsSupported)
-        {
             ProcessBlockArm(block);
-        }
         else if (Avx512F.IsSupported && Avx512BW.IsSupported)
-        {
             ProcessBlockAvx512(block);
-        }
         else if (Avx2.IsSupported)
-        {
             ProcessBlockAvx2(block);
-        }
         else if (Ssse3.IsSupported)
-        {
             ProcessBlockIntrinsic(block);
-        }
-        else
-        {
-            ProcessBlockScalar(block);
-        }
+        else ProcessBlockScalar(block);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

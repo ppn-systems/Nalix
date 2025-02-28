@@ -1,53 +1,18 @@
+// Last updated: 2025-02-28 14:48:30 by phcnguyen
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Notio.Cryptography.Integrity;
 
 /// <summary>
-/// A CRC 8 Utility using x^8 + x^7 + x^6 + x^4 + x^2 + 1
+/// A high-performance CRC-8 implementation using polynomial x^8 + x^7 + x^6 + x^4 + x^2 + 1
 /// </summary>
 public static class Crc8
 {
-    /// <summary>
-    /// Computes the CRC 8 checksum of the specified bytes
-    /// </summary>
-    /// <param name="bytes">The buffer to compute the CRC upon</param>
-    /// <returns>The specified CRC</returns>
-    public static byte HashToByte(params byte[] bytes)
-        => HashToByte(bytes, 0, bytes?.Length ?? 0);
-
-    /// <summary>
-    /// Computes the CRC 8 of the specified byte range
-    /// </summary>
-    /// <param name="bytes">The buffer to compute the CRC upon</param>
-    /// <param name="start">The start index upon which to compute the CRC</param>
-    /// <param name="length">The length of the buffer upon which to compute the CRC</param>
-    /// <returns>The specified CRC</returns>
-    private static byte HashToByte(byte[] bytes, int start, int length)
-    {
-        ArgumentNullException.ThrowIfNull(bytes);
-        ArgumentOutOfRangeException.ThrowIfNegative(start);
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-
-        byte crc = 0xFF;
-        int end = start + length - 1;
-
-        if (bytes.Length == 0)
-            throw new ArgumentOutOfRangeException(nameof(bytes));
-
-        if (start >= bytes.Length && length > 1)
-            throw new ArgumentOutOfRangeException(nameof(start));
-
-        if (end > bytes.Length)
-            throw new ArgumentOutOfRangeException(nameof(length));
-
-        for (int i = start; i <= end; ++i)
-            crc = Table[crc ^ bytes[i]];
-
-        return crc;
-    }
-
+    // Pre-computed lookup table for faster CRC calculation
     private static readonly byte[] Table = [
-       0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29,
+        0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29,
         0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D, 0x52, 0x87,
         0x2D, 0xF8, 0xAC, 0x79, 0xD3, 0x06, 0x7B, 0xAE, 0x04,
         0xD1, 0x85, 0x50, 0xFA, 0x2F, 0xA4, 0x71, 0xDB, 0x0E,
@@ -76,5 +41,132 @@ public static class Crc8
         0x80, 0x55, 0x01, 0xD4, 0x7E, 0xAB, 0x84, 0x51, 0xFB,
         0x2E, 0x7A, 0xAF, 0x05, 0xD0, 0xAD, 0x78, 0xD2, 0x07,
         0x53, 0x86, 0x2C, 0xF9
-   ];
+    ];
+
+    /// <summary>
+    /// Computes the CRC-8 checksum of the specified bytes
+    /// </summary>
+    /// <param name="bytes">The buffer to compute the CRC upon</param>
+    /// <returns>The specified CRC</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte HashToByte(params byte[] bytes)
+    {
+        if (bytes == null || bytes.Length == 0)
+            throw new ArgumentException("Bytes array cannot be null or empty", nameof(bytes));
+
+        return HashToByte(bytes.AsSpan());
+    }
+
+    /// <summary>
+    /// Computes the CRC-8 checksum of the specified bytes
+    /// </summary>
+    /// <param name="bytes">The buffer to compute the CRC upon</param>
+    /// <returns>The specified CRC</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte HashToByte(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.IsEmpty)
+            throw new ArgumentException("Bytes span cannot be empty", nameof(bytes));
+
+        byte crc = 0xFF;
+
+        // Process bytes in chunks when possible
+        if (bytes.Length >= 8)
+        {
+            int unalignedBytes = bytes.Length % 8;
+            int alignedLength = bytes.Length - unalignedBytes;
+
+            for (int i = 0; i < alignedLength; i += 8)
+            {
+                crc = ProcessOctet(crc, bytes.Slice(i, 8));
+            }
+
+            // Process remaining bytes
+            for (int i = alignedLength; i < bytes.Length; i++)
+            {
+                crc = Table[crc ^ bytes[i]];
+            }
+        }
+        else
+        {
+            // Process small arrays with simple loop
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                crc = Table[crc ^ bytes[i]];
+            }
+        }
+
+        return crc;
+    }
+
+    /// <summary>
+    /// Computes the CRC-8 of the specified byte range
+    /// </summary>
+    /// <param name="bytes">The buffer to compute the CRC upon</param>
+    /// <param name="start">The start index upon which to compute the CRC</param>
+    /// <param name="length">The length of the buffer upon which to compute the CRC</param>
+    /// <returns>The specified CRC</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte HashToByte(byte[] bytes, int start, int length)
+    {
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+        if (bytes.Length == 0)
+            throw new ArgumentOutOfRangeException(nameof(bytes), "Bytes array cannot be empty");
+
+        if (start >= bytes.Length && length > 1)
+            throw new ArgumentOutOfRangeException(nameof(start), "Start index is out of range");
+
+        int end = start + length;
+        if (end > bytes.Length)
+            throw new ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds");
+
+        return HashToByte(bytes.AsSpan(start, length));
+    }
+
+    /// <summary>
+    /// Process 8 bytes at a time for better performance on larger inputs
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static byte ProcessOctet(byte crc, ReadOnlySpan<byte> octet)
+    {
+        // Process 8 bytes at once for better CPU cache utilization
+        crc = Table[crc ^ octet[0]];
+        crc = Table[crc ^ octet[1]];
+        crc = Table[crc ^ octet[2]];
+        crc = Table[crc ^ octet[3]];
+        crc = Table[crc ^ octet[4]];
+        crc = Table[crc ^ octet[5]];
+        crc = Table[crc ^ octet[6]];
+        crc = Table[crc ^ octet[7]];
+
+        return crc;
+    }
+
+    /// <summary>
+    /// Computes the CRC-8 of the specified memory
+    /// </summary>
+    /// <param name="data">The memory to compute the CRC upon</param>
+    /// <returns>The specified CRC</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe byte HashToByte<T>(Span<T> data) where T : unmanaged
+    {
+        if (data.IsEmpty)
+            throw new ArgumentException("Data span cannot be empty", nameof(data));
+
+        ReadOnlySpan<byte> bytes;
+        if (typeof(T) == typeof(byte))
+        {
+            bytes = MemoryMarshal.Cast<T, byte>(data);
+        }
+        else
+        {
+            // Handle non-byte spans by reinterpreting as bytes
+            bytes = MemoryMarshal.AsBytes(data);
+        }
+
+        return HashToByte(bytes);
+    }
 }
