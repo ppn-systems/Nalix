@@ -19,15 +19,15 @@ namespace Nalix.Network.Middleware.Inbound;
 /// and further processing is halted.
 /// </summary>
 [PacketMiddleware(MiddlewareStage.Inbound, order: 0, name: "RateLimit")]
-public class RateLimitMiddleware : IPacketMiddleware<IPacket>
+public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly TokenBucketLimiter _limiter;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
+    /// Initializes a new instance of the <see cref="TokenBucketMiddleware"/> class
     /// using rate limit options retrieved from the global configuration store.
     /// </summary>
-    public RateLimitMiddleware()
+    public TokenBucketMiddleware()
     {
         TokenBucketOptions option = ConfigurationManager.Instance.Get<TokenBucketOptions>();
         this._limiter = new TokenBucketLimiter(option);

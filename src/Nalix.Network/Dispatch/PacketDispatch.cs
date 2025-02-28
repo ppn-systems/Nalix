@@ -38,7 +38,7 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
 
     /// <inheritdoc />
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability", "CA2012:UsePre ValueTasks correctly", Justification = "<Pending>")]
+        "Reliability", "CA2012:UseInbound ValueTasks correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Runtime.CompilerServices.MethodImpl(
