@@ -121,7 +121,7 @@ public readonly struct Packet : IPacket
         if (payload.Length + PacketSize.Header > PacketConstants.MaxPacketSize)
             throw new PackageException("Packet size exceeds 64KB limit");
 
-        this.Timestamp = timestamp ?? PacketTimeUtils.GetMicrosecondTimestamp();
+        this.Timestamp = timestamp ?? TimeUtils.GetMicrosecondTimestamp();
         this.Id = id ?? (byte)(this.Timestamp % byte.MaxValue);
         this.Type = type;
         this.Flags = flags;
@@ -143,7 +143,7 @@ public readonly struct Packet : IPacket
     /// <param name="timeout">The timeout to compare against the packet's timestamp.</param>
     /// <returns>True if the packet has expired; otherwise, false.</returns>
     public readonly bool IsExpired(TimeSpan timeout) =>
-        (PacketTimeUtils.GetMicrosecondTimestamp() - Timestamp) > (ulong)timeout.TotalMilliseconds;
+        (TimeUtils.GetMicrosecondTimestamp() - Timestamp) > (ulong)timeout.TotalMilliseconds;
 
     /// <summary>
     /// Compares the current packet with another packet for equality.
@@ -227,5 +227,4 @@ public readonly struct Packet : IPacket
     /// <param name="right">The second <see cref="Packet"/> to compare.</param>
     /// <returns><c>true</c> if the two <see cref="Packet"/> objects are not equal; otherwise, <c>false</c>.</returns>
     public static bool operator !=(Packet left, Packet right) => !(left == right);
-
 }

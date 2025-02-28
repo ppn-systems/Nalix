@@ -12,7 +12,7 @@ namespace Notio.Logging;
 /// <summary>
 /// Provides a centralized logging interface for the Notio framework.
 /// </summary>
-public static class DLoggingExtensions
+public static class DLogging
 {
     /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.
@@ -25,10 +25,10 @@ public static class DLoggingExtensions
     public static LoggingLevel MinimumLevel { get; set; } = LoggingLevel.Trace;
 
     /// <summary>
-    /// Initializes static members of the <see cref="DLoggingExtensions"/> class.
+    /// Initializes static members of the <see cref="DLogging"/> class.
     /// Configures the logging system with default targets and settings.
     /// </summary>
-    static DLoggingExtensions()
+    static DLogging()
     {
         FileLoggerOptions fileLoggerOpts = new()
         {

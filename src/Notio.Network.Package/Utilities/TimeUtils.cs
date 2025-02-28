@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Utilities;
 
-internal static class PacketTimeUtils
+internal static class TimeUtils
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ulong GetMicrosecondTimestamp()
