@@ -26,6 +26,7 @@ public abstract class Listener : TcpListener, IListener
     private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
+    private readonly SemaphoreSlim _listenerLock = new(1, 1);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class with the specified port, protocol, buffer pool, and logger.
@@ -68,6 +69,7 @@ public abstract class Listener : TcpListener, IListener
     {
         Task.Run(async () =>
         {
+            await _listenerLock.WaitAsync(cancellationToken);
             try
             {
                 Start();
@@ -75,7 +77,6 @@ public abstract class Listener : TcpListener, IListener
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     IConnection connection = await CreateConnection(cancellationToken);
-
                     _protocol.OnAccept(connection);
                 }
             }
@@ -86,7 +87,7 @@ public abstract class Listener : TcpListener, IListener
             catch (SocketException ex)
             {
                 _logger.Error($"Could not start {_protocol} on port {_port}", ex);
-                Environment.Exit(1);
+                throw;
             }
             catch (Exception ex)
             {
@@ -96,6 +97,7 @@ public abstract class Listener : TcpListener, IListener
             finally
             {
                 Stop();
+                _listenerLock.Release();
             }
         }, cancellationToken);
     }
@@ -137,10 +139,13 @@ public abstract class Listener : TcpListener, IListener
     }
 
     /// <summary>
-    /// Configures the socket for high-performance operation.
+    /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
-    private static void ConfigureHighPerformanceSocket(Socket socket)
+    /// <remarks>
+    /// Keep-alive settings are only applied on Windows platforms.
+    /// </remarks>
+    private void ConfigureHighPerformanceSocket(Socket socket)
     {
         socket.LingerState = new LingerOption(false, NetworkConfig.LingerTimeoutSeconds); // No delay when closing
         socket.NoDelay = NetworkConfig.NoDelay;
@@ -154,6 +159,8 @@ public abstract class Listener : TcpListener, IListener
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             socket.IOControl(IOControlCode.KeepAliveValues, GetKeepAliveValues(), null);
+        else
+            _logger?.Warn("Keep-alive configuration is only supported on Windows.");
     }
 
     /// <summary>

@@ -19,11 +19,18 @@ public sealed class Connection : IConnection
 {
     private readonly Socket _socket;
     private readonly ILogger? _logger;
+    private readonly Lock _lock = new();
     private readonly ConnectionStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
     private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
 
-    private bool _disposed;
+    private EventHandler<IConnectEventArgs>? _onCloseEvent;
+    private EventHandler<IConnectEventArgs>? _onProcessEvent;
+    private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+
+    private bool _disposed = false;
+    private string? _remoteEndPoint;
+    private byte[] _encryptionKey = new byte[32];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
@@ -40,7 +47,7 @@ public sealed class Connection : IConnection
         {
             PacketCached = () =>
             {
-                OnProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+                _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
             }
         };
     }
@@ -49,63 +56,109 @@ public sealed class Connection : IConnection
     public string Id => _id.ToString(true);
 
     /// <inheritdoc />
-    public byte[] EncryptionKey { get; set; } = [];
-
-    /// <inheritdoc />
-    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
-
-    /// <inheritdoc />
     public long PingTime => _cstream.LastPingTime;
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+    public byte[] EncryptionKey
+    {
+        get => _encryptionKey;
+        set
+        {
+            if (value is null || value.Length != 32)
+                throw new ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
 
-    /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnCloseEvent;
-
-    /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnProcessEvent;
-
-    /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
-
-    /// <inheritdoc />
-    public Authoritys Authority { get; set; } = Authoritys.Guests;
-
-    /// <inheritdoc />
-    public ConnectionState State { get; set; } = ConnectionState.Connected;
+            lock (_lock)
+            {
+                _encryptionKey = value;
+            }
+        }
+    }
 
     /// <inheritdoc />
     public string RemoteEndPoint
-        => _socket.Connected ? _socket.RemoteEndPoint?.ToString() ?? "0.0.0.0" : "Disconnected";
+    {
+        get
+        {
+            if (_remoteEndPoint == null && _socket.Connected)
+                _remoteEndPoint = _socket.RemoteEndPoint?.ToString() ?? "0.0.0.0";
+
+            return _remoteEndPoint ?? "Disconnected";
+        }
+    }
 
     /// <inheritdoc />
-    public ReadOnlyMemory<byte>? IncomingPacket
+    public ReadOnlyMemory<byte> IncomingPacket
     {
         get
         {
             if (_cstream.CacheIncoming.TryGetValue(out ReadOnlyMemory<byte> data))
                 return data;
-            return null;
+
+            return ReadOnlyMemory<byte>.Empty; // Avoid null
         }
     }
 
     /// <inheritdoc />
-    public void BeginReceive(CancellationToken cancellationToken = default)
-        => _cstream.BeginReceive(cancellationToken);
-
-    /// <inheritdoc />
-    public void Send(Memory<byte> message)
+    public event EventHandler<IConnectEventArgs>? OnCloseEvent
     {
-        if (_cstream.Send(message))
-            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+        add => _onCloseEvent += value;
+        remove => _onCloseEvent -= value;
     }
 
     /// <inheritdoc />
-    public async Task SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
+    public event EventHandler<IConnectEventArgs>? OnProcessEvent
     {
-        if (await _cstream.SendAsync(message, cancellationToken))
-            OnPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+        add => _onProcessEvent += value;
+        remove => _onProcessEvent -= value;
+    }
+
+    /// <inheritdoc />
+    public event EventHandler<IConnectEventArgs>? OnPostProcessEvent
+    {
+        add => _onPostProcessEvent += value;
+        remove => _onPostProcessEvent -= value;
+    }
+
+    /// <inheritdoc />
+    public Authoritys Authority { get; set; } = Authoritys.Guests;
+
+    /// <inheritdoc />
+    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
+
+    /// <inheritdoc />
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+
+    /// <inheritdoc />
+    public ConnectionState State { get; set; } = ConnectionState.Connected;
+
+    /// <inheritdoc />
+    public void BeginReceive(CancellationToken cancellationToken = default)
+    {
+        using CancellationTokenSource linkedCts = CancellationTokenSource
+            .CreateLinkedTokenSource(cancellationToken, _ctokens.Token);
+        _cstream.BeginReceive(linkedCts.Token);
+    }
+
+    /// <inheritdoc />
+    public bool Send(Memory<byte> message)
+    {
+        bool success = _cstream.Send(message);
+        if (success)
+            _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+        else
+            _logger?.Warn("Failed to send message.");
+        return success;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
+    {
+        bool success = await _cstream.SendAsync(message, cancellationToken);
+        if (success)
+            _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+        else
+            _logger?.Warn("Failed to send message asynchronously.");
+        return success;
     }
 
     /// <inheritdoc />
@@ -122,7 +175,7 @@ public sealed class Connection : IConnection
 
             _ctokens.Cancel();
             this.State = ConnectionState.Disconnected;
-            OnCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
         {
@@ -136,12 +189,15 @@ public sealed class Connection : IConnection
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+        }
 
         try
         {
-            Disconnect();
+            this.Disconnect();
         }
         catch (Exception ex)
         {

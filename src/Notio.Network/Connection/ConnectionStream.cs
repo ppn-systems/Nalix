@@ -35,12 +35,12 @@ internal class ConnectionStream : IDisposable
     /// <summary>
     /// Cache for outgoing packets.
     /// </summary>
-    private readonly BinaryCache _cacheOutgoing = new(20);
+    public readonly BinaryCache CacheOutgoing = new(20);
 
     /// <summary>
     /// Cache for incoming packets.
     /// </summary>
-    public readonly FifoCache<ReadOnlyMemory<byte>> CacheIncoming = new(20);
+    public readonly FifoCache<ReadOnlyMemory<byte>> CacheIncoming = new(40);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionStream"/> class.
@@ -100,7 +100,7 @@ internal class ConnectionStream : IDisposable
 
             _stream.Write(data.Span);
 
-            _cacheOutgoing.Add(data.Span[0..2].ToArray(), data);
+            CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
             return true;
         }
         catch (Exception ex)
@@ -124,7 +124,7 @@ internal class ConnectionStream : IDisposable
 
             await _stream.WriteAsync(data, cancellationToken);
 
-            _cacheOutgoing.Add(data.Span[0..2].ToArray(), data);
+            CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
             return true;
         }
         catch (Exception ex)
@@ -156,7 +156,10 @@ internal class ConnectionStream : IDisposable
             }
 
             if (size > _buffer.Length)
+            {
+                _bufferPool.Return(_buffer);
                 _buffer = _bufferPool.Rent(size);
+            }
 
             while (totalBytesRead < size)
             {
@@ -206,12 +209,11 @@ internal class ConnectionStream : IDisposable
         if (disposing)
         {
             _bufferPool.Return(_buffer);
-            _buffer = [];
             _stream.Dispose();
-        }
 
-        _cacheOutgoing.Clear();
-        CacheIncoming.Clear();
+            CacheOutgoing.Clear();
+            CacheIncoming.Clear();
+        }
 
         _disposed = true;
     }

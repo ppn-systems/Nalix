@@ -26,7 +26,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the incoming packet of data.
     /// </summary>
-    ReadOnlyMemory<byte>? IncomingPacket { get; }
+    ReadOnlyMemory<byte> IncomingPacket { get; }
 
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.
@@ -96,7 +96,7 @@ public interface IConnection : IDisposable
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    void Send(Memory<byte> message);
+    bool Send(Memory<byte> message);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
@@ -107,7 +107,7 @@ public interface IConnection : IDisposable
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task SendAsync(Memory<byte> message, CancellationToken cancellationToken = default);
+    Task<bool> SendAsync(Memory<byte> message, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.
