@@ -156,7 +156,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Byte[] Serialize()
+    public System.Byte[] Format()
     {
         System.Byte[] result = new System.Byte[7];
         _ = TryFormat(result, out _);
@@ -174,7 +174,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TryWriteBytes(
+    public System.Boolean TryFormat(
         System.Span<System.Char> destination, out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
