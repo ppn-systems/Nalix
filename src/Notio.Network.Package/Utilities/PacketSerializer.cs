@@ -5,38 +5,63 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Package.Utilities;
 
 /// <summary>
-/// Provides methods for serializing and deserializing packets.
+/// Provides high-performance methods for serializing and deserializing network packets.
 /// </summary>
 [SkipLocalsInit]
 public static class PacketSerializer
 {
+    // Pre-allocated buffers for stream operations
+    private static readonly ThreadLocal<byte[]> _threadLocalHeaderBuffer = new(() => new byte[PacketSize.Header], true);
+
     /// <summary>
     /// Writes a packet to a given buffer in a fast and efficient way.
     /// </summary>
     /// <param name="buffer">The buffer to write the packet data to.</param>
     /// <param name="packet">The packet to be written.</param>
-    /// <exception cref="PackageException">Thrown if the buffer size is too small or any other error occurs during writing.</exception>
+    /// <returns>The number of bytes written to the buffer.</returns>
+    /// <exception cref="PackageException">Thrown if the buffer size is too small for the packet.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void WritePacketFast(Span<byte> buffer, in Packet packet)
+    public static int WritePacketFast(Span<byte> buffer, in Packet packet)
     {
-        if (buffer.Length < (PacketSize.Header + packet.Payload.Length))
-            throw new PackageException("Buffer size is too small to write the packet.");
+        int totalSize = PacketSize.Header + packet.Payload.Length;
+
+        if (buffer.Length < totalSize)
+            throw new PackageException($"Buffer size ({buffer.Length}) is too small for packet size ({totalSize}).");
 
         try
         {
-            PacketHeader header = new(packet);
-            MemoryMarshal.Write(buffer, in header);
+            // Write the packet length first
+            MemoryMarshal.Write(buffer, in totalSize);
 
-            packet.Payload.Span.CopyTo(buffer[PacketSize.Header..]);
+            // Write the rest of the header fields
+            buffer[PacketOffset.Id] = packet.Id;
+            buffer[PacketOffset.Type] = packet.Type;
+            buffer[PacketOffset.Flags] = packet.Flags;
+            buffer[PacketOffset.Priority] = packet.Priority;
+
+            ushort command = packet.Command;
+            MemoryMarshal.Write(buffer[PacketOffset.Command..], in command);
+            ulong timestamp = packet.Timestamp;
+            MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
+            uint checksum = packet.Checksum;
+            MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
+            // Copy payload data
+            if (packet.Payload.Length > 0)
+            {
+                packet.Payload.Span.CopyTo(buffer[PacketSize.Header..]);
+            }
+
+            return totalSize;
         }
         catch (Exception ex) when (ex is not PackageException)
         {
-            throw new PackageException("An error occurred while writing the packet.", ex);
+            throw new PackageException("Failed to serialize packet", ex);
         }
     }
 
@@ -45,36 +70,63 @@ public static class PacketSerializer
     /// </summary>
     /// <param name="data">The data span to read the packet from.</param>
     /// <returns>The deserialized packet.</returns>
-    /// <exception cref="PackageException">Thrown if the data size is too small or any other error occurs during reading.</exception>
+    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
-            throw new PackageException("Data size is smaller than the minimum header size.");
+            throw new PackageException($"Data size ({data.Length}) is smaller than the minimum header size ({PacketSize.Header}).");
 
         try
         {
-            ref byte dataRef = ref MemoryMarshal.GetReference(data);
+            // Read packet length and validate
+            ushort length = MemoryMarshal.Read<ushort>(data);
 
-            ushort length = Unsafe.As<byte, ushort>(ref dataRef);
-            if (length < PacketSize.Header || length > data.Length)
-                throw new PackageException($"Invalid packet length: {length}. Must be between {PacketSize.Header} and {data.Length}.");
+            if (length < PacketSize.Header)
+                throw new PackageException($"Invalid packet length: {length}. Must be at least {PacketSize.Header}.");
 
-            byte id = Unsafe.Add(ref dataRef, PacketOffset.Id);
-            byte type = Unsafe.Add(ref dataRef, PacketOffset.Type);
-            byte flags = Unsafe.Add(ref dataRef, PacketOffset.Flags);
-            byte priority = Unsafe.Add(ref dataRef, PacketOffset.Priority);
-            ushort command = Unsafe.As<byte, ushort>(ref Unsafe.Add(ref dataRef, PacketOffset.Command));
-            ulong timestamp = Unsafe.As<byte, ulong>(ref Unsafe.Add(ref dataRef, PacketOffset.Timestamp));
-            uint checksum = Unsafe.As<byte, uint>(ref Unsafe.Add(ref dataRef, PacketOffset.Checksum));
+            if (length > data.Length)
+                throw new PackageException($"Packet length ({length}) exceeds available data ({data.Length}).");
 
-            Memory<byte> payload = data[PacketSize.Header..length].ToArray();
+            // Extract header fields more efficiently using direct span access
+            byte id = data[PacketOffset.Id];
+            byte type = data[PacketOffset.Type];
+            byte flags = data[PacketOffset.Flags];
+            byte priority = data[PacketOffset.Priority];
+
+            ushort command = MemoryMarshal.Read<ushort>(data[PacketOffset.Command..]);
+            ulong timestamp = MemoryMarshal.Read<ulong>(data[PacketOffset.Timestamp..]);
+            uint checksum = MemoryMarshal.Read<uint>(data[PacketOffset.Checksum..]);
+
+            // Create payload - optimize for zero-copy when possible
+            Memory<byte> payload;
+            int payloadLength = length - PacketSize.Header;
+
+            if (payloadLength > 0)
+            {
+                // Only allocate a new array if needed
+                if (data is { IsEmpty: false } && MemoryMarshal.TryGetArray(data[PacketSize.Header..length].ToArray(), out ArraySegment<byte> segment))
+                {
+                    payload = segment;
+                }
+                else
+                {
+                    // Fall back to copying the payload
+                    byte[] payloadArray = new byte[payloadLength];
+                    data.Slice(PacketSize.Header, payloadLength).CopyTo(payloadArray);
+                    payload = payloadArray;
+                }
+            }
+            else
+            {
+                payload = Memory<byte>.Empty;
+            }
 
             return new Packet(id, type, flags, priority, command, timestamp, checksum, payload);
         }
         catch (Exception ex) when (ex is not PackageException)
         {
-            throw new PackageException("An error occurred while reading the packet.", ex);
+            throw new PackageException("Failed to deserialize packet", ex);
         }
     }
 
@@ -83,37 +135,90 @@ public static class PacketSerializer
     /// </summary>
     /// <param name="buffer">The buffer to write the packet data to.</param>
     /// <param name="packet">The packet to be written.</param>
+    /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous write operation.</returns>
-    public static ValueTask WritePacketFastAsync(Memory<byte> buffer, Packet packet)
-        => new(Task.Run(() => WritePacketFast(buffer.Span, packet)));
+    public static ValueTask<int> WritePacketFastAsync(Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
+    {
+        // For small payloads, perform synchronously to avoid task overhead
+        if (packet.Payload.Length < 4096)
+        {
+            try
+            {
+                return new ValueTask<int>(WritePacketFast(buffer.Span, packet));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException && cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<int>(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                return ValueTask.FromException<int>(ex);
+            }
+        }
+
+        // For larger payloads, use Task to prevent blocking
+        return new ValueTask<int>(Task.Run(() => WritePacketFast(buffer.Span, packet), cancellationToken));
+    }
 
     /// <summary>
     /// Asynchronously reads a packet from a given memory data.
     /// </summary>
     /// <param name="data">The data to read the packet from.</param>
+    /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous read operation, returning the deserialized packet.</returns>
-    public static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data)
-        => new(Task.Run(() => ReadPacketFast(data.Span)));
+    public static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    {
+        // For small data, perform synchronously to avoid task overhead
+        if (data.Length < 4096)
+        {
+            try
+            {
+                return new ValueTask<Packet>(ReadPacketFast(data.Span));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException && cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<Packet>(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                return ValueTask.FromException<Packet>(ex);
+            }
+        }
+
+        // For larger data, use Task to prevent blocking
+        return new ValueTask<Packet>(Task.Run(() => ReadPacketFast(data.Span), cancellationToken));
+    }
 
     /// <summary>
     /// Asynchronously writes a packet to a stream.
     /// </summary>
     /// <param name="stream">The stream to write the packet to.</param>
     /// <param name="packet">The packet to be written.</param>
+    /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
-    public static async Task WriteToStreamAsync(Stream stream, Packet packet)
+    public static async ValueTask WriteToStreamAsync(Stream stream, Packet packet, CancellationToken cancellationToken = default)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(totalSize);
+
+        // For very large payloads, rent from the pool
+        byte[] buffer = totalSize <= 81920
+            ? ArrayPool<byte>.Shared.Rent(totalSize)
+            : new byte[totalSize]; // For extremely large packets, avoid exhausting the pool
 
         try
         {
-            WritePacketFast(buffer.AsSpan(0, totalSize), packet);
-            await stream.WriteAsync(buffer.AsMemory(0, totalSize));
+            int bytesWritten = WritePacketFast(buffer.AsSpan(0, totalSize), packet);
+
+            await stream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesWritten), cancellationToken);
+            await stream.FlushAsync(cancellationToken);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            if (totalSize <= 81920)
+            {
+                // Only return to pool if we rented from it
+                ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            }
         }
     }
 
@@ -121,34 +226,86 @@ public static class PacketSerializer
     /// Asynchronously reads a packet from a stream.
     /// </summary>
     /// <param name="stream">The stream to read the packet from.</param>
+    /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous read operation, returning the deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if any error occurs during reading from the stream.</exception>
-    public static async Task<Packet> ReadFromStreamAsync(Stream stream)
+    public static async ValueTask<Packet> ReadFromStreamAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        byte[] headerBuffer = ArrayPool<byte>.Shared.Rent(PacketSize.Header);
+        // Use thread-local buffer for the header to reduce allocations
+        byte[] headerBuffer = _threadLocalHeaderBuffer.Value!;
 
         try
         {
-            int bytesRead = await stream.ReadAsync(headerBuffer.AsMemory(0, PacketSize.Header));
+            // Read the packet header
+            int bytesRead = await stream.ReadAtLeastAsync(headerBuffer, PacketSize.Header, throwOnEndOfStream: true, cancellationToken);
+
             if (bytesRead < PacketSize.Header)
-                throw new PackageException("Failed to read the packet header.");
+                throw new PackageException($"Failed to read the packet header. Got {bytesRead} bytes instead of {PacketSize.Header}.");
 
+            // Read the packet length from the header
             ushort length = MemoryMarshal.Read<ushort>(headerBuffer);
+
             if (length < PacketSize.Header)
-                throw new PackageException($"Invalid packet length: {length}.");
+                throw new PackageException($"Invalid packet length: {length}. Must be at least {PacketSize.Header}.");
 
-            byte[] fullBuffer = ArrayPool<byte>.Shared.Rent(length);
-            Array.Copy(headerBuffer, fullBuffer, PacketSize.Header);
+            int payloadSize = length - PacketSize.Header;
 
-            bytesRead = await stream.ReadAsync(fullBuffer.AsMemory(PacketSize.Header, length - PacketSize.Header));
-            if (bytesRead < length - PacketSize.Header)
-                throw new PackageException("Failed to read the full packet.");
+            if (payloadSize <= 0)
+            {
+                // No payload, just return a packet constructed from the header
+                return ReadPacketFast(headerBuffer.AsSpan(0, PacketSize.Header));
+            }
 
-            return ReadPacketFast(fullBuffer.AsSpan(0, length));
+            // For payloads, optimize based on size
+            if (length <= 8192) // Use shared buffer pool for reasonably sized packets
+            {
+                byte[] fullBuffer = ArrayPool<byte>.Shared.Rent(length);
+                try
+                {
+                    // Copy header to the full buffer
+                    Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
+
+                    // Read the payload directly into the buffer
+                    bytesRead = await stream.ReadAtLeastAsync(
+                        fullBuffer.AsMemory(PacketSize.Header, payloadSize),
+                        payloadSize,
+                        throwOnEndOfStream: true,
+                        cancellationToken);
+
+                    if (bytesRead < payloadSize)
+                        throw new PackageException($"Failed to read the full packet payload. Got {bytesRead} bytes instead of {payloadSize}.");
+
+                    return ReadPacketFast(fullBuffer.AsSpan(0, length));
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(fullBuffer, clearArray: true);
+                }
+            }
+            else // For extremely large packets, avoid exhausting the pool
+            {
+                // Allocate a new buffer for the full packet
+                byte[] fullBuffer = new byte[length];
+
+                // Copy header to the full buffer
+                Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
+
+                // Read the payload directly into the buffer
+                bytesRead = await stream.ReadAtLeastAsync(
+                    fullBuffer.AsMemory(PacketSize.Header, payloadSize),
+                    payloadSize,
+                    throwOnEndOfStream: true,
+                    cancellationToken);
+
+                if (bytesRead < payloadSize)
+                    throw new PackageException($"Failed to read the full packet payload. Got {bytesRead} bytes instead of {payloadSize}.");
+
+                return ReadPacketFast(fullBuffer);
+            }
         }
-        finally
+        catch (Exception ex) when (ex is not PackageException and not OperationCanceledException)
         {
-            ArrayPool<byte>.Shared.Return(headerBuffer);
+            throw new PackageException("Failed to read packet from stream", ex);
         }
     }
 }
