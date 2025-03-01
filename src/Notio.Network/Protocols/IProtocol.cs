@@ -1,4 +1,5 @@
 using Notio.Common.Connection;
+using System;
 
 namespace Notio.Network.Protocols;
 
@@ -19,6 +20,7 @@ public interface IProtocol
     /// This method should implement the logic for initializing the connection and setting up data reception.
     /// </summary>
     /// <param name="connection">The connection to handle.</param>
+    /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
     void OnAccept(IConnection connection);
 
     /// <summary>
@@ -27,6 +29,7 @@ public interface IProtocol
     /// </summary>
     /// <param name="sender">The source of the event triggering the message processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(object sender, IConnectEventArgs args);
 
     /// <summary>
@@ -35,5 +38,6 @@ public interface IProtocol
     /// </summary>
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(object sender, IConnectEventArgs args);
 }
