@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Files.Internal;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
@@ -442,7 +442,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
          * It may have been just created, or it may or may not have a cached content,
          * depending upon the value of the ContentCaching property,
          * the size of the resource, and the value of the
-         * MaxFileSizeKb of our Cache.
+         * MaxFileSizeKb of our Caches.
          */
 
         // If the content type is not a valid MIME type, assume the default.

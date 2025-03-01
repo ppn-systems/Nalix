@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Notio.Network.Web.Files;
 
@@ -14,7 +14,7 @@ public static class FileModuleExtensions
     /// <typeparam name="TModule">The type of the module on which this method is called.</typeparam>
     /// <param name="this">The module on which this method is called.</param>
     /// <param name="value">An instance of <see cref="FileCache"/>.</param>
-    /// <returns><paramref name="this"/> with its <see cref="FileModule.Cache">Cache</see> property
+    /// <returns><paramref name="this"/> with its <see cref="FileModule.Cache">Caches</see> property
     /// set to <paramref name="value"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The configuration of <paramref name="this"/> is locked.</exception>

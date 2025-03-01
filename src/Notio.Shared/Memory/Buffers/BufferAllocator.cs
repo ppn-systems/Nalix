@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Shared.Memory.Buffer;
+namespace Notio.Shared.Memory.Buffers;
 
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation and deallocation.
@@ -27,7 +27,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly ConcurrentDictionary<int, int> _suitablePoolSizeCache = new();
 
-    // Cache allocation patterns for better performance
+    // Caches allocation patterns for better performance
     private static readonly ConcurrentDictionary<string, (int, double)[]> _allocationPatternCache = new();
 
     private bool _isInitialized;
@@ -58,7 +58,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         // Parse allocations just once and cache them
         _bufferAllocations = ParseBufferAllocations(config.BufferAllocations);
 
-        // Cache min/max sizes to avoid LINQ in hot paths
+        // Caches min/max sizes to avoid LINQ in hot paths
         _minBufferSize = _bufferAllocations.Min(alloc => alloc.BufferSize);
         _maxBufferSize = _bufferAllocations.Max(alloc => alloc.BufferSize);
 
@@ -225,7 +225,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
                         if (!int.TryParse(parts[0].Trim(), out int allocationSize) || allocationSize <= 0)
                         {
                             throw new ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), "Buffer allocation size must be greater than zero.");
+                                nameof(bufferAllocationsString), "Buffers allocation size must be greater than zero.");
                         }
 
                         if (!double.TryParse(parts[1].Trim(), out double ratio) || ratio <= 0 || ratio > 1)

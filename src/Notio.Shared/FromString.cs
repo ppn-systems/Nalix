@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
@@ -23,10 +23,10 @@ public static class FromString
             typeof(FromString).GetMethod(nameof(TryConvertToInternal), BindingFlags.Static | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException($"Method '{nameof(TryConvertToInternal)}' not found.");
 
-    // Cache for compiled lambdas for converting arrays.
+    // Caches for compiled lambdas for converting arrays.
     private static readonly ConcurrentDictionary<Type, Func<string[], (bool Success, object Result)>> GenericTryConvertToMethods = new();
 
-    // Cache for TypeConverters to avoid repeated calls to TypeDescriptor.GetConverter.
+    // Caches for TypeConverters to avoid repeated calls to TypeDescriptor.GetConverter.
     private static readonly ConcurrentDictionary<Type, TypeConverter> ConverterCache = new();
 
     /// <summary>

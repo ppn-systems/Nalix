@@ -2,10 +2,10 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Shared.Memory.Buffer;
+namespace Notio.Shared.Memory.Buffers;
 
 /// <summary>
-/// Information about the Buffer Pool with optimized memory layout.
+/// Information about the Buffers Pools with optimized memory layout.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct BufferInfo : IEquatable<BufferInfo>

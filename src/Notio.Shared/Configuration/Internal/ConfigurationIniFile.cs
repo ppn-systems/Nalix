@@ -28,7 +28,7 @@ internal sealed class ConfiguredIniFile
     private readonly string _path;
     private readonly Dictionary<string, Dictionary<string, string>> _iniData;
 
-    // Cache for frequently accessed values
+    // Caches for frequently accessed values
     private readonly Dictionary<string, object> _valueCache = new(StringComparer.OrdinalIgnoreCase);
 
     // Track if the file has been modified
@@ -333,7 +333,7 @@ internal sealed class ConfiguredIniFile
                 result = parsedValue;
             }
 
-            // Cache the result
+            // Caches the result
             _valueCache[cacheKey] = result;
         }
 

@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Shared.Memory.Cache;
+namespace Notio.Shared.Memory.Caches;
 
 /// <summary>
 /// Represents a binary cache that inherits from the Least Recently Used (LRU) cache.

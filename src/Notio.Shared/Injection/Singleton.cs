@@ -127,7 +127,7 @@ public static class Singleton
         // Normal resolution path
         TClass? instance = ResolveInternal<TClass>(createIfNotExists);
 
-        // Cache the instance if it was found
+        // Caches the instance if it was found
         if (instance != null)
         {
             CacheLock.EnterWriteLock();

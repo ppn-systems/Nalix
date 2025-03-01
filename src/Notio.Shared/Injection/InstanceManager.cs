@@ -102,7 +102,7 @@ public sealed class InstanceManager : IDisposable
                     $"Type {type.Name} does not have a suitable constructor for the provided arguments.");
             }
 
-            // Cache the constructor for future use
+            // Caches the constructor for future use
             _constructorCache.TryAdd(type, constructor);
         }
 

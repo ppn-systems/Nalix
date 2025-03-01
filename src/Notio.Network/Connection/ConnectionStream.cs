@@ -1,6 +1,6 @@
 using Notio.Common.Logging;
 using Notio.Common.Memory;
-using Notio.Shared.Memory.Cache;
+using Notio.Shared.Memory.Caches;
 using Notio.Shared.Time;
 using System;
 using System.IO;
@@ -33,12 +33,12 @@ internal class ConnectionStream : IDisposable
     public long LastPingTime { get; private set; }
 
     /// <summary>
-    /// Cache for outgoing packets.
+    /// Caches for outgoing packets.
     /// </summary>
     public readonly BinaryCache CacheOutgoing = new(20);
 
     /// <summary>
-    /// Cache for incoming packets.
+    /// Caches for incoming packets.
     /// </summary>
     public readonly FifoCache<ReadOnlyMemory<byte>> CacheIncoming = new(40);
 

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Shared.Memory.Buffer;
+namespace Notio.Shared.Memory.Buffers;
 
 /// <summary>
 /// Manages a pool of shared buffers with optimized memory handling.
@@ -220,7 +220,7 @@ public sealed class BufferPoolShared : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref readonly BufferInfo GetPoolInfoRef()
     {
-        // Cache the pool info in a private field (FIFO cache)
+        // Caches the pool info in a private field (FIFO cache)
         _poolInfo = new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,

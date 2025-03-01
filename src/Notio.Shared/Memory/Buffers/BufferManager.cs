@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Shared.Memory.Buffer;
+namespace Notio.Shared.Memory.Buffers;
 
 /// <summary>
 /// Manages shared buffer pools with improved performance.
@@ -75,7 +75,7 @@ public sealed class BufferManager : IDisposable
             throw new ArgumentException($"Requested buffer size ({size}) exceeds maximum available pool size.");
 
         if (!_pools.TryGetValue(poolSize, out var pool))
-            throw new InvalidOperationException($"Pool for size {poolSize} is not available.");
+            throw new InvalidOperationException($"Pools for size {poolSize} is not available.");
 
         byte[] buffer = pool.AcquireBuffer();
 

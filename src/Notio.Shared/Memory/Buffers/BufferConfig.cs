@@ -1,6 +1,6 @@
 using Notio.Shared.Configuration;
 
-namespace Notio.Shared.Memory.Buffer;
+namespace Notio.Shared.Memory.Buffers;
 
 /// <summary>
 /// Configuration for buffer settings with enhanced performance options.

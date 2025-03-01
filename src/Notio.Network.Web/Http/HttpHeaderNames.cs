@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Web.Http;
+namespace Notio.Network.Web.Http;
 
 /// <summary>
 /// Exposes known HTTP header names.
@@ -106,9 +106,9 @@ public static class HttpHeaderNames
     public const string Authorization = "Authorization";
 
     /// <summary>
-    /// The <c>Cache-Control</c> HTTP header.
+    /// The <c>Caches-Control</c> HTTP header.
     /// </summary>
-    public const string CacheControl = "Cache-Control";
+    public const string CacheControl = "Caches-Control";
 
     /// <summary>
     /// The <c>Connection</c> HTTP header.

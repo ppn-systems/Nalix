@@ -227,7 +227,7 @@ public abstract class Listener : IListener, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ConfigureHighPerformanceSocket(Socket socket)
     {
-        // Cache configuration values to local variables to improve performance
+        // Caches configuration values to local variables to improve performance
         var config = Config;
 
         socket.LingerState = new LingerOption(false, config.LingerTimeoutSeconds);
