@@ -1,16 +1,21 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Manages shared buffer pools.
+/// Manages shared buffer pools with improved performance.
 /// </summary>
 public sealed class BufferManager : IDisposable
 {
     private readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
-    private readonly ConcurrentDictionary<int, (int RentCounter, int ReturnCounter)> _adjustmentCounters = new();
+    private readonly ConcurrentDictionary<int, BufferCounters> _adjustmentCounters = new();
+    private readonly ReaderWriterLockSlim _keysLock = new(LockRecursionPolicy.NoRecursion);
+
     private int[] _sortedKeys = [];
 
     /// <summary>
@@ -24,35 +29,57 @@ public sealed class BufferManager : IDisposable
     public event Action<BufferPoolShared>? EventShrink;
 
     /// <summary>
+    /// Private structure to track buffer usage counters
+    /// </summary>
+    private struct BufferCounters
+    {
+        public int RentCounter;
+        public int ReturnCounter;
+    }
+
+    /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    /// <param name="bufferSize">The size of each buffer in the pool.</param>
-    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
     public void CreatePool(int bufferSize, int initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
         {
-            // Update the sorted list of pool sizes
-            _sortedKeys = [.. _pools.Keys.OrderBy(k => k)];
+            UpdateSortedKeys();
         }
     }
 
     /// <summary>
-    /// Rents a buffer that is at least the requested size.
+    /// Updates the sorted keys with proper locking
     /// </summary>
-    /// <param name="size">The size of the buffer to rent.</param>
-    /// <returns>A byte array representing the buffer.</returns>
-    /// <exception cref="ArgumentException">Thrown if the requested buffer size exceeds the available pool size.</exception>
+    private void UpdateSortedKeys()
+    {
+        _keysLock.EnterWriteLock();
+        try
+        {
+            _sortedKeys = [.. _pools.Keys.OrderBy(k => k)];
+        }
+        finally
+        {
+            _keysLock.ExitWriteLock();
+        }
+    }
+
+    /// <summary>
+    /// Rents a buffer that is at least the requested size with optimized lookup.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] RentBuffer(int size)
     {
         int poolSize = FindSuitablePoolSize(size);
         if (poolSize == 0)
-            throw new ArgumentException("Requested buffer size exceeds maximum available pool size.");
+            throw new ArgumentException($"Requested buffer size ({size}) exceeds maximum available pool size.");
 
-        BufferPoolShared pool = _pools[poolSize];
+        if (!_pools.TryGetValue(poolSize, out var pool))
+            throw new InvalidOperationException($"Pool for size {poolSize} is not available.");
+
         byte[] buffer = pool.AcquireBuffer();
 
-        // Check and trigger the event to increase capacity
+        // Check and trigger the event to increase capacity if needed
         if (AdjustCounter(poolSize, isRent: true))
             EventIncrease?.Invoke(pool);
 
@@ -62,61 +89,121 @@ public sealed class BufferManager : IDisposable
     /// <summary>
     /// Returns a buffer to the appropriate pool.
     /// </summary>
-    /// <param name="buffer">The buffer to return.</param>
-    /// <exception cref="ArgumentException">Thrown if the buffer size is invalid.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnBuffer(byte[]? buffer)
     {
         if (buffer == null) return;
-        
+
         if (!_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
-            throw new ArgumentException("Invalid buffer size.");
+            throw new ArgumentException($"Invalid buffer size: {buffer.Length}.");
 
         pool.ReleaseBuffer(buffer);
 
-        // Check and trigger the event to shrink capacity
+        // Check and trigger the event to shrink capacity if needed
         if (AdjustCounter(buffer.Length, isRent: false))
             EventShrink?.Invoke(pool);
     }
 
     /// <summary>
-    /// Adjusts the rent and return counters, and checks whether to trigger the increase or shrink capacity events.
+    /// Adjusts the rent and return counters with optimized logic.
     /// </summary>
-    /// <param name="poolSize">The size of the pool.</param>
-    /// <param name="isRent">Indicates whether it is a rent or return action.</param>
-    /// <returns>True if an event should be triggered, otherwise false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool AdjustCounter(int poolSize, bool isRent)
     {
-        return _adjustmentCounters.AddOrUpdate(poolSize,
-            _ => isRent ? (1, 0) : (0, 1),
+        BufferCounters newCounters = default;
+        bool shouldTriggerEvent = false;
+
+        _adjustmentCounters.AddOrUpdate(
+            poolSize,
+            // Add function - when key doesn't exist
+            _ =>
+            {
+                shouldTriggerEvent = true;
+                return isRent ? new BufferCounters { RentCounter = 1, ReturnCounter = 0 }
+                             : new BufferCounters { RentCounter = 0, ReturnCounter = 1 };
+            },
+            // Update function - when key exists
             (_, current) =>
             {
-                var newRentCounter = isRent ? current.RentCounter + 1 : current.RentCounter;
-                var newReturnCounter = isRent ? current.ReturnCounter : current.ReturnCounter + 1;
+                newCounters = current;
 
-                if (newRentCounter >= 10 && isRent)
-                    return (0, current.ReturnCounter);
+                // Update appropriate counter
+                if (isRent)
+                {
+                    newCounters.RentCounter++;
+                    // Check if we've reached the threshold to trigger
+                    if (newCounters.RentCounter >= 10)
+                    {
+                        shouldTriggerEvent = true;
+                        newCounters.RentCounter = 0; // Reset counter
+                    }
+                }
+                else
+                {
+                    newCounters.ReturnCounter++;
+                    // Check if we've reached the threshold to trigger
+                    if (newCounters.ReturnCounter >= 10)
+                    {
+                        shouldTriggerEvent = true;
+                        newCounters.ReturnCounter = 0; // Reset counter
+                    }
+                }
 
-                if (newReturnCounter >= 10 && !isRent)
-                    return (current.RentCounter, 0);
+                return newCounters;
+            });
 
-                return (newRentCounter, newReturnCounter);
-            }).RentCounter == 0 || _adjustmentCounters[poolSize].ReturnCounter == 0;
+        return shouldTriggerEvent;
     }
 
     /// <summary>
-    /// Finds the most suitable pool size based on the requested size.
+    /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
-    /// <param name="size">The requested size.</param>
-    /// <returns>The size of the most suitable pool.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindSuitablePoolSize(int size)
     {
-        foreach (var key in _sortedKeys)
+        // Use a local reference to avoid potential threading issues
+        _keysLock.EnterReadLock();
+        int[] keys;
+        try
         {
-            if (key >= size)
-                return key;
+            keys = _sortedKeys;
+        }
+        finally
+        {
+            _keysLock.ExitReadLock();
         }
 
-        return 0;
+        // Quick check for empty array
+        if (keys.Length == 0)
+            return 0;
+
+        // Quick check for size smaller than first key or larger than last key
+        if (size <= keys[0])
+            return keys[0];
+
+        if (size > keys[^1])
+            return 0;
+
+        // Binary search for efficiency with large number of pools
+        int left = 0;
+        int right = keys.Length - 1;
+
+        while (left <= right)
+        {
+            int mid = left + (right - left) / 2;
+
+            if (keys[mid] == size)
+                return keys[mid];
+
+            if (keys[mid] < size)
+                left = mid + 1;
+            else
+                right = mid - 1;
+        }
+
+        // At this point, left > right and left is the insertion point
+        // Return the next larger key (ceiling value)
+        return left < keys.Length ? keys[left] : 0;
     }
 
     /// <summary>
@@ -124,17 +211,26 @@ public sealed class BufferManager : IDisposable
     /// </summary>
     public void Dispose()
     {
-        foreach (var pool in _pools.Values)
+        // Dispose all pools in parallel for faster cleanup on large systems
+        Parallel.ForEach(_pools.Values, pool =>
         {
             pool.Dispose();
-        }
+        });
 
         _pools.Clear();
-        _sortedKeys = [];
-    }
+        _adjustmentCounters.Clear();
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="BufferManager"/> class.
-    /// </summary>
-    ~BufferManager() => Dispose();
+        _keysLock.EnterWriteLock();
+        try
+        {
+            _sortedKeys = [];
+        }
+        finally
+        {
+            _keysLock.ExitWriteLock();
+            _keysLock.Dispose();
+        }
+
+        GC.SuppressFinalize(this);
+    }
 }

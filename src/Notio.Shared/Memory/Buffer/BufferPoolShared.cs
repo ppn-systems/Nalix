@@ -2,30 +2,32 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Shared.Memory.Buffer;
 
 /// <summary>
-/// Manages a pool of shared buffers.
+/// Manages a pool of shared buffers with optimized memory handling.
 /// </summary>
 public sealed class BufferPoolShared : IDisposable
 {
     private static readonly ConcurrentDictionary<int, BufferPoolShared> Pools = new();
     private readonly ConcurrentQueue<byte[]> _freeBuffers;
     private readonly ArrayPool<byte> _arrayPool;
-    private readonly Lock _disposeLock = new();
     private readonly int _bufferSize;
+    private readonly Lock _disposeLock = new();
 
     private BufferInfo _poolInfo;
     private int _totalBuffers;
     private bool _disposed;
     private int _misses;
+    private bool _isOptimizing;
 
     /// <summary>
     /// The total number of buffers in the pool.
     /// </summary>
-    public int TotalBuffers => _totalBuffers;
+    public int TotalBuffers => Volatile.Read(ref _totalBuffers);
 
     /// <summary>
     /// The number of free buffers in the pool.
@@ -35,44 +37,60 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolShared"/> class.
     /// </summary>
-    /// <param name="bufferSize">The size of each buffer in the pool.</param>
-    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
     private BufferPoolShared(int bufferSize, int initialCapacity)
     {
         _bufferSize = bufferSize;
         _arrayPool = ArrayPool<byte>.Shared;
         _freeBuffers = new ConcurrentQueue<byte[]>();
 
-        for (int i = 0; i < initialCapacity; ++i)
+        // Pre-allocate buffers for better initial performance
+        PreallocateBuffers(initialCapacity);
+    }
+
+    /// <summary>
+    /// Pre-allocates buffers to the specified capacity
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void PreallocateBuffers(int capacity)
+    {
+        var buffers = new byte[capacity][];
+
+        // Rent all buffers at once for better locality
+        for (int i = 0; i < capacity; i++)
         {
-            _freeBuffers.Enqueue(_arrayPool.Rent(bufferSize));
+            buffers[i] = _arrayPool.Rent(_bufferSize);
         }
 
-        _totalBuffers = initialCapacity;
+        // Enqueue all buffers to the free queue
+        foreach (var buffer in buffers)
+        {
+            _freeBuffers.Enqueue(buffer);
+        }
+
+        _totalBuffers = capacity;
     }
 
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
-    /// <param name="bufferSize">The size of each buffer in the pool.</param>
-    /// <param name="initialCapacity">The initial number of buffers to allocate.</param>
-    /// <returns>A <see cref="BufferPoolShared"/> object for the specified buffer size.</returns>
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
     {
         return Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
     }
 
     /// <summary>
-    /// Acquires a buffer from the pool.
+    /// Acquires a buffer from the pool with fast path optimization.
     /// </summary>
-    /// <returns>A byte array representing the buffer.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] AcquireBuffer()
     {
+        // Fast path - most common case
         if (_freeBuffers.TryDequeue(out var buffer))
         {
             return buffer;
         }
 
+        // Slow path - need to rent new buffer
         Interlocked.Increment(ref _misses);
         Interlocked.Increment(ref _totalBuffers);
 
@@ -82,13 +100,17 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Releases a buffer back into the pool.
     /// </summary>
-    /// <param name="buffer">The buffer to release.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
     {
+        // Validate buffer
         if (buffer == null || buffer.Length != _bufferSize)
         {
             throw new ArgumentException("Invalid buffer.");
         }
+
+        // Clear sensitive data for security if needed
+        // Array.Clear(buffer, 0, buffer.Length);
 
         _freeBuffers.Enqueue(buffer);
     }
@@ -96,7 +118,6 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Increases the capacity of the pool by adding buffers.
     /// </summary>
-    /// <param name="additionalCapacity">The number of buffers to add.</param>
     public void IncreaseCapacity(int additionalCapacity)
     {
         if (additionalCapacity <= 0)
@@ -104,73 +125,108 @@ public sealed class BufferPoolShared : IDisposable
             throw new ArgumentException("The additional quantity must be greater than zero.");
         }
 
-        var buffersToAdd = new List<byte[]>(additionalCapacity);
-        for (int i = 0; i < additionalCapacity; ++i)
-        {
-            buffersToAdd.Add(_arrayPool.Rent(_bufferSize));
-        }
+        if (_isOptimizing) return;
 
-        foreach (var buffer in buffersToAdd)
+        try
         {
-            _freeBuffers.Enqueue(buffer);
-        }
+            _isOptimizing = true;
 
-        Interlocked.Add(ref _totalBuffers, additionalCapacity);
+            // Batch allocation for better performance
+            var buffersToAdd = new List<byte[]>(additionalCapacity);
+            for (int i = 0; i < additionalCapacity; ++i)
+            {
+                buffersToAdd.Add(_arrayPool.Rent(_bufferSize));
+            }
+
+            foreach (var buffer in buffersToAdd)
+            {
+                _freeBuffers.Enqueue(buffer);
+            }
+
+            Interlocked.Add(ref _totalBuffers, additionalCapacity);
+        }
+        finally
+        {
+            _isOptimizing = false;
+        }
     }
 
     /// <summary>
     /// Decreases the capacity of the pool by removing buffers.
     /// </summary>
-    /// <param name="capacityToRemove">The number of buffers to remove.</param>
     public void DecreaseCapacity(int capacityToRemove)
     {
-        if (capacityToRemove <= 0)
-        {
-            return;
-        }
+        if (capacityToRemove <= 0) return;
+        if (_isOptimizing) return;
 
-        for (int i = 0; i < capacityToRemove; ++i)
+        try
         {
-            if (_freeBuffers.TryDequeue(out var buffer))
+            _isOptimizing = true;
+
+            int removed = 0;
+            int target = Math.Min(capacityToRemove, _freeBuffers.Count);
+
+            // Use batch processing for better performance
+            var buffersToReturn = new List<byte[]>(target);
+
+            for (int i = 0; i < target; i++)
+            {
+                if (_freeBuffers.TryDequeue(out var buffer))
+                {
+                    buffersToReturn.Add(buffer);
+                    removed++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // Return buffers in batch
+            foreach (var buffer in buffersToReturn)
             {
                 _arrayPool.Return(buffer);
-                Interlocked.Decrement(ref _totalBuffers);
             }
-            else
+
+            if (removed > 0)
             {
-                break;
+                Interlocked.Add(ref _totalBuffers, -removed);
             }
+        }
+        finally
+        {
+            _isOptimizing = false;
         }
     }
 
     /// <summary>
-    /// Gets information about the buffer pool and stores it in a private field.
+    /// Gets information about the buffer pool.
     /// </summary>
-    /// <returns>A read-only reference to a <see cref="BufferInfo"/> object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferInfo GetPoolInfo()
     {
         return new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,
-            TotalBuffers = _totalBuffers,
+            TotalBuffers = Volatile.Read(ref _totalBuffers),
             BufferSize = _bufferSize,
-            Misses = _misses
+            Misses = Volatile.Read(ref _misses)
         };
     }
 
     /// <summary>
-    /// Gets information about the buffer pool and stores it in a private field.
+    /// Gets information about the buffer pool by reference for better performance.
     /// </summary>
-    /// <returns>A read-only reference to a <see cref="BufferInfo"/> object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref readonly BufferInfo GetPoolInfoRef()
     {
         // Cache the pool info in a private field (FIFO cache)
         _poolInfo = new BufferInfo
         {
             FreeBuffers = _freeBuffers.Count,
-            TotalBuffers = _totalBuffers,
+            TotalBuffers = Volatile.Read(ref _totalBuffers),
             BufferSize = _bufferSize,
-            Misses = _misses
+            Misses = Volatile.Read(ref _misses)
         };
 
         return ref _poolInfo;
@@ -181,14 +237,13 @@ public sealed class BufferPoolShared : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(disposing: true);
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Performs the actual resource cleanup.
     /// </summary>
-    /// <param name="disposing">Indicates whether cleanup is being called from Dispose.</param>
     private void Dispose(bool disposing)
     {
         if (_disposed) return;
@@ -199,10 +254,25 @@ public sealed class BufferPoolShared : IDisposable
 
             if (disposing)
             {
-                // Release managed resources
-                while (_freeBuffers.TryDequeue(out var buffer))
+                // Process buffers in batches for better performance
+                const int batchSize = 64;
+                var buffers = new byte[Math.Min(batchSize, _freeBuffers.Count)][];
+
+                while (true)
                 {
-                    _arrayPool.Return(buffer);
+                    int count = 0;
+                    while (count < buffers.Length && _freeBuffers.TryDequeue(out byte[]? buffer))
+                    {
+                        buffers[count] = buffer!;
+                        count++;
+                    }
+
+                    if (count == 0) break;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        _arrayPool.Return(buffers[i]);
+                    }
                 }
 
                 Pools.TryRemove(_bufferSize, out _);
@@ -213,10 +283,10 @@ public sealed class BufferPoolShared : IDisposable
     }
 
     /// <summary>
-    /// Finalizer (only used if unmanaged resources need to be released).
+    /// Finalizer for cleanup when Dispose is not called.
     /// </summary>
     ~BufferPoolShared()
     {
-        Dispose(disposing: false);
+        Dispose(false);
     }
 }
