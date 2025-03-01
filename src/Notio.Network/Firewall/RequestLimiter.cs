@@ -1,6 +1,5 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Config;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;

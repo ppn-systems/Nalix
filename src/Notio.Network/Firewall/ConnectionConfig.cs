@@ -1,7 +1,7 @@
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network.Config;
+namespace Notio.Network.Firewall;
 
 /// <summary>
 /// Configuration for limiting the number of concurrent connections per IP address.

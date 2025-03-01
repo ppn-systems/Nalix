@@ -1,7 +1,7 @@
 using Notio.Shared.Configuration;
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network.Config;
+namespace Notio.Network.Firewall;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.

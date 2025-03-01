@@ -2,12 +2,12 @@ using Notio.Shared.Configuration;
 
 using System.ComponentModel.DataAnnotations;
 
-namespace Notio.Network.Config;
+namespace Notio.Network.Listeners;
 
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
-public sealed class NetworkConfig : ConfiguredBinder
+public sealed class ListenerConfig : ConfiguredBinder
 {
     /// <summary>
     /// Gets or sets the port number for the network connection.
@@ -62,11 +62,4 @@ public sealed class NetworkConfig : ConfiguredBinder
     /// Default is false.
     /// </summary>
     public bool ReuseAddress { get; set; } = false;
-
-    /// <summary>
-    /// Gets a value indicating whether the port is valid (within the range 1 to 65535).
-    /// This property is not configured and is only for validation purposes.
-    /// </summary>
-    [ConfiguredIgnore]
-    public bool IsValidPort => Port is >= 1 and <= 65535;
 }
