@@ -1,68 +1,157 @@
 using Notio.Logging;
+using Notio.Shared.Configuration.Internal;
+using Notio.Shared.Configuration.Metadata;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Notio.Shared.Configuration;
 
 /// <summary>
-/// Provides access to configuration values by binding them to properties.
-/// This class uses reflection to populate properties from an INI configuration file.
+/// Provides high-performance access to configuration values by binding them to properties.
+/// This class uses optimized reflection with caching to efficiently populate properties from an INI configuration file.
 /// </summary>
 /// <remarks>
-/// Derived classes should have the suffix "Configured" in their name (e.g., FooConfig).
+/// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
 public abstract class ConfiguredBinder
 {
+    private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
+    private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
+
+    private int _isInitialized; // Flag to track initialization status
+    private DateTime _lastInitializationTime; // Track the last initialization time
+
+    /// <summary>
+    /// Gets a value indicating whether this instance has been initialized.
+    /// </summary>
+    public bool IsInitialized => Volatile.Read(ref _isInitialized) == 1;
+
+    /// <summary>
+    /// Gets the time when this configuration was last initialized.
+    /// </summary>
+    public DateTime LastInitializationTime => _lastInitializationTime;
+
     /// <summary>
     /// Initializes an instance of <see cref="ConfiguredBinder"/> from the provided <see cref="ConfiguredIniFile"/>
-    /// using reflection to set property values based on the configuration file.
+    /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
     internal void Initialize(ConfiguredIniFile configFile)
     {
+        ArgumentNullException.ThrowIfNull(configFile);
+
         Type type = GetType();
+
+        // Get or create configuration metadata for this type
+        var metadata = GetOrCreateMetadata(type);
+
+        // Get the section name from cache
         string section = GetSectionName(type);
 
-        foreach (var property in type.GetProperties())
+        // Process each bindable property
+        foreach (var propertyInfo in metadata.BindableProperties)
+        {
+            try
+            {
+                // Get the configuration value using the appropriate method
+                object? value = GetConfigValue(configFile, section, propertyInfo);
+
+                // Handle missing or empty configuration values
+                if (value == null || (value is string strValue && string.IsNullOrEmpty(strValue)))
+                {
+                    HandleEmptyValue(configFile, section, propertyInfo);
+                    continue;
+                }
+
+                // Assign the value to the property using the cached setter
+                propertyInfo.SetValue(this, value);
+            }
+            catch (Exception ex)
+            {
+                $"Error setting value for {propertyInfo.Name}: {ex.Message}".Warn();
+            }
+        }
+
+        // Mark as initialized and record timestamp
+        Interlocked.Exchange(ref _isInitialized, 1);
+        _lastInitializationTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Gets the configuration metadata for a type, creating it if it doesn't exist.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ConfigurationMetadata GetOrCreateMetadata(Type type)
+    {
+        return _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
+    }
+
+    /// <summary>
+    /// Creates configuration metadata for a type.
+    /// </summary>
+    private static ConfigurationMetadata CreateConfigurationMetadata(Type type)
+    {
+        var bindableProperties = new List<PropertyMetadata>();
+
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             // Skip properties with the ConfiguredIgnore attribute
             if (property.IsDefined(typeof(ConfiguredIgnoreAttribute)))
                 continue;
 
-            // Get the configuration value for the property
-            object? value = GetConfigValue(configFile, section, property);
-
-            // Handle missing or empty configuration values
-            if (value == null || (value is string strValue && string.IsNullOrEmpty(strValue)))
-            {
-                HandleEmptyValue(configFile, section, property);
+            // Skip properties that can't be written to
+            if (!property.CanWrite)
                 continue;
-            }
 
-            // Try to assign the value to the property
-            try
+            // Create the property metadata
+            var propertyMetadata = new PropertyMetadata
             {
-                AssignValueToProperty(property, value);
-            }
-            catch (Exception ex)
-            {
-                $"Error setting value for {property.Name}: {ex.Message}".Warn();
-            }
+                PropertyInfo = property,
+                Name = property.Name,
+                PropertyType = property.PropertyType,
+                TypeCode = Type.GetTypeCode(property.PropertyType)
+            };
+
+            bindableProperties.Add(propertyMetadata);
         }
+
+        return new ConfigurationMetadata
+        {
+            ConfigurationType = type,
+            BindableProperties = [.. bindableProperties]
+        };
     }
 
+    /// <summary>
+    /// Gets the section name for a configuration type, with caching for performance.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GetSectionName(Type type)
     {
-        string section = type.Name;
-        if (section.EndsWith("Configured", StringComparison.OrdinalIgnoreCase))
-            section = section[..^6];
-        return section;
+        return _sectionNameCache.GetOrAdd(type, t =>
+        {
+            string section = t.Name;
+
+            // Normalize the section name by removing "Config" suffix
+            if (section.EndsWith("Config", StringComparison.OrdinalIgnoreCase))
+                section = section[..^6];
+
+            return section;
+        });
     }
 
-    private static object? GetConfigValue(ConfiguredIniFile configFile, string section, PropertyInfo property)
+    /// <summary>
+    /// Gets the configuration value for a property using the appropriate method.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static object? GetConfigValue(ConfiguredIniFile configFile, string section, PropertyMetadata property)
     {
-        return Type.GetTypeCode(property.PropertyType) switch
+        return property.TypeCode switch
         {
             TypeCode.Char => configFile.GetChar(section, property.Name),
             TypeCode.Byte => configFile.GetByte(section, property.Name),
@@ -79,28 +168,71 @@ public abstract class ConfiguredBinder
             TypeCode.Single => configFile.GetSingle(section, property.Name),
             TypeCode.Double => configFile.GetDouble(section, property.Name),
             TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
-            _ => throw new NotImplementedException($"Value type {property.PropertyType} is not supported for configuration files."),
+            _ => throw new NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files."),
         };
     }
 
-    private void HandleEmptyValue(ConfiguredIniFile configFile, string section, PropertyInfo property)
+    /// <summary>
+    /// Handles empty configuration values by writing defaults to the file.
+    /// </summary>
+    private void HandleEmptyValue(ConfiguredIniFile configFile, string section, PropertyMetadata property)
     {
-        // Attempt to write a default or existing value to the configuration file if empty
-        configFile.WriteValue(section, property.Name, property.GetValue(this)?.ToString() ?? string.Empty);
-        $"Attribute value {property.Name} is empty, writing to the file".Warn();
+        object? currentValue = property.PropertyInfo.GetValue(this);
+        string valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
+
+        configFile.WriteValue(section, property.Name, valueToWrite);
+        $"Attribute value {property.Name} is empty, writing default to the file".Warn();
     }
 
-    private void AssignValueToProperty(PropertyInfo property, object value)
+    /// <summary>
+    /// Gets a default value string for the specified type code.
+    /// </summary>
+    private static string GetDefaultValueString(TypeCode typeCode)
     {
-        // Ensure that the value is compatible with the property type before setting it
-        if (property.PropertyType.IsInstanceOfType(value))
+        return typeCode switch
         {
-            property.SetValue(this, value);
-        }
-        else
+            TypeCode.Char => string.Empty,
+            TypeCode.Byte => "0",
+            TypeCode.SByte => "0",
+            TypeCode.String => string.Empty,
+            TypeCode.Boolean => "false",
+            TypeCode.Decimal => "0",
+            TypeCode.Int16 => "0",
+            TypeCode.UInt16 => "0",
+            TypeCode.Int32 => "0",
+            TypeCode.UInt32 => "0",
+            TypeCode.Int64 => "0",
+            TypeCode.UInt64 => "0",
+            TypeCode.Single => "0",
+            TypeCode.Double => "0",
+            TypeCode.DateTime => DateTime.UtcNow.ToString("O"),
+            _ => string.Empty,
+        };
+    }
+
+    /// <summary>
+    /// Creates a shallow clone of this configuration instance.
+    /// </summary>
+    /// <returns>A new instance with the same property values.</returns>
+    public T Clone<T>() where T : ConfiguredBinder, new()
+    {
+        T clone = new();
+        Type type = GetType();
+
+        // Get the configuration metadata
+        var metadata = GetOrCreateMetadata(type);
+
+        // Copy each property value to the clone
+        foreach (var propertyInfo in metadata.BindableProperties)
         {
-            ($"Type mismatch for property {property.Name}: " +
-             $"Expected {property.PropertyType}, but got {value.GetType()}").Warn();
+            object? value = propertyInfo.PropertyInfo.GetValue(this);
+            propertyInfo.PropertyInfo.SetValue(clone, value);
         }
+
+        // Mark as initialized
+        Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
+        clone._lastInitializationTime = _lastInitializationTime;
+
+        return clone;
     }
 }
