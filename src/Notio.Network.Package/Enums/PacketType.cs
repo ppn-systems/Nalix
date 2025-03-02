@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Package.Enums;
+namespace Notio.Network.Package.Enums;
 
 /// <summary>
 /// Represents different types of payloads used in network packets.
@@ -144,6 +144,11 @@ public enum PacketType : byte
     /// Miscellaneous: Dictionary.
     /// </summary>
     Dictionary = 0x2A,
+
+    /// <summary>
+    /// Miscellaneous
+    /// </summary>
+    Acknowledgment = 0x2B,
 
     /// <summary>
     /// Custom or undefined type.

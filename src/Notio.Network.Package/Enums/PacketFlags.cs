@@ -30,4 +30,9 @@ public enum PacketFlags : byte
     /// Packet is fragmented.
     /// </summary>
     IsFragmented = 0x08,            // Gói tin đã bị phân mảnh
+
+    /// <summary>
+    /// Packet has been acknowledged.
+    /// </summary>
+    Acknowledged = 0x10
 }
