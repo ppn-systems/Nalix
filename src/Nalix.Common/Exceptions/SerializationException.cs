@@ -13,7 +13,7 @@ namespace Nalix.Common.Exceptions;
 public class SerializationException : BaseException
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class 
+    /// Initializes a new instance of the <see cref="SerializationException"/> class
     /// with a default error message.
     /// </summary>
     public SerializationException()
@@ -22,7 +22,7 @@ public class SerializationException : BaseException
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class 
+    /// Initializes a new instance of the <see cref="SerializationException"/> class
     /// with a specified error message.
     /// </summary>
     /// <param name="message">
@@ -34,8 +34,8 @@ public class SerializationException : BaseException
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class 
-    /// with a specified error message and a reference to the inner exception that is 
+    /// Initializes a new instance of the <see cref="SerializationException"/> class
+    /// with a specified error message and a reference to the inner exception that is
     /// the cause of this exception.
     /// </summary>
     /// <param name="message">
