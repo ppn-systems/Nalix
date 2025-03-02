@@ -1,44 +1,44 @@
-using Notio.Common.Cryptography;
 using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Targets;
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Notio.Logging.Core;
 
 /// <summary>
-/// Abstract class that provides a logging engine functionality to handle log entries.
+/// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
-public abstract class LoggingEngine
+public abstract class LoggingEngine : IDisposable
 {
-    private readonly LoggingPublisher _publisher = new();
-
-    /// <summary>
-    /// Gets the logging publisher instance.
-    /// </summary>
-    private ILoggingPublisher Publisher => _publisher;
-
-    /// <summary>
-    /// The logging configuration options for the application.
-    /// This property holds the configuration settings for the logging system,
-    /// such as the logging level, file options, and any other logging-related settings.
-    /// </summary>
+    private readonly LoggingPublisher _publisher;
     private readonly LoggingOptions _loggingOptions;
+    private int _isDisposed;
+
+    // Cache the minimum log level for faster filtering
+    private readonly LoggingLevel _minLogLevel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingEngine"/> class.
     /// </summary>
     /// <param name="configureOptions">
-    /// An action that allows configuring the <see cref="_loggingOptions"/> instance.
+    /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
     protected LoggingEngine(Action<LoggingOptions>? configureOptions = null)
     {
-        _loggingOptions = new LoggingOptions(Publisher);
-        configureOptions?.Invoke(_loggingOptions);
+        _publisher = new LoggingPublisher();
+        _loggingOptions = new LoggingOptions(_publisher);
 
-        if (configureOptions is null)
+        // Apply configuration if provided
+        if (configureOptions != null)
         {
+            configureOptions.Invoke(_loggingOptions);
+        }
+        else
+        {
+            // Apply default configuration
             _loggingOptions.ConfigureDefaults(cfg =>
             {
                 cfg.AddTarget(new ConsoleLoggingTarget());
@@ -46,26 +46,90 @@ public abstract class LoggingEngine
                 return cfg;
             });
         }
+
+        // Cache min level for faster checks
+        _minLogLevel = _loggingOptions.MinLevel;
     }
 
     /// <summary>
-    /// Checks if the log level is greater than or equal to the minimum required level.
+    /// Checks if the log level meets the minimum required level for logging.
     /// </summary>
     /// <param name="level">The log level to check.</param>
-    /// <returns><c>true</c> if the log level is above or equal to the minimum level, otherwise <c>false</c>.</returns>
-    private bool CanLog(LoggingLevel level) => level >= _loggingOptions.MinLevel;
+    /// <returns><c>true</c> if the log level is enabled for logging.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected bool IsEnabled(LoggingLevel level) => level >= _minLogLevel;
 
     /// <summary>
-    /// Creates a log entry and publishes it if the log level is valid.
+    /// Creates and publishes a log entry if the log level is enabled.
     /// </summary>
-    /// <param name="level">The level of the log entry (e.g., Trace, Info, Error).</param>
+    /// <param name="level">The severity level of the log entry.</param>
     /// <param name="eventId">The event identifier associated with the log entry.</param>
-    /// <param name="message">The message to log.</param>
-    /// <param name="error">Optional exception information to include with the log entry.</param>
+    /// <param name="message">The log message.</param>
+    /// <param name="error">Optional exception information.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void CreateLogEntry(LoggingLevel level, EventId eventId, string message, Exception? error = null)
     {
-        if (!CanLog(level)) return;
+        if (_isDisposed != 0)
+            return;
 
-        _publisher.Publish(new LoggingEntry(level, eventId, message, error));
+        // Fast early return if level is below minimum
+        if (level < _minLogLevel)
+            return;
+
+        // Create and publish the log entry
+        LoggingEntry entry = new(level, eventId, message, error);
+
+        _publisher.Publish(entry);
+    }
+
+    /// <summary>
+    /// Creates and publishes a log entry with a formatted message if the log level is enabled.
+    /// </summary>
+    /// <param name="level">The severity level of the log entry.</param>
+    /// <param name="eventId">The event identifier associated with the log entry.</param>
+    /// <param name="format">The message format string with placeholders.</param>
+    /// <param name="args">The argument values for the format string.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void CreateFormattedLogEntry(LoggingLevel level, EventId eventId, string format, params object?[] args)
+    {
+        // Skip expensive string formatting if the log level is disabled
+        if (_isDisposed != 0 || level < _minLogLevel)
+            return;
+
+        // Format the message only if we're going to use it
+        string message = string.Format(format, args);
+        CreateLogEntry(level, eventId, message);
+    }
+
+    /// <summary>
+    /// Gets the current timestamp for logging operations.
+    /// </summary>
+    /// <returns>A UTC timestamp for logging.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static DateTime GetTimestamp() => DateTime.UtcNow;
+
+    /// <summary>
+    /// Disposes the logging engine and all related resources.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases managed and unmanaged resources used by the logging engine.
+    /// </summary>
+    /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        // Thread-safe disposal check using Interlocked
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+            return;
+
+        if (disposing)
+        {
+            _loggingOptions.Dispose();
+        }
     }
 }

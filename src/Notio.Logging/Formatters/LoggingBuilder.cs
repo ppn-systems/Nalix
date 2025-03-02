@@ -1,10 +1,9 @@
-using Notio.Common.Cryptography;
+using Notio.Common.Logging;
 using Notio.Common.Models;
 using Notio.Logging.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Notio.Common.Logging;
 
 namespace Notio.Logging.Formatters;
 

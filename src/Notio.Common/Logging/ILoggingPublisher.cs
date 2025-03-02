@@ -30,5 +30,5 @@ public interface ILoggingPublisher : IDisposable
     /// Publishes the provided log entry to all configured log targets.
     /// </summary>
     /// <param name="entry">The log entry to be published.</param>
-    void Publish(LoggingEntry entry);
+    void Publish(LoggingEntry? entry);
 }
