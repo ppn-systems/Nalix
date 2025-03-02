@@ -159,7 +159,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry being published.</param>
-    private void HandleTargetError(ILoggingTarget target, Exception exception, LoggingEntry entry)
+    private static void HandleTargetError(ILoggingTarget target, Exception exception, LoggingEntry entry)
     {
         try
         {
