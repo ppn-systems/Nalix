@@ -1,7 +1,7 @@
-﻿using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
+using Notio.Network.Web.Internal;
 using Notio.Network.Web.Utilities;
-using Notio.Shared;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

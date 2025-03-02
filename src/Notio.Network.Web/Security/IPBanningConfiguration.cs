@@ -1,6 +1,6 @@
-﻿using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Http.Exceptions;
+using Notio.Network.Web.Internal;
 using Notio.Network.Web.Utilities;
-using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

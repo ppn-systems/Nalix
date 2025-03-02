@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 
-namespace Notio.Shared.Configuration;
+namespace Notio.Network.Web.Internal;
 
 /// <summary>
 /// An abstract base class that provides configuration locking and synchronization mechanisms.

@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Internal.Reflection;
+using Notio.Serialization.Internal.Reflection;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -92,5 +92,5 @@ internal static class Definitions
     /// All basic value types.
     /// </value>
     internal static IReadOnlyCollection<Type> AllBasicValueTypes { get; } = new ReadOnlyCollection<Type>(
-            BasicTypesInfo.Value.Where(kvp => kvp.Value.IsValueType).Select(kvp => kvp.Key).ToArray());
+            [.. BasicTypesInfo.Value.Where(kvp => kvp.Value.IsValueType).Select(kvp => kvp.Key)]);
 }

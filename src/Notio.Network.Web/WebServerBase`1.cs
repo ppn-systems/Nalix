@@ -8,7 +8,6 @@ using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Sessions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
-using Notio.Shared.Configuration;
 using System;
 using System.Globalization;
 using System.Net;

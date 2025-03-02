@@ -1,4 +1,4 @@
-﻿using Notio.Shared.Configuration;
+using Notio.Network.Web.Internal;
 using System;
 
 namespace Notio.Network.Web;

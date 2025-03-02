@@ -1,7 +1,6 @@
-﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http;
 using Notio.Network.Web.Internal;
 using Notio.Network.Web.Utilities;
-using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

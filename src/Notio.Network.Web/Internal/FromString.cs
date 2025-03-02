@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Notio.Shared;
+namespace Notio.Network.Web.Internal;
 
 /// <summary>
 /// Provides a standard way to convert strings to different types.

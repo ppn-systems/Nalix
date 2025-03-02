@@ -1,7 +1,7 @@
-﻿using Notio.Common;
+using Notio.Common;
 using Notio.Network.Web.Http;
+using Notio.Network.Web.Internal;
 using Notio.Network.Web.Utilities;
-using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
