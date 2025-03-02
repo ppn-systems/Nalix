@@ -106,7 +106,7 @@ public sealed class PacketDispatchChannel
 
         for (System.Int32 i = 0; i < _dispatchLoops; i++)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{NetTaskNames.PacketDispatchWorker}_{i}",
                 group: NetTaskNames.PacketDispatchGroup,
                 work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
