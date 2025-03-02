@@ -87,9 +87,7 @@ public abstract class ConfiguredBinder
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConfigurationMetadata GetOrCreateMetadata(Type type)
-    {
-        return _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
-    }
+        => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 
     /// <summary>
     /// Creates configuration metadata for a type.
@@ -132,8 +130,7 @@ public abstract class ConfiguredBinder
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GetSectionName(Type type)
-    {
-        return _sectionNameCache.GetOrAdd(type, t =>
+        => _sectionNameCache.GetOrAdd(type, t =>
         {
             string section = t.Name;
 
@@ -143,15 +140,13 @@ public abstract class ConfiguredBinder
 
             return section;
         });
-    }
 
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static object? GetConfigValue(ConfiguredIniFile configFile, string section, PropertyMetadata property)
-    {
-        return property.TypeCode switch
+        => property.TypeCode switch
         {
             TypeCode.Char => configFile.GetChar(section, property.Name),
             TypeCode.Byte => configFile.GetByte(section, property.Name),
@@ -170,7 +165,7 @@ public abstract class ConfiguredBinder
             TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
             _ => throw new NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files."),
         };
-    }
+
 
     /// <summary>
     /// Handles empty configuration values by writing defaults to the file.
@@ -188,8 +183,7 @@ public abstract class ConfiguredBinder
     /// Gets a default value string for the specified type code.
     /// </summary>
     private static string GetDefaultValueString(TypeCode typeCode)
-    {
-        return typeCode switch
+        => typeCode switch
         {
             TypeCode.Char => string.Empty,
             TypeCode.Byte => "0",
@@ -208,7 +202,6 @@ public abstract class ConfiguredBinder
             TypeCode.DateTime => DateTime.UtcNow.ToString("O"),
             _ => string.Empty,
         };
-    }
 
     /// <summary>
     /// Creates a shallow clone of this configuration instance.

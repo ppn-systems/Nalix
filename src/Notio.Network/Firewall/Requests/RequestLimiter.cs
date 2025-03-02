@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Firewall;
+namespace Notio.Network.Firewall.Requests;
 
 /// <summary>
 /// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.
@@ -26,7 +26,7 @@ public sealed class RequestLimiter : IDisposable
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
-    private readonly RateLimitConfig _RequestConfig;
+    private readonly RequestConfig _RequestConfig;
     private readonly ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
 
     private bool _disposed;
@@ -39,10 +39,10 @@ public sealed class RequestLimiter : IDisposable
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(RateLimitConfig? requestConfig, ILogger? logger = null)
+    public RequestLimiter(RequestConfig? requestConfig, ILogger? logger = null)
     {
         _logger = logger;
-        _RequestConfig = requestConfig ?? ConfiguredShared.Instance.Get<RateLimitConfig>();
+        _RequestConfig = requestConfig ?? ConfiguredShared.Instance.Get<RequestConfig>();
 
         if (_RequestConfig.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
@@ -161,11 +161,3 @@ public sealed class RequestLimiter : IDisposable
         _ipData.Clear();
     }
 }
-
-/// <summary>
-/// Represents the data of a request, including the history of request timestamps and optional block expiration time.
-/// </summary>
-internal readonly record struct RequestLimiterInfo(
-    Queue<DateTime> Requests,
-    DateTime? BlockedUntil
-);
