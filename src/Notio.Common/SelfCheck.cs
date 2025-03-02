@@ -8,52 +8,165 @@ namespace Notio.Common;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.
+/// Helps identify and report internal logic errors with detailed context information.
 /// </summary>
 public static class SelfCheck
 {
+    // Constants to improve readability and performance
+    private const char Colon = ':';
+    private const char Space = ' ';
+    private const char OpenBracket = '[';
+    private const char CloseBracket = ']';
+    private const char OpenParenthesis = '(';
+    private const char CloseParenthesis = ')';
+
+    // Pre-allocate default strings to reduce allocations
+    private const string DefaultFile = "UnknownFile";
+    private const string DefaultMethod = "UnknownMethod";
+
     /// <summary>
-    /// <para>Creates and returns an exception telling that an internal self-check has failed.</para>
-    /// <para>The returned exception will be of type <see cref="InternalErrorException"/>; its
-    /// <see cref="Exception.Message">Message</see> property will contain the specified
-    /// <paramref name="message"/>, preceded by an indication of the assembly, source file,
-    /// and line number of the failed check.</para>
+    /// Creates and returns an exception indicating that an internal self-check has failed.
+    /// The exception includes detailed context about where the failure occurred.
     /// </summary>
-    /// <param name="callerMethod">The name of the method where this failure occurs.</param>
-    /// <param name="message">The exception message.</param>
-    /// <param name="filePath">The path of the source file where this method is called.
-    /// This parameter is automatically added by the compiler and should never be provided explicitly.</param>
-    /// <param name="lineNumber">The line number in source where this method is called.
-    /// This parameter is automatically added by the compiler and should never be provided explicitly.</param>
-    /// <returns>
-    /// A newly-created instance of <see cref="InternalErrorException"/>.
-    /// </returns>
-    public static InternalErrorException Failure(string message,
+    /// <param name="message">The error message describing the failure.</param>
+    /// <param name="callerMethod">The method where the failure occurred (automatically populated).</param>
+    /// <param name="filePath">The source file path where the failure occurred (automatically populated).</param>
+    /// <param name="lineNumber">The line number where the failure occurred (automatically populated).</param>
+    /// <returns>A new <see cref="InternalErrorException"/> with detailed context information.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static InternalErrorException Failure(
+        string message,
         [CallerMemberName] string callerMethod = "",
         [CallerFilePath] string filePath = "",
         [CallerLineNumber] int lineNumber = 0)
     {
+        // Ensure we have valid values for caller information
+        callerMethod = string.IsNullOrEmpty(callerMethod) ? DefaultMethod : callerMethod;
+
+        // Extract just the filename without path for better readability
+        string fileName = DefaultFile;
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            try
+            {
+                fileName = Path.GetFileName(filePath);
+            }
+            catch (ArgumentException)
+            {
+                // If filename extraction fails, use the raw path or default
+                fileName = string.IsNullOrEmpty(filePath) ? DefaultFile : filePath;
+            }
+        }
+
+        // Estimate the required capacity for the StringBuilder to avoid resizing
+        int capacity = callerMethod.Length + fileName.Length + message.Length + 25;
+
+        // Build the formatted error message
+        var sb = new StringBuilder(capacity);
+        sb.Append(OpenBracket).Append(callerMethod);
+
+        // Include file and line information if available
+        if (!string.IsNullOrEmpty(fileName))
+        {
+            sb.Append(Colon).Append(Space).Append(fileName);
+
+            if (lineNumber > 0)
+            {
+                sb.Append(OpenParenthesis).Append(lineNumber).Append(CloseParenthesis);
+            }
+        }
+
+        // Complete the message with the user-provided text
+        sb.Append(CloseBracket).Append(Space);
+
+        // Ensure the user message is not null
+        if (!string.IsNullOrEmpty(message))
+        {
+            sb.Append(message);
+        }
+        else
+        {
+            sb.Append("Unspecified internal error");
+        }
+
+        // Include current time and user for additional context
+        sb.AppendLine();
+        sb.Append("[UTC: ").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")).Append(']');
+
         try
         {
-            filePath = Path.GetFileName(filePath);
+            string username = Environment.UserName;
+            if (!string.IsNullOrEmpty(username))
+            {
+                sb.Append(" [User: ").Append(username).Append(']');
+            }
         }
-        catch (ArgumentException)
+        catch
         {
+            // Ignore username retrieval errors
         }
 
-        StringBuilder sb = new();
+        // Create and return the exception
+        return new InternalErrorException(sb.ToString());
+    }
 
-        sb.Append('[').Append(callerMethod);
+    /// <summary>
+    /// Performs a validation check and throws an exception if the condition is false.
+    /// </summary>
+    /// <param name="condition">The condition to check. If false, an exception is thrown.</param>
+    /// <param name="message">The error message if the check fails.</param>
+    /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
+    /// <param name="filePath">The source file path (automatically populated).</param>
+    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <exception cref="InternalErrorException">Thrown if the condition is false.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Validate(
+        bool condition, string message,
+        [CallerMemberName] string callerMethod = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+        if (!condition)
+            throw Failure(message, callerMethod, filePath, lineNumber);
+    }
 
-        if (string.IsNullOrEmpty(filePath))
-        {
-            return new InternalErrorException(sb.Append("] ").Append(message).ToString());
-        }
+    /// <summary>
+    /// Ensures a value is not null, throwing an exception if it is.
+    /// </summary>
+    /// <param name="value">The value to check.</param>
+    /// <param name="paramName">The parameter name to include in the error message.</param>
+    /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
+    /// <param name="filePath">The source file path (automatically populated).</param>
+    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <exception cref="InternalErrorException">Thrown if the value is null.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NotNull(
+        object value, string paramName,
+        [CallerMemberName] string callerMethod = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+        if (value == null)
+            throw Failure($"Parameter '{paramName}' cannot be null", callerMethod, filePath, lineNumber);
+    }
 
-        sb.Append(": ").Append(filePath);
-
-        if (lineNumber > 0)
-            sb.Append('(').Append(lineNumber).Append(')');
-
-        return new InternalErrorException(sb.Append("] ").Append(message).ToString());
+    /// <summary>
+    /// Ensures a string is not null or empty, throwing an exception if it is.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="paramName">The parameter name to include in the error message.</param>
+    /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
+    /// <param name="filePath">The source file path (automatically populated).</param>
+    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <exception cref="InternalErrorException">Thrown if the string is null or empty.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NotNullOrEmpty(
+        string value, string paramName,
+        [CallerMemberName] string callerMethod = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+        if (string.IsNullOrEmpty(value))
+            throw Failure($"Parameter '{paramName}' cannot be null or empty", callerMethod, filePath, lineNumber);
     }
 }
