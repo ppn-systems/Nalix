@@ -19,7 +19,7 @@ public static class CiphersConstants
     /// How many bytes are processed per loop
     /// </summary>
     public const int ProcessBytesAtTime = 64;
-    
+
     /// <summary>
     /// Size of the public key in bytes.
     /// </summary>

@@ -214,7 +214,7 @@ public static class X25519
     }
 
     /// <summary>
-    /// Debug assertion class
+    /// AssertionSentry assertion class
     /// </summary>
     private static class Debug
     {
@@ -222,7 +222,7 @@ public static class X25519
         public static void Assert(bool condition)
         {
             if (!condition)
-                throw new InvalidOperationException("Debug assertion failed");
+                throw new InvalidOperationException("AssertionSentry assertion failed");
         }
     }
 }
