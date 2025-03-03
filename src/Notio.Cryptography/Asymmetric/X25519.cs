@@ -1,4 +1,3 @@
-// Last updated: 2025-02-28 14:58:04 by phcnguyen
 using Notio.Randomization;
 using System;
 using System.Diagnostics;

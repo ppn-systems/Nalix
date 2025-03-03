@@ -169,7 +169,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
     private static BigInteger ShaInterleave(BigInteger sharedSecret)
     {
         byte[] secretBytes = sharedSecret.ToByteArray(true);
-        byte[] reversedSecretBytes = secretBytes.Reverse().ToArray();
+        byte[] reversedSecretBytes = [.. secretBytes.Reverse()];
 
         int firstZeroIndex = Array.IndexOf(secretBytes, (byte)0);
         int length = 4;

@@ -11,13 +11,7 @@ namespace Notio.Cryptography.Asymmetric;
 /// </summary>
 public sealed class Ed25519
 {
-    /// <summary>
-    /// Computes the SHA-512 hash of the provided data.
-    /// </summary>
-    /// <param name="data">The data to hash.</param>
-    /// <returns>The hash of the data as a byte array.</returns>
-    private static byte[] ComputeHash(ReadOnlySpan<byte> data)
-        => (Sha512.Value ?? new Sha256()).ComputeHash(data);
+    #region API Methods
 
     /// <summary>
     /// Signs a message with the provided private key using the Ed25519 algorithm.
@@ -118,6 +112,18 @@ public sealed class Ed25519
 
         return PointEquals(sB, rplusH);
     }
+
+    #endregion
+
+    #region Core
+
+    /// <summary>
+    /// Computes the SHA-512 hash of the provided data.
+    /// </summary>
+    /// <param name="data">The data to hash.</param>
+    /// <returns>The hash of the data as a byte array.</returns>
+    private static byte[] ComputeHash(ReadOnlySpan<byte> data)
+        => (Sha256.Value ?? new Sha256()).ComputeHash(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
@@ -289,5 +295,7 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<Sha256> Sha512 = new();
+    private static readonly ThreadLocal<Sha256> Sha256 = new();
+
+    #endregion
 }
