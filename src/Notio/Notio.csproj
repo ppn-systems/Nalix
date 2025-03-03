@@ -21,4 +21,8 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+  </ItemGroup>
+
 </Project>

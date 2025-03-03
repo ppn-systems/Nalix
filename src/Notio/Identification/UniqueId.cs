@@ -1,3 +1,4 @@
+using Notio.Common.Identification;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -15,28 +16,8 @@ namespace Notio.Identification;
 /// Initializes a new instance of the <see cref="UniqueId"/> struct with the specified value.
 /// </remarks>
 /// <param name="value">The 32-bit unsigned integer value.</param>
-public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<UniqueId>
+public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, IComparable<UniqueId>
 {
-    /// <summary>
-    /// The alphabet used for Base36 encoding (digits 0-9, letters A-Z).
-    /// </summary>
-    private const string Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-    /// <summary>
-    /// The base of the encoding system (36 = 10 digits + 26 letters).
-    /// </summary>
-    private const int Base = 36;
-
-    /// <summary>
-    /// The minimum length of a Base36 string representation.
-    /// </summary>
-    private const int MinBase36Length = 7;
-
-    /// <summary>
-    /// The length of a hexadecimal string representation (8 hex digits for a uint).
-    /// </summary>
-    private const int HexLength = 8;
-
     /// <summary>
     /// Lookup table for converting characters to their Base36 values.
     /// </summary>
@@ -65,9 +46,9 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         }
 
         // Populate lookup table for valid Base36 characters
-        for (byte i = 0; i < Alphabet.Length; i++)
+        for (byte i = 0; i < UniqueIdConstants.Alphabet.Length; i++)
         {
-            char c = Alphabet[i];
+            char c = UniqueIdConstants.Alphabet[i];
             CharToValue[c] = i;
 
             // Map lowercase letters to their uppercase equivalents
@@ -161,7 +142,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == HexLength)
+        if (input.Length == UniqueIdConstants.HexLength)
         {
             // Try to parse as hex first
             if (TryParseHex(input, out uint value))
@@ -188,8 +169,9 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
 
         if (isHex)
         {
-            if (input.Length != HexLength)
-                throw new ArgumentException($"Invalid Hex length. Must be {HexLength} characters.", nameof(input));
+            if (input.Length != UniqueIdConstants.HexLength)
+                throw new ArgumentException(
+                    $"Invalid Hex length. Must be {UniqueIdConstants.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
             return new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
@@ -213,7 +195,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == HexLength && TryParseHex(input, out uint hexValue))
+        if (input.Length == UniqueIdConstants.HexLength && TryParseHex(input, out uint hexValue))
         {
             result = new UniqueId(hexValue);
             return true;
@@ -432,14 +414,14 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % Base;
-            remaining /= Base;
-            buffer[--position] = Alphabet[(int)digit];
+            uint digit = remaining % UniqueIdConstants.Base;
+            remaining /= UniqueIdConstants.Base;
+            buffer[--position] = UniqueIdConstants.Alphabet[(int)digit];
         } while (remaining > 0);
 
         // Apply padding to minimum length if necessary
         int actualLength = buffer.Length - position;
-        int finalLength = Math.Max(actualLength, MinBase36Length);
+        int finalLength = Math.Max(actualLength, UniqueIdConstants.MinBase36Length);
 
         // Create a new string with proper padding
         return new string('0', finalLength - actualLength) + new string(buffer[position..]);
@@ -472,7 +454,7 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
 
             // Accumulate value
             byte digitValue = CharToValue[c];
-            result = result * Base + digitValue;
+            result = result * UniqueIdConstants.Base + digitValue;
         }
 
         return new UniqueId(result);
@@ -494,11 +476,11 @@ public readonly struct UniqueId(uint value) : IEquatable<UniqueId>, IComparable<
                 return false;
 
             // Check for potential overflow
-            if (value > (uint.MaxValue / Base))
+            if (value > (uint.MaxValue / UniqueIdConstants.Base))
                 return false;
 
             byte digitValue = CharToValue[c];
-            uint newValue = value * Base + digitValue;
+            uint newValue = value * UniqueIdConstants.Base + digitValue;
 
             // Check for overflow
             if (newValue < value)

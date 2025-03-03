@@ -84,6 +84,44 @@ public static class RandomizedGenerator
     }
 
     /// <summary>
+    /// Converts a uint array key back to a byte array.
+    /// </summary>
+    /// <param name="keyWords">The key as an array of uint values.</param>
+    /// <returns>The key as a byte array.</returns>
+    public static byte[] ConvertWordsToKey(ReadOnlySpan<uint> keyWords)
+    {
+        byte[] keyBytes = new byte[keyWords.Length * 4];
+
+        for (int i = 0; i < keyWords.Length; i++)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(keyBytes.AsSpan(i * 4, 4), keyWords[i]);
+        }
+
+        return keyBytes;
+    }
+
+    /// <summary>
+    /// Converts a byte array key to a uint array key.
+    /// </summary>
+    /// <param name="keyBytes">The key as bytes (length must be a multiple of 4).</param>
+    /// <returns>The key as an array of uint values.</returns>
+    public static uint[] ConvertKeyToWords(ReadOnlySpan<byte> keyBytes)
+    {
+        if (keyBytes.Length % 4 != 0)
+            throw new ArgumentException("Key length must be a multiple of 4 bytes.", nameof(keyBytes));
+
+        int keySizeInWords = keyBytes.Length / 4;
+        uint[] keyWords = new uint[keySizeInWords];
+
+        for (int i = 0; i < keySizeInWords; i++)
+        {
+            keyWords[i] = BinaryPrimitives.ReadUInt32LittleEndian(keyBytes.Slice(i * 4, 4));
+        }
+
+        return keyWords;
+    }
+
+    /// <summary>
     /// Fills the provided span with cryptographically strong random bytes.
     /// </summary>
     /// <param name="data">The span to fill with random bytes.</param>

@@ -40,7 +40,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Encrypt(data, RandomizedGenerator.ConvertKey(key), encryptedXtea.AsMemory(0, bufferSize));
+                            Xtea.Encrypt(data.Span, RandomizedGenerator.ConvertKey(key), encryptedXtea.AsSpan()[..bufferSize]);
                             return encryptedXtea.AsMemory(0, bufferSize);
                         }
                         finally
@@ -102,7 +102,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Decrypt(data, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsMemory(0, bufferSize));
+                            Xtea.Decrypt(data.Span, RandomizedGenerator.ConvertKey(key), decryptedXtea[..bufferSize]);
 
                             return decryptedXtea.AsMemory(0, bufferSize);
                         }

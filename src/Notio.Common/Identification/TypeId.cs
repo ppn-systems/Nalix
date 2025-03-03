@@ -1,4 +1,4 @@
-namespace Notio.Identification;
+namespace Notio.Common.Identification;
 
 /// <summary>
 /// ID type to serve different purposes in the system.
