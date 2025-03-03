@@ -2,8 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
-using Nalix.Common.Security.Enums;
-using Nalix.Common.Security.Types;
+using Nalix.Common.Enums;
 
 namespace Nalix.Common.Connection;
 

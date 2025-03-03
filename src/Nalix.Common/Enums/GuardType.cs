@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Types;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Specifies the types of security guards that can be applied to protect resources or operations.

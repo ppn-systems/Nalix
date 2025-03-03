@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Abstractions;
+namespace Nalix.Cryptography.Abstractions;
 
 /// <summary>
 /// Defines the operations for the SRP-6 (Secure Remote Password) protocol, 

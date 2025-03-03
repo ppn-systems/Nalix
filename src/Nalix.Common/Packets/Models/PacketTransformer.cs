@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Security.Enums;
+﻿using Nalix.Common.Enums;
+using Nalix.Common.Packets.Abstractions;
 using System.Text.Json.Serialization;
 
 namespace Nalix.Common.Packets.Models;

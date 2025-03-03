@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Enums;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Specifies the symmetric encryption algorithms and modes supported by the system.
