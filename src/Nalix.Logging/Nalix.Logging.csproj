@@ -43,6 +43,7 @@ non-blocking log processing under heavy concurrent workloads.
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
 </Project>

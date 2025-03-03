@@ -42,13 +42,6 @@ public interface ITaskManager : System.IDisposable, IReportable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default);
 
     /// <summary>
-    /// Cancels a recurring job by name.
-    /// </summary>
-    /// <param name="name">The name of the recurring job.</param>
-    /// <returns>True if the job was cancelled; otherwise, false.</returns>
-    System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String name);
-
-    /// <summary>
     /// Starts a long-running worker task.
     /// </summary>
     /// <param name="name">The name of the worker.</param>
@@ -62,6 +55,12 @@ public interface ITaskManager : System.IDisposable, IReportable
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         [System.Diagnostics.CodeAnalysis.MaybeNull] IWorkerOptions options = null);
+
+    /// <summary>
+    /// Cancels all running workers.
+    /// </summary>
+    /// <returns>The number of workers cancelled.</returns>
+    System.Int32 CancelAllWorkers();
 
     /// <summary>
     /// Cancels a worker by identifier.
@@ -78,10 +77,11 @@ public interface ITaskManager : System.IDisposable, IReportable
     System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.NotNull] System.String group);
 
     /// <summary>
-    /// Cancels all running workers.
+    /// Cancels a recurring job by name.
     /// </summary>
-    /// <returns>The number of workers cancelled.</returns>
-    System.Int32 CancelAllWorkers();
+    /// <param name="name">The name of the recurring job.</param>
+    /// <returns>True if the job was cancelled; otherwise, false.</returns>
+    System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String name);
 
     /// <summary>
     /// Lists all workers, optionally filtered by running status and/or group.
