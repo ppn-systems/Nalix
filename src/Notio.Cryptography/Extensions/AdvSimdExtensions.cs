@@ -1,4 +1,3 @@
-// Last updated: 2025-02-28 14:17:35 by phcnguyen
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
