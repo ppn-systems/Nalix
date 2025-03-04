@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Internal.File;
 
 /// <summary>
 /// High-throughput file logger provider using <see cref="Channel{T}"/> + batching.

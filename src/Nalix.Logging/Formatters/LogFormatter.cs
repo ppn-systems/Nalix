@@ -10,7 +10,7 @@ namespace Nalix.Logging.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
+public class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
     private readonly System.Boolean _colors = colors;
 
@@ -20,7 +20,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <param name="logMsg">The log message to format.</param>
     /// <returns>The log format string.</returns>
     /// <example>
-    /// var formatter = new LoggingFormatter();
+    /// var formatter = new LogFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
     [System.Diagnostics.Contracts.Pure]
@@ -42,7 +42,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <param name="exception">The exception included (if any).</param>
     /// <returns>Log format string.</returns>
     /// <example>
-    /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
+    /// string log = LogFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -54,7 +54,7 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     {
         System.Text.StringBuilder logBuilder = new();
 
-        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
+        LogBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
 
         return logBuilder.ToString();
     }

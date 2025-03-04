@@ -9,7 +9,7 @@ namespace Nalix.Logging.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal static class LoggingLevelFormatter
+internal static class LogLevelFormatter
 {
     #region Constants
 

@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Logging.Models;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Internal.Format;
 
 /// <summary>
 /// Provides ANSI color codes for console output styling in the logging system.
