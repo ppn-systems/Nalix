@@ -3,7 +3,7 @@
 
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Packets;
+using Nalix.Common.Messaging.Packets;
 
 namespace Nalix.Common.Serialization;
 
