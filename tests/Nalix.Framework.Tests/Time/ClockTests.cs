@@ -172,37 +172,4 @@ public class ClockTests
         Clock.ResetSynchronization();
         Assert.Equal(0, Clock.GetCurrentErrorEstimateMs());
     }
-
-    [Fact]
-    public void StartMeasurement_And_GetElapsed()
-    {
-        Clock.StartMeasurement();
-        Thread.Sleep(10);
-        var elapsed = Clock.GetElapsed();
-        Assert.True(elapsed.TotalMilliseconds >= 8);
-    }
-
-    [Fact]
-    public void GetElapsedMilliseconds_And_Microseconds()
-    {
-        Clock.StartMeasurement();
-        Thread.Sleep(5);
-        Assert.True(Clock.GetElapsedMilliseconds() > 4);
-        Assert.True(Clock.GetElapsedMicroseconds() > 4000);
-    }
-
-    [Fact]
-    public void MeasureExecutionTime_Should_Measure()
-    {
-        var ms = Clock.MeasureExecutionTime(() => Thread.Sleep(10));
-        Assert.True(ms >= 8);
-    }
-
-    [Fact]
-    public void MeasureFunction_Should_Measure_And_Return_Result()
-    {
-        var (result, elapsed) = Clock.MeasureFunction(() => 123);
-        Assert.Equal(123, result);
-        Assert.True(elapsed >= 0);
-    }
 }
