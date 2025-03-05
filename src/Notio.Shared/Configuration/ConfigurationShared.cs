@@ -160,9 +160,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     /// <typeparam name="TClass">The configuration type to check.</typeparam>
     /// <returns>True if the configuration is loaded; otherwise, false.</returns>
     public bool IsLoaded<TClass>() where TClass : ConfiguredBinder
-    {
-        return _configContainerDict.ContainsKey(typeof(TClass));
-    }
+        => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.

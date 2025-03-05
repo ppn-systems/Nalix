@@ -163,7 +163,8 @@ public abstract class ConfiguredBinder
             TypeCode.Single => configFile.GetSingle(section, property.Name),
             TypeCode.Double => configFile.GetDouble(section, property.Name),
             TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
-            _ => throw new NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files."),
+            _ => throw new NotSupportedException(
+                $"Value type {property.PropertyType.Name} is not supported for configuration files."),
         };
 
 
@@ -186,10 +187,10 @@ public abstract class ConfiguredBinder
         => typeCode switch
         {
             TypeCode.Char => string.Empty,
-            TypeCode.Byte => "0",
-            TypeCode.SByte => "0",
             TypeCode.String => string.Empty,
             TypeCode.Boolean => "false",
+            TypeCode.Byte => "0",
+            TypeCode.SByte => "0",
             TypeCode.Decimal => "0",
             TypeCode.Int16 => "0",
             TypeCode.UInt16 => "0",

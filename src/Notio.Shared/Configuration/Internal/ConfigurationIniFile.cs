@@ -702,6 +702,38 @@ internal sealed class ConfiguredIniFile
     }
 
     /// <summary>
+    /// Forces a write of any pending changes to the file.
+    /// </summary>
+    public void Flush()
+    {
+        if (_isDirty)
+        {
+            WriteFile();
+        }
+    }
+
+    /// <summary>
+    /// Clears the value cache to force fresh reads from the data.
+    /// </summary>
+    public void ClearCache()
+    {
+        _fileLock.EnterWriteLock();
+        try
+        {
+            _valueCache.Clear();
+        }
+        finally
+        {
+            _fileLock.ExitWriteLock();
+        }
+    }
+
+    /// <summary>
+    /// Reloads the INI file from disk, discarding any unsaved changes.
+    /// </summary>
+    public void Reload() => this.Load();
+
+    /// <summary>
     /// Writes the INI data to the file with optimized I/O and error handling.
     /// </summary>
     private void WriteFile()
@@ -761,40 +793,5 @@ internal sealed class ConfiguredIniFile
         {
             _fileLock.ExitWriteLock();
         }
-    }
-
-    /// <summary>
-    /// Forces a write of any pending changes to the file.
-    /// </summary>
-    public void Flush()
-    {
-        if (_isDirty)
-        {
-            WriteFile();
-        }
-    }
-
-    /// <summary>
-    /// Clears the value cache to force fresh reads from the data.
-    /// </summary>
-    public void ClearCache()
-    {
-        _fileLock.EnterWriteLock();
-        try
-        {
-            _valueCache.Clear();
-        }
-        finally
-        {
-            _fileLock.ExitWriteLock();
-        }
-    }
-
-    /// <summary>
-    /// Reloads the INI file from disk, discarding any unsaved changes.
-    /// </summary>
-    public void Reload()
-    {
-        Load();
     }
 }

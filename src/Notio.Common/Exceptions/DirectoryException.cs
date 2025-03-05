@@ -1,5 +1,3 @@
-using System;
-
 namespace Notio.Common.Exceptions;
 
 /// <summary>
@@ -11,8 +9,9 @@ namespace Notio.Common.Exceptions;
 /// <param name="message">The error message.</param>
 /// <param name="directoryPath">The directory path that caused the exception.</param>
 /// <param name="innerException">The inner exception, if any.</param>
-public class DirectoryException(string message, string directoryPath, Exception innerException = null)
-    : Exception(message, innerException)
+[System.Serializable]
+public class DirectoryException(string message, string directoryPath, System.Exception innerException = null)
+    : System.Exception(message, innerException)
 {
     /// <summary>
     /// Gets the path that caused the exception.

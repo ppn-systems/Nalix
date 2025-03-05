@@ -3,7 +3,7 @@ namespace Notio.Cryptography;
 /// <summary>
 /// Provides default values for cryptographic ciphers.
 /// </summary>
-public static class CiphersConstants
+internal static class CiphersConstants
 {
     /// <summary>
     /// Only allowed key lenght in bytes

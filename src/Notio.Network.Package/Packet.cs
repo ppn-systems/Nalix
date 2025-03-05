@@ -83,20 +83,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, command, and payload.
-    /// </summary>
-    /// <param name="type">The packet type.</param>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
-        : this((byte)0, type, flags, priority, command, TimeUtils.GetMicrosecondTimestamp(), 0, payload, true)
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for type, flags, and priority.
     /// </summary>
     /// <param name="type">The packet type.</param>
@@ -107,6 +93,20 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(PacketType type, PacketFlags flags, PacketPriority priority, ushort command, Memory<byte> payload)
         : this((byte)type, (byte)flags, (byte)priority, command, payload)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, command, and payload.
+    /// </summary>
+    /// <param name="type">The packet type.</param>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload (data).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
+        : this((byte)0, type, flags, priority, command, TimeUtils.GetMicrosecondTimestamp(), 0, payload, true)
     {
     }
 
@@ -195,15 +195,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Creates a copy of this packet with a new priority level.
-    /// </summary>
-    /// <param name="newPriority">The new priority level.</param>
-    /// <returns>A new packet with the updated priority.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet WithPriority(byte newPriority) =>
-        new(Id, Type, Flags, newPriority, Command, Timestamp, Checksum, Payload);
-
-    /// <summary>
     /// Creates a copy of this packet with new flags.
     /// </summary>
     /// <param name="newFlags">The new flags.</param>
@@ -213,50 +204,13 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         new(Id, Type, newFlags, Priority, Command, Timestamp, Checksum, Payload);
 
     /// <summary>
-    /// Compares this packet with another packet for equality.
+    /// Creates a new packet that is a copy of this one but with a new payload.
     /// </summary>
-    /// <param name="other">The packet to compare with.</param>
-    /// <returns>True if the packets are equal; otherwise, false.</returns>
+    /// <param name="newPayload">The new payload to use.</param>
+    /// <returns>A new packet with the same metadata but different payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(IPacket? other)
-    {
-        if (other is null)
-            return false;
-
-        // Quick field comparison first
-        if (Type != other.Type ||
-            Flags != other.Flags ||
-            Command != other.Command ||
-            Priority != other.Priority ||
-            Payload.Length != other.Payload.Length)
-        {
-            return false;
-        }
-
-        // Only compare payload contents if everything else matches
-        return Payload.Span.SequenceEqual(other.Payload.Span);
-    }
-
-    /// <summary>
-    /// Compares this packet with another packet for equality.
-    /// </summary>
-    /// <param name="other">The packet to compare with.</param>
-    /// <returns>True if the packets are equal; otherwise, false.</returns>
-    public bool Equals(Packet other) =>
-        Type == other.Type &&
-        Flags == other.Flags &&
-        Command == other.Command &&
-        Priority == other.Priority &&
-        Payload.Length == other.Payload.Length &&
-        Payload.Span.SequenceEqual(other.Payload.Span);
-
-    /// <summary>
-    /// Compares this packet with another object for equality.
-    /// </summary>
-    /// <param name="obj">The object to compare with.</param>
-    /// <returns>True if the objects are equal; otherwise, false.</returns>
-    public override bool Equals(object? obj) =>
-        obj is Packet packet && Equals(packet);
+    public Packet WithPayload(Memory<byte> newPayload)
+        => new(Id, Type, Flags, Priority, Command, Timestamp, 0, newPayload, true);
 
     /// <summary>
     /// Returns a hash code for this packet.
@@ -350,6 +304,52 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
+    /// Compares this packet with another packet for equality.
+    /// </summary>
+    /// <param name="other">The packet to compare with.</param>
+    /// <returns>True if the packets are equal; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(IPacket? other)
+    {
+        if (other is null)
+            return false;
+
+        // Quick field comparison first
+        if (Type != other.Type ||
+            Flags != other.Flags ||
+            Command != other.Command ||
+            Priority != other.Priority ||
+            Payload.Length != other.Payload.Length)
+        {
+            return false;
+        }
+
+        // Only compare payload contents if everything else matches
+        return Payload.Span.SequenceEqual(other.Payload.Span);
+    }
+
+    /// <summary>
+    /// Compares this packet with another packet for equality.
+    /// </summary>
+    /// <param name="other">The packet to compare with.</param>
+    /// <returns>True if the packets are equal; otherwise, false.</returns>
+    public bool Equals(Packet other) =>
+        Type == other.Type &&
+        Flags == other.Flags &&
+        Command == other.Command &&
+        Priority == other.Priority &&
+        Payload.Length == other.Payload.Length &&
+        Payload.Span.SequenceEqual(other.Payload.Span);
+
+    /// <summary>
+    /// Compares this packet with another object for equality.
+    /// </summary>
+    /// <param name="obj">The object to compare with.</param>
+    /// <returns>True if the objects are equal; otherwise, false.</returns>
+    public override bool Equals(object? obj) =>
+        obj is Packet packet && Equals(packet);
+
+    /// <summary>
     /// Determines whether two packets are equal.
     /// </summary>
     /// <param name="left">The first packet.</param>
@@ -364,6 +364,24 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="right">The second packet.</param>
     /// <returns>True if the packets are not equal; otherwise, false.</returns>
     public static bool operator !=(Packet left, Packet right) => !left.Equals(right);
+
+    /// <summary>
+    /// Creates a packet from raw binary data.
+    /// </summary>
+    /// <param name="data">The binary data containing a serialized packet.</param>
+    /// <returns>A new packet deserialized from the data.</returns>
+    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
+    public static Packet FromRawData(ReadOnlySpan<byte> data)
+        => PacketSerializer.ReadPacketFast(data);
+
+    /// <summary>
+    /// Writes this packet to a binary buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <returns>The number of bytes written.</returns>
+    /// <exception cref="PackageException">Thrown if the buffer is too small.</exception>
+    public int WriteTo(Span<byte> buffer)
+        => PacketSerializer.WritePacketFast(buffer, this);
 
     /// <summary>
     /// Creates an acknowledgment packet for this packet.
@@ -383,16 +401,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
             computeChecksum: true
         );
 
-
-    /// <summary>
-    /// Creates a new packet that is a copy of this one but with a new payload.
-    /// </summary>
-    /// <param name="newPayload">The new payload to use.</param>
-    /// <returns>A new packet with the same metadata but different payload.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet WithPayload(Memory<byte> newPayload)
-        => new(Id, Type, Flags, Priority, Command, Timestamp, 0, newPayload, true);
-
     /// <summary>
     /// Gets a string representation of this packet for debugging purposes.
     /// </summary>
@@ -400,22 +408,4 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public override string ToString()
         => $"Packet ID={Id}, Type={Type}, Command={Command}, " +
            $"Flags={Flags}, Priority={Priority}, Size={Length} bytes";
-
-    /// <summary>
-    /// Creates a packet from raw binary data.
-    /// </summary>
-    /// <param name="data">The binary data containing a serialized packet.</param>
-    /// <returns>A new packet deserialized from the data.</returns>
-    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
-    public static Packet FromRawData(ReadOnlySpan<byte> data)
-        => PacketSerializer.ReadPacketFast(data);
-
-    /// <summary>
-    /// Writes this packet to a binary buffer.
-    /// </summary>
-    /// <param name="buffer">The buffer to write to.</param>
-    /// <returns>The number of bytes written.</returns>
-    /// <exception cref="PackageException">Thrown if the buffer is too small.</exception>
-    public int WriteTo(Span<byte> buffer)
-        => PacketSerializer.WritePacketFast(buffer, this);
 }
