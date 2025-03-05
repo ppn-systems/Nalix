@@ -1,5 +1,4 @@
 using Notio.Common.Logging;
-using System;
 
 namespace Notio.Logging.Internal;
 
@@ -88,37 +87,4 @@ internal static class ColorAnsi
     /// <returns>Colorized text string with reset code appended.</returns>
     internal static string Colorize(string text, LoggingLevel level)
         => GetColorCode(level) + text + Reset;
-
-    /// <summary>
-    /// Checks if the current environment supports ANSI color codes.
-    /// </summary>
-    /// <returns>True if ANSI colors are supported, otherwise false.</returns>
-    internal static bool IsColorSupported()
-    {
-        // Check environment variables that indicate color support
-        string? term = Environment.GetEnvironmentVariable("TERM");
-        string? colorterm = Environment.GetEnvironmentVariable("COLORTERM");
-        string? conEmu = Environment.GetEnvironmentVariable("ConEmuANSI");
-
-        // Most terminals with these values support color
-        bool termSupport = !string.IsNullOrEmpty(term) &&
-            (term.Contains("color") || term.Contains("xterm") || term.Contains("ansi"));
-
-        // Check for specific environment indicators
-        bool envSupport = !string.IsNullOrEmpty(colorterm) ||
-            (conEmu?.Equals("ON", StringComparison.OrdinalIgnoreCase) ?? false);
-
-        // Check if it's a Windows terminal that supports ANSI
-        bool isWindowsTerminal = Environment.GetEnvironmentVariable("WT_SESSION") != null;
-
-        return termSupport || envSupport || isWindowsTerminal;
-    }
-
-    /// <summary>
-    /// Returns a timestamp formatted with color.
-    /// </summary>
-    /// <param name="timestamp">The timestamp to format.</param>
-    /// <returns>A colored timestamp string.</returns>
-    internal static string GetColoredTimestamp(DateTime timestamp)
-        => $"{DarkGray}[{timestamp:yyyy-MM-dd HH:mm:ss.fff}]{Reset}";
 }

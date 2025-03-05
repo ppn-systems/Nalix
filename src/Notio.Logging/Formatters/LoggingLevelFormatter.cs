@@ -31,9 +31,6 @@ internal static class LoggingLevelFormatter
     // Pre-computed strings for each log level to avoid repeated allocations
     private static readonly string[] CachedLogLevels = new string[MaxLogLevels];
 
-    // Color cache for console output
-    private static readonly string[] ColorCodes = new string[MaxLogLevels];
-
     // Format masks for various output types
     private static readonly byte[] LevelSeverity =
     [
@@ -62,16 +59,6 @@ internal static class LoggingLevelFormatter
             // Create and cache the string
             CachedLogLevels[i] = new string(buffer);
         }
-
-        // Initialize color codes for console output
-        ColorCodes[0] = "\u001b[36m"; // Meta - Cyan
-        ColorCodes[1] = "\u001b[90m"; // Trace - Dark Gray
-        ColorCodes[2] = "\u001b[37m"; // Debug - White
-        ColorCodes[3] = "\u001b[32m"; // Information - Green
-        ColorCodes[4] = "\u001b[33m"; // Warning - Yellow
-        ColorCodes[5] = "\u001b[31m"; // Error - Red
-        ColorCodes[6] = "\u001b[35m"; // Critical - Magenta
-        ColorCodes[7] = "\u001b[37m"; // None - White
     }
 
     /// <summary>
@@ -113,34 +100,6 @@ internal static class LoggingLevelFormatter
 
         // Return the cached string for this log level
         return CachedLogLevels[(int)logLevel];
-    }
-
-    /// <summary>
-    /// Gets the ANSI color code for a log level.
-    /// </summary>
-    /// <param name="logLevel">The logging level.</param>
-    /// <returns>A string containing the ANSI color code.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetColorCode(LoggingLevel logLevel)
-    {
-        if (!IsValidLogLevel(logLevel))
-            return "\u001b[37m"; // Default to white
-
-        return ColorCodes[(int)logLevel];
-    }
-
-    /// <summary>
-    /// Gets the severity value of a log level (0-7).
-    /// </summary>
-    /// <param name="logLevel">The logging level.</param>
-    /// <returns>A byte representing the severity (higher = more severe).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static byte GetSeverity(LoggingLevel logLevel)
-    {
-        if (!IsValidLogLevel(logLevel))
-            return 0;
-
-        return LevelSeverity[(int)logLevel];
     }
 
     /// <summary>
