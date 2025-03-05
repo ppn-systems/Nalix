@@ -9,6 +9,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
 namespace Nalix.Logging.Internal.File;
 
 /// <summary>
