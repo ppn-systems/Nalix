@@ -267,18 +267,14 @@ public static class DirectoriesDefault
     /// </summary>
     /// <param name="handler">The handler to call when a directory is created.</param>
     public static void RegisterDirectoryCreationHandler(Action<string> handler)
-    {
-        DirectoryCreated += handler;
-    }
+        => DirectoryCreated += handler;
 
     /// <summary>
     /// Unregister a handler for directory creation events.
     /// </summary>
     /// <param name="handler">The handler to remove.</param>
     public static void UnregisterDirectoryCreationHandler(Action<string> handler)
-    {
-        DirectoryCreated -= handler;
-    }
+        => DirectoryCreated -= handler;
 
     /// <summary>
     /// Creates a subdirectory within the specified parent directory if it doesn't exist.
@@ -341,10 +337,7 @@ public static class DirectoriesDefault
     /// </summary>
     /// <param name="fileName">The file name.</param>
     /// <returns>The full path to the temporary file.</returns>
-    public static string GetTempFilePath(string fileName)
-    {
-        return GetFilePath(TempPath, fileName);
-    }
+    public static string GetTempFilePath(string fileName) => GetFilePath(TempPath, fileName);
 
     /// <summary>
     /// Gets a path to a timestamped file in the specified directory.
@@ -372,40 +365,28 @@ public static class DirectoriesDefault
     /// </summary>
     /// <param name="fileName">The file name.</param>
     /// <returns>The full path to the log file.</returns>
-    public static string GetLogFilePath(string fileName)
-    {
-        return GetFilePath(LogsPath, fileName);
-    }
+    public static string GetLogFilePath(string fileName) => GetFilePath(LogsPath, fileName);
 
     /// <summary>
     /// Gets a path to a config file with the given name.
     /// </summary>
     /// <param name="fileName">The file name.</param>
     /// <returns>The full path to the config file.</returns>
-    public static string GetConfigFilePath(string fileName)
-    {
-        return GetFilePath(ConfigPath, fileName);
-    }
+    public static string GetConfigFilePath(string fileName) => GetFilePath(ConfigPath, fileName);
 
     /// <summary>
     /// Gets a path to a storage file with the given name.
     /// </summary>
     /// <param name="fileName">The file name.</param>
     /// <returns>The full path to the storage file.</returns>
-    public static string GetStorageFilePath(string fileName)
-    {
-        return GetFilePath(StoragePath, fileName);
-    }
+    public static string GetStorageFilePath(string fileName) => GetFilePath(StoragePath, fileName);
 
     /// <summary>
     /// Gets a path to a database file with the given name.
     /// </summary>
     /// <param name="fileName">The file name.</param>
     /// <returns>The full path to the database file.</returns>
-    public static string GetDatabaseFilePath(string fileName)
-    {
-        return GetFilePath(DatabasePath, fileName);
-    }
+    public static string GetDatabaseFilePath(string fileName) => GetFilePath(DatabasePath, fileName);
 
     /// <summary>
     /// Cleans up files in the specified directory that are older than the given timespan.
