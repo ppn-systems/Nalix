@@ -38,9 +38,10 @@ public static class DLogging
             }
         };
 
-        Publisher = new LoggingPublisher().AddTarget(new FileLoggingTarget(fileLoggerOpts));
+        Publisher = new LoggingPublisher();
 
 #if DEBUG
+        Publisher.AddTarget(new FileLoggingTarget(fileLoggerOpts));
         Publisher.AddTarget(new ConsoleLoggingTarget());
 #endif
     }
@@ -82,7 +83,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Debug, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Debug, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -102,7 +105,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Debug, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Debug, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -122,7 +127,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Trace, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Trace, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -142,7 +149,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Trace, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry
+            (LoggingLevel.Trace, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -162,7 +171,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Trace, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Trace, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -182,7 +193,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Warning, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Warning, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -202,7 +215,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Warning, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Warning, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -222,7 +237,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Warning, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Warning, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -242,7 +259,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Critical, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Critical, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -262,7 +281,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Critical, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Critical, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -282,7 +303,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Critical, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Critical, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -302,7 +325,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Information, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Information, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -322,7 +347,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Information, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Information, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -342,7 +369,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Information, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Information, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -362,7 +391,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Error, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Error, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -382,7 +413,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Error, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Error, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -402,7 +435,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Error, message, source, ex, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Error, message, source, ex,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -424,7 +459,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(messageType, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            messageType, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -446,7 +483,9 @@ public static class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(messageType, message, source?.FullName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            messageType, message, source?.FullName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -469,7 +508,9 @@ public static class DLogging
         if (ex is null)
             return;
 
-        CreateLogEntry(LoggingLevel.Error, message ?? ex.Message, source ?? ex.Source, ex, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Error, message ?? ex.Message, source ?? ex.Source,
+            ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -492,7 +533,9 @@ public static class DLogging
         if (ex is null)
             return;
 
-        CreateLogEntry(LoggingLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source, ex, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LoggingLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source,
+            ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
     private static void CreateLogEntry(
@@ -506,7 +549,9 @@ public static class DLogging
     {
         if (!(level > MinimumLevel)) return;
 
-        string fullMessage = BuildFullMessage(message, sourceName, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        string fullMessage = BuildFullMessage(
+            message, sourceName, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
 
         Publisher.Publish(new LoggingEntry(level, EventId.Empty, fullMessage, null));
     }
