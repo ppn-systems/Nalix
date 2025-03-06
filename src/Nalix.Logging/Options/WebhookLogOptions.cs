@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation.  All rights reserved.
 
-using Nalix.Common.Enums;
+using Nalix.Common.Core.Enums;
+using Nalix.Common.Diagnostics;
 
 namespace Nalix.Logging.Options;
 
@@ -201,7 +202,7 @@ public sealed class WebhookLogOptions
     /// Logs below this level will be filtered out.  This helps reduce noise in Discord.
     /// Default is Warning to avoid spamming Discord with debug/info messages.
     /// </remarks>
-    public Nalix.Common.Logging.LogLevel MinimumLevel { get; set; } = Nalix.Common.Logging.LogLevel.Warning;
+    public LogLevel MinimumLevel { get; set; } = LogLevel.Warning;
 
     /// <summary>
     /// Gets or sets a value indicating whether to include stack traces in error logs.
