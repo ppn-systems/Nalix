@@ -156,13 +156,13 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                     if (n == 0)
                     {
                         this.CancelReceiveOnce();
-                        AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
+                        AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
                         return false;
                     }
                     sent += n;
                 }
 
-                AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
+                AsyncCallback.Invoke(_callbackPost, _sender!, _cachedArgs!);
                 return true;
             }
             catch (System.Exception ex)
@@ -192,13 +192,13 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 if (n == 0)
                 {
                     this.CancelReceiveOnce();
-                    AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
+                    AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
                     return false;
                 }
                 sent += n;
             }
 
-            AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
+            AsyncCallback.Invoke(_callbackPost, _sender!, _cachedArgs!);
             return true;
         }
         catch (System.Exception ex)
@@ -258,14 +258,14 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 {
                     // peer closed / connection issue
                     this.CancelReceiveOnce();
-                    AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
+                    AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
                     return false;
                 }
 
                 sent += n;
             }
 
-            AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
+            AsyncCallback.Invoke(_callbackPost, _sender!, _cachedArgs!);
             return true;
         }
         catch (System.Exception ex)
@@ -430,7 +430,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         finally
         {
             this.CancelReceiveOnce();
-            AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
+            AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
         }
     }
 
@@ -447,7 +447,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
-            AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
+            AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
 
             try
             {
