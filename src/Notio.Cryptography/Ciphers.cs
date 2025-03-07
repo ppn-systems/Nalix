@@ -40,7 +40,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Encrypt(data.Span, RandomizedGenerator.ConvertKey(key), encryptedXtea.AsSpan()[..bufferSize]);
+                            Xtea.Encrypt(data.Span, RandGenerator.ConvertKey(key), encryptedXtea.AsSpan()[..bufferSize]);
                             return encryptedXtea.AsMemory(0, bufferSize);
                         }
                         finally
@@ -51,7 +51,7 @@ public static class Ciphers
 
                 case EncryptionMode.ChaCha20Poly1305:
                     {
-                        Span<byte> nonce = RandomizedGenerator.CreateNonce();
+                        Span<byte> nonce = RandGenerator.CreateNonce();
 
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null, out byte[] ciphertext, out byte[] tag);
 
@@ -102,7 +102,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Decrypt(data.Span, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsSpan()[..bufferSize]);
+                            Xtea.Decrypt(data.Span, RandGenerator.ConvertKey(key), decryptedXtea.AsSpan()[..bufferSize]);
 
                             return decryptedXtea.AsMemory(0, bufferSize);
                         }

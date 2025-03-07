@@ -12,7 +12,7 @@ namespace Notio.Randomization;
 /// High-performance cryptographically strong random number generator 
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
-public static class RandomizedGenerator
+public static class RandGenerator
 {
     // State for the Xoshiro256++ algorithm - 256 bits total
     private static readonly ulong[] State = new ulong[4];
@@ -23,14 +23,10 @@ public static class RandomizedGenerator
     // Track if we've been properly seeded
     private static bool _seeded = false;
 
-    // Thread-local buffer for temporary use
-    [ThreadStatic]
-    private static byte[] _threadLocalBuffer;
-
     /// <summary>
     /// Static constructor to initialize the random generator state with strong entropy sources.
     /// </summary>
-    static RandomizedGenerator()
+    static RandGenerator()
     {
         InitializeState();
     }

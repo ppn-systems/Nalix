@@ -19,7 +19,9 @@ namespace Notio.Shared.Memory.Pools;
 /// <param name="defaultMaxItemsPerType">The default maximum number of items to store per type.</param>
 public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
-    // Default maximum pool size to prevent unbounded memory growth
+    /// <summary>
+    /// Default maximum pool size to prevent unbounded memory growth
+    /// </summary>
     public const int DefaultMaxSize = 1024;
 
     // Type-specific storage for pooled objects

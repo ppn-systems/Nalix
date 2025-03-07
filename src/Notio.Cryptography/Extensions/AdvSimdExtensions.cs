@@ -4,6 +4,9 @@ using System.Runtime.Intrinsics.X86;
 
 namespace Notio.Cryptography.Extensions;
 
+/// <summary>
+/// Provides SIMD-accelerated cryptographic helper functions.
+/// </summary>
 public static class AdvSimdExtensions
 {
     // Pre-computed shuffle mask for byte reversal

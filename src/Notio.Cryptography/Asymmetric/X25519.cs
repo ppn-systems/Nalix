@@ -36,7 +36,7 @@ public static class X25519
     {
         // Generate a random 32-byte scalar and clamp it
         byte[] privateKey = new byte[FieldElementSize];
-        RandomizedGenerator.Fill(privateKey);
+        RandGenerator.Fill(privateKey);
         ClampScalar(privateKey);
 
         // Compute public key using the base point
