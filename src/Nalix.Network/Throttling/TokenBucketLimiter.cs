@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved. 
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Logging;
+using Nalix.Common.Core.Abstractions;
+using Nalix.Common.Core.Exceptions;
+using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

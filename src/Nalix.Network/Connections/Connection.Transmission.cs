@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
-using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Results.Primitives;
 using Nalix.Shared.Memory.Pooling;

@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Caching;
+using Nalix.Common.Infrastructure.Caching;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
