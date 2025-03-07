@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Protocols;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Remote;
 using Nalix.Shared.Memory.Pooling;
