@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Linq;
 
 namespace Notio.Logging.Internal.File;
 
@@ -23,7 +21,7 @@ public sealed class FileError
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
     /// </summary>
-    internal string? NewLogFileName { get; private set; }
+    public string? NewLogFileName { get; private set; }
 
     /// <summary>
     /// Creates a new file error instance with detailed context.
@@ -34,22 +32,5 @@ public sealed class FileError
     {
         Exception = ex ?? throw new ArgumentNullException(nameof(ex));
         OriginalFilePath = filePath ?? string.Empty;
-    }
-
-    /// <summary>
-    /// Suggests a new log file name to use in place of the current one.
-    /// </summary>
-    /// <param name="newLogFileName">New log file name or path.</param>
-    /// <exception cref="ArgumentException">Thrown when the provided file name is null or empty.</exception>
-    public void UseNewLogFileName(string newLogFileName)
-    {
-        if (string.IsNullOrWhiteSpace(newLogFileName))
-            throw new ArgumentException("New log file name cannot be null or empty", nameof(newLogFileName));
-
-        // Clean any potentially problematic characters from the path
-        var safeName = Path.GetInvalidFileNameChars()
-            .Aggregate(newLogFileName, (current, c) => current.Replace(c, '_'));
-
-        NewLogFileName = safeName;
     }
 }

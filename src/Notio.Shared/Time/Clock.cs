@@ -372,10 +372,7 @@ public static class Clock
     /// A value greater than 1.0 means the local clock is running slower than the reference clock.
     /// A value less than 1.0 means the local clock is running faster than the reference clock.
     /// </summary>
-    public static double GetDriftRate()
-    {
-        return _driftCorrection;
-    }
+    public static double GetDriftRate() => _driftCorrection;
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.

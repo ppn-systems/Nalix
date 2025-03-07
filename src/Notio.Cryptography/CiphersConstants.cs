@@ -6,6 +6,16 @@ namespace Notio.Cryptography;
 internal static class CiphersConstants
 {
     /// <summary>
+    /// Size of the public key in bytes.
+    /// </summary>
+    public const int PublicKeySize = 32;
+
+    /// <summary>
+    /// Size of the signature in bytes.
+    /// </summary>
+    public const int SignatureSize = 64;
+
+    /// <summary>
     /// Only allowed key lenght in bytes
     /// </summary>
     public const int AllowedKeyLength = 32;
@@ -19,16 +29,6 @@ internal static class CiphersConstants
     /// How many bytes are processed per loop
     /// </summary>
     public const int ProcessBytesAtTime = 64;
-
-    /// <summary>
-    /// Size of the public key in bytes.
-    /// </summary>
-    public const int PublicKeySize = 32;
-
-    /// <summary>
-    /// Size of the signature in bytes.
-    /// </summary>
-    public const int SignatureSize = 64;
 
     /// <summary>
     /// The number of iterations

@@ -102,7 +102,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Decrypt(data.Span, RandomizedGenerator.ConvertKey(key), decryptedXtea[..bufferSize]);
+                            Xtea.Decrypt(data.Span, RandomizedGenerator.ConvertKey(key), decryptedXtea.AsSpan()[..bufferSize]);
 
                             return decryptedXtea.AsMemory(0, bufferSize);
                         }
