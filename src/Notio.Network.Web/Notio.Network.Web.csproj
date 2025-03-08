@@ -8,7 +8,10 @@
 		<PackageIcon>Notio.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		
+
+    <Version>0.3.40</Version>
+    <PackageVersion>0.3.40</PackageVersion>
+    
 		<ReleaseNotes>Initial release of Notio.Network.Web package.</ReleaseNotes>
 		<Description>Notio.Network.Web is a .NET library for managing "WebSocket, WebApi,..." functionality.</Description>
 	</PropertyGroup>
