@@ -19,6 +19,8 @@ namespace Notio.Network.Connection;
 /// </summary>
 public sealed class Connection : IConnection
 {
+    #region Fields
+
     private readonly Socket _socket;
     private readonly ILogger? _logger;
     private readonly Lock _lock = new();
@@ -33,6 +35,10 @@ public sealed class Connection : IConnection
     private bool _disposed = false;
     private string? _remoteEndPoint;
     private byte[] _encryptionKey = new byte[32];
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
@@ -53,6 +59,10 @@ public sealed class Connection : IConnection
             }
         };
     }
+
+    #endregion
+
+    #region Properties
 
     /// <inheritdoc />
     public string Id => _id.ToString(true);
@@ -104,6 +114,22 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
+    public Authoritys Authority { get; set; } = Authoritys.Guests;
+
+    /// <inheritdoc />
+    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
+
+    /// <inheritdoc />
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+
+    /// <inheritdoc />
+    public ConnectionState State { get; set; } = ConnectionState.Connected;
+
+    #endregion
+
+    #region Events
+
+    /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnCloseEvent
     {
         add => _onCloseEvent += value;
@@ -124,17 +150,9 @@ public sealed class Connection : IConnection
         remove => _onPostProcessEvent -= value;
     }
 
-    /// <inheritdoc />
-    public Authoritys Authority { get; set; } = Authoritys.Guests;
+    #endregion
 
-    /// <inheritdoc />
-    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
-
-    /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
-
-    /// <inheritdoc />
-    public ConnectionState State { get; set; } = ConnectionState.Connected;
+    #region Methods
 
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
@@ -191,6 +209,10 @@ public sealed class Connection : IConnection
     /// <inheritdoc />
     public void Disconnect(string? reason = null) => Close(force: true);
 
+    #endregion
+
+    #region Dispose Pattern
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -214,4 +236,6 @@ public sealed class Connection : IConnection
             _cstream.Dispose();
         }
     }
+
+    #endregion
 }

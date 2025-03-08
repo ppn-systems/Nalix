@@ -9,22 +9,27 @@ namespace Notio.Network.Connection;
 /// <summary>
 /// Manages active network connections, providing session tracking and controlled disposal.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="ConnectionManager"/> class.
-/// </remarks>
-/// <param name="logger">The logger instance for logging connection events.</param>
-/// <exception cref="ArgumentNullException">Thrown if <paramref name="logger"/> is null.</exception>
 public class ConnectionManager(ILogger logger) : IDisposable
 {
+    #region Fields
+
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ConcurrentDictionary<string, IConnection> _activeConnections = new();
     private readonly CancellationTokenSource _cts = new();
     private bool _isDisposed = false;
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
     /// Gets the number of currently active connections.
     /// </summary>
     public int ActiveConnectionCount => _activeConnections.Count;
+
+    #endregion
+
+    #region Methods
 
     /// <summary>
     /// Registers a new connection and tracks its session.
@@ -40,10 +45,9 @@ public class ConnectionManager(ILogger logger) : IDisposable
         try
         {
             Guid sessionId = Guid.NewGuid();
-            connection.OnCloseEvent += (s, e) => HandleConnectionClosed(connection.Id, e.Connection);
-
             if (_activeConnections.TryAdd(connection.Id, connection))
             {
+                connection.OnCloseEvent += HandleConnectionClosed;
                 _logger.Info($"New connection registered. Session ID: {sessionId}, Total connections: {_activeConnections.Count}");
                 return sessionId;
             }
@@ -60,14 +64,14 @@ public class ConnectionManager(ILogger logger) : IDisposable
     /// <summary>
     /// Handles the closure of a connection, removing it from active sessions.
     /// </summary>
-    /// <param name="sessionId">The session ID of the connection being closed.</param>
-    /// <param name="connection">The connection instance being closed.</param>
-    private void HandleConnectionClosed(string sessionId, IConnection connection)
+    /// <param name="sender">The connection sender.</param>
+    /// <param name="e">Event arguments containing connection details.</param>
+    private void HandleConnectionClosed(object? sender, IConnectEventArgs e)
     {
-        if (_activeConnections.TryRemove(sessionId, out IConnection? _))
+        if (sender is IConnection connection && _activeConnections.TryRemove(connection.Id, out _))
         {
-            connection.OnCloseEvent -= (s, e) => HandleConnectionClosed(sessionId, e.Connection);
-            _logger.Info($"Connection closed. Session ID: {sessionId}, Remaining connections: {_activeConnections.Count}");
+            connection.OnCloseEvent -= HandleConnectionClosed;
+            _logger.Info($"Connection closed. ID: {connection.Id}, Remaining connections: {_activeConnections.Count}");
         }
     }
 
@@ -80,20 +84,20 @@ public class ConnectionManager(ILogger logger) : IDisposable
         {
             _cts.Cancel();
 
-            foreach (var connection in _activeConnections)
+            foreach (var connection in _activeConnections.Values)
             {
                 try
                 {
-                    connection.Value.Dispose();
+                    connection.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error closing connection {connection.Key}: {ex.Message}", ex);
+                    _logger.Error($"Error closing connection {connection.Id}: {ex.Message}", ex);
                 }
             }
 
             _activeConnections.Clear();
-            _logger.Info("All managed connections closed by ConnectionManager.");
+            _logger.Info("All managed connections closed.");
         }
         catch (Exception ex)
         {
@@ -108,10 +112,7 @@ public class ConnectionManager(ILogger logger) : IDisposable
     /// <param name="sessionId">The session ID of the connection.</param>
     /// <returns>The <see cref="IConnection"/> instance if found; otherwise, null.</returns>
     public IConnection? GetConnection(string sessionId)
-    {
-        _activeConnections.TryGetValue(sessionId, out IConnection? connection);
-        return connection;
-    }
+        => _activeConnections.TryGetValue(sessionId, out IConnection? connection) ? connection : null;
 
     /// <summary>
     /// Determines whether a session is active.
@@ -121,19 +122,36 @@ public class ConnectionManager(ILogger logger) : IDisposable
     public bool IsSessionActive(string sessionId)
         => _activeConnections.ContainsKey(sessionId);
 
+    #endregion
+
+    #region Dispose Pattern
+
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionManager"/> instance.
     /// </summary>
     public void Dispose()
     {
-        if (!_isDisposed)
+        if (_isDisposed) return;
+
+        lock (this)
+        {
+            if (_isDisposed) return;
+            _isDisposed = true;
+        }
+
+        try
         {
             CloseAllConnections();
             _cts.Dispose();
-            _isDisposed = true;
             _logger.Info("ConnectionManager disposed.");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Error disposing ConnectionManager: {ex.Message}", ex);
         }
 
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }
