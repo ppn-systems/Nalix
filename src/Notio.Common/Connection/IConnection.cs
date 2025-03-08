@@ -2,6 +2,7 @@ using Notio.Common.Connection.Enums;
 using Notio.Common.Cryptography;
 using Notio.Common.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,6 +58,12 @@ public interface IConnection : IDisposable
     /// Gets the current state of the connection.
     /// </summary>
     ConnectionState State { get; set; }
+
+    /// <summary>
+    /// A dictionary for storing connection-specific metadata.
+    /// This allows dynamically attaching and retrieving additional information related to the connection.
+    /// </summary>
+    Dictionary<string, object> Metadata { get; }
 
     /// <summary>
     /// Occurs when the connection is closed.

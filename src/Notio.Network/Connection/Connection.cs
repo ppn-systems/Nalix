@@ -7,6 +7,7 @@ using Notio.Common.Memory;
 using Notio.Common.Models;
 using Notio.Identification;
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +59,9 @@ public sealed class Connection : IConnection
 
     /// <inheritdoc />
     public long PingTime => _cstream.LastPingTime;
+
+    /// <inheritdoc/>
+    public Dictionary<string, object> Metadata { get; } = [];
 
     /// <inheritdoc />
     public byte[] EncryptionKey

@@ -104,11 +104,11 @@ public sealed class PacketDispatcherOptions
                 {
                     using MemoryStream ms = new();
 
-                    byte[] lengthBytes = new byte[2];
+                    //byte[] lengthBytes = new byte[2];
 
-                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+                    //BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
 
-                    await ms.WriteAsync(lengthBytes);
+                    //await ms.WriteAsync(lengthBytes);
                     await ms.WriteAsync(data);
 
                     await connection.SendAsync(ms.ToArray());
@@ -122,11 +122,11 @@ public sealed class PacketDispatcherOptions
                     using MemoryStream ms = new();
 
                     byte[] data = [.. bytes];
-                    byte[] lengthBytes = new byte[2];
+                    //byte[] lengthBytes = new byte[2];
 
-                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
+                    //BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
 
-                    await ms.WriteAsync(lengthBytes);
+                    //await ms.WriteAsync(lengthBytes);
                     await ms.WriteAsync(data);
 
                     await connection.SendAsync(ms.ToArray());
