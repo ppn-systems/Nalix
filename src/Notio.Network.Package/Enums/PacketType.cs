@@ -151,6 +151,11 @@ public enum PacketType : byte
     Acknowledgment = 0x2B,
 
     /// <summary>
+    /// Object
+    /// </summary>
+    Object = 0x2C,
+
+    /// <summary>
     /// Custom or undefined type.
     /// </summary>
     Custom = 0xFF

@@ -7,9 +7,13 @@ using Notio.Network.Package.Utilities;
 using Notio.Network.Package.Utilities.Data;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Notio.Network.Package;
 
@@ -21,10 +25,16 @@ namespace Notio.Network.Package;
 [DebuggerDisplay("Packet {Id}: Type={Type}, Command={Command}, Length={Length}")]
 public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
 {
+    #region Constants
+
     // Cache the max packet size locally to avoid field access costs
     private const int MaxPacketSize = PacketConstants.MaxPacketSize;
-    private const int MaxStackAllocSize = PacketConstants.MaxStackAllocSize;
     private const int MaxHeapAllocSize = PacketConstants.MaxHeapAllocSize;
+    private const int MaxStackAllocSize = PacketConstants.MaxStackAllocSize;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the total length of the packet including header and payload.
@@ -71,6 +81,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     public Memory<byte> Payload { get; }
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
     /// </summary>
@@ -97,6 +111,53 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
+    /// </summary>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketFlags flags, PacketPriority priority, ushort command, string s)
+        : this((byte)PacketType.String, (byte)flags, (byte)priority, command, Encoding.UTF8.GetBytes(s))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
+    /// Serializes the provided object using JSON serialization.
+    /// </summary>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="obj">The object to serialize and send in the packet.</param>
+    /// <param name="jsonTypeInfo">The <see cref="JsonTypeInfo{T}"/> used for JSON serialization.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketFlags flags, PacketPriority priority, ushort command, object obj,
+        JsonTypeInfo<object> jsonTypeInfo)
+        : this((byte)PacketType.Object, (byte)flags, (byte)priority, command,
+              JsonSerializer.SerializeToUtf8Bytes(obj, jsonTypeInfo))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
+    /// Serializes a list of objects using JSON serialization.
+    /// </summary>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="list">The list of objects to serialize and send in the packet.</param>
+    /// <param name="jsonTypeInfo">The <see cref="JsonTypeInfo{T}"/> used for JSON serialization.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketFlags flags, PacketPriority priority, ushort command, List<object> list,
+        JsonTypeInfo<List<object>> jsonTypeInfo)
+        : this((byte)PacketType.List, (byte)flags, (byte)priority, command,
+               JsonSerializer.SerializeToUtf8Bytes(list, jsonTypeInfo))
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, command, and payload.
     /// </summary>
     /// <param name="type">The packet type.</param>
@@ -109,6 +170,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         : this((byte)0, type, flags, priority, command, TimeUtils.GetMicrosecondTimestamp(), 0, payload, true)
     {
     }
+
+    #endregion
+
+    #region Internal Constructors
 
     /// <summary>
     /// Internal constructor used by the packet serializer.
@@ -166,6 +231,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         Checksum = computeChecksum ? Crc32.HashToUInt32(Payload.Span) : checksum;
     }
 
+    #endregion
+
+    #region Validation Methods
+
     /// <summary>
     /// Verifies the packet's checksum against the computed checksum of the payload.
     /// </summary>
@@ -194,6 +263,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         return (currentTime - Timestamp) > timeoutMicroseconds;
     }
 
+    #endregion
+
+    #region Modification Methods
+
     /// <summary>
     /// Creates a copy of this packet with new flags.
     /// </summary>
@@ -211,6 +284,32 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithPayload(Memory<byte> newPayload)
         => new(Id, Type, Flags, Priority, Command, Timestamp, 0, newPayload, true);
+
+    #endregion
+
+    #region Serialization Methods
+
+    /// <summary>
+    /// Creates a packet from raw binary data.
+    /// </summary>
+    /// <param name="data">The binary data containing a serialized packet.</param>
+    /// <returns>A new packet deserialized from the data.</returns>
+    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
+    public static Packet FromRawData(ReadOnlySpan<byte> data)
+        => PacketSerializer.ReadPacketFast(data);
+
+    /// <summary>
+    /// Writes this packet to a binary buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <returns>The number of bytes written.</returns>
+    /// <exception cref="PackageException">Thrown if the buffer is too small.</exception>
+    public int WriteTo(Span<byte> buffer)
+        => PacketSerializer.WritePacketFast(buffer, this);
+
+    #endregion
+
+    #region Equality Methods
 
     /// <summary>
     /// Returns a hash code for this packet.
@@ -289,21 +388,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
-    /// Releases any resources used by this packet, returning rented arrays to the pool.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        // Only return large arrays to the pool
-        if (Payload.Length > MaxHeapAllocSize &&
-            MemoryMarshal.TryGetArray<byte>(Payload, out var segment) &&
-            segment.Array is { } array)
-        {
-            ArrayPool<byte>.Shared.Return(array, clearArray: true);
-        }
-    }
-
-    /// <summary>
     /// Compares this packet with another packet for equality.
     /// </summary>
     /// <param name="other">The packet to compare with.</param>
@@ -365,41 +449,26 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>True if the packets are not equal; otherwise, false.</returns>
     public static bool operator !=(Packet left, Packet right) => !left.Equals(right);
 
-    /// <summary>
-    /// Creates a packet from raw binary data.
-    /// </summary>
-    /// <param name="data">The binary data containing a serialized packet.</param>
-    /// <returns>A new packet deserialized from the data.</returns>
-    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
-    public static Packet FromRawData(ReadOnlySpan<byte> data)
-        => PacketSerializer.ReadPacketFast(data);
+    #endregion
+
+    #region Cleanup Methods
 
     /// <summary>
-    /// Writes this packet to a binary buffer.
+    /// Releases any resources used by this packet, returning rented arrays to the pool.
     /// </summary>
-    /// <param name="buffer">The buffer to write to.</param>
-    /// <returns>The number of bytes written.</returns>
-    /// <exception cref="PackageException">Thrown if the buffer is too small.</exception>
-    public int WriteTo(Span<byte> buffer)
-        => PacketSerializer.WritePacketFast(buffer, this);
-
-    /// <summary>
-    /// Creates an acknowledgment packet for this packet.
-    /// </summary>
-    /// <returns>A new packet configured as an acknowledgment.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet CreateAcknowledgment()
-        => new(
-            id: Id,
-            type: (byte)PacketType.Acknowledgment,
-            flags: (byte)(Flags | (byte)PacketFlags.Acknowledged),
-            priority: Priority,
-            command: Command,
-            timestamp: TimeUtils.GetMicrosecondTimestamp(),
-            checksum: 0,
-            payload: Memory<byte>.Empty,
-            computeChecksum: true
-        );
+    public void Dispose()
+    {
+        // Only return large arrays to the pool
+        if (Payload.Length > MaxHeapAllocSize &&
+            MemoryMarshal.TryGetArray<byte>(Payload, out var segment) &&
+            segment.Array is { } array)
+        {
+            ArrayPool<byte>.Shared.Return(array, clearArray: true);
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Gets a string representation of this packet for debugging purposes.
