@@ -5,6 +5,8 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Connection;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -25,13 +27,20 @@ public abstract partial class UdpListenerBase
                     .ReceiveAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
-                    static state =>
+                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
+                    name: $"udp.proc.{_port}",
+                    group: $"udp.port.{_port}",
+                    work: async (_, __) =>
                     {
-                        CallbackState s = (CallbackState)state!;
-                        s.Listener.ProcessDatagram(s.Result);
+                        ProcessDatagram(result);
+                        await System.Threading.Tasks.Task.CompletedTask;
                     },
-                    new CallbackState { Listener = this, Result = result });
+                    options: new WorkerOptions
+                    {
+                        Tag = "udp",
+                        MaxGroupConcurrency = 8,
+                        TryAcquireGroupSlotImmediately = true
+                    });
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -87,12 +96,6 @@ public abstract partial class UdpListenerBase
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[{nameof(UdpListenerBase)}] inject id={connection.ID} size={result.Buffer.Length}");
-    }
-
-    private struct CallbackState
-    {
-        public required UdpListenerBase Listener;
-        public required System.Net.Sockets.UdpReceiveResult Result;
     }
 }
 
