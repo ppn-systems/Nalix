@@ -1,0 +1,21 @@
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- Configuration settings for Debug build -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>..\build\bin\Debug</OutputPath>
+    <IntermediateOutputPath>..\build\obj\Debug</IntermediateOutputPath>
+  </PropertyGroup>
+
+  <!-- Configuration settings for Release build -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Optimize code during pack for Release mode -->
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <GenerateJson>false</GenerateJson>
+    <Deterministic>true</Deterministic>
+    <UseCompression>true</UseCompression>
+
+    <OutputPath>..\build\bin\Release</OutputPath>
+    <IntermediateOutputPath>..\build\obj\Release</IntermediateOutputPath>
+  </PropertyGroup>
+</Project>
