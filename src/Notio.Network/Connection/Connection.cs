@@ -114,7 +114,7 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public Authoritys Authority { get; set; } = Authoritys.Guests;
+    public Authoritys Authority { get; set; } = Authoritys.Guest;
 
     /// <inheritdoc />
     public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;

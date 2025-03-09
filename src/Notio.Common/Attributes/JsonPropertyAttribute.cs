@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Notio.Serialization;
+namespace Notio.Common.Attributes;
 
 /// <summary>
 /// An attribute used to help setup a property behavior when serialize/deserialize JSON.

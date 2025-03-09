@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Models;
+namespace Notio.Common.Models;
 
 /// <summary>
 /// Represents different authority levels of users in the system.
@@ -16,7 +16,7 @@ public enum Authoritys : byte
     /// The user is either not logged in or has not registered.
     /// Typically a guest user with minimal or no access.
     /// </summary>
-    Guests = 1,
+    Guest = 1,
 
     /// <summary>
     /// The user has completed basic registration and has standard access privileges.
@@ -34,5 +34,12 @@ public enum Authoritys : byte
     /// The user is an administrator with full access and control over the system.
     /// This level allows the management of all system aspects and users.
     /// </summary>
-    Administrator = 4
+    Administrator = 4,
+
+    /// <summary>
+    /// The highest level of authority in the system.
+    /// The owner has full control over the entire system, including administrative functions and system-wide settings.
+    /// Typically reserved for the system creator or primary owner.
+    /// </summary>
+    Owner = 5
 }

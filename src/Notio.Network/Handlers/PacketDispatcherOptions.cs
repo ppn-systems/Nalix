@@ -1,3 +1,4 @@
+using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;

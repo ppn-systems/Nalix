@@ -1,4 +1,5 @@
-﻿using Notio.Serialization.Internal;
+using Notio.Common.Attributes;
+using Notio.Serialization.Internal;
 using Notio.Serialization.Internal.Extensions;
 using Notio.Serialization.Internal.Reflection;
 using System;
