@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<License>Apache</License>
@@ -28,7 +28,8 @@
 
 	<ItemGroup>
     <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
-		<ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />
+    <ProjectReference Include="..\Notio.Cryptography\Notio.Cryptography.csproj" />
+    <ProjectReference Include="..\Notio.Serialization\Notio.Serialization.csproj" />
 	</ItemGroup>
 
 </Project>
