@@ -256,10 +256,13 @@ public sealed class PacketDispatcherOptions
     }
 
     /// <summary>
-    /// Registers a handler by scanning the specified controller type for methods
-    /// decorated with <see cref="PacketCommandAttribute"/>.
+    /// Registers a handler by creating an instance of the specified controller type
+    /// and scanning its methods decorated with <see cref="PacketCommandAttribute"/>.
     /// </summary>
-    /// <typeparam name="TController">The type of the controller to register.</typeparam>
+    /// <typeparam name="TController">
+    /// The type of the controller to register. 
+    /// This type must have a parameterless constructor.
+    /// </typeparam>
     /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
@@ -267,8 +270,32 @@ public sealed class PacketDispatcherOptions
     public PacketDispatcherOptions WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods |
         DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
-        where TController : new()
+        where TController : class, new()
+        => this.WithHandler(() => new TController());
+
+    /// <summary>
+    /// Registers a handler by creating an instance of the specified controller type
+    /// using a provided factory function, then scanning its methods decorated 
+    /// with <see cref="PacketCommandAttribute"/>.
+    /// </summary>
+    /// <typeparam name="TController">
+    /// The type of the controller to register. This type does not require 
+    /// a parameterless constructor.
+    /// </typeparam>
+    /// <param name="factory">
+    /// A function that returns an instance of <typeparamref name="TController"/>.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if a method with an unsupported return type is encountered.
+    /// </exception>
+    public PacketDispatcherOptions WithHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(Func<TController> factory)
+        where TController : class
     {
+        TController controllerInstance = factory();
+
         // Get methods from the controller that are decorated with PacketCommandAttribute
         List<MethodInfo> methods = [.. typeof(TController)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
