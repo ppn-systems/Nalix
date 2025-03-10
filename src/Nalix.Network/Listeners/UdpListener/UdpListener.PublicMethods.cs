@@ -7,6 +7,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Timing;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -161,6 +162,25 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     {
+        // Record last sync and drift vs local clock
+        System.Int64 now = Clock.UnixMillisecondsNow();
+        _lastSyncUnixMs = milliseconds;
+        _lastDriftMs = now - milliseconds;
+
+        // Hook for derived listeners (optional override)
+        this.OnTimeSynchronized(milliseconds, now, _lastDriftMs);
+    }
+
+    /// <summary>
+    /// Called when the listener synchronizes its time with the server.
+    /// </summary>
+    /// <param name="serverMs">The current server time in milliseconds since the Unix epoch.</param>
+    /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
+    /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    protected virtual void OnTimeSynchronized(System.Int64 serverMs, System.Int64 localMs, System.Int64 driftMs)
+    {
+        // No-op by default
     }
 
     /// <summary>
@@ -170,4 +190,78 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     protected abstract System.Boolean IsAuthenticated(
         IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
+
+    /// <summary>
+    /// Generates a human-readable diagnostic report of the current listener status.
+    /// </summary>
+    public System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new(512);
+
+        // IsListening wraps _isRunning:contentReference[oaicite:10]{index=10}
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
+        _ = sb.AppendLine($"Port: {_port}");
+        _ = sb.AppendLine($"IsListening: {this.IsListening}");
+        _ = sb.AppendLine($"IsDisposed: {_isDisposed}");
+        _ = sb.AppendLine($"Protocol: {EllipseLeft(_protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>", 23)}");
+        _ = sb.AppendLine();
+
+        // Socket configuration (static Config):contentReference[oaicite:11]{index=11}
+        _ = sb.AppendLine("Socket Config:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"NoDelay: {Config.NoDelay}");
+        _ = sb.AppendLine($"ReuseAddress: {Config.ReuseAddress}");
+        _ = sb.AppendLine($"KeepAlive: {Config.KeepAlive}");
+        _ = sb.AppendLine($"BufferSize: {Config.BufferSize}");
+        _ = sb.AppendLine();
+
+        // Worker info: spawn/group + concurrency = 8 in ReceiveDatagramsAsync:contentReference[oaicite:12]{index=12}
+        _ = sb.AppendLine("Worker:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"Group: udp.port.{_port}");
+        _ = sb.AppendLine("Configured MaxGroupConcurrency: 8");
+        _ = sb.AppendLine();
+
+        // Time sync
+        // property getter used by base:contentReference[oaicite:13]{index=13}
+        System.Boolean timeSyncEnabled = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                                                        .IsTimeSyncEnabled;
+        _ = sb.AppendLine("Time Sync:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"Enabled: {timeSyncEnabled}");
+        _ = sb.AppendLine($"LastSyncUnixMs: {_lastSyncUnixMs}");
+        _ = sb.AppendLine($"LastDriftMs(local-now - server): {_lastDriftMs}");
+        _ = sb.AppendLine();
+
+        // Traffic stats
+        System.Int64 rxPackets = System.Threading.Interlocked.Read(ref _rxPackets);
+        System.Int64 rxBytes = System.Threading.Interlocked.Read(ref _rxBytes);
+        System.Int64 dropShort = System.Threading.Interlocked.Read(ref _dropShort);
+        System.Int64 dropUnauth = System.Threading.Interlocked.Read(ref _dropUnauth);
+        System.Int64 dropUnknown = System.Threading.Interlocked.Read(ref _dropUnknown);
+
+        _ = sb.AppendLine("Traffic:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"ReceivedPackets: {rxPackets}");
+        _ = sb.AppendLine($"ReceivedBytes: {rxBytes}");
+        _ = sb.AppendLine($"Dropped: short={dropShort}, unauth={dropUnauth}, unknown={dropUnknown}");
+        _ = sb.AppendLine();
+
+        // Errors summary (bind/recv/shutdown) from Activate/Receive handling:contentReference[oaicite:14]{index=14}:contentReference[oaicite:15]{index=15}
+        System.Int64 recvErrors = System.Threading.Interlocked.Read(ref _recvErrors);
+
+        _ = sb.AppendLine("Errors:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"ReceiveErrors: {recvErrors}");
+        _ = sb.AppendLine();
+
+        // Live objects
+        _ = sb.AppendLine("Runtime:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine($"UdpClient: {(_udpClient is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine($"CTS: {(_cts is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine();
+
+        return sb.ToString();
+    }
 }

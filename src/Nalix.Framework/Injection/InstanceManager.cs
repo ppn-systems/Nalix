@@ -364,9 +364,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Instances:");
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------");
         _ = sb.AppendLine("Type                                   | Disposable | Source");
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------");
 
         foreach (var kvp in System.Linq.Enumerable.OrderBy(_instanceCache, x => x.Key.FullName))
         {
@@ -376,20 +376,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             System.String typeName = type.FullName ?? type.Name;
             if (typeName.Length > 35)
             {
-                typeName = typeName[..32] + "...";
+                typeName = "..." + typeName[^32..];
             }
 
             System.Boolean isDisposable = instance is System.IDisposable;
             System.String source = _constructorCache.ContainsKey(type)
-                ? "CtorCache"
-                : _activatorCache.ContainsKey(type)
-                    ? "ActivatorCache"
-                    : "ManualRegister";
+                ? "ConstructorCache"
+                : _activatorCache.ContainsKey(type) ? "ActivatorCache" : "ManualRegister";
 
             _ = sb.AppendLine($"{typeName.PadRight(38)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------");
 
         return sb.ToString();
     }
