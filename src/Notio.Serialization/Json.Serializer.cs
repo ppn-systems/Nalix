@@ -86,39 +86,31 @@ public partial class Json
             if (type == null)
                 return excludedNames;
 
-            var allExcluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> allExcluded = new(StringComparer.OrdinalIgnoreCase);
+            PropertyInfo[] properties = type.GetProperties();
 
-            var properties = type.GetProperties();
+            // Get the property list with [JsonInclude]
+            List<string> includedProps = [.. properties
+                .Where(p => Attribute.IsDefined(p, typeof(JsonIncludeAttribute)))
+                .Select(p => p.Name)];
 
-            var includedProps = properties.Where(p => Attribute
-                .IsDefined(p, typeof(JsonIncludeAttribute))).Select(p => p.Name).ToList();
+            // Get a property list with [JsonProperty]
+            List<string> jsonPropertyNames = [.. properties
+                .Where(p => Attribute.IsDefined(p, typeof(JsonPropertyAttribute)))
+                .Select(p => p.Name)];
 
+            // If there is at least one property with [JsonInclude], only serialize those properties
             if (includedProps.Count != 0)
             {
                 allExcluded.UnionWith(properties.Select(p => p.Name).Except(includedProps));
             }
-            else
-            {
-                foreach (var prop in properties)
-                {
-                    if (Attribute.IsDefined(prop, typeof(JsonPropertyIgnoreAttribute)))
-                        allExcluded.Add(prop.Name);
-                }
 
-                foreach (var prop in IgnoredPropertiesCache.Retrieve(type, t =>
-                    t.GetProperties().Where(p => AttributeCache.DefaultCache.Value
-                    .RetrieveOne<JsonPropertyAttribute>(p)?.Ignored == true).Select(p => p.Name)))
-                {
-                    allExcluded.Add(prop);
-                }
-            }
+            // If a property doesn't have [JsonInclude] or [JsonProperty], remove it
+            allExcluded.UnionWith(properties
+                .Where(p => !includedProps.Contains(p.Name) && !jsonPropertyNames.Contains(p.Name))
+                .Select(p => p.Name));
 
-            if (allExcluded.Count == 0)
-                return excludedNames;
-
-            return excludedNames?.Any(name => !string.IsNullOrWhiteSpace(name)) == true
-                ? [.. allExcluded.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y)), StringComparer.OrdinalIgnoreCase)]
-                : [.. allExcluded];
+            return allExcluded.Count == 0 ? excludedNames : [.. allExcluded];
         }
 
         private static string ResolveBasicType(object? obj)

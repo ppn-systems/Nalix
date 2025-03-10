@@ -72,8 +72,6 @@ public class SerializerOptions
     /// </value>
     public string? TypeSpecifier { get; }
 
-
-
     /// <summary>
     /// Gets the json serializer case.
     /// </summary>
@@ -115,24 +113,30 @@ public class SerializerOptions
         if (TypeCache.TryGetValue(targetType, out var current))
             return current;
 
-        var fields =
-            new List<MemberInfo>(PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties(targetType).Where(p => p.CanRead));
+        var fields = new List<MemberInfo>(
+            PropertyTypeCache.DefaultCache.Value.RetrieveAllProperties(targetType)
+            .Where(p => p.CanRead));
 
-        // If the target is a struct (value type) navigate the fields.
         if (targetType.IsValueType)
         {
             fields.AddRange(FieldTypeCache.DefaultCache.Value.RetrieveAllFields(targetType));
         }
 
-        var value = fields
-            .Where(x => x.GetCustomAttribute<JsonPropertyAttribute>()?.Ignored != true)
+        bool hasJsonInclude = fields.Any(x => Attribute.IsDefined(x, typeof(JsonIncludeAttribute)));
+
+        Dictionary<Tuple<string, string>, MemberInfo> value = fields
+            .Where(x => !hasJsonInclude || Attribute.IsDefined(x, typeof(JsonIncludeAttribute)))
             .ToDictionary(
-                x => Tuple.Create(x.Name,
-                    x.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName ?? x.Name.GetNameWithCase(JsonSerializerCase)),
-                x => x);
+                x => Tuple.Create(
+                    x.Name,
+                    x.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName ?? x.Name.GetNameWithCase(JsonSerializerCase)
+                ),
+                x => x
+            );
 
         TypeCache.TryAdd(targetType, value);
 
         return value;
     }
+
 }

@@ -26,7 +26,7 @@ public class Srp6Tests
     private static byte[] CreateRandomSalt(int length = 32)
     {
         byte[] salt = new byte[length];
-        RandomizedGenerator.Fill(salt);
+        RandGenerator.Fill(salt);
         return salt;
     }
 
@@ -74,7 +74,7 @@ public class Srp6Tests
                                    Encoding.UTF8.GetBytes(password).Length + serverPublicValue.Length];
 
         // Create a deterministic but "random-looking" value
-        RandomizedGenerator.Fill(combined);
+        RandGenerator.Fill(combined);
 
         // Ensure it's not divisible by N (a requirement checked in CalculateSecret)
         combined[0] |= 0x01; // Make sure it's odd
@@ -356,7 +356,7 @@ public class Srp6Tests
 
         // Invalid proof (random data)
         byte[] invalidProof = new byte[32];
-        RandomizedGenerator.Fill(invalidProof);
+        RandGenerator.Fill(invalidProof);
 
         // Act
         bool result = server.VerifyClientEvidenceMessage(invalidProof);

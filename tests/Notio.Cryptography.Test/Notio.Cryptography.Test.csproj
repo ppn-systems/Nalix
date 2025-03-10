@@ -17,9 +17,4 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Notio\Notio.csproj" />
-    <ProjectReference Include="..\..\src\Notio.Cryptography\Notio.Cryptography.csproj" />
-  </ItemGroup>
-
 </Project>
