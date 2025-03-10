@@ -86,32 +86,38 @@ public partial class Json
             if (type == null)
                 return excludedNames;
 
-            // HashSet to store ignored properties (ensures uniqueness)
             var allExcluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Get properties ignored by [JsonPropertyIgnore]
-            foreach (var prop in type.GetProperties())
+            var properties = type.GetProperties();
+
+            var includedProps = properties.Where(p => Attribute
+                .IsDefined(p, typeof(JsonIncludeAttribute))).Select(p => p.Name).ToList();
+
+            if (includedProps.Count != 0)
             {
-                if (Attribute.IsDefined(prop, typeof(JsonPropertyIgnoreAttribute)))
-                    allExcluded.Add(prop.Name);
+                allExcluded.UnionWith(properties.Select(p => p.Name).Except(includedProps));
+            }
+            else
+            {
+                foreach (var prop in properties)
+                {
+                    if (Attribute.IsDefined(prop, typeof(JsonPropertyIgnoreAttribute)))
+                        allExcluded.Add(prop.Name);
+                }
+
+                foreach (var prop in IgnoredPropertiesCache.Retrieve(type, t =>
+                    t.GetProperties().Where(p => AttributeCache.DefaultCache.Value
+                    .RetrieveOne<JsonPropertyAttribute>(p)?.Ignored == true).Select(p => p.Name)))
+                {
+                    allExcluded.Add(prop);
+                }
             }
 
-            // Get properties ignored by [JsonProperty(Ignored = true)]
-            foreach (var prop in IgnoredPropertiesCache.Retrieve(type, t =>
-                t.GetProperties().Where(p => AttributeCache.DefaultCache.Value
-                .RetrieveOne<JsonPropertyAttribute>(p)?.Ignored == true).Select(p => p.Name)))
-            {
-                allExcluded.Add(prop);
-            }
-
-            // Return the original excludedNames if no properties are ignored
             if (allExcluded.Count == 0)
                 return excludedNames;
 
-            // If excludedNames is provided, intersect it with `allExcluded`
             return excludedNames?.Any(name => !string.IsNullOrWhiteSpace(name)) == true
-                ? [.. allExcluded.Intersect(excludedNames.Where(y =>
-                    !string.IsNullOrWhiteSpace(y)), StringComparer.OrdinalIgnoreCase)]
+                ? [.. allExcluded.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y)), StringComparer.OrdinalIgnoreCase)]
                 : [.. allExcluded];
         }
 
@@ -199,41 +205,30 @@ public partial class Json
         }
 
         private Dictionary<string, object?> CreateDictionary(
-                        Dictionary<string, MemberInfo> fields, string targetType, object target)
+                    Dictionary<string, MemberInfo> fields, string targetType, object target)
         {
             Dictionary<string, object?> dict = new(StringComparer.OrdinalIgnoreCase);
 
             if (!string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 dict[_options.TypeSpecifier!] = targetType;
 
-            bool hasJsonInclude = fields.Values.Any(member =>
-                Attribute.IsDefined(member, typeof(JsonIncludeAttribute)));
-
             foreach (KeyValuePair<string, MemberInfo> kvp in fields)
             {
                 if (_options.ExcludeProperties?.Contains(kvp.Key) == true)
                     continue;
 
-                var property = kvp.Value as PropertyInfo;
-                var field = kvp.Value as FieldInfo;
-
-                // If any property/field has JsonIncludeAttribute, include only those with the attribute
-                bool includeInJson = !hasJsonInclude || (Attribute.IsDefined(kvp.Value, typeof(JsonIncludeAttribute)));
-
-                if (!includeInJson)
-                    continue;
-
                 try
                 {
-                    dict[kvp.Key] = property != null
-                        ? target.ReadProperty(property.Name)
-                        : field?.GetValue(target);
+                    dict[kvp.Key] = kvp.Value is PropertyInfo prop
+                        ? target.ReadProperty(prop.Name)
+                        : (kvp.Value as FieldInfo)?.GetValue(target);
                 }
                 catch { /* Ignore errors */ }
             }
 
             return dict;
         }
+
 
         private string ResolveDictionary(IDictionary items, int depth)
         {
