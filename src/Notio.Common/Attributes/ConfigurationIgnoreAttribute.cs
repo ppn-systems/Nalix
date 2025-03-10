@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Notio.Shared.Configuration;
+namespace Notio.Common.Attributes;
 
 /// <summary>
 /// An attribute that indicates that a property should be ignored during configuration container initialization.
