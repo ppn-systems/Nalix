@@ -8,20 +8,20 @@ public enum EncryptionMode : byte
     /// <summary>
     /// ChaCha20 encryption with Poly1305 for authenticated encryption.
     /// </summary>
-    ChaCha20Poly1305,
+    ChaCha20Poly1305 = 1,
 
     /// <summary>
     /// Salsa20 stream cipher.
     /// </summary>
-    Salsa20,
+    Salsa20 = 2,
 
     /// <summary>
     /// Twofish block cipher.
     /// </summary>
-    Twofish,
+    Twofish = 3,
 
     /// <summary>
     /// XTEA (Extended TEA) encryption algorithm.
     /// </summary>
-    Xtea,
+    Xtea = 4,
 }

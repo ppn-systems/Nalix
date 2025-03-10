@@ -2,15 +2,16 @@ using System;
 
 namespace Notio.Common.Attributes;
 
+/// <summary>
 /// Indicates that a property should be excluded from JSON serialization and deserialization processes.
-/// When applied to a property, this attribute instructs the <see cref="Notio.Serialization.Json"/> serializer
+/// When applied to a property, this attribute instructs the Notio.Serialization.Json serializer
 /// to ignore the property entirely, preventing it from appearing in the resulting JSON output or being
 /// populated during deserialization.
 /// </summary>
 /// <remarks>
 /// This attribute is useful for excluding sensitive data, computed properties, or fields that are not
 /// relevant to the JSON representation of an object. It takes precedence in the serialization logic
-/// and works in conjunction with other serialization options provided via <see cref="SerializerOptions"/>.
+/// and works in conjunction with other serialization options provided via SerializerOptions.
 /// </remarks>
 /// <example>
 /// <code>

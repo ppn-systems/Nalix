@@ -3,20 +3,20 @@ namespace Notio.Common.Enums;
 /// <summary>
 /// Represents the state of a connection.
 /// </summary>
-public enum ConnectionState
+public enum ConnectionState : byte
 {
     /// <summary>
     /// The connection has been successfully established.
     /// </summary>
-    Connected,
+    Connected = 1,
 
     /// <summary>
     /// The connection has been authenticated.
     /// </summary>
-    Authenticated,
+    Authenticated = 2,
 
     /// <summary>
     /// The connection has been disconnected.
     /// </summary>
-    Disconnected,
+    Disconnected = 3,
 }

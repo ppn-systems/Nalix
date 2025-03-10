@@ -1,3 +1,4 @@
+using Notio.Common.Attributes;
 using Notio.Shared.Configuration;
 using System;
 using System.ComponentModel.DataAnnotations;
