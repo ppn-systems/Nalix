@@ -28,5 +28,5 @@ public sealed class JsonPropertyAttribute(string propertyName, bool ignored = fa
     /// <value>
     ///   <c>true</c> if ignored; otherwise, <c>false</c>.
     /// </value>
-    public bool Ignored { get; } = ignored;
+    public bool Ignored { get; set; } = ignored;
 }

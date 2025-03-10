@@ -86,17 +86,33 @@ public partial class Json
             if (type == null)
                 return excludedNames;
 
-            var excludedByAttr = IgnoredPropertiesCache.Retrieve(type, t => t.GetProperties()
-                .Where(x => AttributeCache.DefaultCache.Value.RetrieveOne<JsonPropertyAttribute>(x)?.Ignored == true)
-                .Select(x => x.Name));
+            // HashSet to store ignored properties (ensures uniqueness)
+            var allExcluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            IEnumerable<string> byAttr = excludedByAttr as string[] ?? excludedByAttr.ToArray();
-            if (byAttr.Any() != true)
+            // Get properties ignored by [JsonPropertyIgnore]
+            foreach (var prop in type.GetProperties())
+            {
+                if (Attribute.IsDefined(prop, typeof(JsonPropertyIgnoreAttribute)))
+                    allExcluded.Add(prop.Name);
+            }
+
+            // Get properties ignored by [JsonProperty(Ignored = true)]
+            foreach (var prop in IgnoredPropertiesCache.Retrieve(type, t =>
+                t.GetProperties().Where(p => AttributeCache.DefaultCache.Value
+                .RetrieveOne<JsonPropertyAttribute>(p)?.Ignored == true).Select(p => p.Name)))
+            {
+                allExcluded.Add(prop);
+            }
+
+            // Return the original excludedNames if no properties are ignored
+            if (allExcluded.Count == 0)
                 return excludedNames;
 
+            // If excludedNames is provided, intersect it with `allExcluded`
             return excludedNames?.Any(name => !string.IsNullOrWhiteSpace(name)) == true
-                ? byAttr.Intersect(excludedNames.Where(y => !string.IsNullOrWhiteSpace(y))).ToArray()
-                : byAttr.ToArray();
+                ? [.. allExcluded.Intersect(excludedNames.Where(y =>
+                    !string.IsNullOrWhiteSpace(y)), StringComparer.OrdinalIgnoreCase)]
+                : [.. allExcluded];
         }
 
         private static string ResolveBasicType(object? obj)
@@ -114,7 +130,7 @@ public partial class Json
 
         private static string ResolveComplexBasicType(object obj)
         {
-            var targetType = obj.GetType();
+            Type targetType = obj.GetType();
             if (!Definitions.BasicTypesInfo.Value.TryGetValue(targetType, out ExtendedTypeInfo? info))
                 return string.Empty;
 
@@ -135,7 +151,7 @@ public partial class Json
             if (str == null)
                 return string.Empty;
 
-            var sb = new StringBuilder(str.Length * 2);
+            StringBuilder sb = new(str.Length * 2);
             if (quoted) sb.Append(StringQuotedChar);
             foreach (var ch in str)
             {
@@ -182,14 +198,19 @@ public partial class Json
             return sb.ToString();
         }
 
-        private Dictionary<string, object?> CreateDictionary(Dictionary<string, MemberInfo> fields, string targetType, object target)
+        private Dictionary<string, object?> CreateDictionary(
+            Dictionary<string, MemberInfo> fields, string targetType, object target)
         {
-            var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, object?> dict = new(StringComparer.OrdinalIgnoreCase);
+
             if (!string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 dict[_options.TypeSpecifier!] = targetType;
 
-            foreach (var kvp in fields)
+            foreach (KeyValuePair<string, MemberInfo> kvp in fields)
             {
+                if (_options.ExcludeProperties?.Contains(kvp.Key) == true)
+                    continue;
+
                 try
                 {
                     dict[kvp.Key] = kvp.Value is PropertyInfo prop
@@ -203,64 +224,76 @@ public partial class Json
 
         private string ResolveDictionary(IDictionary items, int depth)
         {
-            Append(OpenObjectChar, depth);
-            AppendLine();
+            this.Append(OpenObjectChar, depth);
+            this.AppendLine();
 
             int count = 0;
-            foreach (var key in items.Keys)
+            foreach (object key in items.Keys)
             {
                 if (key == null) continue; // Skip null keys to avoid null reference exception
 
-                Append(StringQuotedChar, depth + 1);
-                Append(Escape(key.ToString() ?? string.Empty, false), 0);
-                Append(StringQuotedChar, 0);
+                this.Append(StringQuotedChar, depth + 1);
+                this.Append(Escape(key.ToString() ?? string.Empty, false), 0);
+                this.Append(StringQuotedChar, 0);
+
                 _builder.Append(ValueSeparatorChar).Append(' ');
-                var serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);
+                string serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);
+
                 if (IsNonEmptyJsonArrayOrObject(serializedValue))
-                    AppendLine();
-                Append(serializedValue, 0);
-                Append(FieldSeparatorChar, 0);
-                AppendLine();
+                    this.AppendLine();
+
+                this.Append(serializedValue, 0);
+                this.Append(FieldSeparatorChar, 0);
+                this.AppendLine();
                 count++;
             }
-            RemoveLastComma();
-            Append(CloseObjectChar, count > 0 ? depth : 0);
+
+            this.RemoveLastComma();
+            this.Append(CloseObjectChar, count > 0 ? depth : 0);
+
             return _builder.ToString();
         }
 
         private string ResolveObject(object target, int depth)
         {
-            var targetType = target.GetType();
+            Type targetType = target.GetType();
+
             if (targetType.IsEnum)
                 return Convert.ToInt64(target, CultureInfo.InvariantCulture).ToStringInvariant();
 
-            var fields = _options.GetProperties(targetType);
+            Dictionary<string, MemberInfo> fields = _options.GetProperties(targetType);
+
             if (fields.Count == 0 && string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 return EmptyObjectLiteral;
 
-            var dict = CreateDictionary(fields, targetType.ToString(), target);
+            Dictionary<string, object?> dict = this.CreateDictionary(fields, targetType.ToString(), target);
             return Serialize(dict, depth, _options, _excludedNames);
         }
 
         private string ResolveEnumerable(IEnumerable target, int depth)
         {
-            var items = target.Cast<object>();
-            Append(OpenArrayChar, depth);
-            AppendLine();
+            IEnumerable<object> items = target.Cast<object>();
+
+            this.Append(OpenArrayChar, depth);
+            this.AppendLine();
+
             int count = 0;
-            foreach (var item in items)
+            foreach (object item in items)
             {
-                var serialized = Serialize(item, depth + 1, _options, _excludedNames);
+                string serialized = Serialize(item, depth + 1, _options, _excludedNames);
                 if (IsNonEmptyJsonArrayOrObject(serialized))
-                    Append(serialized, 0);
+                    this.Append(serialized, 0);
                 else
-                    Append(serialized, depth + 1);
-                Append(FieldSeparatorChar, 0);
-                AppendLine();
+                    this.Append(serialized, depth + 1);
+
+                this.Append(FieldSeparatorChar, 0);
+                this.AppendLine();
+
                 count++;
             }
-            RemoveLastComma();
-            Append(CloseArrayChar, count > 0 ? depth : 0);
+
+            this.RemoveLastComma();
+            this.Append(CloseArrayChar, count > 0 ? depth : 0);
             return _builder.ToString();
         }
 
@@ -291,13 +324,13 @@ public partial class Json
 
         private void Append(string text, int depth)
         {
-            SetIndent(depth);
+            this.SetIndent(depth);
             _builder.Append(text);
         }
 
         private void Append(char ch, int depth)
         {
-            SetIndent(depth);
+            this.SetIndent(depth);
             _builder.Append(ch);
         }
 
