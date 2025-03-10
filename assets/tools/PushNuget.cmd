@@ -44,3 +44,5 @@ if %ERRORLEVEL% neq 0 (
 ) else (
     echo %COLOR_GREEN%✅ Upload successful! Package(s) are now available on NuGet.%COLOR_RESET%
 )
+
+pause
