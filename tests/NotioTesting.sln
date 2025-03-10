@@ -5,6 +5,8 @@ VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Cryptography.Test", "Notio.Cryptography.Test\Notio.Cryptography.Test.csproj", "{59276987-FA6E-4635-BCEA-DB358BEE41EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Serialization.Test", "Notio.Serializatio.Test\Notio.Serialization.Test.csproj", "{8ED369BB-86D6-47BA-9F05-855541AB622F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8ED369BB-86D6-47BA-9F05-855541AB622F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8ED369BB-86D6-47BA-9F05-855541AB622F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8ED369BB-86D6-47BA-9F05-855541AB622F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8ED369BB-86D6-47BA-9F05-855541AB622F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

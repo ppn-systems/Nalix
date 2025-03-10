@@ -11,8 +11,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.50</Version>
-    <PackageVersion>0.3.50</PackageVersion>
+    <Version>0.3.55</Version>
+    <PackageVersion>0.3.55</PackageVersion>
     
 		<ReleaseNotes>Initial release of Notio.Storage package.</ReleaseNotes>
 		<Description>Notio.Storage is a .NET library for managing storage functionality.</Description>

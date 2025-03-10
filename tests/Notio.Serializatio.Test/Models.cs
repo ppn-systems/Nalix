@@ -1,5 +1,5 @@
 using Notio.Common.Attributes;
-using System.Text.Json.Serialization;
+using JsonIncludeAttribute = Notio.Common.Attributes.JsonIncludeAttribute;
 
 namespace Notio.Serialization.Test;
 

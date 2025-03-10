@@ -73,7 +73,9 @@ internal static class Definitions
     /// </summary>
     static Definitions()
     {
-        var currentAnsiEncoding = Encoding.GetEncoding(0);
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding currentAnsiEncoding = Encoding.GetEncoding(0);
+
         try
         {
             Windows1252Encoding = Encoding.GetEncoding(1252);
