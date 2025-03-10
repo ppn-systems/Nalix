@@ -20,7 +20,7 @@ namespace Notio.Cryptography.Asymmetric;
 public sealed class Srp6(string username, byte[] salt, byte[] verifier)
 {
     /// <summary>
-    /// Base g.
+    /// Base G.
     /// </summary>
     private static readonly BigInteger G = 2;
 

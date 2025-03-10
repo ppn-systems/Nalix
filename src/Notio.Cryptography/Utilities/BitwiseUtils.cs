@@ -3,7 +3,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Notio.Cryptography.Utilities;
 
@@ -13,14 +12,6 @@ namespace Notio.Cryptography.Utilities;
 /// </summary>
 internal static class BitwiseUtils
 {
-    // Cache the shuffle mask for SSSE3
-    private static readonly Vector128<byte> s_shuffleMask = Vector128.Create(
-        3, 2, 1, 0,
-        7, 6, 5, 4,
-        11, 10, 9, 8,
-        15, 14, 13, (byte)12
-    );
-
     /// <summary>
     /// Rotate a 32-bit word right by the specified number of bits using hardware intrinsics when available.
     /// </summary>
@@ -194,8 +185,8 @@ internal static class BitwiseUtils
     /// <param name="d">The fourth internal state variable (d) of the SHA-256 algorithm.</param>
     /// <param name="e">The fifth internal state variable (e) of the SHA-256 algorithm.</param>
     /// <param name="f">The sixth internal state variable (f) of the SHA-256 algorithm.</param>
-    /// <param name="g">The seventh internal state variable (g) of the SHA-256 algorithm.</param>
-    /// <param name="h">The eighth internal state variable (h) of the SHA-256 algorithm.</param>
+    /// <param name="g">The seventh internal state variable (G) of the SHA-256 algorithm.</param>
+    /// <param name="h">The eighth internal state variable (H) of the SHA-256 algorithm.</param>
     /// <param name="w">The message word (w) used in the current round of the SHA-256 algorithm.</param>
     /// <param name="k">The constant value (k) used in the current round of the SHA-256 algorithm.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
