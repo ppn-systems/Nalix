@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Logging;
 
 namespace Nalix.Logging.Extensions;
 
