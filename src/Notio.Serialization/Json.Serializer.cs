@@ -199,26 +199,39 @@ public partial class Json
         }
 
         private Dictionary<string, object?> CreateDictionary(
-            Dictionary<string, MemberInfo> fields, string targetType, object target)
+                        Dictionary<string, MemberInfo> fields, string targetType, object target)
         {
             Dictionary<string, object?> dict = new(StringComparer.OrdinalIgnoreCase);
 
             if (!string.IsNullOrWhiteSpace(_options.TypeSpecifier))
                 dict[_options.TypeSpecifier!] = targetType;
 
+            bool hasJsonInclude = fields.Values.Any(member =>
+                Attribute.IsDefined(member, typeof(JsonIncludeAttribute)));
+
             foreach (KeyValuePair<string, MemberInfo> kvp in fields)
             {
                 if (_options.ExcludeProperties?.Contains(kvp.Key) == true)
                     continue;
 
+                var property = kvp.Value as PropertyInfo;
+                var field = kvp.Value as FieldInfo;
+
+                // If any property/field has JsonIncludeAttribute, include only those with the attribute
+                bool includeInJson = !hasJsonInclude || (Attribute.IsDefined(kvp.Value, typeof(JsonIncludeAttribute)));
+
+                if (!includeInJson)
+                    continue;
+
                 try
                 {
-                    dict[kvp.Key] = kvp.Value is PropertyInfo prop
-                        ? target.ReadProperty(prop.Name)
-                        : (kvp.Value as FieldInfo)?.GetValue(target);
+                    dict[kvp.Key] = property != null
+                        ? target.ReadProperty(property.Name)
+                        : field?.GetValue(target);
                 }
                 catch { /* Ignore errors */ }
             }
+
             return dict;
         }
 
