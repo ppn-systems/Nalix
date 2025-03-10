@@ -1,5 +1,5 @@
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
+using Notio.Common.Interfaces;
 using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Metadata;
@@ -12,8 +12,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Notio.Network.Package;
 
@@ -97,6 +95,32 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
+    /// </summary>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketFlags flags, PacketPriority priority, ushort command, string s)
+        : this(PacketType.String, flags, priority, command, Encoding.UTF8.GetBytes(s))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new packet with a dictionary payload.
+    /// </summary>
+    /// <param name="flags">The packet flags.</param>
+    /// <param name="priority">The packet priority.</param>
+    /// <param name="command">The packet command.</param>
+    /// <param name="dictionary">The dictionary payload.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(PacketFlags flags, PacketPriority priority, ushort command, Dictionary<string, object> dictionary)
+        : this(PacketType.Dictionary, flags, priority, command, DictionaryUtils.Serialize(dictionary))
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for type, flags, and priority.
     /// </summary>
     /// <param name="type">The packet type.</param>
@@ -107,53 +131,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(PacketType type, PacketFlags flags, PacketPriority priority, ushort command, Memory<byte> payload)
         : this((byte)type, (byte)flags, (byte)priority, command, payload)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
-    /// </summary>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketFlags flags, PacketPriority priority, ushort command, string s)
-        : this((byte)PacketType.String, (byte)flags, (byte)priority, command, Encoding.UTF8.GetBytes(s))
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
-    /// Serializes the provided object using JSON serialization.
-    /// </summary>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="obj">The object to serialize and send in the packet.</param>
-    /// <param name="jsonTypeInfo">The <see cref="JsonTypeInfo{T}"/> used for JSON serialization.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketFlags flags, PacketPriority priority, ushort command, object obj,
-        JsonTypeInfo<object> jsonTypeInfo)
-        : this((byte)PacketType.Object, (byte)flags, (byte)priority, command,
-              JsonSerializer.SerializeToUtf8Bytes(obj, jsonTypeInfo))
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
-    /// Serializes a list of objects using JSON serialization.
-    /// </summary>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="list">The list of objects to serialize and send in the packet.</param>
-    /// <param name="jsonTypeInfo">The <see cref="JsonTypeInfo{T}"/> used for JSON serialization.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketFlags flags, PacketPriority priority, ushort command, List<object> list,
-        JsonTypeInfo<List<object>> jsonTypeInfo)
-        : this((byte)PacketType.List, (byte)flags, (byte)priority, command,
-               JsonSerializer.SerializeToUtf8Bytes(list, jsonTypeInfo))
     {
     }
 
@@ -408,8 +385,13 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
             return false;
         }
 
-        // Only compare payload contents if everything else matches
-        return Payload.Span.SequenceEqual(other.Payload.Span);
+        ReadOnlySpan<byte> span1 = Payload.Span;
+        ReadOnlySpan<byte> span2 = other.Payload.Span;
+
+        if (span1.Length < 32)
+            return span1.SequenceEqual(span2);
+
+        return span1[..16].SequenceEqual(span2[..16]) && span1[^16..].SequenceEqual(span2[^16..]);
     }
 
     /// <summary>

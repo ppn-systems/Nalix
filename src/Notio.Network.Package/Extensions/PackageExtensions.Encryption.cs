@@ -1,4 +1,4 @@
-using Notio.Common.Cryptography;
+using Notio.Common.Enums;
 using Notio.Network.Package.Helpers;
 
 namespace Notio.Network.Package.Extensions;

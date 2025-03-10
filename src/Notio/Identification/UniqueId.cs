@@ -1,4 +1,5 @@
-using Notio.Common.Identification;
+using Notio.Common.Interfaces;
+using Notio.Common.Models;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

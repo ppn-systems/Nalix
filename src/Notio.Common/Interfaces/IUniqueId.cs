@@ -1,6 +1,7 @@
+using Notio.Common.Models;
 using System;
 
-namespace Notio.Common.Identification;
+namespace Notio.Common.Interfaces;
 
 /// <summary>
 /// Defines core functionality for unique identifier implementations.

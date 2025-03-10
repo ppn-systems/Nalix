@@ -1,4 +1,4 @@
-﻿namespace Notio.Common.Connection.Enums;
+namespace Notio.Common.Enums;
 
 /// <summary>
 /// Represents the state of a connection.

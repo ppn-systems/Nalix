@@ -1,4 +1,4 @@
-using Notio.Common.Package;
+using Notio.Common.Interfaces;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Utilities;

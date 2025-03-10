@@ -1,5 +1,4 @@
-﻿using Notio.Common.Logging;
-using Notio.Common.Models;
+using Notio.Common.Logging;
 using Notio.Logging.Formatters;
 using System;
 
