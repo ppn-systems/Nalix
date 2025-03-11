@@ -1,4 +1,4 @@
-﻿using Notio.Serialization.Internal.Extensions;
+using Notio.Serialization.Internal.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -211,57 +211,33 @@ public static partial class Json
 
         private static string Unescape(string str)
         {
-            // If no escape sequences, return early.
-            if (str.IndexOf(StringEscapeChar) < 0)
-                return str;
+            int escapeIndex = str.IndexOf(StringEscapeChar);
+            if (escapeIndex < 0)
+                return str; // Không có escape, return ngay
 
             var builder = new StringBuilder(str.Length);
-            for (int i = 0; i < str.Length; i++)
+            builder.Append(str.AsSpan(0, escapeIndex));
+
+            for (int i = escapeIndex; i < str.Length; i++)
             {
                 char c = str[i];
-                if (c != StringEscapeChar)
+                if (c == StringEscapeChar && i + 1 < str.Length)
                 {
-                    builder.Append(c);
-                }
-                else if (i + 1 < str.Length)
-                {
-                    char next = str[i + 1];
+                    char next = str[++i];
                     switch (next)
                     {
-                        case 'u':
-                            i = ExtractEscapeSequence(str, i, builder);
-                            break;
-
-                        case 'b':
-                            builder.Append('\b');
-                            i++;
-                            break;
-
-                        case 't':
-                            builder.Append('\t');
-                            i++;
-                            break;
-
-                        case 'n':
-                            builder.Append('\n');
-                            i++;
-                            break;
-
-                        case 'f':
-                            builder.Append('\f');
-                            i++;
-                            break;
-
-                        case 'r':
-                            builder.Append('\r');
-                            i++;
-                            break;
-
-                        default:
-                            builder.Append(next);
-                            i++;
-                            break;
+                        case 'b': builder.Append('\b'); break;
+                        case 't': builder.Append('\t'); break;
+                        case 'n': builder.Append('\n'); break;
+                        case 'f': builder.Append('\f'); break;
+                        case 'r': builder.Append('\r'); break;
+                        case 'u': i = ExtractEscapeSequence(str, i, builder); break;
+                        default: builder.Append(next); break;
                     }
+                }
+                else
+                {
+                    builder.Append(c);
                 }
             }
             return builder.ToString();
@@ -269,18 +245,15 @@ public static partial class Json
 
         private static int ExtractEscapeSequence(string str, int i, StringBuilder builder)
         {
-            // Expecting format "\uXXXX"
-            int hexStart = i + 2;
-            int hexLength = 4;
-            if (hexStart + hexLength > str.Length)
-            {
-                builder.Append(str[i + 1]);
-                return i + 1;
-            }
-            // Parse 4 hex digits directly.
+            // Kiểm tra đủ 4 ký tự sau '\u'
+            if (i + 5 >= str.Length)
+                throw new FormatException($"Invalid Unicode escape sequence at index {i}");
+
             int code = 0;
-            for (int j = hexStart; j < hexStart + hexLength; j++)
+            for (int j = i + 2; j <= i + 5; j++)
             {
+                if (!Uri.IsHexDigit(str[j])) // Check ký tự có phải hex hợp lệ không
+                    throw new FormatException($"Invalid hex digit '{str[j]}' in Unicode escape sequence.");
                 code = code * 16 + HexValue(str[j]);
             }
             builder.Append((char)code);
@@ -328,36 +301,34 @@ public static partial class Json
         private void ExtractNumber()
         {
             int start = _index;
-            while (_index < _json.Length)
+
+            // Kiểm tra số âm
+            if (_json[_index] == '-')
+                _index++;
+
+            while (_index < _json.Length &&
+                  (char.IsDigit(_json[_index]) || _json[_index] == '.' || _json[_index] == 'e' || _json[_index] == 'E'))
             {
-                char c = _json[_index];
-                if (char.IsWhiteSpace(c) || c == FieldSeparatorChar ||
-                    (_resultObject != null && c == CloseObjectChar) ||
-                    (_resultArray != null && c == CloseArrayChar))
-                {
-                    break;
-                }
                 _index++;
             }
-            int count = _index - start;
-            string numberStr = _json.SliceLength(start, count);
+
+            string numberStr = _json.SliceLength(start, _index - start);
             if (!decimal.TryParse(numberStr, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal number))
                 throw CreateParserException("[number]");
+
             if (_currentFieldName != null && _resultObject != null)
-            {
                 _resultObject[_currentFieldName] = number;
-            }
             else
-            {
                 _resultArray?.Add(number);
-            }
-            _index--; // Adjust for loop increment.
+
+            _index--;
         }
 
         private void ExtractConstant(string literal, bool? constantValue = null)
         {
-            if (_json.SliceLength(_index, literal.Length) != literal)
+            if (_index + literal.Length > _json.Length || _json.SliceLength(_index, literal.Length) != literal)
                 throw CreateParserException($"'{literal}'");
+
             if (_currentFieldName != null && _resultObject != null)
             {
                 _resultObject[_currentFieldName] = constantValue;

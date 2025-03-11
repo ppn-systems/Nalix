@@ -103,7 +103,7 @@ public partial class Json
                 );
 
             // Nếu có ít nhất một property có [JsonInclude], chỉ serialize những property đó
-            if (includedProps.Count > 0)
+            if (includedProps.Count != 0)
             {
                 allExcluded.UnionWith(properties.Select(p => p.Name).Except(includedProps));
             }
@@ -149,54 +149,46 @@ public partial class Json
 
         private static string Escape(string? str, bool quoted)
         {
-            if (str == null)
-                return string.Empty;
+            if (string.IsNullOrEmpty(str))
+                return quoted ? "\"\"" : string.Empty;
 
-            StringBuilder sb = new(str.Length * 2);
-            if (quoted) sb.Append(StringQuotedChar);
-            foreach (var ch in str)
+            int extraSpace = str.Count(c => c is '\\' or '"' or '/' or '\b' or '\t' or '\n' or '\f' or '\r' or < ' ');
+            Span<char> buffer = stackalloc char[str.Length + extraSpace * 6 + (quoted ? 2 : 0)];
+
+            int index = 0;
+            if (quoted) buffer[index++] = '"';
+
+            foreach (char ch in str)
             {
                 switch (ch)
                 {
-                    case '\\':
-                    case '"':
-                    case '/':
-                        sb.Append('\\').Append(ch);
-                        break;
-
-                    case '\b':
-                        sb.Append("\\b");
-                        break;
-
-                    case '\t':
-                        sb.Append("\\t");
-                        break;
-
-                    case '\n':
-                        sb.Append("\\n");
-                        break;
-
-                    case '\f':
-                        sb.Append("\\f");
-                        break;
-
-                    case '\r':
-                        sb.Append("\\r");
-                        break;
-
+                    case '\\': buffer[index++] = '\\'; buffer[index++] = '\\'; break;
+                    case '"': buffer[index++] = '\\'; buffer[index++] = '"'; break;
+                    case '/': buffer[index++] = '\\'; buffer[index++] = '/'; break;
+                    case '\b': buffer[index++] = '\\'; buffer[index++] = 'b'; break;
+                    case '\t': buffer[index++] = '\\'; buffer[index++] = 't'; break;
+                    case '\n': buffer[index++] = '\\'; buffer[index++] = 'n'; break;
+                    case '\f': buffer[index++] = '\\'; buffer[index++] = 'f'; break;
+                    case '\r': buffer[index++] = '\\'; buffer[index++] = 'r'; break;
                     default:
                         if (ch < ' ')
                         {
-                            sb.Append("\\u")
-                              .Append(((int)ch).ToString("X4", CultureInfo.InvariantCulture));
+                            buffer[index++] = '\\';
+                            buffer[index++] = 'u';
+                            ((int)ch).TryFormat(buffer.Slice(index, 4), out _, "X4");
+                            index += 4;
                         }
                         else
-                            sb.Append(ch);
+                        {
+                            buffer[index++] = ch;
+                        }
                         break;
                 }
             }
-            if (quoted) sb.Append(StringQuotedChar);
-            return sb.ToString();
+
+            if (quoted) buffer[index++] = '"';
+
+            return new string(buffer[..index]);
         }
 
         private Dictionary<string, object?> CreateDictionary(
@@ -235,9 +227,7 @@ public partial class Json
             {
                 if (key == null) continue; // Skip null keys to avoid null reference exception
 
-                this.Append(StringQuotedChar, depth + 1);
-                this.Append(Escape(key.ToString() ?? string.Empty, false), 0);
-                this.Append(StringQuotedChar, 0);
+                this.Append($"{StringQuotedChar}{Escape(key.ToString()!, false)}{StringQuotedChar}", depth + 1);
 
                 _builder.Append(ValueSeparatorChar).Append(' ');
                 string serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);

@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Notio.Serialization" Version="0.3.57" />
+    <PackageReference Include="Notio.Serialization" Version="0.3.58" />
   </ItemGroup>
 
 </Project>
