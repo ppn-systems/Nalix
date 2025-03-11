@@ -35,17 +35,11 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                                     .Trace($"[{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
                                           $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
-            System.UInt32 sequenceId = 0;
-            if (context.Packet is IPacketSequenced s)
-            {
-                sequenceId = s.SequenceId;
-            }
-
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ProtocolCode.UNAUTHENTICATED,
                 action: ProtocolAction.NONE,
-                sequenceId: sequenceId,
+                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,
                 arg1: (System.Byte)context.Connection.Level,

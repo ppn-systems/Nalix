@@ -1,5 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Network.Internal.Net;
+using Nalix.Network.Throttling;
+
 namespace Nalix.Network.Dispatch.Delegates;
 
 /// <summary>
@@ -72,7 +75,6 @@ public readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
     /// </summary>
-    /// <param name="_">The current packet context. Pass this to validation logic as needed.</param>
     /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// This method can be extended to implement validation logic such as:
@@ -84,7 +86,26 @@ public readonly struct PacketHandler<TPacket>(
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean CanExecute(PacketContext<TPacket> _) => true;
+    public System.Boolean CanExecute(PacketContext<TPacket> context)
+    {
+        if (Attributes.RateLimit != null)
+        {
+            if (context.Connection.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
+            {
+                TokenBucketLimiter.LimitDecision d = RateLimiter.Check(
+                    OpCode, Attributes.RateLimit,
+                    IpAddressKey.FromEndPoint(ipEndPoint));
+
+                if (!d.Allowed)
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Additional checks (e.g., permissions) can be added here.
+        return true;
+    }
 
     #endregion Methods
 }
