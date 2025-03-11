@@ -95,19 +95,22 @@ public partial class Json
                 .Select(p => p.Name)];
 
             // Get a property list with [JsonProperty]
-            List<string> jsonPropertyNames = [.. properties
+            Dictionary<string, string> jsonPropertyMappings = properties
                 .Where(p => Attribute.IsDefined(p, typeof(JsonPropertyAttribute)))
-                .Select(p => p.Name)];
+                .ToDictionary(
+                    p => p.Name,
+                    p => p.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName ?? p.Name
+                );
 
-            // If there is at least one property with [JsonInclude], only serialize those properties
-            if (includedProps.Count != 0)
+            // Nếu có ít nhất một property có [JsonInclude], chỉ serialize những property đó
+            if (includedProps.Count > 0)
             {
                 allExcluded.UnionWith(properties.Select(p => p.Name).Except(includedProps));
             }
 
-            // If a property doesn't have [JsonInclude] or [JsonProperty], remove it
+            // Nếu một property không có [JsonInclude] hoặc [JsonProperty], loại bỏ nó
             allExcluded.UnionWith(properties
-                .Where(p => !includedProps.Contains(p.Name) && !jsonPropertyNames.Contains(p.Name))
+                .Where(p => !includedProps.Contains(p.Name) && !jsonPropertyMappings.ContainsKey(p.Name))
                 .Select(p => p.Name));
 
             return allExcluded.Count == 0 ? excludedNames : [.. allExcluded];
