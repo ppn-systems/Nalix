@@ -125,7 +125,7 @@ public class SerializerOptions
         bool hasJsonInclude = fields.Any(x => Attribute.IsDefined(x, typeof(JsonIncludeAttribute)));
 
         Dictionary<Tuple<string, string>, MemberInfo> value = fields
-            .Where(x => !hasJsonInclude || Attribute.IsDefined(x, typeof(JsonIncludeAttribute)))
+            .Where(x => Attribute.IsDefined(x, typeof(JsonIncludeAttribute)) || x is PropertyInfo)
             .ToDictionary(
                 x => Tuple.Create(
                     x.Name,
