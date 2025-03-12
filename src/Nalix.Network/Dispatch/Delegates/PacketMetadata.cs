@@ -22,7 +22,8 @@ public readonly struct PacketMetadata(
     PacketTimeoutAttribute? timeout,
     PacketPermissionAttribute? permission,
     PacketEncryptionAttribute? encryption,
-    PacketRateLimitAttribute? rateLimit)
+    PacketRateLimitAttribute? rateLimit,
+    PacketConcurrencyLimitAttribute? concurrencyLimit)
 {
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
@@ -52,4 +53,10 @@ public readonly struct PacketMetadata(
     /// requests per second for this packet, used to control network traffic and prevent abuse.
     /// </summary>
     public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
+
+    /// <summary>
+    /// Gets the optional concurrency limit attribute that specifies the maximum number of concurrent
+    /// operations allowed for this packet, and optionally the queuing behavior if the limit is reached.
+    /// </summary>
+    public readonly PacketConcurrencyLimitAttribute? ConcurrencyLimit = concurrencyLimit;
 }
