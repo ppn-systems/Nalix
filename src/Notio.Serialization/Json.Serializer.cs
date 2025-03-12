@@ -13,13 +13,6 @@ using System.Text;
 
 namespace Notio.Serialization;
 
-/// <summary>
-/// A very simple, light-weight JSON library written by Mario
-/// to teach Geo how things are done.
-///
-/// This helper is useful for small tasks but does not represent a full-featured
-/// serializer such as Serialization.NET.
-/// </summary>
 public partial class Json
 {
     /// <summary>
@@ -27,8 +20,11 @@ public partial class Json
     /// </summary>
     private class Serializer
     {
-        // Use a thread-safe dictionary for indent strings caching.
+        // Thread-safe cache for indent strings
         private static readonly ConcurrentDictionary<int, string> IndentStrings = new();
+
+        // Constants for common string patterns
+        private static readonly string NewLine = Environment.NewLine;
 
         private readonly SerializerOptions _options;
         private readonly StringBuilder _builder;
@@ -42,39 +38,40 @@ public partial class Json
         private Serializer(object? obj, int depth, SerializerOptions options, string[]? excludedNames = null)
         {
             if (depth > 20)
-                throw new InvalidOperationException("The max depth (20) has been reached. Serializer cannot continue.");
+                throw new InvalidOperationException("Maximum serialization depth (20) exceeded");
 
             _options = options;
             _format = options.Format;
-            _newLine = _format ? Environment.NewLine : string.Empty;
+            _newLine = _format ? NewLine : string.Empty;
             _builder = new StringBuilder();
             _lastCommaSearch = FieldSeparatorChar + _newLine;
             _excludedNames = excludedNames;
 
-            // First, attempt to resolve as a basic type.
+            // Try to resolve as a basic type first
             _result = ResolveBasicType(obj);
-            if (!string.IsNullOrWhiteSpace(_result))
+            if (!string.IsNullOrEmpty(_result))
                 return;
 
-            // Update excluded names from type attributes.
+            // Update excluded names from type attributes
             _options.ExcludeProperties = GetExcludedNames(obj?.GetType(), _excludedNames);
 
-            // Handle circular references.
-            if (options.IsObjectPresent(obj!))
+            // Check for circular references
+            if (obj != null && options.IsObjectPresent(obj))
             {
-                _result = $"{{ \"$circref\": \"{Escape(obj!.GetHashCode().ToStringInvariant(), false)}\" }}";
+                _result = $"{{ \"$circref\": \"{Escape(obj.GetHashCode().ToStringInvariant(), false)}\" }}";
                 return;
             }
 
-            // Choose the resolution method based on the type of obj.
+            // Choose serialization strategy based on object type
             _result = obj switch
             {
+                null => NullLiteral,
                 IDictionary { Count: 0 } => EmptyObjectLiteral,
                 IDictionary dict => ResolveDictionary(dict, depth),
-                IEnumerable enumerable when !enumerable.Cast<object>().Any() => EmptyArrayLiteral,
-                IEnumerable and byte[] bytes => Serialize(bytes.ToBase64(), depth, _options, _excludedNames),
+                IEnumerable { } enumerable when !enumerable.Cast<object>().Any() => EmptyArrayLiteral,
+                byte[] bytes => Serialize(Convert.ToBase64String(bytes), depth, _options, _excludedNames),
                 IEnumerable enumerable => ResolveEnumerable(enumerable, depth),
-                _ => ResolveObject(obj!, depth)
+                _ => ResolveObject(obj, depth)
             };
         }
 
@@ -89,32 +86,25 @@ public partial class Json
             HashSet<string> allExcluded = new(StringComparer.OrdinalIgnoreCase);
             PropertyInfo[] properties = type.GetProperties();
 
-            // Get the property list with [JsonInclude]
-            List<string> includedProps = [.. properties
+            HashSet<string> propertyNames = properties
+                .Select(p => p.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            HashSet<string> includedProps = properties
                 .Where(p => Attribute.IsDefined(p, typeof(JsonIncludeAttribute)))
-                .Select(p => p.Name)];
+                .Select(p => p.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Get a property list with [JsonProperty]
-            Dictionary<string, string> jsonPropertyMappings = properties
-                .Where(p => Attribute.IsDefined(p, typeof(JsonPropertyAttribute)))
-                .ToDictionary(
-                    p => p.Name,
-                    p => p.GetCustomAttribute<JsonPropertyAttribute>()?.PropertyName ?? p.Name
-                );
-
-            // Nếu có ít nhất một property có [JsonInclude], chỉ serialize những property đó
             if (includedProps.Count != 0)
-            {
-                allExcluded.UnionWith(properties.Select(p => p.Name).Except(includedProps));
-            }
+                allExcluded.UnionWith(propertyNames.Except(includedProps));
 
-            // Nếu một property không có [JsonInclude] hoặc [JsonProperty], loại bỏ nó
-            allExcluded.UnionWith(properties
-                .Where(p => !includedProps.Contains(p.Name) && !jsonPropertyMappings.ContainsKey(p.Name))
-                .Select(p => p.Name));
+            // Gộp với danh sách bị loại trừ từ tham số truyền vào
+            if (excludedNames != null)
+                allExcluded.UnionWith(excludedNames);
 
-            return allExcluded.Count == 0 ? excludedNames : [.. allExcluded];
+            return allExcluded.Count != 0 ? [.. allExcluded] : excludedNames;
         }
+
 
         private static string ResolveBasicType(object? obj)
         {
@@ -124,19 +114,20 @@ public partial class Json
                 string s => Escape(s, true),
                 bool b => b ? TrueLiteral : FalseLiteral,
                 DateTime d => $"{StringQuotedChar}{d:s}{StringQuotedChar}",
-                Type or Assembly or MethodInfo or PropertyInfo or EventInfo => Escape(obj.ToString() ?? string.Empty, true),
-                _ => ResolveComplexBasicType(obj)
+                Type or Assembly or MethodInfo or PropertyInfo or EventInfo =>
+                    Escape(obj.ToString() ?? string.Empty, true),
+                _ => ResolveNumericalType(obj)
             };
         }
 
-        private static string ResolveComplexBasicType(object obj)
+        private static string ResolveNumericalType(object obj)
         {
             Type targetType = obj.GetType();
             if (!Definitions.BasicTypesInfo.Value.TryGetValue(targetType, out ExtendedTypeInfo? info))
                 return string.Empty;
 
-            var escaped = Escape(info.ToStringInvariant(obj), false);
-            return decimal.TryParse(escaped, out _) ? escaped : $"{StringQuotedChar}{escaped}{StringQuotedChar}";
+            var stringValue = info.ToStringInvariant(obj);
+            return decimal.TryParse(stringValue, out _) ? stringValue : $"{StringQuotedChar}{Escape(stringValue, false)}{StringQuotedChar}";
         }
 
         private static bool IsNonEmptyJsonArrayOrObject(string serialized)
@@ -144,7 +135,8 @@ public partial class Json
             if (serialized == EmptyObjectLiteral || serialized == EmptyArrayLiteral)
                 return false;
 
-            return serialized.TrimStart().FirstOrDefault() is OpenObjectChar or OpenArrayChar;
+            var firstNonWhitespace = serialized.TrimStart().FirstOrDefault();
+            return firstNonWhitespace == OpenObjectChar || firstNonWhitespace == OpenArrayChar;
         }
 
         private static string Escape(string? str, bool quoted)
@@ -152,15 +144,25 @@ public partial class Json
             if (string.IsNullOrEmpty(str))
                 return quoted ? "\"\"" : string.Empty;
 
-            int extraSpace = str.Count(c => c is '\\' or '"' or '/' or '\b' or '\t' or '\n' or '\f' or '\r' or < ' ');
-            Span<char> buffer = stackalloc char[str.Length + extraSpace * 6 + (quoted ? 2 : 0)];
+            // Estimate buffer size by counting special chars
+            int extraSpace = 0;
+            foreach (char c in str)
+            {
+                if (c is '\\' or '"' or '/' or '\b' or '\t' or '\n' or '\f' or '\r' or < ' ')
+                    extraSpace += c < ' ' ? 6 : 2;
+            }
+
+            // Allocate buffer
+            int length = str.Length + extraSpace + (quoted ? 2 : 0);
+            Span<char> buffer = length <= 1024 ? stackalloc char[length] : new char[length];
 
             int index = 0;
             if (quoted) buffer[index++] = '"';
 
-            foreach (char ch in str)
+            // Process each character
+            foreach (char c in str)
             {
-                switch (ch)
+                switch (c)
                 {
                     case '\\': buffer[index++] = '\\'; buffer[index++] = '\\'; break;
                     case '"': buffer[index++] = '\\'; buffer[index++] = '"'; break;
@@ -171,16 +173,18 @@ public partial class Json
                     case '\f': buffer[index++] = '\\'; buffer[index++] = 'f'; break;
                     case '\r': buffer[index++] = '\\'; buffer[index++] = 'r'; break;
                     default:
-                        if (ch < ' ')
+                        if (c < ' ')
                         {
                             buffer[index++] = '\\';
                             buffer[index++] = 'u';
-                            ((int)ch).TryFormat(buffer.Slice(index, 4), out _, "X4");
-                            index += 4;
+                            buffer[index++] = '0';
+                            buffer[index++] = '0';
+                            buffer[index++] = ToHex((c >> 4) & 0xF);
+                            buffer[index++] = ToHex(c & 0xF);
                         }
                         else
                         {
-                            buffer[index++] = ch;
+                            buffer[index++] = c;
                         }
                         break;
                 }
@@ -188,34 +192,40 @@ public partial class Json
 
             if (quoted) buffer[index++] = '"';
 
-            return new string(buffer[..index]);
+            return new string(buffer.ToArray(), 0, index);
         }
 
+        private static char ToHex(int value) => (char)(value < 10 ? '0' + value : 'A' + (value - 10));
+
         private Dictionary<string, object?> CreateDictionary(
-                    Dictionary<string, MemberInfo> fields, string targetType, object target)
+            Dictionary<string, MemberInfo> fields, string targetType, object target)
         {
             Dictionary<string, object?> dict = new(StringComparer.OrdinalIgnoreCase);
 
-            if (!string.IsNullOrWhiteSpace(_options.TypeSpecifier))
+            // Add type specifier if provided
+            if (!string.IsNullOrEmpty(_options.TypeSpecifier))
                 dict[_options.TypeSpecifier!] = targetType;
 
-            foreach (KeyValuePair<string, MemberInfo> kvp in fields)
+            // Add each field/property value
+            foreach (var (key, member) in fields)
             {
-                if (_options.ExcludeProperties?.Contains(kvp.Key) == true)
+                if (_options.ExcludeProperties?.Contains(key) == true)
                     continue;
 
                 try
                 {
-                    dict[kvp.Key] = kvp.Value is PropertyInfo prop
-                        ? target.ReadProperty(prop.Name)
-                        : (kvp.Value as FieldInfo)?.GetValue(target);
+                    dict[key] = member switch
+                    {
+                        PropertyInfo prop => target.ReadProperty(prop.Name),
+                        FieldInfo field => field.GetValue(target),
+                        _ => null
+                    };
                 }
                 catch { /* Ignore errors */ }
             }
 
             return dict;
         }
-
 
         private string ResolveDictionary(IDictionary items, int depth)
         {
@@ -225,11 +235,13 @@ public partial class Json
             int count = 0;
             foreach (object key in items.Keys)
             {
-                if (key == null) continue; // Skip null keys to avoid null reference exception
+                if (key == null) continue;
 
-                this.Append($"{StringQuotedChar}{Escape(key.ToString()!, false)}{StringQuotedChar}", depth + 1);
-
+                // Append key
+                this.Append($"\"{Escape(key.ToString()!, false)}\"", depth + 1);
                 _builder.Append(ValueSeparatorChar).Append(' ');
+
+                // Serialize and append value
                 string serializedValue = Serialize(items[key], depth + 1, _options, _excludedNames);
 
                 if (IsNonEmptyJsonArrayOrObject(serializedValue))
@@ -251,22 +263,30 @@ public partial class Json
         {
             Type targetType = target.GetType();
 
+            // Handle enum values
             if (targetType.IsEnum)
                 return Convert.ToInt64(target, CultureInfo.InvariantCulture).ToStringInvariant();
 
+            // Get all fields and properties to serialize
             Dictionary<string, MemberInfo> fields = _options.GetProperties(targetType);
 
-            if (fields.Count == 0 && string.IsNullOrWhiteSpace(_options.TypeSpecifier))
+            // Handle empty objects
+            if (fields.Count == 0 && string.IsNullOrEmpty(_options.TypeSpecifier))
                 return EmptyObjectLiteral;
 
-            Dictionary<string, object?> dict = this.CreateDictionary(fields, targetType.ToString(), target);
+            // Create dictionary of property values
+            Dictionary<string, object?> dict = CreateDictionary(fields, targetType.ToString(), target);
+
+            // Serialize the dictionary
             return Serialize(dict, depth, _options, _excludedNames);
         }
 
         private string ResolveEnumerable(IEnumerable target, int depth)
         {
+            // Get items as objects
             IEnumerable<object> items = target.Cast<object>();
 
+            // Start array
             this.Append(OpenArrayChar, depth);
             this.AppendLine();
 
@@ -274,14 +294,15 @@ public partial class Json
             foreach (object item in items)
             {
                 string serialized = Serialize(item, depth + 1, _options, _excludedNames);
+
+                // Format nested objects properly
                 if (IsNonEmptyJsonArrayOrObject(serialized))
-                    this.Append(serialized, 0);
+                    this.Append(serialized, depth + 1);
                 else
                     this.Append(serialized, depth + 1);
 
                 this.Append(FieldSeparatorChar, 0);
                 this.AppendLine();
-
                 count++;
             }
 
@@ -293,7 +314,10 @@ public partial class Json
         private void SetIndent(int depth)
         {
             if (!_format || depth <= 0) return;
-            _builder.Append(IndentStrings.GetOrAdd(depth, d => new string(' ', d * 4)));
+
+            // Get cached indent string or create new one
+            string indent = IndentStrings.GetOrAdd(depth, d => new string(' ', d * 4));
+            _builder.Append(indent);
         }
 
         private void RemoveLastComma()
@@ -302,6 +326,7 @@ public partial class Json
             int searchLen = _lastCommaSearch.Length;
             if (len < searchLen) return;
 
+            // Check if the last characters match the comma pattern
             bool match = true;
             for (int i = 0; i < searchLen; i++)
             {
@@ -311,6 +336,8 @@ public partial class Json
                     break;
                 }
             }
+
+            // Remove the comma if found
             if (match)
                 _builder.Remove(len - searchLen, 1);
         }

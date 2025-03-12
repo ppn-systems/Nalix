@@ -23,9 +23,7 @@ public static partial class Json
 {
     private class Converter
     {
-        // Caches to avoid repeated reflection lookups.
         private static readonly ConcurrentDictionary<MemberInfo, string> MemberInfoNameCache = new();
-
         private static readonly ConcurrentDictionary<Type, Type?> ListAddMethodCache = new();
 
         private readonly object? _target;
@@ -35,14 +33,11 @@ public static partial class Json
 
         private Converter(object? source, Type targetType, ref object? targetInstance, bool includeNonPublic, JsonSerializerCase jsonSerializerCase)
         {
-            _targetType = targetInstance != null ? targetInstance.GetType() : targetType;
+            _targetType = targetInstance?.GetType() ?? targetType;
             _includeNonPublic = includeNonPublic;
             _jsonSerializerCase = jsonSerializerCase;
 
-            if (source is null)
-            {
-                return;
-            }
+            if (source is null) return;
 
             var sourceType = source.GetType();
             if (_targetType == typeof(object))
@@ -66,19 +61,13 @@ public static partial class Json
             return new Converter(source, targetType ?? typeof(object), ref nullRef, includeNonPublic, jsonSerializerCase).GetResult();
         }
 
-        private static object? FromJsonResult(object source, Type targetType, ref object? targetInstance, bool includeNonPublic)
-            => new Converter(source, targetType, ref targetInstance, includeNonPublic, JsonSerializerCase.None).GetResult();
-
-        private static Type? GetAddMethodParameterType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type targetType)
-        {
-            // Cache the parameter type of the Add method.
-            return ListAddMethodCache.GetOrAdd(targetType, type =>
+        private static Type? GetAddMethodParameterType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type targetType) =>
+            ListAddMethodCache.GetOrAdd(targetType, type =>
             {
                 var addMethod = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
                                      .FirstOrDefault(m => m.Name == AddMethodName && m.GetParameters().Length == 1);
                 return addMethod?.GetParameters()[0].ParameterType;
             });
-        }
 
         private static void GetByteArray(string sourceString, ref object? target)
         {
@@ -94,10 +83,10 @@ public static partial class Json
 
         private object? GetSourcePropertyValue(IDictionary<string, object> sourceProperties, MemberInfo targetMember)
         {
-            // Cache the target name (either from a JsonPropertyAttribute or the member name)
             var targetName = MemberInfoNameCache.GetOrAdd(targetMember,
                 x => AttributeCache.DefaultCache.Value.RetrieveOne<JsonPropertyAttribute>(x)?.PropertyName
                      ?? x.Name.GetNameWithCase(_jsonSerializerCase));
+
             return sourceProperties.TryGetValue(targetName, out var val) ? val : null;
         }
 
@@ -130,23 +119,18 @@ public static partial class Json
                 case string s when _targetType == typeof(byte[]):
                     GetByteArray(s, ref target);
                     break;
-
                 case Dictionary<string, object> dict when target is IDictionary targetDict:
                     PopulateDictionary(dict, targetDict);
                     break;
-
                 case Dictionary<string, object> dict:
                     PopulateObject(dict);
                     break;
-
                 case List<object> list when target is Array targetArray:
                     PopulateArray(list, targetArray);
                     break;
-
                 case List<object> list when target is IList targetList:
                     PopulateIList(list, targetList);
                     break;
-
                 default:
                     {
                         var sourceStringValue = source.ToStringInvariant();
@@ -170,27 +154,23 @@ public static partial class Json
                 {
                     list.Add(FromJsonResult(item, _jsonSerializerCase, parameterType, _includeNonPublic));
                 }
-                catch
-                {
-                    // Ignored
-                }
+                catch { /* Ignored */ }
             }
         }
 
         private void PopulateArray(List<object> objects, Array array)
         {
             var elementType = _targetType.GetElementType();
-            for (var i = 0; i < objects.Count; i++)
+            var length = Math.Min(objects.Count, array.Length);
+
+            for (var i = 0; i < length; i++)
             {
                 try
                 {
                     var targetItem = FromJsonResult(objects[i], _jsonSerializerCase, elementType, _includeNonPublic);
                     array.SetValue(targetItem, i);
                 }
-                catch
-                {
-                    // Ignored
-                }
+                catch { /* Ignored */ }
             }
         }
 
@@ -203,15 +183,11 @@ public static partial class Json
             {
                 target = Enum.Parse(enumType, sourceStringValue);
             }
-            catch
-            {
-                // Ignored
-            }
+            catch { /* Ignored */ }
         }
 
         private void PopulateDictionary(IDictionary<string, object> sourceProperties, IDictionary targetDictionary)
         {
-            // Locate an Add method that accepts (string, T) parameters.
             var addMethod = _targetType.GetMethods().FirstOrDefault(m =>
                 m is { Name: AddMethodName, IsPublic: true } &&
                 m.GetParameters().Length == 2 &&
@@ -227,16 +203,14 @@ public static partial class Json
                     var targetEntryValue = FromJsonResult(kvp.Value, _jsonSerializerCase, targetEntryType, _includeNonPublic);
                     targetDictionary.Add(kvp.Key, targetEntryValue);
                 }
-                catch
-                {
-                    // Ignored
-                }
+                catch { /* Ignored */ }
             }
         }
 
         private void PopulateObject(IDictionary<string, object>? sourceProperties)
         {
-            if (sourceProperties is null) return;
+            if (sourceProperties is null || _target is null) return;
+
             if (_targetType.IsValueType)
                 PopulateFields(sourceProperties);
 
@@ -245,7 +219,6 @@ public static partial class Json
 
         private void PopulateProperties(IDictionary<string, object> sourceProperties)
         {
-            // Retrieve writable properties from the cache.
             var properties = PropertyTypeCache.DefaultCache.Value
                 .RetrieveFilteredProperties(_targetType, false, p => p.CanWrite);
 
@@ -256,16 +229,12 @@ public static partial class Json
 
                 try
                 {
-                    // For arrays, no need to retrieve the current value.
-                    object? currentValue = property.PropertyType.IsArray ? null : _target.ReadProperty(property.Name);
-                    var targetValue = FromJsonResult(sourceValue, property.PropertyType, ref currentValue, _includeNonPublic);
+                    Type? currentValue = (Type?)(property.PropertyType.IsArray ? null : _target!.ReadProperty(property.Name));
+                    var targetValue = FromJsonResult(sourceValue, _jsonSerializerCase, currentValue, _includeNonPublic);
                     if (targetValue != null)
-                        _target.WriteProperty(property.Name, targetValue);
+                        _target!.WriteProperty(property.Name, targetValue);
                 }
-                catch
-                {
-                    // Ignored
-                }
+                catch { /* Ignored */ }
             }
         }
 
@@ -281,10 +250,7 @@ public static partial class Json
                     var targetValue = FromJsonResult(sourceValue, _jsonSerializerCase, field.FieldType, _includeNonPublic);
                     field.SetValue(_target, targetValue);
                 }
-                catch
-                {
-                    // Ignored
-                }
+                catch { /* Ignored */ }
             }
         }
     }

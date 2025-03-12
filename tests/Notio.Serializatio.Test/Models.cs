@@ -5,9 +5,11 @@ namespace Notio.Serialization.Test;
 
 public class Person
 {
+    [JsonInclude]
     [JsonProperty("FullName")]
     public string? Name { get; set; }
 
+    [JsonInclude]
     public int Age { get; set; }
 }
 
@@ -21,6 +23,9 @@ public class Car
 
 public struct Point
 {
+    [JsonInclude]
     public int X { get; set; }
+
+    [JsonInclude]
     public int Y { get; set; }
 }

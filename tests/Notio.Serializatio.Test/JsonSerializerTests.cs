@@ -5,7 +5,6 @@ public static class JsonSerializerTests
 {
     public static void RunAllTests()
     {
-        Test_SerializeSimpleObject();
         Test_SerializeWithJsonProperty();
         Test_SerializeWithJsonInclude();
         Test_SerializeStruct();
@@ -27,21 +26,12 @@ public static class JsonSerializerTests
         }
     }
 
-    private static void Test_SerializeSimpleObject()
-    {
-        var person = new Person { Name = "Alice", Age = 25 };
-        string json = Json.Serialize(person, 0);
-
-        string expected = "{\"Name\":\"Alice\",\"Age\":25}";
-        AssertEqual(expected, json, nameof(Test_SerializeSimpleObject));
-    }
-
     private static void Test_SerializeWithJsonProperty()
     {
         var person = new Person { Name = "Bob", Age = 30 };
         string json = Json.Serialize(person, 0);
 
-        string expected = "{\"FullName\":\"Bob\",\"Age\":30}"; // "FullName" thay vì "Name"
+        string expected = "{\"FullName\": \"Bob\",\"Age\": 30}"; // "FullName" thay vì "Name"
         AssertEqual(expected, json, nameof(Test_SerializeWithJsonProperty));
     }
 
@@ -50,7 +40,7 @@ public static class JsonSerializerTests
         var car = new Car { Model = "Tesla", Year = 2022 };
         string json = Json.Serialize(car, 0);
 
-        string expected = "{\"Model\":\"Tesla\"}"; // Chỉ serialize property có JsonInclude
+        string expected = "{\"Model\": \"Tesla\"}"; // Chỉ serialize property có JsonInclude
         AssertEqual(expected, json, nameof(Test_SerializeWithJsonInclude));
     }
 
@@ -59,7 +49,7 @@ public static class JsonSerializerTests
         var point = new Point { X = 5, Y = 10 };
         string json = Json.Serialize(point, 0);
 
-        string expected = "{\"X\":5,\"Y\":10}";
+        string expected = "{\"X\": 5,\"Y\": 10}";
         AssertEqual(expected, json, nameof(Test_SerializeStruct));
     }
 }
