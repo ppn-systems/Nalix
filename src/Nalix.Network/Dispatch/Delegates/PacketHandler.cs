@@ -94,7 +94,7 @@ public readonly struct PacketHandler<TPacket>(
             {
                 TokenBucketLimiter.LimitDecision d = RateLimiter.Check(
                     OpCode, Attributes.RateLimit,
-                    IpAddressKey.FromEndPoint(ipEndPoint));
+                    IpAddressKey.FromEndPoint(ipEndPoint).ToString());
 
                 if (!d.Allowed)
                 {
