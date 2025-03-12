@@ -12,8 +12,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.55</Version>
-    <PackageVersion>0.3.55</PackageVersion>
+    <Version>0.3.60</Version>
+    <PackageVersion>0.3.60</PackageVersion>
     
 		<description>Notio.Cryptography is a package that provides cryptographic algorithms and utilities for secure data encryption and decryption in .NET applications.</description>
 		<releaseNotes>Includes new encryption algorithms and optimizations for existing cryptographic methods.</releaseNotes>
