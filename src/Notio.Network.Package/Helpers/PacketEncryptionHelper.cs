@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Authentication;
 using Notio.Common.Exceptions;
 using Notio.Cryptography;
 using Notio.Network.Package.Enums;

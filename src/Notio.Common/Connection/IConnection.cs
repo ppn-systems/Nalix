@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Authentication;
 using System;
 using System.Collections.Generic;
 using System.Threading;

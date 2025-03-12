@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Authentication;
 using System;
 
 namespace Notio.Common.Attributes;

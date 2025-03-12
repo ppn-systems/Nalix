@@ -1,4 +1,4 @@
-namespace Notio.Common.Enums;
+namespace Notio.Common.Authentication;
 
 /// <summary>
 /// Represents the state of a connection.

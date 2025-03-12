@@ -1,5 +1,5 @@
 using Notio.Common.Connection;
-using Notio.Common.Enums;
+using Notio.Common.Authentication;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;

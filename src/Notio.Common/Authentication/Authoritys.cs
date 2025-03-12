@@ -1,4 +1,4 @@
-namespace Notio.Common.Enums;
+namespace Notio.Common.Authentication;
 
 /// <summary>
 /// Represents different authority levels of users in the system.
