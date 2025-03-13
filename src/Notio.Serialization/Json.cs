@@ -175,11 +175,8 @@ public static partial class Json
     /// </summary>
     /// <param name="obj">The object.</param>
     /// <param name="format">if set to <c>true</c> it formats and indents the output.</param>
-    /// <param name="typeSpecifier">The type specifier. Leave null or empty to avoid setting.</param>
-    /// <param name="includedNames">The included property names.</param>
-    /// <param name="excludedNames">The excluded property names.</param>
     /// <returns>
-    /// A <see cref="byte[]" /> that represents the current object.
+    /// A <see cref="T:System.Byte[]"/> that represents the current object.
     /// </returns>
     public static byte[] Serialize(object? obj, bool format = false)
         => System.Text.Encoding.UTF8.GetBytes(Serialize(obj, format, null, null, []));
