@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
-using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
@@ -13,11 +11,9 @@ using Nalix.Network.Throttling;
 namespace Nalix.Network.Middleware.Inbound;
 
 /// <summary>
-/// Middleware that checks the permission level of the current connection
-/// before allowing the packet to proceed to the next handler.
+/// Middleware that enforces concurrency limits on incoming packets.
 /// </summary>
-[Middleware(MiddlewareStage.Inbound, order: 2, name: "Permission")]
-public class PermissionMiddleware : IPacketMiddleware<IPacket>
+public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
@@ -82,4 +78,3 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
     }
 }
-
