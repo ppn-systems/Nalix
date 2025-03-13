@@ -21,7 +21,7 @@ public enum EncryptionMode : byte
     Twofish = 3,
 
     /// <summary>
-    /// XTEA (Extended TEA) encryption algorithm.
+    /// XTEA encryption algorithm.
     /// </summary>
     Xtea = 4,
 }

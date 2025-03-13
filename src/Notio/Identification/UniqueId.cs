@@ -1,4 +1,4 @@
-using Notio.Common.Interfaces;
+using Notio.Common.Data;
 using Notio.Common.Models;
 using System;
 using System.Buffers.Binary;
