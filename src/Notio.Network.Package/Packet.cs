@@ -7,7 +7,6 @@ using Notio.Network.Package.Utilities;
 using Notio.Network.Package.Utilities.Data;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -89,6 +88,28 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="command">The packet command.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(ushort command, byte[] payload)
+    : this(command, new Memory<byte>(payload))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
+    /// </summary>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload (data).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Packet(ushort command, Span<byte> payload)
+    : this(command, new Memory<byte>(payload.ToArray()))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
+    /// </summary>
+    /// <param name="command">The packet command.</param>
+    /// <param name="payload">The packet payload (data).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(ushort command, Memory<byte> payload)
         : this(PacketType.None, PacketFlags.None, PacketPriority.None, command, payload)
     {
@@ -104,19 +125,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(PacketFlags flags, PacketPriority priority, ushort command, string s)
         : this(PacketType.String, flags, priority, command, Encoding.UTF8.GetBytes(s))
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new packet with a dictionary payload.
-    /// </summary>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="dictionary">The dictionary payload.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketFlags flags, PacketPriority priority, ushort command, Dictionary<string, object> dictionary)
-        : this(PacketType.Dictionary, flags, priority, command, DictionaryUtils.Serialize(dictionary))
     {
     }
 
