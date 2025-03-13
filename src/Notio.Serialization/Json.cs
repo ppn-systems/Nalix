@@ -167,7 +167,22 @@ public static partial class Json
     /// <returns>
     /// A <see cref="string" /> that represents the current object.
     /// </returns>
-    public static string Serialize(object? obj, SerializerOptions options) => Serializer.Serialize(obj, 0, options);
+    public static string Serialize(object? obj, SerializerOptions options)
+        => Serializer.Serialize(obj, 0, options);
+
+    /// <summary>
+    /// Serializes the specified object into a JSON byte array.
+    /// </summary>
+    /// <param name="obj">The object.</param>
+    /// <param name="format">if set to <c>true</c> it formats and indents the output.</param>
+    /// <param name="typeSpecifier">The type specifier. Leave null or empty to avoid setting.</param>
+    /// <param name="includedNames">The included property names.</param>
+    /// <param name="excludedNames">The excluded property names.</param>
+    /// <returns>
+    /// A <see cref="byte[]" /> that represents the current object.
+    /// </returns>
+    public static byte[] Serialize(object? obj, bool format = false)
+        => System.Text.Encoding.UTF8.GetBytes(Serialize(obj, format, null, null, []));
 
     /// <summary>
     /// Serializes the specified object only including the specified property names.
@@ -291,6 +306,16 @@ public static partial class Json
             : Deserialize(json, JsonSerializerCase.None);
 
     /// <summary>
+    /// Deserializes a UTF-8 encoded byte array into an object.
+    /// </summary>
+    /// <param name="jsonBytes">The UTF-8 encoded JSON bytes.</param>
+    /// <returns>The deserialized object.</returns>
+    public static object? Deserialize(byte[] jsonBytes) =>
+        jsonBytes == null
+            ? throw new ArgumentNullException(nameof(jsonBytes))
+            : Deserialize(System.Text.Encoding.UTF8.GetString(jsonBytes));
+
+    /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
     /// Non-public constructors and property setters are ignored.
     /// </summary>
@@ -320,6 +345,17 @@ public static partial class Json
             ? throw new ArgumentNullException(nameof(json))
             : (T)(Deserialize(json, typeof(T), jsonSerializerCase: jsonSerializerCase)
             ?? throw new InvalidOperationException("Deserialization returned null."));
+
+    /// <summary>
+    /// Deserializes a UTF-8 encoded byte array into an object of the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize to.</typeparam>
+    /// <param name="jsonBytes">The UTF-8 encoded JSON bytes.</param>
+    /// <returns>The deserialized object of type T.</returns>
+    public static T DeserializeFromBytes<T>(byte[] jsonBytes) =>
+        jsonBytes == null
+            ? throw new ArgumentNullException(nameof(jsonBytes))
+            : Deserialize<T>(System.Text.Encoding.UTF8.GetString(jsonBytes));
 
     /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
