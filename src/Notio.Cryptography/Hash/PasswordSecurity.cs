@@ -46,7 +46,7 @@ public static class PasswordSecurity
     public static bool VerifyPassword(string password, byte[] salt, byte[] hash)
     {
         using var pbkdf2 = new Pbkdf2(salt, Iterations, KeyLength, Pbkdf2.HashAlgorithmType.Sha256);
-        return RandGenerator.ConstantTimeEquals(pbkdf2.DeriveKey(password), hash);
+        return Pbkdf2.ConstantTimeEquals(pbkdf2.DeriveKey(password), hash);
     }
 
     /// <summary>

@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -53,6 +52,20 @@ public static class RandGenerator
         byte[] key = new byte[length];
         Fill(key);
         return key;
+    }
+
+    /// <summary>
+    /// Generates a cryptographic key and fills the provided output span with random bytes.
+    /// The key is suitable for use in symmetric encryption algorithms.
+    /// </summary>
+    /// <param name="output">The span to fill with random key bytes. Length must be a multiple of 8.</param>
+    /// <exception cref="ArgumentException">Thrown if the length of <paramref name="output"/> is not a multiple of 8.</exception>
+    public static void CreateKey(Span<byte> output)
+    {
+        if (output.Length % 8 != 0)
+            throw new ArgumentException("Key length must be a multiple of 8.", nameof(output));
+
+        Fill(output);
     }
 
     /// <summary>
@@ -235,87 +248,6 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Derives a cryptographic key from a passphrase using a PBKDF2-inspired approach.
-    /// </summary>
-    /// <param name="passphrase">The input passphrase.</param>
-    /// <param name="length">The desired key length in bytes.</param>
-    /// <param name="iterations">The number of iterations for key stretching.</param>
-    /// <returns>A derived key of the specified length.</returns>
-    /// <exception cref="ArgumentException">Thrown for invalid parameters.</exception>
-    public static byte[] DeriveKey(string passphrase, int length = 32, int iterations = 100000)
-    {
-        if (string.IsNullOrEmpty(passphrase))
-            throw new ArgumentException("Passphrase cannot be null or empty.", nameof(passphrase));
-
-        if (length <= 0)
-            throw new ArgumentException("Key length must be greater than zero.", nameof(length));
-
-        if (iterations <= 0)
-            throw new ArgumentException("Iterations must be greater than zero.", nameof(iterations));
-
-        // Get passphrase bytes
-        byte[] passphraseBytes = Encoding.UTF8.GetBytes(passphrase);
-        byte[] result = new byte[length];
-
-        // Use PBKDF2-inspired approach with multiple mixing rounds
-        byte[] salt = GetSalt(passphrase);
-
-        // Create initial hash from passphrase and salt
-        byte[] hash = HashWithSalt(passphraseBytes, salt);
-
-        // Initialize the key buffer
-        for (int i = 0; i < length; i++)
-            result[i] = (byte)(hash[i % hash.Length] ^ salt[i % salt.Length]);
-
-        // Iterative mixing
-        for (int iter = 0; iter < iterations; iter++)
-        {
-            // Mix in the iteration counter to prevent duplicate hashes
-            for (int i = 0; i < 4 && i < hash.Length - 4; i++)
-            {
-                int pos = iter % (hash.Length - 4 - i);
-                hash[pos + i] ^= (byte)(iter >> (i * 8));
-            }
-
-            // Update the hash
-            hash = HashBytes(hash);
-
-            // Mix the hash into the result
-            for (int i = 0; i < length; i++)
-            {
-                result[i] ^= (byte)(hash[i % hash.Length] ^ ((iter * i) & 0xFF));
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Compares two byte arrays in constant time to prevent timing attacks.
-    /// </summary>
-    /// <param name="a">The first byte array to compare.</param>
-    /// <param name="b">The second byte array to compare.</param>
-    /// <returns>
-    /// <c>true</c> if both byte arrays are equal in length and content; otherwise, <c>false</c>.
-    /// </returns>
-    /// <remarks>
-    /// This method ensures that the comparison takes a constant amount of time regardless of 
-    /// the input values to mitigate timing attacks. It does this by iterating through 
-    /// both arrays entirely and using a bitwise OR operation on the differences.
-    /// </remarks>
-    public static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-    {
-        if (a.Length != b.Length) return false;
-
-        int result = 0;
-        for (int i = 0; i < a.Length; i++)
-        {
-            result |= a[i] ^ b[i];
-        }
-        return result == 0;
-    }
-
-    /// <summary>
     /// Creates a cryptographically secure random password of specified length and complexity.
     /// </summary>
     /// <param name="length">The length of the password.</param>
@@ -482,81 +414,6 @@ public static class RandGenerator
         }
 
         return salt;
-    }
-
-    /// <summary>
-    /// Hash function that combines passphrase with salt.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] HashWithSalt(byte[] data, byte[] salt)
-    {
-        // Get the appropriate buffer size
-        int bufferSize = data.Length + salt.Length;
-        byte[] buffer = bufferSize <= 1024
-            ? ArrayPool<byte>.Shared.Rent(bufferSize)
-            : new byte[bufferSize];
-
-        try
-        {
-            // Combine data and salt
-            Buffer.BlockCopy(data, 0, buffer, 0, data.Length);
-            Buffer.BlockCopy(salt, 0, buffer, data.Length, salt.Length);
-
-            return HashBytes(buffer.AsSpan(0, bufferSize));
-        }
-        finally
-        {
-            // Return the buffer to the pool if it was rented
-            if (bufferSize <= 1024)
-            {
-                // Clear sensitive data before returning
-                Array.Clear(buffer, 0, bufferSize);
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Fast hash function for key derivation.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] HashBytes(ReadOnlySpan<byte> data)
-    {
-        // Use a simple but fast mixing function
-        byte[] hash = new byte[32];
-        uint h1 = 0x811c9dc5;
-        uint h2 = 0x1b873593;
-        uint h3 = 0x9cb4b2f8;
-        uint h4 = 0x4b2d8c19;
-
-        // Process data in blocks
-        for (int i = 0; i < data.Length; i++)
-        {
-            byte b = data[i];
-            h1 = ((h1 ^ b) * 0x01000193) ^ RotateLeft((uint)b, 1);
-            h2 = ((h2 ^ b) * 0x01050193) ^ RotateLeft((uint)b, 2);
-            h3 = ((h3 ^ b) * 0x01100193) ^ RotateLeft((uint)b, 3);
-            h4 = ((h4 ^ b) * 0x01180193) ^ RotateLeft((uint)b, 4);
-        }
-
-        // Finalization
-        h1 ^= (uint)data.Length;
-        h2 ^= (uint)data.Length << 8;
-        h3 ^= (uint)data.Length << 16;
-        h4 ^= (uint)data.Length << 24;
-
-        BitConverter.TryWriteBytes(hash.AsSpan(0, 4), h1);
-        BitConverter.TryWriteBytes(hash.AsSpan(4, 4), h2);
-        BitConverter.TryWriteBytes(hash.AsSpan(8, 4), h3);
-        BitConverter.TryWriteBytes(hash.AsSpan(12, 4), h4);
-
-        // Add more variation
-        for (int i = 16; i < 32; i++)
-        {
-            hash[i] = (byte)(hash[i - 16] ^ hash[i % 16] ^ (i * 11));
-        }
-
-        return hash;
     }
 
     /// <summary>
