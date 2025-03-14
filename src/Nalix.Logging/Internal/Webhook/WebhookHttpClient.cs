@@ -38,12 +38,14 @@ internal sealed class WebhookHttpClient : System.IDisposable
         System.ArgumentNullException.ThrowIfNull(options);
 
         _options = options;
+        _currentWebhookIndex = 0;
+        _random = new System.Random();
+        _formatter = new WebhookFormatter(_options);
         _httpClient = new System.Net.Http.HttpClient
         {
             Timeout = _options.HttpTimeout
         };
 
-        _formatter = new WebhookFormatter(_options);
         _jsonOptions = new System.Text.Json.JsonSerializerOptions
         {
             WriteIndented = false,
@@ -51,8 +53,6 @@ internal sealed class WebhookHttpClient : System.IDisposable
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
-        _currentWebhookIndex = 0;
-        _random = new System.Random();
     }
 
     #endregion Constructors
@@ -79,8 +79,8 @@ internal sealed class WebhookHttpClient : System.IDisposable
         System.Net.Http.StringContent content = new(json, System.Text.Encoding.UTF8, "application/json");
 
         // Try all webhooks if needed (for Failover strategy)
-        System.Int32 webhookCount = _options.WebhookUrls.Count;
         System.Int32 startIndex = SelectWebhookIndex();
+        System.Int32 webhookCount = _options.WebhookUrls.Count;
 
         for (System.Int32 webhookAttempt = 0; webhookAttempt < webhookCount; webhookAttempt++)
         {
@@ -104,7 +104,7 @@ internal sealed class WebhookHttpClient : System.IDisposable
                     if (response.StatusCode is System.Net.HttpStatusCode.TooManyRequests)
                     {
                         System.Diagnostics.Debug.WriteLine(
-                            $"[LG. WebhookHttpClient] Webhook {webhookIndex + 1}/{webhookCount} rate limited (429)");
+                            $"[LG.WebhookHttpClient] Webhook {webhookIndex + 1}/{webhookCount} rate limited (429)");
 
                         // Try next webhook immediately if available
                         if (_options.DispatchMode is WebhookDispatchMode.Failover
@@ -182,9 +182,9 @@ internal sealed class WebhookHttpClient : System.IDisposable
     {
         return _options.DispatchMode switch
         {
-            WebhookDispatchMode.RoundRobin => SelectRoundRobin(),
-            WebhookDispatchMode.Random => SelectRandom(),
             WebhookDispatchMode.Failover => 0,
+            WebhookDispatchMode.Random => SelectRandom(),
+            WebhookDispatchMode.RoundRobin => SelectRoundRobin(),
             _ => 0
         };
     }
