@@ -50,30 +50,47 @@ public static class PasswordSecurity
     }
 
     /// <summary>
-    /// Hashes a password and returns a Base64-encoded string containing both the salt and hash.
+    /// Hashes a password and returns a Base64-encoded string with version, salt, and hash.
+    /// Format: [version (1 byte)] + [salt] + [hash].
     /// </summary>
     /// <param name="password">The plaintext password.</param>
-    /// <returns>A Base64-encoded string of the salt and hash.</returns>
-    public static string HashPasswordToBase64(string password)
+    /// <returns>A Base64-encoded string containing version, salt, and hash.</returns>
+    public static string HashPasswordToBase64(string password, byte version = 1)
     {
         HashPassword(password, out byte[] salt, out byte[] hash);
-        return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
+        byte[] combined = new byte[1 + salt.Length + hash.Length];
+        combined[0] = version;
+        Array.Copy(salt, 0, combined, 1, salt.Length);
+        Array.Copy(hash, 0, combined, 1 + salt.Length, hash.Length);
+        return Convert.ToBase64String(combined);
     }
 
     /// <summary>
-    /// Verifies a password against a Base64-encoded salt and hash.
+    /// Verifies a password against a Base64-encoded hash with version information.
     /// </summary>
     /// <param name="password">The password to verify.</param>
-    /// <param name="encodedHash">The Base64-encoded salt and hash.</param>
+    /// <param name="encodedHash">The Base64-encoded string containing version, salt, and hash.</param>
     /// <returns><c>true</c> if the password matches; otherwise, <c>false</c>.</returns>
     public static bool VerifyPasswordFromBase64(string password, string encodedHash)
     {
-        var parts = encodedHash.Split(':');
-        if (parts.Length != 2) return false;
+        if (string.IsNullOrEmpty(encodedHash)) return false;
 
-        byte[] salt = Convert.FromBase64String(parts[0]);
-        byte[] storedHash = Convert.FromBase64String(parts[1]);
+        try
+        {
+            byte[] combined = Convert.FromBase64String(encodedHash);
+            if (combined.Length < 1 + SaltSize + KeyLength) return false;
 
-        return VerifyPassword(password, salt, storedHash);
+            byte version = combined[0];
+            byte[] salt = new byte[SaltSize];
+            byte[] storedHash = new byte[KeyLength];
+            Array.Copy(combined, 1, salt, 0, SaltSize);
+            Array.Copy(combined, 1 + SaltSize, storedHash, 0, KeyLength);
+
+            return version == 1 && VerifyPassword(password, salt, storedHash);
+        }
+        catch (FormatException)
+        {
+            return false; // Base64 không hợp lệ
+        }
     }
 }
