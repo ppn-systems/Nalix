@@ -303,14 +303,17 @@ public static partial class Json
             : Deserialize(json, JsonSerializerCase.None);
 
     /// <summary>
-    /// Deserializes a UTF-8 encoded byte array into an object.
+    /// Deserializes a UTF-8 encoded byte span into an object.
     /// </summary>
-    /// <param name="jsonBytes">The UTF-8 encoded JSON bytes.</param>
+    /// <param name="json">The UTF-8 encoded JSON bytes.</param>
     /// <returns>The deserialized object.</returns>
-    public static object? Deserialize(byte[] jsonBytes) =>
-        jsonBytes == null
-            ? throw new ArgumentNullException(nameof(jsonBytes))
-            : Deserialize(System.Text.Encoding.UTF8.GetString(jsonBytes));
+    public static object? Deserialize(ReadOnlySpan<byte> json)
+    {
+        if (json.IsEmpty)
+            throw new ArgumentNullException(nameof(json));
+
+        return Deserialize(System.Text.Encoding.UTF8.GetString(json));
+    }
 
     /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
@@ -344,15 +347,18 @@ public static partial class Json
             ?? throw new InvalidOperationException("Deserialization returned null."));
 
     /// <summary>
-    /// Deserializes a UTF-8 encoded byte array into an object of the specified type.
+    /// Deserializes a UTF-8 encoded byte span into an object of the specified type.
     /// </summary>
     /// <typeparam name="T">The type to deserialize to.</typeparam>
-    /// <param name="jsonBytes">The UTF-8 encoded JSON bytes.</param>
+    /// <param name="json">The UTF-8 encoded JSON bytes.</param>
     /// <returns>The deserialized object of type T.</returns>
-    public static T DeserializeFromBytes<T>(byte[] jsonBytes) =>
-        jsonBytes == null
-            ? throw new ArgumentNullException(nameof(jsonBytes))
-            : Deserialize<T>(System.Text.Encoding.UTF8.GetString(jsonBytes));
+    public static T Deserialize<T>(ReadOnlySpan<byte> json)
+    {
+        if (json.IsEmpty)
+            throw new ArgumentNullException(nameof(json));
+
+        return Deserialize<T>(System.Text.Encoding.UTF8.GetString(json));
+    }
 
     /// <summary>
     /// Deserializes the specified JSON string and converts it to the specified object type.
