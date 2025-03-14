@@ -291,6 +291,31 @@ public static class RandGenerator
     }
 
     /// <summary>
+    /// Compares two byte arrays in constant time to prevent timing attacks.
+    /// </summary>
+    /// <param name="a">The first byte array to compare.</param>
+    /// <param name="b">The second byte array to compare.</param>
+    /// <returns>
+    /// <c>true</c> if both byte arrays are equal in length and content; otherwise, <c>false</c>.
+    /// </returns>
+    /// <remarks>
+    /// This method ensures that the comparison takes a constant amount of time regardless of 
+    /// the input values to mitigate timing attacks. It does this by iterating through 
+    /// both arrays entirely and using a bitwise OR operation on the differences.
+    /// </remarks>
+    public static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+    {
+        if (a.Length != b.Length) return false;
+
+        int result = 0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            result |= a[i] ^ b[i];
+        }
+        return result == 0;
+    }
+
+    /// <summary>
     /// Creates a cryptographically secure random password of specified length and complexity.
     /// </summary>
     /// <param name="length">The length of the password.</param>
