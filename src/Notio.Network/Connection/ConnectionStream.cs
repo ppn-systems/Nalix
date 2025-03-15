@@ -75,16 +75,27 @@ internal class ConnectionStream : IDisposable
                    .ContinueWith(async (task, state) =>
                    {
                        var self = (ConnectionStream)state!;
-                       await self.OnReceiveCompleted(task, cancellationToken);
+                       try
+                       {
+                           await self.OnReceiveCompleted(task, cancellationToken);
+                       }
+                       catch (IOException ex)
+                       when (ex.InnerException is SocketException se &&
+                             se.SocketErrorCode == SocketError.ConnectionReset)
+                       {
+                           self._logger?.Debug("Connection forcibly closed by remote host.");
+                           self.Disconnected?.Invoke();
+                       }
+                       catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+                       {
+                           self._logger?.Debug("Socket connection reset.");
+                           self.Disconnected?.Invoke();
+                       }
+                       catch (Exception ex)
+                       {
+                           self._logger?.Error(ex);
+                       }
                    }, this, cancellationToken);
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
-        {
-            _logger?.Debug("Connection reset by remote host.");
-        }
-        catch (IOException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionReset })
-        {
-            _logger?.Debug("Connection forcibly closed by remote host.");
         }
         catch (Exception ex)
         {
@@ -197,16 +208,6 @@ internal class ConnectionStream : IDisposable
             {
                 _logger?.Error("Incomplete packet received.");
             }
-        }
-        catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionReset)
-        {
-            _logger?.Debug("Connection forcibly closed by remote host.");
-            Disconnected?.Invoke();
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
-        {
-            _logger?.Debug("Socket connection reset.");
-            Disconnected?.Invoke();
         }
         catch (Exception ex)
         {
