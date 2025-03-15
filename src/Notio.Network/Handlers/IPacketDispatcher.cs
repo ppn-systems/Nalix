@@ -1,7 +1,5 @@
 using Notio.Common.Connection;
-using Notio.Common.Data;
-using System;
-using System.Threading.Tasks;
+using Notio.Common.Package;
 
 namespace Notio.Network.Handlers;
 
@@ -34,7 +32,7 @@ public interface IPacketDispatcher
     /// Implementations should deserialize the packet and then determine the appropriate action
     /// based on the packet's content and the associated command ID.
     /// </remarks>
-    void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection);
+    void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection);
 
     /// <summary>
     /// Handles the incoming packet and processes it using the specified connection.
@@ -45,5 +43,5 @@ public interface IPacketDispatcher
     /// Implementations should determine the appropriate action based on the packet's command ID
     /// and perform the necessary processing using the provided connection.
     /// </remarks>
-    Task HandlePacket(IPacket? packet, IConnection connection);
+    System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection);
 }

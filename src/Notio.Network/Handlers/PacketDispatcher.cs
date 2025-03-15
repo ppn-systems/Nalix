@@ -1,7 +1,5 @@
 using Notio.Common.Connection;
-using Notio.Common.Data;
-using System;
-using System.Threading.Tasks;
+using Notio.Common.Package;
 
 namespace Notio.Network.Handlers;
 
@@ -16,7 +14,7 @@ namespace Notio.Network.Handlers;
 /// <param name="options">
 /// A delegate used to configure <see cref="PacketDispatcherOptions"/> before processing packets.
 /// </param>
-public class PacketDispatcher(Action<PacketDispatcherOptions> options)
+public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     : PacketDispatcherBase(options), IPacketDispatcher
 {
     /// <inheritdoc />
@@ -42,7 +40,7 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     }
 
     /// <inheritdoc />
-    public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
     {
         if (packet == null)
         {
@@ -64,18 +62,19 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     }
 
     /// <inheritdoc />
-    public Task HandlePacket(IPacket? packet, IConnection connection)
+    public System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection)
     {
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
-            return Task.CompletedTask;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
         ushort commandId = packet.Command;
         Options.Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
-        if (Options.PacketHandlers.TryGetValue(commandId, out Func<IPacket, IConnection, Task>? handlerAction))
+        if (Options.PacketHandlers.TryGetValue(commandId,
+            out System.Func<IPacket, IConnection, System.Threading.Tasks.Task>? handlerAction))
         {
             try
             {
@@ -93,16 +92,16 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
                     }
                 });
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
-                return Task.FromException(ex);
+                return System.Threading.Tasks.Task.FromException(ex);
             }
         }
         else
         {
             Options.Logger?.Warn($"No handler found for CommandId {commandId}");
-            return Task.CompletedTask;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
     }
 }

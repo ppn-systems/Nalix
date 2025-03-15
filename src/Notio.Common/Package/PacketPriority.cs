@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Package.Enums;
+namespace Notio.Common.Package;
 
 /// <summary>
 /// Defines the priority levels of a packet.

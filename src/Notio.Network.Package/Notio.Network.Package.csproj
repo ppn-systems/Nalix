@@ -13,8 +13,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.72</Version>
-    <PackageVersion>0.3.72</PackageVersion>
+    <Version>0.3.81</Version>
+    <PackageVersion>0.3.81</PackageVersion>
     
 		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
 		<PackageReleaseNotes>Introduces new features for HTTP request handling and optimizations for socket communication.</PackageReleaseNotes>

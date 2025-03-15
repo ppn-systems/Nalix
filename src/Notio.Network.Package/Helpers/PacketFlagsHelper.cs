@@ -1,4 +1,4 @@
-using Notio.Network.Package.Enums;
+using Notio.Common.Package;
 using System.Collections.Generic;
 
 namespace Notio.Network.Package.Helpers;

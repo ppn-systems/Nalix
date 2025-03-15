@@ -1,14 +1,12 @@
 using Notio.Common.Attributes;
 using Notio.Common.Connection;
-using Notio.Common.Data;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
+using Notio.Common.Package;
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -112,7 +110,6 @@ public sealed class PacketDispatcherOptions
                 if (result is IEnumerable<byte> bytes)
                 {
                     byte[] data = [.. bytes];
-
                     await connection.SendAsync(data);
                 }
             },
@@ -131,11 +128,19 @@ public sealed class PacketDispatcherOptions
                         return;
                     }
 
-                    if (this._compressionMethod is not null)
+                    if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) ==
+                        PacketFlags.IsCompressed &&
+                        this._compressionMethod is not null)
+                    {
                         packet = this._compressionMethod(packet);
+                    }
 
-                    if (this._encryptionMethod is not null)
+                    if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) ==
+                        PacketFlags.IsEncrypted &&
+                        this._encryptionMethod is not null)
+                    {
                         packet = this._encryptionMethod(packet, connection);
+                    }
 
                     await connection.SendAsync(this.SerializationMethod(packet));
                 }
@@ -156,19 +161,9 @@ public sealed class PacketDispatcherOptions
             {
                 if (result is Task<IEnumerable<byte>> task)
                 {
-                    using MemoryStream ms = new();
-
                     IEnumerable<byte> taskResult = await task;
-
                     byte[] data = [.. taskResult];
-                    byte[] lengthBytes = new byte[2];
-
-                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
-
-                    await ms.WriteAsync(lengthBytes);
-                    await ms.WriteAsync(data);
-
-                    await connection.SendAsync(ms.ToArray());
+                    await connection.SendAsync(data);
                 }
             },
 
@@ -186,14 +181,24 @@ public sealed class PacketDispatcherOptions
                     return;
                 }
 
-                if (this._compressionMethod is not null)
+                if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) ==
+                    PacketFlags.IsCompressed &&
+                    this._compressionMethod is not null)
+                {
                     packet = this._compressionMethod(packet);
+                }
 
-                if (this._encryptionMethod is not null)
+                if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) ==
+                    PacketFlags.IsEncrypted &&
+                    this._encryptionMethod is not null)
+                {
                     packet = this._encryptionMethod(packet, connection);
+                }
 
                 await connection.SendAsync(this.SerializationMethod(packet));
-            }
+            },
+
+            [typeof(Task)] = async (result, _, _) => await (Task)result!,
         };
 
         Logger?.Debug("PacketDispatcherOptions initialized.");

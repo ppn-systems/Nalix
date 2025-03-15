@@ -11,8 +11,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.72</Version>
-    <PackageVersion>0.3.72</PackageVersion>
+    <Version>0.3.81</Version>
+    <PackageVersion>0.3.81</PackageVersion>
     
 		<ReleaseNotes>Initial release of Notio.Common package.</ReleaseNotes>
 		<Description>Notio.Common is a .NET library for managing common functionality.</Description>

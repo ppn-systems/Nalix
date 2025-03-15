@@ -1,7 +1,7 @@
 using Notio.Common.Authentication;
 using Notio.Common.Exceptions;
+using Notio.Common.Package;
 using Notio.Cryptography;
-using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Utilities;
 using System;
