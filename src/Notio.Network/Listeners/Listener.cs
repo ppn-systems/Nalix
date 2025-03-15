@@ -219,6 +219,8 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         args.Connection.OnCloseEvent -= OnConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
+
+        args.Connection.Dispose();
     }
 
     /// <summary>

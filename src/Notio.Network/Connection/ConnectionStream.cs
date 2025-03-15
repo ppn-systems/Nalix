@@ -154,7 +154,7 @@ internal class ConnectionStream : IDisposable
             if (totalBytesRead == 0)
             {
                 _logger?.Debug("Client closed connection gracefully.");
-                Dispose(); // Đóng kết nối trên server khi client ngắt kết nối
+                Disconnected?.Invoke(); // Đóng kết nối trên server khi client ngắt kết nối
                 return;
             }
 
@@ -179,7 +179,7 @@ internal class ConnectionStream : IDisposable
                 if (bytesRead == 0)
                 {
                     _logger?.Debug("Client closed connection while reading.");
-                    Dispose();
+                    Disconnected?.Invoke();
                     return;
                 }
 
@@ -201,12 +201,12 @@ internal class ConnectionStream : IDisposable
         catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Connection forcibly closed by remote host.");
-            Dispose();
+            Disconnected?.Invoke();
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Socket connection reset.");
-            Dispose();
+            Disconnected?.Invoke();
         }
         catch (Exception ex)
         {
@@ -241,7 +241,5 @@ internal class ConnectionStream : IDisposable
         }
 
         _disposed = true;
-
-        Disconnected?.Invoke();
     }
 }
