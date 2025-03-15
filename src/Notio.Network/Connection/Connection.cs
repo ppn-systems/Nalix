@@ -1,5 +1,5 @@
-using Notio.Common.Connection;
 using Notio.Common.Authentication;
+using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;
@@ -54,6 +54,11 @@ public sealed class Connection : IConnection
             PacketCached = () =>
             {
                 _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
+            },
+
+            Disconnected = () =>
+            {
+                _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
             }
         };
     }

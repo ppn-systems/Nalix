@@ -28,6 +28,11 @@ internal class ConnectionStream : IDisposable
     public Action? PacketCached;
 
     /// <summary>
+    /// Event triggered when the connection is disconnected.
+    /// </summary>
+    public Action? Disconnected;
+
+    /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
     public long LastPingTime { get; private set; }
@@ -146,6 +151,13 @@ internal class ConnectionStream : IDisposable
         try
         {
             int totalBytesRead = task.Result;
+            if (totalBytesRead == 0)
+            {
+                _logger?.Debug("Client closed connection gracefully.");
+                Dispose(); // Đóng kết nối trên server khi client ngắt kết nối
+                return;
+            }
+
             if (totalBytesRead < 2) return;
 
             ushort size = BitConverter.ToUInt16(_buffer, 0);
@@ -165,12 +177,15 @@ internal class ConnectionStream : IDisposable
             {
                 int bytesRead = await _stream.ReadAsync(_buffer.AsMemory(totalBytesRead, size - totalBytesRead), cancellationToken);
                 if (bytesRead == 0)
-                    break; // End of stream; optionally handle partial packet
+                {
+                    _logger?.Debug("Client closed connection while reading.");
+                    Dispose();
+                    return;
+                }
 
                 totalBytesRead += bytesRead;
             }
 
-            // Optionally, check if totalBytesRead equals size before caching
             if (totalBytesRead == size)
             {
                 CacheIncoming.Add(_buffer.AsMemory(0, totalBytesRead));
@@ -182,6 +197,16 @@ internal class ConnectionStream : IDisposable
             {
                 _logger?.Error("Incomplete packet received.");
             }
+        }
+        catch (IOException ex) when (ex.InnerException is SocketException se && se.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Connection forcibly closed by remote host.");
+            Dispose();
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Socket connection reset.");
+            Dispose();
         }
         catch (Exception ex)
         {
@@ -216,5 +241,7 @@ internal class ConnectionStream : IDisposable
         }
 
         _disposed = true;
+
+        Disconnected?.Invoke();
     }
 }

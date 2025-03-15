@@ -25,7 +25,8 @@ namespace Notio.Network.Listeners;
 /// <param name="protocol">The protocol to handle the connections.</param>
 /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
 /// <param name="logger">The logger to log events and errors.</param>
-public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger) : IListener, IDisposable
+public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    : IListener, IDisposable
 {
     private const int True = 1;
     private const int False = 0;
