@@ -18,40 +18,6 @@ public sealed class ListenerConfig : ConfiguredBinder
     public int Port { get; set; } = 5000;
 
     /// <summary>
-    /// Gets or sets the buffer size for receiving data.
-    /// The value must be at least 64KB.
-    /// Default is 64KB (65536 bytes).
-    /// </summary>
-    [Range(1024, int.MaxValue)]
-    public int ReceiveBufferSize { get; set; } = 64 * 1024;
-
-    /// <summary>
-    /// Gets or sets the buffer size for sending data.
-    /// The value must be at least 64KB.
-    /// Default is 64KB (65536 bytes).
-    /// </summary>
-    [Range(1024, int.MaxValue)]
-    public int SendBufferSize { get; set; } = 64 * 1024;
-
-    /// <summary>
-    /// Gets or sets the linger timeout in seconds.
-    /// Default is 30 seconds.
-    /// </summary>
-    public int LingerTimeoutSeconds { get; set; } = 30;
-
-    /// <summary>
-    /// Gets or sets the timeout for receiving data in milliseconds.
-    /// Default is 5000 milliseconds.
-    /// </summary>
-    public int ReceiveTimeoutMilliseconds { get; set; } = 5000;
-
-    /// <summary>
-    /// Gets or sets the timeout for sending data in milliseconds.
-    /// Default is 5000 milliseconds.
-    /// </summary>
-    public int SendTimeoutMilliseconds { get; set; } = 5000;
-
-    /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency communication).
     /// Default is true.
     /// </summary>

@@ -27,6 +27,9 @@ namespace Notio.Network.Listeners;
 /// <param name="logger">The logger to log events and errors.</param>
 public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger) : IListener, IDisposable
 {
+    private const int True = 1;
+    private const int False = 0;
+
     // Using lazy initialization for thread-safety and singleton pattern
     private static readonly Lazy<ListenerConfig> _lazyConfig = new(() =>
         ConfiguredShared.Instance.Get<ListenerConfig>());
@@ -226,19 +229,10 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         // Performance tuning
         socket.NoDelay = Config.NoDelay;
-        socket.SendBufferSize = Config.SendBufferSize;
-        socket.SendTimeout = Config.SendTimeoutMilliseconds;
-        socket.ReceiveBufferSize = Config.ReceiveBufferSize;
-        socket.ReceiveTimeout = Config.ReceiveTimeoutMilliseconds;
-        socket.LingerState = new LingerOption(false, Config.LingerTimeoutSeconds);
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             socket.SetSocketOption(SocketOptionLevel.Socket,
-                SocketOptionName.ReuseAddress, Config.ReuseAddress ? 1 : 0);
-
-        // Enable DualMode for IPv4 and IPv6 support if available
-        if (Socket.OSSupportsIPv6)
-            socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                SocketOptionName.ReuseAddress, Config.ReuseAddress ? True : False);
     }
 
     /// <summary>
