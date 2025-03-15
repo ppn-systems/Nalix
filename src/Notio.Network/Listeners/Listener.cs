@@ -4,7 +4,6 @@ using Notio.Common.Memory;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;
-using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -225,63 +224,21 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ConfigureHighPerformanceSocket(Socket socket)
     {
-        // Caches configuration values to local variables to improve performance
-        var config = Config;
-
-        socket.LingerState = new LingerOption(false, config.LingerTimeoutSeconds);
-        socket.NoDelay = config.NoDelay;
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, config.ReuseAddress);
-
         // Performance tuning
-        socket.SendBufferSize = config.SendBufferSize;
-        socket.SendTimeout = config.SendTimeoutMilliseconds;
-        socket.ReceiveBufferSize = config.ReceiveBufferSize;
-        socket.ReceiveTimeout = config.ReceiveTimeoutMilliseconds;
+        socket.NoDelay = Config.NoDelay;
+        socket.SendBufferSize = Config.SendBufferSize;
+        socket.SendTimeout = Config.SendTimeoutMilliseconds;
+        socket.ReceiveBufferSize = Config.ReceiveBufferSize;
+        socket.ReceiveTimeout = Config.ReceiveTimeoutMilliseconds;
+        socket.LingerState = new LingerOption(false, Config.LingerTimeoutSeconds);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            socket.SetSocketOption(SocketOptionLevel.Socket,
+                SocketOptionName.ReuseAddress, Config.ReuseAddress ? 1 : 0);
 
         // Enable DualMode for IPv4 and IPv6 support if available
         if (Socket.OSSupportsIPv6)
-        {
             socket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // Use ArrayPool to avoid allocations for temporary buffers
-            byte[] keepAliveValues = ArrayPool<byte>.Shared.Rent(12);
-            try
-            {
-                PrepareKeepAliveValues(keepAliveValues);
-                socket.IOControl(IOControlCode.KeepAliveValues, keepAliveValues, null);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(keepAliveValues);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Prepares the keep-alive values for Windows sockets.
-    /// </summary>
-    /// <param name="buffer">A pre-allocated buffer to hold the keep-alive values.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void PrepareKeepAliveValues(Span<byte> buffer)
-    {
-        const uint time = 30000; // 30s
-        const uint interval = 1000; // 1s
-
-        buffer[0] = 1; // enable keep-alive
-        buffer[1] = buffer[2] = buffer[3] = 0;
-
-        // Time value
-        buffer[4] = (byte)(time & 0xFF);
-        buffer[5] = (byte)((time >> 8) & 0xFF);
-        buffer[6] = buffer[7] = 0;
-
-        // Interval value
-        buffer[8] = (byte)(interval & 0xFF);
-        buffer[9] = (byte)((interval >> 8) & 0xFF);
-        buffer[10] = buffer[11] = 0;
     }
 
     /// <summary>
