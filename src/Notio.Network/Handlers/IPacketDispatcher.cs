@@ -1,6 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Data;
 using System;
+using System.Threading.Tasks;
 
 namespace Notio.Network.Handlers;
 
@@ -44,5 +45,5 @@ public interface IPacketDispatcher
     /// Implementations should determine the appropriate action based on the packet's command ID
     /// and perform the necessary processing using the provided connection.
     /// </remarks>
-    void HandlePacket(IPacket? packet, IConnection connection);
+    Task HandlePacket(IPacket? packet, IConnection connection);
 }

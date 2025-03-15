@@ -22,8 +22,6 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, IConnection connection)
     {
-        Options.Logger?.Debug("Handling packet (byte[])");
-
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
@@ -40,14 +38,12 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
         IPacket parsedPacket = Options.DeserializationMethod(packet);
         Options.Logger?.Debug("Packet deserialized successfully.");
 
-        this.HandlePacket(parsedPacket, connection);
+        this.HandlePacket(parsedPacket, connection).Wait();
     }
 
     /// <inheritdoc />
     public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
     {
-        Options.Logger?.Debug("Handling packet (ReadOnlyMemory<byte>)");
-
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
@@ -64,18 +60,16 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
         IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
         Options.Logger?.Debug("Packet deserialized successfully.");
 
-        this.HandlePacket(parsedPacket, connection);
+        this.HandlePacket(parsedPacket, connection).Wait();
     }
 
     /// <inheritdoc />
-    public void HandlePacket(IPacket? packet, IConnection connection)
+    public Task HandlePacket(IPacket? packet, IConnection connection)
     {
-        Options.Logger?.Debug("Handling packet (IPacket)");
-
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
-            return;
+            return Task.CompletedTask;
         }
 
         ushort commandId = packet.Command;
@@ -86,17 +80,29 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
             try
             {
                 Options.Logger?.Debug($"Invoking handler for CommandId: {commandId}");
-                handlerAction.Invoke(packet, connection);
-                Options.Logger?.Debug($"Handler for CommandId: {commandId} executed successfully.");
+                return handlerAction.Invoke(packet, connection).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Options.Logger?.Error(
+                            $"Error handling packet with CommandId {commandId}: {t.Exception?.GetBaseException().Message}");
+                    }
+                    else
+                    {
+                        Options.Logger?.Debug($"Handler for CommandId: {commandId} executed successfully.");
+                    }
+                });
             }
             catch (Exception ex)
             {
                 Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
+                return Task.FromException(ex);
             }
-
-            return;
         }
-
-        Options.Logger?.Warn($"No handler found for CommandId {commandId}");
+        else
+        {
+            Options.Logger?.Warn($"No handler found for CommandId {commandId}");
+            return Task.CompletedTask;
+        }
     }
 }
