@@ -1,5 +1,6 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
+using System;
 
 namespace Notio.Network.Handlers;
 
@@ -62,46 +63,33 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     }
 
     /// <inheritdoc />
-    public System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection)
+    public async System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection)
     {
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
-            return System.Threading.Tasks.Task.CompletedTask;
+            return;
         }
 
         ushort commandId = packet.Command;
         Options.Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
-        if (Options.PacketHandlers.TryGetValue(commandId,
-            out System.Func<IPacket, IConnection, System.Threading.Tasks.Task>? handlerAction))
+        if (Options.PacketHandlers.TryGetValue(commandId, out var handlerAction))
         {
+            Options.Logger?.Debug($"Invoking handler for CommandId: {commandId}");
+
             try
             {
-                Options.Logger?.Debug($"Invoking handler for CommandId: {commandId}");
-                return handlerAction.Invoke(packet, connection).ContinueWith(t =>
-                {
-                    if (t.IsFaulted)
-                    {
-                        Options.Logger?.Error(
-                            $"Error handling packet with CommandId {commandId}: {t.Exception?.GetBaseException().Message}");
-                    }
-                    else
-                    {
-                        Options.Logger?.Debug($"Handler for CommandId: {commandId} executed successfully.");
-                    }
-                });
+                await handlerAction(packet, connection).ConfigureAwait(false);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}");
-                return System.Threading.Tasks.Task.FromException(ex);
+                Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}", ex);
             }
         }
         else
         {
             Options.Logger?.Warn($"No handler found for CommandId {commandId}");
-            return System.Threading.Tasks.Task.CompletedTask;
         }
     }
 }

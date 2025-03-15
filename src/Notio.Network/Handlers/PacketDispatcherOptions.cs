@@ -117,33 +117,7 @@ public sealed class PacketDispatcherOptions
             [typeof(IPacket)] = async (result, _, connection) =>
             {
                 if (result is IPacket packet)
-                {
-                    if (this.SerializationMethod is null)
-                    {
-                        if (this.Logger is not null)
-                            this.Logger.Error("Serialization method is not set.");
-                        else
-                            throw new InvalidOperationException("Serialization method is not set.");
-
-                        return;
-                    }
-
-                    if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) ==
-                        PacketFlags.IsCompressed &&
-                        this._compressionMethod is not null)
-                    {
-                        packet = this._compressionMethod(packet);
-                    }
-
-                    if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) ==
-                        PacketFlags.IsEncrypted &&
-                        this._encryptionMethod is not null)
-                    {
-                        packet = this._encryptionMethod(packet, connection);
-                    }
-
-                    await connection.SendAsync(this.SerializationMethod(packet));
-                }
+                    await this.SendPacketAsync(packet, connection);
             },
 
             [typeof(Task)] = async (result, _, _) => await (Task)result!,
@@ -169,36 +143,9 @@ public sealed class PacketDispatcherOptions
 
             [typeof(Task<IPacket>)] = async (result, _, connection) =>
             {
-                IPacket packet = await (Task<IPacket>)result!;
-
-                if (this.SerializationMethod is null)
-                {
-                    if (this.Logger is not null)
-                        this.Logger.Error("Serialization method is not set.");
-                    else
-                        throw new InvalidOperationException("Serialization method is not set.");
-
-                    return;
-                }
-
-                if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) ==
-                    PacketFlags.IsCompressed &&
-                    this._compressionMethod is not null)
-                {
-                    packet = this._compressionMethod(packet);
-                }
-
-                if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) ==
-                    PacketFlags.IsEncrypted &&
-                    this._encryptionMethod is not null)
-                {
-                    packet = this._encryptionMethod(packet, connection);
-                }
-
-                await connection.SendAsync(this.SerializationMethod(packet));
-            },
-
-            [typeof(Task)] = async (result, _, _) => await (Task)result!,
+                if (result is Task<IPacket> task)
+                    await this.SendPacketAsync(await task, connection);
+            }
         };
 
         Logger?.Debug("PacketDispatcherOptions initialized.");
@@ -449,5 +396,31 @@ public sealed class PacketDispatcherOptions
 
         Logger?.Debug("Packet serialization configured.");
         return this;
+    }
+
+    /// <summary>
+    /// Handles serialization, encryption, and sending of an IPacket.
+    /// </summary>
+    private async Task SendPacketAsync(IPacket packet, IConnection connection)
+    {
+        if (SerializationMethod is null)
+        {
+            Logger?.Error("Serialization method is not set.");
+            throw new InvalidOperationException("Serialization method is not set.");
+        }
+
+        if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) == PacketFlags.IsCompressed &&
+            _compressionMethod is not null)
+        {
+            packet = _compressionMethod(packet);
+        }
+
+        if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) == PacketFlags.IsEncrypted &&
+            _encryptionMethod is not null)
+        {
+            packet = _encryptionMethod(packet, connection);
+        }
+
+        await connection.SendAsync(SerializationMethod(packet));
     }
 }
