@@ -74,7 +74,7 @@ internal class ConnectionStream : IDisposable
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
                    .ContinueWith(async (task, state) =>
                    {
-                       var self = (ConnectionStream)state!;
+                       ConnectionStream self = (ConnectionStream)state!;
                        try
                        {
                            await self.OnReceiveCompleted(task, cancellationToken);
@@ -161,11 +161,12 @@ internal class ConnectionStream : IDisposable
 
         try
         {
-            int totalBytesRead = task.Result;
+            int totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
                 _logger?.Debug("Client closed connection gracefully.");
-                Disconnected?.Invoke(); // Đóng kết nối trên server khi client ngắt kết nối
+                // Close the connection on the server when the client disconnects
+                Disconnected?.Invoke();
                 return;
             }
 
@@ -208,6 +209,18 @@ internal class ConnectionStream : IDisposable
             {
                 _logger?.Error("Incomplete packet received.");
             }
+        }
+        catch (IOException ex)
+        when (ex.InnerException is SocketException se &&
+              se.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Connection forcibly closed by remote host.");
+            Disconnected?.Invoke();
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            _logger?.Debug("Socket connection reset.");
+            Disconnected?.Invoke();
         }
         catch (Exception ex)
         {
