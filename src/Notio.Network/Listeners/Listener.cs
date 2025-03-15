@@ -78,6 +78,8 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         if (IsListening)
             return;
 
+        _logger.Debug("Starting to listen for incoming connections.");
+
         // Create a linked token source to combine external cancellation with internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = _cts.Token;
@@ -121,6 +123,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             {
                 _tcpListener.Stop();
                 _listenerLock.Release();
+                _logger.Debug("Stopped listening for incoming connections.");
             }
         }, linkedToken);
     }
@@ -130,6 +133,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// </summary>
     private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
     {
+        _logger.Debug("Starting to accept incoming connections.");
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -149,6 +153,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
+        _logger.Debug("Stopped accepting incoming connections.");
     }
 
     /// <summary>
@@ -159,6 +164,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         try
         {
+            _logger.Debug($"Processing new connection from {connection.RemoteEndPoint}");
             _protocol.OnAccept(connection);
             return ValueTask.CompletedTask;
         }
@@ -177,6 +183,8 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
+        _logger.Debug("Stopping the listener.");
+
         _cts?.Cancel();
 
         if (_tcpListener?.Server != null)
@@ -187,6 +195,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         // Wait for the listener task to complete with a timeout
         _listenerTask?.Wait(TimeSpan.FromSeconds(5));
+        _logger.Debug("Listener stopped.");
     }
 
     /// <summary>
@@ -196,6 +205,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// <returns>A task representing the connection creation.</returns>
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
+        _logger.Debug("Creating a new connection.");
         Socket socket = await _tcpListener.AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
         ConfigureHighPerformanceSocket(socket);
 
@@ -215,6 +225,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// <param name="args">The connection event arguments.</param>
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
+        _logger.Debug($"Closing connection from {args.Connection.RemoteEndPoint}");
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= OnConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
@@ -270,6 +281,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         }
 
         _isDisposed = true;
+        _logger.Debug("Disposed the listener.");
     }
-
 }
