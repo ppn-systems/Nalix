@@ -55,10 +55,11 @@ public static class PasswordSecurity
     /// </summary>
     /// <param name="password">The plaintext password.</param>
     /// <returns>A Base64-encoded string containing version, salt, and hash.</returns>
-    public static string HashPasswordToBase64(string password, byte version = 1)
+    public static string HashPasswordToBase64(string password)
     {
         HashPassword(password, out byte[] salt, out byte[] hash);
         byte[] combined = new byte[1 + salt.Length + hash.Length];
+        byte version = 1;
         combined[0] = version;
         Array.Copy(salt, 0, combined, 1, salt.Length);
         Array.Copy(hash, 0, combined, 1 + salt.Length, hash.Length);

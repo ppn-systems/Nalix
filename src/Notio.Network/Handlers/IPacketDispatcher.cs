@@ -1,5 +1,5 @@
 using Notio.Common.Connection;
-using Notio.Common.Interfaces;
+using Notio.Common.Data;
 using System;
 
 namespace Notio.Network.Handlers;

@@ -1,4 +1,4 @@
-using Notio.Common.Interfaces;
+using Notio.Common.Data;
 using System.Runtime.InteropServices;
 
 namespace Notio.Network.Package.Metadata;

@@ -12,8 +12,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.65</Version>
-    <PackageVersion>0.3.65</PackageVersion>
+    <Version>0.3.70</Version>
+    <PackageVersion>0.3.70</PackageVersion>
     
 		<PackageReleaseNotes>Includes bug fixes and performance improvements.</PackageReleaseNotes>
 		<PackageDescription>Notio.Logging is a logging library that integrates with various logging providers to facilitate logging in your .NET applications.</PackageDescription>

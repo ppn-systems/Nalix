@@ -19,7 +19,14 @@ namespace Notio.Network.Listeners;
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
 /// </summary>
-public abstract class Listener : IListener, IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="Listener"/> class with the specified port, protocol, buffer pool, and logger.
+/// </remarks>
+/// <param name="port">The port to listen on.</param>
+/// <param name="protocol">The protocol to handle the connections.</param>
+/// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
+/// <param name="logger">The logger to log events and errors.</param>
+public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger) : IListener, IDisposable
 {
     // Using lazy initialization for thread-safety and singleton pattern
     private static readonly Lazy<ListenerConfig> _lazyConfig = new(() =>
@@ -27,36 +34,22 @@ public abstract class Listener : IListener, IDisposable
 
     private static ListenerConfig Config => _lazyConfig.Value;
 
-    private readonly int _port;
-    private readonly ILogger _logger;
-    private readonly IProtocol _protocol;
-    private readonly IBufferPool _bufferPool;
+    private readonly int _port = port;
     private readonly SemaphoreSlim _listenerLock = new(1, 1);
-    private readonly TcpListener _tcpListener;
-    private CancellationTokenSource? _cts;
+    private readonly TcpListener _tcpListener = new(IPAddress.Any, port);
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly IProtocol _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
+    private readonly IBufferPool _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
+
     private bool _isDisposed;
     private Task? _listenerTask;
+    private CancellationTokenSource? _cts;
 
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _listenerTask != null && !(_listenerTask.IsCanceled || _listenerTask.IsCompleted || _listenerTask.IsFaulted);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Listener"/> class with the specified port, protocol, buffer pool, and logger.
-    /// </summary>
-    /// <param name="port">The port to listen on.</param>
-    /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
-    {
-        _port = port;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
-        _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
-        _tcpListener = new TcpListener(IPAddress.Any, port);
-    }
+    public bool IsListening => _listenerTask != null &&
+        !(_listenerTask.IsCanceled || _listenerTask.IsCompleted || _listenerTask.IsFaulted);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
@@ -77,7 +70,7 @@ public abstract class Listener : IListener, IDisposable
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     public void BeginListening(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        ObjectDisposedException.ThrowIf(_isDisposed || _tcpListener.Server == null, this);
 
         if (IsListening)
             return;
@@ -139,8 +132,8 @@ public abstract class Listener : IListener, IDisposable
             try
             {
                 IConnection connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
-                // Use ValueTask.Run instead of Task.Run to reduce allocations for frequent operations
-                _ = ProcessConnectionAsync(connection);
+                // Await the ValueTask to ensure it is used properly
+                await ProcessConnectionAsync(connection).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -182,7 +175,12 @@ public abstract class Listener : IListener, IDisposable
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         _cts?.Cancel();
-        _tcpListener.Stop();
+
+        if (_tcpListener?.Server != null)
+        {
+            _logger.Info($"Stopping listener on port {_port}");
+            _tcpListener.Stop();
+        }
 
         // Wait for the listener task to complete with a timeout
         _listenerTask?.Wait(TimeSpan.FromSeconds(5));
@@ -225,7 +223,7 @@ public abstract class Listener : IListener, IDisposable
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ConfigureHighPerformanceSocket(Socket socket)
+    private static void ConfigureHighPerformanceSocket(Socket socket)
     {
         // Caches configuration values to local variables to improve performance
         var config = Config;
@@ -306,11 +304,18 @@ public abstract class Listener : IListener, IDisposable
 
         if (disposing)
         {
-            EndListening();
-            _listenerLock.Dispose();
+            if (_tcpListener?.Server != null)
+            {
+                _logger.Info($"Stopping listener on port {_port}");
+                _tcpListener.Stop();
+            }
+
+            _cts?.Cancel();
             _cts?.Dispose();
+            _listenerLock.Dispose();
         }
 
         _isDisposed = true;
     }
+
 }

@@ -1,5 +1,5 @@
+using Notio.Common.Data;
 using Notio.Common.Exceptions;
-using Notio.Common.Interfaces;
 using Notio.Network.Package.Enums;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Metadata;

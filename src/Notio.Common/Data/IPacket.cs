@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Interfaces;
+namespace Notio.Common.Data;
 
 /// <summary>
 /// Defines the contract for a network packet.
