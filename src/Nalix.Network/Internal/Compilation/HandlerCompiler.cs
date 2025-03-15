@@ -56,7 +56,7 @@ internal sealed class HandlerCompiler<
         var controllerType = typeof(TController);
 
         // Ensure controller has [PacketController] attribute
-        var controllerAttr = System.Reflection.CustomAttributeExtensions
+        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions
             .GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new System.InvalidOperationException(
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
