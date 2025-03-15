@@ -103,16 +103,7 @@ public sealed class PacketDispatcherOptions
             {
                 if (result is byte[] data)
                 {
-                    using MemoryStream ms = new();
-
-                    //byte[] lengthBytes = new byte[2];
-
-                    //BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
-
-                    //await ms.WriteAsync(lengthBytes);
-                    await ms.WriteAsync(data);
-
-                    await connection.SendAsync(ms.ToArray());
+                    await connection.SendAsync(data);
                 }
             },
 
@@ -120,17 +111,9 @@ public sealed class PacketDispatcherOptions
             {
                 if (result is IEnumerable<byte> bytes)
                 {
-                    using MemoryStream ms = new();
-
                     byte[] data = [.. bytes];
-                    //byte[] lengthBytes = new byte[2];
 
-                    //BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
-
-                    //await ms.WriteAsync(lengthBytes);
-                    await ms.WriteAsync(data);
-
-                    await connection.SendAsync(ms.ToArray());
+                    await connection.SendAsync(data);
                 }
             },
 
@@ -165,15 +148,7 @@ public sealed class PacketDispatcherOptions
                 if (result is Task<byte[]> task)
                 {
                     byte[] data = await task;
-                    using var ms = new MemoryStream();
-
-                    byte[] lengthBytes = new byte[2];
-                    BinaryPrimitives.WriteUInt16BigEndian(lengthBytes, (ushort)(data.Length + 2));
-
-                    await ms.WriteAsync(lengthBytes);
-                    await ms.WriteAsync(data);
-
-                    await connection.SendAsync(ms.ToArray());
+                    await connection.SendAsync(data);
                 }
             },
 
@@ -220,6 +195,8 @@ public sealed class PacketDispatcherOptions
                 await connection.SendAsync(this.SerializationMethod(packet));
             }
         };
+
+        Logger?.Debug("PacketDispatcherOptions initialized.");
     }
 
     /// <summary>
@@ -231,6 +208,7 @@ public sealed class PacketDispatcherOptions
     {
         EnableMetrics = true;
         MetricsCallback = metricsCallback;
+        Logger?.Debug("Metrics tracking enabled.");
         return this;
     }
 
@@ -242,6 +220,7 @@ public sealed class PacketDispatcherOptions
     public PacketDispatcherOptions WithLogging(ILogger logger)
     {
         Logger = logger;
+        Logger.Debug("Logging configured.");
         return this;
     }
 
@@ -253,6 +232,7 @@ public sealed class PacketDispatcherOptions
     public PacketDispatcherOptions WithErrorHandler(Action<Exception, ushort> errorHandler)
     {
         ErrorHandler = errorHandler;
+        Logger?.Debug("Error handler configured.");
         return this;
     }
 
@@ -366,6 +346,7 @@ public sealed class PacketDispatcherOptions
             }
 
             PacketHandlers[commandId] = Handler;
+            Logger?.Debug($"Handler registered for CommandId: {commandId}");
         }
 
         return this;
@@ -400,6 +381,7 @@ public sealed class PacketDispatcherOptions
         if (compressionMethod is not null) _compressionMethod = compressionMethod;
         if (decompressionMethod is not null) _decompressionMethod = decompressionMethod;
 
+        Logger?.Debug("Packet compression configured.");
         return this;
     }
 
@@ -432,6 +414,7 @@ public sealed class PacketDispatcherOptions
         if (encryptionMethod is not null) _encryptionMethod = encryptionMethod;
         if (decryptionMethod is not null) _decryptionMethod = decryptionMethod;
 
+        Logger?.Debug("Packet encryption configured.");
         return this;
     }
 
@@ -459,6 +442,7 @@ public sealed class PacketDispatcherOptions
         if (serializationMethod is not null) SerializationMethod = serializationMethod;
         if (deserializationMethod is not null) DeserializationMethod = deserializationMethod;
 
+        Logger?.Debug("Packet serialization configured.");
         return this;
     }
 }

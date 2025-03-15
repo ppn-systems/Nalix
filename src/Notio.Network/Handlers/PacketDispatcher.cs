@@ -22,6 +22,8 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, IConnection connection)
     {
+        Options.Logger?.Debug("Handling packet (byte[])");
+
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
@@ -34,7 +36,9 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
             return;
         }
 
+        Options.Logger?.Debug("Deserializing packet...");
         IPacket parsedPacket = Options.DeserializationMethod(packet);
+        Options.Logger?.Debug("Packet deserialized successfully.");
 
         this.HandlePacket(parsedPacket, connection);
     }
@@ -42,6 +46,8 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// <inheritdoc />
     public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
     {
+        Options.Logger?.Debug("Handling packet (ReadOnlyMemory<byte>)");
+
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
@@ -54,7 +60,9 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
             return;
         }
 
+        Options.Logger?.Debug("Deserializing packet...");
         IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
+        Options.Logger?.Debug("Packet deserialized successfully.");
 
         this.HandlePacket(parsedPacket, connection);
     }
@@ -62,6 +70,8 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
     /// <inheritdoc />
     public void HandlePacket(IPacket? packet, IConnection connection)
     {
+        Options.Logger?.Debug("Handling packet (IPacket)");
+
         if (packet == null)
         {
             Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
@@ -69,12 +79,15 @@ public class PacketDispatcher(Action<PacketDispatcherOptions> options)
         }
 
         ushort commandId = packet.Command;
+        Options.Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
         if (Options.PacketHandlers.TryGetValue(commandId, out Func<IPacket, IConnection, Task>? handlerAction))
         {
             try
             {
+                Options.Logger?.Debug($"Invoking handler for CommandId: {commandId}");
                 handlerAction.Invoke(packet, connection);
+                Options.Logger?.Debug($"Handler for CommandId: {commandId} executed successfully.");
             }
             catch (Exception ex)
             {
