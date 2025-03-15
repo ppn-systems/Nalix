@@ -133,7 +133,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// </summary>
     private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
     {
-        _logger.Debug("Starting to accept incoming connections.");
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -153,6 +152,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
+
         _logger.Debug("Stopped accepting incoming connections.");
     }
 
@@ -205,7 +205,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// <returns>A task representing the connection creation.</returns>
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
-        _logger.Debug("Creating a new connection.");
         Socket socket = await _tcpListener.AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
         ConfigureHighPerformanceSocket(socket);
 
