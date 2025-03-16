@@ -15,25 +15,25 @@ public sealed class TimingWheelOptions : ConfigurationLoader
     /// If a connection is inactive longer than this value, it will be closed automatically.
     /// Default value is 60000 (60 seconds).
     /// </summary>
-    public System.Int32 TcpIdleTimeoutMs { get; set; } = 60_000;
+    public System.Int32 TcpIdleTimeout { get; set; } = 60_000;
 
     /// <summary>
     /// Gets or sets the idle timeout for UDP connections in milliseconds.
     /// Default value is 30000 (30 seconds).
     /// </summary>
-    public System.Int32 UdpIdleTimeoutMs { get; set; } = 30_000;
+    public System.Int32 UdpIdleTimeout { get; set; } = 30_000;
 
     /// <summary>
     /// Gets or sets the precision of the idle check tick in milliseconds.
     /// Lower values mean more frequent checks but slightly higher CPU usage.
     /// Default is 1000 (1 second).
     /// </summary>
-    public System.Int32 TickDurationMs { get; set; } = 1000;
+    public System.Int32 TickDuration { get; set; } = 1000;
 
     /// <summary>
     /// Gets or sets the size of the timing wheel (number of buckets).
     /// Higher values reduce collisions but use a bit more memory.
     /// Default is 512.
     /// </summary>
-    public System.Int32 WheelSize { get; set; } = 512;
+    public System.Int32 BucketCount { get; set; } = 512;
 }
