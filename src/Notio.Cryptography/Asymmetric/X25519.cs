@@ -16,6 +16,8 @@ namespace Notio.Cryptography.Asymmetric;
 /// </remarks>
 public static class X25519
 {
+    #region Constants
+
     // Prime p = 2^255 - 19
     private static readonly BigInteger P = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
 
@@ -27,6 +29,10 @@ public static class X25519
 
     // Base point u = 9 (encoded as 32-byte little-endian)
     private static readonly byte[] BasePoint = CreateBasePoint();
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Generates an X25519 key pair.
@@ -67,6 +73,10 @@ public static class X25519
         // Compute the shared secret
         return ScalarMult(clampedPrivateKey, peerPublicKey);
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Clamps a 32-byte scalar for X25519 as specified in RFC 7748.
@@ -133,20 +143,21 @@ public static class X25519
             swapBit = bit;
 
             // Montgomery ladder step
-            BigInteger a = (x2 + z2) % P;
-            BigInteger b = (x2 - z2 + P) % P;
-            BigInteger c = (x1 + z1) % P;
-            BigInteger d = (x1 - z1 + P) % P;
+            // Ensure all calculations produce non-negative results modulo P
+            BigInteger a = PositiveMod(x2 + z2);
+            BigInteger b = PositiveMod(x2 - z2);
+            BigInteger c = PositiveMod(x1 + z1);
+            BigInteger d = PositiveMod(x1 - z1);
 
-            BigInteger da = (d * a) % P;
-            BigInteger cb = (c * b) % P;
+            BigInteger da = PositiveMod(d * a);
+            BigInteger cb = PositiveMod(c * b);
 
-            x1 = ModMul(da + cb, da + cb);
-            z1 = ModMul(uValue, ModMul(da - cb + P, da - cb + P));
+            x1 = PositiveMod(ModMul(da + cb, da + cb));
+            z1 = PositiveMod(ModMul(uValue, ModMul(PositiveMod(da - cb), PositiveMod(da - cb))));
 
-            x2 = ModMul(a * b, a * b);
-            BigInteger e = (a * a - b * b + P) % P;
-            z2 = ModMul(e, (a * a + ModMul(A24, e)));
+            x2 = PositiveMod(ModMul(a * b, a * b));
+            BigInteger e = PositiveMod(a * a - b * b);
+            z2 = PositiveMod(ModMul(e, PositiveMod(a * a + ModMul(A24, e))));
         }
 
         // Final conditional swap
@@ -157,10 +168,21 @@ public static class X25519
         }
 
         // Compute x2/z2 using modular inverse
-        BigInteger result = ModMul(x2, ModInverse(z2));
+        BigInteger result = PositiveMod(ModMul(x2, ModInverse(z2)));
 
         // Convert result to little-endian bytes
         return ToLittleEndianBytes(result);
+    }
+
+    /// <summary>
+    /// Ensures a BigInteger is in the range [0, P-1]
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static BigInteger PositiveMod(BigInteger x)
+    {
+        BigInteger result = x % P;
+        // If the result is negative, add P to make it positive
+        return result < 0 ? result + P : result;
     }
 
     /// <summary>
@@ -168,7 +190,7 @@ public static class X25519
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger ModMul(BigInteger a, BigInteger b)
-        => (a * b) % P;
+        => PositiveMod(a * b);
 
     /// <summary>
     /// Computes the modular inverse of a modulo p using Fermat's little theorem.
@@ -198,17 +220,20 @@ public static class X25519
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte[] ToLittleEndianBytes(BigInteger value)
     {
-        // Get the bytes in little-endian order
-        Span<byte> bytes = stackalloc byte[FieldElementSize];
-        if (!value.TryWriteBytes(bytes, out int bytesWritten, isUnsigned: true, isBigEndian: false))
+        // Ensure the value is non-negative before conversion
+        if (value < 0)
         {
-            // This should never happen with our field size
+            throw new InvalidOperationException("Cannot convert negative BigInteger to unsigned bytes");
+        }
+
+        byte[] result = new byte[FieldElementSize];
+
+        // Get the bytes in little-endian order
+        if (!value.TryWriteBytes(result, out _, isUnsigned: true, isBigEndian: false))
+        {
             throw new InvalidOperationException("Failed to convert BigInteger to byte array");
         }
 
-        // Ensure fixed size output
-        byte[] result = new byte[FieldElementSize];
-        bytes[..Math.Min(bytesWritten, FieldElementSize)].CopyTo(result);
         return result;
     }
 
@@ -224,4 +249,6 @@ public static class X25519
                 throw new InvalidOperationException("AssertionSentry assertion failed");
         }
     }
+
+    #endregion
 }
