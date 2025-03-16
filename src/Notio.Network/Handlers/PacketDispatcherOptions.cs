@@ -21,6 +21,8 @@ namespace Notio.Network.Handlers;
 /// </remarks>
 public sealed class PacketDispatcherOptions
 {
+    #region Fields
+
     private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> _methodHandlers;
 
     private Func<IPacket, IConnection, IPacket>? _encryptionMethod;
@@ -80,6 +82,10 @@ public sealed class PacketDispatcherOptions
     /// back into an <see cref="IPacket"/> object for further processing.
     /// </remarks>
     internal Func<ReadOnlyMemory<byte>, IPacket>? DeserializationMethod;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherOptions"/> class.
@@ -150,6 +156,10 @@ public sealed class PacketDispatcherOptions
 
         Logger?.Debug("PacketDispatcherOptions initialized.");
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Enables metrics tracking and sets the callback function for reporting execution times.
@@ -270,11 +280,11 @@ public sealed class PacketDispatcherOptions
 
                     try
                     {
-                        if (_decompressionMethod != null)
-                            packet = _decompressionMethod(packet);
+                        packet = ProcessPacketFlag(packet, PacketFlags.IsCompressed,
+                            _decompressionMethod, "Compression");
 
-                        if (_decryptionMethod != null)
-                            packet = _decryptionMethod(packet, connection);
+                        packet = ProcessPacketFlag(packet, PacketFlags.IsEncrypted,
+                            _decryptionMethod, connection, "Encryption");
 
                         result = method.Invoke(controller, [packet, connection]);
                     }
@@ -398,6 +408,10 @@ public sealed class PacketDispatcherOptions
         return this;
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Handles serialization, encryption, and sending of an IPacket.
     /// </summary>
@@ -409,18 +423,57 @@ public sealed class PacketDispatcherOptions
             throw new InvalidOperationException("Serialization method is not set.");
         }
 
-        if (((PacketFlags)packet.Flags & PacketFlags.IsCompressed) == PacketFlags.IsCompressed &&
-            _compressionMethod is not null)
-        {
-            packet = _compressionMethod(packet);
-        }
-
-        if (((PacketFlags)packet.Flags & PacketFlags.IsEncrypted) == PacketFlags.IsEncrypted &&
-            _encryptionMethod is not null)
-        {
-            packet = _encryptionMethod(packet, connection);
-        }
+        packet = ProcessPacketFlag(packet, PacketFlags.IsCompressed, _compressionMethod, "Compression");
+        packet = ProcessPacketFlag(packet, PacketFlags.IsEncrypted, _encryptionMethod, connection, "Encryption");
 
         await connection.SendAsync(SerializationMethod(packet));
     }
+
+    /// <summary>
+    /// Processes packet transformation based on a flag and a transformation method.
+    /// </summary>
+    private IPacket ProcessPacketFlag(
+        IPacket packet,
+        PacketFlags flag,
+        Func<IPacket, IPacket>? method,
+        string methodName)
+    {
+        if (!HasFlag((PacketFlags)packet.Flags, flag))
+            return packet;
+
+        if (method is null)
+        {
+            Logger?.Error($"{methodName} method is not set, but packet requires {methodName.ToLower()}.");
+            return packet;
+        }
+
+        return method(packet);
+    }
+
+    /// <summary>
+    /// Processes packet transformation when an IConnection is required.
+    /// </summary>
+    private IPacket ProcessPacketFlag(
+        IPacket packet,
+        PacketFlags flag,
+        Func<IPacket, IConnection, IPacket>? method,
+        IConnection connection,
+        string methodName)
+    {
+        if (!HasFlag((PacketFlags)packet.Flags, flag))
+            return packet;
+
+        if (method is null)
+        {
+            Logger?.Error($"{methodName} method is not set, but packet requires {methodName.ToLower()}.");
+            return packet;
+        }
+
+        return method(packet, connection);
+    }
+
+    private static bool HasFlag(PacketFlags flags, PacketFlags checkFlag)
+        => (flags & checkFlag) == checkFlag;
+
+    #endregion
 }

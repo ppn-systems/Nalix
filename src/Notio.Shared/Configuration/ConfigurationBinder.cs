@@ -1,5 +1,5 @@
 using Notio.Common.Attributes;
-using Notio.Logging;
+using Notio.Common.Logging;
 using Notio.Shared.Configuration.Internal;
 using Notio.Shared.Configuration.Metadata;
 using System;
@@ -24,6 +24,8 @@ public abstract class ConfiguredBinder
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
     private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
 
+    private readonly ILogger? _logger;
+
     private int _isInitialized; // Flag to track initialization status
     private DateTime _lastInitializationTime; // Track the last initialization time
 
@@ -36,6 +38,21 @@ public abstract class ConfiguredBinder
     /// Gets the time when this configuration was last initialized.
     /// </summary>
     public DateTime LastInitializationTime => _lastInitializationTime;
+
+    /// <summary>
+    /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
+    /// The section and key names in the INI file are derived from the class and property names.
+    /// </summary>
+    public ConfiguredBinder()
+    {
+    }
+
+    /// <summary>
+    /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
+    /// The section and key names in the INI file are derived from the class and property names.
+    /// </summary>
+    /// <param name="logger">The logger to log events and errors.</param>
+    public ConfiguredBinder(ILogger logger) => _logger = logger;
 
     /// <summary>
     /// Initializes an instance of <see cref="ConfiguredBinder"/> from the provided <see cref="ConfiguredIniFile"/>
@@ -74,7 +91,7 @@ public abstract class ConfiguredBinder
             }
             catch (Exception ex)
             {
-                $"Error setting value for {propertyInfo.Name}: {ex.Message}".Warn();
+                _logger?.Warn($"Error setting value for {propertyInfo.Name}: {ex.Message}");
             }
         }
 
@@ -178,7 +195,7 @@ public abstract class ConfiguredBinder
         string valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
 
         configFile.WriteValue(section, property.Name, valueToWrite);
-        $"Attribute value {property.Name} is empty, writing default to the file".Warn();
+        _logger?.Warn($"Attribute value {property.Name} is empty, writing default to the file");
     }
 
     /// <summary>
