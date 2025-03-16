@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Http.Response;
@@ -6,6 +5,7 @@ using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
@@ -132,7 +132,7 @@ public static class HttpExceptionHandler
             return;
         }
 
-        exception.Log(logSource, $"[{context.Id}] HTTP exception {httpException.StatusCode}");
+        Trace.WriteLine($"[{context.Id}] HTTP exception {httpException.StatusCode} in {logSource}: {exception}");
 
         try
         {
@@ -152,7 +152,9 @@ public static class HttpExceptionHandler
         }
         catch (Exception exception2)
         {
-            exception2.Log(logSource, $"[{context.Id}] Unhandled exception while handling HTTP exception {httpException.StatusCode}");
+            Trace.WriteLine(
+                $"[{context.Id}] Unhandled exception while handling HTTP exception " +
+                $"{httpException.StatusCode} : {exception2}");
         }
     }
 }

@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Utilities;
 using Notio.Shared;
@@ -217,7 +216,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
                 return;
             }
 
-            e.Data.Error(NetShLogSource);
+            Trace.WriteLine($"[ERROR] {e.Data}", NetShLogSource);
         };
 
         netsh.OutputDataReceived += (_, e) =>
@@ -227,7 +226,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
                 return;
             }
 
-            e.Data.Debug(NetShLogSource);
+            Trace.WriteLine($"[ERROR] {e.Data}", NetShLogSource);
 
             string line = e.Data.Trim();
 
@@ -317,7 +316,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
             }
 
             _ = sb.AppendLine(e.Data);
-            e.Data.Error(NetShLogSource);
+            Trace.WriteLine($"[ERROR] {e.Data}", NetShLogSource);
         }
 
         netsh.OutputDataReceived += PushLine;

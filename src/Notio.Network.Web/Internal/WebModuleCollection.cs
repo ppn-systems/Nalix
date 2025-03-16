@@ -1,8 +1,8 @@
-using Notio.Logging;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +19,7 @@ internal sealed class WebModuleCollection : DisposableComponentCollection<IWebMo
     {
         foreach ((string name, IWebModule module) in WithSafeNames)
         {
-            $"Starting module {name}...".Debug(_logSource);
+            Trace.WriteLine($"Starting module {name}...", _logSource);
             module.Start(cancellationToken);
         }
     }
@@ -40,7 +40,7 @@ internal sealed class WebModuleCollection : DisposableComponentCollection<IWebMo
                 continue;
             }
 
-            $"[{context.Id}] Processing with {name}.".Debug(_logSource);
+            Trace.WriteLine($"[{context.Id}] Processing with {name}.", _logSource);
             context.GetImplementation().Route = routeMatch;
             await module.HandleRequestAsync(context).ConfigureAwait(false);
             if (context.IsHandled)

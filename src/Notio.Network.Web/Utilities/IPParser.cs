@@ -1,5 +1,5 @@
-using Notio.Logging;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -36,7 +36,7 @@ public static class IpParser
         }
         catch (SocketException socketEx)
         {
-            socketEx.Log(nameof(IpParser));
+            Debug.WriteLine($"Failed to resolve host name '{address}': {socketEx}", nameof(IpParser));
         }
         catch
         {

@@ -1,8 +1,8 @@
-using Notio.Logging;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Serialization;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Web.Http.Request;
@@ -56,8 +56,10 @@ public static class RequestDeserializer
         }
         catch (FormatException)
         {
-            $"[{context.Id}] Cannot convert JSON request body to {typeof(TData).Name}, sending 400 Bad Request..."
-                .Warn($"{nameof(RequestDeserializer)}.{nameof(Json)}");
+            Trace.WriteLine(
+                $"[{context.Id}] Cannot convert JSON request body to {typeof(TData).Name}, sending 400 Bad Request...",
+                $"{nameof(RequestDeserializer)}.{nameof(Json)}"
+            );
 
             throw HttpException.BadRequest("Incorrect request data format.");
         }

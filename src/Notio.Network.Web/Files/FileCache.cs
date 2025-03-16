@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Internal;
 using Notio.Shared.Threading;
 using System;
@@ -120,11 +119,11 @@ public sealed partial class FileCache
 
         if (initialSizeKb <= maxSizeKb)
         {
-            $"Total size = {initialSizeKb}/{_maxSizeKb}kb, not purging.".Debug(nameof(FileCache));
+            Debug.WriteLine($"Total size = {initialSizeKb}/{_maxSizeKb}kb, not purging.", nameof(FileCache));
             return;
         }
 
-        $"Total size = {initialSizeKb}/{_maxSizeKb}kb, purging...".Debug(nameof(FileCache));
+        Debug.WriteLine($"Total size = {initialSizeKb}/{_maxSizeKb}kb, purging...", nameof(FileCache));
 
         int removedCount = 0;
         long removedSize = 0L;
@@ -151,8 +150,10 @@ public sealed partial class FileCache
             totalSizeKb = ComputeTotalSize() / 1024L;
         }
 
-        $"Purge completed in {timeKeeper.ElapsedTime}ms: removed {removedCount} items ({removedSize / 1024L}kb). Total size is now {totalSizeKb}kb."
-            .Debug(nameof(FileCache));
+        Debug.WriteLine(
+            $"Purge completed in {timeKeeper.ElapsedTime}ms: " +
+            $"removed {removedCount} items ({removedSize / 1024L}kb). " +
+            $"Total size is now {totalSizeKb}kb.", nameof(FileCache));
     }
 
     // Enumerate key / value pairs because the Keys and Values property

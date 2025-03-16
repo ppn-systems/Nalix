@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Authentication;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Internal;
@@ -9,6 +8,7 @@ using Notio.Network.Web.WebSockets;
 using Notio.Network.Web.WebSockets.Internal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Security.Principal;
 using System.Threading;
@@ -105,7 +105,7 @@ internal sealed class HttpListenerContext : IHttpContextImpl
             }
             catch (Exception e)
             {
-                e.Log("HTTP context", $"[{Id}] Exception thrown by a HTTP context close callback.");
+                Debug.WriteLine($"[{Id}] Exception thrown by a HTTP context close callback: {e}");
             }
         }
     }

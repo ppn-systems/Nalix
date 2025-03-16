@@ -1,7 +1,7 @@
-using Notio.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -120,32 +120,6 @@ public class IPBanningRegexCriterion : IIPBanningCriterion
         _disposed = true;
     }
 
-    private void MatchIP(IPAddress address, string message)
-    {
-        if (!_parent.Configuration.ShouldContinue(address))
-        {
-            return;
-        }
-
-        foreach (Regex regex in _failRegex.Values)
-        {
-            try
-            {
-                if (!regex.IsMatch(message))
-                {
-                    continue;
-                }
-
-                _failRegexMatches.GetOrAdd(address, []).Add(DateTime.Now.Ticks);
-                break;
-            }
-            catch (RegexMatchTimeoutException ex)
-            {
-                $"Timeout trying to match '{ex.Input}' with pattern '{ex.Pattern}'.".Error(nameof(IPBanningRegexCriterion));
-            }
-        }
-    }
-
     private void AddRules(IEnumerable<string> patterns)
     {
         foreach (string pattern in patterns)
@@ -162,7 +136,7 @@ public class IPBanningRegexCriterion : IIPBanningCriterion
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(IPBanningModule), $"Invalid regex - '{pattern}'.");
+            Debug.WriteLine($"Invalid regex - '{pattern}'. Exception: {ex}", nameof(IPBanningModule));
         }
     }
 }

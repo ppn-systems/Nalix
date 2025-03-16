@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
@@ -6,6 +5,7 @@ using Notio.Network.Web.WebSockets.Internal.Enums;
 using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
@@ -81,16 +81,16 @@ internal sealed class WebSocket : IWebSocket
             switch (code)
             {
                 case CloseStatusCode.NoStatus when !string.IsNullOrEmpty(reason):
-                    "'code' cannot have a reason.".Trace(nameof(WebSocket));
+                    Trace.WriteLine("'code' cannot have a reason.", nameof(WebSocket));
                     return false;
 
                 case CloseStatusCode.MandatoryExtension:
-                    "'code' cannot be used by a server.".Trace(nameof(WebSocket));
+                    Trace.WriteLine("'code' cannot be used by a server.", nameof(WebSocket));
                     return false;
             }
 
             if (string.IsNullOrEmpty(reason) || Encoding.UTF8.GetBytes(reason).Length <= 123) return true;
-            "The size of 'reason' is greater than the allowable max size.".Trace(nameof(WebSocket));
+            Trace.WriteLine("'reason' is greater than the allowable max size.", nameof(WebSocket));
             return false;
         }
 
@@ -147,7 +147,7 @@ internal sealed class WebSocket : IWebSocket
             return PingAsync(WebSocketFrame.CreatePingFrame(data).ToArray(), _waitTime);
         }
 
-        "A message has greater than the allowable max size.".Error(nameof(PingAsync));
+        Debug.WriteLine("A message has greater than the allowable max size.", nameof(PingAsync));
 
         return Task.FromResult(false);
     }
@@ -282,13 +282,13 @@ internal sealed class WebSocket : IWebSocket
         {
             if (_readyState is WebSocketState.CloseReceived or WebSocketState.CloseSent)
             {
-                "The closing is already in progress.".Trace(nameof(InternalCloseAsync));
+                Trace.WriteLine("The closing is already in progress.", nameof(InternalCloseAsync));
                 return;
             }
 
             if (_readyState == WebSocketState.Closed)
             {
-                "The connection has been closed.".Trace(nameof(InternalCloseAsync));
+                Trace.WriteLine("The connection has been closed.", nameof(InternalCloseAsync));
                 return;
             }
 
@@ -298,13 +298,13 @@ internal sealed class WebSocket : IWebSocket
             _readyState = WebSocketState.CloseSent;
         }
 
-        "Begin closing the connection.".Trace(nameof(InternalCloseAsync));
+        Trace.WriteLine("Begin closing the connection.", nameof(InternalCloseAsync));
 
         byte[]? bytes = send ? WebSocketFrame.CreateCloseFrame(payloadData).ToArray() : null;
         await CloseHandshakeAsync(bytes, receive, cancellationToken).ConfigureAwait(false);
         ReleaseResources();
 
-        "End closing the connection.".Trace(nameof(InternalCloseAsync));
+        Trace.WriteLine("End closing the connection.", nameof(InternalCloseAsync));
 
         lock (_stateSyncRoot)
         {
@@ -366,7 +366,7 @@ internal sealed class WebSocket : IWebSocket
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(WebSocket));
+            Debug.WriteLine($"An exception has occurred while invoking the OnMessage event: {ex}", nameof(WebSocket));
         }
 
         if (!_messageEventQueue.TryDequeue(out e) || _readyState != WebSocketState.Open)
@@ -455,7 +455,7 @@ internal sealed class WebSocket : IWebSocket
     private void ProcessPongFrame()
     {
         _ = _receivePong?.Set();
-        "Received a pong.".Trace(nameof(ProcessPongFrame));
+        Trace.WriteLine("Received a pong.", nameof(ProcessPongFrame));
     }
 
     private async Task<bool> ProcessReceivedFrame(WebSocketFrame frame)
@@ -527,7 +527,7 @@ internal sealed class WebSocket : IWebSocket
         {
             if (_readyState != WebSocketState.Open)
             {
-                "The sending has been interrupted.".Error(nameof(Send));
+                Debug.WriteLine("The sending has been interrupted.", nameof(Send));
                 return Task.Delay(0);
             }
         }

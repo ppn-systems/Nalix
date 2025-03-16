@@ -5,18 +5,18 @@ using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using Notio.Network.Web.WebSockets.Internal;
+using Notio.Shared.Extensions;
 using Notio.Shared.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Shared.Extensions;
-using Notio.Logging;
 
 namespace Notio.Network.Web.WebSockets;
 
@@ -176,7 +176,10 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
 
         if (!acceptConnection)
         {
-            $"{BaseRoute} - Rejecting WebSocket connection: no subprotocol was accepted.".Debug(nameof(WebSocketModule));
+            Debug.WriteLine(
+                $"{BaseRoute} - Rejecting WebSocket connection: no subprotocol was accepted.",
+                nameof(WebSocketModule));
+
             foreach (string protocol in _protocols)
             {
                 context.Response.Headers.Add(HttpHeaderNames.SecWebSocketProtocol, protocol);
@@ -189,7 +192,10 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         }
 
         IHttpContextImpl contextImpl = context.GetImplementation();
-        $"{BaseRoute} - Accepting WebSocket connection with subprotocol \"{acceptedProtocol}\"".Debug(nameof(WebSocketModule));
+        Debug.WriteLine(
+            $"{BaseRoute} - Accepting WebSocket connection with subprotocol \"{acceptedProtocol}\"",
+            nameof(WebSocketModule));
+
         IWebSocketContext webSocketContext = await contextImpl.AcceptWebSocketAsync(
                 requestedProtocols,
                 acceptedProtocol,
@@ -200,8 +206,9 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         PurgeDisconnectedContexts();
         _ = _contexts.TryAdd(webSocketContext.Id, webSocketContext);
 
-        $"{BaseRoute} - WebSocket connection accepted - There are now {_contexts.Count} sockets connected."
-            .Debug(nameof(WebSocketModule));
+        Debug.WriteLine(
+            $"{BaseRoute} - WebSocket connection accepted - There are now {_contexts.Count} sockets connected.",
+            nameof(WebSocketModule));
 
         await OnClientConnectedAsync(webSocketContext).ConfigureAwait(false);
 
@@ -226,7 +233,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(WebSocketModule));
+            Trace.WriteLine($"[{webSocketContext.Id}] WebSocket connection error: {ex}");
         }
         finally
         {
@@ -380,7 +387,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(WebSocketModule));
+            Trace.WriteLine(ex, nameof(WebSocketModule));
         }
     }
 
@@ -399,7 +406,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(WebSocketModule));
+            Trace.WriteLine(ex, nameof(WebSocketModule));
         }
     }
 
@@ -457,7 +464,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
         }
         catch (Exception ex)
         {
-            ex.Log(nameof(WebSocketModule));
+            Trace.WriteLine(ex, nameof(WebSocketModule));
         }
         finally
         {
@@ -542,11 +549,13 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
             }
             catch (OperationCanceledException)
             {
-                $"[{context.Id}] OnClientDisconnectedAsync was canceled.".Debug(nameof(WebSocketModule));
+                Debug.WriteLine($"[{context.Id}] OnClientDisconnectedAsync was canceled.", nameof(WebSocketModule));
             }
             catch (Exception e)
             {
-                e.Log(nameof(WebSocketModule), $"[{context.Id}] Exception in OnClientDisconnectedAsync.");
+                Trace.WriteLine(
+                    $"[{context.Id}] Exception in OnClientDisconnectedAsync. Exception : {e}",
+                    nameof(WebSocketModule));
             }
         });
     }
@@ -567,8 +576,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
             purgedCount++;
         }
 
-        $"{BaseRoute} - Purged {purgedCount} of {totalCount} sockets."
-            .Debug(nameof(WebSocketModule));
+        Debug.WriteLine($"{BaseRoute} - Purged {purgedCount} of {totalCount} sockets.", nameof(WebSocketModule));
     }
 
     private async Task ProcessNotioContext(IWebSocketContext context, CancellationToken cancellationToken)

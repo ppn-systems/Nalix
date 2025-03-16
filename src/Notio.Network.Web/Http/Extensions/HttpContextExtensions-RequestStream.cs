@@ -1,6 +1,6 @@
-using Notio.Logging;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Utilities;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 
@@ -47,8 +47,9 @@ public static partial class HttpContextExtensions
                 return stream;
         }
 
-        $"[{@this.Id}] Unsupported request content encoding \"{encoding}\", sending 400 Bad Request..."
-            .Warn(nameof(OpenRequestStream));
+        Debug.WriteLine(
+            $"[{@this.Id}] Unsupported request content encoding \"{encoding}\", sending 400 Bad Request...",
+            nameof(OpenRequestStream));
 
         throw HttpException.BadRequest($"Unsupported content encoding \"{encoding}\"");
     }

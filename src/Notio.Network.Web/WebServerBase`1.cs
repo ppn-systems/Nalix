@@ -1,4 +1,3 @@
-using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
@@ -9,6 +8,7 @@ using Notio.Network.Web.Sessions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Threading;
@@ -218,11 +218,11 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            "Operation canceled.".Debug(LogSource);
+            Debug.WriteLine("Operation canceled.");
         }
         finally
         {
-            "Cleaning up".Info(LogSource);
+            Trace.WriteLine("Cleaning up", LogSource);
             State = WebServerState.Stopped;
         }
     }
@@ -246,8 +246,10 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
 
         try
         {
-            $"[{context.Id}] {context.Request.SafeGetRemoteEndpointStr()}: {context.Request.HttpMethod} {context.Request.Url.PathAndQuery} - {context.Request.UserAgent}"
-                .Debug(LogSource);
+            Debug.WriteLine(
+                $"[{context.Id}] {context.Request.SafeGetRemoteEndpointStr()}: " +
+                $"{context.Request.HttpMethod} {context.Request.Url.PathAndQuery} - " +
+                $"{context.Request.UserAgent}", LogSource);
 
             if (SessionManager != null)
             {
@@ -267,7 +269,7 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
                     await _modules.DispatchRequestAsync(context).ConfigureAwait(false);
                     if (!context.IsHandled)
                     {
-                        $"[{context.Id}] No module generated a response. Sending 404 - Not Found".Error(LogSource);
+                        Trace.WriteLine($"[{context.Id}] No module generated a response. Sending 404 - Not Found", LogSource);
                         throw HttpException.NotFound("No module was able to serve the requested path.");
                     }
                 }
@@ -300,21 +302,23 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
                 bool sendChunked = context.Response.SendChunked;
                 long contentLength = context.Response.ContentLength64;
                 context.Close();
-                $"[{context.Id}] {context.Request.HttpMethod} {context.Request.Url.AbsolutePath}: \"{statusCode} {statusDescription}\" sent in {context.Age}ms ({(sendChunked ? "chunked" : contentLength.ToString(CultureInfo.InvariantCulture) + " bytes")})"
-                    .Info(LogSource);
+                Trace.WriteLine(
+                    $"[{context.Id}] {context.Request.HttpMethod} {context.Request.Url.AbsolutePath}: " +
+                    $"\"{statusCode} {statusDescription}\" sent in {context.Age}ms " +
+                    $"({(sendChunked ? "chunked" : contentLength.ToString(CultureInfo.InvariantCulture) + " bytes")})", LogSource);
             }
         }
         catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
         {
-            $"[{context.Id}] Operation canceled.".Debug(LogSource);
+            Debug.WriteLine($"[{context.Id}] Operation canceled.", LogSource);
         }
         catch (HttpListenerException ex)
         {
-            ex.Log(LogSource, $"[{context.Id}] Listener exception.");
+            Trace.WriteLine($"[{context.Id}] Listener exception: {ex.Message}", LogSource);
         }
         catch (Exception ex)
         {
-            ex.Log(LogSource, $"[{context.Id}] Fatal exception.");
+            Trace.WriteLine($"[{context.Id}] Unhandled exception: {ex}", LogSource);
             OnFatalException();
         }
     }

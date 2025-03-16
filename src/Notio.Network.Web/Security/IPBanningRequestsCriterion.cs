@@ -69,8 +69,8 @@ public class IPBanningRequestsCriterion : IIPBanningCriterion
                 continue;
             }
 
-            ConcurrentBag<long> recentRequests = new(requests.Where(x => x >= minTime));
-            if (!recentRequests.Any())
+            ConcurrentBag<long> recentRequests = [.. requests.Where(x => x >= minTime)];
+            if (recentRequests.IsEmpty)
             {
                 _ = Requests.TryRemove(k, out _);
             }

@@ -1,10 +1,10 @@
-using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
 using Notio.Network.Web.Routing;
 using Notio.Network.Web.Utilities;
 using System;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -127,10 +127,10 @@ public partial class WebServer : WebServerBase<WebServerOptions>
             }
             catch (Exception ex)
             {
-                ex.Log(LogSource, "Exception thrown while disposing HTTP listener.");
+                Trace.WriteLine($"Exception thrown while disposing HTTP listener. {ex}", LogSource);
             }
 
-            "Listener closed.".Info(LogSource);
+            Trace.WriteLine("Listener closed.", LogSource);
         }
 
         base.Dispose(disposing);
@@ -140,7 +140,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
     protected override void Prepare(CancellationToken cancellationToken)
     {
         Listener.Start();
-        "Started HTTP Listener".Info(LogSource);
+        Trace.WriteLine("HTTP Listener started.", LogSource);
 
         // close port when the cancellation token is cancelled
         _ = cancellationToken.Register(() => Listener.Stop());
@@ -178,7 +178,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
         }
 
         IHttpListener listener = DoCreate();
-        $"Running HTTPListener: {listener.Name}".Info(LogSource);
+        Trace.WriteLine($"Running HTTPListener: {listener.Name}", LogSource);
 
         foreach (string prefix in Options.UrlPrefixes)
         {
@@ -192,7 +192,7 @@ public partial class WebServer : WebServerBase<WebServerOptions>
             urlPrefix = urlPrefix.ToLowerInvariant();
 
             listener.AddPrefix(urlPrefix);
-            $"Web server prefix '{urlPrefix}' added.".Info(LogSource);
+            Trace.WriteLine($"Web server prefix '{urlPrefix}' added.", LogSource);
         }
 
         return listener;

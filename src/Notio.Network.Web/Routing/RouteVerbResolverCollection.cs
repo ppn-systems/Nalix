@@ -1,8 +1,8 @@
-using Notio.Logging;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Utilities;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -86,7 +86,7 @@ public sealed class RouteVerbResolverCollection : RouteResolverCollectionBase<Ht
     /// <inheritdoc />
     protected override void OnResolverCalled(IHttpContext context, RouteVerbResolver resolver, RouteResolutionResult result)
     {
-        $"[{context.Id}] Route {resolver.Route} : {result}".Trace(_logSource);
+        Trace.WriteLine($"[{context.Id}] Route {resolver.Route} : {result}", _logSource);
     }
 
     private static bool IsHandlerCompatibleMethod(MethodInfo method, out bool isSynchronous)
@@ -127,16 +127,16 @@ public sealed class RouteVerbResolverCollection : RouteResolverCollectionBase<Ht
             return 0;
         }
 
-        RouteAttribute[] attributes = method.GetCustomAttributes(true).OfType<RouteAttribute>().ToArray();
+        RouteAttribute[] attributes = [.. method.GetCustomAttributes(true).OfType<RouteAttribute>()];
         if (attributes.Length == 0)
         {
             return 0;
         }
 
-        ParameterExpression[] parameters = new[] {
+        ParameterExpression[] parameters = [
             Expression.Parameter(typeof(IHttpContext), "context"),
             Expression.Parameter(typeof(RouteMatch), "route"),
-        };
+        ];
 
         Expression body = Expression.Call(Expression.Constant(target), method, parameters.Cast<Expression>());
         if (isSynchronous)

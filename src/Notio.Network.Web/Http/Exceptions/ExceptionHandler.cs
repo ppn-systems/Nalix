@@ -1,8 +1,8 @@
-using Notio.Logging;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Http.Handlers;
 using Notio.Network.Web.WebModule;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
@@ -138,7 +138,7 @@ public static class ExceptionHandler
             return;
         }
 
-        exception.Log(logSource, $"[{context.Id}] Unhandled exception.");
+        Debug.WriteLine($"[{context.Id}] Unhandled exception in {logSource}: {exception}");
 
         try
         {
@@ -166,7 +166,7 @@ public static class ExceptionHandler
         }
         catch (Exception exception2)
         {
-            exception2.Log(logSource, $"[{context.Id}] Unhandled exception while handling exception.");
+            Debug.WriteLine($"[{context.Id}] Unhandled exception in {logSource}: {exception2}");
         }
     }
 }
