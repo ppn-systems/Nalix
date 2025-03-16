@@ -30,17 +30,17 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <see cref="System.TimeSpan.Zero"/> to auto-remove.
     /// </summary>
-    public System.TimeSpan? Retention { get; init; } = System.TimeSpan.FromMinutes(2);
+    public System.TimeSpan? RetainFor { get; init; } = System.TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// Gets the optional per-group concurrency cap. If set, executions in this group are gated.
     /// </summary>
-    public System.Int32? MaxGroupConcurrency { get; init; }
+    public System.Int32? GroupConcurrencyLimit { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether to acquire group slot immediately or cancel if unavailable. Default: false (wait).
     /// </summary>
-    public System.Boolean TryAcquireGroupSlotImmediately { get; init; } = false;
+    public System.Boolean TryAcquireSlotImmediately { get; init; } = false;
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.

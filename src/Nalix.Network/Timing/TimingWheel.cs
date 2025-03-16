@@ -174,7 +174,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
             {
                 CancellationToken = linkedToken,
                 Tag = nameof(TimingWheel),
-                Retention = System.TimeSpan.Zero
+                RetainFor = System.TimeSpan.Zero
             }
         );
 

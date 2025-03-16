@@ -143,7 +143,7 @@ public abstract partial class TcpListenerBase
                     },
                     options: new WorkerOptions
                     {
-                        Retention = System.TimeSpan.Zero,
+                        RetainFor = System.TimeSpan.Zero,
                         IdType = IdentifierType.System,
                         Tag = NetTaskNames.Segments.Net
                     }
@@ -383,7 +383,7 @@ public abstract partial class TcpListenerBase
                         },
                         options: new WorkerOptions
                         {
-                            Retention = System.TimeSpan.Zero,
+                            RetainFor = System.TimeSpan.Zero,
                             IdType = IdentifierType.System,
                             Tag = NetTaskNames.Segments.Net
                         }

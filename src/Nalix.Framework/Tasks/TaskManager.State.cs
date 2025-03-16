@@ -77,7 +77,7 @@ public partial class TaskManager
             }
         }
 
-        // Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo Retention
+        // Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo RetainFor
         internal System.DateTimeOffset? CompletedUtc
         {
             get

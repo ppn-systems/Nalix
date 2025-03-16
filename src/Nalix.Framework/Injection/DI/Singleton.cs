@@ -377,7 +377,7 @@ public static class Singleton
             {
                 disposable.Dispose();
             }
-            catch (System.Exception)
+            catch
             {
                 // Log exception but continue disposing other services
                 // In production: consider logging the exception
