@@ -36,7 +36,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.UInt32 result;
         do
         {
-            result = Get() & 0x7FFFFFFF; // Ensure positive value
+            result = this.Get() & 0x7FFFFFFF; // Ensure positive value
         } while (result >= threshold);
 
         return (System.Int32)(result % (System.UInt32)max);
@@ -60,7 +60,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         // Fast path for power of 2
         if ((max & (max - 1)) == 0)
         {
-            return Get() & (max - 1);
+            return this.Get() & (max - 1);
         }
 
         // Avoid modulo bias by rejecting values in the unfair region
@@ -68,7 +68,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.UInt32 result;
         do
         {
-            result = Get();
+            result = this.Get();
         } while (result >= threshold);
 
         return result % max;
@@ -92,13 +92,13 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         // Fast path for small values that fit in uint
         if (max <= System.UInt32.MaxValue)
         {
-            return Get((System.UInt32)max);
+            return this.Get((System.UInt32)max);
         }
 
         // Optimize for powers of 2
         if ((max & (max - 1)) == 0)
         {
-            return Get64() & (max - 1);
+            return this.Get64() & (max - 1);
         }
 
         // Use rejection sampling to avoid modulo bias
@@ -128,7 +128,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         }
 
         // Ensure positive result
-        System.UInt64 result = Get((System.UInt64)max);
+        System.UInt64 result = this.Get((System.UInt64)max);
         return (System.Int64)result;
     }
 
@@ -150,7 +150,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 
         // Handle potential overflow when calculating range
         System.UInt32 range = (System.UInt32)(max - min);
-        return min + (System.Int32)Get(range);
+        return min + (System.Int32)this.Get(range);
     }
 
     /// <summary>
@@ -170,7 +170,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         }
 
         System.UInt32 range = max - min;
-        return min + Get(range);
+        return min + this.Get(range);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         }
 
         System.UInt64 range = max - min;
-        return min + Get(range);
+        return min + this.Get(range);
     }
 
     /// <summary>
@@ -212,7 +212,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 
         // Handle negative range carefully
         System.UInt64 range = (System.UInt64)(max - min);
-        return min + (System.Int64)Get(range);
+        return min + (System.Int64)this.Get(range);
     }
 
     /// <summary>
@@ -223,7 +223,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single Get(System.Single max) => max <= 0 ? 0 : GetFloat() * max;
+    public System.Single Get(System.Single max) => max <= 0 ? 0 : this.GetFloat() * max;
 
     /// <summary>
     /// Returns a random double-precision floating-point ProtocolType in the range [0, max).
@@ -233,7 +233,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double Get(System.Double max) => max <= 0 ? 0 : GetDouble() * max;
+    public System.Double Get(System.Double max) => max <= 0 ? 0 : this.GetDouble() * max;
 
     /// <summary>
     /// Returns a random floating-point ProtocolType in the range [min, max).
@@ -245,7 +245,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single min, System.Single max)
-        => min >= max ? min : min + (GetFloat() * (max - min));
+        => min >= max ? min : min + (this.GetFloat() * (max - min));
 
     /// <summary>
     /// Returns a random double-precision floating-point ProtocolType in the range [min, max).
@@ -257,7 +257,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double min, System.Double max)
-        => min >= max ? min : min + (GetDouble() * (max - min));
+        => min >= max ? min : min + (this.GetDouble() * (max - min));
 
     /// <summary>
     /// Returns a random boolean with the specified probability of being true.
@@ -268,7 +268,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean GetBool(System.Double probability = 0.5)
-        => probability > 0.0 && (probability >= 1.0 || GetDouble() < probability);
+        => probability > 0.0 && (probability >= 1.0 || this.GetDouble() < probability);
 
     /// <summary>
     /// Returns a random floating-point ProtocolType in the range [0.0, 1.0).
@@ -282,7 +282,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public new System.Single GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
+    public new System.Single GetFloat() => (this.Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
     /// Returns a random double-precision floating-point ProtocolType in the range [0.0, 1.0).
@@ -296,7 +296,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public new System.Double GetDouble() => (Get64() >> 11) * (1.0 / 9007199254740992.0);
+    public new System.Double GetDouble() => (this.Get64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
