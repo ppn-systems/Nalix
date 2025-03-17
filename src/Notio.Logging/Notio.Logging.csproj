@@ -12,8 +12,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.81</Version>
-    <PackageVersion>0.3.81</PackageVersion>
+    <Version>0.3.87</Version>
+    <PackageVersion>0.3.87</PackageVersion>
     
 		<PackageReleaseNotes>Includes bug fixes and performance improvements.</PackageReleaseNotes>
 		<PackageDescription>Notio.Logging is a logging library that integrates with various logging providers to facilitate logging in your .NET applications.</PackageDescription>
@@ -24,6 +24,10 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="DLogging.Extensions.cs" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
