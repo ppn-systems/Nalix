@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Core.Enums;
-using Nalix.Common.Primitives;
+using Nalix.Common.Core.Primitives;
 
 namespace Nalix.Common.Core.Abstractions;
 
