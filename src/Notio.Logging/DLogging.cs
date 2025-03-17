@@ -41,7 +41,6 @@ public static class DLogging
         Publisher = new LoggingPublisher();
 
 #if DEBUG
-        Publisher.AddTarget(new FileLoggingTarget(fileLoggerOpts));
         Publisher.AddTarget(new ConsoleLoggingTarget());
 #endif
     }
