@@ -79,6 +79,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             return;
 
         _logger.Debug("Starting to listen for incoming connections.");
+        const int maxParallelAccepts = 5;
 
         // Create a linked token source to combine external cancellation with internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -93,13 +94,10 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 _logger.Info($"{_protocol} is online on port {_port}");
 
                 // Create multiple accept tasks in parallel for higher throughput
-                const int maxParallelAccepts = 5;
-                var acceptTasks = new Task[maxParallelAccepts];
+                Task[] acceptTasks = new Task[maxParallelAccepts];
 
                 for (int i = 0; i < maxParallelAccepts; i++)
-                {
                     acceptTasks[i] = AcceptConnectionsAsync(linkedToken);
-                }
 
                 await Task.WhenAll(acceptTasks).ConfigureAwait(false);
             }
@@ -115,8 +113,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             catch (Exception ex)
             {
                 _logger.Error($"Critical error in listener on port {_port}", ex);
-                // Don't call Environment.Exit here, instead let the exception propagate
-                // so the host application can decide how to handle it
                 throw;
             }
             finally
