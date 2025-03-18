@@ -86,7 +86,7 @@ public static class ChaCha20Poly1305
         byte[] computedTag = Poly1305Compute(polyKey.ToArray(), aad.ToArray(), ciphertext.ToArray());
         if (!computedTag.AsSpan().SequenceEqual(tag))
         {
-            return false; // Authentication failed.
+            return false; // Security failed.
         }
 
         Span<byte> plaintextSpan = plaintext;

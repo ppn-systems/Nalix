@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Notio.Network.Web.Http;
@@ -52,7 +52,7 @@ public static class HttpStatusDescription
         { 404, "Not Found" },
         { 405, "Method Not Allowed" },
         { 406, "Not Acceptable" },
-        { 407, "Proxy Authentication Required" },
+        { 407, "Proxy Security Required" },
         { 408, "Request Timeout" },
         { 409, "Conflict" },
         { 410, "Gone" },
@@ -82,7 +82,7 @@ public static class HttpStatusDescription
         { 507, "Insufficient Storage" },
         { 508, "Loop Detected" },
         { 510, "Not Extended" },
-        { 511, "Network Authentication Required" },
+        { 511, "Network Security Required" },
     };
 
     /// <summary>

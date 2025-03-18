@@ -1,4 +1,4 @@
-namespace Notio.Identification;
+namespace Notio.Identifiers;
 
 /// <summary>
 /// Provides constants for Base36 encoding and Unique ID representation.

@@ -1,5 +1,4 @@
 using Notio.Common.Logging;
-using Notio.Common.Models;
 using Notio.Logging.Targets;
 using System;
 using System.Runtime.CompilerServices;

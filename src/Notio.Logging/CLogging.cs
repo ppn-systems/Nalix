@@ -1,5 +1,4 @@
 using Notio.Common.Logging;
-using Notio.Common.Models;
 using Notio.Logging.Core;
 using Notio.Logging.Targets;
 using System;
@@ -35,21 +34,37 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
        => CreateLogEntry(level, eventId, message, exception);
 
     /// <inheritdoc />
+    public void Meta(string message)
+
+        => WriteLog(LoggingLevel.Meta, EventId.Empty, message);
+    /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
+
+    /// <inheritdoc />
+    public void Trace(string message)
+        => WriteLog(LoggingLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
-    public void Debug(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
+    public void Debug(string message)
+        => WriteLog(LoggingLevel.Debug, EventId.Empty, SanitizeLogMessage(message));
+
+    /// <inheritdoc />
+    public void Debug(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug<TClass>(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
         where TClass : class
         => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
+
+    /// <inheritdoc />
+    public void Info(string message)
+        => WriteLog(LoggingLevel.Information, EventId.Empty, message);
 
     /// <inheritdoc />
     public void Info(string format, params object[] args)
@@ -60,24 +75,48 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
         => WriteLog(LoggingLevel.Information, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
+    public void Warn(string message)
+        => WriteLog(LoggingLevel.Warning, EventId.Empty, message);
+
+    /// <inheritdoc />
     public void Warn(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Warning, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
-    public void Error(Exception exception, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
+    public void Error(string message)
+        => WriteLog(LoggingLevel.Error, EventId.Empty, message);
 
     /// <inheritdoc />
-    public void Error(string message, Exception exception, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
+    public void Error(Exception exception)
+        => WriteLog(LoggingLevel.Error, EventId.Empty, exception.Message, exception);
 
     /// <inheritdoc />
     public void Error(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
+    public void Error(Exception exception, EventId? eventId = null)
+        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
+
+    /// <inheritdoc />
+    public void Error(string message, Exception exception)
+        => WriteLog(LoggingLevel.Error, EventId.Empty, message, exception);
+
+    /// <inheritdoc />
+    public void Error(string message, Exception exception, EventId? eventId = null)
+        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
+
+    /// <inheritdoc />
+    public void Fatal(string message)
+        => WriteLog(LoggingLevel.Critical, EventId.Empty, message);
+
+    /// <inheritdoc />
     public void Fatal(string message, EventId? eventId = null)
         => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message);
+
+    /// <inheritdoc />
+    public void Fatal(string message, Exception exception)
+        => WriteLog(LoggingLevel.Critical, EventId.Empty, message, exception);
 
     /// <inheritdoc />
     public void Fatal(string message, Exception exception, EventId? eventId = null)

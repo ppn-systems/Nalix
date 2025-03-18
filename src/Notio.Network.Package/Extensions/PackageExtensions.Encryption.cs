@@ -1,4 +1,4 @@
-using Notio.Common.Authentication;
+using Notio.Common.Security;
 using Notio.Network.Package.Helpers;
 
 namespace Notio.Network.Package.Extensions;

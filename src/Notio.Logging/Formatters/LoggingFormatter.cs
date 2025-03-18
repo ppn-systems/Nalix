@@ -1,5 +1,4 @@
 using Notio.Common.Logging;
-using Notio.Common.Models;
 using System;
 using System.Text;
 
@@ -8,9 +7,9 @@ namespace Notio.Logging.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
-public class LoggingFormatter(bool color = false) : ILoggingFormatter
+public class LoggingFormatter(bool terminal = false) : ILoggingFormatter
 {
-    private readonly bool _color = color;
+    private readonly bool _terminal = terminal;
 
     /// <summary>
     /// Singleton instances of <see cref="LoggingFormatter"/> can be reused.
@@ -49,7 +48,7 @@ public class LoggingFormatter(bool color = false) : ILoggingFormatter
         StringBuilder logBuilder = new();
 
         LoggingBuilder.BuildLog(logBuilder, timeStamp,
-            logLevel, eventId, message, exception, _color);
+            logLevel, eventId, message, exception, _terminal);
 
         return logBuilder.ToString();
     }

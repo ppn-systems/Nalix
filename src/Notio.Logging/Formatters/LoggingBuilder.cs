@@ -1,9 +1,9 @@
 using Notio.Common.Logging;
-using Notio.Common.Models;
 using Notio.Logging.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace Notio.Logging.Formatters;
 
@@ -19,6 +19,7 @@ internal static class LoggingBuilder
 
     // Preallocated arrays for common separators to avoid string allocations
     private static ReadOnlySpan<char> DashWithSpaces => [' ', '-', ' '];
+    private static int LogCounter = 0;
 
     /// <summary>
     /// Builds a formatted log entry with optimal performance.
@@ -29,7 +30,7 @@ internal static class LoggingBuilder
     /// <param name="eventId">The event ID associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception information.</param>
-    /// <param name="useColor">Whether to include ANSI color codes in the output.</param>
+    /// <param name="terminal">Whether to include ANSI color codes in the output.</param>
     /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void BuildLog(
@@ -39,22 +40,24 @@ internal static class LoggingBuilder
         in EventId eventId,
         string message,
         Exception? exception,
-        bool useColor = false,
+        bool terminal = false,
         string? customTimestampFormat = null)
     {
         // Estimate buffer size to minimize reallocations
         int initialLength = builder.Length;
-        int estimatedLength = CalculateEstimatedLength(message, eventId, exception, useColor);
+        int estimatedLength = CalculateEstimatedLength(message, eventId, exception, terminal);
+
 
         // Ensure the builder has enough capacity
-        EnsureCapacity(builder, estimatedLength + initialLength);
+        EnsureCapacity(builder, estimatedLength + initialLength + 9);
 
         // Append each part efficiently
-        AppendTimestamp(builder, timeStamp, customTimestampFormat, useColor);
-        AppendLogLevel(builder, logLevel, useColor);
-        AppendEventId(builder, eventId, useColor);
-        AppendMessage(builder, message, useColor);
-        AppendException(builder, exception, useColor);
+        AppendNumber(builder, terminal);
+        AppendTimestamp(builder, timeStamp, customTimestampFormat, terminal);
+        AppendLogLevel(builder, logLevel, terminal);
+        AppendEventId(builder, eventId, terminal);
+        AppendMessage(builder, message, terminal);
+        AppendException(builder, exception, terminal);
     }
 
     /// <summary>
@@ -94,6 +97,17 @@ internal static class LoggingBuilder
         {
             StringBuilderPool.Return(builder);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AppendNumber(StringBuilder builder, bool terminal)
+    {
+        if (!terminal) return;
+
+        builder.Append(LoggingConstants.LogBracketOpen)
+               .Append(Interlocked.Increment(ref LogCounter).ToString("D6"))
+               .Append(LoggingConstants.LogBracketClose)
+               .Append(LoggingConstants.LogSpaceSeparator);
     }
 
     /// <summary>

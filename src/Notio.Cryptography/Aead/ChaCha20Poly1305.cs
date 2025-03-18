@@ -109,7 +109,7 @@ public sealed class ChaCha20Poly1305 : IDisposable
             Buffer.BlockCopy(ciphertext, ciphertext.Length - TagSize, receivedMac, 0, TagSize);
 
             if (!CompareBytes(expectedMac, receivedMac))
-                throw new InvalidOperationException("Authentication failed");
+                throw new InvalidOperationException("Security failed");
         }
 
         // Decrypt ciphertext

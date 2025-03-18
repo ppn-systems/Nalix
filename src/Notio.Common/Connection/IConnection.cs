@@ -1,4 +1,4 @@
-using Notio.Common.Authentication;
+using Notio.Common.Security;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -50,7 +50,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>
-    Authoritys Authority { get; set; }
+    AuthorityLevel Authority { get; set; }
 
     /// <summary>
     /// Gets the current state of the connection.

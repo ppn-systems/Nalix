@@ -1,5 +1,4 @@
 using Notio.Common.Logging;
-using Notio.Common.Models;
 using Notio.Logging.Core;
 using Notio.Logging.Internal.File;
 using Notio.Logging.Targets;
@@ -34,15 +33,14 @@ public static class DLogging
         {
             FormatLogFileName = (fname) =>
             {
-                return Path.GetFileNameWithoutExtension(fname) + "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
+                return Path.GetFileNameWithoutExtension(fname) +
+                       "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
             }
         };
 
         Publisher = new LoggingPublisher();
 
-#if DEBUG
         Publisher.AddTarget(new ConsoleLoggingTarget());
-#endif
     }
 
     /// <summary>

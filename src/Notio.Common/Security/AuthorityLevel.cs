@@ -1,10 +1,10 @@
-namespace Notio.Common.Authentication;
+namespace Notio.Common.Security;
 
 /// <summary>
 /// Represents different authority levels of users in the system.
 /// Each value corresponds to a specific access control level.
 /// </summary>
-public enum Authoritys : byte
+public enum AuthorityLevel : byte
 {
     /// <summary>
     /// No specific authority level assigned.

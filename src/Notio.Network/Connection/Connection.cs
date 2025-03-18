@@ -1,9 +1,9 @@
-using Notio.Common.Authentication;
+using Notio.Common.Security;
 using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Models;
-using Notio.Identification;
+using Notio.Identifiers;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -117,7 +117,7 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public Authoritys Authority { get; set; } = Authoritys.Guest;
+    public AuthorityLevel Authority { get; set; } = AuthorityLevel.Guest;
 
     /// <inheritdoc />
     public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;

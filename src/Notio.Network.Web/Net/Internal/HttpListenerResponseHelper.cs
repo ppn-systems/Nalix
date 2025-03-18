@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Web.Net.Internal;
+namespace Notio.Network.Web.Net.Internal;
 
 internal static class HttpListenerResponseHelper
 {
@@ -31,7 +31,7 @@ internal static class HttpListenerResponseHelper
             404 => "Not Found",
             405 => "Method Not Allowed",
             406 => "Not Acceptable",
-            407 => "Proxy Authentication Required",
+            407 => "Proxy Security Required",
             408 => "Request Timeout",
             409 => "Conflict",
             410 => "Gone",

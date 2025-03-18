@@ -4,7 +4,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Identification;
+namespace Notio.Identifiers;
 
 /// <summary>
 /// Represents a high-performance, space-efficient unique identifier that supports both Base36 and hexadecimal representations.

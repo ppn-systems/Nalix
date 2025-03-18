@@ -11,8 +11,6 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.94</Version>
-    <PackageVersion>0.3.94</PackageVersion>
     <Version>0.3.95</Version>
     <PackageVersion>0.3.95</PackageVersion>
 

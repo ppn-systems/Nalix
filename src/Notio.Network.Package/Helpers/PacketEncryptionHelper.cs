@@ -1,4 +1,4 @@
-using Notio.Common.Authentication;
+using Notio.Common.Security;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography;

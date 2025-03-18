@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.WebModule;
 using System;
@@ -67,7 +67,7 @@ public abstract class BasicAuthenticationModuleBase : WebModuleBase
     }
 
     /// <summary>
-    /// Verifies the credentials given in the <c>Authentication</c> request header.
+    /// Verifies the credentials given in the <c>Security</c> request header.
     /// </summary>
     /// <param name="path">The URL path requested by the client. Note that this is relative
     /// to the module's <see cref="WebModuleBase.BaseRoute">BaseRoute</see>.</param>

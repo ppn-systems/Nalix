@@ -1,9 +1,10 @@
+using Notio.Common.Exceptions;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Notio.Common.Exceptions;
+namespace Notio;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.

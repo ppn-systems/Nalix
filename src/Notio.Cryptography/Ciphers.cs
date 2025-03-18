@@ -1,4 +1,4 @@
-using Notio.Common.Authentication;
+using Notio.Common.Security;
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
@@ -108,7 +108,7 @@ public static class Ciphers
                         }
                         catch (Exception ex)
                         {
-                            throw new CryptographicException("Decryption failed. Authentication of the data has failed.", ex);
+                            throw new CryptographicException("Decryption failed. Security of the data has failed.", ex);
                         }
                         finally
                         {
@@ -128,7 +128,7 @@ public static class Ciphers
                         ReadOnlySpan<byte> ciphertext = input[12..^16];
 
                         if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
-                            throw new CryptographicException("Decryption failed. Authentication of the encrypted data has failed.");
+                            throw new CryptographicException("Decryption failed. Security of the encrypted data has failed.");
 
                         return plaintext;
                     }

@@ -1,4 +1,3 @@
-﻿using Notio.Common.Models;
 using System;
 
 namespace Notio.Common.Logging;
@@ -21,7 +20,7 @@ public interface ILogger
     /// <summary>
     /// Logs debug information.
     /// </summary>
-    void Debug(string message, EventId? eventId = null, string memberName = "");
+    void Debug(string message, EventId? eventId = null);
 
     /// <summary>
     /// Logs debug information for a specific class.
