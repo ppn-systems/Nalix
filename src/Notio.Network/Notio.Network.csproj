@@ -11,8 +11,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.3.91</Version>
-    <PackageVersion>0.3.91</PackageVersion>
+    <Version>0.3.93</Version>
+    <PackageVersion>0.3.93</PackageVersion>
     
 		<ReleaseNotes>Initial release of Notio.Network package.</ReleaseNotes>
 		<Description>Notio.Network is a .NET library for managing "Protocols, Listener,..." functionality.</Description>

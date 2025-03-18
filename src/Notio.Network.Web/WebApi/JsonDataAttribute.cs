@@ -1,6 +1,8 @@
-﻿using Notio.Network.Web.Http.Exceptions;
+using Notio.Common;
+using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Web.WebApi;
@@ -31,7 +33,7 @@ public class JsonDataAttribute : Attribute, IRequestDataAttribute<WebApiControll
 
         try
         {
-            return Serialization.Json.Deserialize(body, type);
+            return JsonSerializer.Deserialize(body, type, JsonSettings.Http);
         }
         catch (FormatException)
         {

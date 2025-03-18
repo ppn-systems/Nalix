@@ -1,8 +1,9 @@
+using Notio.Common;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
-using Notio.Serialization;
 using System;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Web.Http.Request;
@@ -29,7 +30,7 @@ public static class RequestDeserializer
     /// <param name="context">The <see cref="IHttpContext"/> whose request body is to be deserialized.</param>
     /// <returns>A <see cref="Task{TResult}">Task</see>, representing the ongoing operation,
     /// whose result will be the deserialized data.</returns>
-    public static Task<TData> Json<TData>(IHttpContext context) => JsonInternal<TData>(context, default);
+    public static Task<TData> Json<TData>(IHttpContext context) => JsonInternal<TData>(context);
 
     /// <summary>
     /// Returns a <see cref="RequestDeserializerCallback{TData}">RequestDeserializerCallback</see>
@@ -39,10 +40,10 @@ public static class RequestDeserializer
     /// <param name="jsonSerializerCase">The <see cref="JsonSerializerCase"/> to use.</param>
     /// <returns>A <see cref="RequestDeserializerCallback{TData}"/> that can be used to deserialize
     /// a JSON request body.</returns>
-    public static RequestDeserializerCallback<TData> Json<TData>(JsonSerializerCase jsonSerializerCase)
-        => context => JsonInternal<TData>(context, jsonSerializerCase);
+    public static RequestDeserializerCallback<TData> Json<TData>()
+        => context => JsonInternal<TData>(context);
 
-    private static async Task<TData> JsonInternal<TData>(IHttpContext context, JsonSerializerCase jsonSerializerCase)
+    private static async Task<TData> JsonInternal<TData>(IHttpContext context)
     {
         string body;
         using (System.IO.TextReader reader = context.OpenRequestText())
@@ -52,7 +53,10 @@ public static class RequestDeserializer
 
         try
         {
-            return Notio.Serialization.Json.Deserialize<TData>(body, jsonSerializerCase);
+            TData result = JsonSerializer.Deserialize<TData>(body, JsonSettings.Http) ??
+                throw new FormatException("Deserialized result is null.");
+
+            return result;
         }
         catch (FormatException)
         {

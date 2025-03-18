@@ -1,8 +1,7 @@
-﻿using Notio.Serialization;
+using Notio.Common;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.MimeTypes;
-using Notio.Network.Web.Utilities;
-using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Web.Http.Response
@@ -33,48 +32,25 @@ namespace Notio.Network.Web.Http.Response
         {
             context.Response.ContentType = MimeType.Json;
             context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-            await ChunkedEncodingBaseSerializer(context, Notio.Serialization.Json.Serialize(data)).ConfigureAwait(false);
+            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
+                .ConfigureAwait(false);
         }
 
         /// <summary>
         /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
-        /// to a HTTP response, using the <see cref="Serialization.Json"/> utility class.
         /// </summary>
         /// <param name="jsonSerializerCase">The JSON serializer case.</param>
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
-        public static ResponseSerializerCallback Json(JsonSerializerCase jsonSerializerCase)
+        public static ResponseSerializerCallback Json()
         {
             return async (context, data) =>
-                    {
-                        context.Response.ContentType = MimeType.Json;
-                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                        await ChunkedEncodingBaseSerializer(context, Notio.Serialization.Json.Serialize(data, jsonSerializerCase))
-                            .ConfigureAwait(false);
-                    };
-        }
-
-        /// <summary>
-        /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
-        /// to a HTTP response, using the <see cref="Serialization.Json"/> utility class.
-        /// </summary>
-        /// <param name="serializerOptions">The JSON serializer options.</param>
-        /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
-        /// data to a HTTP response.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// <paramref name="serializerOptions"/> is <see langword="null"/>.
-        /// </exception>
-        public static ResponseSerializerCallback Json(SerializerOptions serializerOptions)
-        {
-            _ = Validate.NotNull(nameof(serializerOptions), serializerOptions);
-
-            return async (context, data) =>
-            {
-                context.Response.ContentType = MimeType.Json;
-                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                await ChunkedEncodingBaseSerializer(context, Notio.Serialization.Json.Serialize(data, serializerOptions))
-                    .ConfigureAwait(false);
-            };
+                {
+                    context.Response.ContentType = MimeType.Json;
+                    context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
+                    await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
+                        .ConfigureAwait(false);
+                };
         }
 
         /// <summary>
@@ -92,58 +68,9 @@ namespace Notio.Network.Web.Http.Response
                         context.Response.ContentType = MimeType.Json;
                         context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                         ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                        await baseSerializer(context, Notio.Serialization.Json.Serialize(data))
+                        await baseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
                             .ConfigureAwait(false);
                     };
-        }
-
-        /// <summary>
-        /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
-        /// to a HTTP response, using the <see cref="Serialization.Json"/> utility class.
-        /// </summary>
-        /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
-        /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
-        /// transfer encoding.</param>
-        /// <param name="jsonSerializerCase">The JSON serializer case.</param>
-        /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
-        /// data to a HTTP response.</returns>
-        public static ResponseSerializerCallback Json(bool bufferResponse, JsonSerializerCase jsonSerializerCase)
-        {
-            return async (context, data) =>
-                    {
-                        context.Response.ContentType = MimeType.Json;
-                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                        ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                        await baseSerializer(context, Notio.Serialization.Json.Serialize(data, jsonSerializerCase))
-                            .ConfigureAwait(false);
-                    };
-        }
-
-        /// <summary>
-        /// Serializes data in JSON format with the specified <paramref name="serializerOptions"/>
-        /// to a HTTP response, using the <see cref="Serialization.Json"/> utility class.
-        /// </summary>
-        /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
-        /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
-        /// transfer encoding.</param>
-        /// <param name="serializerOptions">The JSON serializer options.</param>
-        /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
-        /// data to a HTTP response.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// <paramref name="serializerOptions"/> is <see langword="null"/>.
-        /// </exception>
-        public static ResponseSerializerCallback Json(bool bufferResponse, SerializerOptions serializerOptions)
-        {
-            _ = Validate.NotNull(nameof(serializerOptions), serializerOptions);
-
-            return async (context, data) =>
-            {
-                context.Response.ContentType = MimeType.Json;
-                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                await baseSerializer(context, Notio.Serialization.Json.Serialize(data, serializerOptions))
-                    .ConfigureAwait(false);
-            };
         }
 
         /// <summary>
@@ -185,7 +112,7 @@ namespace Notio.Network.Web.Http.Response
                         {
                             byte[] responseBytes = (byte[])data;
                             using System.IO.Stream stream = context.OpenResponseStream(bufferResponse, preferCompression);
-                            await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
+                            await stream.WriteAsync(responseBytes).ConfigureAwait(false);
                         }
                         else
                         {
