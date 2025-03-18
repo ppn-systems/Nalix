@@ -23,13 +23,11 @@ public sealed class PacketDispatcherOptions
 {
     #region Fields
 
-    private readonly Dictionary<Type, Func<object?, IPacket, IConnection, Task>> _methodHandlers;
-
     private Func<IPacket, IConnection, IPacket>? _encryptionMethod;
     private Func<IPacket, IConnection, IPacket>? _decryptionMethod;
 
-    private Func<IPacket, IPacket>? _compressionMethod;
-    private Func<IPacket, IPacket>? _decompressionMethod;
+    private Func<IPacket, IConnection, IPacket>? _compressionMethod;
+    private Func<IPacket, IConnection, IPacket>? _decompressionMethod;
 
     /// <summary>
     /// The logger instance used for logging.
@@ -45,17 +43,17 @@ public sealed class PacketDispatcherOptions
     internal readonly Dictionary<ushort, Func<IPacket, IConnection, Task>> PacketHandlers = [];
 
     /// <summary>
+    /// Indicates whether metrics tracking is enabled.
+    /// </summary>
+    private bool EnableMetrics { get; set; }
+
+    /// <summary>
     /// Custom error handling strategy for packet processing.
     /// </summary>
     /// <remarks>
     /// If not set, the default behavior is to log errors.
     /// </remarks>
     internal Action<Exception, ushort>? ErrorHandler;
-
-    /// <summary>
-    /// Indicates whether metrics tracking is enabled.
-    /// </summary>
-    private bool EnableMetrics { get; set; }
 
     /// <summary>
     /// Callback function to collect execution time metrics for packet processing.
@@ -99,62 +97,6 @@ public sealed class PacketDispatcherOptions
     /// </remarks>
     public PacketDispatcherOptions()
     {
-        _methodHandlers = new Dictionary<Type, Func<object?, IPacket, IConnection, Task>>
-        {
-            [typeof(void)] = (_, _, _) => Task.CompletedTask,
-
-            [typeof(byte[])] = async (result, _, connection) =>
-            {
-                if (result is byte[] data)
-                {
-                    await connection.SendAsync(data);
-                }
-            },
-
-            [typeof(IEnumerable<byte>)] = async (result, _, connection) =>
-            {
-                if (result is IEnumerable<byte> bytes)
-                {
-                    byte[] data = [.. bytes];
-                    await connection.SendAsync(data);
-                }
-            },
-
-            [typeof(IPacket)] = async (result, _, connection) =>
-            {
-                if (result is IPacket packet)
-                    await this.SendPacketAsync(packet, connection);
-            },
-
-            [typeof(Task)] = async (result, _, _) => await (Task)result!,
-
-            [typeof(Task<byte[]>)] = async (result, _, connection) =>
-            {
-                if (result is Task<byte[]> task)
-                {
-                    byte[] data = await task;
-                    await connection.SendAsync(data);
-                }
-            },
-
-            [typeof(Task<IEnumerable<byte>>)] = async (result, _, connection) =>
-            {
-                if (result is Task<IEnumerable<byte>> task)
-                {
-                    IEnumerable<byte> taskResult = await task;
-                    byte[] data = [.. taskResult];
-                    await connection.SendAsync(data);
-                }
-            },
-
-            [typeof(Task<IPacket>)] = async (result, _, connection) =>
-            {
-                if (result is Task<IPacket> task)
-                    await this.SendPacketAsync(await task, connection);
-            }
-        };
-
-        Logger?.Debug("PacketDispatcherOptions initialized.");
     }
 
     #endregion
@@ -217,6 +159,26 @@ public sealed class PacketDispatcherOptions
         => this.WithHandler(() => new TController());
 
     /// <summary>
+    /// Registers a handler using an existing instance of the specified controller type.
+    /// </summary>
+    /// <typeparam name="TController">
+    /// The type of the controller to register.
+    /// </typeparam>
+    /// <param name="instance">
+    /// An existing instance of <typeparamref name="TController"/>.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions"/> instance for chaining.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="instance"/> is null.
+    /// </exception>
+    public PacketDispatcherOptions WithHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
+        (TController instance) where TController : class
+        => WithHandler(() => EnsureNotNull(instance, nameof(instance)));
+
+    /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// using a provided factory function, then scanning its methods decorated 
     /// with <see cref="PacketCommandAttribute"/>.
@@ -233,26 +195,33 @@ public sealed class PacketDispatcherOptions
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
     public PacketDispatcherOptions WithHandler<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods |
-        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(Func<TController> factory)
-        where TController : class
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
+        (Func<TController> factory) where TController : class
     {
-        TController controllerInstance = factory();
+        TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
 
         // Get methods from the controller that are decorated with PacketCommandAttribute
         List<MethodInfo> methods = [.. typeof(TController)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
         .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
 
+        if (methods.Count == 0)
+        {
+            throw new InvalidOperationException(
+                $"No methods found with [PacketCommand] in {typeof(TController).Name}.");
+        }
+
         IEnumerable<ushort> duplicateCommandIds = methods
             .GroupBy(m => m.GetCustomAttribute<PacketCommandAttribute>()!.CommandId)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);
 
-        IEnumerable<ushort> commandIds = duplicateCommandIds as ushort[] ?? [.. duplicateCommandIds];
-        if (commandIds.Any())
+        if (duplicateCommandIds.Any())
             throw new InvalidOperationException(
-                $"Duplicate CommandIds found: {string.Join(", ", commandIds)}");
+                $"Duplicate CommandIds found in {typeof(TController).Name}: " +
+                $"{string.Join(", ", duplicateCommandIds)}");
+
+        List<ushort> registeredCommandIds = [];
 
         // Register each method with its corresponding commandId
         foreach (MethodInfo method in methods)
@@ -260,10 +229,12 @@ public sealed class PacketDispatcherOptions
             ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.CommandId;
             Type returnType = method.ReturnType;
 
-            if (!_methodHandlers.TryGetValue(returnType, out Func<object?, IPacket, IConnection, Task>? value))
+            Func<object?, IPacket, IConnection, Task> value = GetHandler(returnType);
+
+            if (PacketHandlers.ContainsKey(commandId))
             {
                 throw new InvalidOperationException(
-                    $"Method {method.Name} has unsupported return type: {returnType}");
+                    $"CommandId {commandId} is already registered by another handler.");
             }
 
             async Task Handler(IPacket packet, IConnection connection)
@@ -275,16 +246,16 @@ public sealed class PacketDispatcherOptions
                     if (EnableMetrics)
                         stopwatch = Stopwatch.StartNew();
 
-                    TController controller = Activator.CreateInstance<TController>();
+                    TController controller = controllerInstance;
                     object? result;
 
                     try
                     {
-                        packet = ProcessPacketFlag(packet, PacketFlags.IsCompressed,
-                            _decompressionMethod, "Compression");
+                        packet = ProcessPacketFlag("Compression", packet,
+                            PacketFlags.IsCompressed, _decompressionMethod, connection);
 
-                        packet = ProcessPacketFlag(packet, PacketFlags.IsEncrypted,
-                            _decryptionMethod, connection, "Encryption");
+                        packet = ProcessPacketFlag("Encryption", packet,
+                            PacketFlags.IsEncrypted, _decryptionMethod, connection);
 
                         result = method.Invoke(controller, [packet, connection]);
                     }
@@ -308,8 +279,10 @@ public sealed class PacketDispatcherOptions
             }
 
             PacketHandlers[commandId] = Handler;
-            Logger?.Debug($"Handler registered for CommandId: {commandId}");
+            registeredCommandIds.Add(commandId);
         }
+
+        Logger?.Info($"Registered {typeof(TController).Name} for CommandIds: {string.Join(", ", registeredCommandIds)}");
 
         return this;
     }
@@ -336,8 +309,8 @@ public sealed class PacketDispatcherOptions
     /// </returns>
     public PacketDispatcherOptions WithPacketCompression
     (
-        Func<IPacket, IPacket>? compressionMethod,
-        Func<IPacket, IPacket>? decompressionMethod
+        Func<IPacket, IConnection, IPacket>? compressionMethod,
+        Func<IPacket, IConnection, IPacket>? decompressionMethod
     )
     {
         if (compressionMethod is not null) _compressionMethod = compressionMethod;
@@ -412,6 +385,121 @@ public sealed class PacketDispatcherOptions
 
     #region Private Methods
 
+    private Func<object?, IPacket, IConnection, Task> GetHandler(Type returnType) => returnType switch
+    {
+        Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
+        Type t when t == typeof(byte[]) => async (result, _, connection) =>
+        {
+            if (result is byte[] data)
+                await connection.SendAsync(data);
+        }
+        ,
+        Type t when t == typeof(IPacket) => async (result, _, connection) =>
+        {
+            if (result is IPacket packet)
+                await this.SendPacketAsync(packet, connection);
+        }
+        ,
+        Type t when t == typeof(ValueTask) => async (result, _, _) =>
+        {
+            if (result is ValueTask task)
+            {
+                try
+                {
+                    await task;
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(ValueTask<byte[]>) => async (result, _, connection) =>
+        {
+            if (result is ValueTask<byte[]> task)
+            {
+                try
+                {
+                    byte[] data = await task;
+                    await connection.SendAsync(data);
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(ValueTask<IPacket>) => async (result, _, connection) =>
+        {
+            if (result is ValueTask<IPacket> task)
+            {
+                try
+                {
+                    IPacket packet = await task;
+                    await this.SendPacketAsync(packet, connection);
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(Task) => async (result, _, _) =>
+        {
+            if (result is Task task)
+            {
+                try
+                {
+                    await task;
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(Task<byte[]>) => async (result, _, connection) =>
+        {
+            if (result is Task<byte[]> task)
+            {
+                try
+                {
+                    byte[] data = await task;
+                    await connection.SendAsync(data);
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(Task<IPacket>) => async (result, _, connection) =>
+        {
+            if (result is Task<IPacket> task)
+            {
+                try
+                {
+                    IPacket packet = await task;
+                    await this.SendPacketAsync(packet, connection);
+                }
+                catch (Exception ex)
+                {
+                    Logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        _ => throw new InvalidOperationException($"Unsupported return type: {returnType}")
+    };
+
+    private static T EnsureNotNull<T>(T value, string paramName)
+        where T : class => value ?? throw new ArgumentNullException(paramName);
+
     /// <summary>
     /// Handles serialization, encryption, and sending of an IPacket.
     /// </summary>
@@ -423,8 +511,8 @@ public sealed class PacketDispatcherOptions
             throw new InvalidOperationException("Serialization method is not set.");
         }
 
-        packet = ProcessPacketFlag(packet, PacketFlags.IsCompressed, _compressionMethod, "Compression");
-        packet = ProcessPacketFlag(packet, PacketFlags.IsEncrypted, _encryptionMethod, connection, "Encryption");
+        packet = ProcessPacketFlag("Compression", packet, PacketFlags.IsCompressed, _compressionMethod, connection);
+        packet = ProcessPacketFlag("Encryption", packet, PacketFlags.IsEncrypted, _encryptionMethod, connection);
 
         await connection.SendAsync(SerializationMethod(packet));
     }
@@ -433,34 +521,13 @@ public sealed class PacketDispatcherOptions
     /// Processes packet transformation based on a flag and a transformation method.
     /// </summary>
     private IPacket ProcessPacketFlag(
-        IPacket packet,
-        PacketFlags flag,
-        Func<IPacket, IPacket>? method,
-        string methodName)
-    {
-        if (!HasFlag((PacketFlags)packet.Flags, flag))
-            return packet;
-
-        if (method is null)
-        {
-            Logger?.Error($"{methodName} method is not set, but packet requires {methodName.ToLower()}.");
-            return packet;
-        }
-
-        return method(packet);
-    }
-
-    /// <summary>
-    /// Processes packet transformation when an IConnection is required.
-    /// </summary>
-    private IPacket ProcessPacketFlag(
+        string methodName,
         IPacket packet,
         PacketFlags flag,
         Func<IPacket, IConnection, IPacket>? method,
-        IConnection connection,
-        string methodName)
+        IConnection context)
     {
-        if (!HasFlag((PacketFlags)packet.Flags, flag))
+        if (!(((PacketFlags)packet.Flags & flag) == flag))
             return packet;
 
         if (method is null)
@@ -469,11 +536,8 @@ public sealed class PacketDispatcherOptions
             return packet;
         }
 
-        return method(packet, connection);
+        return method(packet, context);
     }
-
-    private static bool HasFlag(PacketFlags flags, PacketFlags checkFlag)
-        => (flags & checkFlag) == checkFlag;
 
     #endregion
 }
