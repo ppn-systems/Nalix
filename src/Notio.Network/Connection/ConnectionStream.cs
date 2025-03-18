@@ -59,6 +59,7 @@ internal class ConnectionStream : IDisposable
         _bufferPool = bufferPool;
         _buffer = _bufferPool.Rent();
         _stream = new NetworkStream(socket);
+        _logger?.Debug("ConnectionStream initialized.");
     }
 
     /// <summary>
@@ -67,10 +68,15 @@ internal class ConnectionStream : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            _logger?.Debug("BeginReceive called on disposed ConnectionStream.");
+            return;
+        }
 
         try
         {
+            _logger?.Debug("Starting asynchronous read operation.");
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
                    .ContinueWith(async (task, state) =>
                    {
@@ -114,6 +120,7 @@ internal class ConnectionStream : IDisposable
         {
             if (data.IsEmpty) return false;
 
+            _logger?.Debug("Sending data synchronously.");
             _stream.Write(data.Span);
 
             CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
@@ -138,6 +145,7 @@ internal class ConnectionStream : IDisposable
         {
             if (data.IsEmpty) return false;
 
+            _logger?.Debug("Sending data asynchronously.");
             await _stream.WriteAsync(data, cancellationToken);
 
             CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
@@ -173,6 +181,8 @@ internal class ConnectionStream : IDisposable
             if (totalBytesRead < 2) return;
 
             ushort size = BitConverter.ToUInt16(_buffer, 0);
+            _logger?.Debug($"Received packet size: {size} bytes.");
+
             if (size > _bufferPool.MaxBufferSize)
             {
                 _logger?.Error($"Data length ({size} bytes) exceeds the maximum allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
@@ -181,6 +191,7 @@ internal class ConnectionStream : IDisposable
 
             if (size > _buffer.Length)
             {
+                _logger?.Debug("Renting a larger buffer to accommodate the packet size.");
                 _bufferPool.Return(_buffer);
                 _buffer = _bufferPool.Rent(size);
             }
@@ -200,6 +211,7 @@ internal class ConnectionStream : IDisposable
 
             if (totalBytesRead == size)
             {
+                _logger?.Debug("Packet received completely.");
                 CacheIncoming.Add(_buffer.AsMemory(0, totalBytesRead));
 
                 LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
@@ -247,6 +259,7 @@ internal class ConnectionStream : IDisposable
 
         if (disposing)
         {
+            _logger?.Debug("Disposing ConnectionStream.");
             _bufferPool.Return(_buffer);
             _stream.Dispose();
 

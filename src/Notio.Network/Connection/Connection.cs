@@ -49,7 +49,7 @@ public sealed class Connection : IConnection
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
-        _cstream = new ConnectionStream(socket, bufferAllocator, logger)
+        _cstream = new ConnectionStream(socket, bufferAllocator, _logger)
         {
             PacketCached = () =>
             {
