@@ -1,8 +1,8 @@
+using Notio.Extensions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Net.Internal;
 using Notio.Network.Web.WebSockets.Internal.Enums;
-using Notio.Shared.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;

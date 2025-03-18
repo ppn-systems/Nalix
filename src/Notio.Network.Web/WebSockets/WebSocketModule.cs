@@ -1,3 +1,4 @@
+using Notio.Extensions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;
@@ -5,8 +6,7 @@ using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.Utilities;
 using Notio.Network.Web.WebModule;
 using Notio.Network.Web.WebSockets.Internal;
-using Notio.Shared.Extensions;
-using Notio.Shared.Threading;
+using Notio.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

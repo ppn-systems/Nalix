@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Notio.Shared.Extensions;
+namespace Notio.Extensions;
 
 /// <summary>
 /// Provides extension methods for <see cref="Task"/> and <see cref="Task{TResult}"/>.

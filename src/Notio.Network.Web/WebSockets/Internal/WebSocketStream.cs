@@ -3,8 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Notio.Shared.Extensions;
 using Notio.Network.Web.WebSockets.Internal.Enums;
+using Notio.Extensions;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

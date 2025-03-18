@@ -1,6 +1,6 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using System;
-using Notio.Shared.Extensions.Primitives;
+using Notio.Extensions.Primitives;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

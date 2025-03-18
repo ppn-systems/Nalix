@@ -4,8 +4,8 @@ using Notio.Shared;
 using System;
 using System.Globalization;
 using System.IO;
-using Notio.Shared.Extensions.Primitives;
 using Notio.Network.Web.WebSockets.Internal.Enums;
+using Notio.Extensions.Primitives;
 
 namespace Notio.Network.Web.WebSockets.Internal;
 

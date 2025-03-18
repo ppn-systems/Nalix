@@ -1,5 +1,5 @@
 using Notio.Common.Exceptions;
-using Notio.Shared.Extensions;
+using Notio.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;

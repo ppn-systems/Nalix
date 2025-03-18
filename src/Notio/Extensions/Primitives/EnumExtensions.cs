@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Shared.Extensions.Primitives;
+namespace Notio.Extensions.Primitives;
 
 /// <summary>
 /// Provides extension methods for working with <see cref="Enum"/> types.

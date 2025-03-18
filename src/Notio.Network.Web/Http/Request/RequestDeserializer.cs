@@ -1,6 +1,6 @@
-using Notio.Common;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
+using Notio.Utilities;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
@@ -37,7 +37,6 @@ public static class RequestDeserializer
     /// that will deserialize an HTTP request body in JSON format, using the specified property name casing.
     /// </summary>
     /// <typeparam name="TData">The expected type of the deserialized data.</typeparam>
-    /// <param name="jsonSerializerCase">The <see cref="JsonSerializerCase"/> to use.</param>
     /// <returns>A <see cref="RequestDeserializerCallback{TData}"/> that can be used to deserialize
     /// a JSON request body.</returns>
     public static RequestDeserializerCallback<TData> Json<TData>()
@@ -53,7 +52,7 @@ public static class RequestDeserializer
 
         try
         {
-            TData result = JsonSerializer.Deserialize<TData>(body, JsonSettings.Http) ??
+            TData result = JsonSerializer.Deserialize<TData>(body, DefaultOptions.Http) ??
                 throw new FormatException("Deserialized result is null.");
 
             return result;

@@ -1,5 +1,5 @@
 using Notio.Network.Web.Internal;
-using Notio.Shared.Threading;
+using Notio.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

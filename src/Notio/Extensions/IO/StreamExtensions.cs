@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Notio.Shared.Extensions.IO;
+namespace Notio.Extensions.IO;
 
 /// <summary>
 /// Provides extension methods for working with <see cref="Stream"/> objects.

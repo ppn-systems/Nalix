@@ -1,8 +1,8 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Shared.Extensions;
+using Notio.Extensions;
 
 namespace Notio.Network.Web;
 

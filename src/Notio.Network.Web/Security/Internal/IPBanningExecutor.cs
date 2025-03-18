@@ -1,4 +1,4 @@
-﻿using Notio.Shared.Threading;
+using Notio.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;

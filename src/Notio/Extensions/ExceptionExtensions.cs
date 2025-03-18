@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 
-namespace Notio.Shared.Extensions;
+namespace Notio.Extensions;
 
 /// <summary>
 /// Provides extension methods for <see cref="Exception"/>.

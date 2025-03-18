@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Shared.Threading;
+namespace Notio.Threading;
 
 /// <summary>
 /// Schedule an action to be periodically executed on the thread pool.

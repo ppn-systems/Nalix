@@ -1,6 +1,6 @@
-using Notio.Common;
 using Notio.Network.Web.Http.Extensions;
 using Notio.Network.Web.MimeTypes;
+using Notio.Utilities;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -23,7 +23,6 @@ namespace Notio.Network.Web.Http.Response
 
         /// <summary>
         /// Serializes data in JSON format to a HTTP response,
-        /// using the <see cref="Serialization.Json"/> utility class.
         /// </summary>
         /// <param name="context">The HTTP context of the request.</param>
         /// <param name="data">The data to serialize.</param>
@@ -32,14 +31,13 @@ namespace Notio.Network.Web.Http.Response
         {
             context.Response.ContentType = MimeType.Json;
             context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
+            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, DefaultOptions.Http))
                 .ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Serializes data in JSON format with the specified <paramref name="jsonSerializerCase"/>
+        /// Serializes data in JSON format.
         /// </summary>
-        /// <param name="jsonSerializerCase">The JSON serializer case.</param>
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
         public static ResponseSerializerCallback Json()
@@ -48,13 +46,13 @@ namespace Notio.Network.Web.Http.Response
                 {
                     context.Response.ContentType = MimeType.Json;
                     context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                    await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
+                    await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, DefaultOptions.Http))
                         .ConfigureAwait(false);
                 };
         }
 
         /// <summary>
-        /// Serializes data in JSON format to a HTTP response, using the <see cref="Serialization.Json"/> utility class.
+        /// Serializes data in JSON format to a HTTP response.
         /// </summary>
         /// <param name="bufferResponse"><see langword="true"/> to write the response body to a memory buffer first,
         /// then send it all together with a <c>Content-Length</c> header; <see langword="false"/> to use chunked
@@ -62,16 +60,14 @@ namespace Notio.Network.Web.Http.Response
         /// <returns>A <see cref="ResponseSerializerCallback"/> that can be used to serialize
         /// data to a HTTP response.</returns>
         public static ResponseSerializerCallback Json(bool bufferResponse)
-        {
-            return async (context, data) =>
-                    {
-                        context.Response.ContentType = MimeType.Json;
-                        context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                        ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                        await baseSerializer(context, JsonSerializer.Serialize(data, JsonSettings.Http))
-                            .ConfigureAwait(false);
-                    };
-        }
+            => async (context, data) =>
+            {
+                context.Response.ContentType = MimeType.Json;
+                context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
+                ResponseSerializerCallback baseSerializer = None(bufferResponse);
+                await baseSerializer(context, JsonSerializer.Serialize(data, DefaultOptions.Http))
+                    .ConfigureAwait(false);
+            };
 
         /// <summary>
         /// Sends data in a HTTP response without serialization.
@@ -88,39 +84,35 @@ namespace Notio.Network.Web.Http.Response
         /// <para>Strings (and other types converted to strings) are sent with the encoding specified by <see cref="IHttpResponse.ContentEncoding"/>.</para>
         /// </remarks>
         public static ResponseSerializerCallback None(bool bufferResponse)
-        {
-            return bufferResponse ? BufferingBaseSerializer : ChunkedEncodingBaseSerializer;
-        }
+            => bufferResponse ? BufferingBaseSerializer : ChunkedEncodingBaseSerializer;
 
         private static ResponseSerializerCallback GetBaseSerializer(bool bufferResponse)
-        {
-            return async (context, data) =>
-                    {
-                        if (data is null)
-                        {
-                            return;
-                        }
+            => async (context, data) =>
+            {
+                if (data is null)
+                {
+                    return;
+                }
 
-                        bool isBinaryResponse = data is byte[];
+                bool isBinaryResponse = data is byte[];
 
-                        if (!context.TryDetermineCompression(context.Response.ContentType, out bool preferCompression))
-                        {
-                            preferCompression = true;
-                        }
+                if (!context.TryDetermineCompression(context.Response.ContentType, out bool preferCompression))
+                {
+                    preferCompression = true;
+                }
 
-                        if (isBinaryResponse)
-                        {
-                            byte[] responseBytes = (byte[])data;
-                            using System.IO.Stream stream = context.OpenResponseStream(bufferResponse, preferCompression);
-                            await stream.WriteAsync(responseBytes).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            string responseString = data is string stringData ? stringData : data.ToString() ?? string.Empty;
-                            using System.IO.TextWriter text = context.OpenResponseText(context.Response.ContentEncoding, bufferResponse, preferCompression);
-                            await text.WriteAsync(responseString).ConfigureAwait(false);
-                        }
-                    };
-        }
+                if (isBinaryResponse)
+                {
+                    byte[] responseBytes = (byte[])data;
+                    using System.IO.Stream stream = context.OpenResponseStream(bufferResponse, preferCompression);
+                    await stream.WriteAsync(responseBytes).ConfigureAwait(false);
+                }
+                else
+                {
+                    string responseString = data is string stringData ? stringData : data.ToString() ?? string.Empty;
+                    using System.IO.TextWriter text = context.OpenResponseText(context.Response.ContentEncoding, bufferResponse, preferCompression);
+                    await text.WriteAsync(responseString).ConfigureAwait(false);
+                }
+            };
     }
 }

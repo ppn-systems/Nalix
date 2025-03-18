@@ -1,7 +1,7 @@
 using Notio.Common.Exceptions;
+using Notio.Extensions;
 using Notio.Network.Web.Http.Request;
 using Notio.Network.Web.Utilities;
-using Notio.Shared.Extensions;
 using System;
 using System.Collections.Specialized;
 using System.IO;
