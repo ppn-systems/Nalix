@@ -238,6 +238,10 @@ internal class ConnectionStream : IDisposable
         {
             _logger?.Error(ex);
         }
+        finally
+        {
+            this.BeginReceive(cancellationToken);
+        }
     }
 
     /// <summary>
