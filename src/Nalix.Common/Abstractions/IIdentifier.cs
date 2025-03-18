@@ -31,17 +31,7 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <returns>
     /// <see langword="true"/> if the identifier is empty; otherwise, <see langword="false"/>.
     /// </returns>
-    System.Boolean IsEmpty();
-
-    /// <summary>
-    /// Converts the identifier to a string representation.
-    /// </summary>
-    /// <param name="isHex">
-    /// If <see langword="true"/>, returns a hexadecimal string;  
-    /// otherwise, returns a Base36-encoded string.
-    /// </param>
-    /// <returns>The string representation of the identifier.</returns>
-    System.String ToString(System.Boolean isHex);
+    System.Boolean IsEmpty { get; }
 
     /// <summary>
     /// Serializes the identifier into a byte array.
@@ -57,8 +47,28 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <param name="destination">The destination byte span.</param>
     /// <param name="bytesWritten">When this method returns, contains the number of bytes written.</param>
     /// <returns>
-    /// <see langword="true"/> if the identifier was successfully serialized;  
+    /// <see langword="true"/> if the identifier was successfully serialized;
     /// otherwise, <see langword="false"/> if the destination is too small.
     /// </returns>
     System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
+
+    /// <summary>
+    /// Attempts to format the token as a Base36 string representation into the provided character span.
+    /// </summary>
+    /// <param name="destination">The span to write the formatted string to.</param>
+    /// <param name="charsWritten">When this method returns, contains the number of characters written to the destination.</param>
+    /// <returns>
+    /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
+    /// </returns>
+    System.Boolean TryFormatBase36(System.Span<System.Char> destination, out System.Byte charsWritten);
+
+    /// <summary>
+    /// Converts the identifier to a string representation.
+    /// </summary>
+    /// <param name="isHex">
+    /// If <see langword="true"/>, returns a hexadecimal string;
+    /// otherwise, returns a Base36-encoded string.
+    /// </param>
+    /// <returns>The string representation of the identifier.</returns>
+    System.String ToString(System.Boolean isHex);
 }
