@@ -2,50 +2,43 @@
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Notio)
 
-Notio is a real-time server solution designed to facilitate efficient communication and data sharing. It allows users to exchange messages and information quickly, providing a robust backend for various applications requiring live updates and instant data synchronization.
+Notio is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
-## Features
+## ✨ Features
 
-- **Real-time communication**: Supports instant messaging and data synchronization.
-- **Scalability**: Designed to handle a large number of concurrent connections.
-- **Security**: Implements encryption and other security measures to protect data.
-- **Extensibility**: Easily extendable with custom protocols and handlers.
+- 🔄 **Real-time communication** – Supports instant messaging and state synchronization.
+- ⚡ **High performance** – Designed to handle thousands of concurrent connections.
+- 🔐 **Security-focused** – Implements encryption (ChaCha20-Poly1305, XTEA) to protect data.
+- 🛠️ **Extensible** – Easily customizable with your own protocols and handlers.
 
-## Requirements
+## 🔧 Requirements
 
-- `Visual Studio 2022` (.NET 9 and C# 13 support required)
-- [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+- .NET 9 and C# 13 support
+- Install .NET SDK 9 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
+- `Visual Studio 2022` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
-## Source Code
+## 📦 Available NuGet Packages
 
-Getting started with Notio couldn't be easier. Make sure you have Visual Studio 2022 Community installed.
+| Package ID                |Description                             | Install Command                            |
+|---------------------------|----------------------------------------|--------------------------------------------|
+| **Notio**                 | Core real-time server & client library | `dotnet add package Notio`                 |
+| **Notio.Common**          | Common utilities for Notio             | `dotnet add package Notio.Common`          |
+| **Notio.Cryptography**    | Secure cryptographic functions         | `dotnet add package Notio.Cryptography`    |
+| **Notio.Logging**         | Logging utilities for Notio            | `dotnet add package Notio.Logging`         |
+| **Notio.Network**         | Low-level networking functionality     | `dotnet add package Notio.Network`         |
+| **Notio.Network.Package** | Custom packet handling for Notio       | `dotnet add package Notio.Network.Package` |
+| **Notio.Network.Web**     | WebSocket support for Notio            | `dotnet add package Notio.Network.Web`     |
+| **Notio.Shared**          | Shared models and definitions          | `dotnet add package Notio.Shared`          |
+| **Notio.Storage**         | Storage solutions for Notio            | `dotnet add package Notio.Storage`         |
 
-- Clone the source: `git clone https://github.com/phcnguyen/Notio.git`
-- Open `Notio.sln`
-- Restore Nuget packages
-- Build
+## 🛠️ Contributing
 
-## Nuget Packages
+When contributing, please follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
 
-| ID | Package Name              | Command                                             |
-|----|---------------------------|-----------------------------------------------------|
-| 1  | **Notio**                 | `dotnet add package Notio`                          |
-| 2  | **Notio.Common**          | `dotnet add package Notio.Common`                   |
-| 3  | **Notio.Cryptography**    | `dotnet add package Notio.Cryptography`             |
-| 4  | **Notio.Logging**         | `dotnet add package Notio.Logging`                  |
-| 5  | **Notio.Network**         | `dotnet add package Notio.Network`                  |
-| 6  | **Notio.Network.Package** | `dotnet add package Notio.Network.Package`          |
-| 7  | **Notio.Network.Web**     | `dotnet add package Notio.Network.Web`              |
-| 8  | **Notio.Serialization**   | `dotnet add package Notio.Serialization`            |
-| 9  | **Notio.Shared**          | `dotnet add package Notio.Shared`                   |
-| 10 | **Notio.Storage**         | `dotnet add package Notio.Storage`                  |
-
-### Contributing
-
-When contributing please keep in mind our [Code of Conduct](CODE_OF_CONDUCT.md).
+## 📜 License
 
 _Notio is copyright &copy; PhcNguyen - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html)._
 
-## Contact
+## 📬 Contact
 
-For questions, suggestions, or support, please open an issue on GitHub or contact the maintainers directly.
+For questions, suggestions, or support, open an issue on [GitHub](https://github.com/phcnguyen/Notio/issues) or contact the maintainers.

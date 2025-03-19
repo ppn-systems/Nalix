@@ -2,8 +2,8 @@
 
   <!-- Configuration settings for Debug build -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\build\bin\Debug</OutputPath>
-    <IntermediateOutputPath>..\build\obj\Debug</IntermediateOutputPath>
+    <OutputPath>..\..\build\bin\Debug</OutputPath>
+    <IntermediateOutputPath>..\..\build\obj\Debug</IntermediateOutputPath>
   </PropertyGroup>
 
   <!-- Configuration settings for Release build -->
@@ -15,7 +15,7 @@
     <Deterministic>true</Deterministic>
     <UseCompression>true</UseCompression>
 
-    <OutputPath>..\build\bin\Release</OutputPath>
-    <IntermediateOutputPath>..\build\obj\Release</IntermediateOutputPath>
+    <OutputPath>..\..\build\bin\Release</OutputPath>
+    <IntermediateOutputPath>..\..\build\obj\Release</IntermediateOutputPath>
   </PropertyGroup>
 </Project>
