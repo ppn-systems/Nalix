@@ -58,7 +58,7 @@ internal static unsafe class MatchFinder
     /// <param name="currentInputOffset">Offset of the current input pointer relative to the input base.</param>
     /// <returns>A <see cref="Match"/> struct representing the longest match found, or a default value if no match is found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         System.Int32* hashTable,
         System.Byte* inputBase,
@@ -67,15 +67,29 @@ internal static unsafe class MatchFinder
         System.Byte* searchStartPtr,
         System.Int32 currentInputOffset)
     {
+#if DEBUG
+        System.Diagnostics.Debug.Assert(inputBase is not null, "Input base pointer is null");
+        System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pointer is null");
+        System.Diagnostics.Debug.Assert(currentInputPtr is not null, "Current input pointer is null");
+        System.Diagnostics.Debug.Assert(currentInputPtr >= inputBase, "Current pointer is before base");
+        System.Diagnostics.Debug.Assert(inputLimit >= currentInputPtr, "Input limit is before current pointer");
+#endif
+
         // Ensure there are enough bytes to find a match
         if ((System.UIntPtr)(inputLimit - currentInputPtr) < LZ4CompressionConstants.MinMatchLength)
         {
-            return default; // No match possible
+            return default;
+        }
+
+        // ✅ FIX: Protect against reading beyond buffer
+        if (currentInputPtr + sizeof(System.UInt32) > inputLimit + LZ4CompressionConstants.LastLiteralSize)
+        {
+            return default;
         }
 
         // Read the current 4-byte sequence and compute its hash
-        System.UInt32 hash;
         System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
+        System.UInt32 hash;
 
 #if NET5_0_OR_GREATER
         if (System.Runtime.Intrinsics.X86.Sse42.IsSupported)
@@ -88,39 +102,51 @@ internal static unsafe class MatchFinder
             hash = (currentSequence * 2654435761u) >> HashShift;
         }
 
+        hash &= HashTableSize - 1;
+
         // Retrieve the candidate match offset and update the hash table
         System.Int32 matchCandidateOffset = hashTable[hash];
         hashTable[hash] = currentInputOffset;
 
-        // Calculate the candidate match pointer
-        System.Byte* matchCandidatePtr = inputBase + matchCandidateOffset;
-
-        System.Boolean isValid = (System.UInt32)matchCandidateOffset < (System.UInt32)currentInputOffset
-            && matchCandidatePtr >= searchStartPtr
-            && MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) == currentSequence;
-
-        if (!isValid)
+        if (matchCandidateOffset < 0 || matchCandidateOffset >= currentInputOffset)
         {
             return default;
         }
 
+        // Calculate the candidate match pointer
+        System.Byte* matchCandidatePtr = inputBase + matchCandidateOffset;
+
+        if (matchCandidatePtr < searchStartPtr)
+        {
+            return default;
+        }
+
+        // Calculate offset first
+        System.Int32 offset = (System.Int32)(currentInputPtr - matchCandidatePtr);
+
+        if (offset is <= 0 or > LZ4CompressionConstants.MaxOffset)
+        {
+            return default;
+        }
+
+        // Check if sequences match
         if (MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) != currentSequence)
         {
             return default;
         }
 
         // Calculate the length of the match
-        System.Int32 matchLength = LZ4CompressionConstants.MinMatchLength + MemOps.CountEqualBytes(
-            matchCandidatePtr + LZ4CompressionConstants.MinMatchLength,
-            currentInputPtr + LZ4CompressionConstants.MinMatchLength,
-            (System.Int32)(inputLimit - (currentInputPtr + LZ4CompressionConstants.MinMatchLength)) // Ensure bounds
-        );
+        System.Byte* matchEnd = matchCandidatePtr + LZ4CompressionConstants.MinMatchLength;
+        System.Byte* currentEnd = currentInputPtr + LZ4CompressionConstants.MinMatchLength;
 
-        // Calculate the offset of the match
-        System.Int32 offset = (System.Int32)(currentInputPtr - matchCandidatePtr);
+        System.Int32 maxMatchLen = (System.Int32)(inputLimit - currentEnd);
+        if (maxMatchLen < 0)
+        {
+            maxMatchLen = 0;
+        }
 
-        // Ensure the offset is within the valid range
-        System.Diagnostics.Debug.Assert(offset is > 0 and <= LZ4CompressionConstants.MaxOffset);
+        System.Int32 additionalMatchBytes = MemOps.CountEqualBytes(matchEnd, currentEnd, maxMatchLen);
+        System.Int32 matchLength = LZ4CompressionConstants.MinMatchLength + additionalMatchBytes;
 
         return new Match(offset, matchLength);
     }
