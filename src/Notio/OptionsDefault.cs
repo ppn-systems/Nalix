@@ -1,12 +1,12 @@
 using System.Text;
 using System.Text.Json;
 
-namespace Notio.Utilities;
+namespace Notio;
 
 /// <summary>
 /// Provides predefined JSON serialization settings for different use cases.
 /// </summary>
-public static class DefaultOptions
+public static class OptionsDefault
 {
     /// <summary>
     /// The default encoding used for JSON serialization and deserialization.

@@ -1,6 +1,5 @@
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Extensions;
-using Notio.Utilities;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
@@ -52,7 +51,7 @@ public static class RequestDeserializer
 
         try
         {
-            TData result = JsonSerializer.Deserialize<TData>(body, DefaultOptions.Http) ??
+            TData result = JsonSerializer.Deserialize<TData>(body, OptionsDefault.Http) ??
                 throw new FormatException("Deserialized result is null.");
 
             return result;
