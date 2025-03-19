@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+using System;
+>>>>>>> 70e27d6 (0.3.95)
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -47,4 +51,20 @@ public static class JsonBinary
     /// <returns>An instance of <typeparamref name="T"/> if successful; otherwise, null.</returns>
     public static T DeserializeFromBytes<T>(byte[] jsonBytes, JsonTypeInfo<T> jsonTypeInfo)
         => Deserialize(DefaultOptions.Encoding.GetString(jsonBytes), jsonTypeInfo);
+<<<<<<< HEAD
+=======
+
+    /// <summary>
+    /// Deserializes a JSON payload from a ReadOnlySpan<byte> without extra allocations.
+    /// </summary>
+    /// <typeparam name="T">The target type of the deserialization.</typeparam>
+    /// <param name="jsonBytes">The UTF-8 encoded JSON byte array to deserialize.</param>
+    /// <param name="jsonTypeInfo">The metadata used for JSON deserialization.</param>
+    /// <returns>An instance of <typeparamref name="T"/> if successful; otherwise, null.</returns>
+    public static T Deserialize<T>(ReadOnlySpan<byte> jsonBytes, JsonTypeInfo<T> jsonTypeInfo)
+    {
+        Utf8JsonReader reader = new(jsonBytes);
+        return JsonSerializer.Deserialize(ref reader, jsonTypeInfo);
+    }
+>>>>>>> 70e27d6 (0.3.95)
 }

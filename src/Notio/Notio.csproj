@@ -13,6 +13,8 @@
 
     <Version>0.3.94</Version>
     <PackageVersion>0.3.94</PackageVersion>
+    <Version>0.3.95</Version>
+    <PackageVersion>0.3.95</PackageVersion>
 
 		<ReleaseNotes>Initial release of Notio package.</ReleaseNotes>
 		<Description>Notio is a .NET library for managing "Diagnostics, Management, Randomization, Identification" functionality.</Description>
