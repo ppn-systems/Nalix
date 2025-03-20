@@ -7,7 +7,7 @@ namespace Notio.Network.Listeners;
 /// This interface is intended to be implemented by classes that listen for network connections
 /// and handle the initiation and termination of connection listening.
 /// </summary>
-internal interface IListener
+public interface IListener
 {
     /// <summary>
     /// Starts listening for network connections using a CancellationToken for optional cancellation.

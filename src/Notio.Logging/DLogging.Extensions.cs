@@ -11,7 +11,7 @@ namespace Notio.Logging;
 /// <summary>
 /// Provides a centralized logging interface for the Notio framework.
 /// </summary>
-public static class DLogging
+public static partial class DLogging
 {
     /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.

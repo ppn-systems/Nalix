@@ -18,10 +18,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     /// <summary>
     /// Gets the single instance of the <see cref="CLogging"/> class.
     /// </summary>
-    public static CLogging Instance { get; } = new(cfg => cfg
-        .AddTarget(new ConsoleLoggingTarget())
-        .AddTarget(new FileLoggingTarget())
-    );
+    public static CLogging Instance { get; set; } = new CLogging(delegate (LoggingOptions cfg)
+    {
+        cfg.AddTarget(new ConsoleLoggingTarget()).AddTarget(new FileLoggingTarget());
+    });
 
     /// <summary>
     /// Writes a log entry with the specified level, event ID, message, and optional exception.

@@ -41,7 +41,7 @@ public static class AssemblyMetadata
         var attribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
         if (attribute?.InformationalVersion == null)
-            return string.Empty;
+            return "Unknown";
 
         // Find the first '+' character, which typically separates the version from build metadata
         int plusIndex = attribute.InformationalVersion.IndexOf('+');
@@ -103,7 +103,7 @@ public static class AssemblyMetadata
     {
         assembly ??= Assembly.GetCallingAssembly();
         var attribute = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
-        return attribute?.Version ?? string.Empty;
+        return attribute?.Version ?? "Unknown";
     }
 
     /// <summary>
@@ -175,17 +175,45 @@ public static class AssemblyMetadata
     public static AssemblyVersionInfo GetVersionInfo(Assembly assembly = null)
     {
         assembly ??= Assembly.GetCallingAssembly();
+        var name = assembly.GetName();
+        var infoVersionAttr = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        var fileVersionAttr = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>();
+        var companyAttr = assembly.GetCustomAttribute<AssemblyCompanyAttribute>();
+        var productAttr = assembly.GetCustomAttribute<AssemblyProductAttribute>();
+        var copyrightAttr = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
 
         return new AssemblyVersionInfo
         {
-            AssemblyName = assembly.GetName().Name,
-            Version = assembly.GetName().Version?.ToString() ?? string.Empty,
-            FileVersion = GetAssemblyFileVersion(assembly),
-            InformationalVersion = GetAssemblyInformationalVersion(assembly),
-            Company = GetAssemblyCompany(assembly),
-            Product = GetAssemblyProduct(assembly),
-            Copyright = GetAssemblyCopyright(assembly),
-            BuildTime = ParseAssemblyBuildTime(assembly: assembly)
+            AssemblyName = name.Name,
+            Version = name.Version?.ToString() ?? "Unknown Version",
+            FileVersion = fileVersionAttr?.Version ?? "Unknown",
+            InformationalVersion = infoVersionAttr != null ? GetInformationalVersion(infoVersionAttr) : "Unknown",
+            Company = companyAttr?.Company ?? "Unknown",
+            Product = productAttr?.Product ?? "Unknown",
+            Copyright = copyrightAttr?.Copyright ?? "Unknown",
+            BuildTime = infoVersionAttr != null ? ParseAssemblyBuildTime(infoVersionAttr) : DateTime.MinValue
         };
+
+        static string GetInformationalVersion(AssemblyInformationalVersionAttribute attr)
+        {
+            int plusIndex = attr.InformationalVersion.IndexOf('+');
+            return plusIndex >= 0 ? attr.InformationalVersion[..plusIndex] : attr.InformationalVersion;
+        }
+
+        static DateTime ParseAssemblyBuildTime(AssemblyInformationalVersionAttribute attr, string prefix = "+build", string format = "yyyyMMddHHmmss")
+        {
+            int buildTimeIndex = attr.InformationalVersion.IndexOf(prefix, StringComparison.Ordinal);
+            if (buildTimeIndex == -1) return DateTime.MinValue;
+
+            string buildTimeString = attr.InformationalVersion.AsSpan()[(buildTimeIndex + prefix.Length)..].ToString();
+            int endIndex = 0;
+            while (endIndex < buildTimeString.Length && char.IsDigit(buildTimeString[endIndex])) endIndex++;
+            if (endIndex < format.Length) return DateTime.MinValue;
+
+            buildTimeString = buildTimeString[..Math.Min(endIndex, format.Length)];
+            return DateTime.TryParseExact(buildTimeString, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var buildTime)
+                ? buildTime
+                : DateTime.MinValue;
+        }
     }
 }
