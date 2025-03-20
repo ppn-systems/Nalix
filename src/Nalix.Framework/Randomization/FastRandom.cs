@@ -24,22 +24,30 @@ namespace Nalix.Framework.Randomization;
 [System.Diagnostics.DebuggerDisplay("FastRandom (NOT CSPRNG)")]
 public static class FastRandom
 {
-    // ---------- Global state ----------
-    private static readonly System.Threading.Lock s_lock = new();
-    private static readonly System.UInt64[] s_state = new System.UInt64[4];   // global base state
-    private static volatile System.Int32 s_version;                    // bump on reseed
-    private static readonly System.Byte[] s_instanceTag = new System.Byte[16]; // per-process tag (GUID bytes)
+    #region Fields
 
-    // Reseed handle (optional) when attached to TaskManager
-    private static volatile IRecurringHandle? s_reseedHandle; // IRecurringHandle (kept as object to avoid hard dep)
+    private static volatile System.Int32 s_version;      // bump on reseed
+    private static readonly System.UInt64[] s_state;     // global base state
+    private static readonly System.Byte[] s_instanceTag; // per-process tag (GUID bytes)
+    private static readonly System.Threading.Lock s_lock;
+
+    private static volatile IRecurringHandle? s_reseedHandle; // IRecurringHandle 
 
     // Thread-local state
-    [System.ThreadStatic] private static System.UInt64[]? t_state;
     [System.ThreadStatic] private static System.Int32 t_version;
-    [System.ThreadStatic] private static System.UInt64 t_counter;            // per-thread monotonic counter
+    [System.ThreadStatic] private static System.UInt64 t_counter;
+    [System.ThreadStatic] private static System.UInt64[]? t_state;
+
+    #endregion Fields
+
+    #region Constructors
 
     static FastRandom()
     {
+        s_lock = new();
+        s_state = new System.UInt64[4];
+        s_instanceTag = new System.Byte[16];
+
         // Seed from monotonic/time/process/thread + GUID (no OS RNG).
         // This is not cryptographically strong, but good enough for non-crypto randomness.
         System.Span<System.Byte> seed = stackalloc System.Byte[32];
@@ -61,6 +69,10 @@ public static class FastRandom
 
         InitializeState(seed);
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Attach a TaskManager to auto-reseed the global state at the specified interval.
@@ -133,7 +145,9 @@ public static class FastRandom
         }
     }
 
-    // ==================== Internals ====================
+    #endregion APIs
+
+    #region Privates
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -290,4 +304,6 @@ public static class FastRandom
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt64 ReadU64(System.ReadOnlySpan<System.Byte> s, System.Int32 offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));
+
+    #endregion Privates
 }
