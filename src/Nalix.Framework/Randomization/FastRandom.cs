@@ -2,8 +2,8 @@
 
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;                 // for TaskManager
-using Nalix.Framework.Tasks.Options;        // if you want custom options (optional)
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 
 namespace Nalix.Framework.Randomization;
 
@@ -76,14 +76,18 @@ public static class FastRandom
         // Schedule new reseed (non-reentrant)
         s_reseedHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: "FastRandom.reseed",
-            interval: System.TimeSpan.FromSeconds(60),
+            interval: System.TimeSpan.FromSeconds(180),
             work: static _ =>
             {
-                // periodic reseed: refresh global base; bump version; drop TLS states lazily
                 ReseedGlobal();
                 return default;
             },
-            options: new RecurringOptions { NonReentrant = true, Tag = "random" }
+            options: new RecurringOptions
+            {
+                NonReentrant = true,
+                Jitter = System.TimeSpan.FromSeconds(54),
+                Tag = "random"
+            }
         );
     }
 
@@ -225,6 +229,7 @@ public static class FastRandom
             unchecked { s_version++; }
         }
     }
+
     private static void ReseedGlobal()
     {
         System.Span<System.Byte> seed = stackalloc System.Byte[32];
@@ -232,19 +237,37 @@ public static class FastRandom
         System.Int64 ticks = System.DateTime.UtcNow.Ticks;
         System.Int64 tc64 = System.Environment.TickCount64;
         System.Int32 pid = System.Environment.ProcessId;
-        System.Int32 hash = (System.Int32)SplitMix64((System.UInt64)((pid * 6364136223846793005L) ^ ticks));
 
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[0..8], in ticks);
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[8..16], in tc64);
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[16..20], in pid);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[20..24], in hash);
 
-        // also fold instance tag & coarse time
+        // Fold in the process tag and a moving counter derived from WorkingSet and Stopwatch
         System.UInt64 tag0 = ReadU64(s_instanceTag, 0);
         System.UInt64 tag1 = ReadU64(s_instanceTag, 8);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(seed[24..32], tag0 ^ tag1 ^ (System.UInt64)System.Environment.WorkingSet);
+        System.UInt64 mono = (System.UInt64)System.Diagnostics.Stopwatch.GetTimestamp();
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
+            seed[24..32], tag0 ^ RotateLeft(tag1, 13) ^ mono ^ (System.UInt64)System.Environment.WorkingSet);
 
-        InitializeState(seed);
+        System.UInt64 a = SplitMix64(ReadU64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
+        System.UInt64 b = SplitMix64(ReadU64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
+        System.UInt64 c = SplitMix64(ReadU64(seed, 16) ^ 0x94D049BB133111EBUL);
+        System.UInt64 d = SplitMix64(ReadU64(seed, 24) ^ 0xD2B74407B1CE6E93UL);
+
+        lock (s_lock)
+        {
+            s_state[0] = RotateLeft(s_state[0], 7) + a;
+            s_state[1] ^= b;
+            s_state[2] = RotateLeft(s_state[2] + c, 17);
+            s_state[3] ^= RotateLeft(d, 29);
+
+            for (System.Int32 i = 0; i < 8; i++)
+            {
+                _ = XoshiroNext(s_state);
+            }
+
+            unchecked { s_version++; }
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
