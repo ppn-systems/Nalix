@@ -20,7 +20,8 @@ internal sealed class PooledAcceptContext : IPoolable
 {
     private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
-        var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
+        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
+
         _ = e.SocketError == System.Net.Sockets.SocketError.Success
             ? tcs.TrySetResult(e.AcceptSocket!)
             : tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));

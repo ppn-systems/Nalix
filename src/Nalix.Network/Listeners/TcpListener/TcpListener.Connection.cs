@@ -50,7 +50,8 @@ public abstract partial class TcpListenerBase
 
             connection.OnProcessEvent += _protocol.ProcessMessage;
             connection.OnPostProcessEvent += _protocol.PostProcessMessage;
-            connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>().OnConnectionClosed;
+            connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                                               .OnConnectionClosed;
 
             if (Config.EnableTimeout)
             {
@@ -90,7 +91,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
-        args.Connection.OnCloseEvent -= InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>().OnConnectionClosed;
+        args.Connection.OnCloseEvent -= InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                                                .OnConnectionClosed;
 
         args.Connection.Dispose();
     }
@@ -153,7 +155,8 @@ public abstract partial class TcpListenerBase
             }
             catch (NonFatalRejectedException)
             {
-                await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None)
+                                                 .ConfigureAwait(false);
                 continue;
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -168,7 +171,8 @@ public abstract partial class TcpListenerBase
                 }
 
                 // Transient: Gentle backoff to avoid spam
-                await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
+                                                 .ConfigureAwait(false);
                 continue;
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -199,7 +203,7 @@ public abstract partial class TcpListenerBase
         cancellationToken.ThrowIfCancellationRequested();
 
         PooledAcceptContext context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                          .Get<PooledAcceptContext>();
+                                                              .Get<PooledAcceptContext>();
 
         try
         {
@@ -211,7 +215,8 @@ public abstract partial class TcpListenerBase
             }
 
             // Wait async accept:
-            socket = await context.BeginAcceptAsync(_listener).ConfigureAwait(false);
+            socket = await context.BeginAcceptAsync(_listener)
+                                  .ConfigureAwait(false);
 
             if (socket.RemoteEndPoint is not System.Net.IPEndPoint ipEndPoint)
             {

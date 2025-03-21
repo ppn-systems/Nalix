@@ -4,9 +4,8 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
+using Nalix.Network.Internal.Net;
 using Nalix.Shared.Configuration;
-using System.Collections.Concurrent;
-using System.Threading;
 
 namespace Nalix.Network.Throttling;
 
@@ -26,7 +25,7 @@ public static class PolicyRateLimiter
 
     #endregion Const
 
-    private static readonly ConcurrentDictionary<Policy, Entry> s_limiters = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters = new();
     private static readonly System.Int32[] RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     private static readonly System.Int32[] BurstTiers = [1, 2, 4, 8, 16, 32, 64];
     private static System.Int32 s_checkCounter;
@@ -78,10 +77,10 @@ public static class PolicyRateLimiter
 
         // 3) Compose key per opcode + endpoint
         System.String key = $"op:{opCode}|ep:{ip}";
-        var decision = limiter.Check(key);
+        var decision = limiter.Check(IxCP9(key));
 
         // 4) Opportunistic sweeping
-        if ((Interlocked.Increment(ref s_checkCounter) & (SweepEveryNChecks - 1)) == 0)
+        if ((System.Threading.Interlocked.Increment(ref s_checkCounter) & (SweepEveryNChecks - 1)) == 0)
         {
             SweepStale();
         }
@@ -119,6 +118,29 @@ public static class PolicyRateLimiter
     }
 
     #region Private Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IpAddressKey IxCP9(System.String s)
+    {
+        unchecked
+        {
+            System.UInt64 h = 1469598103934665603UL;
+            for (System.Int32 i = 0; i < s.Length; i++)
+            {
+                h ^= s[i];
+                h *= 1099511628211UL;
+            }
+
+            System.Byte[] bytes = System.BitConverter.GetBytes(h);
+            System.Net.IPAddress ip = new(bytes.Length == 16 ? bytes : bytes.Length == 8
+                ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]]
+                : new System.Byte[16]);
+
+            return IpAddressKey.FromIpAddress(ip);
+        }
+    }
+
 
     private static TokenBucketLimiter GetOrAddLimiter(Policy policy)
     {
