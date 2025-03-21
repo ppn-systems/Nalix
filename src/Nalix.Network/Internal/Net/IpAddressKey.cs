@@ -7,7 +7,7 @@
 
 namespace Nalix.Network.Internal.Net;
 
-internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
+internal readonly struct IPAddressKey : System.IEquatable<IPAddressKey>
 {
     private readonly System.UInt64 _hi;
     private readonly System.UInt64 _lo;
@@ -15,7 +15,7 @@ internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static IpAddressKey FromIpAddress(System.Net.IPAddress ip)
+    public static IPAddressKey FromIpAddress(System.Net.IPAddress ip)
     {
         if (ip.IsIPv4MappedToIPv6)
         {
@@ -33,21 +33,21 @@ internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
         if (written == 4)
         {
             System.UInt32 v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
-            return new IpAddressKey(0UL, v4, false);
+            return new IPAddressKey(0UL, v4, false);
         }
         else
         {
             System.UInt64 hi = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf[..8]);
             System.UInt64 lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf.Slice(8, 8));
-            return new IpAddressKey(hi, lo, true);
+            return new IPAddressKey(hi, lo, true);
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static IpAddressKey FromEndPoint(System.Net.IPEndPoint ep) => FromIpAddress(ep.Address);
+    public static IPAddressKey FromEndPoint(System.Net.IPEndPoint ep) => FromIpAddress(ep.Address);
 
-    private IpAddressKey(System.UInt64 hi, System.UInt64 lo, System.Boolean isV6)
+    private IPAddressKey(System.UInt64 hi, System.UInt64 lo, System.Boolean isV6)
     {
         _hi = hi;
         _lo = lo;
@@ -56,13 +56,13 @@ internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
 
     public override System.Int32 GetHashCode() => System.HashCode.Combine(_hi, _lo, _isV6);
 
-    public override System.Boolean Equals(System.Object? obj) => obj is IpAddressKey k && Equals(k);
+    public override System.Boolean Equals(System.Object? obj) => obj is IPAddressKey k && Equals(k);
 
-    public System.Boolean Equals(IpAddressKey other) => _hi == other._hi && _lo == other._lo && _isV6 == other._isV6;
+    public System.Boolean Equals(IPAddressKey other) => _hi == other._hi && _lo == other._lo && _isV6 == other._isV6;
 
-    public static System.Boolean operator ==(IpAddressKey left, IpAddressKey right) => left.Equals(right);
+    public static System.Boolean operator ==(IPAddressKey left, IPAddressKey right) => left.Equals(right);
 
-    public static System.Boolean operator !=(IpAddressKey left, IpAddressKey right) => !left.Equals(right);
+    public static System.Boolean operator !=(IPAddressKey left, IPAddressKey right) => !left.Equals(right);
 
     public System.String Address
     {

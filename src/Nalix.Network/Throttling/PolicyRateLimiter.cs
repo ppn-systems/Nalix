@@ -121,7 +121,7 @@ public static class PolicyRateLimiter
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IpAddressKey IxCP9(System.String s)
+    private static IPAddressKey IxCP9(System.String s)
     {
         unchecked
         {
@@ -137,7 +137,7 @@ public static class PolicyRateLimiter
                 ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]]
                 : new System.Byte[16]);
 
-            return IpAddressKey.FromIpAddress(ip);
+            return IPAddressKey.FromIpAddress(ip);
         }
     }
 
