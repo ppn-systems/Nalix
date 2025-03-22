@@ -9,12 +9,12 @@ public class LiteSerializer_StringTests
     [Theory]
     [InlineData("Hello")]
     [InlineData("")]
-    public void SerializeDeserialize_String(string input)
+    public void SerializeDeserialize_String(System.String input)
     {
         // Chuyển chuỗi đầu vào thành mảng byte.
-        byte[] buffer = LiteSerializer.Serialize(input);
+        System.Byte[] buffer = LiteSerializer.Serialize(input);
         // Khởi tạo biến output để lưu kết quả deserialize.
-        string output = null;
+        System.String output = null;
         // Chuyển mảng byte về chuỗi và lưu vào output.
         LiteSerializer.Deserialize(buffer, ref output);
 
@@ -27,11 +27,11 @@ public class LiteSerializer_StringTests
     public void SerializeDeserialize_NullString()
     {
         // Đầu vào là chuỗi null.
-        string input = null;
+        const System.String input = null;
         // Chuyển chuỗi null thành mảng byte.
-        byte[] buffer = LiteSerializer.Serialize(input);
+        System.Byte[] buffer = LiteSerializer.Serialize(input);
         // Khởi tạo output với giá trị mặc định không null.
-        string output = "not-null";
+        System.String output = "not-null";
 
         // Chuyển mảng byte về chuỗi và lưu vào output.
         LiteSerializer.Deserialize(buffer, ref output);
