@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+    <IsPackable>true</IsPackable>
+    <IsTrimmable>true</IsTrimmable>
+    <OutputType>Library</OutputType>
+    <PackageTags>notio</PackageTags>
+    <PackageIcon>Notio.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <Version>0.4.02</Version>
+    <PackageVersion>0.4.02</PackageVersion>
+
+    <ReleaseNotes>Initial release of Notio.Network package.</ReleaseNotes>
+    <Description>Notio.Network.Firewall is a .NET library.</Description>
+  </PropertyGroup>
+
+  <Import Project="..\Notio.Build.props" />
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
+    <ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
