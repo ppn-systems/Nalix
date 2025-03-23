@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Notio;
+namespace Notio.Common;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.

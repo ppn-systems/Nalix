@@ -7,7 +7,7 @@ namespace Notio.Cryptography.Extensions;
 /// <summary>
 /// Provides SIMD-accelerated cryptographic helper functions.
 /// </summary>
-public static class AdvSimdExtensions
+internal static class AdvSimdExtensions
 {
     // Pre-computed shuffle mask for byte reversal
     private static readonly Vector128<byte> _reverseBytesMask = Vector128
@@ -19,7 +19,7 @@ public static class AdvSimdExtensions
     /// <param name="value">The input vector of bytes.</param>
     /// <returns>A vector with reversed byte order in each word.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<byte> ReverseElement8InBytesInWord(Vector128<byte> value)
+    internal static Vector128<byte> ReverseElement8InBytesInWord(Vector128<byte> value)
         => Ssse3.Shuffle(value, _reverseBytesMask);
 
     /// <summary>
@@ -29,7 +29,7 @@ public static class AdvSimdExtensions
     /// <param name="count">The number of bits to rotate.</param>
     /// <returns>A vector with each 32-bit element rotated right by the specified count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<uint> RotateRight(Vector128<uint> value, byte count)
+    internal static Vector128<uint> RotateRight(Vector128<uint> value, byte count)
     {
         // Use direct bit operations to eliminate branch overhead
         // Important for SHA-256 performance: optimize for counts 7, 17, 18, and 19

@@ -14,7 +14,7 @@ internal static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a + b) % mod.</returns>
-    public static BigInteger ModAdd(this BigInteger a, BigInteger b, BigInteger mod)
+    internal static BigInteger ModAdd(this BigInteger a, BigInteger b, BigInteger mod)
     {
         a += b;
         if (a >= mod)
@@ -31,7 +31,7 @@ internal static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a - b) % mod.</returns>
-    public static BigInteger ModSub(this BigInteger a, BigInteger b, BigInteger mod)
+    internal static BigInteger ModSub(this BigInteger a, BigInteger b, BigInteger mod)
     {
         a -= b;
         if (a < 0)
@@ -48,7 +48,7 @@ internal static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a * b) % mod.</returns>
-    public static BigInteger MultiplyMod(this BigInteger a, BigInteger b, BigInteger mod)
+    internal static BigInteger MultiplyMod(this BigInteger a, BigInteger b, BigInteger mod)
         => a * b % mod;
 
     /// <summary>
@@ -57,7 +57,7 @@ internal static class BigIntegerExtensions
     /// <param name="num">The BigInteger value.</param>
     /// <param name="modulo">The modulo value.</param>
     /// <returns>The result of num % modulo, adjusted to be non-negative.</returns>
-    public static BigInteger Mod(this BigInteger num, BigInteger modulo)
+    internal static BigInteger Mod(this BigInteger num, BigInteger modulo)
     {
         var result = num % modulo;
         return result < 0 ? result + modulo : result;

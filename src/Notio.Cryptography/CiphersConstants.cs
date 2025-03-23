@@ -8,27 +8,27 @@ internal static class CiphersConstants
     /// <summary>
     /// Size of the public key in bytes.
     /// </summary>
-    public const int PublicKeySize = 32;
+    public const int PublicKeySize = 0x20;
 
     /// <summary>
     /// Size of the signature in bytes.
     /// </summary>
-    public const int SignatureSize = 64;
+    public const int SignatureSize = 0x40;
 
     /// <summary>
     /// Only allowed key lenght in bytes
     /// </summary>
-    public const int AllowedKeyLength = 32;
+    public const int AllowedKeyLength = 0x20;
 
     /// <summary>
     /// Only allowed nonce lenght in bytes
     /// </summary>
-    public const int AllowedNonceLength = 12;
+    public const int AllowedNonceLength = 0x0C;
 
     /// <summary>
     /// How many bytes are processed per loop
     /// </summary>
-    public const int ProcessBytesAtTime = 64;
+    public const int ProcessBytesAtTime = 0x40;
 
     /// <summary>
     /// The number of iterations

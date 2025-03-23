@@ -1,4 +1,3 @@
-// Last updated: 2025-03-03 12:45:27 by phcnguyen
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
