@@ -3,8 +3,8 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;            // ProtocolType
-using Nalix.Cryptography.Asymmetric;     // X25519
-using Nalix.Cryptography.Hashing;        // SHA256
+using Nalix.Framework.Cryptography.Asymmetric;
+using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Controls;   // Handshake
 
