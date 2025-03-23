@@ -51,7 +51,7 @@ public static class RequestDeserializer
 
         try
         {
-            TData result = JsonSerializer.Deserialize<TData>(body, EncodingDefault.Http) ??
+            TData result = JsonSerializer.Deserialize<TData>(body, SerializationDefault.Http) ??
                 throw new FormatException("Deserialized result is null.");
 
             return result;

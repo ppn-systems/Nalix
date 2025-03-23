@@ -15,7 +15,7 @@ namespace Notio.Network.Web;
 /// <summary>
 /// Contains options for configuring an instance of <see cref="WebServer"/>.
 /// </summary>
-public sealed class WebServerOptions : WebServerOptionsBase
+public sealed partial class WebServerOptions : WebServerOptionsBase
 {
     private const string NetShLogSource = "NetSh";
 
@@ -88,7 +88,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
             // strip any non-hexadecimal values and make uppercase
             _certificateThumbprint = value == null
                 ? null
-                : Regex.Replace(value, @"[^\da-fA-F]", string.Empty).ToUpper(CultureInfo.InvariantCulture);
+                : HexFilterRegex().Replace(value, string.Empty).ToUpper(CultureInfo.InvariantCulture);
         }
     }
 
@@ -105,7 +105,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && RuntimeInfo.OS != OSType.Windows)
+            if (value && Runtime.OperatingSystem.OS != OSType.Windows)
             {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
@@ -128,7 +128,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && RuntimeInfo.OS != OSType.Windows)
+            if (value && Runtime.OperatingSystem.OS != OSType.Windows)
             {
                 throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
             }
@@ -195,7 +195,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private X509Certificate2? LoadCertificate()
     {
-        if (RuntimeInfo.OS != OSType.Windows)
+        if (Runtime.OperatingSystem.OS != OSType.Windows)
         {
             return null;
         }
@@ -288,7 +288,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
 
     private bool TryRegisterCertificate()
     {
-        if (RuntimeInfo.OS != OSType.Windows)
+        if (Runtime.OperatingSystem.OS != OSType.Windows)
         {
             return false;
         }
@@ -342,7 +342,7 @@ public sealed class WebServerOptions : WebServerOptionsBase
         foreach (string? url in UrlPrefixes.Where(x =>
             x.StartsWith("https:", StringComparison.OrdinalIgnoreCase)))
         {
-            Match match = Regex.Match(url, @":(\d+)");
+            Match match = PortNumberRegex().Match(url);
 
             if (match.Success && int.TryParse(match.Groups[1].Value, out port))
             {
@@ -368,4 +368,10 @@ public sealed class WebServerOptions : WebServerOptionsBase
             },
         };
     }
+
+    [GeneratedRegex(@"[^\da-fA-F]")]
+    private static partial Regex HexFilterRegex();
+
+    [GeneratedRegex(@":(\d+)")]
+    private static partial Regex PortNumberRegex();
 }

@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Utilities;
 using System;

@@ -54,9 +54,4 @@ internal static class CiphersConstants
     /// The number of threads and compute lanes to use
     /// </summary>
     public const uint DefaultDegreeOfParallelism = 0x01;
-
-    /// <summary>
-    /// The encoding to use for converting strings to byte arrays
-    /// </summary>
-    public static readonly System.Text.Encoding DefaultEncoding = System.Text.Encoding.UTF8;
 }

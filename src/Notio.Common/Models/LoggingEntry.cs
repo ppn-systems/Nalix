@@ -1,6 +1,7 @@
+using Notio.Common.Enums;
 using System;
 
-namespace Notio.Common.Logging;
+namespace Notio.Common.Models;
 
 /// <summary>
 /// Represents a log entry in the logging system.
@@ -9,7 +10,8 @@ namespace Notio.Common.Logging;
 /// <param name="eventId">The event ID associated with the log entry.</param>
 /// <param name="message">The content of the log message.</param>
 /// <param name="exception">The accompanying exception (if any).</param>
-public readonly struct LoggingEntry(LoggingLevel level, EventId eventId, string message, Exception exception = null)
+public readonly struct LoggingEntry(
+    LoggingLevel level, EventId eventId, string message, Exception exception = null)
 {
     /// <summary>
     /// The timestamp of the log entry.

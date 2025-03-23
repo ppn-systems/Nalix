@@ -1,3 +1,5 @@
+using Notio.Common.Models;
+
 namespace Notio.Common.Logging;
 
 /// <summary>

@@ -40,7 +40,7 @@ public static class JsonBuffer
         Encoding encoding = null)
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        encoding ??= EncodingDefault.Encoding;
+        encoding ??= ConstantsDefault.Encoding;
         return encoding.GetBytes(Serialize(obj, jsonTypeInfo));
     }
 
@@ -97,7 +97,7 @@ public static class JsonBuffer
         ArgumentNullException.ThrowIfNull(jsonBytes);
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
-        encoding ??= EncodingDefault.Encoding;
+        encoding ??= ConstantsDefault.Encoding;
         return Deserialize(encoding.GetString(jsonBytes), jsonTypeInfo);
     }
 

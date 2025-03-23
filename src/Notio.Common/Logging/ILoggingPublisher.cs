@@ -1,4 +1,6 @@
 namespace Notio.Common.Logging;
+
+using Notio.Common.Models;
 using System;
 
 /// <summary>

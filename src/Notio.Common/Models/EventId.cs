@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Logging;
+namespace Notio.Common.Models;
 
 /// <summary>
 /// Represents a log event. The identifier is the "Id" property, with the "Name" property providing a brief description of the event type.

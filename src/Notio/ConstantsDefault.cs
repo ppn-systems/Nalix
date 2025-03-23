@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Notio;
 
 /// <summary>
@@ -22,4 +24,9 @@ public static class ConstantsDefault
     /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
     /// </summary>
     public const int MaxHeapAllocSize = 0x400;
+
+    /// <summary>
+    /// The default encoding used for JSON serialization and deserialization.
+    /// </summary>
+    public static Encoding Encoding { get; set; } = Encoding.UTF8;
 }

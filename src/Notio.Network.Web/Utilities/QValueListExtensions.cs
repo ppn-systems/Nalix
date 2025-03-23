@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 
 namespace Notio.Network.Web.Utilities;
 

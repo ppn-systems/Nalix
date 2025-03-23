@@ -1,4 +1,4 @@
-namespace Notio.Common.Logging;
+namespace Notio.Common.Enums;
 
 /// <summary>
 /// Represents the severity levels of a log message.

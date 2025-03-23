@@ -1,4 +1,5 @@
 using Notio.Common.Logging;
+using Notio.Common.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
