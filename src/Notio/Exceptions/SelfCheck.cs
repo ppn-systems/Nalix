@@ -1,10 +1,8 @@
-using Notio.Common.Exceptions;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace Notio.Common;
+namespace Notio.Exceptions;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.
@@ -62,7 +60,7 @@ public static class SelfCheck
         int capacity = callerMethod.Length + fileName.Length + message.Length + 25;
 
         // Build the formatted error message
-        var sb = new StringBuilder(capacity);
+        System.Text.StringBuilder sb = new(capacity);
         sb.Append(OpenBracket).Append(callerMethod);
 
         // Include file and line information if available

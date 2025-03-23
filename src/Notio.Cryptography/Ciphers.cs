@@ -1,6 +1,6 @@
 using Notio.Common.Security;
-using Notio.Common.Exceptions;
 using Notio.Cryptography.Symmetric;
+using Notio.Exceptions;
 using Notio.Randomization;
 using System;
 using System.Buffers;

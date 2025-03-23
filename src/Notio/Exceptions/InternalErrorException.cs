@@ -5,7 +5,7 @@
  * Use the methods in Notio.Common.SelfCheck instead.
  */
 
-namespace Notio.Common.Exceptions;
+namespace Notio.Exceptions;
 
 /// <summary>
 /// <para>The exception that is thrown by Notio's internal diagnostic checks to signal a condition

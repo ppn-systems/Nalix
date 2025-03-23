@@ -1,5 +1,5 @@
-using Notio.Cryptography.Extensions;
 using Notio.Cryptography.Hash;
+using Notio.Extensions.Math;
 using System;
 using System.Numerics;
 using System.Threading;

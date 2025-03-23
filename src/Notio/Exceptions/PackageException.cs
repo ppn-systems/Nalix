@@ -1,4 +1,4 @@
-namespace Notio.Common.Exceptions;
+namespace Notio.Exceptions;
 
 /// <summary>
 /// Custom exception for errors related to packets.

@@ -1,11 +1,11 @@
 using Notio.Common.Security;
-using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
+using Notio.Exceptions;
 
 namespace Notio.Network.Package.Helpers;
 

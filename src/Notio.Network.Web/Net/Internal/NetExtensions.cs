@@ -1,4 +1,4 @@
-﻿using Notio.Shared;
+using Notio.Common.Enums;
 using System;
 using System.Linq;
 
@@ -35,7 +35,7 @@ internal static class NetExtensions
     {
         return source.Length < 1 ? source
             : sourceOrder.IsHostOrder() ? source
-            : source.Reverse().ToArray();
+            : [.. source.Reverse()];
     }
 
     // true: !(true ^ true) or !(false ^ false)

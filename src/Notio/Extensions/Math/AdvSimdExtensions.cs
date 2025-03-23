@@ -2,12 +2,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Cryptography.Extensions;
+namespace Notio.Extensions;
 
 /// <summary>
 /// Provides SIMD-accelerated cryptographic helper functions.
 /// </summary>
-internal static class AdvSimdExtensions
+public static class AdvSimdExtensions
 {
     // Pre-computed shuffle mask for byte reversal
     private static readonly Vector128<byte> _reverseBytesMask = Vector128
@@ -19,7 +19,7 @@ internal static class AdvSimdExtensions
     /// <param name="value">The input vector of bytes.</param>
     /// <returns>A vector with reversed byte order in each word.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<byte> ReverseElement8InBytesInWord(Vector128<byte> value)
+    public static Vector128<byte> ReverseElement8InBytesInWord(Vector128<byte> value)
         => Ssse3.Shuffle(value, _reverseBytesMask);
 
     /// <summary>
@@ -29,7 +29,7 @@ internal static class AdvSimdExtensions
     /// <param name="count">The number of bits to rotate.</param>
     /// <returns>A vector with each 32-bit element rotated right by the specified count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<uint> RotateRight(Vector128<uint> value, byte count)
+    public static Vector128<uint> RotateRight(Vector128<uint> value, byte count)
     {
         // Use direct bit operations to eliminate branch overhead
         // Important for SHA-256 performance: optimize for counts 7, 17, 18, and 19
@@ -57,7 +57,7 @@ internal static class AdvSimdExtensions
         // Perform rotation on each element
         for (int i = 0; i < 4; i++)
         {
-            temp[i] = (temp[i] >> count) | (temp[i] << (32 - count));
+            temp[i] = temp[i] >> count | temp[i] << 32 - count;
         }
 
         // Load rotated values back into vector

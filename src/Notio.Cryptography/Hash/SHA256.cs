@@ -1,5 +1,5 @@
-using Notio.Cryptography.Extensions;
 using Notio.Cryptography.Utilities;
+using Notio.Extensions;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

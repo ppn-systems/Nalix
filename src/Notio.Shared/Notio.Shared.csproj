@@ -26,6 +26,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
+    <ProjectReference Include="..\Notio\Notio.csproj" />
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />
 	</ItemGroup>
 

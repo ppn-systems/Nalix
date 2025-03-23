@@ -16,6 +16,7 @@
 
 		<ReleaseNotes>Initial release of Notio package.</ReleaseNotes>
 		<Description>Notio is a .NET library for managing "Diagnostics, Management, Randomization, Identification" functionality.</Description>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />

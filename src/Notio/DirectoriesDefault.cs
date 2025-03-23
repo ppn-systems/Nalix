@@ -1,11 +1,11 @@
-using Notio.Common.Exceptions;
+using Notio.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Shared;
+namespace Notio;
 
 /// <summary>
 /// Class that defines default directories for the application with enhanced functionality
@@ -19,15 +19,15 @@ public static class DirectoriesDefault
     private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
 
     // Directory creation event
-    private static event Action<string>? DirectoryCreated;
+    private static event Action<string> DirectoryCreated;
 
     // Flag to indicate if we're running in a container
     private static readonly Lazy<bool> IsContainerLazy = new(() =>
         File.Exists("/.dockerenv") ||
-        (File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker")));
+        File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker"));
 
     // For testing purposes, to override base path
-    private static string? _basePathOverride;
+    private static string _basePathOverride;
 
     // Lazy-initialized paths
     private static readonly Lazy<string> BasePathLazy = new(() =>

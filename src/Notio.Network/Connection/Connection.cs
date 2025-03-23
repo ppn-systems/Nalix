@@ -2,13 +2,13 @@ using Notio.Common.Security;
 using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
-using Notio.Common.Models;
 using Notio.Identifiers;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Notio.Common.Enums;
 
 namespace Notio.Network.Connection;
 

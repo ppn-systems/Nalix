@@ -1,4 +1,4 @@
-using Notio.Common.Models;
+using Notio.Common.Enums;
 using System;
 
 namespace Notio.Common.Data;

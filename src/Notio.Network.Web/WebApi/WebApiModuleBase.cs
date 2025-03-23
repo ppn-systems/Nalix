@@ -1,4 +1,4 @@
-using Notio.Common;
+using Notio.Exceptions;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Response;
 using Notio.Network.Web.Internal;

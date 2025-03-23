@@ -1,4 +1,4 @@
-﻿using Notio.Common.Exceptions;
+using Notio.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;

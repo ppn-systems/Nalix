@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 
-namespace Notio.Shared;
+namespace Notio;
 
 /// <summary>
 /// Provides utility methods to retrieve information about the current application.
@@ -43,7 +43,7 @@ public static class RuntimeInfo
     // Lazy-load the operating system type.
     private static readonly Lazy<OSType> OsLazy = new(() =>
     {
-        var windir = System.Environment.GetEnvironmentVariable("windir");
+        var windir = Environment.GetEnvironmentVariable("windir");
         if (!string.IsNullOrEmpty(windir) && windir.Contains('\\') && Directory.Exists(windir))
         {
             return OSType.Windows;
@@ -57,7 +57,7 @@ public static class RuntimeInfo
     {
         var assemblyName = EntryAssemblyName.Name
             ?? throw new InvalidOperationException("Entry assembly name is null.");
-        var localAppData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var basePath = Path.Combine(localAppData, assemblyName);
         var version = EntryAssemblyVersion?.ToString()
             ?? throw new InvalidOperationException("Entry assembly version is null.");
@@ -126,7 +126,7 @@ public static class RuntimeInfo
     /// <summary>
     /// Gets the entry assembly version.
     /// </summary>
-    public static Version? EntryAssemblyVersion => EntryAssemblyName.Version;
+    public static Version EntryAssemblyVersion => EntryAssemblyName.Version;
 
     /// <summary>
     /// Gets the full path to the folder containing the assembly that started the application.
@@ -178,7 +178,7 @@ public static class RuntimeInfo
     {
         if (string.IsNullOrWhiteSpace(filename))
             throw new ArgumentNullException(nameof(filename));
-        var desktopPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.DesktopDirectory);
+        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         var fullPath = Path.Combine(desktopPath, filename);
         return Path.GetFullPath(fullPath);
     }

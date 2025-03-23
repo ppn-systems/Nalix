@@ -1,4 +1,4 @@
-namespace Notio.Common.Exceptions;
+namespace Notio.Exceptions;
 
 /// <summary>
 /// The exception that is thrown when a conversion from a string to a

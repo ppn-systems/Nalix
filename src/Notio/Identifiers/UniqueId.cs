@@ -1,5 +1,5 @@
 using Notio.Common.Data;
-using Notio.Common.Models;
+using Notio.Common.Enums;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

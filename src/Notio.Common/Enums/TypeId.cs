@@ -1,4 +1,4 @@
-namespace Notio.Common.Models;
+namespace Notio.Common.Enums;
 
 /// <summary>
 /// ID type to serve different purposes in the system.
