@@ -4,13 +4,13 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities.Data;
+namespace Notio.Utilities;
 
 /// <summary>
 /// Provides methods for compressing and decompressing payloads using Brotli compression.
 /// </summary>
 [SkipLocalsInit]
-public static class DataCompression
+public static class BrotliCompressor
 {
     private const int BufferSize = 8192; // 8KB buffer for streaming
 

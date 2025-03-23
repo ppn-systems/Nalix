@@ -1,15 +1,14 @@
-using Notio.Network.Package.Metadata;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities.Data;
+namespace Notio.Utilities;
 
 /// <summary>
 /// Provides memory allocation utilities to optimize memory usage for different packet sizes.
 /// This class determines the appropriate memory allocation strategy (stack, heap, or pool) based on the size of the payload.
 /// </summary>
-public static class DataMemory
+public static class MemoryAllocator
 {
     /// <summary>
     /// Allocates memory for the given payload based on its size, choosing between stack, heap, or pooled memory.
@@ -23,24 +22,24 @@ public static class DataMemory
 
         switch (length)
         {
-            case <= PacketConstants.MaxStackAllocSize:
-            {
-                Span<byte> stackBuffer = stackalloc byte[length];
-                payload.Span.CopyTo(stackBuffer);
-                return stackBuffer.ToArray();
-            }
-            case <= PacketConstants.MaxHeapAllocSize:
-            {
-                byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true);
-                payload.Span.CopyTo(buffer);
-                return buffer;
-            }
+            case <= ConstantsDefault.MaxStackAllocSize:
+                {
+                    Span<byte> stackBuffer = stackalloc byte[length];
+                    payload.Span.CopyTo(stackBuffer);
+                    return stackBuffer.ToArray();
+                }
+            case <= ConstantsDefault.MaxHeapAllocSize:
+                {
+                    byte[] buffer = GC.AllocateUninitializedArray<byte>(length, pinned: true);
+                    payload.Span.CopyTo(buffer);
+                    return buffer;
+                }
             default:
-            {
-                byte[] result = ArrayPool<byte>.Shared.Rent(length);
-                payload.Span.CopyTo(result);
-                return result;
-            }
+                {
+                    byte[] result = ArrayPool<byte>.Shared.Rent(length);
+                    payload.Span.CopyTo(result);
+                    return result;
+                }
         }
     }
 }

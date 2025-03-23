@@ -1,7 +1,7 @@
 using Notio.Common.Package;
 using Notio.Exceptions;
 using Notio.Network.Package.Extensions;
-using Notio.Network.Package.Utilities.Data;
+using Notio.Utilities;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -32,7 +32,7 @@ public static class PacketCompressionHelper
 
         try
         {
-            byte[] compressedData = DataCompression.Compress(packet.Payload);
+            byte[] compressedData = BrotliCompressor.Compress(packet.Payload);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, compressedData);
@@ -63,7 +63,7 @@ public static class PacketCompressionHelper
 
         try
         {
-            byte[] decompressedData = DataCompression.Decompress(packet.Payload);
+            byte[] decompressedData = BrotliCompressor.Decompress(packet.Payload);
 
             return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
                 packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decompressedData);

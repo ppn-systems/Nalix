@@ -1,33 +1,32 @@
-using System;
 using System.Runtime.Serialization;
 
-namespace Notio.Shared.Configuration.Exceptions;
+namespace Notio.Exceptions;
 
 /// <summary>
 /// Represents errors that occur during the configuration process in the Notio real-time server.
 /// </summary>
-[Serializable]
-public class ConfiguredException : Exception
+[System.Serializable]
+public class ConfiguredException : System.Exception
 {
     /// <summary>
     /// Gets the name of the configuration section where the error occurred.
     /// </summary>
-    public string? ConfigurationSection { get; }
+    public string ConfigurationSection { get; }
 
     /// <summary>
     /// Gets the name of the configuration key where the error occurred.
     /// </summary>
-    public string? ConfigurationKey { get; }
+    public string ConfigurationKey { get; }
 
     /// <summary>
     /// Gets the expected type of the configuration value.
     /// </summary>
-    public Type? ExpectedType { get; }
+    public System.Type ExpectedType { get; }
 
     /// <summary>
     /// Gets the configuration file path where the error occurred.
     /// </summary>
-    public string? ConfigFilePath { get; }
+    public string ConfigFilePath { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfiguredException"/> class with a specified error message.
@@ -44,7 +43,7 @@ public class ConfiguredException : Exception
     /// </summary>
     /// <param name="message">The error message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public ConfiguredException(string message, Exception innerException)
+    public ConfiguredException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }
@@ -57,7 +56,12 @@ public class ConfiguredException : Exception
     /// <param name="key">The configuration key where the error occurred.</param>
     /// <param name="expectedType">The expected type of the configuration value.</param>
     /// <param name="configFilePath">The path to the configuration file.</param>
-    public ConfiguredException(string message, string section, string key, Type? expectedType = null, string? configFilePath = null)
+    public ConfiguredException(
+        string message,
+        string section,
+        string key,
+        System.Type expectedType = null,
+        string configFilePath = null)
         : base($"{message} [Section: {section}, Key: {key}]")
     {
         ConfigurationSection = section;
@@ -76,8 +80,13 @@ public class ConfiguredException : Exception
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     /// <param name="expectedType">The expected type of the configuration value.</param>
     /// <param name="configFilePath">The path to the configuration file.</param>
-    public ConfiguredException(string message, string section, string key, Exception innerException,
-        Type? expectedType = null, string? configFilePath = null)
+    public ConfiguredException(
+        string message,
+        string section,
+        string key,
+        System.Exception innerException,
+        System.Type expectedType = null,
+        string configFilePath = null)
         : base($"{message} [Section: {section}, Key: {key}]", innerException)
     {
         ConfigurationSection = section;
@@ -91,10 +100,10 @@ public class ConfiguredException : Exception
     /// </summary>
     /// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data.</param>
     /// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-    [Obsolete("This method is obsolete and will be removed in future versions.")]
+    [System.Obsolete("This method is obsolete and will be removed in future versions.")]
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
-        ArgumentNullException.ThrowIfNull(info);
+        System.ArgumentNullException.ThrowIfNull(info);
 
         base.GetObjectData(info, context);
         info.AddValue(nameof(ConfigurationSection), ConfigurationSection);

@@ -6,7 +6,7 @@ namespace Notio;
 /// <summary>
 /// Provides predefined JSON serialization settings for different use cases.
 /// </summary>
-public static class OptionsDefault
+public static class EncodingDefault
 {
     /// <summary>
     /// The default encoding used for JSON serialization and deserialization.

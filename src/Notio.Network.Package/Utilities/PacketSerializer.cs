@@ -17,7 +17,8 @@ namespace Notio.Network.Package.Utilities;
 public static class PacketSerializer
 {
     // Pre-allocated buffers for stream operations
-    private static readonly ThreadLocal<byte[]> _threadLocalHeaderBuffer = new(() => new byte[PacketSize.Header], true);
+    private static readonly ThreadLocal<byte[]> _threadLocalHeaderBuffer = new(
+        () => new byte[PacketSize.Header], true);
 
     /// <summary>
     /// Writes a packet to a given buffer in a fast and efficient way.
@@ -105,7 +106,8 @@ public static class PacketSerializer
             if (payloadLength > 0)
             {
                 // Only allocate a new array if needed
-                if (data is { IsEmpty: false } && MemoryMarshal.TryGetArray(data[PacketSize.Header..length].ToArray(), out ArraySegment<byte> segment))
+                if (data is { IsEmpty: false } && MemoryMarshal.TryGetArray(
+                    data[PacketSize.Header..length].ToArray(), out ArraySegment<byte> segment))
                 {
                     payload = segment;
                 }
@@ -137,7 +139,8 @@ public static class PacketSerializer
     /// <param name="packet">The packet to be written.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous write operation.</returns>
-    public static ValueTask<int> WritePacketFastAsync(Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
+    public static ValueTask<int> WritePacketFastAsync(
+        Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
     {
         // For small payloads, perform synchronously to avoid task overhead
         if (packet.Payload.Length < 4096)
@@ -166,7 +169,8 @@ public static class PacketSerializer
     /// <param name="data">The data to read the packet from.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous read operation, returning the deserialized packet.</returns>
-    public static ValueTask<Packet> ReadPacketFastAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    public static ValueTask<Packet> ReadPacketFastAsync(
+        ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         // For small data, perform synchronously to avoid task overhead
         if (data.Length < 4096)
@@ -196,7 +200,8 @@ public static class PacketSerializer
     /// <param name="packet">The packet to be written.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
-    public static async ValueTask WriteToStreamAsync(Stream stream, Packet packet, CancellationToken cancellationToken = default)
+    public static async ValueTask WriteToStreamAsync(
+        Stream stream, Packet packet, CancellationToken cancellationToken = default)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -229,7 +234,8 @@ public static class PacketSerializer
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous read operation, returning the deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if any error occurs during reading from the stream.</exception>
-    public static async ValueTask<Packet> ReadFromStreamAsync(Stream stream, CancellationToken cancellationToken = default)
+    public static async ValueTask<Packet> ReadFromStreamAsync(
+        Stream stream, CancellationToken cancellationToken = default)
     {
         // Use thread-local buffer for the header to reduce allocations
         byte[] headerBuffer = _threadLocalHeaderBuffer.Value!;

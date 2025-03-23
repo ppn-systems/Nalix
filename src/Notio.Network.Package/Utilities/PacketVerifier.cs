@@ -26,7 +26,8 @@ public static class PacketVerifier
     internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
     {
         if (key is not { Length: 32 })
-            throw new PackageException(isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");
+            throw new PackageException(
+                isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");
 
         if (packet.Payload.IsEmpty)
             throw new PackageException("Payload is empty and cannot be processed.");

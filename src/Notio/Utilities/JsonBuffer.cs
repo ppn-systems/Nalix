@@ -9,7 +9,7 @@ namespace Notio.Utilities;
 /// <summary>
 /// Provides optimized JSON serialization and deserialization methods, supporting both strings and byte arrays.
 /// </summary>
-public static class JsonBinary
+public static class JsonBuffer
 {
     /// <summary>
     /// Serializes an object to a JSON string using the specified type metadata.
@@ -40,7 +40,7 @@ public static class JsonBinary
         Encoding encoding = null)
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        encoding ??= OptionsDefault.Encoding;
+        encoding ??= EncodingDefault.Encoding;
         return encoding.GetBytes(Serialize(obj, jsonTypeInfo));
     }
 
@@ -97,7 +97,7 @@ public static class JsonBinary
         ArgumentNullException.ThrowIfNull(jsonBytes);
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
-        encoding ??= OptionsDefault.Encoding;
+        encoding ??= EncodingDefault.Encoding;
         return Deserialize(encoding.GetString(jsonBytes), jsonTypeInfo);
     }
 

@@ -3,7 +3,7 @@ using Notio.Cryptography.Integrity;
 using Notio.Exceptions;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
-using Notio.Network.Package.Utilities.Data;
+using Notio.Utilities;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -25,8 +25,8 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
 
     // Cache the max packet size locally to avoid field access costs
     private const int MaxPacketSize = PacketConstants.MaxPacketSize;
-    private const int MaxHeapAllocSize = PacketConstants.MaxHeapAllocSize;
-    private const int MaxStackAllocSize = PacketConstants.MaxStackAllocSize;
+    private const int MaxHeapAllocSize = ConstantsDefault.MaxHeapAllocSize;
+    private const int MaxStackAllocSize = ConstantsDefault.MaxStackAllocSize;
 
     #endregion
 
@@ -151,7 +151,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
-        : this((byte)0, type, flags, priority, command, TimeUtils.GetMicrosecondTimestamp(), 0, payload, true)
+        : this((byte)0, type, flags, priority, command, MicrosecondClock.GetTimestamp(), 0, payload, true)
     {
     }
 
@@ -164,7 +164,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(byte id, byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
-        : this(id, type, flags, priority, command, TimeUtils.GetMicrosecondTimestamp(), 0, payload, true)
+        : this(id, type, flags, priority, command, MicrosecondClock.GetTimestamp(), 0, payload, true)
     {
     }
 
@@ -209,7 +209,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         Timestamp = timestamp;
 
         // Create a secure copy of the payload to prevent external modification
-        Payload = DataMemory.Allocate(payload);
+        Payload = MemoryAllocator.Allocate(payload);
 
         // Compute checksum only if needed
         Checksum = computeChecksum ? Crc32.HashToUInt32(Payload.Span) : checksum;
@@ -235,7 +235,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public bool IsExpired(TimeSpan timeout)
     {
         // Use direct math operations for better performance
-        ulong currentTime = TimeUtils.GetMicrosecondTimestamp();
+        ulong currentTime = MicrosecondClock.GetTimestamp();
         ulong timeoutMicroseconds = (ulong)(timeout.TotalMilliseconds * 1000);
 
         // Handle potential overflow (rare but possible)
