@@ -79,7 +79,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     {
         if (packet is null)
         {
-            _logger?.Error($"[{nameof(DispatchChannel<TPacket>)}] push-null-packet");
+            _logger?.Error($"[{nameof(DispatchChannel<TPacket>)}:{nameof(Push)}] push-null-packet");
             throw new System.ArgumentNullException(nameof(packet));
         }
 
@@ -107,7 +107,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             }
         }
 
-        _logger?.Trace($"[{nameof(DispatchChannel<TPacket>)}] enqueued packet={packet.GetType().Name} id={connection.ID}");
+        _logger?.Trace($"[{nameof(DispatchChannel<TPacket>)}:{nameof(Push)}] enqueued packet={packet.GetType().Name} id={connection.ID}");
     }
 
     /// <summary>
