@@ -302,10 +302,21 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
                 bool sendChunked = context.Response.SendChunked;
                 long contentLength = context.Response.ContentLength64;
                 context.Close();
+                string sanitizedHttpMethod = context.Request.HttpMethod
+                    .Replace(Environment.NewLine, "")
+                    .Replace("\n", "")
+                    .Replace("\r", "");
+
+                string sanitizedUrlPath = context.Request.Url.AbsolutePath
+                    .Replace(Environment.NewLine, "")
+                    .Replace("\n", "")
+                    .Replace("\r", "");
+
                 Trace.WriteLine(
-                    $"[{context.Id}] {context.Request.HttpMethod} {context.Request.Url.AbsolutePath}: " +
+                    $"[{context.Id}] {sanitizedHttpMethod} {sanitizedUrlPath}: " +
                     $"\"{statusCode} {statusDescription}\" sent in {context.Age}ms " +
-                    $"({(sendChunked ? "chunked" : contentLength.ToString(CultureInfo.InvariantCulture) + " bytes")})", LogSource);
+                    $"({(sendChunked ? "chunked" :
+                    $"{contentLength.ToString(CultureInfo.InvariantCulture)} bytes")})", LogSource);
             }
         }
         catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
