@@ -9,7 +9,7 @@ namespace Notio.Cryptography.Utilities;
 /// High-performance bitwise utilities for cryptographic operations.
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
-internal static class BitwiseUtils
+public static class BitwiseUtils
 {
     /// <summary>
     /// Rotate a 32-bit word right by the specified number of bits using hardware intrinsics when available.
@@ -68,6 +68,15 @@ internal static class BitwiseUtils
     /// <returns>The result of (v + 1) modulo 2^32.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint AddOne(uint v) => unchecked(v + 1);
+
+    /// <summary>
+    /// Unchecked integer subtraction. Performs modular subtraction (v - w) mod 2^32.
+    /// </summary>
+    /// <param name="v">First operand.</param>
+    /// <param name="w">Second operand.</param>
+    /// <returns>The result of (v - w) modulo 2^32.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint Subtract(uint v, uint w) => unchecked(v - w);
 
     /// <summary>
     /// Convert four bytes of the input buffer into an unsigned 32-bit integer, beginning at the inputOffset.
