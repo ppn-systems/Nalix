@@ -11,8 +11,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.12</Version>
-    <PackageVersion>0.4.12</PackageVersion>
+    <Version>0.4.13</Version>
+    <PackageVersion>0.4.13</PackageVersion>
     
 		<ReleaseNotes>Initial release of Notio.Shared package.</ReleaseNotes>
 		<Description>Notio.Shared is a .NET library for managing shared functionality.</Description>

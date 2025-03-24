@@ -11,8 +11,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.12</Version>
-    <PackageVersion>0.4.12</PackageVersion>
+    <Version>0.4.13</Version>
+    <PackageVersion>0.4.13</PackageVersion>
 
 		<ReleaseNotes>Initial release of Notio package.</ReleaseNotes>
 		<Description>Notio is a .NET library for managing "Diagnostics, Management, Randomization, Identification" functionality.</Description>

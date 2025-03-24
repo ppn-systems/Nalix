@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Notio.Common.Data;
+namespace Notio.Common.Repositories.Sync;
 
 /// <summary>
 /// Generic repository interface for synchronous CRUD operations and querying entities.
@@ -33,11 +33,25 @@ public interface IRepository<T> where T : class
     bool Any(Expression<Func<T, bool>> predicate);
 
     /// <summary>
+    /// Checks whether an entity with the specified ID exists in the database.
+    /// </summary>
+    /// <param name="id">The ID of the entity to check.</param>
+    /// <returns><c>true</c> if an entity with the specified ID exists; otherwise, <c>false</c>.</returns>
+    bool Exists(int id);
+
+    /// <summary>
     /// Retrieves an entity by its ID.
     /// </summary>
     /// <param name="id">The entity ID.</param>
     /// <returns>The entity if found; otherwise, null.</returns>
     T GetById(int id);
+
+    /// <summary>
+    /// Retrieves the first entity that matches the specified condition, or null if no match is found.
+    /// </summary>
+    /// <param name="predicate">The filter condition.</param>
+    /// <returns>The first matching entity, or null if no match is found.</returns>
+    T GetFirstOrDefault(Expression<Func<T, bool>> predicate);
 
     /// <summary>
     /// Retrieves entities matching a specified condition with optional pagination.
@@ -105,6 +119,12 @@ public interface IRepository<T> where T : class
     /// </summary>
     /// <param name="entities">The list of entities to delete.</param>
     void DeleteRange(IEnumerable<T> entities);
+
+    /// <summary>
+    /// Detaches the specified entity from the database context, stopping it from being tracked.
+    /// </summary>
+    /// <param name="entity">The entity to detach.</param>
+    void Detach(T entity);
 
     /// <summary>
     /// Saves all changes made in the context.

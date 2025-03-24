@@ -1,3 +1,4 @@
+using Notio.Runtime;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -13,6 +14,11 @@ namespace Notio.Shared.Injection;
 /// </summary>
 public sealed class InstanceManager : IDisposable
 {
+    private static readonly Lock SyncLock = new();
+
+    private static readonly string ApplicationMutexName =
+        "Global\\{{" + ApplicationInfo.EntryAssembly.FullName + "}}";
+
     private readonly ConcurrentDictionary<Type, object> _instanceCache = new();
     private readonly ConcurrentDictionary<Type, ConstructorInfo> _constructorCache = new();
     private readonly ConcurrentDictionary<Type, Func<object[], object>> _activatorCache = new();
@@ -20,6 +26,38 @@ public sealed class InstanceManager : IDisposable
 
     // Thread safety for disposal
     private int _isDisposed;
+
+    /// <summary>
+    /// Checks if this application (including version number) is the only instance currently running.
+    /// </summary>
+    public static bool IsTheOnlyInstance
+    {
+        get
+        {
+            lock (SyncLock)
+            {
+                try
+                {
+                    // Try to open an existing global mutex.
+                    using Mutex existingMutex = Mutex.OpenExisting(ApplicationMutexName);
+                }
+                catch
+                {
+                    try
+                    {
+                        // If no mutex exists, create one. This instance is the only instance.
+                        using Mutex appMutex = new(true, ApplicationMutexName);
+                        return true;
+                    }
+                    catch
+                    {
+                        // In case mutex creation fails.
+                    }
+                }
+                return false;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the number of cached instances.

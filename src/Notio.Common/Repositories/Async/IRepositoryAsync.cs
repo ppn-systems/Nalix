@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Common.Data;
+namespace Notio.Common.Repositories.Async;
 
 /// <summary>
 /// Generic repository interface for asynchronous CRUD operations and querying entities.
@@ -41,6 +41,25 @@ public interface IRepositoryAsync<T> where T : class
     Task<bool> AnyAsync(
         Expression<Func<T, bool>> predicate,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asynchronously checks whether an entity with the specified ID exists in the database.
+    /// </summary>
+    /// <param name="id">The ID of the entity to check.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation, returning <c>true</c> if an entity with the specified ID exists;
+    /// otherwise, <c>false</c>.
+    /// </returns>
+    Task<bool> ExistsAsync(int id);
+
+    /// <summary>
+    /// Asynchronously retrieves the first entity that matches the specified condition, or null if no match is found.
+    /// </summary>
+    /// <param name="predicate">The filter condition.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation, returning the first matching entity, or <c>null</c> if no match is found.
+    /// </returns>
+    Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
 
     /// <summary>
     /// Retrieves an entity by its ID asynchronously.
@@ -97,16 +116,18 @@ public interface IRepositoryAsync<T> where T : class
     Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing entity.
+    /// Updates an existing entity asynchronously.
     /// </summary>
     /// <param name="entity">The entity to update.</param>
-    void Update(T entity);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates multiple entities in the database.
+    /// Updates multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to update.</param>
-    void UpdateRange(IEnumerable<T> entities);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task UpdateRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes an entity by its ID asynchronously.
@@ -116,16 +137,25 @@ public interface IRepositoryAsync<T> where T : class
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes an entity.
+    /// Deletes an entity asynchronously.
     /// </summary>
     /// <param name="entity">The entity to delete.</param>
-    void Delete(T entity);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes multiple entities from the database.
+    /// Deletes multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to delete.</param>
-    void DeleteRange(IEnumerable<T> entities);
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asynchronously detaches the specified entity from the database context, stopping it from being tracked.
+    /// </summary>
+    /// <param name="entity">The entity to detach.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task DetachAsync(T entity);
 
     /// <summary>
     /// Saves all changes made in the context asynchronously.
