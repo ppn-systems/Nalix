@@ -46,20 +46,24 @@ public interface IRepositoryAsync<T> where T : class
     /// Asynchronously checks whether an entity with the specified ID exists in the database.
     /// </summary>
     /// <param name="id">The ID of the entity to check.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
     /// A task representing the asynchronous operation, returning <c>true</c> if an entity with the specified ID exists;
     /// otherwise, <c>false</c>.
     /// </returns>
-    Task<bool> ExistsAsync(int id);
+    Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously retrieves the first entity that matches the specified condition, or null if no match is found.
     /// </summary>
     /// <param name="predicate">The filter condition.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
     /// A task representing the asynchronous operation, returning the first matching entity, or <c>null</c> if no match is found.
     /// </returns>
-    Task<T> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
+    Task<T> GetFirstOrDefaultAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves an entity by its ID asynchronously.
@@ -154,8 +158,9 @@ public interface IRepositoryAsync<T> where T : class
     /// Asynchronously detaches the specified entity from the database context, stopping it from being tracked.
     /// </summary>
     /// <param name="entity">The entity to detach.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task DetachAsync(T entity);
+    Task DetachAsync(T entity, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves all changes made in the context asynchronously.
