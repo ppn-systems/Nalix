@@ -7,7 +7,7 @@ namespace Notio.Runtime;
 /// <summary>
 /// Provides utility methods related to the operating system.
 /// </summary>
-public static class OperatingSystem
+public static class OperatingSystemInfo
 {
     private static readonly Lazy<OSType> OsLazy = new(() =>
     {
