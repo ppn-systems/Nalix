@@ -123,15 +123,13 @@ public interface IRepositoryAsync<T> where T : class
     /// Updates an existing entity asynchronously.
     /// </summary>
     /// <param name="entity">The entity to update.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
+    void Update(T entity);
 
     /// <summary>
     /// Updates multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to update.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task UpdateRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+    void UpdateRange(IEnumerable<T> entities);
 
     /// <summary>
     /// Deletes an entity by its ID asynchronously.
@@ -144,23 +142,19 @@ public interface IRepositoryAsync<T> where T : class
     /// Deletes an entity asynchronously.
     /// </summary>
     /// <param name="entity">The entity to delete.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
+    void Delete(T entity);
 
     /// <summary>
     /// Deletes multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to delete.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+    void DeleteRange(IEnumerable<T> entities);
 
     /// <summary>
-    /// Asynchronously detaches the specified entity from the database context, stopping it from being tracked.
+    /// Detaches the specified entity from the database context, stopping it from being tracked.
     /// </summary>
     /// <param name="entity">The entity to detach.</param>
-    /// <param name="cancellationToken">Token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task DetachAsync(T entity, CancellationToken cancellationToken = default);
+    void Detach(T entity);
 
     /// <summary>
     /// Saves all changes made in the context asynchronously.
