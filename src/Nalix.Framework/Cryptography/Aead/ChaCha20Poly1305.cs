@@ -44,6 +44,10 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// <see cref="Poly1305"/> created internally are not shared between threads.
 /// </threadsafety>
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("ChaCha20-Poly1305 AEAD")]
 public static class ChaCha20Poly1305
 {
     #region Constants
@@ -314,6 +318,8 @@ public static class ChaCha20Poly1305
     /// <param name="aad">Associated data segment.</param>
     /// <param name="ct">Ciphertext segment.</param>
     /// <param name="tagOut">Destination for the 16-byte MAC tag.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Poly1305UpdateAadCtAndLengths(
         Poly1305 poly,
         System.ReadOnlySpan<System.Byte> aad,
@@ -441,6 +447,7 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Centralized throw helpers for fast-path argument validation.
     /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     private static class ThrowHelpers
     {
         /// <summary>Throws when <c>key.Length != 32</c>.</summary>

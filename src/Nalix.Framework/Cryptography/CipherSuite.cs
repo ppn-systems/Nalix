@@ -18,10 +18,10 @@ public static class CipherSuite
     #region Constants
 
     private const System.Int32 ChaCha20NonceSize = 12;
+    private const System.Int32 LengthPrefixSize = 4;
     private const System.Int32 Salsa20NonceSize = 8;
     private const System.Int32 SpeckBlockSize = 8;
     private const System.Int32 XteaBlockSize = 8;
-    private const System.Int32 LengthPrefixSize = 4;
 
     #endregion Constants
 
