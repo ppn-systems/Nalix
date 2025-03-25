@@ -5,7 +5,7 @@ namespace Notio.Common.Package;
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
-public interface IPacket : IDisposable, IEquatable<IPacket>
+public interface IPacket : IEquatable<IPacket>, IDisposable
 {
     /// <summary>
     /// Gets the total length of the packet.
@@ -20,17 +20,17 @@ public interface IPacket : IDisposable, IEquatable<IPacket>
     /// <summary>
     /// Gets the packet type.
     /// </summary>
-    byte Type { get; }
+    PacketType Type { get; }
 
     /// <summary>
     /// Gets or sets the packet flags.
     /// </summary>
-    byte Flags { get; }
+    PacketFlags Flags { get; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    byte Priority { get; }
+    PacketPriority Priority { get; }
 
     /// <summary>
     /// Gets the command associated with the packet.

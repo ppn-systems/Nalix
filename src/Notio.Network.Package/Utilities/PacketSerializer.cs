@@ -42,9 +42,9 @@ public static class PacketSerializer
 
             // Write the rest of the header fields
             buffer[PacketOffset.Id] = packet.Id;
-            buffer[PacketOffset.Type] = packet.Type;
-            buffer[PacketOffset.Flags] = packet.Flags;
-            buffer[PacketOffset.Priority] = packet.Priority;
+            buffer[PacketOffset.Type] = ((byte)packet.Type);
+            buffer[PacketOffset.Flags] = ((byte)packet.Flags);
+            buffer[PacketOffset.Priority] = ((byte)packet.Priority);
 
             ushort command = packet.Command;
             MemoryMarshal.Write(buffer[PacketOffset.Command..], in command);

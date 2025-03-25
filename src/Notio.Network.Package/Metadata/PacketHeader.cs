@@ -27,17 +27,17 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.
     /// </summary>
-    public readonly byte Type = packet.Type;
+    public readonly byte Type = ((byte)packet.Type);
 
     /// <summary>
     /// Gets or sets the flags associated with the packet, used for additional control or state information.
     /// </summary>
-    public readonly byte Flags = packet.Flags;
+    public readonly byte Flags = ((byte)packet.Flags);
 
     /// <summary>
     /// Gets the priority level of the packet, which can affect how the packet is processed or prioritized.
     /// </summary>
-    public readonly byte Priority = packet.Priority;
+    public readonly byte Priority = ((byte)packet.Priority);
 
     /// <summary>
     /// Gets the command associated with the packet, which can specify an operation or request type.
