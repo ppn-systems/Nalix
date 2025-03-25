@@ -1,4 +1,4 @@
-namespace Notio.Exceptions;
+namespace Notio.Common.Exceptions;
 
 /// <summary>
 /// Custom exception for errors related to cryptographic operations.

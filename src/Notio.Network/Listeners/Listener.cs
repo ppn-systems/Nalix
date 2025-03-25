@@ -1,4 +1,5 @@
 using Notio.Common.Connection;
+using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Network.Protocols;
@@ -32,9 +33,8 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     private const int False = 0;
 
     // Using lazy initialization for thread-safety and singleton pattern
-    private static readonly Lazy<ListenerConfig> _lazyConfig = new(() =>
-        ConfiguredShared.Instance.Get<ListenerConfig>());
-
+    private static readonly Lazy<ListenerConfig> _lazyConfig = new(()
+        => ConfiguredShared.Instance.Get<ListenerConfig>());
     private static ListenerConfig Config => _lazyConfig.Value;
 
     private readonly int _port = port;
@@ -47,6 +47,8 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     private bool _isDisposed;
     private Task? _listenerTask;
     private CancellationTokenSource? _cts;
+
+    #region Public Methods
 
     /// <summary>
     /// Gets the current state of the listener.
@@ -75,8 +77,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         ObjectDisposedException.ThrowIf(_isDisposed || _tcpListener.Server == null, this);
 
-        if (IsListening)
-            return;
+        if (this.IsListening) return;
 
         _logger.Debug("Starting to listen for incoming connections.");
         const int maxParallelAccepts = 5;
@@ -107,13 +108,11 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             }
             catch (SocketException ex)
             {
-                _logger.Error($"Could not start {_protocol} on port {_port}", ex);
-                throw;
+                throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
             }
             catch (Exception ex)
             {
-                _logger.Error($"Critical error in listener on port {_port}", ex);
-                throw;
+                throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
             }
             finally
             {
@@ -122,54 +121,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 _logger.Debug("Stopped listening for incoming connections.");
             }
         }, linkedToken);
-    }
-
-    /// <summary>
-    /// Accepts connections in a loop until cancellation is requested
-    /// </summary>
-    private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                IConnection connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
-                // Await the ValueTask to ensure it is used properly
-                await ProcessConnectionAsync(connection).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break; // Exit loop on cancellation
-            }
-            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-            {
-                _logger.Error($"Error accepting connection on port {_port}", ex);
-                // Brief delay to prevent CPU spinning on repeated errors
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        _logger.Debug("Stopped accepting incoming connections.");
-    }
-
-    /// <summary>
-    /// Processes a new connection using the protocol handler.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask ProcessConnectionAsync(IConnection connection)
-    {
-        try
-        {
-            _logger.Debug($"Processing new connection from {connection.RemoteEndPoint}");
-            _protocol.OnAccept(connection);
-            return ValueTask.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error($"Error processing new connection from {connection.RemoteEndPoint}", ex);
-            connection.Close();
-            return ValueTask.CompletedTask;
-        }
     }
 
     /// <summary>
@@ -195,16 +146,104 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     }
 
     /// <summary>
+    /// Disposes the resources used by the listener.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes the resources used by the listener.
+    /// </summary>
+    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_isDisposed) return;
+
+        if (disposing)
+        {
+            if (_tcpListener?.Server != null)
+            {
+                _logger.Info($"Stopping listener on port {_port}");
+                _tcpListener.Stop();
+            }
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _listenerLock.Dispose();
+        }
+
+        _isDisposed = true;
+        _logger.Debug("Disposed the listener.");
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Accepts connections in a loop until cancellation is requested
+    /// </summary>
+    private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                IConnection connection = await CreateConnectionAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                this.ProcessConnection(connection);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break; // Exit loop on cancellation
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.Error($"Error accepting connection on port {_port}", ex);
+                // Brief delay to prevent CPU spinning on repeated errors
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        _logger.Debug("Stopped accepting incoming connections.");
+    }
+
+    /// <summary>
+    /// Processes a new connection using the protocol handler.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ProcessConnection(IConnection connection)
+    {
+        try
+        {
+            _logger.Debug($"Processing new connection from {connection.RemoteEndPoint}");
+            _protocol.OnAccept(connection);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Error processing new connection from {connection.RemoteEndPoint}", ex);
+            connection.Close();
+        }
+    }
+
+    /// <summary>
     /// Creates a new connection from an incoming socket.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
     /// <returns>A task representing the connection creation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
-        Socket socket = await _tcpListener.AcceptSocketAsync(cancellationToken).ConfigureAwait(false);
+        Socket socket = await _tcpListener.AcceptSocketAsync(cancellationToken)
+            .ConfigureAwait(false);
+
         ConfigureHighPerformanceSocket(socket);
 
-        var connection = new Connection.Connection(socket, _bufferPool, _logger);
+        Connection.Connection connection = new(socket, _bufferPool, _logger);
 
         // Use weak event pattern to avoid memory leaks
         connection.OnCloseEvent += OnConnectionClose;
@@ -218,6 +257,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The connection event arguments.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
         _logger.Debug($"Closing connection from {args.Connection.RemoteEndPoint}");
@@ -244,38 +284,5 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 SocketOptionName.ReuseAddress, Config.ReuseAddress ? True : False);
     }
 
-    /// <summary>
-    /// Disposes the resources used by the listener.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Disposes the resources used by the listener.
-    /// </summary>
-    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_isDisposed)
-            return;
-
-        if (disposing)
-        {
-            if (_tcpListener?.Server != null)
-            {
-                _logger.Info($"Stopping listener on port {_port}");
-                _tcpListener.Stop();
-            }
-
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _listenerLock.Dispose();
-        }
-
-        _isDisposed = true;
-        _logger.Debug("Disposed the listener.");
-    }
+    #endregion
 }

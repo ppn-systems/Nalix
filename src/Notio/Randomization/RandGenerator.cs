@@ -73,9 +73,13 @@ public static class RandGenerator
     /// </summary>
     /// <returns>A cryptographically secure nonce.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] CreateNonce()
+    public static byte[] CreateNonce(int length = 12)
     {
-        byte[] nonce = new byte[12];
+        if (length <= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(length), "Nonce length must be a positive integer.");
+
+        byte[] nonce = new byte[length];
         Fill(nonce);
         return nonce;
     }

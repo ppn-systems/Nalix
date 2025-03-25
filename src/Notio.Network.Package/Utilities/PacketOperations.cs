@@ -24,24 +24,4 @@ public static class PacketOperations
             packet.Flags, packet.Priority, packet.Command,
             packet.Timestamp, packet.Checksum, payloadCopy);
     }
-
-    /// <summary>
-    /// Attempts to clone the <see cref="IPacket"/> without throwing an error, returning success or failure.
-    /// </summary>
-    /// <param name="packet">The <see cref="IPacket"/> to clone.</param>
-    /// <param name="clonedPacket">The cloned <see cref="IPacket"/>, if successful.</param>
-    /// <returns>True if the packet was cloned successfully, otherwise false.</returns>
-    public static bool TryClone(IPacket packet, out IPacket? clonedPacket)
-    {
-        try
-        {
-            clonedPacket = Clone(packet);
-            return true;
-        }
-        catch
-        {
-            clonedPacket = null;
-            return false;
-        }
-    }
 }

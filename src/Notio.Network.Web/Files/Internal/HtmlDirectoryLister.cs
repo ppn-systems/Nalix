@@ -1,4 +1,3 @@
-using Notio.Exceptions;
 using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Utilities;
 using System;

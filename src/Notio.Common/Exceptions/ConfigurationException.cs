@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Notio.Exceptions;
+namespace Notio.Common.Exceptions;
 
 /// <summary>
 /// Represents errors that occur during the configuration process in the Notio real-time server.

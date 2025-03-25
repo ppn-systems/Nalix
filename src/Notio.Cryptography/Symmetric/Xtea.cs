@@ -1,4 +1,4 @@
-using Notio.Exceptions;
+using Notio.Common.Exceptions;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;

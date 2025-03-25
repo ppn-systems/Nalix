@@ -1,4 +1,3 @@
-using Notio.Exceptions;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http;
 using Notio.Network.Web.Http.Exceptions;

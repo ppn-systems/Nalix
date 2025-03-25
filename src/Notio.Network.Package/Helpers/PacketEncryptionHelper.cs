@@ -5,7 +5,7 @@ using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
-using Notio.Exceptions;
+using Notio.Common.Exceptions;
 
 namespace Notio.Network.Package.Helpers;
 

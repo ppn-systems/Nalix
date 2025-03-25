@@ -41,8 +41,9 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <param name="ciphertext">Buffer to receive the encrypted data.</param>
     /// <returns>Number of bytes written.</returns>
-    public static int Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
-                             ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
+    public static int Encrypt(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
+        ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
     {
         ValidateParameters(key, nonce);
         if (ciphertext.Length < plaintext.Length)

@@ -5,7 +5,7 @@
  * Use the methods in Notio.Common.SelfCheck instead.
  */
 
-namespace Notio.Exceptions;
+namespace Notio.Common.Exceptions;
 
 /// <summary>
 /// <para>The exception that is thrown by Notio's internal diagnostic checks to signal a condition
@@ -34,7 +34,6 @@ public class InternalErrorException : System.Exception
 
     /// <summary>
     /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
-    /// <para>Do not call this constrcutor directly; use the methods of the <see cref="SelfCheck"/> class instead.</para>
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
     public InternalErrorException(string message)

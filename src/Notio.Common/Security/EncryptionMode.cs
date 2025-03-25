@@ -18,10 +18,15 @@ public enum EncryptionMode : byte
     /// <summary>
     /// Twofish block cipher.
     /// </summary>
-    Twofish = 3,
+    TwofishEcb = 3,
+
+    /// <summary>
+    /// Twofish block cipher.
+    /// </summary>
+    TwofishCbc = 4,
 
     /// <summary>
     /// XTEA encryption algorithm.
     /// </summary>
-    Xtea = 4,
+    Xtea = 5,
 }

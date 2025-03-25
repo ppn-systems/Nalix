@@ -1,4 +1,4 @@
-namespace Notio.Exceptions;
+namespace Notio.Common.Exceptions;
 
 /// <summary>
 /// Exception thrown when a directory operation fails.
