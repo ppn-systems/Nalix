@@ -23,7 +23,7 @@ if "%API_KEY%"=="" (
 )
 
 :: Kiểm tra xem có file .nupkg không
-for %%F in (..\..\build\bin\Release\*.nupkg) do (
+for %%F in (..\build\bin\Release\*.nupkg) do (
     set FOUND_PACKAGE=1
     goto :UPLOAD
 )
@@ -35,7 +35,7 @@ exit /b 1
 :UPLOAD
 echo %COLOR_GREEN%🚀 Pushing NuGet package(s)...%COLOR_RESET%
 
-dotnet nuget push ..\..\build\bin\Release\*.nupkg --api-key %API_KEY% --source https://api.nuget.org/v3/index.json --skip-duplicate
+dotnet nuget push ..\build\bin\Release\*.nupkg --api-key %API_KEY% --source https://api.nuget.org/v3/index.json --skip-duplicate
 
 :: Kiểm tra kết quả của lệnh
 if %ERRORLEVEL% neq 0 (
