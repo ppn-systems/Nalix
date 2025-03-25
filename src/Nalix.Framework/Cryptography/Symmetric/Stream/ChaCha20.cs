@@ -68,8 +68,8 @@ public sealed class ChaCha20 : System.IDisposable
     /// </param>
     public ChaCha20(System.Byte[] key, System.Byte[] nonce, System.UInt32 counter)
     {
-        this.KeySetup(key);
-        this.IvSetup(nonce, counter);
+        this.E8F7A6B5(key);
+        this.F9E8D7C6(nonce, counter);
     }
 
     /// <summary>
@@ -83,8 +83,8 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="counter">A 4-byte (32-bit) block counter, treated as a 32-bit little-endian unsigned integer</param>
     public ChaCha20(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
     {
-        this.KeySetup(key.ToArray());
-        this.IvSetup(nonce.ToArray(), counter);
+        this.E8F7A6B5(key.ToArray());
+        this.F9E8D7C6(nonce.ToArray(), counter);
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public sealed class ChaCha20 : System.IDisposable
         var x = new System.UInt32[StateLength];
         var tmp = new System.Byte[BlockSize];
 
-        UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+        FA67BC89(State, x, tmp);
 
         System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
         System.Buffer.BlockCopy(tmp, 0, dst.ToArray(), 0, n); // copy via temp array view
@@ -159,10 +159,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        this.WorkBytes(output, input, numBytes, simdMode);
+        this.EF56AB78(output, input, numBytes, simdMode);
     }
 
     /// <summary>
@@ -181,10 +181,10 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        this.WorkStreams(output, input, simdMode, howManyBytesToProcessAtTime);
+        this.BC23DE45(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -202,10 +202,10 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        await WorkStreamsAsync(output, input, simdMode, howManyBytesToProcessAtTime);
+        await CD34EF56(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -224,10 +224,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        this.WorkBytes(output, input, input.Length, simdMode);
+        this.EF56AB78(output, input, input.Length, simdMode);
     }
 
     /// <summary>
@@ -254,11 +254,11 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] returnArray = new System.Byte[numBytes];
-        this.WorkBytes(returnArray, input, numBytes, simdMode);
+        this.EF56AB78(returnArray, input, numBytes, simdMode);
         return returnArray;
     }
 
@@ -279,11 +279,11 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] returnArray = new System.Byte[input.Length];
-        this.WorkBytes(returnArray, input, input.Length, simdMode);
+        this.EF56AB78(returnArray, input, input.Length, simdMode);
         return returnArray;
     }
 
@@ -302,13 +302,13 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(input);
         System.Byte[] returnArray = new System.Byte[utf8Bytes.Length];
 
-        this.WorkBytes(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
+        this.EF56AB78(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
         return returnArray;
     }
 
@@ -325,7 +325,7 @@ public sealed class ChaCha20 : System.IDisposable
             throw new System.ArgumentException("Output length must match input length.");
         }
 
-        WorkBytes(src, dst, src.Length);
+        DE45FA67(src, dst, src.Length);
     }
 
     #endregion Encryption methods
@@ -363,10 +363,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        WorkBytes(output, input, numBytes, simdMode);
+        EF56AB78(output, input, numBytes, simdMode);
     }
 
     /// <summary>
@@ -386,10 +386,10 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        WorkStreams(output, input, simdMode, howManyBytesToProcessAtTime);
+        BC23DE45(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -407,10 +407,10 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        await WorkStreamsAsync(output, input, simdMode, howManyBytesToProcessAtTime);
+        await CD34EF56(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -431,10 +431,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
-        WorkBytes(output, input, input.Length, simdMode);
+        EF56AB78(output, input, input.Length, simdMode);
     }
 
     /// <summary>
@@ -461,11 +461,11 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] returnArray = new System.Byte[numBytes];
-        WorkBytes(returnArray, input, numBytes, simdMode);
+        EF56AB78(returnArray, input, numBytes, simdMode);
         return returnArray;
     }
 
@@ -486,11 +486,11 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] returnArray = new System.Byte[input.Length];
-        WorkBytes(returnArray, input, input.Length, simdMode);
+        EF56AB78(returnArray, input, input.Length, simdMode);
         return returnArray;
     }
 
@@ -511,12 +511,12 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (simdMode == SimdMode.AutoDetect)
         {
-            simdMode = DetectSimdMode();
+            simdMode = AB12CD34();
         }
 
         System.Byte[] tempArray = new System.Byte[input.Length];
 
-        WorkBytes(tempArray, input, input.Length, simdMode);
+        EF56AB78(tempArray, input, input.Length, simdMode);
         return System.Text.Encoding.UTF8.GetString(tempArray);
     }
 
@@ -539,7 +539,7 @@ public sealed class ChaCha20 : System.IDisposable
         // We process in 64-byte blocks.
         if (simdMode == SimdMode.AutoDetect)
         {
-            _ = DetectSimdMode();
+            _ = AB12CD34();
         }
 
         var tmpKeystream = new System.Byte[BlockSize];
@@ -550,7 +550,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         while (remaining >= BlockSize)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmpKeystream);
+            FA67BC89(State, x, tmpKeystream);
             for (System.Int32 i = 0; i < BlockSize; i++)
             {
                 buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
@@ -562,7 +562,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (remaining > 0)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmpKeystream);
+            FA67BC89(State, x, tmpKeystream);
             for (System.Int32 i = 0; i < remaining; i++)
             {
                 buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
@@ -590,7 +590,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void KeySetup(System.Byte[] key)
+    private void E8F7A6B5(System.Byte[] key)
     {
         if (key.Length != KeySize)
         {
@@ -619,7 +619,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void IvSetup(System.Byte[] nonce, System.UInt32 counter)
+    private void F9E8D7C6(System.Byte[] nonce, System.UInt32 counter)
     {
         if (nonce.Length != NonceSize)
         {
@@ -637,7 +637,7 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static SimdMode DetectSimdMode()
+    private static SimdMode AB12CD34()
     {
         if (System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated)
         {
@@ -657,7 +657,7 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void WorkStreams(
+    private void BC23DE45(
         System.IO.Stream output, System.IO.Stream input,
         SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
     {
@@ -669,14 +669,14 @@ public sealed class ChaCha20 : System.IDisposable
         while ((readBytes = input.Read(inputBuffer, 0, howManyBytesToProcessAtTime)) > 0)
         {
             // Encrypt or decrypt
-            WorkBytes(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
+            EF56AB78(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
 
             // WriteInt16 buffer
             output.Write(outputBuffer, 0, readBytes);
         }
     }
 
-    private async System.Threading.Tasks.Task WorkStreamsAsync(
+    private async System.Threading.Tasks.Task CD34EF56(
         System.IO.Stream output, System.IO.Stream input,
         SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
     {
@@ -688,7 +688,7 @@ public sealed class ChaCha20 : System.IDisposable
         while (howManyBytesWereRead > 0)
         {
             // Encrypt or decrypt
-            WorkBytes(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
+            EF56AB78(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
 
             // WriteInt16
             await output.WriteAsync(System.MemoryExtensions
@@ -702,7 +702,7 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void WorkBytes(
+    private void DE45FA67(
         System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output, System.Int32 numBytes)
     {
         if (_isDisposed)
@@ -726,7 +726,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 loop = 0; loop < full; loop++)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+            FA67BC89(State, x, tmp);
 
             // XOR 64 bytes
             for (System.Int32 i = 0; i < BlockSize; i++)
@@ -738,7 +738,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (tail > 0)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+            FA67BC89(State, x, tmp);
             for (System.Int32 i = 0; i < tail; i++)
             {
                 output[offset + i] = (System.Byte)(input[offset + i] ^ tmp[i]);
@@ -755,7 +755,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void WorkBytes(
+    private void EF56AB78(
         System.Byte[] output, System.Byte[] input,
         System.Int32 numBytes, SimdMode simdMode)
     {
@@ -773,7 +773,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+            FA67BC89(State, x, tmp);
 
             if (simdMode == SimdMode.V512)
             {
@@ -838,7 +838,7 @@ public sealed class ChaCha20 : System.IDisposable
         // In case there are some bytes left
         if (tailByteCount > 0)
         {
-            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+            FA67BC89(State, x, tmp);
 
             for (System.Int32 i = 0; i < tailByteCount; i++)
             {
@@ -849,7 +849,7 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void UpdateStateAndGenerateTemporaryBuffer(
+    private static void FA67BC89(
         System.UInt32[] stateToModify, System.UInt32[] workingBuffer, System.Byte[] temporaryBuffer)
     {
         // Copy state to working buffer
@@ -857,15 +857,15 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 i = 0; i < 10; i++) // 20 rounds (10 double rounds)
         {
-            QuarterRound(workingBuffer, 0, 4, 8, 12);
-            QuarterRound(workingBuffer, 1, 5, 9, 13);
-            QuarterRound(workingBuffer, 2, 6, 10, 14);
-            QuarterRound(workingBuffer, 3, 7, 11, 15);
+            A0B1C2D3(workingBuffer, 0, 4, 8, 12);
+            A0B1C2D3(workingBuffer, 1, 5, 9, 13);
+            A0B1C2D3(workingBuffer, 2, 6, 10, 14);
+            A0B1C2D3(workingBuffer, 3, 7, 11, 15);
 
-            QuarterRound(workingBuffer, 0, 5, 10, 15);
-            QuarterRound(workingBuffer, 1, 6, 11, 12);
-            QuarterRound(workingBuffer, 2, 7, 8, 13);
-            QuarterRound(workingBuffer, 3, 4, 9, 14);
+            A0B1C2D3(workingBuffer, 0, 5, 10, 15);
+            A0B1C2D3(workingBuffer, 1, 6, 11, 12);
+            A0B1C2D3(workingBuffer, 2, 7, 8, 13);
+            A0B1C2D3(workingBuffer, 3, 4, 9, 14);
         }
 
         for (System.Int32 i = 0; i < StateLength; i++)
@@ -895,7 +895,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="d">Index of the fourth ProtocolType</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void QuarterRound(
+    private static void A0B1C2D3(
         System.UInt32[] x, System.UInt32 a, System.UInt32 b, System.UInt32 c, System.UInt32 d)
     {
         x[a] = BitwiseOperations.Add(x[a], x[b]);

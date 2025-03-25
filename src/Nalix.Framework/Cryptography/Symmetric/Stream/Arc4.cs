@@ -11,11 +11,11 @@ public sealed class Arc4 : System.IDisposable
 {
     #region Constants
 
-    private const System.Int32 PermutationSize = 256;
+    private const System.Int32 DEADCAFE = 256;
 
     // Drop initial bytes to mitigate weak initial state (so-called RC4-drop[n]).
     // 3072 is a conservative choice used in some legacy systems.
-    private const System.Int32 WeakKeyMitigationBytes = 3072;
+    private const System.Int32 CAFEBABE = 3072;
 
     #endregion
 
@@ -26,7 +26,7 @@ public sealed class Arc4 : System.IDisposable
     private System.Byte _j;
 
     // State permutation S
-    private readonly System.Byte[] _s = new System.Byte[PermutationSize];
+    private readonly System.Byte[] _s = new System.Byte[DEADCAFE];
 
     private System.Boolean _initialized;
     private System.Boolean _disposed;
@@ -53,7 +53,7 @@ public sealed class Arc4 : System.IDisposable
             throw new System.ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
         }
 
-        Initialize(key);
+        A1B2C3D4(key);
     }
 
     #endregion
@@ -88,12 +88,12 @@ public sealed class Arc4 : System.IDisposable
 
         if (fast > 0)
         {
-            Process4ByteBlocks(buffer[..fast]);
+            C9D8E7F0(buffer[..fast]);
         }
 
         if (fast != len)
         {
-            ProcessRemainder(buffer[fast..]);
+            D1E2F3A4(buffer[fast..]);
         }
     }
 
@@ -124,15 +124,15 @@ public sealed class Arc4 : System.IDisposable
 
         for (; i < fast; i += 4)
         {
-            destination[i + 0] = (System.Byte)(source[i + 0] ^ NextKeystreamByte());
-            destination[i + 1] = (System.Byte)(source[i + 1] ^ NextKeystreamByte());
-            destination[i + 2] = (System.Byte)(source[i + 2] ^ NextKeystreamByte());
-            destination[i + 3] = (System.Byte)(source[i + 3] ^ NextKeystreamByte());
+            destination[i + 0] = (System.Byte)(source[i + 0] ^ B4E5F6A7());
+            destination[i + 1] = (System.Byte)(source[i + 1] ^ B4E5F6A7());
+            destination[i + 2] = (System.Byte)(source[i + 2] ^ B4E5F6A7());
+            destination[i + 3] = (System.Byte)(source[i + 3] ^ B4E5F6A7());
         }
 
         for (; i < len; i++)
         {
-            destination[i] = (System.Byte)(source[i] ^ NextKeystreamByte());
+            destination[i] = (System.Byte)(source[i] ^ B4E5F6A7());
         }
     }
 
@@ -165,7 +165,7 @@ public sealed class Arc4 : System.IDisposable
             throw new System.ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
         }
 
-        Initialize(key);
+        A1B2C3D4(key);
     }
 
     /// <summary>
@@ -192,10 +192,10 @@ public sealed class Arc4 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void Initialize(System.ReadOnlySpan<System.Byte> key)
+    private void A1B2C3D4(System.ReadOnlySpan<System.Byte> key)
     {
         // 1) Init S
-        for (System.Int32 k = 0; k < PermutationSize; k++)
+        for (System.Int32 k = 0; k < DEADCAFE; k++)
         {
             _s[k] = (System.Byte)k;
         }
@@ -205,7 +205,7 @@ public sealed class Arc4 : System.IDisposable
         System.Int32 keyLen = key.Length;
         System.Int32 keyIndex = 0;
 
-        for (System.Int32 k = 0; k < PermutationSize; k++)
+        for (System.Int32 k = 0; k < DEADCAFE; k++)
         {
             j += (System.Byte)(_s[k] + key[keyIndex]);
             (_s[k], _s[j]) = (_s[j], _s[k]);
@@ -221,11 +221,11 @@ public sealed class Arc4 : System.IDisposable
         _j = 0;
 
         // 3) RC4-drop[n] — burn keystream WITHOUT calling Process()
-        if (WeakKeyMitigationBytes > 0)
+        if (CAFEBABE > 0)
         {
-            for (System.Int32 n = 0; n < WeakKeyMitigationBytes; n++)
+            for (System.Int32 n = 0; n < CAFEBABE; n++)
             {
-                _ = NextKeystreamByte();
+                _ = B4E5F6A7();
             }
         }
 
@@ -236,7 +236,7 @@ public sealed class Arc4 : System.IDisposable
     // Generate next keystream byte (PRGA step)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Byte NextKeystreamByte()
+    private System.Byte B4E5F6A7()
     {
         _i++;
         _j += _s[_i];
@@ -247,25 +247,25 @@ public sealed class Arc4 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void Process4ByteBlocks(System.Span<System.Byte> buffer)
+    private void C9D8E7F0(System.Span<System.Byte> buffer)
     {
         // Unrolled 4 bytes per iteration (byte-wise to avoid endianness pitfalls)
         for (System.Int32 k = 0; k < buffer.Length; k += 4)
         {
-            buffer[k + 0] ^= NextKeystreamByte();
-            buffer[k + 1] ^= NextKeystreamByte();
-            buffer[k + 2] ^= NextKeystreamByte();
-            buffer[k + 3] ^= NextKeystreamByte();
+            buffer[k + 0] ^= B4E5F6A7();
+            buffer[k + 1] ^= B4E5F6A7();
+            buffer[k + 2] ^= B4E5F6A7();
+            buffer[k + 3] ^= B4E5F6A7();
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void ProcessRemainder(System.Span<System.Byte> buffer)
+    private void D1E2F3A4(System.Span<System.Byte> buffer)
     {
         for (System.Int32 k = 0; k < buffer.Length; k++)
         {
-            buffer[k] ^= NextKeystreamByte();
+            buffer[k] ^= B4E5F6A7();
         }
     }
 
