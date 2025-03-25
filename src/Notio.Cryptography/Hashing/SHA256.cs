@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Threading;
 
-namespace Notio.Cryptography.Hash;
+namespace Notio.Cryptography.Hashing;
 
 /// <summary>
 /// Provides an optimized implementation of the SHA-256 cryptographic hash algorithm using SIMD where available.
@@ -205,7 +205,7 @@ public sealed class Sha256 : IDisposable
 
             if (!_finalized)
                 throw new InvalidOperationException(
-                    "The hash has not been completed. Call TransformFinalBlock before accessing the Hash.");
+                    "The hash has not been completed. Call TransformFinalBlock before accessing the Hashing.");
             return (byte[])_finalHash.Clone();
         }
     }

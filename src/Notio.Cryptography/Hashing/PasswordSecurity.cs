@@ -1,7 +1,7 @@
 using Notio.Randomization;
 using System;
 
-namespace Notio.Cryptography.Hash;
+namespace Notio.Cryptography.Hashing;
 
 /// <summary>
 /// Provides secure password hashing and verification using PBKDF2.

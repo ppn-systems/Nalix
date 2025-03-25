@@ -1,5 +1,5 @@
 using Notio.Common.Data;
-using Notio.Common.Enums;
+using Notio.Common.Identity;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -66,9 +66,9 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     public uint Value => _value;
 
     /// <summary>
-    /// Gets the TypeId encoded within this UniqueId.
+    /// Gets the IdType encoded within this UniqueId.
     /// </summary>
-    public TypeId Type => (TypeId)(_value >> 24);
+    public IdType Type => (IdType)(_value >> 24);
 
     /// <summary>
     /// Gets the machine ID component encoded within this UniqueId.
@@ -83,11 +83,11 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <returns>A new <see cref="UniqueId"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId NewId(TypeId type = TypeId.Generic, ushort machineId = 0)
+    public static UniqueId NewId(IdType type = IdType.Generic, ushort machineId = 0)
     {
         // Validate type
-        if ((int)type >= (int)TypeId.Limit)
-            throw new ArgumentOutOfRangeException(nameof(type), "TypeId exceeds the allowed limit.");
+        if ((int)type >= (int)IdType.Limit)
+            throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         // Get a cryptographically strong random value
         uint randomValue = GetStrongRandomUInt32();
@@ -247,10 +247,10 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="randomValue">A custom random value (if not provided, a secure random value will be generated).</param>
     /// <returns>A new UniqueId with the specified components.</returns>
-    public static UniqueId FromComponents(TypeId type, ushort machineId, uint? randomValue = null)
+    public static UniqueId FromComponents(IdType type, ushort machineId, uint? randomValue = null)
     {
-        if ((int)type >= (int)TypeId.Limit)
-            throw new ArgumentOutOfRangeException(nameof(type), "TypeId exceeds the allowed limit.");
+        if ((int)type >= (int)IdType.Limit)
+            throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         uint random = randomValue ?? GetStrongRandomUInt32();
 
@@ -338,10 +338,10 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <returns>A new UniqueId with the updated Type.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the new type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UniqueId WithType(TypeId newType)
+    public UniqueId WithType(IdType newType)
     {
-        if ((int)newType >= (int)TypeId.Limit)
-            throw new ArgumentOutOfRangeException(nameof(newType), "TypeId exceeds the allowed limit.");
+        if ((int)newType >= (int)IdType.Limit)
+            throw new ArgumentOutOfRangeException(nameof(newType), "IdType exceeds the allowed limit.");
 
         return new UniqueId((_value & 0x00FFFFFF) | ((uint)newType << 24));
     }

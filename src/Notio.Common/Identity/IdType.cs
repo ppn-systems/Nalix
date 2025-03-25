@@ -1,9 +1,9 @@
-namespace Notio.Common.Enums;
+namespace Notio.Common.Identity;
 
 /// <summary>
 /// ID type to serve different purposes in the system.
 /// </summary>
-public enum TypeId
+public enum IdType
 {
     /// <summary>
     /// No specific purpose.

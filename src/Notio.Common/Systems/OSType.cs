@@ -1,4 +1,4 @@
-namespace Notio.Common.Enums;
+namespace Notio.Common.Systems;
 
 /// <summary>
 /// Enumeration of Operating Systems.

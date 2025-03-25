@@ -1,14 +1,15 @@
-using Notio.Common.Security;
 using Notio.Common.Connection;
+using Notio.Common.Cryptography;
+using Notio.Common.Identity;
 using Notio.Common.Logging;
 using Notio.Common.Memory;
+using Notio.Common.Security;
 using Notio.Identifiers;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Notio.Common.Enums;
 
 namespace Notio.Network.Connection;
 
@@ -24,7 +25,7 @@ public sealed class Connection : IConnection
     private readonly Lock _lock = new();
     private readonly ConnectionStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
-    private readonly UniqueId _id = UniqueId.NewId(TypeId.Session);
+    private readonly UniqueId _id = UniqueId.NewId(IdType.Session);
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
@@ -117,10 +118,10 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public AuthorityLevel Authority { get; set; } = AuthorityLevel.Guest;
+    public AccessLevel Authority { get; set; } = AccessLevel.Guest;
 
     /// <inheritdoc />
-    public EncryptionMode Mode { get; set; } = EncryptionMode.Xtea;
+    public EncryptionMode Mode { get; set; } = EncryptionMode.XTEA;
 
     /// <inheritdoc />
     public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;

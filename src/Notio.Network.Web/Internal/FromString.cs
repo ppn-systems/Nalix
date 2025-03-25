@@ -1,4 +1,4 @@
-using Notio.Exceptions;
+using Notio.Common.Exceptions;
 using Notio.Extensions;
 using System;
 using System.Collections.Concurrent;

@@ -1,11 +1,11 @@
-using Notio.Common.Security;
+using Notio.Common.Cryptography;
+using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography;
 using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
-using Notio.Common.Exceptions;
 
 namespace Notio.Network.Package.Helpers;
 
@@ -19,13 +19,13 @@ public static class PacketEncryptionHelper
     /// </summary>
     /// <param name="packet">The packet whose payload needs to be encrypted.</param>
     /// <param name="key">The encryption key.</param>
-    /// <param name="algorithm">The encryption algorithm to use (e.g., Xtea, ChaCha20Poly1305).</param>
+    /// <param name="algorithm">The encryption algorithm to use (e.g., XTEA, ChaCha20Poly1305).</param>
     /// <returns>A new <see cref="Packet"/> instance with the encrypted payload.</returns>
     /// <exception cref="PackageException">
     /// Thrown if encryption conditions are not met or if an error occurs during encryption.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet EncryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Packet EncryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
 
@@ -47,13 +47,13 @@ public static class PacketEncryptionHelper
     /// </summary>
     /// <param name="packet">The packet whose payload needs to be decrypted.</param>
     /// <param name="key">The decryption key.</param>
-    /// <param name="algorithm">The encryption algorithm that was used (e.g., Xtea, ChaCha20Poly1305).</param>
+    /// <param name="algorithm">The encryption algorithm that was used (e.g., XTEA, ChaCha20Poly1305).</param>
     /// <returns>A new <see cref="Packet"/> instance with the decrypted payload.</returns>
     /// <exception cref="PackageException">
     /// Thrown if decryption conditions are not met or if an error occurs during decryption.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.Xtea)
+    public static Packet DecryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);
 

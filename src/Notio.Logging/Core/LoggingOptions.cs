@@ -1,4 +1,3 @@
-using Notio.Common.Enums;
 using Notio.Common.Logging;
 using Notio.Logging.Internal.File;
 using System;

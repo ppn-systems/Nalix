@@ -1,5 +1,6 @@
+using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
-using Notio.Common.Security;
+using Notio.Cryptography.Aead;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
 using System;
@@ -23,7 +24,7 @@ public static class Ciphers
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Encrypt(
         Memory<byte> data, byte[] key,
-        EncryptionMode algorithm = EncryptionMode.Xtea)
+        EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         if (key == null)
             throw new ArgumentNullException(
@@ -67,7 +68,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionMode.TwofishEcb:
+                case EncryptionMode.TwofishECB:
                     {
                         if (data.Length % 16 != 0)
                             throw new ArgumentException(
@@ -77,7 +78,7 @@ public static class Ciphers
                         return encrypted;
                     }
 
-                case EncryptionMode.TwofishCbc:
+                case EncryptionMode.TwofishCBC:
                     {
                         Span<byte> iv = RandGenerator.CreateNonce(16);
                         if (data.Length % 16 != 0)
@@ -93,7 +94,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionMode.Xtea:
+                case EncryptionMode.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] encryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -133,7 +134,7 @@ public static class Ciphers
     /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Decrypt(
         Memory<byte> data, byte[] key,
-        EncryptionMode algorithm = EncryptionMode.Xtea)
+        EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key),
@@ -185,7 +186,7 @@ public static class Ciphers
                         return plaintext;
                     }
 
-                case EncryptionMode.TwofishEcb:
+                case EncryptionMode.TwofishECB:
                     {
                         if (data.Length % 16 != 0)
                             throw new ArgumentException(
@@ -195,7 +196,7 @@ public static class Ciphers
                         return decrypted;
                     }
 
-                case EncryptionMode.TwofishCbc:
+                case EncryptionMode.TwofishCBC:
                     {
                         if (data.Length < 16 || (data.Length - 16) % 16 != 0)
                             throw new ArgumentException("Invalid data length for Twofish CBC.", nameof(data));
@@ -207,7 +208,7 @@ public static class Ciphers
                         return decrypted;
                     }
 
-                case EncryptionMode.Xtea:
+                case EncryptionMode.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] decryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);

@@ -1,7 +1,6 @@
-using Notio.Common.Enums;
 using System;
 
-namespace Notio.Common.Models;
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Represents a log entry in the logging system.

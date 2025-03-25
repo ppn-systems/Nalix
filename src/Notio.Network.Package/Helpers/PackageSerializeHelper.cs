@@ -1,5 +1,5 @@
+using Notio.Common.Exceptions;
 using Notio.Cryptography.Integrity;
-using Notio.Exceptions;
 using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Utilities;
 using System;

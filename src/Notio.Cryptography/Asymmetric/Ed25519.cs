@@ -1,4 +1,4 @@
-using Notio.Cryptography.Hash;
+using Notio.Cryptography.Hashing;
 using Notio.Extensions.Math;
 using System;
 using System.Numerics;
@@ -31,7 +31,7 @@ public sealed class Ed25519
         var a = ClampScalar(h.AsSpan(0, 32));
         ReadOnlySpan<byte> prefix = h.AsSpan(32, 32);
 
-        // r = Hash(prefix || message) mod L, using Span overload
+        // r = Hashing(prefix || message) mod L, using Span overload
         var r = HashToScalar(prefix, message);
         var mul = ScalarMul(B, r);
 
@@ -46,7 +46,7 @@ public sealed class Ed25519
         aEncoded.CopyTo(data.AsSpan(32, CiphersConstants.PublicKeySize));
         message.CopyTo(data, 64);
 
-        // s = (r + Hash(data) * a) mod L
+        // s = (r + Hashing(data) * a) mod L
         var s = (r + HashToScalar(data.AsSpan())) * a;
         s %= L; // Using Mod extension below
 

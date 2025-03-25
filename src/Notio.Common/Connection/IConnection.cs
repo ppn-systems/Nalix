@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography;
 using Notio.Common.Security;
 using System;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>
-    AuthorityLevel Authority { get; set; }
+    AccessLevel Authority { get; set; }
 
     /// <summary>
     /// Gets the current state of the connection.

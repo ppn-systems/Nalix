@@ -1,4 +1,4 @@
-using Notio.Common.Enums;
+using Notio.Common.Identity;
 using System;
 
 namespace Notio.Common.Data;
@@ -14,9 +14,9 @@ public interface IUniqueId
     uint Value { get; }
 
     /// <summary>
-    /// Gets the TypeId encoded within this identifier.
+    /// Gets the IdType encoded within this identifier.
     /// </summary>
-    TypeId Type { get; }
+    IdType Type { get; }
 
     /// <summary>
     /// Gets the machine ID component encoded within this identifier.

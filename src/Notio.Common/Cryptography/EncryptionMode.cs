@@ -1,4 +1,4 @@
-namespace Notio.Common.Security;
+namespace Notio.Common.Cryptography;
 
 /// <summary>
 /// Specifies the encryption modes available for symmetric encryption.
@@ -18,15 +18,15 @@ public enum EncryptionMode : byte
     /// <summary>
     /// Twofish block cipher.
     /// </summary>
-    TwofishEcb = 3,
+    TwofishECB = 3,
 
     /// <summary>
     /// Twofish block cipher.
     /// </summary>
-    TwofishCbc = 4,
+    TwofishCBC = 4,
 
     /// <summary>
     /// XTEA encryption algorithm.
     /// </summary>
-    Xtea = 5,
+    XTEA = 5,
 }

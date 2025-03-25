@@ -1,4 +1,4 @@
-namespace Notio.Common.Security;
+namespace Notio.Common.Connection;
 
 /// <summary>
 /// Represents the state of a connection.

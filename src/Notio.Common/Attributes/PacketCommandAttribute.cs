@@ -7,7 +7,7 @@ namespace Notio.Common.Attributes;
 /// Attribute to define a packet command and its required authority level.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public class PacketCommandAttribute(ushort command, AuthorityLevel authoritys = AuthorityLevel.User) : Attribute
+public class PacketCommandAttribute(ushort command, AccessLevel authoritys = AccessLevel.User) : Attribute
 {
     /// <summary>
     /// The unique command identifier for the packet.
@@ -17,12 +17,12 @@ public class PacketCommandAttribute(ushort command, AuthorityLevel authoritys = 
     /// <summary>
     /// The minimum authority level required to execute this command.
     /// </summary>
-    public AuthorityLevel RequiredAuthority { get; } = authoritys;
+    public AccessLevel RequiredAuthority { get; } = authoritys;
 
     /// <summary>
     /// Creates a PacketCommandAttribute with a command from an enum with ushort as underlying type.
     /// </summary>
-    public static PacketCommandAttribute Create<TEnum>(TEnum command, AuthorityLevel authoritys = AuthorityLevel.User)
+    public static PacketCommandAttribute Create<TEnum>(TEnum command, AccessLevel authoritys = AccessLevel.User)
         where TEnum : struct, Enum
     {
         if (Enum.GetUnderlyingType(typeof(TEnum)) != typeof(ushort))

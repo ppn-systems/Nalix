@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Cryptography.Hash;
+namespace Notio.Cryptography.Hashing;
 
 /// <summary>
 /// Provides an optimized implementation of the SHA-1 cryptographic hash algorithm.

@@ -4,7 +4,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Notio.Cryptography.Hash;
+namespace Notio.Cryptography.Hashing;
 
 /// <summary>
 /// High-performance implementation of the PBKDF2 (Password-Based Key Derivation Function 2) algorithm.
