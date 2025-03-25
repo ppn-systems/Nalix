@@ -17,35 +17,6 @@ namespace Notio.Cryptography.Hashing;
 public static class Sha1
 {
     /// <summary>
-    /// The initial hash values (H0-H4) as defined in the SHA-1 specification.
-    /// These values are used as the starting state of the hash computation.
-    /// </summary>
-    public static readonly uint[] K =
-    [
-        0x67452301,
-        0xEFCDAB89,
-        0x98BADCFE,
-        0x10325476,
-        0xC3D2E1F0
-    ];
-
-    /// <summary>
-    /// The SHA-1 round constants used in the message expansion and compression functions.
-    /// </summary>
-    /// <remarks>
-    /// There are four constants corresponding to different rounds of the SHA-1 process:
-    /// - `0x5A827999` for rounds 0-19
-    /// - `0x6ED9EBA1` for rounds 20-39
-    /// - `0x8F1BBCDC` for rounds 40-59
-    /// - `0xCA62C1D6` for rounds 60-79
-    /// </remarks>
-    public static readonly uint[] RoundConstants =
-    [
-        0x5A827999, 0x6ED9EBA1,
-        0x8F1BBCDC, 0xCA62C1D6
-    ];
-
-    /// <summary>
     /// Computes the SHA-1 hash of the provided data.
     /// </summary>
     /// <param name="data">The input data to hash.</param>
@@ -65,7 +36,7 @@ public static class Sha1
     public static byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
         Span<uint> h = stackalloc uint[5];
-        K.CopyTo(h);
+        Sha.H1.CopyTo(h);
 
         // Calculate message length in bits (before padding)
         ulong bitLength = (ulong)data.Length * 8;
@@ -148,7 +119,7 @@ public static class Sha1
         // Main loop - optimized with function inlining
         for (int j = 0; j < 20; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + RoundConstants[0] + w[j];
+            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + Sha.K1[0] + w[j];
             e = d;
             d = c;
             c = BitOperations.RotateLeft(b, 30);
@@ -158,7 +129,7 @@ public static class Sha1
 
         for (int j = 20; j < 40; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + RoundConstants[1] + w[j];
+            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[1] + w[j];
             e = d;
             d = c;
             c = BitOperations.RotateLeft(b, 30);
@@ -168,7 +139,7 @@ public static class Sha1
 
         for (int j = 40; j < 60; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + RoundConstants[2] + w[j];
+            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + Sha.K1[2] + w[j];
             e = d;
             d = c;
             c = BitOperations.RotateLeft(b, 30);
@@ -178,7 +149,7 @@ public static class Sha1
 
         for (int j = 60; j < 80; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + RoundConstants[3] + w[j];
+            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[3] + w[j];
             e = d;
             d = c;
             c = BitOperations.RotateLeft(b, 30);
@@ -236,38 +207,38 @@ public static class Sha1
         // Process rounds with loop unrolling
         for (int j = 0; j < 20; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, CH(b, c, d), RoundConstants[0], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, CH(a, b, c), RoundConstants[0], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, CH(e, a, b), RoundConstants[0], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, CH(d, e, a), RoundConstants[0], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, CH(c, d, e), RoundConstants[0], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, CH(b, c, d), Sha.K1[0], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, CH(a, b, c), Sha.K1[0], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, CH(e, a, b), Sha.K1[0], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, CH(d, e, a), Sha.K1[0], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, CH(c, d, e), Sha.K1[0], w[j + 4]);
         }
 
         for (int j = 20; j < 40; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), RoundConstants[1], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), RoundConstants[1], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), RoundConstants[1], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), RoundConstants[1], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), RoundConstants[1], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), Sha.K1[1], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), Sha.K1[1], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), Sha.K1[1], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), Sha.K1[1], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), Sha.K1[1], w[j + 4]);
         }
 
         for (int j = 40; j < 60; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, MAJ(b, c, d), RoundConstants[2], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, MAJ(a, b, c), RoundConstants[2], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, MAJ(e, a, b), RoundConstants[2], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, MAJ(d, e, a), RoundConstants[2], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, MAJ(c, d, e), RoundConstants[2], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, MAJ(b, c, d), Sha.K1[2], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, MAJ(a, b, c), Sha.K1[2], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, MAJ(e, a, b), Sha.K1[2], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, MAJ(d, e, a), Sha.K1[2], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, MAJ(c, d, e), Sha.K1[2], w[j + 4]);
         }
 
         for (int j = 60; j < 80; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), RoundConstants[3], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), RoundConstants[3], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), RoundConstants[3], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), RoundConstants[3], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), RoundConstants[3], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), Sha.K1[3], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), Sha.K1[3], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), Sha.K1[3], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), Sha.K1[3], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), Sha.K1[3], w[j + 4]);
         }
 
         // Update hash state
@@ -279,7 +250,8 @@ public static class Sha1
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessRound(ref uint a, ref uint b, ref uint c, ref uint d, ref uint e, uint f, uint k, uint w)
+    private static void ProcessRound(
+        ref uint a, ref uint b, ref uint c, ref uint d, ref uint e, uint f, uint k, uint w)
     {
         uint temp = BitOperations.RotateLeft(a, 5) + f + e + k + w;
         e = d;
