@@ -1,13 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Cryptography.Primitives;
+namespace Nalix.Framework.Cryptography.Primitives;
 
 /// <summary>
 /// High-performance bitwise utilities for cryptographic operations.
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-internal static partial class BitwiseOperations
+internal static class BitwiseOperations
 {
     #region Bit Rotations
 
@@ -20,7 +20,7 @@ internal static partial class BitwiseOperations
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 RotateRight(System.UInt32 value, System.Int32 bits)
-        => (value >> bits) | (value << (32 - bits));
+        => value >> bits | value << 32 - bits;
 
     /// <summary>
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
@@ -31,7 +31,7 @@ internal static partial class BitwiseOperations
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 RotateLeft(System.UInt32 value, System.Int32 bits)
-        => (value << bits) | (value >> (32 - bits));
+        => value << bits | value >> 32 - bits;
 
     #endregion Bit Rotations
 

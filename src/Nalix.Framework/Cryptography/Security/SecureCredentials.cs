@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
-using Nalix.Cryptography.Primitives;
+using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Framework.Cryptography.Security;
