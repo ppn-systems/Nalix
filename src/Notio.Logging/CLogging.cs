@@ -15,14 +15,16 @@ namespace Notio.Logging;
 /// Initializes the logging system with optional configuration.
 /// </remarks>
 /// <param name="configure">An optional action to configure the logging system.</param>
-public sealed class CLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
+public sealed class CLogging(Action<LoggingOptions>? configure = null)
+    : LoggingEngine(configure), ILogger
 {
     /// <summary>
     /// Gets the single instance of the <see cref="CLogging"/> class.
     /// </summary>
     public static CLogging Instance { get; set; } = new CLogging(delegate (LoggingOptions cfg)
     {
-        cfg.AddTarget(new ConsoleLoggingTarget()).AddTarget(new FileLoggingTarget());
+        cfg.AddTarget(new ConsoleLoggingTarget())
+           .AddTarget(new FileLoggingTarget());
     });
 
     /// <summary>

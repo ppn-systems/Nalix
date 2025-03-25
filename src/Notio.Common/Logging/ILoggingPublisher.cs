@@ -1,7 +1,7 @@
-namespace Notio.Common.Logging;
-
 using Notio.Common.Models;
 using System;
+
+namespace Notio.Common.Logging;
 
 /// <summary>
 /// Defines the interface for a logging publisher.

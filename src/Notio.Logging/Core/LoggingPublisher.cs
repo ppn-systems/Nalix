@@ -164,13 +164,13 @@ public sealed class LoggingPublisher : ILoggingPublisher
         try
         {
             // Log to debug output at minimum
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error publishing to {target.GetType().Name}: {exception.Message}");
+            System.Diagnostics.Debug.WriteLine(
+                $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error publishing to " +
+                $"{target.GetType().Name}: {exception.Message}");
 
             // Check if target implements error handling
             if (target is ILoggingErrorHandler errorHandler)
-            {
                 errorHandler.HandleError(exception, entry);
-            }
         }
         catch
         {
@@ -217,13 +217,11 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
     public string GetDiagnosticInfo()
-    {
-        return $"[LoggingPublisher Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
-               $"- User: {Environment.UserName}" + Environment.NewLine +
-               $"- Active Targets: {_targets.Count}" + Environment.NewLine +
-               $"- Entries Published: {EntriesPublished:N0}" + Environment.NewLine +
-               $"- Target Operations: {TargetsProcessed:N0}" + Environment.NewLine +
-               $"- Errors: {PublishErrorCount:N0}" + Environment.NewLine +
-               $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
-    }
+        => $"[LoggingPublisher Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
+           $"- User: {Environment.UserName}" + Environment.NewLine +
+           $"- Active Targets: {_targets.Count}" + Environment.NewLine +
+           $"- Entries Published: {EntriesPublished:N0}" + Environment.NewLine +
+           $"- Target Operations: {TargetsProcessed:N0}" + Environment.NewLine +
+           $"- Errors: {PublishErrorCount:N0}" + Environment.NewLine +
+           $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
 }
