@@ -9,7 +9,7 @@ namespace Notio.Cryptography.Hashing;
 /// Implementations of this interface provide incremental hashing, allowing data 
 /// to be processed in chunks rather than all at once.
 /// </remarks>
-public interface IShaHash
+public interface ISha
 {
     /// <summary>
     /// Initializes or resets the hashing state.

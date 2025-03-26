@@ -12,7 +12,7 @@ namespace Notio.Cryptography.Hashing;
 /// It is essentially SHA-256 with different initialization values and truncated output.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public sealed class Sha224 : IShaHash, IDisposable
+public sealed class Sha224 : ISha, IDisposable
 {
     private readonly uint[] _state = new uint[8];    // Hash state
     private readonly byte[] _buffer = new byte[64];  // Input buffer (64 bytes = 512 bits)
@@ -250,6 +250,7 @@ public sealed class Sha224 : IShaHash, IDisposable
     }
 
     #region SHA-224/256 Functions
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint RotateRight(uint value, int count) =>
         (value >> count) | (value << (32 - count));
@@ -277,6 +278,7 @@ public sealed class Sha224 : IShaHash, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Sigma1(uint x) =>
         RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
+
     #endregion
 
     /// <summary>

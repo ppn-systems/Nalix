@@ -1,3 +1,4 @@
+using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -14,7 +15,7 @@ namespace Notio.Cryptography.Hashing;
 /// It is considered weak due to known vulnerabilities but is still used in legacy systems.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public sealed class Sha1 : IShaHash, IDisposable
+public sealed class Sha1 : ISha, IDisposable
 {
     // Hash state instance field
     private readonly uint[] _state = new uint[5];
@@ -302,7 +303,7 @@ public sealed class Sha1 : IShaHash, IDisposable
         // Message schedule expansion
         for (int j = 16; j < 80; j++)
         {
-            w[j] = BitOperations.RotateLeft(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+            w[j] = BitwiseUtils.RotateLeft(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
         }
 
         // Initialize working variables
@@ -311,40 +312,40 @@ public sealed class Sha1 : IShaHash, IDisposable
         // Main loop - optimized with function inlining
         for (int j = 0; j < 20; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + Sha.K1[0] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + Sha.K1[0] + w[j];
             e = d;
             d = c;
-            c = BitOperations.RotateLeft(b, 30);
+            c = BitwiseUtils.RotateLeft(b, 30);
             b = a;
             a = temp;
         }
 
         for (int j = 20; j < 40; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[1] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[1] + w[j];
             e = d;
             d = c;
-            c = BitOperations.RotateLeft(b, 30);
+            c = BitwiseUtils.RotateLeft(b, 30);
             b = a;
             a = temp;
         }
 
         for (int j = 40; j < 60; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + Sha.K1[2] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + Sha.K1[2] + w[j];
             e = d;
             d = c;
-            c = BitOperations.RotateLeft(b, 30);
+            c = BitwiseUtils.RotateLeft(b, 30);
             b = a;
             a = temp;
         }
 
         for (int j = 60; j < 80; j++)
         {
-            uint temp = BitOperations.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[3] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[3] + w[j];
             e = d;
             d = c;
-            c = BitOperations.RotateLeft(b, 30);
+            c = BitwiseUtils.RotateLeft(b, 30);
             b = a;
             a = temp;
         }
@@ -389,7 +390,8 @@ public sealed class Sha1 : IShaHash, IDisposable
         {
             for (int j = 0; j < 4; j++)
             {
-                w[i + j] = BitOperations.RotateLeft(w[(i + j) - 3] ^ w[(i + j) - 8] ^ w[(i + j) - 14] ^ w[(i + j) - 16], 1);
+                w[i + j] = BitwiseUtils.RotateLeft(
+                    w[(i + j) - 3] ^ w[(i + j) - 8] ^ w[(i + j) - 14] ^ w[(i + j) - 16], 1);
             }
         }
 
@@ -445,10 +447,10 @@ public sealed class Sha1 : IShaHash, IDisposable
     private static void ProcessRound(
         ref uint a, ref uint b, ref uint c, ref uint d, ref uint e, uint f, uint k, uint w)
     {
-        uint temp = BitOperations.RotateLeft(a, 5) + f + e + k + w;
+        uint temp = BitwiseUtils.RotateLeft(a, 5) + f + e + k + w;
         e = d;
         d = c;
-        c = BitOperations.RotateLeft(b, 30);
+        c = BitwiseUtils.RotateLeft(b, 30);
         b = a;
         a = temp;
     }
@@ -461,14 +463,4 @@ public sealed class Sha1 : IShaHash, IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint MAJ(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);
-
-    // Helper class to provide bit operations if not using .NET Core 3.0+
-    private static class BitOperations
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint RotateLeft(uint value, int offset)
-        {
-            return (value << offset) | (value >> (32 - offset));
-        }
-    }
 }
