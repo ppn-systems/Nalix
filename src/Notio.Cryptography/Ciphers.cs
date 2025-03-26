@@ -4,7 +4,6 @@ using Notio.Cryptography.Aead;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
 using System;
-using System.Buffers;
 
 namespace Notio.Cryptography;
 
@@ -97,7 +96,7 @@ public static class Ciphers
                 case EncryptionMode.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
-                        byte[] encryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
+                        byte[] encryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
 
                         try
                         {
@@ -106,7 +105,7 @@ public static class Ciphers
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(encryptedXtea);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(encryptedXtea);
                         }
                     }
 
@@ -211,7 +210,7 @@ public static class Ciphers
                 case EncryptionMode.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
-                        byte[] decryptedXtea = ArrayPool<byte>.Shared.Rent(bufferSize);
+                        byte[] decryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
 
                         try
                         {
@@ -227,7 +226,7 @@ public static class Ciphers
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(decryptedXtea);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(decryptedXtea);
                         }
                     }
 

@@ -1,8 +1,8 @@
+using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Mac;
 
@@ -149,7 +149,7 @@ public sealed class Poly1305 : IDisposable
         Span<byte> computedTag = stackalloc byte[TagSizeInBytes];
         Compute(key, message, computedTag);
 
-        return CryptographicOperations.FixedTimeEquals(tag, computedTag);
+        return BitwiseUtils.FixedTimeEquals(tag, computedTag);
     }
 
     /// <summary>

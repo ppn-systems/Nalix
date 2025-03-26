@@ -1,7 +1,7 @@
 using Notio.Cryptography.Utilities;
+using Notio.Randomization;
 using System;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 
 namespace Notio.Cryptography.Symmetric;
 
@@ -113,8 +113,7 @@ public static class Speck
             if (iv == null)
             {
                 iv = new byte[8];
-                using var rng = RandomNumberGenerator.Create();
-                rng.GetBytes(iv);
+                RandGenerator.Fill(iv);
             }
             else if (iv.Length != 8)
             {

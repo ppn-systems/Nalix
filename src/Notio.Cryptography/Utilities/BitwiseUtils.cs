@@ -221,4 +221,20 @@ public static class BitwiseUtils
         b = a;
         a = temp1 + temp2;
     }
+
+    /// <summary>
+    /// Compares two byte spans in a fixed-time manner to prevent timing attacks.
+    /// </summary>
+    /// <param name="left">The first byte span to compare.</param>
+    /// <param name="right">The second byte span to compare.</param>
+    /// <returns>True if the byte spans are equal; otherwise, false.</returns>
+    public static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
+    {
+        if (left.Length != right.Length) return false;
+
+        int result = 0;
+        for (int i = 0; i < left.Length; i++) result |= left[i] ^ right[i];
+
+        return result == 0;
+    }
 }
