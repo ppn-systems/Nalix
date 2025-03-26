@@ -15,6 +15,20 @@ public class Blowfish
     /// <summary>
     /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
     /// </summary>
+    /// <param name="schedule"></param>
+    /// <param name="key"></param>
+    public Blowfish(uint[] schedule, byte[] key)
+    {
+        P = new uint[18];
+        S = new uint[4, 256];
+        Buffer.BlockCopy(schedule, 0, P, 0, 18 * 4);
+        Buffer.BlockCopy(schedule, 18 * 4, S, 0, 1024 * 4);
+        InitializeKeySchedule(key);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
+    /// </summary>
     /// <param name="key">The encryption key (must be between 4 and 56 bytes).</param>
     public Blowfish(byte[] key)
     {
