@@ -104,16 +104,18 @@ public sealed class Hmac : IDisposable
         {
             // For Sha1, we'll use the static implementation
             using var ms = new System.IO.MemoryStream();
-            ms.Write(innerKeyPad, 0, innerKeyPad.Length);
+            using var sha1 = new Sha1();
+
+            sha1.Update(innerKeyPad);
 
             // Copy the data to the memory stream
             if (data.Length > 0)
             {
                 byte[] dataArray = data.ToArray();
-                ms.Write(dataArray, 0, dataArray.Length);
+                sha1.Update(dataArray);
             }
 
-            return Sha1.ComputeHash(ms.ToArray());
+            return sha1.FinalizeHash();
         }
         else
         {
@@ -134,9 +136,10 @@ public sealed class Hmac : IDisposable
         {
             // For Sha1, we'll use the static implementation
             using var ms = new System.IO.MemoryStream();
-            ms.Write(outerKeyPad, 0, outerKeyPad.Length);
-            ms.Write(innerHash, 0, innerHash.Length);
-            return Sha1.ComputeHash(ms.ToArray());
+            using var sha1 = new Sha1();
+            sha1.Update(outerKeyPad);
+            sha1.Update(innerHash);
+            return sha1.FinalizeHash();
         }
         else
         {
@@ -218,7 +221,7 @@ public sealed class Hmac : IDisposable
 
             if (_algorithm == HashAlgorithm.Sha1)
             {
-                hashedKey = Sha1.ComputeHash(key);
+                hashedKey = Sha1.HashData(key);
             }
             else
             {

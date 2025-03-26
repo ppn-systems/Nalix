@@ -12,7 +12,7 @@ namespace Notio.Cryptography.Hashing;
 /// It is essentially SHA-256 with different initialization values and truncated output.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public sealed class Sha224 : IDisposable
+public sealed class Sha224 : IShaHash, IDisposable
 {
     private readonly uint[] _state = new uint[8];    // Hash state
     private readonly byte[] _buffer = new byte[64];  // Input buffer (64 bytes = 512 bits)
@@ -162,6 +162,22 @@ public sealed class Sha224 : IDisposable
         }
 
         return (byte[])_finalHash.Clone();
+    }
+
+    /// <summary>
+    /// Computes the SHA-224 hash of the given data using an instance method.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 224-bit hash as a byte array.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    /// <remarks>
+    /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
+    /// </remarks>
+    public byte[] ComputeHash(ReadOnlySpan<byte> data)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha224));
+        Update(data);
+        return FinalizeHash();
     }
 
     /// <summary>

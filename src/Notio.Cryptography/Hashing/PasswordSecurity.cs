@@ -32,7 +32,7 @@ public static class PasswordSecurity
     public static void HashPassword(string password, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeyLength, Pbkdf2.HashAlgorithmType.Sha256);
+        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeyLength, HashAlgorithm.Sha256);
         hash = pbkdf2.DeriveKey(password);
     }
 
@@ -45,7 +45,7 @@ public static class PasswordSecurity
     /// <returns><c>true</c> if the password is valid; otherwise, <c>false</c>.</returns>
     public static bool VerifyPassword(string password, byte[] salt, byte[] hash)
     {
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeyLength, Pbkdf2.HashAlgorithmType.Sha256);
+        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeyLength, HashAlgorithm.Sha256);
         return Pbkdf2.ConstantTimeEquals(pbkdf2.DeriveKey(password), hash);
     }
 

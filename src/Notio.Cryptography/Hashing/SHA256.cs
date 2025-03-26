@@ -17,7 +17,7 @@ namespace Notio.Cryptography.Hashing;
 /// This implementation processes data in 512-bit (64-byte) blocks, maintaining an internal state.
 /// It supports incremental updates and can be used in a streaming manner.
 /// </remarks>
-public sealed class Sha256 : IDisposable
+public sealed class Sha256 : IShaHash, IDisposable
 {
     private readonly byte[] _buffer = new byte[64];
     private readonly uint[] _state = new uint[8];
@@ -41,14 +41,7 @@ public sealed class Sha256 : IDisposable
     /// </remarks>
     public void Initialize()
     {
-        _state[0] = Sha.H256[0];
-        _state[1] = Sha.H256[1];
-        _state[2] = Sha.H256[2];
-        _state[3] = Sha.H256[3];
-        _state[4] = Sha.H256[4];
-        _state[5] = Sha.H256[5];
-        _state[6] = Sha.H256[6];
-        _state[7] = Sha.H256[7];
+        Buffer.BlockCopy(Sha.H256, 0, _state, 0, Sha.H256.Length * sizeof(uint));
 
         _byteCount = 0;
         _bufferLength = 0;

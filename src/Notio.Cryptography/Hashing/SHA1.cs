@@ -14,8 +14,157 @@ namespace Notio.Cryptography.Hashing;
 /// It is considered weak due to known vulnerabilities but is still used in legacy systems.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public static class Sha1
+public sealed class Sha1 : IShaHash, IDisposable
 {
+    // Hash state instance field
+    private readonly uint[] _state = new uint[5];
+    private bool _disposed;
+
+    // Fields for incremental hashing
+    private readonly byte[] _buffer = new byte[64]; // Buffer for incomplete blocks
+    private int _bufferIndex = 0;                  // Current position in buffer
+    private ulong _totalBytesProcessed = 0;        // Total bytes processed
+    private bool _finalized = false;               // Flag indicating hash has been finalized
+
+    /// <summary>
+    /// Initializes a new instance of the SHA-1 hash algorithm.
+    /// </summary>
+    public Sha1()
+    {
+        _disposed = false;
+        this.Initialize();
+    }
+
+    /// <summary>
+    /// Resets the hash state to initial values.
+    /// </summary>
+    public void Initialize()
+    {
+        Buffer.BlockCopy(Sha.H1, 0, _state, 0, Sha.H1.Length * sizeof(uint));
+        _bufferIndex = 0;
+        _totalBytesProcessed = 0;
+        _finalized = false;
+    }
+
+    /// <summary>
+    /// Updates the hash with more data.
+    /// </summary>
+    /// <param name="data">The input data to process.</param>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if this method is called after the object has been disposed.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if this method is called after the hash has been finalized.
+    /// </exception>
+    public void Update(ReadOnlySpan<byte> data)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+
+        if (_finalized)
+            throw new InvalidOperationException("Hash has been finalized");
+
+        _totalBytesProcessed += (ulong)data.Length;
+
+        // Process any bytes still in the buffer
+        if (_bufferIndex > 0)
+        {
+            int bytesToCopy = Math.Min(64 - _bufferIndex, data.Length);
+            data[..bytesToCopy].CopyTo(_buffer.AsSpan()[_bufferIndex..]);
+            _bufferIndex += bytesToCopy;
+
+            if (_bufferIndex == 64)
+            {
+                ProcessBlock(_buffer, _state);
+                _bufferIndex = 0;
+            }
+
+            data = data[bytesToCopy..];
+        }
+
+        // Process full blocks directly from input
+        while (data.Length >= 64)
+        {
+            ProcessBlock(data[..64], _state);
+            data = data[64..];
+        }
+
+        // Store remaining bytes in buffer
+        if (data.Length > 0)
+        {
+            data.CopyTo(_buffer.AsSpan()[_bufferIndex..]);
+            _bufferIndex += data.Length;
+        }
+    }
+
+    /// <summary>
+    /// Finalizes the hash computation and returns the hash value.
+    /// </summary>
+    /// <returns>The computed hash.</returns>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if this method is called after the object has been disposed.
+    /// </exception>
+    public byte[] FinalizeHash()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+
+        byte[] result = new byte[20];
+
+        if (_finalized)
+        {
+            // Create a copy of the hash result without reprocessing
+            for (int i = 0; i < 5; i++)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan()[(i * 4)..], _state[i]);
+            }
+            return result;
+        }
+
+        // Calculate message length in bits
+        ulong bitLength = _totalBytesProcessed * 8;
+
+        // Add padding as in ComputeHash method
+        Span<byte> paddingBuffer = stackalloc byte[128]; // Max 2 blocks needed
+        int paddingBufferPos = 0;
+
+        // Copy remaining data from buffer
+        if (_bufferIndex > 0)
+        {
+            _buffer.AsSpan(0, _bufferIndex).CopyTo(paddingBuffer);
+            paddingBufferPos = _bufferIndex;
+        }
+
+        // Add the '1' bit
+        paddingBuffer[paddingBufferPos++] = 0x80;
+
+        // Determine if we need one or two blocks
+        int blockCount = (paddingBufferPos + 8 > 64) ? 2 : 1;
+        int finalBlockSize = blockCount * 64;
+
+        // Fill with zeros until length field
+        while (paddingBufferPos < finalBlockSize - 8)
+        {
+            paddingBuffer[paddingBufferPos++] = 0;
+        }
+
+        // Write the length in bits as a 64-bit big-endian integer
+        BinaryPrimitives.WriteUInt64BigEndian(
+            paddingBuffer[(finalBlockSize - 8)..],
+            bitLength);
+
+        // Process the final block(s)
+        for (int i = 0; i < blockCount; i++)
+            ProcessBlock(paddingBuffer.Slice(i * 64, 64), _state);
+
+        _finalized = true;
+
+        // Convert hash to bytes in big-endian format
+        for (int i = 0; i < 5; i++)
+            BinaryPrimitives.WriteUInt32BigEndian(
+                result.AsSpan()[(i * 4)..], _state[i]);
+
+        return result;
+    }
+
     /// <summary>
     /// Computes the SHA-1 hash of the provided data.
     /// </summary>
@@ -27,16 +176,25 @@ public static class Sha1
     /// Thrown if the input data is excessively large (greater than 2^61 bytes),
     /// as SHA-1 uses a 64-bit length field.
     /// </exception>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if this method is called after the object has been disposed.
+    /// </exception>
     /// <remarks>
     /// This method follows the standard SHA-1 padding and processing rules:
     /// - The input data is processed in 64-byte blocks.
     /// - A padding byte `0x80` is added after the data.
     /// - The length of the original message (in bits) is appended in big-endian format.
     /// </remarks>
-    public static byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+
+        // Reset the state to ensure independence from previous operations
+        Initialize();
+
+        // Create a temporary copy of the hash state to preserve the instance state
         Span<uint> h = stackalloc uint[5];
-        Sha.H1.CopyTo(h);
+        _state.CopyTo(h);
 
         // Calculate message length in bits (before padding)
         ulong bitLength = (ulong)data.Length * 8;
@@ -83,8 +241,41 @@ public static class Sha1
         return result.ToArray();
     }
 
+    /// <summary>
+    /// Computes the SHA-1 hash of the given data in a single call.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 160-bit hash as a byte array.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
+    /// </remarks>
+    public static byte[] HashData(ReadOnlySpan<byte> data)
+    {
+        using Sha1 sha1 = new();
+        sha1.Update(data);
+        return sha1.FinalizeHash();
+    }
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="Sha1"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// This method clears sensitive data from memory and marks the instance as disposed.
+    /// </remarks>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        // Clear sensitive data from memory
+        Array.Clear(_state, 0, _state.Length);
+        Array.Clear(_buffer, 0, _buffer.Length);
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
+    private void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
     {
         // Use hardware acceleration if available
         if (Ssse3.IsSupported)
@@ -96,8 +287,9 @@ public static class Sha1
         ProcessBlockScalar(block, h);
     }
 
+    // Rest of the implementation remains the same...
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void ProcessBlockScalar(ReadOnlySpan<byte> block, Span<uint> h)
+    private unsafe void ProcessBlockScalar(ReadOnlySpan<byte> block, Span<uint> h)
     {
         Span<uint> w = stackalloc uint[80];
 
@@ -166,7 +358,7 @@ public static class Sha1
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void ProcessBlockSsse3(ReadOnlySpan<byte> block, Span<uint> h)
+    private unsafe void ProcessBlockSsse3(ReadOnlySpan<byte> block, Span<uint> h)
     {
         // Stack allocation for the message schedule array
         Span<uint> w = stackalloc uint[80];

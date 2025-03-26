@@ -206,33 +206,43 @@ public sealed class Pbkdf2 : IDisposable
     /// <param name="output">The span to store the hash output (20 bytes).</param>
     private static void ComputeHmacSha1(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
     {
-        Span<byte> keyBlock = stackalloc byte[64];
+        const int BlockSize = 64; // SHA-1 block size in bytes
+        Span<byte> keyBlock = stackalloc byte[BlockSize];
         keyBlock.Clear();
 
-        if (key.Length > 64) Sha1.ComputeHash(key).CopyTo(keyBlock);
-        else key.CopyTo(keyBlock);
+        // Step 1: Process Key
+        if (key.Length > BlockSize)
+        {
+            Sha1 sha1 = new();
+            sha1.ComputeHash(key).CopyTo(keyBlock);
+        }
+        else
+        {
+            key.CopyTo(keyBlock);
+        }
 
-        Span<byte> ipad = stackalloc byte[64];
-        Span<byte> opad = stackalloc byte[64];
+        // Step 2: Generate ipad and opad
+        Span<byte> ipad = stackalloc byte[BlockSize];
+        Span<byte> opad = stackalloc byte[BlockSize];
 
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < BlockSize; i++)
         {
             ipad[i] = (byte)(keyBlock[i] ^ 0x36);
             opad[i] = (byte)(keyBlock[i] ^ 0x5C);
         }
 
-        Span<byte> innerHashInput = stackalloc byte[64 + message.Length];
-        ipad.CopyTo(innerHashInput);
-        message.CopyTo(innerHashInput[64..]);
-
+        // Step 3: Compute inner hash (H(K ⊕ ipad || message))
+        Sha1 sha1Inner = new();
+        sha1Inner.Update(ipad);
+        sha1Inner.Update(message);
         Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
-        Sha1.ComputeHash(innerHashInput).CopyTo(innerHash);
+        sha1Inner.FinalizeHash().CopyTo(innerHash);
 
-        Span<byte> outerHashInput = stackalloc byte[64 + 20];
-        opad.CopyTo(outerHashInput);
-        innerHash.CopyTo(outerHashInput[64..]);
-
-        Sha1.ComputeHash(outerHashInput).CopyTo(output);
+        // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
+        Sha1 sha1Outer = new();
+        sha1Outer.Update(opad);
+        sha1Outer.Update(innerHash);
+        sha1Outer.FinalizeHash().CopyTo(output);
     }
 
     /// <summary>
