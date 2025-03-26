@@ -43,7 +43,7 @@ public static class SecureCredentials
     public static void GenerateCredentialHash(System.String credential, out System.Byte[] salt, out System.Byte[] hash)
     {
         salt = SecureRandom.GetBytes(SaltSize);
-        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithmType.Sha256);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashType.Sha256);
         hash = pbkdf2.DeriveKey(credential);
     }
 
@@ -77,7 +77,7 @@ public static class SecureCredentials
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean VerifyCredentialHash(System.String credential, System.Byte[] salt, System.Byte[] hash)
     {
-        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithmType.Sha256);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashType.Sha256);
         return BitwiseOperations.FixedTimeEquals(pbkdf2.DeriveKey(credential), hash);
     }
 
