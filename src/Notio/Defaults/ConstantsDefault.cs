@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Notio;
+namespace Notio.Defaults;
 
 /// <summary>
 /// Represents default values and constants for configurations.

@@ -5,7 +5,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio;
+namespace Notio.Defaults;
 
 /// <summary>
 /// Class that defines default directories for the application with enhanced functionality

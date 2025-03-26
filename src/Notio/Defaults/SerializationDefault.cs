@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Notio;
+namespace Notio.Defaults;
 
 /// <summary>
 /// Provides predefined JSON serialization settings for different use cases.
