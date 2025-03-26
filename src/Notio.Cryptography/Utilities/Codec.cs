@@ -1,10 +1,52 @@
-namespace Notio.Cryptography.Symmetric;
+using Notio.Cryptography.Symmetric;
+
+namespace Notio.Cryptography.Utilities;
 
 /// <summary>
 /// Encrypter/decrypter for the network protocol.
 /// </summary>
-public class Codec
+public sealed class Codec
 {
+    public readonly Blowfish _blowfish;
+
+    /// <summary>
+    /// Creates new instance.
+    /// </summary>
+    public Codec() => _blowfish = new Blowfish(SBox, Key);
+
+    /// <summary>
+    /// Decrypts the data in the packet in place, starting at offset
+    /// and continuing for len bytes.
+    /// </summary>
+    /// <param name="packet"></param>
+    /// <param name="offset"></param>
+    /// <param name="len"></param>
+    public void Decrypt(byte[] packet, int offset, int len)
+        => _blowfish.DecryptBlock(packet, offset, len);
+
+    /// <summary>
+    /// Decrypts all data in the packet in place.
+    /// </summary>
+    /// <param name="packet"></param>
+    public void Decrypt(byte[] packet)
+        => _blowfish.DecryptBlock(packet, 0, packet.Length);
+
+    /// <summary>
+    /// Encrypts the data in the packet in place, starting at offset
+    /// and continuing for len bytes.
+    /// </summary>
+    /// <param name="packet"></param>
+    /// <param name="offset"></param>
+    /// <param name="len"></param>
+    public void Encrypt(byte[] packet, int offset, int len)
+        => _blowfish.DecryptBlock(packet, offset, len);
+
+    /// <summary>
+    /// Encrypts all data in the packet in place.
+    /// </summary>
+    /// <param name="packet"></param>
+    public void Encrypt(byte[] packet) => _blowfish.DecryptBlock(packet, 0, packet.Length);
+
     #region Data
 
     private readonly static uint[] SBox =
@@ -59,7 +101,7 @@ public class Codec
         0x48DE5369, 0x6413E680, 0xA2AE0810, 0xDD6DB224, 0x69852DFD, 0x09072166, 0x4DE81751, 0x3830DC8E,
         0x379D5862, 0x9320F991, 0xB39A460A, 0x6445C0DD, 0x586CDECF, 0x1C20C8AE, 0x5BBEF7DD, 0x1B588D40,
         0xCCD2017F, 0x6BB4E3BB, 0xDDA26A7E, 0x3A59FF45, 0x3E350A44, 0xBCB4CDD5, 0x72EACEA8, 0xFA6484BB,
-         0x8D6612AE, 0xBF3C6F47, 0x740E0D8D, 0xE75B1357, 0xF8721671, 0xAF537D5D, 0x4040CB08, 0x4EB4E2CC,
+        0x8D6612AE, 0xBF3C6F47, 0x740E0D8D, 0xE75B1357, 0xF8721671, 0xAF537D5D, 0x4040CB08, 0x4EB4E2CC,
         0x34D2466A, 0x0115AF84, 0xE1B00428, 0x95983A1D, 0x06B89FB4, 0xCE6EA048, 0x6F3F3B82, 0x3520AB82,
         0x011A1D4B, 0x277227F8, 0xE01CC87E, 0xBCC7D1F6, 0xCF0111C3, 0xA1E8AAC7, 0x1A908749, 0xD44FBD9A,
         0xD0DADECB, 0xD50ADA38, 0x0339C32A, 0xC6913667, 0x8DF9317C, 0xE0B12B4F, 0xF79E59B7, 0x43F5BB3A,
@@ -142,59 +184,7 @@ public class Codec
         0x63EF8CE2, 0x9A86EE22,
     ];
 
-    private readonly static byte[] Key = new byte[] { 0x68, 0x73, 0x75, 0x6E, 0x66, 0x66, 0x61, 0x6C, 0x71, 0x79, 0x72, 0x71, 0x65, 0x77, 0x65, 0x73 };
+    private readonly static byte[] Key = "notiokey0"u8.ToArray();
 
     #endregion
-
-    public readonly Blowfish _bf;
-
-    /// <summary>
-    /// Creates new instance.
-    /// </summary>
-    public Codec()
-    {
-        _bf = new Blowfish(SBox, Key);
-    }
-
-    /// <summary>
-    /// Decrypts the data in the packet in place, starting at offset
-    /// and continuing for len bytes.
-    /// </summary>
-    /// <param name="packet"></param>
-    /// <param name="offset"></param>
-    /// <param name="len"></param>
-    public void Decrypt(byte[] packet, int offset, int len)
-    {
-        _bf.DecryptBlock(packet, offset, len);
-    }
-
-    /// <summary>
-    /// Decrypts all data in the packet in place.
-    /// </summary>
-    /// <param name="packet"></param>
-    public void Decrypt(byte[] packet)
-    {
-        _bf.DecryptBlock(packet, 0, packet.Length);
-    }
-
-    /// <summary>
-    /// Encrypts the data in the packet in place, starting at offset
-    /// and continuing for len bytes.
-    /// </summary>
-    /// <param name="packet"></param>
-    /// <param name="offset"></param>
-    /// <param name="len"></param>
-    public void Encrypt(byte[] packet, int offset, int len)
-    {
-        _bf.DecryptBlock(packet, offset, len);
-    }
-
-    /// <summary>
-    /// Encrypts all data in the packet in place.
-    /// </summary>
-    /// <param name="packet"></param>
-    public void Encrypt(byte[] packet)
-    {
-        _bf.DecryptBlock(packet, 0, packet.Length);
-    }
 }

@@ -10,7 +10,7 @@ namespace Notio.Cryptography.Symmetric;
 /// This implementation does not rely on system cryptography libraries for the core algorithm,
 /// but uses secure random number generation for IV when needed.
 /// </summary>
-public static class Speck64
+public static class Speck
 {
     // Speck configuration constants
     private const uint ALPHA = 8; // Rotation constant alpha
@@ -22,7 +22,7 @@ public static class Speck64
     /// <param name="plaintext">The plaintext to encrypt (must be exactly 8 bytes).</param>
     /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
     /// <returns>The encrypted ciphertext (8 bytes).</returns>
-    public static byte[] Encrypt128(byte[] plaintext, byte[] key)
+    public static byte[] Encrypt(byte[] plaintext, byte[] key)
     {
         if (plaintext is not { Length: 8 })
             throw new ArgumentException(
@@ -56,7 +56,7 @@ public static class Speck64
     /// <param name="ciphertext">The ciphertext to decrypt (must be exactly 8 bytes).</param>
     /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
     /// <returns>The decrypted plaintext (8 bytes).</returns>
-    public static byte[] Decrypt128(byte[] ciphertext, byte[] key)
+    public static byte[] Decrypt(byte[] ciphertext, byte[] key)
     {
         if (ciphertext is not { Length: 8 })
             throw new ArgumentException(
@@ -85,140 +85,148 @@ public static class Speck64
     }
 
     /// <summary>
-    /// Encrypts data using CBC mode with the Speck64/128 variant.
+    /// Speck in CBC mode.
     /// </summary>
-    /// <param name="plaintext">The plaintext to encrypt (length must be multiple of 8 bytes).</param>
-    /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
-    /// <param name="iv">The initialization vector (must be exactly 8 bytes). If null, a random IV will be generated.</param>
-    /// <returns>The encrypted ciphertext with IV prepended (IV + ciphertext).</returns>
-    public static byte[] EncryptCBC(byte[] plaintext, byte[] key, byte[] iv = null)
+    public static class CBC
     {
-        ArgumentNullException.ThrowIfNull(plaintext);
-
-        if (plaintext.Length % 8 != 0)
-            throw new ArgumentException(
-                "Plaintext length must be a multiple of 8 bytes for CBC mode",
-                nameof(plaintext));
-
-        if (key is not { Length: 16 })
-            throw new ArgumentException(
-                "Key must be exactly 16 bytes for Speck64/128", nameof(key));
-
-        // Generate IV if not provided
-        if (iv == null)
+        /// <summary>
+        /// Encrypts data using CBC mode with the Speck64/128 variant.
+        /// </summary>
+        /// <param name="plaintext">The plaintext to encrypt (length must be multiple of 8 bytes).</param>
+        /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
+        /// <param name="iv">The initialization vector (must be exactly 8 bytes). If null, a random IV will be generated.</param>
+        /// <returns>The encrypted ciphertext with IV prepended (IV + ciphertext).</returns>
+        public static byte[] Encrypt(byte[] plaintext, byte[] key, byte[] iv = null)
         {
-            iv = new byte[8];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(iv);
-        }
-        else if (iv.Length != 8)
-        {
-            throw new ArgumentException("IV must be exactly 8 bytes for Speck64/128", nameof(iv));
-        }
+            ArgumentNullException.ThrowIfNull(plaintext);
 
-        // Generate subkeys
-        uint[] subkeys = GenerateSubkeys64_128(key);
+            if (plaintext.Length % 8 != 0)
+                throw new ArgumentException(
+                    "Plaintext length must be a multiple of 8 bytes for CBC mode",
+                    nameof(plaintext));
 
-        // Prepare output (IV + ciphertext)
-        byte[] output = new byte[iv.Length + plaintext.Length];
-        Array.Copy(iv, 0, output, 0, iv.Length);
+            if (key is not { Length: 16 })
+                throw new ArgumentException(
+                    "Key must be exactly 16 bytes for Speck64/128", nameof(key));
 
-        // Previous block for CBC chaining (initially the IV)
-        byte[] previousBlock = (byte[])iv.Clone();
-
-        // Process each block
-        for (int i = 0; i < plaintext.Length; i += 8)
-        {
-            // XOR with previous ciphertext block or IV
-            byte[] currentBlock = new byte[8];
-            for (int j = 0; j < 8; j++)
+            // Generate IV if not provided
+            if (iv == null)
             {
-                currentBlock[j] = (byte)(plaintext[i + j] ^ previousBlock[j]);
+                iv = new byte[8];
+                using var rng = RandomNumberGenerator.Create();
+                rng.GetBytes(iv);
+            }
+            else if (iv.Length != 8)
+            {
+                throw new ArgumentException("IV must be exactly 8 bytes for Speck64/128", nameof(iv));
             }
 
-            // Extract words
-            uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
-            uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
+            // Generate subkeys
+            uint[] subkeys = GenerateSubkeys64_128(key);
 
-            // Encrypt block
-            (x, y) = EncryptBlock(x, y, subkeys);
+            // Prepare output (IV + ciphertext)
+            byte[] output = new byte[iv.Length + plaintext.Length];
+            Array.Copy(iv, 0, output, 0, iv.Length);
 
-            // Store result
-            byte[] encryptedBlock = new byte[8];
-            BitwiseUtils.ToBytes(encryptedBlock, x, 0);
-            BitwiseUtils.ToBytes(encryptedBlock, y, 4);
+            // Previous block for CBC chaining (initially the IV)
+            byte[] previousBlock = (byte[])iv.Clone();
 
-            // Copy to output
-            Array.Copy(encryptedBlock, 0, output, iv.Length + i, 8);
-
-            // Update previous block for next iteration
-            previousBlock = encryptedBlock;
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Decrypts data using CBC mode with the Speck64/128 variant.
-    /// </summary>
-    /// <param name="ciphertext">The ciphertext to decrypt (includes IV as first 8 bytes).</param>
-    /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
-    /// <returns>The decrypted plaintext.</returns>
-    public static byte[] DecryptCBC(byte[] ciphertext, byte[] key)
-    {
-        if (ciphertext == null || ciphertext.Length < 9 || ciphertext.Length % 8 != 0)
-            throw new ArgumentException(
-                "Ciphertext must include IV (at least 9 bytes) and be multiple of 8 bytes in length",
-                nameof(ciphertext));
-
-        if (key is not { Length: 16 })
-            throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
-
-        // Extract IV from first block
-        byte[] iv = new byte[8];
-        Array.Copy(ciphertext, 0, iv, 0, 8);
-
-        // Generate subkeys
-        uint[] subkeys = GenerateSubkeys64_128(key);
-
-        // Prepare output (plaintext without IV)
-        int plaintextLength = ciphertext.Length - 8;
-        byte[] plaintext = new byte[plaintextLength];
-
-        // Previous block for CBC chaining (initially the IV)
-        byte[] previousBlock = iv;
-
-        // Process each block
-        for (int i = 0; i < plaintextLength; i += 8)
-        {
-            // Current ciphertext block
-            byte[] currentBlock = new byte[8];
-            Array.Copy(ciphertext, 8 + i, currentBlock, 0, 8);
-
-            // Extract words
-            uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
-            uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
-
-            // Decrypt block
-            (x, y) = DecryptBlock(x, y, subkeys);
-
-            // Store result
-            byte[] decryptedBlock = new byte[8];
-            BitwiseUtils.ToBytes(decryptedBlock, x, 0);
-            BitwiseUtils.ToBytes(decryptedBlock, y, 4);
-
-            // XOR with previous ciphertext block or IV
-            for (int j = 0; j < 8; j++)
+            // Process each block
+            for (int i = 0; i < plaintext.Length; i += 8)
             {
-                plaintext[i + j] = (byte)(decryptedBlock[j] ^ previousBlock[j]);
+                // XOR with previous ciphertext block or IV
+                byte[] currentBlock = new byte[8];
+                for (int j = 0; j < 8; j++)
+                {
+                    currentBlock[j] = (byte)(plaintext[i + j] ^ previousBlock[j]);
+                }
+
+                // Extract words
+                uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
+                uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
+
+                // Encrypt block
+                (x, y) = EncryptBlock(x, y, subkeys);
+
+                // Store result
+                byte[] encryptedBlock = new byte[8];
+                BitwiseUtils.ToBytes(encryptedBlock, x, 0);
+                BitwiseUtils.ToBytes(encryptedBlock, y, 4);
+
+                // Copy to output
+                Array.Copy(encryptedBlock, 0, output, iv.Length + i, 8);
+
+                // Update previous block for next iteration
+                previousBlock = encryptedBlock;
             }
 
-            // Update previous block for next iteration
-            previousBlock = currentBlock;
+            return output;
         }
 
-        return plaintext;
+        /// <summary>
+        /// Decrypts data using CBC mode with the Speck64/128 variant.
+        /// </summary>
+        /// <param name="ciphertext">The ciphertext to decrypt (includes IV as first 8 bytes).</param>
+        /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
+        /// <returns>The decrypted plaintext.</returns>
+        public static byte[] Decrypt(byte[] ciphertext, byte[] key)
+        {
+            if (ciphertext == null || ciphertext.Length < 9 || ciphertext.Length % 8 != 0)
+                throw new ArgumentException(
+                    "Ciphertext must include IV (at least 9 bytes) and be multiple of 8 bytes in length",
+                    nameof(ciphertext));
+
+            if (key is not { Length: 16 })
+                throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
+
+            // Extract IV from first block
+            byte[] iv = new byte[8];
+            Array.Copy(ciphertext, 0, iv, 0, 8);
+
+            // Generate subkeys
+            uint[] subkeys = GenerateSubkeys64_128(key);
+
+            // Prepare output (plaintext without IV)
+            int plaintextLength = ciphertext.Length - 8;
+            byte[] plaintext = new byte[plaintextLength];
+
+            // Previous block for CBC chaining (initially the IV)
+            byte[] previousBlock = iv;
+
+            // Process each block
+            for (int i = 0; i < plaintextLength; i += 8)
+            {
+                // Current ciphertext block
+                byte[] currentBlock = new byte[8];
+                Array.Copy(ciphertext, 8 + i, currentBlock, 0, 8);
+
+                // Extract words
+                uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
+                uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
+
+                // Decrypt block
+                (x, y) = DecryptBlock(x, y, subkeys);
+
+                // Store result
+                byte[] decryptedBlock = new byte[8];
+                BitwiseUtils.ToBytes(decryptedBlock, x, 0);
+                BitwiseUtils.ToBytes(decryptedBlock, y, 4);
+
+                // XOR with previous ciphertext block or IV
+                for (int j = 0; j < 8; j++)
+                {
+                    plaintext[i + j] = (byte)(decryptedBlock[j] ^ previousBlock[j]);
+                }
+
+                // Update previous block for next iteration
+                previousBlock = currentBlock;
+            }
+
+            return plaintext;
+        }
     }
+
+    #region Private API
 
     /// <summary>
     /// Encrypts a single block using Speck algorithm
@@ -331,4 +339,6 @@ public static class Speck64
 
         return x;
     }
+
+    #endregion
 }

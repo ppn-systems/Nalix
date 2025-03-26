@@ -40,6 +40,57 @@ public sealed class Arc4 : IDisposable
     }
 
     /// <summary>
+    /// Encrypts or decrypts the given data in-place using the ARC4 stream cipher.
+    /// </summary>
+    /// <param name="buffer">The data buffer to be encrypted or decrypted.</param>
+    /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+    public void Process(Span<byte> buffer)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        // Process 4 bytes at a time when possible
+        int blockCount = buffer.Length / 4;
+        int remainder = buffer.Length % 4;
+
+        if (blockCount > 0)
+        {
+            ProcessBlocks(MemoryMarshal.Cast<byte, uint>(buffer[..(blockCount * 4)]));
+        }
+
+        // Process any remaining bytes
+        if (remainder > 0)
+        {
+            ProcessBytes(buffer[(blockCount * 4)..]);
+        }
+    }
+
+    /// <summary>
+    /// Resets the internal state of the cipher.
+    /// </summary>
+    public void Reset()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _i = 0;
+        _j = 0;
+        Array.Clear(_s, 0, _s.Length);
+    }
+
+    /// <summary>
+    /// Disposes the resources used by this instance.
+    /// </summary>
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            // Clear the state array to remove sensitive data
+            Array.Clear(_s, 0, _s.Length);
+            _disposed = true;
+        }
+    }
+
+    #region Private API
+
+    /// <summary>
     /// Initializes the cipher with the provided key.
     /// </summary>
     private void Initialize(ReadOnlySpan<byte> key)
@@ -63,31 +114,6 @@ public sealed class Arc4 : IDisposable
         _j = 0;
         Span<byte> dummy = stackalloc byte[3072];
         Process(dummy);
-    }
-
-    /// <summary>
-    /// Encrypts or decrypts the given data in-place using the ARC4 stream cipher.
-    /// </summary>
-    /// <param name="buffer">The data buffer to be encrypted or decrypted.</param>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
-    public void Process(Span<byte> buffer)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        // Process 4 bytes at a time when possible
-        int blockCount = buffer.Length / 4;
-        int remainder = buffer.Length % 4;
-
-        if (blockCount > 0)
-        {
-            ProcessBlocks(MemoryMarshal.Cast<byte, uint>(buffer[..(blockCount * 4)]));
-        }
-
-        // Process any remaining bytes
-        if (remainder > 0)
-        {
-            ProcessBytes(buffer[(blockCount * 4)..]);
-        }
     }
 
     /// <summary>
@@ -130,27 +156,5 @@ public sealed class Arc4 : IDisposable
         }
     }
 
-    /// <summary>
-    /// Resets the internal state of the cipher.
-    /// </summary>
-    public void Reset()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _i = 0;
-        _j = 0;
-        Array.Clear(_s, 0, _s.Length);
-    }
-
-    /// <summary>
-    /// Disposes the resources used by this instance.
-    /// </summary>
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            // Clear the state array to remove sensitive data
-            Array.Clear(_s, 0, _s.Length);
-            _disposed = true;
-        }
-    }
+    #endregion
 }

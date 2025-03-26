@@ -244,6 +244,8 @@ public static class Twofish
     // Core Implementation
     // --------------------------
 
+    #region Core Implementation
+
     private static void ValidateParameters(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
     {
         if (key.Length != 16 && key.Length != 24 && key.Length != 32)
@@ -519,12 +521,9 @@ public static class Twofish
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte Q01(byte x) => Q1[x];
 
-    /// <summary>
-    /// Converts a nibble to a hex character
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static char GetHexChar(int value) =>
-        (char)(value < 10 ? '0' + value : 'A' + (value - 10));
+    #endregion
+
+    #region Readonly
 
     // Block size in bytes (128 bits)
     private const int BlockSize = 16;
@@ -615,4 +614,6 @@ public static class Twofish
         0xD7, 0x61, 0x1E, 0xB4, 0x50, 0x04, 0xF6, 0xC2,
         0x16, 0x25, 0x86, 0x56, 0x55, 0x09, 0xBE, 0x91
     ];
+
+    #endregion
 }
