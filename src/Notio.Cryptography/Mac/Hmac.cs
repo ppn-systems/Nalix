@@ -88,10 +88,10 @@ public sealed class Hmac : IDisposable
             outerKeyPad[i] = (byte)(_key[i] ^ OuterPadValue);
         }
 
-        // Compute inner hash (H(K ⊕ ipad || message))
+        // Compute inner hash (H(Ka ⊕ ipad || message))
         byte[] innerHash = ComputeInnerHash(innerKeyPad, data);
 
-        // Compute outer hash (H(K ⊕ opad || inner_hash))
+        // Compute outer hash (H(Ka ⊕ opad || inner_hash))
         return ComputeOuterHash(outerKeyPad, innerHash);
     }
 

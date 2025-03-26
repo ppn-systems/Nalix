@@ -11,6 +11,11 @@ public enum HashAlgorithm
     Sha1,
 
     /// <summary>
+    /// SHA-224 hash algorithm (224-bit output)
+    /// </summary>
+    Sha224,
+
+    /// <summary>
     /// SHA-256 hash algorithm (256-bit output)
     /// </summary>
     Sha256

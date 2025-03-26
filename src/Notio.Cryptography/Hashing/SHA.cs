@@ -3,7 +3,7 @@ namespace Notio.Cryptography.Hashing;
 public static class Sha
 {
     /// <summary>
-    /// The SHA-1 round constants (K values) used in the message expansion and compression functions.
+    /// The SHA-1 round constants (Ka values) used in the message expansion and compression functions.
     /// </summary>
     /// <remarks>
     /// There are four constants corresponding to different rounds of the SHA-1 process:
@@ -21,7 +21,7 @@ public static class Sha
     public static readonly uint[] H1 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
 
     /// <summary>
-    /// SHA-224 round constants (K)
+    /// SHA-224 round constants (Ka)
     /// </summary>
     public static readonly uint[] K224 =
     [
@@ -45,7 +45,7 @@ public static class Sha
     ];
 
     /// <summary>
-    /// SHA-256 round constants (K)
+    /// SHA-256 round constants (Ka)
     /// </summary>
     public static readonly uint[] K256 = K224;
 
