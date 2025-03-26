@@ -1,3 +1,5 @@
+using Notio.Common.Logging;
+
 namespace Notio.Network.Handlers;
 
 /// <summary>
@@ -16,6 +18,15 @@ public abstract class PacketDispatcherBase
     /// The options object allows registering packet handlers and configuring logging.
     /// </remarks>
     protected PacketDispatcherOptions Options { get; } = new();
+
+    /// <summary>
+    /// Gets the logger instance associated with this dispatcher.
+    /// </summary>
+    /// <remarks>
+    /// If logging is enabled, this property provides access to the configured logger.
+    /// Otherwise, it may be <c>null</c>.
+    /// </remarks>
+    protected ILogger? Logger => Options.Logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase" /> class

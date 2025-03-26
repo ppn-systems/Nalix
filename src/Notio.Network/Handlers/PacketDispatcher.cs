@@ -1,6 +1,5 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
-using System;
 
 namespace Notio.Network.Handlers;
 
@@ -23,19 +22,19 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     {
         if (packet == null)
         {
-            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
             return;
         }
 
         if (Options.DeserializationMethod == null)
         {
-            Options.Logger?.Error("No deserialization method specified.");
+            Logger?.Error("No deserialization method specified.");
             return;
         }
 
-        Options.Logger?.Debug("Deserializing packet...");
+        Logger?.Debug("Deserializing packet...");
         IPacket parsedPacket = Options.DeserializationMethod(packet);
-        Options.Logger?.Debug("Packet deserialized successfully.");
+        Logger?.Debug("Packet deserialized successfully.");
 
         this.HandlePacket(parsedPacket, connection).Wait();
     }
@@ -45,19 +44,19 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     {
         if (packet == null)
         {
-            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
             return;
         }
 
         if (Options.DeserializationMethod == null)
         {
-            Options.Logger?.Error("No deserialization method specified.");
+            Logger?.Error("No deserialization method specified.");
             return;
         }
 
-        Options.Logger?.Debug("Deserializing packet...");
+        Logger?.Debug("Deserializing packet...");
         IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
-        Options.Logger?.Debug("Packet deserialized successfully.");
+        Logger?.Debug("Packet deserialized successfully.");
 
         this.HandlePacket(parsedPacket, connection).Wait();
     }
@@ -67,29 +66,29 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     {
         if (packet == null)
         {
-            Options.Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
             return;
         }
 
         ushort commandId = packet.Command;
-        Options.Logger?.Debug($"Processing packet with CommandId: {commandId}");
+        Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
         if (Options.PacketHandlers.TryGetValue(commandId, out var handlerAction))
         {
-            Options.Logger?.Debug($"Invoking handler for CommandId: {commandId}");
+            Logger?.Debug($"Invoking handler for CommandId: {commandId}");
 
             try
             {
                 await handlerAction(packet, connection).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                Options.Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}", ex);
+                Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}", ex);
             }
         }
         else
         {
-            Options.Logger?.Warn($"No handler found for CommandId {commandId}");
+            Logger?.Warn($"No handler found for CommandId {commandId}");
         }
     }
 }

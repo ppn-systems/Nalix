@@ -1,5 +1,6 @@
 using Notio.Common.Connection;
 using System;
+using System.Threading;
 
 namespace Notio.Network.Protocols;
 
@@ -20,8 +21,9 @@ public interface IProtocol
     /// This method should implement the logic for initializing the connection and setting up data reception.
     /// </summary>
     /// <param name="connection">The connection to handle.</param>
+    /// <param name="cancellationToken">Token for cancellation</param>
     /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
-    void OnAccept(IConnection connection);
+    void OnAccept(IConnection connection, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Processes an incoming message from the connection.

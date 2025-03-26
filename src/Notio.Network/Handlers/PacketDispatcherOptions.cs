@@ -288,6 +288,156 @@ public sealed class PacketDispatcherOptions
     }
 
     /// <summary>
+    /// Configures a type-specific packet compression method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for compression.</typeparam>
+    /// <param name="compressionMethod">
+    /// A function that compresses a packet of type <typeparamref name="TPacket"/> before sending.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions WithTypedCompression<TPacket>(
+        Func<TPacket, IConnection, TPacket> compressionMethod)
+        where TPacket : IPacket
+    {
+        if (compressionMethod is not null)
+        {
+            _compressionMethod = (packet, connection) =>
+                packet is TPacket typedPacket
+                    ? compressionMethod(typedPacket, connection)
+                    : packet;
+
+            Logger?.Debug($"Type-specific packet compression configured for {typeof(TPacket).Name}.");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a type-specific packet decompression method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for decompression.</typeparam>
+    /// <param name="decompressionMethod">
+    /// A function that decompresses a packet of type <typeparamref name="TPacket"/> before processing.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions WithTypedDecompression<TPacket>(
+        Func<TPacket, IConnection, TPacket> decompressionMethod)
+        where TPacket : IPacket
+    {
+        if (decompressionMethod is not null)
+        {
+            _decompressionMethod = (packet, connection) =>
+                packet is TPacket typedPacket
+                    ? decompressionMethod(typedPacket, connection)
+                    : packet;
+
+            Logger?.Debug($"Type-specific packet decompression configured for {typeof(TPacket).Name}.");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a type-specific packet encryption method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for encryption.</typeparam>
+    /// <param name="encryptionMethod">
+    /// A function that encrypts a packet of type <typeparamref name="TPacket"/> before sending.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions WithTypedEncryption<TPacket>(
+        Func<TPacket, IConnection, TPacket> encryptionMethod)
+        where TPacket : IPacket
+    {
+        if (encryptionMethod is not null)
+        {
+            _encryptionMethod = (packet, connection) =>
+                packet is TPacket typedPacket
+                    ? encryptionMethod(typedPacket, connection)
+                    : packet;
+
+            Logger?.Debug($"Type-specific packet encryption configured for {typeof(TPacket).Name}.");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a type-specific packet decryption method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for decryption.</typeparam>
+    /// <param name="decryptionMethod">
+    /// A function that decrypts a packet of type <typeparamref name="TPacket"/> before processing.
+    /// The function receives the packet and connection context, and returns the decrypted packet.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions WithTypedDecryption<TPacket>(
+        Func<TPacket, IConnection, TPacket> decryptionMethod)
+        where TPacket : IPacket
+    {
+        if (decryptionMethod is not null)
+        {
+            _decryptionMethod = (packet, connection) =>
+                packet is TPacket typedPacket
+                    ? decryptionMethod(typedPacket, connection)
+                    : packet;
+
+            Logger?.Debug($"Type-specific packet decryption configured for {typeof(TPacket).Name}.");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a type-specific packet serialization method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for serialization.</typeparam>
+    /// <param name="serializer">A strongly-typed function that serializes a packet of type <typeparamref name="TPacket"/> into a <see cref="Memory{Byte}"/>.</param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions WithTypedSerializer<TPacket>(
+        Func<TPacket, Memory<byte>> serializer)
+        where TPacket : IPacket
+    {
+        ArgumentNullException.ThrowIfNull(serializer);
+
+        // Create adapter function - check if packet is TPacket before calling serializer
+        SerializationMethod = packet =>
+        {
+            if (packet is TPacket typedPacket) return serializer(typedPacket);
+
+            throw new InvalidOperationException(
+                $"Cannot serialize packet of type {packet.GetType().Name}. Expected {typeof(TPacket).Name}.");
+        };
+
+        Logger?.Debug($"Type-specific packet serialization configured for {typeof(TPacket).Name}.");
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a type-specific packet deserialization method.
+    /// </summary>
+    /// <typeparam name="TPacket">The specific packet type for deserialization.</typeparam>
+    /// <param name="deserializer">A strongly-typed function that deserializes a <see cref="ReadOnlyMemory{Byte}"/> into a packet of type <typeparamref name="TPacket"/>.</param>
+    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if deserializer is null.</exception>
+    /// <remarks>
+    /// This method provides type safety by ensuring the deserialization process returns the expected packet type.
+    /// </remarks>
+    public PacketDispatcherOptions WithTypedDeserializer<TPacket>(
+        Func<ReadOnlyMemory<byte>, TPacket> deserializer)
+        where TPacket : IPacket
+    {
+        ArgumentNullException.ThrowIfNull(deserializer);
+
+        DeserializationMethod = bytes => deserializer(bytes);
+
+        Logger?.Debug($"Type-specific packet deserialization configured for {typeof(TPacket).Name}.");
+        return this;
+    }
+
+    #region Obsolete Methods
+
+    /// <summary>
     /// Configures packet compression and decompression for the packet dispatcher.
     /// </summary>
     /// <param name="compressionMethod">
@@ -307,6 +457,7 @@ public sealed class PacketDispatcherOptions
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
     /// </returns>
+    [Obsolete("Use WithTypedCompression and WithTypedDecompression for type-specific compression.")]
     public PacketDispatcherOptions WithPacketCompression
     (
         Func<IPacket, IConnection, IPacket>? compressionMethod,
@@ -340,6 +491,7 @@ public sealed class PacketDispatcherOptions
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
     /// </returns>
+    [Obsolete("Use WithTypedEncryption and WithTypedDecryption for type-specific encryption.")]
     public PacketDispatcherOptions WithPacketCrypto
     (
         Func<IPacket, IConnection, IPacket>? encryptionMethod,
@@ -368,6 +520,7 @@ public sealed class PacketDispatcherOptions
     /// <remarks>
     /// This method allows customizing how packets are serialized before sending and deserialized upon receiving.
     /// </remarks>
+    [Obsolete("Use WithTypedSerializer and WithTypedDeserializer for type-specific serialization.")]
     public PacketDispatcherOptions WithPacketSerialization
     (
         Func<IPacket, Memory<byte>>? serializationMethod,
@@ -380,6 +533,8 @@ public sealed class PacketDispatcherOptions
         Logger?.Debug("Packet serialization configured.");
         return this;
     }
+
+    #endregion
 
     #endregion
 
@@ -511,8 +666,11 @@ public sealed class PacketDispatcherOptions
             throw new InvalidOperationException("Serialization method is not set.");
         }
 
-        packet = ProcessPacketFlag("Compression", packet, PacketFlags.IsCompressed, _compressionMethod, connection);
-        packet = ProcessPacketFlag("Encryption", packet, PacketFlags.IsEncrypted, _encryptionMethod, connection);
+        packet = ProcessPacketFlag(
+            "Compression", packet, PacketFlags.IsCompressed, _compressionMethod, connection);
+
+        packet = ProcessPacketFlag(
+            "Encryption", packet, PacketFlags.IsEncrypted, _encryptionMethod, connection);
 
         await connection.SendAsync(SerializationMethod(packet));
     }

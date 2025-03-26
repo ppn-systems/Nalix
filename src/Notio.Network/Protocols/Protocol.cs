@@ -30,10 +30,14 @@ public abstract class Protocol : IProtocol, IDisposable
     /// Override to implement custom acceptance logic, such as IP validation.
     /// </summary>
     /// <param name="connection">The connection to be processed.</param>
+    /// <param name="cancellationToken">Token for cancellation</param>
     /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
-    public virtual void OnAccept(IConnection connection)
+    public virtual void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
     {
+        // Check cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+
         ArgumentNullException.ThrowIfNull(connection);
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
@@ -41,7 +45,7 @@ public abstract class Protocol : IProtocol, IDisposable
         {
             if (ValidateConnection(connection))
             {
-                connection.BeginReceive();
+                connection.BeginReceive(cancellationToken);
             }
             else
             {
