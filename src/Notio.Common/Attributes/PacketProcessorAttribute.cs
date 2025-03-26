@@ -6,6 +6,6 @@ namespace Notio.Common.Attributes;
 /// Attribute used to mark packet controllers responsible for handling packet commands.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class PacketControllerAttribute : Attribute
+public class PacketProcessorAttribute : Attribute
 {
 }

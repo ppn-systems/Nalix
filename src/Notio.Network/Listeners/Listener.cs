@@ -31,11 +31,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 {
     private const int True = 1;
     private const int False = 0;
-
-    // Using lazy initialization for thread-safety and singleton pattern
-    private static readonly Lazy<ListenerConfig> _lazyConfig = new(()
-        => ConfiguredShared.Instance.Get<ListenerConfig>());
-    private static ListenerConfig Config => _lazyConfig.Value;
+    private static ListenerConfig Config => ConfiguredShared.Instance.Get<ListenerConfig>();
 
     private readonly int _port = port;
     private readonly SemaphoreSlim _listenerLock = new(1, 1);
@@ -45,7 +41,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     private readonly IBufferPool _bufferPool = bufferPool ?? throw new ArgumentNullException(nameof(bufferPool));
 
     private bool _isDisposed;
-    private Task? _listenerTask;
+    private Thread? _listenerThread;
     private CancellationTokenSource? _cts;
 
     #region Public Methods
@@ -53,8 +49,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _listenerTask != null &&
-        !(_listenerTask.IsCanceled || _listenerTask.IsCompleted || _listenerTask.IsFaulted);
+    public bool IsListening => _listenerThread != null && _listenerThread.IsAlive;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
@@ -80,47 +75,209 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         if (this.IsListening) return;
 
         _logger.Debug("Starting to listen for incoming connections.");
+
+        // Create a linked token source to combine external cancellation with internal cancellation
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var linkedToken = _cts.Token;
+
+        // Create and start listener thread
+        var newThread = new Thread(() =>
+        {
+            try
+            {
+                // Wait for the lock synchronously
+                _listenerLock.Wait(linkedToken);
+
+                try
+                {
+                    _tcpListener.Start();
+                    _logger.Info($"{_protocol} is online on port {_port}");
+
+                    // Create worker threads for accepting connections
+                    const int maxParallelAccepts = 5;
+                    Thread[] acceptThreads = new Thread[maxParallelAccepts];
+
+                    for (int i = 0; i < maxParallelAccepts; i++)
+                    {
+                        int threadIndex = i; // Capture for closure
+                        acceptThreads[i] = new Thread(() =>
+                        {
+                            try
+                            {
+                                this.AcceptConnections(linkedToken);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                _logger.Debug($"Accept thread {threadIndex} cancelled");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error($"Error in accept thread {threadIndex}: {ex.Message}");
+                            }
+                        })
+                        {
+                            IsBackground = true,
+                            Name = $"AcceptThread-{_port}-{i}"
+                        };
+
+                        acceptThreads[i].Start();
+                    }
+
+                    // Wait for cancellation
+                    try
+                    {
+                        linkedToken.WaitHandle.WaitOne();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when cancellation is requested
+                    }
+
+                    // Optionally wait for worker threads to complete
+                    foreach (var thread in acceptThreads)
+                    {
+                        if (thread.IsAlive)
+                            thread.Join(1000); // Wait max 1 second for each thread
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.Info($"Listener on port {_port} stopped gracefully");
+                }
+                catch (SocketException ex)
+                {
+                    _logger.Error($"Could not start {_protocol} on port {_port}: {ex.Message}");
+                    throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Critical error in listener on port {_port}: {ex.Message}");
+                    throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
+                }
+                finally
+                {
+                    _tcpListener.Stop();
+                    _listenerLock.Release();
+                    _logger.Debug("Stopped listening for incoming connections.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Unhandled exception in listener thread: {ex.Message}");
+            }
+        })
+        {
+            IsBackground = true,
+            Name = $"{_protocol}Listener-{_port}"
+        };
+
+        Interlocked.Exchange(ref _listenerThread, newThread)?.Join();
+        newThread.Start();
+    }
+
+    /// <summary>
+    /// Synchronous method for accepting connections
+    /// </summary>
+    /// <param name="cancellationToken">Token for cancellation</param>
+    private void AcceptConnections(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Accept client socket synchronously with polling to support cancellation
+                if (!_tcpListener.Pending())
+                {
+                    Thread.Sleep(50); // Small delay to prevent CPU spinning
+                    continue;
+                }
+
+                Socket socket = _tcpListener.AcceptSocket();
+                ConfigureHighPerformanceSocket(socket);
+
+                // Create and process connection similar to async version
+                Connection.Connection connection = new(socket, _bufferPool, _logger);
+                connection.OnCloseEvent += OnConnectionClose;
+                connection.OnProcessEvent += _protocol.ProcessMessage!;
+                connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
+
+                // Process the connection
+                ProcessConnection(connection);
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted ||
+                                             ex.SocketErrorCode == SocketError.ConnectionAborted)
+            {
+                // Socket was closed or interrupted
+                break;
+            }
+            catch (ObjectDisposedException)
+            {
+                // Socket was disposed
+                break;
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.Error($"Error accepting connection on port {_port}", ex);
+                // Brief delay to prevent CPU spinning on repeated errors
+                Task.Delay(50, cancellationToken);
+            }
+        }
+
+        _logger.Debug("Stopped accepting incoming connections.");
+    }
+
+    /// <summary>
+    /// Starts listening for incoming connections and processes them using the specified protocol.
+    /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
+    public async Task BeginListeningAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_isDisposed || _tcpListener.Server == null, this);
+
+        if (this.IsListening) return;
+
+        _logger.Debug("Starting to listen for incoming connections.");
         const int maxParallelAccepts = 5;
 
         // Create a linked token source to combine external cancellation with internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = _cts.Token;
 
-        _listenerTask = Task.Run(async () =>
+        await _listenerLock.WaitAsync(linkedToken)
+                           .ConfigureAwait(false);
+
+        try
         {
-            await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
-            try
-            {
-                _tcpListener.Start();
-                _logger.Info($"{_protocol} is online on port {_port}");
+            _tcpListener.Start();
+            _logger.Info($"{_protocol} is online on port {_port}");
 
-                // Create multiple accept tasks in parallel for higher throughput
-                Task[] acceptTasks = new Task[maxParallelAccepts];
+            // Create multiple accept tasks in parallel for higher throughput
+            Task[] acceptTasks = new Task[maxParallelAccepts];
 
-                for (int i = 0; i < maxParallelAccepts; i++)
-                    acceptTasks[i] = AcceptConnectionsAsync(linkedToken);
+            for (int i = 0; i < maxParallelAccepts; i++)
+                acceptTasks[i] = AcceptConnectionsAsync(linkedToken);
 
-                await Task.WhenAll(acceptTasks).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.Info($"Listener on port {_port} stopped gracefully");
-            }
-            catch (SocketException ex)
-            {
-                throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
-            }
-            finally
-            {
-                _tcpListener.Stop();
-                _listenerLock.Release();
-                _logger.Debug("Stopped listening for incoming connections.");
-            }
-        }, linkedToken);
+            await Task.WhenAll(acceptTasks).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info($"Listener on port {_port} stopped gracefully");
+        }
+        catch (SocketException ex)
+        {
+            throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
+        }
+        finally
+        {
+            _tcpListener.Stop();
+            _listenerLock.Release();
+            _logger.Debug("Stopped listening for incoming connections.");
+        }
     }
 
     /// <summary>
@@ -140,8 +297,10 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             _tcpListener.Stop();
         }
 
-        // Wait for the listener task to complete with a timeout
-        _listenerTask?.Wait(TimeSpan.FromSeconds(5));
+        // Wait for the listener thread to complete with a timeout
+        if (_listenerThread?.IsAlive == true)
+            _listenerThread.Join(TimeSpan.FromSeconds(5));
+
         _logger.Debug("Listener stopped.");
     }
 
@@ -164,19 +323,19 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         if (disposing)
         {
-            if (_tcpListener?.Server != null)
-            {
-                _logger.Info($"Stopping listener on port {_port}");
-                _tcpListener.Stop();
-            }
+            _logger.Info($"Disposing listener on port {_port}");
 
             _cts?.Cancel();
             _cts?.Dispose();
+
+            Interlocked.Exchange(ref _listenerThread, null)?.Join();
+
+            _tcpListener.Stop();
             _listenerLock.Dispose();
         }
 
         _isDisposed = true;
-        _logger.Debug("Disposed the listener.");
+        _logger.Debug("Listener disposed.");
     }
 
     #endregion
