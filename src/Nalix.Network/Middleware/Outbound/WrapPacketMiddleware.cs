@@ -61,9 +61,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[NW.{nameof(WrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
 
-                System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
-                    ? sequenced2.SequenceId
-                    : 0;
+                System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2 ? sequenced2.SequenceId : 0;
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
