@@ -137,7 +137,9 @@ public sealed class Speck
     /// <summary>
     /// One-shot encrypt of a single 128-bit block with a 256-bit s.
     /// </summary>
-    public static void Encrypt(System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
+    public static void Encrypt(
+        System.ReadOnlySpan<System.Byte> plaintext,
+        System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
     {
         var cipher = new Speck(key);
         cipher.EncryptBlock(plaintext, output);
@@ -146,7 +148,9 @@ public sealed class Speck
     /// <summary>
     /// One-shot decrypt of a single 128-bit block with a 256-bit s.
     /// </summary>
-    public static void Decrypt(System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
+    public static void Decrypt(
+        System.ReadOnlySpan<System.Byte> ciphertext,
+        System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
     {
         var cipher = new Speck(key);
         cipher.DecryptBlock(ciphertext, output);
