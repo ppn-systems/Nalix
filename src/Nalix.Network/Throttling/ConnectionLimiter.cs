@@ -310,7 +310,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static INetworkEndpoint ConvertToNetworkEndpoint(System.Net.IPEndPoint endPoint) => Connections.Connection.EndpointToken.FromEndPoint(endPoint);
+    private static INetworkEndpoint ConvertToNetworkEndpoint(System.Net.IPEndPoint endPoint) => Connections.Connection.NetworkEndpoint.FromEndPoint(endPoint);
 
     /// <summary>
     /// Attempts to acquire a connection slot using lock-free CAS with bounded retries.
