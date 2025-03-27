@@ -21,14 +21,14 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     /// Gets or sets the maximum number of connections allowed per IP address.
     /// </summary>
     /// <remarks>
-    /// Default is 50.
+    /// Default is 10.
     /// - Suitable for most client-to-server scenarios (e.g., games, chat, APIs).
     /// - In environments where multiple users share the same IP
     ///   (e.g., NAT, proxies, ISPs), consider increasing this value
     ///   to 100 or higher.
     /// - Range: 1 to 10,000.
     /// </remarks>
-    public System.Int32 MaxConnectionsPerIpAddress { get; set; } = 50;
+    public System.Int32 MaxConnectionsPerIpAddress { get; set; } = 10;
 
     /// <summary>
     /// Gets or sets the interval in milliseconds between cleanup operations.

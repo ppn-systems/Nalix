@@ -82,9 +82,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
         this.Logger?.Error($"[{nameof(PacketDispatchOptions<TPacket>)}:{HandleExecutionExceptionAsync}] " +
                            $"handler-failed opcode={descriptor.OpCode}", exception);
 
-        this._errorHandler?.Invoke(exception, descriptor.OpCode);
+        _errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        var (reason, action, flags) = ClassifyException(exception);
+        (ProtocolCode reason, ProtocolAction action, ControlFlags flags) = ClassifyException(exception);
 
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
@@ -95,6 +95,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsVoidLike(System.Type returnType)
     {
         return returnType == typeof(void)
@@ -104,7 +106,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static T EnsureNotNull<T>(T value, System.String paramName) where T : class
+    private static T EnsureNotNull<T>(T value, System.String paramName)
+        where T : class
         => value ?? throw new System.ArgumentNullException(paramName);
 
     /// <summary>
