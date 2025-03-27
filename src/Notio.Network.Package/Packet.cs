@@ -238,15 +238,15 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <exception cref="PackageException">Thrown when the packet size exceeds the maximum allowed size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(
-    byte id,
-    PacketType type,
-    PacketFlags flags,
-    PacketPriority priority,
-    ushort command,
-    ulong timestamp,
-    uint checksum,
-    Memory<byte> payload,
-    bool computeChecksum = false)
+        byte id,
+        PacketType type,
+        PacketFlags flags,
+        PacketPriority priority,
+        ushort command,
+        ulong timestamp,
+        uint checksum,
+        Memory<byte> payload,
+        bool computeChecksum = false)
     {
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)

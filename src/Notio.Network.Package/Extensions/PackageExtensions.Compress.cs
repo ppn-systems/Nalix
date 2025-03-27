@@ -14,25 +14,25 @@ public static partial class PackageExtensions
     /// Compresses the payload of the packet using the specified compression algorithm.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet Compress(this in Packet packet)
+    public static Packet CompressPayload(this in Packet packet)
         => PacketCompressionHelper.CompressPayload(packet);
 
     /// <summary>
     /// Decompresses the payload of the packet using the specified compression algorithm.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet Decompress(this in Packet packet)
+    public static Packet DecompressPayload(this in Packet packet)
         => PacketCompressionHelper.DecompressPayload(packet);
 
     /// <summary>
     /// Tries to compress the payload of the packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryCompress(this Packet @this, out IPacket? @out)
+    public static bool TryCompressPayload(this Packet @this, out IPacket? @out)
     {
         try
         {
-            @out = @this.Compress();
+            @out = @this.CompressPayload();
             return true;
         }
         catch (PackageException)
@@ -46,11 +46,11 @@ public static partial class PackageExtensions
     /// Tries to decompress the payload of the packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecompress(this Packet @this, out IPacket? @out)
+    public static bool TryDecompressPayload(this Packet @this, out IPacket? @out)
     {
         try
         {
-            @out = @this.Decompress();
+            @out = @this.DecompressPayload();
             return true;
         }
         catch (PackageException)
