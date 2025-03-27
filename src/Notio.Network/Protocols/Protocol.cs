@@ -11,8 +11,8 @@ namespace Notio.Network.Protocols;
 /// </summary>
 public abstract class Protocol : IProtocol, IDisposable
 {
-    private int _keepConnectionOpen;
     private bool _isDisposed;
+    private int _keepConnectionOpen;
 
     /// <summary>
     /// Gets or sets a value indicating whether the connection should be kept open after processing.
@@ -62,29 +62,6 @@ public abstract class Protocol : IProtocol, IDisposable
     }
 
     /// <summary>
-    /// Validates the incoming connection before accepting it.
-    /// Override this method to implement custom validation logic.
-    /// </summary>
-    /// <param name="connection">The connection to validate.</param>
-    /// <returns>True if the connection is valid, false otherwise.</returns>
-    protected virtual bool ValidateConnection(IConnection connection)
-    {
-        // Default implementation accepts all connections
-        return true;
-    }
-
-    /// <summary>
-    /// Called when an error occurs during connection handling.
-    /// Override to implement custom error handling.
-    /// </summary>
-    /// <param name="connection">The connection where the error occurred.</param>
-    /// <param name="exception">The exception that was thrown.</param>
-    protected virtual void OnConnectionError(IConnection connection, Exception exception)
-    {
-        // Default implementation does nothing
-    }
-
-    /// <summary>
     /// Post-processes a message after it has been handled.
     /// If the connection should not remain open, it will be disconnected.
     /// </summary>
@@ -113,6 +90,37 @@ public abstract class Protocol : IProtocol, IDisposable
     }
 
     /// <summary>
+    /// Processes a message received on the connection.
+    /// This method must be implemented by derived classes to handle specific message processing.
+    /// </summary>
+    /// <param name="sender">The sender of the message.</param>
+    /// <param name="args">Event arguments containing the connection and message data.</param>
+    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
+
+    /// <summary>
+    /// Validates the incoming connection before accepting it.
+    /// Override this method to implement custom validation logic.
+    /// </summary>
+    /// <param name="connection">The connection to validate.</param>
+    /// <returns>True if the connection is valid, false otherwise.</returns>
+    protected virtual bool ValidateConnection(IConnection connection)
+    {
+        // Default implementation accepts all connections
+        return true;
+    }
+
+    /// <summary>
+    /// Called when an error occurs during connection handling.
+    /// Override to implement custom error handling.
+    /// </summary>
+    /// <param name="connection">The connection where the error occurred.</param>
+    /// <param name="exception">The exception that was thrown.</param>
+    protected virtual void OnConnectionError(IConnection connection, Exception exception)
+    {
+        // Default implementation does nothing
+    }
+
+    /// <summary>
     /// Allows subclasses to execute custom logic after a message has been processed.
     /// This method is called automatically by <see cref="PostProcessMessage"/>.
     /// </summary>
@@ -123,20 +131,11 @@ public abstract class Protocol : IProtocol, IDisposable
     }
 
     /// <summary>
-    /// Processes a message received on the connection.
-    /// This method must be implemented by derived classes to handle specific message processing.
+    /// Override this method to clean up any resources when the protocol is disposed.
     /// </summary>
-    /// <param name="sender">The sender of the message.</param>
-    /// <param name="args">Event arguments containing the connection and message data.</param>
-    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
-
-    /// <summary>
-    /// Disposes resources used by this Protocol.
-    /// </summary>
-    public void Dispose()
+    protected virtual void OnDisposing()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        // Default implementation does nothing
     }
 
     /// <summary>
@@ -158,10 +157,11 @@ public abstract class Protocol : IProtocol, IDisposable
     }
 
     /// <summary>
-    /// Override this method to clean up any resources when the protocol is disposed.
+    /// Disposes resources used by this Protocol.
     /// </summary>
-    protected virtual void OnDisposing()
+    public void Dispose()
     {
-        // Default implementation does nothing
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }
