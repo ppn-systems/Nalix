@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Shared.Memory.Internal;
@@ -9,11 +10,12 @@ namespace Notio.Shared.Memory.Internal;
 /// </summary>
 internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> pool) : IDisposable
 {
+    private int _disposed;
     private T[]? _array = array;
     private readonly int _length = length;
     private readonly ArrayPool<T> _pool = pool;
-    private int _disposed;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)

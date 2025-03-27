@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -157,6 +158,7 @@ public partial class PoFile
     /// <summary>
     /// Extracts quoted value from a line.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string ExtractQuotedValue(string line)
     {
         var match = ExtractQuotedText().Match(line);
@@ -166,6 +168,7 @@ public partial class PoFile
     /// <summary>
     /// Extracts plural index from msgstr[N].
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ExtractPluralIndex(string line)
     {
         var match = ExtractPluralIndex().Match(line);
@@ -175,6 +178,7 @@ public partial class PoFile
     /// <summary>
     /// Ensures the plural list has enough size.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EnsurePluralListSize(List<string> list, int index)
     {
         while (list.Count <= index) list.Add("");
@@ -183,6 +187,7 @@ public partial class PoFile
     /// <summary>
     /// Parses metadata from the PO file.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ParseMetadata(string metadata)
     {
         foreach (var line in metadata.Split("\\n"))
@@ -200,6 +205,7 @@ public partial class PoFile
     /// <summary>
     /// Parses the plural rule from PO file metadata.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Func<int, int> ParsePluralRule(string rule)
     {
         Dictionary<string, Func<int, int>> rules = new()
@@ -225,6 +231,7 @@ public partial class PoFile
 
     [GeneratedRegex(@"msgstr\[(\d+)\]")]
     private static partial Regex ExtractPluralIndex();
+
     [GeneratedRegex("\"(.*?)\"")]
     private static partial Regex ExtractQuotedText();
 }

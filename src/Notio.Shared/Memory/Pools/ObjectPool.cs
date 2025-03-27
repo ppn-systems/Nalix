@@ -161,6 +161,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
     /// <param name="count">The number of instances to preallocate.</param>
     /// <returns>The number of instances successfully preallocated.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Prealloc<T>(int count) where T : IPoolable, new()
     {
         if (count <= 0) return 0;
@@ -200,6 +201,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <typeparam name="T">The type to configure.</typeparam>
     /// <param name="maxCapacity">The maximum capacity for the type's pool.</param>
     /// <returns>True if the capacity was set, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0) return false;
@@ -223,6 +225,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <typeparam name="T">The type to get information about.</typeparam>
     /// <returns>A dictionary containing pool statistics for the type.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -250,6 +253,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Gets statistics about the pool's usage.
     /// </summary>
     /// <returns>A dictionary containing statistics about the pool.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
         return new Dictionary<string, object>
@@ -269,6 +273,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Clears all objects from the pool.
     /// </summary>
     /// <returns>The total number of objects removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear()
     {
         int removedCount = 0;
@@ -286,6 +291,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
     /// <returns>The number of objects removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ClearType<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -326,6 +332,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Resets the statistics of the pool.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
         Interlocked.Exchange(ref _totalCreated, 0);
@@ -340,6 +347,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Gets information about all type pools.
     /// </summary>
     /// <returns>A list of dictionaries containing information about each type pool.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<Dictionary<string, object>> GetAllTypeInfo()
     {
         List<Dictionary<string, object>> result = [];
@@ -424,5 +432,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <typeparam name="T">The type of objects to manage in the pool.</typeparam>
     /// <returns>A type-specific pool adapter.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
 }

@@ -104,6 +104,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <param name="items">The elements to add to the cache.</param>
     /// <exception cref="ArgumentNullException">Thrown when the items collection is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddRange(IEnumerable<T> items)
     {
         ArgumentNullException.ThrowIfNull(items);
@@ -226,6 +227,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <returns>A list containing the retrieved elements.</returns>
     /// <exception cref="ArgumentException">Thrown when the count is less than or equal to zero.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<T> GetBatch(int count)
     {
         if (count <= 0)
@@ -279,6 +281,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Resets the cache statistics without clearing the cache elements.
     /// </summary>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -294,6 +297,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <returns>A dictionary containing cache statistics.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -317,6 +321,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <remarks>This operation does not remove elements from the cache.</remarks>
     /// <returns>An array containing the elements of the cache.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T[] ToArray()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -329,6 +334,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <remarks>This operation does not remove elements from the cache.</remarks>
     /// <returns>An enumerator for the cache.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEnumerator<T> GetEnumerator()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -339,6 +345,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Returns an enumerator that iterates through the cache.
     /// </summary>
     /// <returns>An enumerator for the cache.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>

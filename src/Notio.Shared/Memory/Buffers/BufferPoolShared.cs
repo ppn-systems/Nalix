@@ -73,6 +73,7 @@ public sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
     {
         return Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));

@@ -147,6 +147,7 @@ public static class Singleton
     /// <summary>
     /// Internal implementation of Resolve without caching
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TClass? ResolveInternal<TClass>(bool createIfNotExists) where TClass : class
     {
         Type type = typeof(TClass);
@@ -221,6 +222,7 @@ public static class Singleton
     /// Removes the registration of a specific type.
     /// </summary>
     /// <typeparam name="TClass">The type to remove from registration.</typeparam>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Remove<TClass>() where TClass : class
     {
         Type type = typeof(TClass);
@@ -269,6 +271,7 @@ public static class Singleton
     /// <summary>
     /// Helper method to get all cached types for clearing
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static List<Type> GetAllCachedTypes()
     {
         var result = new List<Type>();

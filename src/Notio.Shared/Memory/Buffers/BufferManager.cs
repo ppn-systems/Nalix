@@ -51,6 +51,7 @@ public sealed class BufferManager : IDisposable
     /// <summary>
     /// Updates the sorted keys with proper locking
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void UpdateSortedKeys()
     {
         _keysLock.EnterWriteLock();

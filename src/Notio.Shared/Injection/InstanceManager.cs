@@ -117,6 +117,7 @@ public sealed class InstanceManager : IDisposable
     /// <param name="type">The type of instance to create.</param>
     /// <param name="args">Constructor arguments.</param>
     /// <returns>A new instance of the specified type.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public object CreateInstance(Type type, params object[] args)
     {
         ObjectDisposedException.ThrowIf(
@@ -157,6 +158,7 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     /// <param name="type">The type of the instance to remove.</param>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(
@@ -186,6 +188,7 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the instance to remove.</typeparam>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool RemoveInstance<T>() => RemoveInstance(typeof(T));
 
     /// <summary>
@@ -216,6 +219,7 @@ public sealed class InstanceManager : IDisposable
     /// Clears all cached instances, optionally disposing them.
     /// </summary>
     /// <param name="disposeInstances">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear(bool disposeInstances = true)
     {
         ObjectDisposedException.ThrowIf(
@@ -272,6 +276,7 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Finds the best matching constructor for the given arguments.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConstructorInfo? FindBestMatchingConstructor(Type type, object[] args)
     {
         // Fast path for parameterless constructor
@@ -313,6 +318,7 @@ public sealed class InstanceManager : IDisposable
     /// Calculates a score for how well a constructor matches the provided arguments.
     /// Higher score means better match.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CalculateConstructorMatchScore(ConstructorInfo constructor, object[] args)
     {
         var parameters = constructor.GetParameters();
@@ -343,6 +349,7 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Creates a cached activator for faster instance creation.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Func<object[], object> CreateActivator(Type type, ConstructorInfo constructor)
     {
         return args =>

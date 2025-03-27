@@ -126,6 +126,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <param name="key">The key of the item.</param>
     /// <param name="value">The value of the item.</param>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
@@ -302,6 +303,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <param name="key">The key of the element to remove.</param>
     /// <returns>true if the element is successfully found and removed; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Remove(TKey key)
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
@@ -353,6 +355,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <param name="key">The key of the item.</param>
     /// <returns>A tuple containing (item exists, access count, last access time).</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (bool Exists, long AccessCount, DateTime LastAccessTime) GetItemInfo(TKey key)
     {
         if (key == null) throw new ArgumentNullException(nameof(key));
@@ -395,6 +398,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Resets the cache statistics without clearing the cache items.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
@@ -411,6 +415,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// Gets a snapshot of the current cache statistics.
     /// </summary>
     /// <returns>A dictionary containing cache statistics.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));

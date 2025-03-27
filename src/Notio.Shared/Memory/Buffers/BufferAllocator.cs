@@ -75,6 +75,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// <summary>
     /// Periodically trims excess buffers to reduce memory footprint
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void TrimExcessBuffers(object? state)
     {
         // Only run deep trimming every 6 cycles (30 minutes with default timer)
@@ -88,6 +89,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// <summary>
     /// Allocates buffers based on the configuration settings.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AllocateBuffers()
     {
         if (_isInitialized) throw new InvalidOperationException("Buffers already allocated.");
@@ -196,6 +198,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)
     {
         if (string.IsNullOrWhiteSpace(bufferAllocationsString))
@@ -264,6 +267,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// Shrinks the buffer pool size using an optimized algorithm.
     /// </summary>
     /// <param name="pool">The buffer pool to shrink.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
@@ -316,6 +320,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// Increases the buffer pool size using an optimized algorithm.
     /// </summary>
     /// <param name="pool">The buffer pool to increase.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();

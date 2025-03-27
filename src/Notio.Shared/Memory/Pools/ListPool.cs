@@ -90,6 +90,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     {
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ValidateCapacity(int capacity)
     {
         if (capacity <= 0)
@@ -232,6 +233,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// Gets statistics about the pool's usage.
     /// </summary>
     /// <returns>A dictionary containing statistics about the pool.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
         return new Dictionary<string, object>
@@ -251,6 +253,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// <summary>
     /// Resets the statistics of the pool.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
         Interlocked.Exchange(ref _rented, 0);

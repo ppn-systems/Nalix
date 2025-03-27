@@ -74,6 +74,7 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <param name="exactLength">If true, the array will be exactly the requested length. If false, it may be larger.</param>
     /// <returns>A new <see cref="MemoryPool{T}"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryPool<T> Rent(int length, bool exactLength = false)
     {
         if (length < 0)
@@ -96,6 +97,7 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <returns>A new <see cref="MemoryPool{T}"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
     /// <exception cref="ArgumentNullException">Thrown when customPool is null.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemoryPool<T> Rent(int length, ArrayPool<T> customPool, bool exactLength = false)
     {
         ArgumentNullException.ThrowIfNull(customPool);
