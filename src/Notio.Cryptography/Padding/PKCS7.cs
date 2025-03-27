@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Padding;
 
@@ -54,6 +55,7 @@ public static class PKCS7
     /// <param name="data">The input span to check.</param>
     /// <param name="paddingSize">The expected padding size.</param>
     /// <returns>True if the padding is valid, otherwise false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
     {
         byte expected = (byte)paddingSize;

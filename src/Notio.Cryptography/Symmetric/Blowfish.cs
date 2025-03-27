@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Notio.Cryptography.Symmetric;
@@ -137,6 +138,7 @@ public class Blowfish
     /// </summary>
     /// <param name="left">The left 32-bit half of the block.</param>
     /// <param name="right">The right 32-bit half of the block.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EncryptBlock(ref uint left, ref uint right)
     {
         for (int i = 0; i < N; ++i)
@@ -157,6 +159,7 @@ public class Blowfish
     /// </summary>
     /// <param name="left">The left 32-bit half of the block.</param>
     /// <param name="right">The right 32-bit half of the block.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void DecryptBlock(ref uint left, ref uint right)
     {
         for (int i = N + 1; i > 1; --i)
@@ -177,6 +180,7 @@ public class Blowfish
     /// </summary>
     /// <param name="value">The 32-bit input value.</param>
     /// <returns>The transformed value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint SubstitutionFunction(uint value)
     {
         ushort a = (ushort)((value >> 24) & 0xFF);
@@ -191,6 +195,7 @@ public class Blowfish
     /// Initializes the key schedule using the provided key.
     /// </summary>
     /// <param name="key">The encryption key.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void InitializeKeySchedule(byte[] key)
     {
         short j = 0;

@@ -116,6 +116,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// </summary>
     /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base36 string.</param>
     /// <returns>The string representation of the ID.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToString(bool isHex = false)
     {
         if (isHex)
@@ -136,6 +137,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <returns>The parsed <see cref="UniqueId"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="FormatException">Thrown if input is in an invalid format.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UniqueId Parse(ReadOnlySpan<char> input)
     {
         if (input.IsEmpty)
@@ -162,6 +164,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="ArgumentException">Thrown if input is in an invalid format.</exception>
     /// <exception cref="FormatException">Thrown if input contains invalid characters.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UniqueId Parse(ReadOnlySpan<char> input, bool isHex)
     {
         if (input.IsEmpty)
@@ -187,6 +190,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <param name="input">The input string to parse.</param>
     /// <param name="result">When this method returns, contains the parsed value if successful; otherwise, the default value.</param>
     /// <returns>true if parsing succeeded; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(ReadOnlySpan<char> input, out UniqueId result)
     {
         result = Empty;
@@ -246,6 +250,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="randomValue">A custom random value (if not provided, a secure random value will be generated).</param>
     /// <returns>A new UniqueId with the specified components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UniqueId FromComponents(IdType type, ushort machineId, uint? randomValue = null)
     {
         if ((int)type >= (int)IdType.Limit)
@@ -264,6 +269,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// Converts the UniqueId to a byte array.
     /// </summary>
     /// <returns>A 4-byte array representing this UniqueId.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ToByteArray()
     {
         byte[] bytes = new byte[4];
@@ -296,6 +302,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <param name="bytes">The byte array containing the UniqueId value.</param>
     /// <returns>A UniqueId created from the bytes.</returns>
     /// <exception cref="ArgumentException">Thrown if the byte array is not exactly 4 bytes long.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UniqueId FromByteArray(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != 4)

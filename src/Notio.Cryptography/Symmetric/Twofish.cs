@@ -246,6 +246,7 @@ public static class Twofish
 
     #region Core Implementation
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ValidateParameters(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
     {
         if (key.Length != 16 && key.Length != 24 && key.Length != 32)

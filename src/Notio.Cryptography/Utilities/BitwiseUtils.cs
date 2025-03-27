@@ -228,6 +228,7 @@ public static class BitwiseUtils
     /// <param name="left">The first byte span to compare.</param>
     /// <param name="right">The second byte span to compare.</param>
     /// <returns>True if the byte spans are equal; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
     {
         if (left.Length != right.Length) return false;
@@ -236,5 +237,16 @@ public static class BitwiseUtils
         for (int i = 0; i < left.Length; i++) result |= left[i] ^ right[i];
 
         return result == 0;
+    }
+
+    /// <summary>
+    /// Increments a counter value stored in a byte array.
+    /// </summary>
+    /// <param name="counter">The counter to increment.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void IncrementCounter(Span<byte> counter)
+    {
+        for (int i = 0; i < counter.Length; i++)
+            if (++counter[i] != 0) break;
     }
 }

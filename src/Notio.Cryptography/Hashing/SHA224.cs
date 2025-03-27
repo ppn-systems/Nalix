@@ -1,3 +1,4 @@
+using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -196,6 +197,7 @@ public sealed class Sha224 : ISha, IDisposable
     /// Processes a 64-byte block of data.
     /// </summary>
     /// <param name="block">The 64-byte block to process.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ProcessBlock(ReadOnlySpan<byte> block)
     {
         if (block.Length != 64)
@@ -252,32 +254,34 @@ public sealed class Sha224 : ISha, IDisposable
     #region SHA-224/256 Functions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RotateRight(uint value, int count) =>
-        (value >> count) | (value << (32 - count));
+    private static uint Ch(uint x, uint y, uint z)
+        => (x & y) ^ (~x & z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Ch(uint x, uint y, uint z) =>
-        (x & y) ^ (~x & z);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Maj(uint x, uint y, uint z) =>
-        (x & y) ^ (x & z) ^ (y & z);
+    private static uint Maj(uint x, uint y, uint z)
+        => (x & y) ^ (x & z) ^ (y & z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint BigSigma0(uint x) =>
-        RotateRight(x, 2) ^ RotateRight(x, 13) ^ RotateRight(x, 22);
+        BitwiseUtils.RotateRight(x, 2) ^
+        BitwiseUtils.RotateRight(x, 13) ^
+        BitwiseUtils.RotateRight(x, 22);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint BigSigma1(uint x) =>
-        RotateRight(x, 6) ^ RotateRight(x, 11) ^ RotateRight(x, 25);
+        BitwiseUtils.RotateRight(x, 6) ^
+        BitwiseUtils.RotateRight(x, 11) ^
+        BitwiseUtils.RotateRight(x, 25);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Sigma0(uint x) =>
-        RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3);
+        BitwiseUtils.RotateRight(x, 7) ^
+        BitwiseUtils.RotateRight(x, 18) ^ (x >> 3);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Sigma1(uint x) =>
-        RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
+        BitwiseUtils.RotateRight(x, 17) ^
+        BitwiseUtils.RotateRight(x, 19) ^ (x >> 10);
 
     #endregion
 

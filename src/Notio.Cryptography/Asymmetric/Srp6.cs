@@ -4,6 +4,7 @@ using Notio.Randomization;
 using System;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Notio.Cryptography.Asymmetric;
@@ -200,6 +201,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
         return new BigInteger(interleavedHash, true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ReverseBytesAsUInt32(byte[] byteArray)
     {
         // Efficiently reverses byte order in groups of 4 (UInt32).

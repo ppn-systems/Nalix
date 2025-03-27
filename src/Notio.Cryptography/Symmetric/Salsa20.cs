@@ -24,7 +24,9 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, typically 0 for first use.</param>
     /// <param name="plaintext">The data to encrypt.</param>
     /// <returns>Encrypted bytes.</returns>
-    public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter, ReadOnlySpan<byte> plaintext)
+    public static byte[] Encrypt(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
+        ulong counter, ReadOnlySpan<byte> plaintext)
     {
         ValidateParameters(key, nonce);
         byte[] ciphertext = new byte[plaintext.Length];
@@ -61,7 +63,9 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, must be same as used for encryption.</param>
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <returns>Decrypted bytes.</returns>
-    public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter, ReadOnlySpan<byte> ciphertext)
+    public static byte[] Decrypt(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
+        ulong counter, ReadOnlySpan<byte> ciphertext)
     {
         // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
         return Encrypt(key, nonce, counter, ciphertext);
@@ -122,23 +126,11 @@ public static class Salsa20
         return key;
     }
 
-    /// <summary>
-    /// Increments a counter value stored in a byte array.
-    /// </summary>
-    /// <param name="counter">The counter to increment.</param>
-    public static void IncrementCounter(Span<byte> counter)
-    {
-        for (int i = 0; i < counter.Length; i++)
-        {
-            if (++counter[i] != 0)
-                break;
-        }
-    }
-
     // ----------------------------
     // Core Implementation
     // ----------------------------
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ValidateParameters(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce)
     {
         if (key.Length != 32)

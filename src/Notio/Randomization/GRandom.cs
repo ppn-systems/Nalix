@@ -259,6 +259,7 @@ public sealed class GRandom(int seed)
     /// Fills the specified buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void NextBytes(Span<byte> buffer)
     {
         for (int i = 0; i < buffer.Length; i++)

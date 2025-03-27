@@ -57,7 +57,8 @@ public static class Xtea
     /// <param name="rounds">The number of rounds (default is 32).</param>
     /// <returns>The encrypted 64-bit block as two 32-bit values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (uint v0, uint v1) EncryptBlock(uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
+    private static (uint v0, uint v1) EncryptBlock(
+        uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
     {
         uint sum = 0;
 
@@ -80,7 +81,8 @@ public static class Xtea
     /// <param name="rounds">The number of rounds (default is 32).</param>
     /// <returns>The decrypted 64-bit block as two 32-bit values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (uint v0, uint v1) DecryptBlock(uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
+    private static (uint v0, uint v1) DecryptBlock(
+        uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
     {
         uint sum = unchecked(Delta * (uint)rounds);
 

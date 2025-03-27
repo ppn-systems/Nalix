@@ -2,6 +2,7 @@ using Notio.Cryptography.Mac;
 using Notio.Cryptography.Symmetric;
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Aead;
 
@@ -197,6 +198,7 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Securely compares two byte arrays in constant time to prevent timing attacks.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CompareBytes(byte[] a, byte[] b)
     {
         if (a.Length != b.Length) return false;
@@ -206,6 +208,7 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Prepares the authenticated data input for Poly1305.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte[] PrepareAuthData(byte[] associatedData, ReadOnlySpan<byte> ciphertext)
     {
         long adLength = associatedData?.Length ?? 0;

@@ -73,6 +73,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="key">
     /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
     /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void KeySetup(byte[] key)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -110,6 +111,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="counter">
     /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
     /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IvSetup(byte[] nonce, uint counter)
     {
         if (nonce == null)
@@ -132,6 +134,7 @@ public sealed class ChaCha20 : IDisposable
         State[15] = BitwiseUtils.U8To32Little(nonce, 8);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SimdMode DetectSimdMode()
     {
         if (Vector512.IsHardwareAccelerated)
@@ -469,7 +472,10 @@ public sealed class ChaCha20 : IDisposable
 
     #endregion // Decryption methods
 
-    private void WorkStreams(Stream output, Stream input, SimdMode simdMode, int howManyBytesToProcessAtTime = 1024)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void WorkStreams(
+        Stream output, Stream input, SimdMode simdMode,
+        int howManyBytesToProcessAtTime = 1024)
     {
         int readBytes;
 
@@ -486,7 +492,10 @@ public sealed class ChaCha20 : IDisposable
         }
     }
 
-    private async Task WorkStreamsAsync(Stream output, Stream input, SimdMode simdMode, int howManyBytesToProcessAtTime = 1024)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private async Task WorkStreamsAsync(
+        Stream output, Stream input, SimdMode simdMode,
+        int howManyBytesToProcessAtTime = 1024)
     {
         byte[] readBytesBuffer = new byte[howManyBytesToProcessAtTime];
         byte[] writeBytesBuffer = new byte[howManyBytesToProcessAtTime];

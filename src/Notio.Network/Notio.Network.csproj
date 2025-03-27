@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<Platforms>AnyCPU</Platforms>
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Padding;
 
@@ -131,7 +132,8 @@ public static class AnsiX923
     /// <param name="data">The padded data to validate.</param>
     /// <param name="paddingSize">The padding size obtained from the last byte.</param>
     /// <returns>True if the padding is valid, false otherwise.</returns>
-    private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
     {
         bool isValid = true;
 

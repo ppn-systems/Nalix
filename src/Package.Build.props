@@ -1,16 +1,21 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
+  <PropertyGroup Label="Package Properties">
     <PackageIcon>assets\Notio.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
 
-    <PackageTags>notio, net9, library, tcp, web, package</PackageTags>
+    <PackageTags>
+      notio, .NET 9, library, TCP, networking, security, performance
+    </PackageTags>
+
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\Notio.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="" />
-    <None Include="..\..\assets\Notio.png" Pack="true" PackagePath="assets/" />
+  <ItemGroup Label="Package Properties">
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE')" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md')" />
+    <None Include="..\..\assets\Notio.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Notio.png')" />
   </ItemGroup>
 </Project>

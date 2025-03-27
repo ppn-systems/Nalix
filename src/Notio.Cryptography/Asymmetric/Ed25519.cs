@@ -2,6 +2,7 @@ using Notio.Cryptography.Hashing;
 using Notio.Extensions.Math;
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Cryptography.Asymmetric;
@@ -130,6 +131,7 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="x">The value to invert.</param>
     /// <returns>The modular inverse of the value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger Inv(BigInteger x) => BigInteger.ModPow(x, Q - 2, Q);
 
     /// <summary>
@@ -138,6 +140,7 @@ public sealed class Ed25519
     /// <param name="p">First point to add.</param>
     /// <param name="q">Second point to add.</param>
     /// <returns>The result of the point addition.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Point Edwards(Point p, Point q)
     {
         var a = p.Y.ModAdd(p.X, Q);
@@ -163,6 +166,7 @@ public sealed class Ed25519
     /// <param name="p">The point to multiply.</param>
     /// <param name="e">The scalar to multiply the point by.</param>
     /// <returns>The resulting point from the scalar multiplication.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Point ScalarMul(Point p, BigInteger e)
     {
         Point result = new(BigInteger.Zero, BigInteger.One);
@@ -182,6 +186,7 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="s">The scalar to clamp.</param>
     /// <returns>The clamped scalar.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger ClampScalar(ReadOnlySpan<byte> s)
     {
         // Create a 32-byte buffer to modify bits as needed
@@ -199,9 +204,11 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="data">The data to hash.</param>
     /// <returns>The scalar result of hashing the data.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger HashToScalar(ReadOnlySpan<byte> data)
         => new BigInteger(ComputeHash(data), isUnsigned: true, isBigEndian: true) % L;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger HashToScalar(ReadOnlySpan<byte> prefix, byte[] message)
     {
         Span<byte> buffer = message.Length <= 1024
@@ -218,6 +225,7 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="p">The point to encode.</param>
     /// <param name="destination">The destination span to write the encoded point.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EncodePoint(Point p, Span<byte> destination)
     {
         // Encode y coordinate as 32 bytes in big-endian order
@@ -230,6 +238,7 @@ public sealed class Ed25519
             destination[^1] |= 0x80;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Point DecodePoint(ReadOnlySpan<byte> data)
     {
         // Decode y coordinate (32 bytes big-endian)
@@ -242,6 +251,7 @@ public sealed class Ed25519
         return new Point(x, y);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger RecoverX(BigInteger y)
     {
         // Recover x using curve equation: x^2 = (y^2 - 1) / (D*y^2 + 1)
@@ -252,6 +262,7 @@ public sealed class Ed25519
         return x * x % Q == xx ? x : x * I % Q;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool PointEquals(Point a, Point b)
         => a.X == b.X && a.Y == b.Y;
 
@@ -260,6 +271,7 @@ public sealed class Ed25519
     /// </summary>
     /// <param name="s">The scalar to encode.</param>
     /// <param name="destination">The destination span to write the encoded scalar.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EncodeScalar(BigInteger s, Span<byte> destination)
     {
         if (!s.TryWriteBytes(destination, out int bytesWritten, isUnsigned: true, isBigEndian: true))
@@ -271,6 +283,7 @@ public sealed class Ed25519
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BigInteger DecodeScalar(ReadOnlySpan<byte> data)
         => new BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
 

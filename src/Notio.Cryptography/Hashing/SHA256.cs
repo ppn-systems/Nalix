@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
-using System.Threading;
 
 namespace Notio.Cryptography.Hashing;
 
@@ -629,71 +628,5 @@ public sealed class Sha256 : ISha, IDisposable
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
-    }
-
-    // Method to handle multiple blocks in parallel (added 2025-02-28 by phcnguyen)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessMultipleBlocks(ReadOnlySpan<byte> data)
-    {
-        int blockCount = data.Length / 64;
-        if (blockCount <= 1)
-        {
-            ProcessBlock(data);
-            return;
-        }
-
-        // Process 4 blocks in parallel if possible
-        if (blockCount >= 4 && Avx2.IsSupported)
-        {
-            // Implement 4-way parallelism for AVX2
-            // This would use 4 separate state vectors and process 4 blocks at once
-            // Implementation details omitted for brevity
-        }
-        else
-        {
-            // Process blocks sequentially
-            for (int i = 0; i < blockCount; i++)
-            {
-                ProcessBlock(data.Slice(i * 64, 64));
-            }
-        }
-    }
-
-    // Added constant-time implementation to mitigate timing attacks (added 2025-02-28 by phcnguyen)
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static uint ConstantTimeSelect(uint condition, uint valueIfOne, uint valueIfZero)
-    {
-        // condition should be either 0 or 1
-        // This creates a mask of all 0s or all 1s
-        uint mask = unchecked((uint)-(int)condition);
-        return (valueIfOne & mask) | (valueIfZero & ~mask);
-    }
-
-    // Added constant-time equality check (added 2025-02-28 by phcnguyen)
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-    {
-        if (a.Length != b.Length)
-            return false;
-
-        int result = 0;
-        for (int i = 0; i < a.Length; i++)
-        {
-            result |= a[i] ^ b[i];
-        }
-        return result == 0;
-    }
-
-    // Enhanced secure memory clearing (added 2025-02-28 by phcnguyen)
-    private static void SecureClear(Span<byte> data)
-    {
-        if (data.IsEmpty)
-            return;
-
-        // Use volatile writes to prevent compiler optimizations
-        for (int i = 0; i < data.Length; i++)
-        {
-            Volatile.Write(ref data[i], 0);
-        }
     }
 }

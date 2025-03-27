@@ -21,6 +21,8 @@ public class Localizer
 
     /// <summary>
     /// Loads messages from given PO file.
+    /// </summary>
+    /// <param name="path"></param>
     public void Load(string path) => _catalog.LoadFromFile(path);
 
     /// <summary>
@@ -58,6 +60,8 @@ public class Localizer
     /// </summary>
     /// <param name="context"></param>
     /// <param name="id"></param>
+    /// <param name="idPlural"></param>
+    /// <param name="n"></param>
     /// <returns></returns>
     public string GetParticularPlural(string context, string id, string idPlural, int n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);

@@ -60,6 +60,7 @@ public static class RandGenerator
     /// </summary>
     /// <param name="output">The span to fill with random key bytes. Length must be a multiple of 8.</param>
     /// <exception cref="ArgumentException">Thrown if the length of <paramref name="output"/> is not a multiple of 8.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void CreateKey(Span<byte> output)
     {
         if (output.Length % 8 != 0)
@@ -105,6 +106,7 @@ public static class RandGenerator
     /// </summary>
     /// <param name="keyWords">The key as an array of uint values.</param>
     /// <returns>The key as a byte array.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ConvertWordsToKey(ReadOnlySpan<uint> keyWords)
     {
         byte[] keyBytes = new byte[keyWords.Length * sizeof(uint)];
@@ -122,6 +124,7 @@ public static class RandGenerator
     /// </summary>
     /// <param name="keyBytes">The key as bytes (length must be a multiple of 4).</param>
     /// <returns>The key as an array of uint values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint[] ConvertKeyToWords(ReadOnlySpan<byte> keyBytes)
     {
         if (keyBytes.Length % sizeof(uint) != 0)
@@ -142,6 +145,7 @@ public static class RandGenerator
     /// Fills the provided span with cryptographically strong random bytes.
     /// </summary>
     /// <param name="data">The span to fill with random bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fill(Span<byte> data)
     {
         EnsureSeeded();
@@ -331,6 +335,7 @@ public static class RandGenerator
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the specified range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetInt32(int min, int max)
     {
         if (min >= max)
@@ -356,6 +361,7 @@ public static class RandGenerator
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the specified range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetInt32(int max) => GetInt32(0, max);
 
     /// <summary>
@@ -395,30 +401,6 @@ public static class RandGenerator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte RotateLeft(byte value, int shift)
         => (byte)((value << shift) | (value >> (8 - shift)));
-
-    /// <summary>
-    /// Derives a salt value from the passphrase.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] GetSalt(string passphrase)
-    {
-        byte[] salt = new byte[16];
-        byte[] passphraseBytes = Encoding.UTF8.GetBytes(passphrase);
-
-        // Create a basic salt from the passphrase
-        for (int i = 0; i < passphraseBytes.Length; i++)
-        {
-            salt[i % salt.Length] ^= (byte)(passphraseBytes[i] ^ (i & 0xFF));
-        }
-
-        // Further mix the salt
-        for (int i = 0; i < salt.Length; i++)
-        {
-            salt[i] = (byte)(salt[i] ^ RotateLeft(salt[(i + 1) % salt.Length], i % 7 + 1));
-        }
-
-        return salt;
-    }
 
     /// <summary>
     /// Shuffles the characters in a string.
@@ -492,6 +474,7 @@ public static class RandGenerator
     /// <summary>
     /// Initialize the state of the random number generator.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InitializeState()
     {
         // Use multiple entropy sources for better security

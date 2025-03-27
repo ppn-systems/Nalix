@@ -281,5 +281,6 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     /// Fills the specified buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public new void NextBytes(Span<byte> buffer) => base.NextBytes(buffer);
 }

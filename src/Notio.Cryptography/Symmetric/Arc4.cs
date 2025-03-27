@@ -93,6 +93,7 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Initializes the cipher with the provided key.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Initialize(ReadOnlySpan<byte> key)
     {
         // Initialize the permutation array

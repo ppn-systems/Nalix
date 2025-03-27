@@ -1,4 +1,5 @@
 using Notio.Cryptography.Hashing;
+using Notio.Cryptography.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -98,6 +99,7 @@ public sealed class Hmac : IDisposable
     /// <summary>
     /// Computes the inner hash of the HMAC function.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] ComputeInnerHash(byte[] innerKeyPad, ReadOnlySpan<byte> data)
     {
         if (_algorithm == HashAlgorithm.Sha1)
@@ -130,6 +132,7 @@ public sealed class Hmac : IDisposable
     /// <summary>
     /// Computes the outer hash of the HMAC function.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] ComputeOuterHash(byte[] outerKeyPad, byte[] innerHash)
     {
         if (_algorithm == HashAlgorithm.Sha1)
@@ -171,25 +174,7 @@ public sealed class Hmac : IDisposable
         byte[] computedHmac = ComputeHash(data);
 
         // Use constant time comparison to prevent timing attacks
-        return CryptographicEqual(computedHmac, expectedHmac);
-    }
-
-    /// <summary>
-    /// Performs a constant-time comparison of two buffers to prevent timing attacks.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    private static bool CryptographicEqual(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-    {
-        if (a.Length != b.Length)
-            return false;
-
-        int result = 0;
-        for (int i = 0; i < a.Length; i++)
-        {
-            result |= a[i] ^ b[i];
-        }
-
-        return result == 0;
+        return BitwiseUtils.FixedTimeEquals(computedHmac, expectedHmac);
     }
 
     /// <summary>
@@ -210,6 +195,7 @@ public sealed class Hmac : IDisposable
     /// <summary>
     /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] PrepareKey(ReadOnlySpan<byte> key)
     {
         byte[] normalizedKey = new byte[_blockSize];

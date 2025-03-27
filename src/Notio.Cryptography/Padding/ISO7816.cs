@@ -125,7 +125,7 @@ public static class ISO7816
             if (data[i] == 0x80)
             {
                 // Found the 0x80 byte, now validate all bytes after it are zeros
-                if (IsValidPadding(data, i))
+                if (AnsiX923.IsValidPadding(data, i))
                 {
                     return i;
                 }
@@ -139,25 +139,5 @@ public static class ISO7816
         }
 
         return -1; // No 0x80 byte found
-    }
-
-    /// <summary>
-    /// Validates that all bytes after the 0x80 marker are zeros.
-    /// </summary>
-    /// <param name="data">The data to validate.</param>
-    /// <param name="markerIndex">The index of the 0x80 marker.</param>
-    /// <returns>True if padding is valid, false otherwise.</returns>
-    private static bool IsValidPadding(ReadOnlySpan<byte> data, int markerIndex)
-    {
-        bool isValid = true;
-
-        // Constant-time validation of padding (after 0x80, all bytes must be 0x00)
-        for (int i = markerIndex + 1; i < data.Length; i++)
-        {
-            // Constant-time comparison to avoid timing attacks (tấn công dựa vào thời gian)
-            isValid &= (data[i] == 0x00);
-        }
-
-        return isValid;
     }
 }
