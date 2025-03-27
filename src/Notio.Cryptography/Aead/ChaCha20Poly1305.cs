@@ -11,9 +11,9 @@ namespace Notio.Cryptography.Aead;
 /// </summary>
 public static class ChaCha20Poly1305
 {
-    private const int NonceSize = 12;
     private const int TagSize = 16;
     private const int KeySize = 32;
+    private const int NonceSize = 12;
 
     // -------------------------------
     // Public API: Encrypt and Decrypt

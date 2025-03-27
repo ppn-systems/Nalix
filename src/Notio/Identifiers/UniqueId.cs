@@ -1,4 +1,3 @@
-using Notio.Common.Data;
 using Notio.Common.Identity;
 using System;
 using System.Buffers.Binary;
