@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.LZ4.Extensions;
+using Nalix.Shared.LZ4;
+
+namespace Nalix.Shared.Extensions;
 
 /// <summary>
 /// Provides string helpers to compress/decompress UTF-8 text using LZ4 and encode/decode as Base64.

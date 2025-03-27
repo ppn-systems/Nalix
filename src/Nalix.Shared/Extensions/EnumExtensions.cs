@@ -16,7 +16,7 @@ public static class EnumExtensions
     /// <returns>The converted value in the specified type <typeparamref name="TValue"/>.</returns>
     /// <exception cref="System.ArgumentException">
     /// Thrown if the size of <typeparamref name="TEnum"/> and <typeparamref name="TValue"/> are not the same.
-    /// </exception>    
+    /// </exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
