@@ -1,4 +1,4 @@
-namespace Notio.Network.Firewall.Connections;
+namespace Notio.Network.Security.Connections;
 
 /// <summary>
 /// Represents different levels of connection limits that can be applied for managing simultaneous connections.

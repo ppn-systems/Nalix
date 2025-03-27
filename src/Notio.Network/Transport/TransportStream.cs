@@ -1,6 +1,5 @@
 using Notio.Common.Logging;
 using Notio.Common.Memory;
-using Notio.Shared.Memory.Caches;
 using Notio.Shared.Time;
 using System;
 using System.IO;
@@ -8,14 +7,15 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Connection;
+namespace Notio.Network.Transport;
 
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
 /// </summary>
-internal class ConnectionStream : IDisposable
+internal class TransportStream : IDisposable
 {
     private readonly ILogger? _logger;
+    private readonly TransportCache _cache;
     private readonly NetworkStream _stream;
     private readonly IBufferPool _bufferPool;
 
@@ -23,43 +23,24 @@ internal class ConnectionStream : IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Event triggered when a new packet is added to the cache.
-    /// </summary>
-    public Action? PacketCached;
-
-    /// <summary>
     /// Event triggered when the connection is disconnected.
     /// </summary>
     public Action? Disconnected;
 
     /// <summary>
-    /// Gets the last ping time in milliseconds.
-    /// </summary>
-    public long LastPingTime { get; private set; }
-
-    /// <summary>
-    /// Caches for outgoing packets.
-    /// </summary>
-    public readonly BinaryCache CacheOutgoing = new(20);
-
-    /// <summary>
-    /// Caches for incoming packets.
-    /// </summary>
-    public readonly FifoCache<ReadOnlyMemory<byte>> CacheIncoming = new(40);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionStream"/> class.
+    /// Initializes a new instance of the <see cref="TransportStream"/> class.
     /// </summary>
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
     /// <param name="logger">The logger (optional).</param>
-    public ConnectionStream(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
+    public TransportStream(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
         _logger = logger;
         _bufferPool = bufferPool;
         _buffer = _bufferPool.Rent();
+        _cache = new TransportCache();
         _stream = new NetworkStream(socket);
-        _logger?.Debug("ConnectionStream initialized.");
+        _logger?.Debug("TransportStream initialized.");
     }
 
     /// <summary>
@@ -70,7 +51,7 @@ internal class ConnectionStream : IDisposable
     {
         if (_disposed)
         {
-            _logger?.Debug("BeginReceive called on disposed ConnectionStream.");
+            _logger?.Debug("BeginReceive called on disposed TransportStream.");
             return;
         }
 
@@ -80,7 +61,7 @@ internal class ConnectionStream : IDisposable
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
                    .ContinueWith(async (task, state) =>
                    {
-                       ConnectionStream self = (ConnectionStream)state!;
+                       TransportStream self = (TransportStream)state!;
                        try
                        {
                            await self.OnReceiveCompleted(task, cancellationToken);
@@ -123,7 +104,7 @@ internal class ConnectionStream : IDisposable
             _logger?.Debug("Sending data synchronously.");
             _stream.Write(data.Span);
 
-            CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
+            this._cache.PushOutgoing(data);
             return true;
         }
         catch (Exception ex)
@@ -139,7 +120,8 @@ internal class ConnectionStream : IDisposable
     /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public async Task<bool> SendAsync(
+        ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         try
         {
@@ -148,7 +130,7 @@ internal class ConnectionStream : IDisposable
             _logger?.Debug("Sending data asynchronously.");
             await _stream.WriteAsync(data, cancellationToken);
 
-            CacheOutgoing.Add(data.Span[0..4].ToArray(), data);
+            this._cache.PushOutgoing(data);
             return true;
         }
         catch (Exception ex)
@@ -157,6 +139,34 @@ internal class ConnectionStream : IDisposable
             return false;
         }
     }
+
+    /// <summary>
+    /// Gets a copy of incoming packets.
+    /// </summary>
+    public ReadOnlyMemory<byte> GetIncomingPackets()
+    {
+        if (_cache.Incoming.TryGetValue(out ReadOnlyMemory<byte> data))
+            return data;
+
+        return ReadOnlyMemory<byte>.Empty; // Avoid null
+    }
+
+    /// <summary>
+    /// Gets the last ping time in milliseconds.
+    /// </summary>
+    public long GetLastPingTime() => _cache.LastPingTime;
+
+    /// <summary>
+    /// Registers a callback to be invoked when a packet is cached.
+    /// </summary>
+    /// <param name="handler">The callback method to register.</param>
+    public void SetPacketCached(Action handler) => _cache.PacketCached += handler;
+
+    /// <summary>
+    /// Unregisters a previously registered callback from the packet cached event.
+    /// </summary>
+    /// <param name="handler">The callback method to remove.</param>
+    public void RemovePacketCached(Action handler) => _cache.PacketCached -= handler;
 
     /// <summary>
     /// Handles the completion of data reception.
@@ -174,7 +184,7 @@ internal class ConnectionStream : IDisposable
             {
                 _logger?.Debug("Client closed connection gracefully.");
                 // Close the connection on the server when the client disconnects
-                Disconnected?.Invoke();
+                this.Disconnected?.Invoke();
                 return;
             }
 
@@ -185,7 +195,10 @@ internal class ConnectionStream : IDisposable
 
             if (size > _bufferPool.MaxBufferSize)
             {
-                _logger?.Error($"Data length ({size} bytes) exceeds the maximum allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
+                _logger?.Error(
+                    $"Data length ({size} bytes) exceeds the maximum " +
+                    $"allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
+
                 return;
             }
 
@@ -198,11 +211,14 @@ internal class ConnectionStream : IDisposable
 
             while (totalBytesRead < size)
             {
-                int bytesRead = await _stream.ReadAsync(_buffer.AsMemory(totalBytesRead, size - totalBytesRead), cancellationToken);
+                int bytesRead = await _stream.ReadAsync(
+                    _buffer.AsMemory(totalBytesRead, size - totalBytesRead), cancellationToken);
+
                 if (bytesRead == 0)
                 {
                     _logger?.Debug("Client closed connection while reading.");
-                    Disconnected?.Invoke();
+                    this.Disconnected?.Invoke();
+
                     return;
                 }
 
@@ -212,10 +228,9 @@ internal class ConnectionStream : IDisposable
             if (totalBytesRead == size)
             {
                 _logger?.Debug("Packet received completely.");
-                CacheIncoming.Add(_buffer.AsMemory(0, totalBytesRead));
 
-                LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
-                PacketCached?.Invoke();
+                this._cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
+                this._cache.PushIncoming(_buffer.AsMemory(0, totalBytesRead));
             }
             else
             {
@@ -227,12 +242,12 @@ internal class ConnectionStream : IDisposable
               se.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Connection forcibly closed by remote host.");
-            Disconnected?.Invoke();
+            this.Disconnected?.Invoke();
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Socket connection reset.");
-            Disconnected?.Invoke();
+            this.Disconnected?.Invoke();
         }
         catch (Exception ex)
         {
@@ -245,11 +260,11 @@ internal class ConnectionStream : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="ConnectionStream"/> instance.
+    /// Disposes the resources used by the <see cref="TransportStream"/> instance.
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -263,12 +278,11 @@ internal class ConnectionStream : IDisposable
 
         if (disposing)
         {
-            _logger?.Debug("Disposing ConnectionStream.");
+            _logger?.Debug("Disposing TransportStream.");
             _bufferPool.Return(_buffer);
             _stream.Dispose();
 
-            CacheOutgoing.Clear();
-            CacheIncoming.Clear();
+            this._cache.Dispose();
         }
 
         _disposed = true;

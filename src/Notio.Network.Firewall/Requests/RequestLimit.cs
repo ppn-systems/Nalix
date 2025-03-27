@@ -1,4 +1,4 @@
-namespace Notio.Network.Firewall.Requests;
+namespace Notio.Network.Security.Requests;
 
 /// <summary>
 /// Represents different levels of request limits that can be applied to a firewall configuration.

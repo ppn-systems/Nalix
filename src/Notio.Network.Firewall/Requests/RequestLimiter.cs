@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
+using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Firewall.Requests;
+namespace Notio.Network.Security.Requests;
 
 /// <summary>
 /// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.

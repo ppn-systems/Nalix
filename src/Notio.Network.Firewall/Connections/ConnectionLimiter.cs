@@ -1,5 +1,5 @@
 using Notio.Common.Logging;
-using Notio.Network.Firewall.Metadata;
+using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Firewall.Connections;
+namespace Notio.Network.Security.Connections;
 
 /// <summary>
 /// A high-performance connection limiter that restricts simultaneous connections from IP addresses 

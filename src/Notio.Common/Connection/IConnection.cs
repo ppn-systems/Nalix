@@ -1,4 +1,5 @@
 using Notio.Common.Cryptography;
+using Notio.Common.Identity;
 using Notio.Common.Security;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    string Id { get; }
+    IUniqueId Id { get; }
 
     /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.

@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace Notio.Network.Firewall.Metadata;
+namespace Notio.Network.Security.Metadata;
 
 /// <summary>
 /// Stores connection tracking data for an IP address.

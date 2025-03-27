@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Shared", "Notio.Share
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Storage", "Notio.Storage\Notio.Storage.csproj", "{FF9582AC-4348-454D-B6BF-DF046F0A919B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Network.Firewall", "Notio.Network.Firewall\Notio.Network.Firewall.csproj", "{AA1E4099-995F-4119-8192-840BDF0D8A53}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Network.Security", "Notio.Network.Firewall\Notio.Network.Security.csproj", "{AA1E4099-995F-4119-8192-840BDF0D8A53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

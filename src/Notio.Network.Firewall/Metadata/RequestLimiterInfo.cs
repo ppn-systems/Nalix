@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Notio.Network.Firewall.Metadata;
+namespace Notio.Network.Security.Metadata;
 
 /// <summary>
 /// Represents the data of a request, including the history of request timestamps and optional block expiration time.

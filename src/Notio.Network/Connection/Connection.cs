@@ -5,6 +5,7 @@ using Notio.Common.Logging;
 using Notio.Common.Memory;
 using Notio.Common.Security;
 using Notio.Identifiers;
+using Notio.Network.Transport;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -23,7 +24,7 @@ public sealed class Connection : IConnection
     private readonly Socket _socket;
     private readonly ILogger? _logger;
     private readonly Lock _lock = new();
-    private readonly ConnectionStream _cstream;
+    private readonly TransportStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
     private readonly UniqueId _id = UniqueId.NewId(IdType.Session);
 
@@ -50,18 +51,15 @@ public sealed class Connection : IConnection
     {
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
-        _cstream = new ConnectionStream(socket, bufferAllocator, _logger)
+        _cstream = new TransportStream(socket, bufferAllocator, _logger)
         {
-            PacketCached = () =>
-            {
-                _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-            },
-
             Disconnected = () =>
             {
                 _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
             }
         };
+
+        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
     }
 
     #endregion
@@ -69,10 +67,10 @@ public sealed class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public string Id => _id.ToString(true);
+    public IUniqueId Id => _id;
 
     /// <inheritdoc />
-    public long PingTime => _cstream.LastPingTime;
+    public long PingTime => _cstream.GetLastPingTime();
 
     /// <inheritdoc/>
     public Dictionary<string, object> Metadata { get; } = [];
@@ -107,15 +105,7 @@ public sealed class Connection : IConnection
 
     /// <inheritdoc />
     public ReadOnlyMemory<byte> IncomingPacket
-    {
-        get
-        {
-            if (_cstream.CacheIncoming.TryGetValue(out ReadOnlyMemory<byte> data))
-                return data;
-
-            return ReadOnlyMemory<byte>.Empty; // Avoid null
-        }
-    }
+        => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
     public AccessLevel Authority { get; set; } = AccessLevel.Guest;
