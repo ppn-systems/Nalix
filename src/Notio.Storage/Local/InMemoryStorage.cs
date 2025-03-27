@@ -1,4 +1,3 @@
-using Notio.Storage.Config;
 using Notio.Storage.FileFormats;
 using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;

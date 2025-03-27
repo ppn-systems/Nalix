@@ -17,9 +17,11 @@ namespace Notio.Logging.Targets;
 /// </remarks>
 /// <param name="loggerFormatter">The log message formatter.</param>
 /// <param name="fileLoggerOptions">The file logger options.</param>
-public class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions) : ILoggingTarget, IDisposable
+public sealed class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
+    : ILoggingTarget, IDisposable
 {
-    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter ?? throw new ArgumentNullException(nameof(loggerFormatter));
+    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter ??
+        throw new ArgumentNullException(nameof(loggerFormatter));
 
     /// <summary>
     /// The provider responsible for writing logs to a file.

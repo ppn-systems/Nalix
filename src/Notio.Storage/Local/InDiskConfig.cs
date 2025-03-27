@@ -5,7 +5,7 @@ using Notio.Storage.MimeTypes;
 using System;
 using System.IO;
 
-namespace Notio.Storage.Config;
+namespace Notio.Storage.Local;
 
 /// <summary>
 /// Configured for file storage on disk.

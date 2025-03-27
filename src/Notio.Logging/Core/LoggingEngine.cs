@@ -51,6 +51,12 @@ public abstract class LoggingEngine : IDisposable
     }
 
     /// <summary>
+    /// Reconfigure logging options after initialization.
+    // </summary>
+    public void Configure(Action<LoggingOptions> configure)
+        => configure?.Invoke(_loggingOptions);
+
+    /// <summary>
     /// Checks if the log level meets the minimum required level for logging.
     /// </summary>
     /// <param name="level">The log level to check.</param>

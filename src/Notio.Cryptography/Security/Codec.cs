@@ -1,6 +1,6 @@
 using Notio.Cryptography.Symmetric;
 
-namespace Notio.Cryptography.Utilities;
+namespace Notio.Cryptography.Security;
 
 /// <summary>
 /// Encrypter/decrypter for the network protocol.
