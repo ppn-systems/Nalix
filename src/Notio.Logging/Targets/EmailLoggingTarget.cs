@@ -112,10 +112,10 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
     private MailMessage CreateMailMessage(LoggingEntry entry)
         => new(_from, _to)
         {
-            Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
-            Body = $"Timestamp: {entry.TimeStamp}" +
-                   $"Level: {entry.LogLevel}" +
-                   $"Message: {entry.Message}" +
+            Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss} \n",
+            Body = $"Timestamp: {entry.TimeStamp} \n" +
+                   $"Level: {entry.LogLevel} \n" +
+                   $"Message: {entry.Message} \n" +
                    $"Exception: {entry.Exception?.ToString() ?? "None"}",
             IsBodyHtml = false,
             Priority = entry.LogLevel == LoggingLevel.Critical ? MailPriority.High : MailPriority.Normal

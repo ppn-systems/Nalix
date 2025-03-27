@@ -563,10 +563,9 @@ public static partial class DLogging
     {
         string extendedDataString = extendedData != null ? $"ExtendedData: {extendedData}" : "";
 
-        return $@"
-        [Message]: {message}
-        [Source]: {sourceName ?? "Unknown"}
-        [Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}
-        {extendedDataString}".Trim();
+        return $"[Message]: {message}\n" +
+               $"[Source]: {sourceName ?? "Unknown"}\n" +
+               $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}\n" +
+               $"{extendedDataString.Trim()}";
     }
 }
