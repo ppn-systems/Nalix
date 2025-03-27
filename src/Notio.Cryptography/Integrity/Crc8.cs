@@ -50,7 +50,7 @@ public static class Crc8
             // Process remaining bytes
             for (int i = alignedLength; i < bytes.Length; i++)
             {
-                crc = Crc.TableCrc8[crc ^ bytes[i]];
+                crc = Crc.Crc8LookupTable[crc ^ bytes[i]];
             }
         }
         else
@@ -58,7 +58,7 @@ public static class Crc8
             // Process small arrays with simple loop
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = Crc.TableCrc8[crc ^ bytes[i]];
+                crc = Crc.Crc8LookupTable[crc ^ bytes[i]];
             }
         }
 
@@ -124,14 +124,14 @@ public static class Crc8
     private static byte ProcessOctet(byte crc, ReadOnlySpan<byte> octet)
     {
         // Process 8 bytes at once for better CPU cache utilization
-        crc = Crc.TableCrc8[crc ^ octet[0]];
-        crc = Crc.TableCrc8[crc ^ octet[1]];
-        crc = Crc.TableCrc8[crc ^ octet[2]];
-        crc = Crc.TableCrc8[crc ^ octet[3]];
-        crc = Crc.TableCrc8[crc ^ octet[4]];
-        crc = Crc.TableCrc8[crc ^ octet[5]];
-        crc = Crc.TableCrc8[crc ^ octet[6]];
-        crc = Crc.TableCrc8[crc ^ octet[7]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[0]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[1]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[2]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[3]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[4]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[5]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[6]];
+        crc = Crc.Crc8LookupTable[crc ^ octet[7]];
 
         return crc;
     }

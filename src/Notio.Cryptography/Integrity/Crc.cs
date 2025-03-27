@@ -1,11 +1,15 @@
 namespace Notio.Cryptography.Integrity;
 
+/// <summary>
+/// Provides methods for computing Cyclic Redundancy Check (CRC) checksums.
+/// </summary>
 public static class Crc
 {
     /// <summary>
-    /// Pre-computed lookup table for faster CRC calculation (CRC-8/MODBUS polynomial)
+    /// Precomputed lookup table for CRC-8/MODBUS polynomial (0x31).
+    /// This table is used to speed up CRC-8 calculations.
     /// </summary>
-    public static readonly byte[] TableCrc8 = [
+    public static readonly byte[] Crc8LookupTable = [
         0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29,
         0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D, 0x52, 0x87,
         0x2D, 0xF8, 0xAC, 0x79, 0xD3, 0x06, 0x7B, 0xAE, 0x04,
@@ -38,9 +42,10 @@ public static class Crc
     ];
 
     /// <summary>
-    /// Pre-computed lookup table for faster CRC calculation (CRC-16/MODBUS polynomial)
+    /// Precomputed lookup table for CRC-16/MODBUS polynomial (0x8005).
+    /// This table is used to speed up CRC-16 calculations.
     /// </summary>
-    public static readonly ushort[] TableCrc16 =
+    public static readonly ushort[] Crc16LookupTable =
     [
         0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241, 0xC601, 0x06C0, 0x0780,
         0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440, 0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1,
@@ -69,9 +74,10 @@ public static class Crc
     ];
 
     /// <summary>
-    /// Pre-computed lookup table for faster CRC calculation (CRC-32/MODBUS polynomial)
+    /// Precomputed lookup table for CRC-32/MODBUS polynomial (0x04C11DB7).
+    /// This table is used to speed up CRC-32 calculations.
     /// </summary>
-    public static readonly uint[] TableCrc32 =
+    public static readonly uint[] Crc32LookupTable =
     [
         0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419,
         0x706AF48F, 0xE963A535, 0x9E6495A3, 0x0EDB8832, 0x79DCB8A4,

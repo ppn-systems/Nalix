@@ -3,49 +3,49 @@ using Notio.Cryptography.Symmetric;
 namespace Notio.Cryptography.Security;
 
 /// <summary>
-/// Encrypter/decrypter for the network protocol.
+/// Provides encryption and decryption functionality for the network protocol.
+/// Uses the Blowfish cipher for secure communication.
 /// </summary>
 public sealed class Codec
 {
-    public readonly Blowfish _blowfish;
+    private readonly Blowfish _blowfish;
 
     /// <summary>
-    /// Creates new instance.
+    /// Initializes a new instance of the <see cref="Codec"/> class.
     /// </summary>
     public Codec() => _blowfish = new Blowfish(SBox, Key);
 
     /// <summary>
-    /// Decrypts the data in the packet in place, starting at offset
-    /// and continuing for len bytes.
+    /// Decrypts a portion of the given packet in place.
     /// </summary>
-    /// <param name="packet"></param>
-    /// <param name="offset"></param>
-    /// <param name="len"></param>
+    /// <param name="packet">The byte array containing encrypted data.</param>
+    /// <param name="offset">The starting position in the packet to begin decryption.</param>
+    /// <param name="len">The number of bytes to decrypt.</param>
     public void Decrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
     /// <summary>
-    /// Decrypts all data in the packet in place.
+    /// Decrypts the entire packet in place.
     /// </summary>
-    /// <param name="packet"></param>
+    /// <param name="packet">The byte array containing encrypted data.</param>
     public void Decrypt(byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
     /// <summary>
-    /// Encrypts the data in the packet in place, starting at offset
-    /// and continuing for len bytes.
+    /// Encrypts a portion of the given packet in place.
     /// </summary>
-    /// <param name="packet"></param>
-    /// <param name="offset"></param>
-    /// <param name="len"></param>
+    /// <param name="packet">The byte array containing plaintext data.</param>
+    /// <param name="offset">The starting position in the packet to begin encryption.</param>
+    /// <param name="len">The number of bytes to encrypt.</param>
     public void Encrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
     /// <summary>
-    /// Encrypts all data in the packet in place.
+    /// Encrypts the entire packet in place.
     /// </summary>
-    /// <param name="packet"></param>
-    public void Encrypt(byte[] packet) => _blowfish.DecryptBlock(packet, 0, packet.Length);
+    /// <param name="packet">The byte array containing plaintext data.</param>
+    public void Encrypt(byte[] packet)
+        => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
     #region Data
 

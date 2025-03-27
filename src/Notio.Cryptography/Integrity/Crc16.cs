@@ -73,7 +73,7 @@ public static class Crc16
             // Process remaining bytes
             for (int i = bytes.Length - remaining; i < bytes.Length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ bytes[i]) & 0xFF]);
+                crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
         else
@@ -81,7 +81,7 @@ public static class Crc16
             // For small inputs, use the simple loop
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ bytes[i]) & 0xFF]);
+                crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
 
@@ -122,14 +122,14 @@ public static class Crc16
     private static ushort ProcessOctet(ushort crc, ReadOnlySpan<byte> octet)
     {
         // Process 8 bytes in sequence - helps with instruction pipelining
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[0]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[1]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[2]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[3]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[4]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[5]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[6]) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc.TableCrc16[(crc ^ octet[7]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[0]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[1]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[2]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[3]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[4]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[5]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[6]) & 0xFF]);
+        crc = (ushort)((crc >> 8) ^ Crc.Crc16LookupTable[(crc ^ octet[7]) & 0xFF]);
 
         return crc;
     }

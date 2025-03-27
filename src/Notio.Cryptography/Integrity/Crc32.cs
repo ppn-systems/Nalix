@@ -118,7 +118,7 @@ public static class Crc32
             // Process remaining bytes
             for (int i = bytes.Length - remainder; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ bytes[i]];
+                crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
             }
         }
         else
@@ -126,7 +126,7 @@ public static class Crc32
             // Simple loop for small inputs
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ bytes[i]];
+                crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
             }
         }
 
@@ -140,14 +140,14 @@ public static class Crc32
     private static uint ProcessOctet(uint crc, ReadOnlySpan<byte> octet)
     {
         // Process 8 bytes in sequence with manually unrolled loop
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[0]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[1]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[2]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[3]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[4]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[5]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[6]];
-        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ octet[7]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[0]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[1]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[2]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[3]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[4]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[5]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[6]];
+        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[7]];
 
         return crc;
     }
@@ -174,14 +174,14 @@ public static class Crc32
                     // Process each byte in the vector
                     for (int j = 0; j < vectorSize; j++)
                     {
-                        crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ ptr[i + j]];
+                        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
                     }
                 }
 
                 // Process remaining bytes
                 for (int i = vectorCount * vectorSize; i < bytes.Length; i++)
                 {
-                    crc = (crc >> 8) ^ Crc.TableCrc32[(crc & 0xFF) ^ ptr[i]];
+                    crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
                 }
             }
         }

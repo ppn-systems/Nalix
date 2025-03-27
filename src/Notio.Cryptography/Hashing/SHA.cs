@@ -1,5 +1,8 @@
 namespace Notio.Cryptography.Hashing;
 
+/// <summary>
+/// Provides SHA-family cryptographic constants used in hash computations.
+/// </summary>
 public static class Sha
 {
     /// <summary>
@@ -21,8 +24,11 @@ public static class Sha
     public static readonly uint[] H1 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
 
     /// <summary>
-    /// SHA-224 round constants (Ka)
+    /// SHA-224 round constants (Ka), also used for SHA-256.
     /// </summary>
+    /// <remarks>
+    /// These constants are derived from the fractional parts of the cube roots of the first 64 prime numbers.
+    /// </remarks>
     public static readonly uint[] K224 =
     [
         0X428A2F98, 0X71374491, 0XB5C0FBCF, 0XE9B5DBA5, 0X3956C25B, 0X59F111F1, 0X923F82A4, 0XAB1C5ED5,
@@ -36,7 +42,8 @@ public static class Sha
     ];
 
     /// <summary>
-    /// SHA-224 specific initialization values
+    /// SHA-224 initial hash values (H0-H7).
+    /// These values are used as the starting state of the SHA-224 hash computation.
     /// </summary>
     public static readonly uint[] H224 =
     [
@@ -45,12 +52,16 @@ public static class Sha
     ];
 
     /// <summary>
-    /// SHA-256 round constants (Ka)
+    /// SHA-256 round constants (Ka).
     /// </summary>
+    /// <remarks>
+    /// SHA-256 uses the same constants as SHA-224.
+    /// </remarks>
     public static readonly uint[] K256 = K224;
 
     /// <summary>
-    /// SHA-256 specific initialization values
+    /// SHA-256 initial hash values (H0-H7).
+    /// These values are used as the starting state of the SHA-256 hash computation.
     /// </summary>
     public static readonly uint[] H256 =
     [

@@ -514,6 +514,19 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     #endregion
 
     #region String Methods
+
+    /// <summary>
+    /// Converts the packet's data into a human-readable, detailed string representation.
+    /// </summary>
+    /// <remarks>
+    /// This method provides a structured view of the packet's contents, including:
+    /// - ID, type, flags, command, priority, timestamp, and checksum.
+    /// - Payload size and, if applicable, a hex dump of the payload data.
+    /// - If the payload is larger than 32 bytes, only the first and last 16 bytes are displayed.
+    /// </remarks>
+    /// <returns>
+    /// A formatted string containing detailed packet information.
+    /// </returns>
     public string ToDetailedString()
     {
         StringBuilder sb = new();
