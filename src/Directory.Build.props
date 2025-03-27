@@ -1,7 +1,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <OutputPath>$(SolutionDir)build\bin\Debug\</OutputPath>
-    <IntermediateOutputPath>$(SolutionDir)build\obj\Debug\</IntermediateOutputPath>
+    <OutputPath>..\..\build\bin\Debug\</OutputPath>
+    <IntermediateOutputPath>..\..\build\obj\Debug\</IntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -11,7 +11,7 @@
     <TieredCompilation>true</TieredCompilation>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <OutputPath>$(SolutionDir)build\bin\Release\</OutputPath>
-    <IntermediateOutputPath>$(SolutionDir)build\obj\Release\</IntermediateOutputPath>
+    <OutputPath>..\..\build\bin\Release\</OutputPath>
+    <IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
   </PropertyGroup>
 </Project>
