@@ -6,24 +6,31 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
-		<PackageIcon>Notio.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<ReleaseNotes>Initial release of Notio.Shared package.</ReleaseNotes>
-		<Description>Notio.Shared is a .NET library for managing shared functionality.</Description>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Shared is a .NET library that provides shared utilities and configurations across Notio components.
+      It includes dependency injection, localization (L10N), memory management, time utilities, and configuration
+      handling to ensure consistency and reusability across multiple projects.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Shared.
+      - Features include:
+      • Configuration management for shared settings.
+      • Dependency injection (DI) utilities for modular applications.
+      • Localization (L10N) support for multi-language projects.
+      • Memory utilities for efficient resource handling.
+      • Time-related utilities for date and time management.
+    </PackageReleaseNotes>
+  
+</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
     <ProjectReference Include="..\Notio\Notio.csproj" />

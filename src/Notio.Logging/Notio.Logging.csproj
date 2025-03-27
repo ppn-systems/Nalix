@@ -7,27 +7,27 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
-		<PackageIcon>Notio.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<PackageReleaseNotes>Includes bug fixes and performance improvements.</PackageReleaseNotes>
-		<PackageDescription>Notio.Logging is a logging library that integrates with various logging providers to facilitate logging in your .NET applications.</PackageDescription>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Logging is a flexible and high-performance logging library for .NET. It provides core logging infrastructure, customizable formatters, multiple logging targets, and internal utilities for efficient log processing. Designed for developers who need structured and extensible logging capabilities in high-performance applications.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Logging.
+      - Features include:
+      • Core logging system for structured and efficient logging.
+      • Customizable formatters for flexible log output.
+      • Multiple logging targets for different output destinations.
+      • Internal utilities to optimize log processing.
+      • Extension support for seamless integration into existing .NET applications.
+    </PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	</PropertyGroup>
-
-	<ItemGroup>
-	  <None Include="DLogging.Extensions.cs" />
-	</ItemGroup>
+  <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
 		<ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />

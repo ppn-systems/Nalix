@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -6,23 +6,31 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
-		<PackageIcon>Notio.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<ReleaseNotes>Initial release of Notio.Storage package.</ReleaseNotes>
-		<Description>Notio.Storage is a .NET library for managing storage functionality.</Description>
-	</PropertyGroup>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Storage is a .NET library for efficient file storage and streaming.
+      It supports multiple storage formats, local storage handling, MIME type detection,
+      and configurable file storage providers. The library provides interfaces for both
+      synchronous and asynchronous file management.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Storage.
+      - Features include:
+      • Support for multiple file formats and MIME type detection.
+      • Configurable file storage providers for flexibility.
+      • Local storage management for optimized file handling.
+      • Interfaces for synchronous (IFileStorage) and asynchronous (IFileStorageAsync) operations.
+      • Stream provider (IStreamProvider) for efficient file streaming.
+    </PackageReleaseNotes>
+  
+</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 	
 	<ItemGroup>
 	  <ProjectReference Include="..\Notio.Shared\Notio.Shared.csproj" />

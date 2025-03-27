@@ -6,23 +6,29 @@
     <IsPackable>true</IsPackable>
     <IsTrimmable>true</IsTrimmable>
     <OutputType>Library</OutputType>
-    <PackageTags>notio</PackageTags>
-    <PackageIcon>Notio.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
 
-    <ReleaseNotes>Initial release of Notio.Network package.</ReleaseNotes>
-    <Description>Notio.Network.Firewall is a .NET library.</Description>
-  </PropertyGroup>
+    <Description>
+      Notio.Network.Security is a .NET library designed to enhance the security of network communication.
+      It provides secure connection management, metadata protection, and request validation mechanisms to
+      prevent unauthorized access and ensure data integrity. Ideal for developers building secure networking applications.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Network.Security.
+      - Features include:
+      • Secure connection handling to prevent unauthorized access.
+      • Metadata protection for network communications.
+      • Request validation mechanisms to ensure data integrity.
+      • Optimized for high-performance and secure network interactions.
+    </PackageReleaseNotes>
+  
+</PropertyGroup>
 
   <Import Project="..\Notio.Build.props" />
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Notio.Common\Notio.Common.csproj" />

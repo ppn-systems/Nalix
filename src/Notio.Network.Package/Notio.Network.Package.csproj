@@ -7,24 +7,32 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<PackageIcon>Notio.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<PackageDescription>Notio.Network.Package is a package that provides network-related utilities for your .NET applications, including HTTP clients and socket communication.</PackageDescription>
-		<PackageReleaseNotes>Introduces new features for HTTP request handling and optimizations for socket communication.</PackageReleaseNotes>
-	</PropertyGroup>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Network.Package is a lightweight .NET library for structured packet-based communication.
+      It provides utilities for packet serialization, metadata handling, extensions, and helper functions
+      to streamline network message processing. Designed for developers who require efficient and
+      scalable packet management in networking applications.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Network.Package.
+      - Features include:
+      • Packet serialization and deserialization utilities.
+      • Metadata handling for structured network messages.
+      • Helper functions for efficient packet management.
+      • Extensions to enhance networking capabilities.
+      • Lightweight and high-performance architecture.
+    </PackageReleaseNotes>
+	
+</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	</PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
     <ProjectReference Include="..\Notio\Notio.csproj" />

@@ -5,25 +5,34 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
-		<PackageIcon>Notio.png</PackageIcon>
     <DefineConstants>UNSAFE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<description>Notio.Cryptography is a package that provides cryptographic algorithms and utilities for secure data encryption and decryption in .NET applications.</description>
-		<releaseNotes>Includes new encryption algorithms and optimizations for existing cryptographic methods.</releaseNotes>
-	</PropertyGroup>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Cryptography is a high-performance .NET library providing secure and efficient cryptographic utilities.
+      It supports symmetric and asymmetric encryption, authenticated encryption (AEAD), hashing, message authentication codes (MAC),
+      integrity checks, padding schemes, and general security enhancements. Designed for developers requiring robust
+      cryptographic solutions with minimal overhead.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Cryptography.
+      - Features include:
+      • Symmetric and asymmetric encryption for secure data exchange.
+      • Authenticated encryption (AEAD) for data confidentiality and integrity.
+      • Hashing algorithms for secure data fingerprinting.
+      • Message authentication codes (MAC) for verifying message integrity.
+      • Integrity and padding utilities for secure data formatting.
+      • Security enhancements to strengthen cryptographic implementations.
+    </PackageReleaseNotes>
+	
+</PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	</PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Notio\Notio.csproj" />

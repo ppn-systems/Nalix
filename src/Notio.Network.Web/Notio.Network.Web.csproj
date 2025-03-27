@@ -4,23 +4,29 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU</Platforms>
 		<OutputType>Library</OutputType>
-		<PackageTags>notio</PackageTags>
-		<PackageIcon>Notio.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 
-    <Version>0.4.36</Version>
-    <PackageVersion>0.4.36</PackageVersion>
-    
-		<ReleaseNotes>Initial release of Notio.Network.Web package.</ReleaseNotes>
-		<Description>Notio.Network.Web is a .NET library for managing "WebSocket, WebApi,..." functionality.</Description>
-	</PropertyGroup>
+    <Version>0.4.43</Version>
+    <PackageVersion>0.4.43</PackageVersion>
+
+    <Description>
+      Notio.Network.Web is a high-performance, lightweight web framework for .NET,
+      designed for building modular and extensible web servers. It supports
+      authentication, CORS, routing, sessions, WebSockets, and security features.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Notio.Network.Web.
+      - Features include:
+      • Modular web server architecture with extensibility.
+      • Authentication, CORS, and security middleware.
+      • Routing and session management.
+      • WebSockets support for real-time communication.
+      • Built-in MIME type handling and HTTP utilities.
+    </PackageReleaseNotes>
+  </PropertyGroup>
 
 	<Import Project="..\Notio.Build.props" />
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+  <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
     <ProjectReference Include="..\Notio\Notio.csproj" />
