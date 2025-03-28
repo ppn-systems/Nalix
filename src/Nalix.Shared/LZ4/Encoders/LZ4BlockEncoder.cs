@@ -21,8 +21,7 @@ public static unsafe class LZ4BlockEncoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 GetMaxLength(System.Int32 input)
-        => input + (input / 255) + 16 + LZ4BlockHeader.Size;
+    public static System.Int32 GetMaxLength(System.Int32 input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.
@@ -52,9 +51,11 @@ public static unsafe class LZ4BlockEncoder
 
         // Pin the input and output spans to fixed memory addresses
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
-        fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
         {
-            return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable);
+            fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+            {
+                return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable);
+            }
         }
     }
 
@@ -163,7 +164,7 @@ public static unsafe class LZ4BlockEncoder
         System.Int32 offset)
     {
         // Calculate required space for this sequence
-        System.Int32 tokenLength = 1;
+        const System.Int32 tokenLength = 1;
         System.Int32 literalHeaderLength =
             (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
             ? 1 + ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) : 0;
@@ -235,7 +236,7 @@ public static unsafe class LZ4BlockEncoder
             return true;
         }
 
-        System.Int32 tokenLength = 1;
+        const System.Int32 tokenLength = 1;
         System.Int32 literalHeaderLength =
             (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
             ? 1 + ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) : 0;

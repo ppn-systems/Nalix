@@ -29,12 +29,13 @@ internal static partial class TypeMetadata
     {
         System.Func<System.Boolean> fn = _isRefCache.GetOrAdd(type, static t =>
         {
-            var method = typeof(System.Runtime.CompilerServices.RuntimeHelpers)
+            System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.RuntimeHelpers)
                 .GetMethod(nameof(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences))!
                 .MakeGenericMethod(t);
 
-            var call = System.Linq.Expressions.Expression.Lambda<System.Func<System.Boolean>>(
-                System.Linq.Expressions.Expression.Call(null, method));
+            System.Linq.Expressions.Expression<System.Func<System.Boolean>> call =
+                System.Linq.Expressions.Expression.Lambda<System.Func<System.Boolean>>(
+                    System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();
         });
@@ -48,12 +49,13 @@ internal static partial class TypeMetadata
     {
         System.Func<System.Int32> del = _sizeOfFnCache.GetOrAdd(type, static t =>
         {
-            var method = typeof(System.Runtime.CompilerServices.Unsafe)
+            System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.Unsafe)
                 .GetMethod("SizeOf")!
                 .MakeGenericMethod(t);
 
-            var call = System.Linq.Expressions.Expression.Lambda<System.Func<System.Int32>>(
-                System.Linq.Expressions.Expression.Call(null, method));
+            System.Linq.Expressions.Expression<System.Func<System.Int32>> call =
+                System.Linq.Expressions.Expression.Lambda<System.Func<System.Int32>>(
+                    System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();
         });
