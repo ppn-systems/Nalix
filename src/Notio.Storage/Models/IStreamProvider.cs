@@ -1,8 +1,7 @@
-using Notio.Storage.Models;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Notio.Storage;
+namespace Notio.Storage.Models;
 
 /// <summary>
 /// Defines a contract for providing file streams.

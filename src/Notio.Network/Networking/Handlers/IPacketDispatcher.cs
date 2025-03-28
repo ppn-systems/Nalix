@@ -1,7 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Networking.Handlers;
 
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.

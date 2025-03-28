@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Network.Protocols;
+namespace Notio.Network.Networking.Protocols;
 
 /// <summary>
 /// Represents an abstract base class for network protocols.
@@ -77,14 +77,14 @@ public abstract class Protocol : IProtocol, IDisposable
 
         try
         {
-            this.OnPostProcess(args);
+            OnPostProcess(args);
 
-            if (!this.KeepConnectionOpen)
+            if (!KeepConnectionOpen)
                 args.Connection.Disconnect();
         }
         catch (Exception ex)
         {
-            this.OnConnectionError(args.Connection, ex);
+            OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
     }
@@ -150,7 +150,7 @@ public abstract class Protocol : IProtocol, IDisposable
         if (disposing)
         {
             // Dispose of managed resources
-            this.OnDisposing();
+            OnDisposing();
         }
 
         _isDisposed = true;

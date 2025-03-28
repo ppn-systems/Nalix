@@ -1,7 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Networking.Handlers;
 
 /// <summary>
 /// Ultra-high performance packet dispatcher with advanced dependency injection (DI) integration and async support.
@@ -36,7 +36,7 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
         IPacket parsedPacket = Options.DeserializationMethod(packet);
         Logger?.Debug("Packet deserialized successfully.");
 
-        this.HandlePacket(parsedPacket, connection).Wait();
+        HandlePacket(parsedPacket, connection).Wait();
     }
 
     /// <inheritdoc />
@@ -58,7 +58,7 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
         IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
         Logger?.Debug("Packet deserialized successfully.");
 
-        this.HandlePacket(parsedPacket, connection).Wait();
+        HandlePacket(parsedPacket, connection).Wait();
     }
 
     /// <inheritdoc />

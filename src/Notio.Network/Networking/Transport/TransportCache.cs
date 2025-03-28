@@ -1,7 +1,7 @@
 using Notio.Shared.Memory.Caches;
 using System;
 
-namespace Notio.Network.Transport;
+namespace Notio.Network.Networking.Transport;
 
 /// <summary>
 /// Manages packet caching.
@@ -38,7 +38,7 @@ internal sealed class TransportCache : IDisposable
         data.Span[0..4].CopyTo(key);
         data.Span[^4..].CopyTo(key[4..]);
 
-        this.Outgoing.Add(key.ToArray(), data);
+        Outgoing.Add(key.ToArray(), data);
     }
 
     /// <summary>
@@ -47,8 +47,8 @@ internal sealed class TransportCache : IDisposable
     /// <param name="data">The received packet data to be added.</param>
     public void PushIncoming(ReadOnlyMemory<byte> data)
     {
-        this.Incoming.Add(data);
-        this.PacketCached?.Invoke();
+        Incoming.Add(data);
+        PacketCached?.Invoke();
     }
 
     /// <summary>
@@ -56,10 +56,10 @@ internal sealed class TransportCache : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.Incoming.Clear();
-        this.Outgoing.Clear();
+        Incoming.Clear();
+        Outgoing.Clear();
 
-        this.Incoming.Dispose();
-        this.Outgoing.Dispose();
+        Incoming.Dispose();
+        Outgoing.Dispose();
     }
 }

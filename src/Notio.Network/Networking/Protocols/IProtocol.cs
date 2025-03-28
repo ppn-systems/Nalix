@@ -2,7 +2,7 @@ using Notio.Common.Connection;
 using System;
 using System.Threading;
 
-namespace Notio.Network.Protocols;
+namespace Notio.Network.Networking.Protocols;
 
 /// <summary>
 /// Interface representing a network protocol.

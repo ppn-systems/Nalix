@@ -1,6 +1,6 @@
 using Notio.Common.Logging;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Networking.Handlers;
 
 /// <summary>
 /// BaseValue36 class for packet dispatchers, providing configuration options.

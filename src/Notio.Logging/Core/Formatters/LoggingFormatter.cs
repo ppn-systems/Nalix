@@ -2,7 +2,7 @@ using Notio.Common.Logging;
 using System;
 using System.Text;
 
-namespace Notio.Logging.Formatters;
+namespace Notio.Logging.Core.Formatters;
 
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.

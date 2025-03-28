@@ -2,7 +2,7 @@ using Notio.Common.Caching;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Protocols;
+using Notio.Network.Networking.Protocols;
 using Notio.Shared.Configuration;
 using System;
 using System.Net;

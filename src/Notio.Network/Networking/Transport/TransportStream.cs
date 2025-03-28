@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Transport;
+namespace Notio.Network.Networking.Transport;
 
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
@@ -104,7 +104,7 @@ internal class TransportStream : IDisposable
             _logger?.Debug("Sending data synchronously.");
             _stream.Write(data.Span);
 
-            this._cache.PushOutgoing(data);
+            _cache.PushOutgoing(data);
             return true;
         }
         catch (Exception ex)
@@ -130,7 +130,7 @@ internal class TransportStream : IDisposable
             _logger?.Debug("Sending data asynchronously.");
             await _stream.WriteAsync(data, cancellationToken);
 
-            this._cache.PushOutgoing(data);
+            _cache.PushOutgoing(data);
             return true;
         }
         catch (Exception ex)
@@ -184,7 +184,7 @@ internal class TransportStream : IDisposable
             {
                 _logger?.Debug("Client closed connection gracefully.");
                 // Close the connection on the server when the client disconnects
-                this.Disconnected?.Invoke();
+                Disconnected?.Invoke();
                 return;
             }
 
@@ -217,7 +217,7 @@ internal class TransportStream : IDisposable
                 if (bytesRead == 0)
                 {
                     _logger?.Debug("Client closed connection while reading.");
-                    this.Disconnected?.Invoke();
+                    Disconnected?.Invoke();
 
                     return;
                 }
@@ -229,8 +229,8 @@ internal class TransportStream : IDisposable
             {
                 _logger?.Debug("Packet received completely.");
 
-                this._cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
-                this._cache.PushIncoming(_buffer.AsMemory(0, totalBytesRead));
+                _cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
+                _cache.PushIncoming(_buffer.AsMemory(0, totalBytesRead));
             }
             else
             {
@@ -242,12 +242,12 @@ internal class TransportStream : IDisposable
               se.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Connection forcibly closed by remote host.");
-            this.Disconnected?.Invoke();
+            Disconnected?.Invoke();
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
         {
             _logger?.Debug("Socket connection reset.");
-            this.Disconnected?.Invoke();
+            Disconnected?.Invoke();
         }
         catch (Exception ex)
         {
@@ -255,7 +255,7 @@ internal class TransportStream : IDisposable
         }
         finally
         {
-            this.BeginReceive(cancellationToken);
+            BeginReceive(cancellationToken);
         }
     }
 
@@ -264,7 +264,7 @@ internal class TransportStream : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.Dispose(true);
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -282,7 +282,7 @@ internal class TransportStream : IDisposable
             _bufferPool.Return(_buffer);
             _stream.Dispose();
 
-            this._cache.Dispose();
+            _cache.Dispose();
         }
 
         _disposed = true;

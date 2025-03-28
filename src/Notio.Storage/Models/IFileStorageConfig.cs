@@ -1,6 +1,6 @@
 using Notio.Storage.Generator;
 
-namespace Notio.Storage;
+namespace Notio.Storage.Models;
 
 /// <summary>
 /// Defines configuration options for file storage settings.

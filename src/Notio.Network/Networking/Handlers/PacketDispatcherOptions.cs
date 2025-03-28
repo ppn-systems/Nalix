@@ -11,7 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Handlers;
+namespace Notio.Network.Networking.Handlers;
 
 /// <summary>
 /// Provides configuration options for an instance of <see cref="PacketDispatcher"/>.
@@ -156,7 +156,7 @@ public sealed class PacketDispatcherOptions
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods |
         DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
         where TController : class, new()
-        => this.WithHandler(() => new TController());
+        => WithHandler(() => new TController());
 
     /// <summary>
     /// Registers a handler using an existing instance of the specified controller type.
@@ -552,7 +552,7 @@ public sealed class PacketDispatcherOptions
         Type t when t == typeof(IPacket) => async (result, _, connection) =>
         {
             if (result is IPacket packet)
-                await this.SendPacketAsync(packet, connection);
+                await SendPacketAsync(packet, connection);
         }
         ,
         Type t when t == typeof(ValueTask) => async (result, _, _) =>
@@ -593,7 +593,7 @@ public sealed class PacketDispatcherOptions
                 try
                 {
                     IPacket packet = await task;
-                    await this.SendPacketAsync(packet, connection);
+                    await SendPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -640,7 +640,7 @@ public sealed class PacketDispatcherOptions
                 try
                 {
                     IPacket packet = await task;
-                    await this.SendPacketAsync(packet, connection);
+                    await SendPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -685,7 +685,7 @@ public sealed class PacketDispatcherOptions
         Func<IPacket, IConnection, IPacket>? method,
         IConnection context)
     {
-        if (!(((PacketFlags)packet.Flags & flag) == flag))
+        if (!((packet.Flags & flag) == flag))
             return packet;
 
         if (method is null)

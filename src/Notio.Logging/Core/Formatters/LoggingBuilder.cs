@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Notio.Logging.Formatters;
+namespace Notio.Logging.Core.Formatters;
 
 /// <summary>
 /// High-performance log building utilities optimized for minimal allocations.
