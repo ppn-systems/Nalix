@@ -18,14 +18,14 @@ internal static class LoggingLevelFormatter
     // This enables fast slicing without calculating offsets each time
     private static ReadOnlySpan<char> LogLevelChars =>
     [
-        'M', 'E', 'T', 'A', '\0', // LoggingLevel.Meta        (0)
-        'T', 'R', 'C', 'E', '\0', // LoggingLevel.Trace       (1)
-        'D', 'B', 'U', 'G', '\0', // LoggingLevel.Debug       (2)
-        'I', 'N', 'F', 'O', '\0', // LoggingLevel.Information (3)
-        'W', 'A', 'R', 'N', '\0', // LoggingLevel.Warning     (4)
-        'F', 'A', 'I', 'L', '\0', // LoggingLevel.Error       (5)
-        'C', 'R', 'I', 'T', '\0', // LoggingLevel.Critical    (6)
-        'N', 'O', 'N', 'E', '\0'  // LoggingLevel.None        (7)
+        'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (0)
+        'T', 'R', 'C', 'E', '\0', // LogLevel.Trace       (1)
+        'D', 'B', 'U', 'G', '\0', // LogLevel.Debug       (2)
+        'I', 'N', 'F', 'O', '\0', // LogLevel.Information (3)
+        'W', 'A', 'R', 'N', '\0', // LogLevel.Warning     (4)
+        'F', 'A', 'I', 'L', '\0', // LogLevel.Error       (5)
+        'C', 'R', 'I', 'T', '\0', // LogLevel.Critical    (6)
+        'N', 'O', 'N', 'E', '\0'  // LogLevel.None        (7)
     ];
 
     // Pre-computed strings for each log level to avoid repeated allocations
@@ -67,7 +67,7 @@ internal static class LoggingLevelFormatter
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A character span representing the log level.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ReadOnlySpan<char> GetShortLogLevel(LoggingLevel logLevel)
+    internal static ReadOnlySpan<char> GetShortLogLevel(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if (!IsValidLogLevel(logLevel))
@@ -89,7 +89,7 @@ internal static class LoggingLevelFormatter
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A string representing the log level.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetShortLogLevelString(LoggingLevel logLevel)
+    internal static string GetShortLogLevelString(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if (!IsValidLogLevel(logLevel))
@@ -108,7 +108,7 @@ internal static class LoggingLevelFormatter
     /// <param name="logLevel">The logging level to validate.</param>
     /// <returns>True if the log level is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidLogLevel(LoggingLevel logLevel)
+    private static bool IsValidLogLevel(LogLevel logLevel)
     {
         // Use unsigned comparison to handle both negative values and values larger than MaxLogLevels
         return (uint)logLevel < MaxLogLevels;
@@ -121,7 +121,7 @@ internal static class LoggingLevelFormatter
     /// <param name="destination">The destination character span.</param>
     /// <returns>The number of characters written.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int CopyTo(LoggingLevel logLevel, Span<char> destination)
+    internal static int CopyTo(LogLevel logLevel, Span<char> destination)
     {
         if (!IsValidLogLevel(logLevel))
         {
@@ -148,7 +148,7 @@ internal static class LoggingLevelFormatter
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A log level name that is exactly 4 characters long.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetFixedWidthLogLevel(LoggingLevel logLevel)
+    internal static string GetFixedWidthLogLevel(LogLevel logLevel)
     {
         if (!IsValidLogLevel(logLevel))
         {
@@ -170,9 +170,9 @@ internal static class LoggingLevelFormatter
     /// <param name="levelText">The text representation of a log level.</param>
     /// <param name="result">The parsed log level when successful.</param>
     /// <returns>True if parsing was successful, otherwise false.</returns>
-    internal static bool TryParse(ReadOnlySpan<char> levelText, out LoggingLevel result)
+    internal static bool TryParse(ReadOnlySpan<char> levelText, out LogLevel result)
     {
-        result = LoggingLevel.None;
+        result = LogLevel.None;
 
         if (levelText.IsEmpty)
             return false;
@@ -183,7 +183,7 @@ internal static class LoggingLevelFormatter
             ReadOnlySpan<char> candidate = LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength);
             if (levelText.Equals(candidate, StringComparison.OrdinalIgnoreCase))
             {
-                result = (LoggingLevel)i;
+                result = (LogLevel)i;
                 return true;
             }
         }
@@ -192,35 +192,35 @@ internal static class LoggingLevelFormatter
         if (levelText.Equals("META", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("METADATA", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Meta;
+            result = LogLevel.Meta;
             return true;
         }
 
         if (levelText.Equals("TRACE", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("VERBOSE", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Trace;
+            result = LogLevel.Trace;
             return true;
         }
 
         if (levelText.Equals("DEBUG", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("DBUG", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Debug;
+            result = LogLevel.Debug;
             return true;
         }
 
         if (levelText.Equals("INFO", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("INFORMATION", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Information;
+            result = LogLevel.Information;
             return true;
         }
 
         if (levelText.Equals("WARN", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("WARNING", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Warning;
+            result = LogLevel.Warning;
             return true;
         }
 
@@ -228,7 +228,7 @@ internal static class LoggingLevelFormatter
             levelText.Equals("FAIL", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("ERR", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Error;
+            result = LogLevel.Error;
             return true;
         }
 
@@ -236,21 +236,21 @@ internal static class LoggingLevelFormatter
             levelText.Equals("CRITICAL", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("FATAL", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.Critical;
+            result = LogLevel.Critical;
             return true;
         }
 
         if (levelText.Equals("NONE", StringComparison.OrdinalIgnoreCase) ||
             levelText.Equals("OFF", StringComparison.OrdinalIgnoreCase))
         {
-            result = LoggingLevel.None;
+            result = LogLevel.None;
             return true;
         }
 
         // Try numeric parsing as fallback
         if (int.TryParse(levelText, out int numericLevel) && numericLevel >= 0 && numericLevel < MaxLogLevels)
         {
-            result = (LoggingLevel)numericLevel;
+            result = (LogLevel)numericLevel;
             return true;
         }
 

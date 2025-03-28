@@ -1,4 +1,4 @@
-namespace Notio.Common.Memory;
+namespace Notio.Common.Caching;
 
 /// <summary>
 /// Manages buffers of various sizes.

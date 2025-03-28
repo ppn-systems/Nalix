@@ -1,7 +1,7 @@
+using Notio.Common.Caching;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Common.Memory;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;

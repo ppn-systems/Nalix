@@ -36,7 +36,7 @@ internal static class LoggingBuilder
     internal static void BuildLog(
         StringBuilder builder,
         in DateTime timeStamp,
-        LoggingLevel logLevel,
+        LogLevel logLevel,
         in EventId eventId,
         string message,
         Exception? exception,
@@ -74,7 +74,7 @@ internal static class LoggingBuilder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static string CreateLogMessage(
         in DateTime timeStamp,
-        LoggingLevel logLevel,
+        LogLevel logLevel,
         in EventId eventId,
         string message,
         Exception? exception,
@@ -144,7 +144,7 @@ internal static class LoggingBuilder
     /// Appends a formatted log level to the string builder.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendLogLevel(StringBuilder builder, LoggingLevel logLevel, bool terminal)
+    private static void AppendLogLevel(StringBuilder builder, LogLevel logLevel, bool terminal)
     {
         builder.Append(LoggingConstants.LogSpaceSeparator)
                .Append(LoggingConstants.LogBracketOpen);

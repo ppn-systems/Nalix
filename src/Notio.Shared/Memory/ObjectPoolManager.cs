@@ -1,4 +1,4 @@
-using Notio.Common.Memory;
+using Notio.Common.Caching;
 using Notio.Shared.Injection;
 using Notio.Shared.Memory.Pools;
 using Notio.Shared.Memory.Types;

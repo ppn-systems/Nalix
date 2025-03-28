@@ -10,11 +10,11 @@ namespace Notio.Logging.Core;
 /// </summary>
 public sealed class LoggingOptions : IDisposable
 {
-    private readonly ILoggingPublisher _publisher;
+    private readonly ILoggerPublisher _publisher;
     private int _disposed;
 
     // Default values that can be customized
-    private LoggingLevel _minLevel = LoggingLevel.Trace;
+    private LogLevel _minLevel = LogLevel.Trace;
 
     /// <summary>
     /// Gets the file logger configuration options.
@@ -24,7 +24,7 @@ public sealed class LoggingOptions : IDisposable
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    public LoggingLevel MinLevel
+    public LogLevel MinLevel
     {
         get => _minLevel;
         set => _minLevel = value;
@@ -58,8 +58,8 @@ public sealed class LoggingOptions : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingOptions"/> class.
     /// </summary>
-    /// <param name="publisher">The <see cref="ILoggingPublisher"/> instance for publishing log messages.</param>
-    internal LoggingOptions(ILoggingPublisher publisher)
+    /// <param name="publisher">The <see cref="ILoggerPublisher"/> instance for publishing log messages.</param>
+    internal LoggingOptions(ILoggerPublisher publisher)
         => _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
 
     /// <summary>
@@ -77,11 +77,11 @@ public sealed class LoggingOptions : IDisposable
     /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
-    /// <param name="target">The <see cref="ILoggingTarget"/> to add.</param>
+    /// <param name="target">The <see cref="ILoggerTarget"/> to add.</param>
     /// <returns>The current <see cref="LoggingOptions"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public LoggingOptions AddTarget(ILoggingTarget target)
+    public LoggingOptions AddTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
 
@@ -94,10 +94,10 @@ public sealed class LoggingOptions : IDisposable
     /// <summary>
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
-    /// <param name="level">The minimum <see cref="LoggingLevel"/>.</param>
+    /// <param name="level">The minimum <see cref="LogLevel"/>.</param>
     /// <returns>The current <see cref="LoggingOptions"/> instance for method chaining.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public LoggingOptions SetMinLevel(LoggingLevel level)
+    public LoggingOptions SetMinLevel(LogLevel level)
     {
         ThrowIfDisposed();
 

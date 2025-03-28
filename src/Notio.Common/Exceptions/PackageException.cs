@@ -4,7 +4,7 @@ namespace Notio.Common.Exceptions;
 /// Custom exception for errors related to packets.
 /// </summary>
 [System.Serializable]
-public class PackageException : System.Exception
+public class PackageException : BaseException
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PackageException"/> class with a specified error message.

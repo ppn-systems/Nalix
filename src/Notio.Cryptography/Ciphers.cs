@@ -110,14 +110,14 @@ public static class Ciphers
                     }
 
                 default:
-                    throw new CryptographicException(
+                    throw new CryptoException(
                         $"The specified encryption algorithm '{algorithm}' is not supported. " +
                         $"Please choose a valid algorithm.");
             }
         }
         catch (Exception ex)
         {
-            throw new CryptographicException(
+            throw new CryptoException(
                 "Encryption failed. An unexpected error occurred during the encryption process.", ex);
         }
     }
@@ -161,7 +161,7 @@ public static class Ciphers
                         ReadOnlySpan<byte> ciphertext = input[12..^16];
 
                         if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
-                            throw new CryptographicException(
+                            throw new CryptoException(
                                 "Decryption failed. Security of the encrypted data has failed.");
 
                         return plaintext;
@@ -221,7 +221,7 @@ public static class Ciphers
                         }
                         catch (Exception ex)
                         {
-                            throw new CryptographicException(
+                            throw new CryptoException(
                                 "Decryption failed. Security of the data has failed.", ex);
                         }
                         finally
@@ -231,14 +231,14 @@ public static class Ciphers
                     }
 
                 default:
-                    throw new CryptographicException(
+                    throw new CryptoException(
                         $"The specified encryption algorithm '{algorithm}' is not supported. " +
                         $"Please choose a valid algorithm.");
             }
         }
         catch (Exception ex)
         {
-            throw new CryptographicException(
+            throw new CryptoException(
                 "Decryption failed. An unexpected error occurred during the decryption process.", ex);
         }
     }

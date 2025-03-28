@@ -7,7 +7,7 @@ namespace Notio.Logging.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
-public class LoggingFormatter(bool terminal = false) : ILoggingFormatter
+public class LoggingFormatter(bool terminal = false) : ILoggerFormatter
 {
     private readonly bool _terminal = terminal;
 
@@ -25,7 +25,7 @@ public class LoggingFormatter(bool terminal = false) : ILoggingFormatter
     /// var formatter = new LoggingFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
-    public string FormatLog(LoggingEntry logMsg)
+    public string FormatLog(LogEntry logMsg)
         => FormatLogEntry(logMsg.TimeStamp, logMsg.LogLevel,
             logMsg.EventId, logMsg.Message, logMsg.Exception);
 
@@ -39,10 +39,10 @@ public class LoggingFormatter(bool terminal = false) : ILoggingFormatter
     /// <param name="exception">The exception included (if any).</param>
     /// <returns>Log format string.</returns>
     /// <example>
-    /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LoggingLevel.Information, new EventId(1), "Sample message", null);
+    /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     public string FormatLogEntry(
-        DateTime timeStamp, LoggingLevel logLevel, EventId eventId,
+        DateTime timeStamp, LogLevel logLevel, EventId eventId,
         string message, Exception? exception)
     {
         StringBuilder logBuilder = new();

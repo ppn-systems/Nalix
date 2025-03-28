@@ -10,17 +10,17 @@ namespace Notio.Logging.Targets;
 /// </summary>
 /// <remarks>
 /// This logger uses a specified formatter to format the log message before writing it to a file.
-/// The default behavior can be customized by providing a custom <see cref="ILoggingFormatter"/>.
+/// The default behavior can be customized by providing a custom <see cref="ILoggerFormatter"/>.
 /// </remarks>
 /// <remarks>
 /// Initializes a new instance of the <see cref="FileLoggingTarget"/> class.
 /// </remarks>
 /// <param name="loggerFormatter">The log message formatter.</param>
 /// <param name="fileLoggerOptions">The file logger options.</param>
-public sealed class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
-    : ILoggingTarget, IDisposable
+public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
+    : ILoggerTarget, IDisposable
 {
-    private readonly ILoggingFormatter _loggerFormatter = loggerFormatter ??
+    private readonly ILoggerFormatter _loggerFormatter = loggerFormatter ??
         throw new ArgumentNullException(nameof(loggerFormatter));
 
     /// <summary>
@@ -49,7 +49,7 @@ public sealed class FileLoggingTarget(ILoggingFormatter loggerFormatter, FileLog
     /// Publishes the formatted log entry to the log file.
     /// </summary>
     /// <param name="logMessage">The log entry to be published.</param>
-    public void Publish(LoggingEntry logMessage)
+    public void Publish(LogEntry logMessage)
         => _loggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
 
     /// <summary>

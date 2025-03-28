@@ -15,7 +15,7 @@ namespace Notio.Logging.Targets;
 /// This target sends logs to a specified email address using an SMTP server.
 /// It only logs messages that meet the minimum logging level.
 /// </remarks>
-public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
+public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
 {
     private readonly int _port;
     private readonly string _to;
@@ -24,7 +24,7 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
     private readonly string _smtpServer;
     private readonly Lock _lock = new();
     private readonly SmtpClient _smtpClient;
-    private readonly LoggingLevel _minimumLevel;
+    private readonly LogLevel _minimumLevel;
 
     private bool _disposed;
 
@@ -47,7 +47,7 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
         string from,
         string to,
         string password,
-        LoggingLevel minimumLevel = LoggingLevel.Error,
+        LogLevel minimumLevel = LogLevel.Error,
         bool enableSsl = true,
         int timeout = 30000) // 30 seconds default timeout
     {
@@ -75,7 +75,7 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance is disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if email sending fails.</exception>
-    public async Task PublishAsync(LoggingEntry entry)
+    public async Task PublishAsync(LogEntry entry)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLoggingTarget));
 
@@ -106,10 +106,10 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
     /// Publishes a log entry synchronously by sending an email.
     /// </summary>
     /// <param name="entry">The log entry to send via email.</param>
-    public void Publish(LoggingEntry entry)
+    public void Publish(LogEntry entry)
         => PublishAsync(entry).GetAwaiter().GetResult();
 
-    private MailMessage CreateMailMessage(LoggingEntry entry)
+    private MailMessage CreateMailMessage(LogEntry entry)
         => new(_from, _to)
         {
             Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss} \n",
@@ -118,7 +118,7 @@ public sealed class EmailLoggingTarget : ILoggingTarget, IDisposable
                    $"Message: {entry.Message} \n" +
                    $"Exception: {entry.Exception?.ToString() ?? "None"}",
             IsBodyHtml = false,
-            Priority = entry.LogLevel == LoggingLevel.Critical ? MailPriority.High : MailPriority.Normal
+            Priority = entry.LogLevel == LogLevel.Critical ? MailPriority.High : MailPriority.Normal
         };
 
     private static void ValidateParameters(

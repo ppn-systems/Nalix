@@ -16,12 +16,12 @@ public static partial class DLogging
     /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.
     /// </summary>
-    public static readonly ILoggingPublisher Publisher;
+    public static readonly ILoggerPublisher Publisher;
 
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will not be logged.
     /// </summary>
-    public static LoggingLevel MinimumLevel { get; set; } = LoggingLevel.Trace;
+    public static LogLevel MinimumLevel { get; set; } = LogLevel.Trace;
 
     /// <summary>
     /// Initializes static members of the <see cref="DLogging"/> class.
@@ -60,7 +60,7 @@ public static partial class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LoggingLevel.Debug, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(LogLevel.Debug, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Debug, message, source?.FullName, extendedData,
+            LogLevel.Debug, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -103,7 +103,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Debug, message, source, extendedData,
+            LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -125,7 +125,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Trace, message, source, extendedData,
+            LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -147,7 +147,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry
-            (LoggingLevel.Trace, message, source?.FullName, extendedData,
+            (LogLevel.Trace, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -169,7 +169,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Trace, message, source, extendedData,
+            LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -191,7 +191,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Warning, message, source, extendedData,
+            LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -213,7 +213,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Warning, message, source?.FullName, extendedData,
+            LogLevel.Warning, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -235,7 +235,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Warning, message, source, extendedData,
+            LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -257,7 +257,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Critical, message, source, extendedData,
+            LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -279,7 +279,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Critical, message, source?.FullName, extendedData,
+            LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -301,7 +301,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Critical, message, source, extendedData,
+            LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -323,7 +323,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Information, message, source, extendedData,
+            LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -345,7 +345,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Information, message, source?.FullName, extendedData,
+            LogLevel.Information, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -367,7 +367,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Information, message, source, extendedData,
+            LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -389,7 +389,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Error, message, source, extendedData,
+            LogLevel.Error, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -411,7 +411,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Error, message, source?.FullName, extendedData,
+            LogLevel.Error, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -433,7 +433,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LoggingLevel.Error, message, source, ex,
+            LogLevel.Error, message, source, ex,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -450,7 +450,7 @@ public static partial class DLogging
     public static void Log(
         this string message,
         string source,
-        LoggingLevel messageType,
+        LogLevel messageType,
         object? extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
@@ -474,7 +474,7 @@ public static partial class DLogging
     public static void Log(
         this string message,
         Type source,
-        LoggingLevel messageType,
+        LogLevel messageType,
         object? extendedData = null,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",
@@ -506,7 +506,7 @@ public static partial class DLogging
             return;
 
         CreateLogEntry(
-            LoggingLevel.Error, message ?? ex.Message, source ?? ex.Source,
+            LogLevel.Error, message ?? ex.Message, source ?? ex.Source,
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
@@ -531,12 +531,12 @@ public static partial class DLogging
             return;
 
         CreateLogEntry(
-            LoggingLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source,
+            LogLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source,
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
     private static void CreateLogEntry(
-        LoggingLevel level,
+        LogLevel level,
         string message,
         string? sourceName,
         object? extendedData,
@@ -550,7 +550,7 @@ public static partial class DLogging
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
-        Publisher.Publish(new LoggingEntry(level, EventId.Empty, fullMessage, null));
+        Publisher.Publish(new LogEntry(level, EventId.Empty, fullMessage, null));
     }
 
     private static string BuildFullMessage(

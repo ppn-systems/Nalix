@@ -75,7 +75,7 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     /// <returns>A new <see cref="Base64Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base64Id NewId(IdType type = IdType.Generic, ushort machineId = 0)
+    public static Base64Id NewId(IdType type = IdType.Unknown, ushort machineId = 0)
         => new(BaseN.GenerateId(type, machineId));
 
     /// <summary>
@@ -173,7 +173,7 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Base64Id FromComponents(IdType type, ushort machineId, uint? randomValue = null)
     {
-        if ((int)type >= (int)IdType.Limit)
+        if ((int)type >= (int)IdType.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         uint random = randomValue ?? BaseN.GenerateSecureRandomUInt();

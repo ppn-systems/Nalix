@@ -3,7 +3,7 @@ namespace Notio.Common.Logging;
 /// <summary>
 /// Represents the severity levels of a log message.
 /// </summary>
-public enum LoggingLevel
+public enum LogLevel
 {
     /// <summary>
     /// Level used to represent messages related to metrics (statistics, measurement data).

@@ -75,7 +75,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     /// <returns>A new <see cref="Base58Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base58Id NewId(IdType type = IdType.Generic, ushort machineId = 0)
+    public static Base58Id NewId(IdType type = IdType.Unknown, ushort machineId = 0)
         => new(BaseN.GenerateId(type, machineId));
 
     /// <summary>
@@ -173,7 +173,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Base58Id FromComponents(IdType type, ushort machineId, uint? randomValue = null)
     {
-        if ((int)type >= (int)IdType.Limit)
+        if ((int)type >= (int)IdType.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         uint random = randomValue ?? BaseN.GenerateSecureRandomUInt();

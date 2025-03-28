@@ -1,4 +1,4 @@
-namespace Notio.Common.Memory;
+namespace Notio.Common.Caching;
 
 /// <summary>
 /// Interface for objects that can be pooled.

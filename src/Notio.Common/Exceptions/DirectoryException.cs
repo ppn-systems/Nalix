@@ -11,7 +11,7 @@ namespace Notio.Common.Exceptions;
 /// <param name="innerException">The inner exception, if any.</param>
 [System.Serializable]
 public class DirectoryException(string message, string directoryPath, System.Exception innerException = null)
-    : System.Exception(message, innerException)
+    : BaseException(message, innerException)
 {
     /// <summary>
     /// Gets the path that caused the exception.

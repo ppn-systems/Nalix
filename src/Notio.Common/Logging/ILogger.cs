@@ -57,17 +57,17 @@ public interface ILogger
         where TClass : class;
 
     /// <summary>
+    /// Logs information about normal application flow.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    void Info(string message);
+
+    /// <summary>
     /// Logs information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
     void Info(string format, params object[] args);
-
-    /// <summary>
-    /// Logs information about normal application flow.
-    /// </summary>
-    /// <param name="message">The message to log.</param>
-    void Info(string message);
 
     /// <summary>
     /// Logs information with optional event identifier.
@@ -137,18 +137,18 @@ public interface ILogger
     void Fatal(string message);
 
     /// <summary>
-    /// Logs a critical error with optional event identifier.
-    /// </summary>
-    /// <param name="message">The critical error message to log.</param>
-    /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Fatal(string message, EventId? eventId = null);
-
-    /// <summary>
     /// Logs a critical error with custom message and exception details.
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
     /// <param name="exception">The associated exception.</param>
     void Fatal(string message, Exception exception);
+
+    /// <summary>
+    /// Logs a critical error with optional event identifier.
+    /// </summary>
+    /// <param name="message">The critical error message to log.</param>
+    /// <param name="eventId">Optional event identifier for correlation.</param>
+    void Fatal(string message, EventId? eventId = null);
 
     /// <summary>
     /// Logs a critical error with message, exception, and optional event identifier.

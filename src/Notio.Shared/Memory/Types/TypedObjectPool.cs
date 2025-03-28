@@ -1,4 +1,4 @@
-using Notio.Common.Memory;
+using Notio.Common.Caching;
 using Notio.Shared.Memory.Pools;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;

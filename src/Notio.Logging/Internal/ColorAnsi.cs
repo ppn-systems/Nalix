@@ -46,7 +46,7 @@ internal static class ColorAnsi
     public const string Blink = "\u001b[5m";        // Blinking text (not widely supported)
 
     // Cache of color codes by log level to avoid repeated switch statements
-    private static readonly string[] _levelColorCache = new string[(int)LoggingLevel.None + 1];
+    private static readonly string[] _levelColorCache = new string[(int)LogLevel.None + 1];
 
     /// <summary>
     /// Static constructor to initialize the color cache
@@ -54,13 +54,13 @@ internal static class ColorAnsi
     static ColorAnsi()
     {
         // Initialize color cache
-        _levelColorCache[(int)LoggingLevel.None] = Cyan;
-        _levelColorCache[(int)LoggingLevel.Trace] = Orange;
-        _levelColorCache[(int)LoggingLevel.Debug] = LightCyan;
-        _levelColorCache[(int)LoggingLevel.Information] = LightGreen;
-        _levelColorCache[(int)LoggingLevel.Warning] = LightYellow;
-        _levelColorCache[(int)LoggingLevel.Error] = LightMagenta;
-        _levelColorCache[(int)LoggingLevel.Critical] = Red;
+        _levelColorCache[(int)LogLevel.None] = Cyan;
+        _levelColorCache[(int)LogLevel.Trace] = Orange;
+        _levelColorCache[(int)LogLevel.Debug] = LightCyan;
+        _levelColorCache[(int)LogLevel.Information] = LightGreen;
+        _levelColorCache[(int)LogLevel.Warning] = LightYellow;
+        _levelColorCache[(int)LogLevel.Error] = LightMagenta;
+        _levelColorCache[(int)LogLevel.Critical] = Red;
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ internal static class ColorAnsi
     /// </summary>
     /// <param name="level">The logging level to get a color for.</param>
     /// <returns>An ANSI color code string.</returns>
-    internal static string GetColorCode(LoggingLevel level)
+    internal static string GetColorCode(LogLevel level)
     {
         // Use the cached color if level is within range
         if ((int)level >= 0 && (int)level < _levelColorCache.Length)
@@ -85,6 +85,6 @@ internal static class ColorAnsi
     /// <param name="text">The text to colorize.</param>
     /// <param name="level">The logging level determining the color.</param>
     /// <returns>Colorized text string with reset code appended.</returns>
-    internal static string Colorize(string text, LoggingLevel level)
+    internal static string Colorize(string text, LogLevel level)
         => GetColorCode(level) + text + Reset;
 }

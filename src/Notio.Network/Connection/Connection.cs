@@ -1,8 +1,8 @@
+using Notio.Common.Caching;
 using Notio.Common.Connection;
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
 using Notio.Common.Logging;
-using Notio.Common.Memory;
 using Notio.Common.Security;
 using Notio.Identifiers;
 using Notio.Network.Transport;

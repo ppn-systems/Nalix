@@ -12,7 +12,7 @@ namespace Notio.Logging.Core;
 public abstract class LoggingEngine : IDisposable
 {
     // Cache the minimum log level for faster filtering
-    private readonly LoggingLevel _minLogLevel;
+    private readonly LogLevel _minLogLevel;
     private readonly LoggingPublisher _publisher;
     private readonly LoggingOptions _loggingOptions;
 
@@ -66,7 +66,7 @@ public abstract class LoggingEngine : IDisposable
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected bool IsEnabled(LoggingLevel level) => level >= _minLogLevel;
+    protected bool IsEnabled(LogLevel level) => level >= _minLogLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -76,7 +76,7 @@ public abstract class LoggingEngine : IDisposable
     /// <param name="message">The log message.</param>
     /// <param name="error">Optional exception information.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void CreateLogEntry(LoggingLevel level, EventId eventId, string message, Exception? error = null)
+    protected void CreateLogEntry(LogLevel level, EventId eventId, string message, Exception? error = null)
     {
         if (_isDisposed != 0)
             return;
@@ -86,7 +86,7 @@ public abstract class LoggingEngine : IDisposable
             return;
 
         // Create and publish the log entry
-        LoggingEntry entry = new(level, eventId, message, error);
+        LogEntry entry = new(level, eventId, message, error);
 
         _publisher.Publish(entry);
     }
@@ -99,7 +99,7 @@ public abstract class LoggingEngine : IDisposable
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void CreateFormattedLogEntry(LoggingLevel level, EventId eventId, string format, params object?[] args)
+    protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object?[] args)
     {
         // Skip expensive string formatting if the log level is disabled
         if (_isDisposed != 0 || level < _minLogLevel)

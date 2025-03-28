@@ -12,10 +12,10 @@ namespace Notio.Logging.Core;
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
 /// </summary>
-public sealed class LoggingPublisher : ILoggingPublisher
+public sealed class LoggingPublisher : ILoggerPublisher
 {
     // Using a concurrent dictionary for thread-safe operations on targets
-    private readonly ConcurrentDictionary<ILoggingTarget, byte> _targets = new();
+    private readonly ConcurrentDictionary<ILoggerTarget, byte> _targets = new();
 
     // Use a dummy value (0) for dictionary entries as we only care about the keys
     private const byte DummyValue = 0;
@@ -50,7 +50,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Publish(LoggingEntry? entry)
+    public void Publish(LogEntry? entry)
     {
         if (entry == null)
             throw new ArgumentNullException(nameof(entry));
@@ -103,7 +103,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// <returns>A task representing the asynchronous publish operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public Task PublishAsync(LoggingEntry? entry)
+    public Task PublishAsync(LogEntry? entry)
     {
         if (entry == null)
             throw new ArgumentNullException(nameof(entry));
@@ -126,10 +126,10 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="target">The logging target to add.</param>
-    /// <returns>The current instance of <see cref="ILoggingPublisher"/>, allowing method chaining.</returns>
+    /// <returns>The current instance of <see cref="ILoggerPublisher"/>, allowing method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public ILoggingPublisher AddTarget(ILoggingTarget target)
+    public ILoggerPublisher AddTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
@@ -145,7 +145,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public bool RemoveTarget(ILoggingTarget target)
+    public bool RemoveTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
@@ -159,7 +159,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry being published.</param>
-    private static void HandleTargetError(ILoggingTarget target, Exception exception, LoggingEntry entry)
+    private static void HandleTargetError(ILoggerTarget target, Exception exception, LogEntry entry)
     {
         try
         {
@@ -169,7 +169,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
                 $"{target.GetType().Name}: {exception.Message}");
 
             // Check if target implements error handling
-            if (target is ILoggingErrorHandler errorHandler)
+            if (target is ILoggerErrorHandler errorHandler)
                 errorHandler.HandleError(exception, entry);
         }
         catch

@@ -9,8 +9,8 @@ namespace Notio.Common.Logging;
 /// <param name="eventId">The event ID associated with the log entry.</param>
 /// <param name="message">The content of the log message.</param>
 /// <param name="exception">The accompanying exception (if any).</param>
-public readonly struct LoggingEntry(
-    LoggingLevel level, EventId eventId, string message, Exception exception = null)
+public readonly struct LogEntry(
+    LogLevel level, EventId eventId, string message, Exception exception = null)
 {
     /// <summary>
     /// The timestamp of the log entry.
@@ -25,7 +25,7 @@ public readonly struct LoggingEntry(
     /// <summary>
     /// The log level of the entry.
     /// </summary>
-    public readonly LoggingLevel LogLevel = level;
+    public readonly LogLevel LogLevel = level;
 
     /// <summary>
     /// The event ID associated with the log entry.

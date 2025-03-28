@@ -355,13 +355,13 @@ public static class Xtea
             // Handle PKCS#7 padding
             int paddingLength = workingBuffer[dataLength - 1];
             if (paddingLength < 1 || paddingLength > BlockSizeInBytes)
-                throw new CryptographicException("Invalid padding");
+                throw new CryptoException("Invalid padding");
 
             // Verify that all padding bytes have the correct value
             for (int i = dataLength - paddingLength; i < dataLength; i++)
             {
                 if (workingBuffer[i] != paddingLength)
-                    throw new CryptographicException("Invalid padding");
+                    throw new CryptoException("Invalid padding");
             }
 
             // Calculate the original data length

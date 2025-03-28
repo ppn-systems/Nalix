@@ -48,7 +48,7 @@ public static class BaseN
     public static uint GenerateId(IdType type, ushort machineId)
     {
         // Validate type
-        if ((int)type >= (int)IdType.Limit)
+        if ((int)type >= (int)IdType.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         // Get a cryptographically strong random value

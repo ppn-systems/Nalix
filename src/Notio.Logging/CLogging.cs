@@ -32,97 +32,97 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
     /// <param name="eventId">The event ID to associate with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception associated with the log entry.</param>
-    private void WriteLog(LoggingLevel level, EventId eventId, string message, Exception? exception = null)
+    private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)
        => CreateLogEntry(level, eventId, message, exception);
 
     /// <inheritdoc />
     public void Meta(string message)
 
-        => WriteLog(LoggingLevel.Meta, EventId.Empty, message);
+        => WriteLog(LogLevel.Meta, EventId.Empty, message);
     /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Meta, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Meta, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Trace(string message)
-        => WriteLog(LoggingLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
+        => WriteLog(LogLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
+        => WriteLog(LogLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug(string message)
-        => WriteLog(LoggingLevel.Debug, EventId.Empty, SanitizeLogMessage(message));
+        => WriteLog(LogLevel.Debug, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, SanitizeLogMessage(message));
+        => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug<TClass>(string message, EventId? eventId = null, [CallerMemberName] string memberName = "")
         where TClass : class
-        => WriteLog(LoggingLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
+        => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
 
     /// <inheritdoc />
     public void Info(string message)
-        => WriteLog(LoggingLevel.Information, EventId.Empty, message);
+        => WriteLog(LogLevel.Information, EventId.Empty, message);
 
     /// <inheritdoc />
     public void Info(string format, params object[] args)
-        => WriteLog(LoggingLevel.Information, EventId.Empty, string.Format(format, args));
+        => WriteLog(LogLevel.Information, EventId.Empty, string.Format(format, args));
 
     /// <inheritdoc />
     public void Info(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Information, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Information, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Warn(string message)
-        => WriteLog(LoggingLevel.Warning, EventId.Empty, message);
+        => WriteLog(LogLevel.Warning, EventId.Empty, message);
 
     /// <inheritdoc />
     public void Warn(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Warning, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Warning, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Error(string message)
-        => WriteLog(LoggingLevel.Error, EventId.Empty, message);
+        => WriteLog(LogLevel.Error, EventId.Empty, message);
 
     /// <inheritdoc />
     public void Error(Exception exception)
-        => WriteLog(LoggingLevel.Error, EventId.Empty, exception.Message, exception);
+        => WriteLog(LogLevel.Error, EventId.Empty, exception.Message, exception);
 
     /// <inheritdoc />
     public void Error(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Error(Exception exception, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
+        => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, exception.Message, exception);
 
     /// <inheritdoc />
     public void Error(string message, Exception exception)
-        => WriteLog(LoggingLevel.Error, EventId.Empty, message, exception);
+        => WriteLog(LogLevel.Error, EventId.Empty, message, exception);
 
     /// <inheritdoc />
     public void Error(string message, Exception exception, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Error, eventId ?? EventId.Empty, message, exception);
+        => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message, exception);
 
     /// <inheritdoc />
     public void Fatal(string message)
-        => WriteLog(LoggingLevel.Critical, EventId.Empty, message);
+        => WriteLog(LogLevel.Critical, EventId.Empty, message);
 
     /// <inheritdoc />
     public void Fatal(string message, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Fatal(string message, Exception exception)
-        => WriteLog(LoggingLevel.Critical, EventId.Empty, message, exception);
+        => WriteLog(LogLevel.Critical, EventId.Empty, message, exception);
 
     /// <inheritdoc />
     public void Fatal(string message, Exception exception, EventId? eventId = null)
-        => WriteLog(LoggingLevel.Critical, eventId ?? EventId.Empty, message, exception);
+        => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
     // Sanitize log message to prevent log forging
     // Removes potentially dangerous characters (e.g., newlines or control characters)

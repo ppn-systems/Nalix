@@ -86,7 +86,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
         var clientPublicValue = new BigInteger(clientPublicValueBytes, true);
 
         if (clientPublicValue % N == BigInteger.Zero)
-            throw new CryptographicException("The value of clientPublicValue cannot be divisible by N");
+            throw new CryptoException("The value of clientPublicValue cannot be divisible by N");
 
         _clientPublicValue = clientPublicValue;
         BigInteger u = Hash(true, _clientPublicValue, _serverPublicValue);
@@ -100,7 +100,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
     public byte[] CalculateSessionKey()
     {
         if (_sharedSecret == BigInteger.Zero)
-            throw new CryptographicException("Missing data from previous operations: sharedSecret");
+            throw new CryptoException("Missing data from previous operations: sharedSecret");
 
         _sessionKey = ShaInterleave(_sharedSecret);
         return _sessionKey.ToByteArray(true);
@@ -114,7 +114,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
     public bool VerifyClientEvidenceMessage(byte[] clientProofMessage)
     {
         if (_clientPublicValue == BigInteger.Zero || _serverPublicValue == BigInteger.Zero || _sharedSecret == BigInteger.Zero)
-            throw new CryptographicException("Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
+            throw new CryptoException("Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
 
         var usernameHash = Sha256.HashData(_usernameBytes);
         BigInteger expectedClientProof = Hash(false, Hash(false, N) ^ Hash(false, G),
@@ -134,7 +134,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
     public byte[] CalculateServerEvidenceMessage()
     {
         if (_clientPublicValue == BigInteger.Zero || _clientProof == BigInteger.Zero || _sessionKey == BigInteger.Zero)
-            throw new CryptographicException("Missing data from previous operations: clientPublicValue, clientProof, sessionKey");
+            throw new CryptoException("Missing data from previous operations: clientPublicValue, clientProof, sessionKey");
 
         BigInteger serverProof = Hash(true, _clientPublicValue, _clientProof, _sessionKey);
 

@@ -46,12 +46,12 @@ public static class JsonBuffer
     }
 
     /// <summary>
-    /// Serializes an object to a JSON byte array (UTF-8 encoded) using a <c>Memory&lt;byte&gt;</c>.
+    /// Serializes an object to a JSON byte array (UTF-8 encoded) using a <c>Caching&lt;byte&gt;</c>.
     /// </summary>
     /// <typeparam name="T">The type of the object to serialize.</typeparam>
     /// <param name="obj">The object to serialize.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON serialization. Must not be <see langword="null"/>.</param>
-    /// <returns>A <c>Memory&lt;byte&gt;</c> containing the UTF-8 encoded JSON representation of the object.</returns>
+    /// <returns>A <c>Caching&lt;byte&gt;</c> containing the UTF-8 encoded JSON representation of the object.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="jsonTypeInfo"/> is <see langword="null"/>.</exception>
     public static Memory<byte> SerializeToMemory<T>(
         T obj,
