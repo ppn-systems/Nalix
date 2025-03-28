@@ -1,6 +1,5 @@
 using Notio.Shared.Configuration;
-
-using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace Notio.Network.Listeners;
 
@@ -9,13 +8,24 @@ namespace Notio.Network.Listeners;
 /// </summary>
 public sealed class ListenerConfig : ConfigurationBinder
 {
+    private int _port = 5000;
+
     /// <summary>
     /// Gets or sets the port number for the network connection.
     /// Must be within the range of 1 to 65535.
     /// Standard is 5000.
     /// </summary>
-    [Range(1, 65535)]
-    public int Port { get; set; } = 5000;
+    public int Port
+    {
+        get => _port;
+        private set
+        {
+            if (value < 1 || value > 65535)
+                throw new ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
+            else
+                _port = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency communication).
