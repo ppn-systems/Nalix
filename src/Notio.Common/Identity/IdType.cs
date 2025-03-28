@@ -3,40 +3,135 @@ namespace Notio.Common.Identity;
 /// <summary>
 /// ID type to serve different purposes in the system.
 /// </summary>
-public enum IdType
+public enum IdType : byte
 {
+    #region Core System
+
     /// <summary>
-    /// No specific purpose.
+    /// Unknown or generic purpose.
     /// </summary>
-    Generic = 0,
+    Unknown = 0,
 
     /// <summary>
     /// For system configurations or versions.
     /// </summary>
-    System = 1,
+    Configuration = 1,
 
     /// <summary>
-    /// For user account management.
+    /// For logging events and audit trails.
     /// </summary>
-    Account = 2,
+    Log = 2,
 
     /// <summary>
-    /// For session management.
+    /// For tracking API keys and authentication tokens.
     /// </summary>
-    Session = 3,
-
-    /// <summary>
-    /// For chat and message management.
-    /// </summary>
-    Chat = 4,
+    ApiKey = 3,
 
     /// <summary>
     /// For network communication packets.
     /// </summary>
-    Packet = 5,
+    Packet = 4,
+
+    #endregion
+
+    #region User & Security
 
     /// <summary>
-    /// Limit on the number of ID types, do not exceed this value.
+    /// For user account management.
     /// </summary>
-    Limit = 1 << 5
+    Account = 10,
+
+    /// <summary>
+    /// For session management.
+    /// </summary>
+    Session = 11,
+
+    /// <summary>
+    /// For authentication-related tokens.
+    /// </summary>
+    AuthToken = 12,
+
+    /// <summary>
+    /// For permissions and role-based access control (RBAC).
+    /// </summary>
+    Permission = 13,
+
+    #endregion
+
+    #region Communication & Messaging
+
+    /// <summary>
+    /// For chat and message management.
+    /// </summary>
+    Message = 20,
+
+    /// <summary>
+    /// For notifications and alerts.
+    /// </summary>
+    Notification = 21,
+
+    /// <summary>
+    /// For email tracking.
+    /// </summary>
+    Email = 22,
+
+    /// <summary>
+    /// For phone verification and SMS tracking.
+    /// </summary>
+    Sms = 23,
+
+    #endregion
+
+    #region Business & Transactions
+
+    /// <summary>
+    /// For tracking orders and purchases.
+    /// </summary>
+    Order = 30,
+
+    /// <summary>
+    /// For inventory management.
+    /// </summary>
+    Inventory = 31,
+
+    /// <summary>
+    /// For financial transactions.
+    /// </summary>
+    Transaction = 32,
+
+    /// <summary>
+    /// For invoice and billing.
+    /// </summary>
+    Invoice = 33,
+
+    /// <summary>
+    /// For tracking customer support tickets.
+    /// </summary>
+    SupportTicket = 34,
+
+    #endregion
+
+    #region External Integration
+
+    /// <summary>
+    /// For third-party API integration.
+    /// </summary>
+    ExternalApi = 40,
+
+    /// <summary>
+    /// For OAuth and social login connections.
+    /// </summary>
+    SocialLogin = 41,
+
+    /// <summary>
+    /// For tracking webhooks.
+    /// </summary>
+    Webhook = 42,
+
+    #endregion
+
+    /// <summary>
+    /// The maximum valid value for ID types.
+    /// </summary>
+    MaxValue = 255
 }
