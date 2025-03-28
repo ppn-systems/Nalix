@@ -23,6 +23,7 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "Using GitHub Token: $NUGET_AUTH_TOKEN"
           dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
             --name github \
             --username ${{ github.actor }} \
@@ -36,4 +37,6 @@ jobs:
         run: dotnet pack --configuration Release --output ./packages
 
       - name: Publish Package
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dotnet nuget push ./packages/*.nupkg --source "github" --api-key $NUGET_AUTH_TOKEN --skip-duplicate
