@@ -13,6 +13,8 @@ namespace Notio.Randomization;
 /// </summary>
 public static class RandGenerator
 {
+    #region Fields and Static Constructor
+
     // State for the Xoshiro256++ algorithm - 256 bits total
     private static readonly ulong[] State = new ulong[4];
 
@@ -33,6 +35,10 @@ public static class RandGenerator
     {
         InitializeState();
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Creates a new cryptographic key of the specified length.
@@ -202,6 +208,59 @@ public static class RandGenerator
     }
 
     /// <summary>
+    /// Gets a random value in the range [min, max).
+    /// </summary>
+    /// <param name="min">The inclusive lower bound.</param>
+    /// <param name="max">The exclusive upper bound.</param>
+    /// <returns>A random integer in the specified range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetInt32(int min, int max)
+    {
+        if (min >= max)
+            throw new ArgumentException("Max must be greater than min");
+
+        // Calculate range size, handling potential overflow
+        ulong range = (ulong)((long)max - min);
+
+        // Use rejection sampling to avoid modulo bias
+        ulong mask = (1UL << BitOperations.Log2((uint)range) + 1) - 1;
+        ulong result;
+
+        do
+        {
+            result = NextUInt64() & mask;
+        } while (result >= range);
+
+        return (int)(result + (ulong)min);
+    }
+
+    /// <summary>
+    /// Gets a random value in the range [0, max).
+    /// </summary>
+    /// <param name="max">The exclusive upper bound.</param>
+    /// <returns>A random integer in the specified range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetInt32(int max) => GetInt32(0, max);
+
+    /// <summary>
+    /// Fills the given byte array with cryptographically strong random values.
+    /// </summary>
+    /// <param name="buffer">The buffer to fill with random bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NextBytes(byte[] buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        Fill(buffer);
+    }
+
+    /// <summary>
+    /// Fills the given span with cryptographically strong random values.
+    /// </summary>
+    /// <param name="buffer">The span to fill with random bytes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NextBytes(Span<byte> buffer) => Fill(buffer);
+
+    /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
     /// </summary>
     /// <returns>A random 32-bit unsigned integer.</returns>
@@ -330,41 +389,6 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Gets a random value in the range [min, max).
-    /// </summary>
-    /// <param name="min">The inclusive lower bound.</param>
-    /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random integer in the specified range.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetInt32(int min, int max)
-    {
-        if (min >= max)
-            throw new ArgumentException("Max must be greater than min");
-
-        // Calculate range size, handling potential overflow
-        ulong range = (ulong)((long)max - min);
-
-        // Use rejection sampling to avoid modulo bias
-        ulong mask = (1UL << BitOperations.Log2((uint)range) + 1) - 1;
-        ulong result;
-
-        do
-        {
-            result = NextUInt64() & mask;
-        } while (result >= range);
-
-        return (int)(result + (ulong)min);
-    }
-
-    /// <summary>
-    /// Gets a random value in the range [0, max).
-    /// </summary>
-    /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random integer in the specified range.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetInt32(int max) => GetInt32(0, max);
-
-    /// <summary>
     /// Reseeds the random number generator with additional entropy.
     /// </summary>
     public static void Reseed()
@@ -377,9 +401,9 @@ public static class RandGenerator
         }
     }
 
-    // ----------------------------
-    // Private implementation
-    // ----------------------------
+    #endregion
+
+    #region Private Implementation
 
     /// <summary>
     /// Performs left rotation of bits in a 64-bit value.
@@ -585,4 +609,6 @@ public static class RandGenerator
 
         return result;
     }
+
+    #endregion
 }
