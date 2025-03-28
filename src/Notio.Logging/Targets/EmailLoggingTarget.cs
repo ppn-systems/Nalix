@@ -116,7 +116,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
             Body = $"Timestamp: {entry.TimeStamp} \n" +
                    $"Level: {entry.LogLevel} \n" +
                    $"Message: {entry.Message} \n" +
-                   $"Exception: {entry.Exception?.ToString() ?? "None"}",
+                   $"Exception: {"An error occurred. Please check the server logs for more details."}",
             IsBodyHtml = false,
             Priority = entry.LogLevel == LogLevel.Critical ? MailPriority.High : MailPriority.Normal
         };
