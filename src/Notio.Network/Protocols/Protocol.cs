@@ -16,7 +16,7 @@ public abstract class Protocol : IProtocol, IDisposable
 
     /// <summary>
     /// Gets or sets a value indicating whether the connection should be kept open after processing.
-    /// Default value is false unless overridden.
+    /// Standard value is false unless overridden.
     /// Thread-safe implementation using atomic operations.
     /// </summary>
     public virtual bool KeepConnectionOpen
@@ -105,7 +105,7 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <returns>True if the connection is valid, false otherwise.</returns>
     protected virtual bool ValidateConnection(IConnection connection)
     {
-        // Default implementation accepts all connections
+        // Standard implementation accepts all connections
         return true;
     }
 
@@ -117,7 +117,7 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <param name="exception">The exception that was thrown.</param>
     protected virtual void OnConnectionError(IConnection connection, Exception exception)
     {
-        // Default implementation does nothing
+        // Standard implementation does nothing
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <param name="args">Event arguments containing connection and processing details.</param>
     protected virtual void OnPostProcess(IConnectEventArgs args)
     {
-        // Default implementation does nothing
+        // Standard implementation does nothing
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public abstract class Protocol : IProtocol, IDisposable
     /// </summary>
     protected virtual void OnDisposing()
     {
-        // Default implementation does nothing
+        // Standard implementation does nothing
     }
 
     /// <summary>

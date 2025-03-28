@@ -1,9 +1,9 @@
-﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http;
 
 namespace Notio.Network.Web.Routing;
 
 /// <summary>
-/// Base class for callbacks used to handle routed requests synchronously.
+/// BaseValue36 class for callbacks used to handle routed requests synchronously.
 /// </summary>
 /// <param name="context">An <see cref="IHttpContext" /> interface representing the context of the request.</param>
 /// <param name="route">The matched route.</param>

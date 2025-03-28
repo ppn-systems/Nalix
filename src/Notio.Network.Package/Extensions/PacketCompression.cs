@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Serialization;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Extensions;
@@ -8,7 +8,7 @@ namespace Notio.Network.Package.Extensions;
 /// <summary>
 /// Provides operations for compressing and decompressing packets.
 /// </summary>
-public static partial class PackageExtensions
+public static class PacketCompression
 {
     /// <summary>
     /// Compresses the payload of the packet using the specified compression algorithm.

@@ -77,7 +77,7 @@ public static class HttpStatusDescription
         { 502, "Bad Gateway" },
         { 503, "Service Unavailable" },
         { 504, "Gateway Timeout" },
-        { 505, "Http Version Not Supported" },
+        { 505, "HttpFormatted Version Not Supported" },
         { 506, "Variant Also Negotiates" },
         { 507, "Insufficient Storage" },
         { 508, "Loop Detected" },

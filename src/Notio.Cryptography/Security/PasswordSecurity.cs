@@ -10,7 +10,7 @@ namespace Notio.Cryptography.Security;
 public static class PasswordSecurity
 {
     /// <summary>
-    /// Default salt size in bytes.
+    /// Standard salt size in bytes.
     /// </summary>
     public const int SaltSize = 32;
 

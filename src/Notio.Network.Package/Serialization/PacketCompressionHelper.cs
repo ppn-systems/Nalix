@@ -6,7 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Helpers;
+namespace Notio.Network.Package.Serialization;
 
 /// <summary>
 /// Provides helper methods for compressing and decompressing packet payloads.

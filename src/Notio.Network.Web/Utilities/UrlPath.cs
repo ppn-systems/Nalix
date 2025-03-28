@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -104,7 +104,7 @@ public static class UrlPath
             return urlPath;
         }
 
-        // Base URL paths must end with a slash;
+        // BaseValue36 URL paths must end with a slash;
         // non-base URL paths must NOT end with a slash.
         // The final slash is irrelevant for the URL itself
         // (it has to map the same way with or without it)

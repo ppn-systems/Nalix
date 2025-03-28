@@ -1,7 +1,7 @@
 namespace Notio.Network.Web.Utilities;
 
 /// <summary>
-/// Exposes constants for possible values of the <c>Content-Encoding</c> HTTP header.
+/// Exposes constants for possible values of the <c>Content-DefaultEncodings</c> HTTP header.
 /// </summary>
 /// <see cref="Enums.CompressionMethod"/>
 public static class CompressionMethodNames

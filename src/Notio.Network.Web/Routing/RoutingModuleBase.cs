@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Web.Routing;
 
 /// <summary>
-/// Base class for modules that handle requests by resolving route / method pairs associated with handlers.
+/// BaseValue36 class for modules that handle requests by resolving route / method pairs associated with handlers.
 /// </summary>
 /// <seealso cref="WebModuleBase" />
 public abstract class RoutingModuleBase : WebModuleBase

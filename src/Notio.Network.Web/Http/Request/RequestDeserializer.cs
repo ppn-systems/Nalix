@@ -52,7 +52,7 @@ public static class RequestDeserializer
 
         try
         {
-            TData result = JsonSerializer.Deserialize<TData>(body, SerializationDefault.Http) ??
+            TData result = JsonSerializer.Deserialize<TData>(body, DefaultJsonOptions.HttpFormatted) ??
                 throw new FormatException("Deserialized result is null.");
 
             return result;

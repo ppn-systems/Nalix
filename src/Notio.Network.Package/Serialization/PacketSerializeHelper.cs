@@ -1,23 +1,18 @@
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Metadata;
-using Notio.Network.Package.Utilities;
 using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Network.Package.Helpers;
+namespace Notio.Network.Package.Serialization;
 
 /// <summary>
 /// Provides high-performance scaling methods for the IPacket class.
 /// </summary>
 [SkipLocalsInit]
-public static class PackageSerializeHelper
+public static class PacketSerializeHelper
 {
-    private const int MaxStackAlloc = 512;
-    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
-
     /// <summary>
     /// Verifies if the checksum in the packet matches the computed checksum from its payload.
     /// </summary>
@@ -47,7 +42,7 @@ public static class PackageSerializeHelper
         if (packet.Payload.Length > ushort.MaxValue)
             throw new PackageException("Payload is too large.");
 
-        if (totalSize <= MaxStackAlloc)
+        if (totalSize <= PacketConstants.StackAllocLimit)
         {
             Span<byte> stackBuffer = stackalloc byte[totalSize];
             PacketSerializer.WritePacketFast(stackBuffer, in packet);
@@ -55,7 +50,7 @@ public static class PackageSerializeHelper
         }
         else
         {
-            byte[] rentedArray = Pool.Rent(totalSize);
+            byte[] rentedArray = PacketConstants.SharedBytePool.Rent(totalSize);
             try
             {
                 PacketSerializer.WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
@@ -63,7 +58,7 @@ public static class PackageSerializeHelper
             }
             finally
             {
-                Pool.Return(rentedArray, clearArray: true);
+                PacketConstants.SharedBytePool.Return(rentedArray, clearArray: true);
             }
         }
     }

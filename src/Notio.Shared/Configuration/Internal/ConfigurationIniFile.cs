@@ -19,7 +19,7 @@ internal sealed class ConfiguredIniFile
     private const char KeyValueSeparator = '=';
     private const char CommentChar = ';';
 
-    // Default buffer sizes
+    // Standard buffer sizes
     private const int DefaultBufferSize = 4096;
 
     // Thread synchronization for file operations

@@ -1,4 +1,5 @@
 using Notio.Common.Identity;
+using Notio.Defaults;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -6,20 +7,20 @@ using System.Runtime.CompilerServices;
 namespace Notio.Identifiers;
 
 /// <summary>
-/// Represents a high-performance, space-efficient unique identifier that supports both Base36 and hexadecimal representations.
+/// Represents a high-performance, space-efficient unique identifier that supports both Base58 and hexadecimal representations.
 /// </summary>
 /// <remarks>
 /// This implementation provides fast conversion between numeric and string representations,
 /// with optimized memory usage and performance characteristics.
 /// </remarks>
 /// <remarks>
-/// Initializes a new instance of the <see cref="UniqueId"/> struct with the specified value.
+/// Initializes a new instance of the <see cref="Base58Id"/> struct with the specified value.
 /// </remarks>
 /// <param name="value">The 32-bit unsigned integer value.</param>
-public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, IComparable<UniqueId>
+public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, IComparable<Base58Id>
 {
     /// <summary>
-    /// Lookup table for converting characters to their Base36 values.
+    /// Lookup table for converting characters to their Base58 values.
     /// </summary>
     private static readonly byte[] CharToValue;
 
@@ -31,12 +32,12 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <summary>
     /// Empty/default instance with a value of 0.
     /// </summary>
-    public static readonly UniqueId Empty = new(0);
+    public static readonly Base58Id Empty = new(0);
 
     /// <summary>
     /// Static constructor to initialize the character lookup table.
     /// </summary>
-    static UniqueId()
+    static Base58Id()
     {
         // Initialize lookup table with 'invalid' marker
         CharToValue = new byte[128];
@@ -45,17 +46,11 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
             CharToValue[i] = byte.MaxValue;
         }
 
-        // Populate lookup table for valid Base36 characters
-        for (byte i = 0; i < UniqueIdConstants.Alphabet.Length; i++)
+        // Populate lookup table for valid Base58 characters
+        for (byte i = 0; i < DefaultEncodings.Base58Alphabet.Length; i++)
         {
-            char c = UniqueIdConstants.Alphabet[i];
+            char c = DefaultEncodings.Base58Alphabet[i];
             CharToValue[c] = i;
-
-            // Map lowercase letters to their uppercase equivalents
-            if (c >= 'A' && c <= 'Z')
-            {
-                CharToValue[c + 32] = i; // +32 is the difference between uppercase and lowercase ASCII
-            }
         }
     }
 
@@ -65,12 +60,12 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     public uint Value => _value;
 
     /// <summary>
-    /// Gets the IdType encoded within this UniqueId.
+    /// Gets the IdType encoded within this Base58Id.
     /// </summary>
     public IdType Type => (IdType)(_value >> 24);
 
     /// <summary>
-    /// Gets the machine ID component encoded within this UniqueId.
+    /// Gets the machine ID component encoded within this Base58Id.
     /// </summary>
     public ushort MachineId => (ushort)(_value & 0xFFFF);
 
@@ -79,10 +74,10 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// </summary>
     /// <param name="type">The unique ID type to generate.</param>
     /// <param name="machineId">The unique ID for each different server.</param>
-    /// <returns>A new <see cref="UniqueId"/> instance.</returns>
+    /// <returns>A new <see cref="Base58Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId NewId(IdType type = IdType.Generic, ushort machineId = 0)
+    public static Base58Id NewId(IdType type = IdType.Generic, ushort machineId = 0)
     {
         // Validate type
         if ((int)type >= (int)IdType.Limit)
@@ -104,7 +99,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
         // - High 8 bits: Type ID
         // - Middle 16 bits: Unique value (from random + timestamp mix)
         // - Low 8 bits: Machine ID
-        return new UniqueId(
+        return new Base58Id(
             typeComponent |                // Type in high 8 bits
             (uniqueValue & 0x00FFFF00) |   // Unique value in middle 16 bits
             (uint)(machineId & 0xFFFF)     // Machine ID in low 16 bits
@@ -114,7 +109,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     /// <summary>
     /// Converts the ID to a string representation.
     /// </summary>
-    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base36 string.</param>
+    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base58 string.</param>
     /// <returns>The string representation of the ID.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToString(bool isHex = false)
@@ -122,119 +117,119 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
         if (isHex)
             return _value.ToString("X8");
 
-        return ToBase36String();
+        return ToBase58String();
     }
 
     /// <summary>
-    /// Returns the default string representation (Base36).
+    /// Returns the default string representation (Base58).
     /// </summary>
-    public override string ToString() => ToBase36String();
+    public override string ToString() => ToBase58String();
 
     /// <summary>
-    /// Parses a string representation into a <see cref="UniqueId"/>.
+    /// Parses a string representation into a <see cref="Base58Id"/>.
     /// </summary>
     /// <param name="input">The string to parse.</param>
-    /// <returns>The parsed <see cref="UniqueId"/>.</returns>
+    /// <returns>The parsed <see cref="Base58Id"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="FormatException">Thrown if input is in an invalid format.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId Parse(ReadOnlySpan<char> input)
+    public static Base58Id Parse(ReadOnlySpan<char> input)
     {
         if (input.IsEmpty)
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == UniqueIdConstants.HexLength)
+        if (input.Length == DefaultEncodings.HexLength)
         {
             // Try to parse as hex first
             if (TryParseHex(input, out uint value))
-                return new UniqueId(value);
+                return new Base58Id(value);
         }
 
-        // Otherwise parse as Base36
-        return ParseBase36(input);
+        // Otherwise parse as Base58
+        return ParseBase58(input);
     }
 
     /// <summary>
-    /// Parses a string representation into a <see cref="UniqueId"/>, with explicit format specification.
+    /// Parses a string representation into a <see cref="Base58Id"/>, with explicit format specification.
     /// </summary>
     /// <param name="input">The string to parse.</param>
-    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base36.</param>
-    /// <returns>The parsed <see cref="UniqueId"/>.</returns>
+    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base58.</param>
+    /// <returns>The parsed <see cref="Base58Id"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="ArgumentException">Thrown if input is in an invalid format.</exception>
     /// <exception cref="FormatException">Thrown if input contains invalid characters.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId Parse(ReadOnlySpan<char> input, bool isHex)
+    public static Base58Id Parse(ReadOnlySpan<char> input, bool isHex)
     {
         if (input.IsEmpty)
             throw new ArgumentNullException(nameof(input));
 
         if (isHex)
         {
-            if (input.Length != UniqueIdConstants.HexLength)
+            if (input.Length != DefaultEncodings.HexLength)
                 throw new ArgumentException(
-                    $"Invalid Hex length. Must be {UniqueIdConstants.HexLength} characters.", nameof(input));
+                    $"Invalid Hex length. Must be {DefaultEncodings.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
-            return new UniqueId(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
+            return new Base58Id(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
-        // Parse as Base36
-        return ParseBase36(input);
+        // Parse as Base58
+        return ParseBase58(input);
     }
 
     /// <summary>
-    /// Attempts to parse a string into a <see cref="UniqueId"/>.
+    /// Attempts to parse a string into a <see cref="Base58Id"/>.
     /// </summary>
     /// <param name="input">The input string to parse.</param>
     /// <param name="result">When this method returns, contains the parsed value if successful; otherwise, the default value.</param>
     /// <returns>true if parsing succeeded; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryParse(ReadOnlySpan<char> input, out UniqueId result)
+    public static bool TryParse(ReadOnlySpan<char> input, out Base58Id result)
     {
         result = Empty;
 
-        if (input.IsEmpty || input.Length > 13)
+        if (input.IsEmpty || input.Length > 11)
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == UniqueIdConstants.HexLength && TryParseHex(input, out uint hexValue))
+        if (input.Length == DefaultEncodings.HexLength && TryParseHex(input, out uint hexValue))
         {
-            result = new UniqueId(hexValue);
+            result = new Base58Id(hexValue);
             return true;
         }
 
-        // Otherwise try Base36
-        return TryParseBase36(input, out result);
+        // Otherwise try Base58
+        return TryParseBase58(input, out result);
     }
 
     /// <summary>
     /// Determines whether the current instance is equal to a specified object.
     /// </summary>
     /// <param name="obj">The object to compare with the current instance.</param>
-    /// <returns>true if the specified object is a <see cref="UniqueId"/> and equals the current instance; otherwise, false.</returns>
-    public override bool Equals(object obj) => obj is UniqueId other && Equals(other);
+    /// <returns>true if the specified object is a <see cref="Base58Id"/> and equals the current instance; otherwise, false.</returns>
+    public override bool Equals(object obj) => obj is Base58Id other && Equals(other);
 
     /// <summary>
-    /// Determines whether the current instance is equal to another <see cref="UniqueId"/>.
+    /// Determines whether the current instance is equal to another <see cref="Base58Id"/>.
     /// </summary>
-    /// <param name="other">The <see cref="UniqueId"/> to compare with the current instance.</param>
+    /// <param name="other">The <see cref="Base58Id"/> to compare with the current instance.</param>
     /// <returns>true if both instances have the same value; otherwise, false.</returns>
-    public bool Equals(UniqueId other) => _value == other._value;
+    public bool Equals(Base58Id other) => _value == other._value;
 
     /// <summary>
     /// Returns the hash code for the current instance.
     /// </summary>
-    /// <returns>A hash code for the current <see cref="UniqueId"/>.</returns>
+    /// <returns>A hash code for the current <see cref="Base58Id"/>.</returns>
     public override int GetHashCode() => (int)_value;
 
     /// <summary>
-    /// Compares this instance with another <see cref="UniqueId"/>.
+    /// Compares this instance with another <see cref="Base58Id"/>.
     /// </summary>
-    /// <param name="other">The <see cref="UniqueId"/> to compare with this instance.</param>
+    /// <param name="other">The <see cref="Base58Id"/> to compare with this instance.</param>
     /// <returns>A value indicating the relative order of the instances.</returns>
-    public int CompareTo(UniqueId other) => _value.CompareTo(other._value);
+    public int CompareTo(Base58Id other) => _value.CompareTo(other._value);
 
     /// <summary>
     /// Gets a value indicating whether this ID is empty (has a value of 0).
@@ -244,21 +239,21 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     public bool IsEmpty() => _value == 0;
 
     /// <summary>
-    /// Creates a UniqueId from its type and machine components plus a random portion.
+    /// Creates a Base58Id from its type and machine components plus a random portion.
     /// </summary>
     /// <param name="type">The type identifier.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="randomValue">A custom random value (if not provided, a secure random value will be generated).</param>
-    /// <returns>A new UniqueId with the specified components.</returns>
+    /// <returns>A new Base58Id with the specified components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId FromComponents(IdType type, ushort machineId, uint? randomValue = null)
+    public static Base58Id FromComponents(IdType type, ushort machineId, uint? randomValue = null)
     {
         if ((int)type >= (int)IdType.Limit)
             throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
 
         uint random = randomValue ?? GetStrongRandomUInt32();
 
-        return new UniqueId(
+        return new Base58Id(
             ((uint)type << 24) |              // Type in high 8 bits
             ((random & 0x00FFFF00) |          // Random value in middle bits
             ((uint)machineId & 0xFFFF))       // Machine ID in low 16 bits
@@ -266,9 +261,9 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     }
 
     /// <summary>
-    /// Converts the UniqueId to a byte array.
+    /// Converts the Base58Id to a byte array.
     /// </summary>
-    /// <returns>A 4-byte array representing this UniqueId.</returns>
+    /// <returns>A 4-byte array representing this Base58Id.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ToByteArray()
     {
@@ -278,7 +273,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     }
 
     /// <summary>
-    /// Tries to write the UniqueId to a span of bytes.
+    /// Tries to write the Base58Id to a span of bytes.
     /// </summary>
     /// <param name="destination">The destination span.</param>
     /// <param name="bytesWritten">The number of bytes written.</param>
@@ -297,102 +292,102 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     }
 
     /// <summary>
-    /// Creates a UniqueId from a byte array.
+    /// Creates a Base58Id from a byte array.
     /// </summary>
-    /// <param name="bytes">The byte array containing the UniqueId value.</param>
-    /// <returns>A UniqueId created from the bytes.</returns>
+    /// <param name="bytes">The byte array containing the Base58Id value.</param>
+    /// <returns>A Base58Id created from the bytes.</returns>
     /// <exception cref="ArgumentException">Thrown if the byte array is not exactly 4 bytes long.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static UniqueId FromByteArray(ReadOnlySpan<byte> bytes)
+    public static Base58Id FromByteArray(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length != 4)
             throw new ArgumentException("Byte array must be exactly 4 bytes long.", nameof(bytes));
 
-        return new UniqueId(BinaryPrimitives.ReadUInt32LittleEndian(bytes));
+        return new Base58Id(BinaryPrimitives.ReadUInt32LittleEndian(bytes));
     }
 
     /// <summary>
-    /// Tries to parse a UniqueId from a byte array.
+    /// Tries to parse a Base58Id from a byte array.
     /// </summary>
-    /// <param name="bytes">The byte array containing the UniqueId value.</param>
-    /// <param name="result">The resulting UniqueId if parsing was successful.</param>
+    /// <param name="bytes">The byte array containing the Base58Id value.</param>
+    /// <param name="result">The resulting Base58Id if parsing was successful.</param>
     /// <returns>True if parsing was successful; otherwise, false.</returns>
-    public static bool TryFromByteArray(ReadOnlySpan<byte> bytes, out UniqueId result)
+    public static bool TryFromByteArray(ReadOnlySpan<byte> bytes, out Base58Id result)
     {
         result = Empty;
 
         if (bytes.Length != 4)
             return false;
 
-        result = new UniqueId(BinaryPrimitives.ReadUInt32LittleEndian(bytes));
+        result = new Base58Id(BinaryPrimitives.ReadUInt32LittleEndian(bytes));
         return true;
     }
 
     /// <summary>
-    /// Creates a new UniqueId with the same Type but a different machine ID.
+    /// Creates a new Base58Id with the same Type but a different machine ID.
     /// </summary>
     /// <param name="newMachineId">The new machine ID.</param>
-    /// <returns>A new UniqueId with the updated machine ID.</returns>
+    /// <returns>A new Base58Id with the updated machine ID.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UniqueId WithMachineId(ushort newMachineId)
+    public Base58Id WithMachineId(ushort newMachineId)
         => new((_value & 0xFFFF0000) | (uint)(newMachineId & 0xFFFF));
 
     /// <summary>
-    /// Creates a new UniqueId with the same machine ID but a different Type.
+    /// Creates a new Base58Id with the same machine ID but a different Type.
     /// </summary>
     /// <param name="newType">The new Type.</param>
-    /// <returns>A new UniqueId with the updated Type.</returns>
+    /// <returns>A new Base58Id with the updated Type.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the new type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UniqueId WithType(IdType newType)
+    public Base58Id WithType(IdType newType)
     {
         if ((int)newType >= (int)IdType.Limit)
             throw new ArgumentOutOfRangeException(nameof(newType), "IdType exceeds the allowed limit.");
 
-        return new UniqueId((_value & 0x00FFFFFF) | ((uint)newType << 24));
+        return new Base58Id((_value & 0x00FFFFFF) | ((uint)newType << 24));
     }
 
     /// <summary>
-    /// Determines whether one <see cref="UniqueId"/> is less than another.
+    /// Determines whether one <see cref="Base58Id"/> is less than another.
     /// </summary>
-    public static bool operator <(UniqueId left, UniqueId right) => left._value < right._value;
+    public static bool operator <(Base58Id left, Base58Id right) => left._value < right._value;
 
     /// <summary>
-    /// Determines whether one <see cref="UniqueId"/> is less than or equal to another.
+    /// Determines whether one <see cref="Base58Id"/> is less than or equal to another.
     /// </summary>
-    public static bool operator <=(UniqueId left, UniqueId right) => left._value <= right._value;
+    public static bool operator <=(Base58Id left, Base58Id right) => left._value <= right._value;
 
     /// <summary>
-    /// Determines whether one <see cref="UniqueId"/> is greater than another.
+    /// Determines whether one <see cref="Base58Id"/> is greater than another.
     /// </summary>
-    public static bool operator >(UniqueId left, UniqueId right) => left._value > right._value;
+    public static bool operator >(Base58Id left, Base58Id right) => left._value > right._value;
 
     /// <summary>
-    /// Determines whether one <see cref="UniqueId"/> is greater than or equal to another.
+    /// Determines whether one <see cref="Base58Id"/> is greater than or equal to another.
     /// </summary>
-    public static bool operator >=(UniqueId left, UniqueId right) => left._value >= right._value;
+    public static bool operator >=(Base58Id left, Base58Id right) => left._value >= right._value;
 
     /// <summary>
-    /// Determines whether two <see cref="UniqueId"/> instances are equal.
+    /// Determines whether two <see cref="Base58Id"/> instances are equal.
     /// </summary>
-    public static bool operator ==(UniqueId left, UniqueId right) => left._value == right._value;
+    public static bool operator ==(Base58Id left, Base58Id right) => left._value == right._value;
 
     /// <summary>
-    /// Determines whether two <see cref="UniqueId"/> instances are not equal.
+    /// Determines whether two <see cref="Base58Id"/> instances are not equal.
     /// </summary>
-    public static bool operator !=(UniqueId left, UniqueId right) => left._value != right._value;
+    public static bool operator !=(Base58Id left, Base58Id right) => left._value != right._value;
 
     /// <summary>
-    /// Implicit conversion from UniqueId to uint.
+    /// Implicit conversion from Base58Id to uint.
     /// </summary>
-    /// <param name="id">The UniqueId to convert.</param>
-    public static implicit operator uint(UniqueId id) => id._value;
+    /// <param name="id">The Base58Id to convert.</param>
+    public static implicit operator uint(Base58Id id) => id._value;
 
     /// <summary>
-    /// Explicit conversion from uint to UniqueId.
+    /// Explicit conversion from uint to Base58Id.
     /// </summary>
     /// <param name="value">The uint value to convert.</param>
-    public static explicit operator UniqueId(uint value) => new(value);
+    public static explicit operator Base58Id(uint value) => new(value);
 
     /// <summary>
     /// Generates a cryptographically strong random uint.
@@ -407,33 +402,28 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     }
 
     /// <summary>
-    /// Converts the ID to a Base36 string with minimum padding.
+    /// Converts the ID to a Base58 string with minimum padding.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ToBase36String()
+    private string ToBase58String()
     {
         // For efficiency, allocate a stack buffer for the maximum possible length
-        // Base36 representation of uint.MaxValue is at most 7 characters
-        Span<char> buffer = stackalloc char[13];
+        // Base58 representation of uint.MaxValue is at most 8 characters
+        Span<char> buffer = stackalloc char[11];
         int position = buffer.Length;
         uint remaining = _value;
 
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % UniqueIdConstants.Base;
-            remaining /= UniqueIdConstants.Base;
-            buffer[--position] = UniqueIdConstants.Alphabet[(int)digit];
+            uint digit = remaining % DefaultEncodings.Base58;
+            remaining /= DefaultEncodings.Base58;
+            buffer[--position] = DefaultEncodings.Base58Alphabet[(int)digit];
         } while (remaining > 0);
 
-        // Apply padding to minimum length if necessary
-        int actualLength = buffer.Length - position;
-        int finalLength = Math.Max(actualLength, UniqueIdConstants.MinBase36Length);
-
-        // Create a new string with proper padding
-        return new string('0', finalLength - actualLength) + new string(buffer[position..]);
+        // Create a new string from the buffer
+        return new string(buffer[position..]);
     }
-
 
     /// <summary>
     /// Attempts to parse a hexadecimal string into a uint.
@@ -442,13 +432,10 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
     private static bool TryParseHex(ReadOnlySpan<char> input, out uint value)
         => uint.TryParse(input, System.Globalization.NumberStyles.HexNumber, null, out value);
 
-    /// <summary>
-    /// Parses a Base36 string into a UniqueId.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static UniqueId ParseBase36(ReadOnlySpan<char> input)
+    private static Base58Id ParseBase58(ReadOnlySpan<char> input)
     {
-        if (input.Length > 13)
+        if (input.Length > 11)
             throw new ArgumentException("Input is too long", nameof(input));
 
         uint result = 0;
@@ -457,21 +444,21 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
         {
             // Check character validity
             if (c > 127 || CharToValue[c] == byte.MaxValue)
-                throw new FormatException($"Invalid character '{c}' in Base36 input");
+                throw new FormatException($"Invalid character '{c}' in Base58 input");
 
             // Accumulate value
             byte digitValue = CharToValue[c];
-            result = result * UniqueIdConstants.Base + digitValue;
+            result = result * DefaultEncodings.Base58 + digitValue;
         }
 
-        return new UniqueId(result);
+        return new Base58Id(result);
     }
 
     /// <summary>
-    /// Attempts to parse a Base36 string into a UniqueId.
+    /// Attempts to parse a Base58 string into a Base58Id.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryParseBase36(ReadOnlySpan<char> input, out UniqueId result)
+    private static bool TryParseBase58(ReadOnlySpan<char> input, out Base58Id result)
     {
         result = Empty;
         uint value = 0;
@@ -483,11 +470,11 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
                 return false;
 
             // Check for potential overflow
-            if (value > (uint.MaxValue / UniqueIdConstants.Base))
+            if (value > (uint.MaxValue / DefaultEncodings.Base58))
                 return false;
 
             byte digitValue = CharToValue[c];
-            uint newValue = value * UniqueIdConstants.Base + digitValue;
+            uint newValue = value * DefaultEncodings.Base58 + digitValue;
 
             // Check for overflow
             if (newValue < value)
@@ -496,7 +483,7 @@ public readonly struct UniqueId(uint value) : IUniqueId, IEquatable<UniqueId>, I
             value = newValue;
         }
 
-        result = new UniqueId(value);
+        result = new Base58Id(value);
         return true;
     }
 }

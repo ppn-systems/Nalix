@@ -31,7 +31,7 @@ namespace Notio.Network.Web.Http.Response
         {
             context.Response.ContentType = MimeType.Json;
             context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, SerializationDefault.Http))
+            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, DefaultJsonOptions.HttpFormatted))
                 .ConfigureAwait(false);
         }
 
@@ -46,7 +46,7 @@ namespace Notio.Network.Web.Http.Response
                 {
                     context.Response.ContentType = MimeType.Json;
                     context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-                    await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, SerializationDefault.Http))
+                    await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, DefaultJsonOptions.HttpFormatted))
                         .ConfigureAwait(false);
                 };
         }
@@ -65,7 +65,7 @@ namespace Notio.Network.Web.Http.Response
                 context.Response.ContentType = MimeType.Json;
                 context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                 ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                await baseSerializer(context, JsonSerializer.Serialize(data, SerializationDefault.Http))
+                await baseSerializer(context, JsonSerializer.Serialize(data, DefaultJsonOptions.HttpFormatted))
                     .ConfigureAwait(false);
             };
 

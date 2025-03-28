@@ -27,7 +27,7 @@ public class UrlExpiration
     /// <summary>
     /// Initializes a new instance of the <see cref="UrlExpiration"/> class with a specified expiration time in seconds.
     /// </summary>
-    /// <param name="seconds">The expiration time in seconds. Default is 0 (no expiration).</param>
+    /// <param name="seconds">The expiration time in seconds. Standard is 0 (no expiration).</param>
     public UrlExpiration(uint seconds = 0) => InSeconds = seconds;
 
     /// <summary>

@@ -3,7 +3,7 @@ using Notio.Common.Logging;
 namespace Notio.Network.Handlers;
 
 /// <summary>
-/// Base class for packet dispatchers, providing configuration options.
+/// BaseValue36 class for packet dispatchers, providing configuration options.
 /// </summary>
 /// <remarks>
 /// This abstract class serves as a foundation for packet dispatchers,

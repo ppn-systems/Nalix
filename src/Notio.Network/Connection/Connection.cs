@@ -26,7 +26,7 @@ public sealed class Connection : IConnection
     private readonly Lock _lock = new();
     private readonly TransportStream _cstream;
     private readonly CancellationTokenSource _ctokens = new();
-    private readonly UniqueId _id = UniqueId.NewId(IdType.Session);
+    private readonly Base36Id _id = Base36Id.NewId(IdType.Session);
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
@@ -67,7 +67,7 @@ public sealed class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public IUniqueId Id => _id;
+    public IEncodedId Id => _id;
 
     /// <inheritdoc />
     public long PingTime => _cstream.GetLastPingTime();

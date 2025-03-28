@@ -18,7 +18,7 @@ internal static class StringBuilderPool
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static StringBuilder Rent(int capacity = 256)
     {
-        var builder = s_pool.Rent(1)[0];
+        StringBuilder builder = s_pool.Rent(1)[0];
         if (builder == null)
         {
             builder = new StringBuilder(capacity);

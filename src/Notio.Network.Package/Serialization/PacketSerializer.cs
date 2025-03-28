@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Package.Utilities;
+namespace Notio.Network.Package.Serialization;
 
 /// <summary>
 /// Provides high-performance methods for serializing and deserializing network packets.
@@ -42,9 +42,9 @@ public static class PacketSerializer
 
             // Write the rest of the header fields
             buffer[PacketOffset.Id] = packet.Id;
-            buffer[PacketOffset.Type] = ((byte)packet.Type);
-            buffer[PacketOffset.Flags] = ((byte)packet.Flags);
-            buffer[PacketOffset.Priority] = ((byte)packet.Priority);
+            buffer[PacketOffset.Type] = (byte)packet.Type;
+            buffer[PacketOffset.Flags] = (byte)packet.Flags;
+            buffer[PacketOffset.Priority] = (byte)packet.Priority;
 
             ushort command = packet.Command;
             MemoryMarshal.Write(buffer[PacketOffset.Command..], in command);

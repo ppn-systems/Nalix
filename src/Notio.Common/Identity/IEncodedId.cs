@@ -5,7 +5,7 @@ namespace Notio.Common.Identity;
 /// <summary>
 /// Defines core functionality for unique identifier implementations.
 /// </summary>
-public interface IUniqueId
+public interface IEncodedId
 {
     /// <summary>
     /// Gets the underlying 32-bit unsigned integer value.

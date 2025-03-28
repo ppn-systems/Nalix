@@ -27,7 +27,7 @@ public static class X25519
     // Field Element Size in bytes
     private const int FieldElementSize = 32;
 
-    // Base point u = 9 (encoded as 32-byte little-endian)
+    // BaseValue36 point u = 9 (encoded as 32-byte little-endian)
     private static readonly byte[] BasePoint = CreateBasePoint();
 
     #endregion

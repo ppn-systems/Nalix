@@ -46,7 +46,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     private ConfiguredShared()
     {
         // Determine the configuration file path
-        ConfigFilePath = Path.Combine(DirectoriesDefault.ConfigPath, "Configured.ini");
+        ConfigFilePath = Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new Lazy<ConfiguredIniFile>(() =>

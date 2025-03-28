@@ -16,7 +16,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    IUniqueId Id { get; }
+    IEncodedId Id { get; }
 
     /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.

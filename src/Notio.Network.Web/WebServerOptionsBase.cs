@@ -4,7 +4,7 @@ using System;
 namespace Notio.Network.Web;
 
 /// <summary>
-/// Base class for web server options.
+/// BaseValue36 class for web server options.
 /// </summary>
 public abstract class WebServerOptionsBase : ConfiguredObject
 {

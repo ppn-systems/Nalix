@@ -50,7 +50,7 @@ internal static class HttpListenerResponseHelper
             502 => "Bad Gateway",
             503 => "Service Unavailable",
             504 => "Gateway Timeout",
-            505 => "Http Version Not Supported",
+            505 => "HttpFormatted Version Not Supported",
             507 => "Insufficient Storage",
             _ => string.Empty
         };

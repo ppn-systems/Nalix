@@ -13,7 +13,7 @@ public static class MicrosecondClock
     /// Conversion factor from stopwatch ticks to microseconds.
     /// </summary>
     public static readonly double TickMicroseconds =
-        (ConstantsDefault.MicrosecondsPerSecond / Stopwatch.Frequency);
+        (DefaultConstants.MicrosecondsInSecond / Stopwatch.Frequency);
 
     /// <summary>
     /// Gets the current timestamp in microseconds.

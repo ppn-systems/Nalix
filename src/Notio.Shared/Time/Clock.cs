@@ -24,7 +24,7 @@ public static class Clock
     /// </summary>
     public static readonly DateTime TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    // Base values for high-precision time calculation
+    // BaseValue36 values for high-precision time calculation
     private static readonly DateTime UtcBase = DateTime.UtcNow;
     private static readonly Stopwatch UtcStopwatch = Stopwatch.StartNew();
     private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);

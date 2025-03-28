@@ -11,7 +11,7 @@ namespace Notio.Defaults;
 /// Class that defines default directories for the application with enhanced functionality
 /// and flexibility for both development and production environments.
 /// </summary>
-public static class DirectoriesDefault
+public static class DefaultDirectories
 {
     #region Private Fields
 
@@ -39,7 +39,7 @@ public static class DirectoriesDefault
         if (IsContainerLazy.Value && Directory.Exists("/app"))
             return "/app";
 
-        // Default to the application's base directory
+        // Standard to the application's base directory
         return AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
     });
 
@@ -244,7 +244,7 @@ public static class DirectoriesDefault
     /// Static constructor to initialize the default directories.
     /// Ensures that all necessary directories are created.
     /// </summary>
-    static DirectoriesDefault()
+    static DefaultDirectories()
     {
         // Access all properties to ensure directories are created
         _ = LogsPath;

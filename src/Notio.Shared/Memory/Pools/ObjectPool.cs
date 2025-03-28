@@ -20,7 +20,7 @@ namespace Notio.Shared.Memory.Pools;
 public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
     /// <summary>
-    /// Default maximum pool size to prevent unbounded memory growth
+    /// Standard maximum pool size to prevent unbounded memory growth
     /// </summary>
     public const int DefaultMaxSize = 1024;
 

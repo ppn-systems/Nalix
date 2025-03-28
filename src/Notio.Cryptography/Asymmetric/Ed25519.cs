@@ -38,13 +38,13 @@ public sealed class Ed25519
 
         // Compute public key A = ScalarMul(B, a) and encode it
         var mul2 = ScalarMul(B, a);
-        Span<byte> aEncoded = stackalloc byte[CiphersConstants.PublicKeySize];
+        Span<byte> aEncoded = stackalloc byte[CipherDefaults.PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
         // Build the data: R (32 bytes) || AEncoded (32 bytes) || message
-        byte[] data = new byte[32 + CiphersConstants.PublicKeySize + message.Length];
+        byte[] data = new byte[32 + CipherDefaults.PublicKeySize + message.Length];
         EncodePoint(mul, data.AsSpan(0, 32));
-        aEncoded.CopyTo(data.AsSpan(32, CiphersConstants.PublicKeySize));
+        aEncoded.CopyTo(data.AsSpan(32, CipherDefaults.PublicKeySize));
         message.CopyTo(data, 64);
 
         // s = (r + Hashing(data) * a) mod L
@@ -52,7 +52,7 @@ public sealed class Ed25519
         s %= L; // Using Mod extension below
 
         // Create signature: R (32 bytes) || s (32 bytes)
-        byte[] signature = new byte[CiphersConstants.SignatureSize];
+        byte[] signature = new byte[CipherDefaults.SignatureSize];
         EncodePoint(mul, signature.AsSpan(0, 32));
         EncodeScalar(s, signature.AsSpan(32, 32));
         return signature;
@@ -89,8 +89,8 @@ public sealed class Ed25519
         if (publicKey == null)
             throw new ArgumentException("Public key cannot be null.", nameof(publicKey));
 
-        if (signature.Length != CiphersConstants.SignatureSize)
-            throw new ArgumentException($"Signature must be {CiphersConstants.SignatureSize} bytes long.", nameof(signature));
+        if (signature.Length != CipherDefaults.SignatureSize)
+            throw new ArgumentException($"Signature must be {CipherDefaults.SignatureSize} bytes long.", nameof(signature));
         if (publicKey.Length != 32)
             throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 
@@ -294,7 +294,7 @@ public sealed class Ed25519
     private static readonly BigInteger D = BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740");
     private static readonly BigInteger I = BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752");
 
-    // Base point B
+    // BaseValue36 point B
     private static readonly Point B = new(
         BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202").Mod(Q),
         BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974").Mod(Q)

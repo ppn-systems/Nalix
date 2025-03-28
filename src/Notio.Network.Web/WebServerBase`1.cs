@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Web;
 
 /// <summary>
-/// Base class for <see cref="IWebServer" /> implementations.
+/// BaseValue36 class for <see cref="IWebServer" /> implementations.
 /// </summary>
 /// <typeparam name="TOptions">The type of the options object used to configure an instance.</typeparam>
 /// <seealso cref="IHttpContextHandler" />

@@ -138,7 +138,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// Returns a <see cref="List{T}"/> to the pool.
     /// </summary>
     /// <param name="list">The list to return to the pool.</param>
-    /// <param name="clearItems">Whether to clear the list before returning it. Default is true.</param>
+    /// <param name="clearItems">Whether to clear the list before returning it. Standard is true.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(List<T> list, bool clearItems = true)
     {

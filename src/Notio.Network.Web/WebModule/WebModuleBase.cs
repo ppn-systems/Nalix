@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Web.WebModule;
 
 /// <summary>
-/// <para>Base class to define web modules.</para>
+/// <para>BaseValue36 class to define web modules.</para>
 /// <para>Although it is not required that a module inherits from this class,
 /// it provides some useful features:</para>
 /// <list type="bullet">

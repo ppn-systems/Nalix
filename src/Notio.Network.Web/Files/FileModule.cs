@@ -22,7 +22,7 @@ namespace Notio.Network.Web.Files;
 public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
 {
     /// <summary>
-    /// <para>Default value for <see cref="DefaultDocument"/>.</para>
+    /// <para>Standard value for <see cref="DefaultDocument"/>.</para>
     /// </summary>
     public const string DefaultDocumentName = "index.html";
 
@@ -92,7 +92,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
     /// <para>Gets or sets a value indicating whether this module caches the contents of files
     /// and directory listings.</para>
     /// <para>Note that the actual representations of files are stored in <see cref="FileCache"/>;
-    /// thus, for example, if a file is always requested with an <c>Accept-Encoding</c> of <c>gzip</c>,
+    /// thus, for example, if a file is always requested with an <c>Accept-DefaultEncodings</c> of <c>gzip</c>,
     /// only the gzipped contents of the file will be cached.</para>
     /// </summary>
     /// <exception cref="InvalidOperationException">The module's configuration is locked.</exception>
@@ -138,7 +138,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
 
             _defaultExtension = string.IsNullOrEmpty(value)
                 ? null
-                : value![0] != '.' ? throw new ArgumentException("Default extension does not start with a period.", nameof(value)) : value;
+                : value![0] != '.' ? throw new ArgumentException("Standard extension does not start with a period.", nameof(value)) : value;
         }
     }
 

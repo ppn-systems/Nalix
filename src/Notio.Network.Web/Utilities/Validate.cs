@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Notio.Network.Web.Utilities;
 
@@ -102,7 +102,7 @@ public static partial class Validate
     {
         if (!NotNull(nameof(baseUri), baseUri).IsAbsoluteUri)
         {
-            throw new ArgumentException("Base URI is not an absolute URI.", nameof(baseUri));
+            throw new ArgumentException("BaseValue36 URI is not an absolute URI.", nameof(baseUri));
         }
 
         Uri uri;

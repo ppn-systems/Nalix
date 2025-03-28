@@ -1,12 +1,12 @@
 using Notio.Common.Cryptography;
-using Notio.Network.Package.Helpers;
+using Notio.Network.Package.Serialization;
 
 namespace Notio.Network.Package.Extensions;
 
 /// <summary>
 /// Provides encryption and decryption methods for IPacket Payload.
 /// </summary>
-public static partial class PackageExtensions
+public static class PacketEncryption
 {
     /// <summary>
     /// Encrypts the Payload in the IPacket using the specified algorithm.

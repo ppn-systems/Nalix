@@ -7,7 +7,7 @@ using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Helpers;
+namespace Notio.Network.Package.Serialization;
 
 /// <summary>
 /// Provides helper methods for encrypting and decrypting packet payloads.
@@ -25,7 +25,8 @@ public static class PacketEncryptionHelper
     /// Thrown if encryption conditions are not met or if an error occurs during encryption.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet EncryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+    public static Packet EncryptPayload(
+        Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
 
@@ -53,7 +54,8 @@ public static class PacketEncryptionHelper
     /// Thrown if decryption conditions are not met or if an error occurs during decryption.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecryptPayload(Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+    public static Packet DecryptPayload(
+        Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
         PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);
 

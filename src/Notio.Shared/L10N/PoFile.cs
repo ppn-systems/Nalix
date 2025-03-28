@@ -16,7 +16,7 @@ public partial class PoFile
     private readonly Dictionary<string, string> _translations = [];
     private readonly Dictionary<string, string[]> _pluralTranslations = [];
 
-    private Func<int, int> _pluralRule = n => n == 1 ? 0 : 1; // Default rule (English)
+    private Func<int, int> _pluralRule = n => n == 1 ? 0 : 1; // Standard rule (English)
 
     /// <summary>
     /// Initializes an empty PO file.

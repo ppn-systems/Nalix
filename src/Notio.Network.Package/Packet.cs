@@ -3,7 +3,7 @@ using Notio.Common.Package;
 using Notio.Cryptography.Integrity;
 using Notio.Defaults;
 using Notio.Network.Package.Metadata;
-using Notio.Network.Package.Utilities;
+using Notio.Network.Package.Serialization;
 using Notio.Utilities;
 using System;
 using System.Buffers;
@@ -26,9 +26,9 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     #region Constants
 
     // Cache the max packet size locally to avoid field access costs
-    private const int MaxPacketSize = PacketConstants.MaxPacketSize;
-    private const int MaxHeapAllocSize = ConstantsDefault.MaxHeapAllocSize;
-    private const int MaxStackAllocSize = ConstantsDefault.MaxStackAllocSize;
+    private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
+    private const int MaxHeapAllocSize = DefaultConstants.HeapAllocThreshold;
+    private const int MaxStackAllocSize = DefaultConstants.StackAllocThreshold;
 
     #endregion
 
