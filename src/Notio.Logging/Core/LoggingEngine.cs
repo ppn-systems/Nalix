@@ -11,12 +11,12 @@ namespace Notio.Logging.Core;
 /// </summary>
 public abstract class LoggingEngine : IDisposable
 {
-    private readonly LoggingPublisher _publisher;
-    private readonly LoggingOptions _loggingOptions;
-    private int _isDisposed;
-
     // Cache the minimum log level for faster filtering
     private readonly LoggingLevel _minLogLevel;
+    private readonly LoggingPublisher _publisher;
+    private readonly LoggingOptions _loggingOptions;
+
+    private int _isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingEngine"/> class.

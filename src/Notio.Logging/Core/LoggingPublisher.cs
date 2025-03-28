@@ -1,6 +1,7 @@
 using Notio.Common.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -163,7 +164,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
         try
         {
             // Log to debug output at minimum
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error publishing to " +
                 $"{target.GetType().Name}: {exception.Message}");
 
@@ -198,7 +199,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
                 catch (Exception ex)
                 {
                     // Log disposal errors to debug output
-                    System.Diagnostics.Debug.WriteLine($"Error disposing logging target: {ex.Message}");
+                    Debug.WriteLine($"Error disposing logging target: {ex.Message}");
                 }
             }
 
@@ -207,7 +208,7 @@ public sealed class LoggingPublisher : ILoggingPublisher
         catch (Exception ex)
         {
             // Log final disposal errors to debug output
-            System.Diagnostics.Debug.WriteLine($"Error during LoggingPublisher disposal: {ex.Message}");
+            Debug.WriteLine($"Error during LoggingPublisher disposal: {ex.Message}");
         }
     }
 

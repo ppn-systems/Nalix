@@ -60,9 +60,7 @@ public sealed class LoggingOptions : IDisposable
     /// </summary>
     /// <param name="publisher">The <see cref="ILoggingPublisher"/> instance for publishing log messages.</param>
     internal LoggingOptions(ILoggingPublisher publisher)
-    {
-        _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
-    }
+        => _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
