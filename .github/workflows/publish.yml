@@ -20,10 +20,20 @@ jobs:
           source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
 
       - name: Authenticate with GitHub Packages
-        run: dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --name github --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --name github \
+            --username ${{ github.actor }} \
+            --password $NUGET_AUTH_TOKEN \
+            --store-password-in-clear-text
+        
+      - name: Restore Dependencies
+        run: dotnet restore
 
       - name: Build and Pack
-        run: dotnet pack --configuration Release
+        run: dotnet pack --configuration Release --output ./packages
 
       - name: Publish Package
-        run: dotnet nuget push bin/Release/*.nupkg --source "github"
+        run: dotnet nuget push ./packages/*.nupkg --source "github" --api-key $NUGET_AUTH_TOKEN --skip-duplicate
