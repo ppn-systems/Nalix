@@ -13,6 +13,8 @@ namespace Notio.Randomization;
 /// <param name="seed">The seed to initialize the random number generator.</param>
 public sealed class GRandom(int seed)
 {
+    #region Constants
+
     /// <summary>
     /// The maximum possible generated integer value.
     /// </summary>
@@ -23,6 +25,10 @@ public sealed class GRandom(int seed)
     /// </summary>
     public const double InvRandMax = 1.0 / RandMax;
 
+    #endregion
+
+    #region Fields
+
     /// <summary>
     /// Current seed value for the random number generator.
     /// </summary>
@@ -32,6 +38,9 @@ public sealed class GRandom(int seed)
     /// Random number generator instance.
     /// </summary>
     private readonly Rand _rand = new((uint)seed);
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GRandom"/> class with the default seed value of 0.
@@ -39,6 +48,10 @@ public sealed class GRandom(int seed)
     public GRandom() : this(0)
     {
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Resets the seed for the random number generator.
@@ -271,4 +284,6 @@ public sealed class GRandom(int seed)
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
     public override string ToString() => $"GRandom(seed={_seed}): {_rand}";
+
+    #endregion
 }
