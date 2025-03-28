@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Shared.Configuration.Metadata;
+namespace Notio.Shared.Internal;
 
 /// <summary>
 /// Stores metadata about a configuration property.

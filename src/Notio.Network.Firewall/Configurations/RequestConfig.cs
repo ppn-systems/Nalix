@@ -1,38 +1,63 @@
 using Notio.Common.Attributes;
+using Notio.Network.Security.Enums;
+using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
-using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Security.Requests;
+namespace Notio.Network.Security.Configurations;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.
 /// This configuration defines the maximum number of requests allowed, the lockout duration after exceeding limits,
 /// and the time window for counting requests.
 /// </summary>
-public sealed class RequestConfig : ConfiguredBinder
+/// <remarks>
+/// Initializes a new instance of the <see cref="RequestConfig"/> class with the specified rate limit settings.
+/// </remarks>
+/// <param name="settings">The rate limit settings to apply.</param>
+public sealed class RequestConfig(RequestLimitSettings settings) : ConfigurationBinder
 {
     // Pre-defined configurations to avoid memory allocations
-    private static readonly (int Requests, int LockoutSec, int WindowMs) LowSettings = (50, 600, 30_000);
-    private static readonly (int Requests, int LockoutSec, int WindowMs) MediumSettings = (100, 300, 60_000);
-    private static readonly (int Requests, int LockoutSec, int WindowMs) HighSettings = (500, 150, 120_000);
-    private static readonly (int Requests, int LockoutSec, int WindowMs) UnlimitedSettings = (1000, 60, 300_000);
+    private static readonly RequestLimitSettings LowSettings = new(50, 600, 30_000);
+    private static readonly RequestLimitSettings MediumSettings = new(100, 300, 60_000);
+    private static readonly RequestLimitSettings HighSettings = new(500, 150, 120_000);
+    private static readonly RequestLimitSettings UnlimitedSettings = new(1000, 60, 300_000);
+
+    private static readonly Dictionary<RequestLimitType, RequestLimitSettings> SettingsMap = new()
+    {
+        { RequestLimitType.Low, LowSettings },
+        { RequestLimitType.Medium, MediumSettings },
+        { RequestLimitType.High, HighSettings },
+        { RequestLimitType.Unlimited, UnlimitedSettings }
+    };
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RequestConfig"/> class with the specified rate limit settings.
+    /// </summary>
+    /// <param name="requests">The maximum number of requests allowed.</param>
+    /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
+    /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
+    public RequestConfig(int requests, int lockoutSeconds, int windowMilliseconds)
+        : this(new RequestLimitSettings(requests, lockoutSeconds, windowMilliseconds))
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestConfig"/> class with a specified request limit.
     /// </summary>
     /// <param name="limit">The predefined request limit to apply.</param>
-    public RequestConfig(RequestLimit limit)
+    public RequestConfig(RequestLimitType limit)
+        : this(GetSettingsForLimit(limit))
     {
-        (MaxAllowedRequests, LockoutDurationSeconds, TimeWindowInMilliseconds) = GetSettingsForLimit(limit);
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RequestConfig"/> class with a default request limit of <see cref="RequestLimit.Medium"/>.
+    /// Initializes a new instance of the <see cref="RequestConfig"/> class with a default request limit of <see cref="RequestLimitType.Medium"/>.
     /// </summary>
     public RequestConfig()
-        : this(RequestLimit.Medium)
+        : this(RequestLimitType.Medium)
     {
     }
 
@@ -47,24 +72,21 @@ public sealed class RequestConfig : ConfiguredBinder
     /// </summary>
     /// <value>The maximum number of requests allowed in a given time window.</value>
     /// <remarks>Value must be between 1 and 1000 requests per window.</remarks>
-    [Range(1, 1000)]
-    public int MaxAllowedRequests { get; set; } = 100;
+    public int MaxAllowedRequests { get; set; } = settings.Requests;
 
     /// <summary>
     /// Gets or sets the duration in seconds for which an IP is locked out after exceeding the maximum allowed requests.
     /// </summary>
     /// <value>The lockout duration in seconds after exceeding the request limit.</value>
     /// <remarks>Value must be between 1 and 3600 seconds (1 hour).</remarks>
-    [Range(1, 3600)]
-    public int LockoutDurationSeconds { get; set; } = 300;
+    public int LockoutDurationSeconds { get; set; } = settings.LockoutDurationSec;
 
     /// <summary>
     /// Gets or sets the time window in milliseconds during which requests are counted.
     /// </summary>
     /// <value>The time window in milliseconds.</value>
     /// <remarks>Value must be greater than or equal to 1000 milliseconds (1 second).</remarks>
-    [Range(1000, int.MaxValue)]
-    public int TimeWindowInMilliseconds { get; set; } = 60000; // 1 minute
+    public int TimeWindowInMilliseconds { get; set; } = settings.TimeWindowMs;
 
     /// <summary>
     /// Gets the time window as a TimeSpan.
@@ -84,12 +106,6 @@ public sealed class RequestConfig : ConfiguredBinder
     /// <param name="limit">The limit level.</param>
     /// <returns>A tuple with rate limit settings.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (int Requests, int LockoutSec, int WindowMs) GetSettingsForLimit(RequestLimit limit) => limit switch
-    {
-        RequestLimit.Low => LowSettings,
-        RequestLimit.Medium => MediumSettings,
-        RequestLimit.High => HighSettings,
-        RequestLimit.Unlimited => UnlimitedSettings,
-        _ => MediumSettings
-    };
+    private static RequestLimitSettings GetSettingsForLimit(RequestLimitType limit)
+        => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 }

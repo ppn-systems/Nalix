@@ -1,7 +1,6 @@
 using Notio.Common.Caching;
-using Notio.Shared.Injection;
-using Notio.Shared.Memory.Pools;
-using Notio.Shared.Memory.Types;
+using Notio.Shared.Injection.DI;
+using Notio.Shared.Memory.PoolTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Shared.Memory;
+namespace Notio.Shared.Memory.Pools;
 
 /// <summary>
 /// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.

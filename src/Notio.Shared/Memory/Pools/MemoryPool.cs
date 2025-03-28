@@ -1,4 +1,4 @@
-using Notio.Shared.Memory.Internal;
+using Notio.Shared.Internal;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;

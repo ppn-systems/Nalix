@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Shared.Injection;
+namespace Notio.Shared.Injection.DI;
 
 /// <summary>
 /// Singleton class used to register and resolve services and instances using lazy loading.

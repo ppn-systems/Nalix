@@ -1,6 +1,6 @@
 using Notio.Defaults;
-using Notio.Shared.Configuration.Internal;
-using Notio.Shared.Injection;
+using Notio.Shared.Injection.DI;
+using Notio.Shared.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -16,9 +16,9 @@ namespace Notio.Shared.Configuration;
 /// <remarks>
 /// This implementation includes thread safety, caching optimizations, and lazy loading.
 /// </remarks>
-public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
+public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 {
-    private readonly ConcurrentDictionary<Type, ConfiguredBinder> _configContainerDict = new();
+    private readonly ConcurrentDictionary<Type, ConfigurationBinder> _configContainerDict = new();
     private readonly ReaderWriterLockSlim _configLock = new(LockRecursionPolicy.NoRecursion);
     private readonly Lazy<ConfiguredIniFile> _iniFile;
 
@@ -41,9 +41,9 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     public DateTime LastReloadTime { get; private set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConfiguredShared"/> class.
+    /// Initializes a new instance of the <see cref="ConfigurationStore"/> class.
     /// </summary>
-    private ConfiguredShared()
+    private ConfigurationStore()
     {
         // Determine the configuration file path
         ConfigFilePath = Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini");
@@ -88,7 +88,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     /// <typeparam name="TClass">The type of the configuration container.</typeparam>
     /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TClass Get<TClass>() where TClass : ConfiguredBinder, new()
+    public TClass Get<TClass>() where TClass : ConfigurationBinder, new()
     {
         return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), type =>
         {
@@ -160,7 +160,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to check.</typeparam>
     /// <returns>True if the configuration is loaded; otherwise, false.</returns>
-    public bool IsLoaded<TClass>() where TClass : ConfiguredBinder
+    public bool IsLoaded<TClass>() where TClass : ConfigurationBinder
         => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
@@ -168,7 +168,7 @@ public sealed class ConfiguredShared : SingletonBase<ConfiguredShared>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to remove.</typeparam>
     /// <returns>True if the configuration was removed; otherwise, false.</returns>
-    public bool Remove<TClass>() where TClass : ConfiguredBinder
+    public bool Remove<TClass>() where TClass : ConfigurationBinder
     {
         _configLock.EnterWriteLock();
         try

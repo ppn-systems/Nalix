@@ -1,5 +1,5 @@
-using Notio.Common.Logging;
 using Notio.Common.Caching;
+using Notio.Common.Logging;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
@@ -49,7 +49,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// </summary>
     public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
-        BufferConfig config = bufferConfig ?? ConfiguredShared.Instance.Get<BufferConfig>();
+        BufferConfig config = bufferConfig ?? ConfigurationStore.Instance.Get<BufferConfig>();
 
         _logger = logger;
         _totalBuffers = config.TotalBuffers;

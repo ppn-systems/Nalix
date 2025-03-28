@@ -7,7 +7,7 @@ namespace Notio.Network.Listeners;
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
-public sealed class ListenerConfig : ConfiguredBinder
+public sealed class ListenerConfig : ConfigurationBinder
 {
     /// <summary>
     /// Gets or sets the port number for the network connection.

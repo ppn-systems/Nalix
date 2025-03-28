@@ -1,3 +1,4 @@
+using Notio.Shared.Internal;
 using System;
 
 namespace Notio.Shared.Configuration.Metadata;

@@ -1,5 +1,5 @@
 using Notio.Common.Caching;
-using Notio.Shared.Memory.Types;
+using Notio.Shared.Memory.PoolTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

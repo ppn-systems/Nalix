@@ -31,7 +31,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 {
     private const int True = 1;
     private const int False = 0;
-    private static ListenerConfig Config => ConfiguredShared.Instance.Get<ListenerConfig>();
+    private static ListenerConfig Config => ConfigurationStore.Instance.Get<ListenerConfig>();
 
     private readonly int _port = port;
     private readonly SemaphoreSlim _listenerLock = new(1, 1);

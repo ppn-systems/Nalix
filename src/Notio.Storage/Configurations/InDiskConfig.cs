@@ -5,12 +5,12 @@ using Notio.Storage.MimeTypes;
 using System;
 using System.IO;
 
-namespace Notio.Storage.Local;
+namespace Notio.Storage.Configurations;
 
 /// <summary>
 /// Configured for file storage on disk.
 /// </summary>
-public class InDiskConfig : ConfiguredBinder, IFileStorageConfig<InDiskConfig>
+public class InDiskConfig : ConfigurationBinder, IFileStorageConfig<InDiskConfig>
 {
     /// <summary>
     /// Gets the location of the storage folder on disk.

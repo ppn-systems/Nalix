@@ -1,5 +1,5 @@
 using Notio.Defaults;
-using Notio.Shared;
+using Notio.Storage.Configurations;
 using Notio.Storage.FileFormats;
 using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;

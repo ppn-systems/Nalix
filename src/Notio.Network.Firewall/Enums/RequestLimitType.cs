@@ -1,10 +1,10 @@
-namespace Notio.Network.Security.Requests;
+namespace Notio.Network.Security.Enums;
 
 /// <summary>
 /// Represents different levels of request limits that can be applied to a firewall configuration.
 /// These levels define thresholds for the number of requests allowed.
 /// </summary>
-public enum RequestLimit
+public enum RequestLimitType
 {
     /// <summary>
     /// Represents a low request limit, typically allowing only a small number of requests.

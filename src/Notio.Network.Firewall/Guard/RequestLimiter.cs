@@ -1,5 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
+using Notio.Network.Security.Configurations;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
@@ -9,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Security.Requests;
+namespace Notio.Network.Security.Guard;
 
 /// <summary>
 /// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.
@@ -43,7 +44,7 @@ public sealed class RequestLimiter : IDisposable
     public RequestLimiter(RequestConfig? requestConfig, ILogger? logger = null)
     {
         _logger = logger;
-        _RequestConfig = requestConfig ?? ConfiguredShared.Instance.Get<RequestConfig>();
+        _RequestConfig = requestConfig ?? ConfigurationStore.Instance.Get<RequestConfig>();
 
         if (_RequestConfig.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");

@@ -1,45 +1,52 @@
 using Notio.Common.Attributes;
+using Notio.Network.Security.Enums;
+using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Security.Connections;
+namespace Notio.Network.Security.Configurations;
 
 /// <summary>
 /// Configuration for limiting the number of concurrent connections per IP address.
 /// This configuration helps manage and control the number of simultaneous connections from each IP.
 /// </summary>
-public sealed class ConnectionConfig : ConfiguredBinder
+/// <remarks>
+/// Initializes a new instance of the <see cref="ConnectionConfig"/> class with the specified connection limit settings.
+/// </remarks>
+/// <param name="settings">The connection limit settings to apply.</param>
+public sealed class ConnectionConfig(ConnectionLimitSettings settings) : ConfigurationBinder
 {
     // Pre-defined connection limits to avoid repetitive calculations
-    private static readonly (int MaxConnections, int CleanupIntervalMs, int InactivityThresholdMs) LowSettings =
-        (20, 30_000, 120_000);
-    private static readonly (int MaxConnections, int CleanupIntervalMs, int InactivityThresholdMs) MediumSettings =
-        (100, 60_000, 300_000);
-    private static readonly (int MaxConnections, int CleanupIntervalMs, int InactivityThresholdMs) HighSettings =
-        (500, 120_000, 600_000);
-    private static readonly (int MaxConnections, int CleanupIntervalMs, int InactivityThresholdMs) UnlimitedSettings =
-        (10000, 300_000, 1800_000);
+    private static readonly ConnectionLimitSettings LowSettings = new(20, 30_000, 120_000);
+    private static readonly ConnectionLimitSettings MediumSettings = new(100, 60_000, 300_000);
+    private static readonly ConnectionLimitSettings HighSettings = new(500, 120_000, 600_000);
+    private static readonly ConnectionLimitSettings UnlimitedSettings = new(10_000, 300_000, 1_800_000);
+
+    private static readonly Dictionary<ConnectionLimitType, ConnectionLimitSettings> SettingsMap = new()
+    {
+        { ConnectionLimitType.Low, LowSettings },
+        { ConnectionLimitType.Medium, MediumSettings },
+        { ConnectionLimitType.High, HighSettings },
+        { ConnectionLimitType.Unlimited, UnlimitedSettings }
+    };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a specified connection limit.
     /// </summary>
     /// <param name="limit">The predefined connection limit to apply.</param>
-    public ConnectionConfig(ConnectionLimit limit)
+    public ConnectionConfig(ConnectionLimitType limit)
+        : this(GetConnectionSettings(limit))
     {
-        var settings = GetConnectionSettings(limit);
-
-        MaxConnectionsPerIpAddress = settings.MaxConnections;
-        CleanupIntervalMs = settings.CleanupIntervalMs;
-        InactivityThresholdMs = settings.InactivityThresholdMs;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimit.Medium"/>.
+    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimitType.Medium"/>.
     /// </summary>
     public ConnectionConfig()
-        : this(ConnectionLimit.Medium)
+        : this(ConnectionLimitType.Medium)
     {
     }
 
@@ -61,19 +68,19 @@ public sealed class ConnectionConfig : ConfiguredBinder
     /// The configuration defines how many connections a single IP address can maintain simultaneously.
     /// </remarks>
     [Range(1, 10000)]
-    public int MaxConnectionsPerIpAddress { get; set; } = 100;
+    public int MaxConnectionsPerIpAddress { get; set; } = settings.MaxConnections;
 
     /// <summary>
     /// Gets or sets the interval in milliseconds between cleanup operations.
     /// </summary>
     [Range(1000, int.MaxValue)]
-    public int CleanupIntervalMs { get; set; } = 60_000; // 1 minute
+    public int CleanupIntervalMs { get; set; } = settings.CleanupIntervalMs;
 
     /// <summary>
     /// Gets or sets the threshold in milliseconds after which an inactive connection entry is considered stale.
     /// </summary>
     [Range(1000, int.MaxValue)]
-    public int InactivityThresholdMs { get; set; } = 300_000; // 5 minutes
+    public int InactivityThresholdMs { get; set; } = settings.InactivityThresholdMs;
 
     /// <summary>
     /// Gets the cleanup interval as a TimeSpan.
@@ -91,13 +98,6 @@ public sealed class ConnectionConfig : ConfiguredBinder
     /// Gets predefined settings for a connection limit level.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (int MaxConnections, int CleanupIntervalMs, int InactivityThresholdMs) GetConnectionSettings(ConnectionLimit limit)
-        => limit switch
-        {
-            ConnectionLimit.Low => LowSettings,
-            ConnectionLimit.Medium => MediumSettings,
-            ConnectionLimit.High => HighSettings,
-            ConnectionLimit.Unlimited => UnlimitedSettings,
-            _ => MediumSettings
-        };
+    private static ConnectionLimitSettings GetConnectionSettings(ConnectionLimitType limit)
+        => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 }

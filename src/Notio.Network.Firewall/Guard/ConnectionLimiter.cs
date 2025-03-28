@@ -1,4 +1,5 @@
 using Notio.Common.Logging;
+using Notio.Network.Security.Configurations;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
@@ -9,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Security.Connections;
+namespace Notio.Network.Security.Guard;
 
 /// <summary>
 /// A high-performance connection limiter that restricts simultaneous connections from IP addresses 
@@ -45,7 +46,7 @@ public sealed class ConnectionLimiter : IDisposable
     public ConnectionLimiter(ConnectionConfig? connectionConfig = null, ILogger? logger = null)
     {
         _logger = logger;
-        _config = connectionConfig ?? ConfiguredShared.Instance.Get<ConnectionConfig>();
+        _config = connectionConfig ?? ConfigurationStore.Instance.Get<ConnectionConfig>();
 
         if (_config.MaxConnectionsPerIpAddress <= 0)
             throw new ArgumentException("MaxConnectionsPerIpAddress must be greater than 0",
@@ -333,7 +334,7 @@ public sealed class ConnectionLimiter : IDisposable
     /// </summary>
     private static ConnectionConfig CreateConfiguredConfig(Action<ConnectionConfig>? configure)
     {
-        var config = ConfiguredShared.Instance.Get<ConnectionConfig>();
+        var config = ConfigurationStore.Instance.Get<ConnectionConfig>();
         configure?.Invoke(config);
         return config;
     }

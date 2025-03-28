@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Notio.Shared.Configuration.Internal;
+namespace Notio.Shared.Internal;
 
 /// <summary>
 /// A high-performance wrapper class for reading and writing INI files.
@@ -731,7 +731,7 @@ internal sealed class ConfiguredIniFile
     /// <summary>
     /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
-    public void Reload() => this.Load();
+    public void Reload() => Load();
 
     /// <summary>
     /// Writes the INI data to the file with optimized I/O and error handling.

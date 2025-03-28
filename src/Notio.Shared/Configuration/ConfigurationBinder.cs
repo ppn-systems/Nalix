@@ -1,7 +1,7 @@
 using Notio.Common.Attributes;
 using Notio.Common.Logging;
-using Notio.Shared.Configuration.Internal;
 using Notio.Shared.Configuration.Metadata;
+using Notio.Shared.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace Notio.Shared.Configuration;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
-public abstract class ConfiguredBinder
+public abstract class ConfigurationBinder
 {
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
     private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
@@ -43,7 +43,7 @@ public abstract class ConfiguredBinder
     /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
-    public ConfiguredBinder()
+    public ConfigurationBinder()
     {
     }
 
@@ -52,10 +52,10 @@ public abstract class ConfiguredBinder
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
     /// <param name="logger">The logger to log events and errors.</param>
-    public ConfiguredBinder(ILogger logger) => _logger = logger;
+    public ConfigurationBinder(ILogger logger) => _logger = logger;
 
     /// <summary>
-    /// Initializes an instance of <see cref="ConfiguredBinder"/> from the provided <see cref="ConfiguredIniFile"/>
+    /// Initializes an instance of <see cref="ConfigurationBinder"/> from the provided <see cref="ConfiguredIniFile"/>
     /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
@@ -226,7 +226,7 @@ public abstract class ConfiguredBinder
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
     /// <returns>A new instance with the same property values.</returns>
-    public T Clone<T>() where T : ConfiguredBinder, new()
+    public T Clone<T>() where T : ConfigurationBinder, new()
     {
         T clone = new();
         Type type = GetType();

@@ -2,7 +2,7 @@ using Notio.Storage.Generator;
 using Notio.Storage.MimeTypes;
 using System;
 
-namespace Notio.Storage.Local;
+namespace Notio.Storage.Configurations;
 
 /// <summary>
 /// Configured for in-memory file storage.

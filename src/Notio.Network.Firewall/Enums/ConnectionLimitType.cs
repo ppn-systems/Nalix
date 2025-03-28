@@ -1,9 +1,9 @@
-namespace Notio.Network.Security.Connections;
+namespace Notio.Network.Security.Enums;
 
 /// <summary>
 /// Represents different levels of connection limits that can be applied for managing simultaneous connections.
 /// </summary>
-public enum ConnectionLimit
+public enum ConnectionLimitType
 {
     /// <summary>
     /// Represents a low number of simultaneous connections, typically for minimal traffic environments.

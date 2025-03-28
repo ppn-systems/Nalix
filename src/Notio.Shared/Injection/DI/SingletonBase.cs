@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Shared.Injection;
+namespace Notio.Shared.Injection.DI;
 
 /// <summary>
 /// A high-performance generic thread-safe Singleton implementation using <see cref="Lazy{T}"/>.

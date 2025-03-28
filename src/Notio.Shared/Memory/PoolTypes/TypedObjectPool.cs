@@ -1,30 +1,25 @@
 using Notio.Common.Caching;
 using Notio.Shared.Memory.Pools;
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
-namespace Notio.Shared.Memory.Types;
+namespace Notio.Shared.Memory.PoolTypes;
 
 /// <summary>
 /// A type-specific adapter for the object pool that eliminates the need for runtime type checking.
 /// </summary>
 /// <typeparam name="T">The type of objects managed by this pool.</typeparam>
-public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
+public sealed class TypedObjectPool<T> where T : IPoolable, new()
 {
-    private readonly ObjectPool _pool;
-    private readonly ObjectPoolManager _manager;
+    private readonly ObjectPool _parentPool;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TypedObjectPoolAdapter{T}"/> class.
+    /// Initializes a new instance of the <see cref="TypedObjectPool{T}"/> class.
     /// </summary>
-    /// <param name="pool">The object pool.</param>
-    /// <param name="manager">The object pool manager.</param>
-    internal TypedObjectPoolAdapter(ObjectPool pool, ObjectPoolManager manager)
+    /// <param name="parentPool">The parent object pool.</param>
+    internal TypedObjectPool(ObjectPool parentPool)
     {
-        _pool = pool;
-        _manager = manager;
+        _parentPool = parentPool;
     }
 
     /// <summary>
@@ -34,8 +29,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get()
     {
-        Interlocked.Increment(ref _manager._totalGetOperations);
-        return _pool.Get<T>();
+        return _parentPool.Get<T>();
     }
 
     /// <summary>
@@ -45,10 +39,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(T obj)
     {
-        ArgumentNullException.ThrowIfNull(obj, nameof(obj));
-
-        Interlocked.Increment(ref _manager._totalReturnOperations);
-        _pool.Return(obj);
+        _parentPool.Return(obj);
     }
 
     /// <summary>
@@ -58,8 +49,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>A list containing the requested objects.</returns>
     public List<T> GetMultiple(int count)
     {
-        Interlocked.Add(ref _manager._totalGetOperations, count);
-        return _pool.GetMultiple<T>(count);
+        return _parentPool.GetMultiple<T>(count);
     }
 
     /// <summary>
@@ -69,11 +59,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>The number of objects successfully returned to the pool.</returns>
     public int ReturnMultiple(IEnumerable<T> objects)
     {
-        ArgumentNullException.ThrowIfNull(objects);
-
-        int count = _pool.ReturnMultiple(objects);
-        Interlocked.Add(ref _manager._totalReturnOperations, count);
-        return count;
+        return _parentPool.ReturnMultiple(objects);
     }
 
     /// <summary>
@@ -81,37 +67,35 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity.</param>
     public void SetMaxCapacity(int maxCapacity)
-        => _pool.SetMaxCapacity<T>(maxCapacity);
+    {
+        _parentPool.SetMaxCapacity<T>(maxCapacity);
+    }
 
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
     /// <param name="count">The number of objects to preallocate.</param>
     /// <returns>The number of objects successfully preallocated.</returns>
-    public int Prealloc(int count) => _pool.Prealloc<T>(count);
+    public int Prealloc(int count)
+    {
+        return _parentPool.Prealloc<T>(count);
+    }
 
     /// <summary>
     /// Gets information about this type's pool.
     /// </summary>
     /// <returns>A dictionary containing pool statistics for this type.</returns>
-    public Dictionary<string, object> GetInfo() => _pool.GetTypeInfo<T>();
+    public Dictionary<string, object> GetInfo()
+    {
+        return _parentPool.GetTypeInfo<T>();
+    }
 
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
     /// <returns>The number of objects removed.</returns>
-    public int Clear() => _pool.ClearType<T>();
-
-    /// <summary>
-    /// Trims this type's pool to a target size.
-    /// </summary>
-    /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The number of objects removed.</returns>
-    public int Trim(int percentage = 50)
+    public int Clear()
     {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
-
-        return _pool.Trim(percentage);
+        return _parentPool.ClearType<T>();
     }
 }

@@ -3,7 +3,7 @@ using Notio.Shared.Memory.Pools;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Shared.Memory.Types;
+namespace Notio.Shared.Memory.PoolTypes;
 
 /// <summary>
 /// Type-specific object pool implementation.
