@@ -1,6 +1,5 @@
 using Notio.Common.Cryptography;
 using Notio.Cryptography.Utilities;
-using Notio.Defaults;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -14,7 +13,25 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class ChaCha20 : IDisposable
 {
-    private const int StateLength = 16;
+    /// <summary>
+    /// Only allowed key length in bytes.
+    /// </summary>
+    public const int KeySize = 32;
+
+    /// <summary>
+    /// The size of a nonce in bytes.
+    /// </summary>
+    public const int NonceSize = 12;
+
+    /// <summary>
+    /// The size of a block in bytes.
+    /// </summary>
+    public const int BlockSize = 64;
+
+    /// <summary>
+    /// The length of the key in bytes.
+    /// </summary>
+    public const int StateLength = 16;
 
     /// <summary>
     /// Determines if the objects in this class have been disposed of. Set to true by the Dispose() method.
@@ -79,9 +96,9 @@ public sealed class ChaCha20 : IDisposable
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        if (key.Length != DefaultConstants.KeySize)
+        if (key.Length != KeySize)
         {
-            throw new ArgumentException($"Key length must be {DefaultConstants.KeySize}. Actual: {key.Length}");
+            throw new ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
         State[4] = BitwiseUtils.U8To32Little(key, 0);
@@ -89,7 +106,7 @@ public sealed class ChaCha20 : IDisposable
         State[6] = BitwiseUtils.U8To32Little(key, 8);
         State[7] = BitwiseUtils.U8To32Little(key, 12);
 
-        byte[] constants = key.Length == DefaultConstants.KeySize ? Sigma : Tau;
+        byte[] constants = key.Length == KeySize ? Sigma : Tau;
         int keyIndex = key.Length - 16;
 
         State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
@@ -122,11 +139,11 @@ public sealed class ChaCha20 : IDisposable
             throw new ArgumentNullException(nameof(nonce));
         }
 
-        if (nonce.Length != DefaultConstants.NonceSize)
+        if (nonce.Length != NonceSize)
         {
             // There has already been some state set up. Clear it before exiting.
             Dispose();
-            throw new ArgumentException($"Nonce length must be {DefaultConstants.NonceSize}. Actual: {nonce.Length}", nameof(nonce));
+            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}", nameof(nonce));
         }
 
         State[12] = counter;
@@ -530,11 +547,11 @@ public sealed class ChaCha20 : IDisposable
         }
 
         uint[] x = new uint[StateLength];    // Working buffer
-        byte[] tmp = new byte[DefaultConstants.BlockSize];  // Temporary buffer
+        byte[] tmp = new byte[BlockSize];  // Temporary buffer
         int offset = 0;
 
-        int howManyFullLoops = numBytes / DefaultConstants.BlockSize;
-        int tailByteCount = numBytes - howManyFullLoops * DefaultConstants.BlockSize;
+        int howManyFullLoops = numBytes / BlockSize;
+        int tailByteCount = numBytes - howManyFullLoops * BlockSize;
 
         for (int loop = 0; loop < howManyFullLoops; loop++)
         {
@@ -586,7 +603,7 @@ public sealed class ChaCha20 : IDisposable
             }
             else
             {
-                for (int i = 0; i < DefaultConstants.BlockSize; i += 4)
+                for (int i = 0; i < BlockSize; i += 4)
                 {
                     // Small unroll
                     int start = i + offset;
@@ -597,7 +614,7 @@ public sealed class ChaCha20 : IDisposable
                 }
             }
 
-            offset += DefaultConstants.BlockSize;
+            offset += BlockSize;
         }
 
         // In case there are some bytes left

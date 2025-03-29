@@ -1,5 +1,4 @@
 using Notio.Cryptography.Hashing;
-using Notio.Defaults;
 using Notio.Extensions.Math;
 using System;
 using System.Numerics;
@@ -13,6 +12,16 @@ namespace Notio.Cryptography.Asymmetric;
 /// </summary>
 public sealed class Ed25519
 {
+    /// <summary>
+    /// Size of the public key in bytes.
+    /// </summary>
+    public const int PublicKeySize = 32;
+
+    /// <summary>
+    /// Size of the private key in bytes.
+    /// </summary>
+    public const int SignatureSize = 64;
+
     #region API Methods
 
     /// <summary>
@@ -39,13 +48,13 @@ public sealed class Ed25519
 
         // Compute public key A = ScalarMul(B, a) and encode it
         var mul2 = ScalarMul(B, a);
-        Span<byte> aEncoded = stackalloc byte[DefaultConstants.PublicKeySize];
+        Span<byte> aEncoded = stackalloc byte[PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
         // Build the data: R (32 bytes) || AEncoded (32 bytes) || message
-        byte[] data = new byte[32 + DefaultConstants.PublicKeySize + message.Length];
+        byte[] data = new byte[32 + PublicKeySize + message.Length];
         EncodePoint(mul, data.AsSpan(0, 32));
-        aEncoded.CopyTo(data.AsSpan(32, DefaultConstants.PublicKeySize));
+        aEncoded.CopyTo(data.AsSpan(32, PublicKeySize));
         message.CopyTo(data, 64);
 
         // s = (r + Hashing(data) * a) mod L
@@ -53,7 +62,7 @@ public sealed class Ed25519
         s %= L; // Using Mod extension below
 
         // Create signature: R (32 bytes) || s (32 bytes)
-        byte[] signature = new byte[DefaultConstants.SignatureSize];
+        byte[] signature = new byte[SignatureSize];
         EncodePoint(mul, signature.AsSpan(0, 32));
         EncodeScalar(s, signature.AsSpan(32, 32));
         return signature;
@@ -90,8 +99,8 @@ public sealed class Ed25519
         if (publicKey == null)
             throw new ArgumentException("Public key cannot be null.", nameof(publicKey));
 
-        if (signature.Length != DefaultConstants.SignatureSize)
-            throw new ArgumentException($"Signature must be {DefaultConstants.SignatureSize} bytes long.", nameof(signature));
+        if (signature.Length != SignatureSize)
+            throw new ArgumentException($"Signature must be {SignatureSize} bytes long.", nameof(signature));
         if (publicKey.Length != 32)
             throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 

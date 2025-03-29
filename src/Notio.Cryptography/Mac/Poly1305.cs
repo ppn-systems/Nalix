@@ -1,5 +1,4 @@
 using Notio.Cryptography.Utilities;
-using Notio.Defaults;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
@@ -22,6 +21,16 @@ namespace Notio.Cryptography.Mac;
 /// </remarks>
 public sealed class Poly1305 : IDisposable
 {
+    /// <summary>
+    /// The size of the authentication tag produced by Poly1305 (16 bytes).
+    /// </summary>
+    public const int KeySize = 32;
+
+    /// <summary>
+    /// The size of the authentication tag produced by Poly1305 (16 bytes).
+    /// </summary>
+    public const int TagSize = 16;
+
     /// <summary>
     /// The prime number (2^130 - 5) used in Poly1305 algorithm.
     /// </summary>
@@ -51,8 +60,8 @@ public sealed class Poly1305 : IDisposable
     /// <exception cref="ArgumentException">Thrown when key length is not 32 bytes.</exception>
     public Poly1305(ReadOnlySpan<byte> key)
     {
-        if (key.Length != DefaultConstants.KeySize)
-            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes.", nameof(key));
+        if (key.Length != KeySize)
+            throw new ArgumentException($"Key must be {KeySize} bytes.", nameof(key));
 
         _r = new uint[5];
         _s = new uint[4];
@@ -80,12 +89,12 @@ public sealed class Poly1305 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Compute(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> destination)
     {
-        if (key.Length != DefaultConstants.KeySize)
-            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes.", nameof(key));
+        if (key.Length != KeySize)
+            throw new ArgumentException($"Key must be {KeySize} bytes.", nameof(key));
 
-        if (destination.Length < DefaultConstants.TagSize)
+        if (destination.Length < TagSize)
             throw new ArgumentException(
-                $"Destination buffer must be at least {DefaultConstants.TagSize} bytes.", nameof(destination));
+                $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
 
         using var poly = new Poly1305(key);
         poly.ComputeTag(message, destination);
@@ -102,7 +111,7 @@ public sealed class Poly1305 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Compute(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message)
     {
-        byte[] tag = new byte[DefaultConstants.TagSize];
+        byte[] tag = new byte[TagSize];
         Compute(key, message, tag);
         return tag;
     }
@@ -135,10 +144,10 @@ public sealed class Poly1305 : IDisposable
     /// <exception cref="ArgumentException">Thrown when key length is not 32 bytes or tag length is not 16 bytes.</exception>
     public static bool Verify(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, ReadOnlySpan<byte> tag)
     {
-        if (tag.Length != DefaultConstants.TagSize)
-            throw new ArgumentException($"Tag must be {DefaultConstants.TagSize} bytes.", nameof(tag));
+        if (tag.Length != TagSize)
+            throw new ArgumentException($"Tag must be {TagSize} bytes.", nameof(tag));
 
-        Span<byte> computedTag = stackalloc byte[DefaultConstants.TagSize];
+        Span<byte> computedTag = stackalloc byte[TagSize];
         Compute(key, message, computedTag);
 
         return BitwiseUtils.FixedTimeEquals(tag, computedTag);
@@ -154,9 +163,9 @@ public sealed class Poly1305 : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, $"This {nameof(Poly1305)} instance has been disposed.");
 
-        if (destination.Length < DefaultConstants.TagSize)
+        if (destination.Length < TagSize)
             throw new ArgumentException(
-                $"Destination buffer must be at least {DefaultConstants.TagSize} bytes.", nameof(destination));
+                $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
 
         // Initialize accumulator
         Span<uint> accumulator = stackalloc uint[5];
@@ -383,7 +392,7 @@ public sealed class Poly1305 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void FinalizeTag(ReadOnlySpan<uint> accumulator, Span<byte> tag)
     {
-        Debug.Assert(tag.Length >= DefaultConstants.TagSize);
+        Debug.Assert(tag.Length >= TagSize);
 
         // Create a copy of the accumulator for the final operations
         Span<uint> result = stackalloc uint[5];

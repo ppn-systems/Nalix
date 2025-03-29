@@ -1,5 +1,4 @@
 using Notio.Cryptography.Hashing;
-using Notio.Defaults;
 using Notio.Randomization;
 using System;
 
@@ -10,6 +9,11 @@ namespace Notio.Cryptography.Security;
 /// </summary>
 public static class PasswordSecurity
 {
+    /// <summary>
+    /// Standard key size in bytes.
+    /// </summary>
+    public const int KeySize = 32;
+
     /// <summary>
     /// Standard salt size in bytes.
     /// </summary>
@@ -29,7 +33,7 @@ public static class PasswordSecurity
     public static void HashPassword(string password, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, DefaultConstants.KeySize, HashAlgorithm.Sha256);
+        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeySize, HashAlgorithm.Sha256);
         hash = pbkdf2.DeriveKey(password);
     }
 
@@ -42,7 +46,7 @@ public static class PasswordSecurity
     /// <returns><c>true</c> if the password is valid; otherwise, <c>false</c>.</returns>
     public static bool VerifyPassword(string password, byte[] salt, byte[] hash)
     {
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, DefaultConstants.KeySize, HashAlgorithm.Sha256);
+        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeySize, HashAlgorithm.Sha256);
         return Pbkdf2.ConstantTimeEquals(pbkdf2.DeriveKey(password), hash);
     }
 
@@ -76,13 +80,13 @@ public static class PasswordSecurity
         try
         {
             byte[] combined = Convert.FromBase64String(encodedHash);
-            if (combined.Length < 1 + SaltSize + DefaultConstants.KeySize) return false;
+            if (combined.Length < 1 + SaltSize + KeySize) return false;
 
             byte version = combined[0];
             byte[] salt = new byte[SaltSize];
-            byte[] storedHash = new byte[DefaultConstants.KeySize];
+            byte[] storedHash = new byte[KeySize];
             Array.Copy(combined, 1, salt, 0, SaltSize);
-            Array.Copy(combined, 1 + SaltSize, storedHash, 0, DefaultConstants.KeySize);
+            Array.Copy(combined, 1 + SaltSize, storedHash, 0, KeySize);
 
             return version == 1 && VerifyPassword(password, salt, storedHash);
         }

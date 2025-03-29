@@ -8,54 +8,9 @@ namespace Notio.Defaults;
 public static class DefaultConstants
 {
     /// <summary>
-    /// The size of a tag (e.g., authentication tag) in bytes.
+    /// The amount of memory to use in kibibytes (KiB).
     /// </summary>
-    public const int TagSize = 16;
-
-    /// <summary>
-    /// The number of iterations.
-    /// </summary>
-    public const uint TimeCost = 3;
-
-    /// <summary>
-    /// Only allowed key length in bytes.
-    /// </summary>
-    public const int KeySize = 32;
-
-    /// <summary>
-    /// Only allowed nonce length in bytes.
-    /// </summary>
-    public const int NonceSize = 12;
-
-    /// <summary>
-    /// How many bytes are processed per loop.
-    /// </summary>
-    public const int BlockSize = 64;
-
-    /// <summary>
-    /// The desired length of the salt in bytes.
-    /// </summary>
-    public const uint SaltSize = 16;
-
-    /// <summary>
-    /// The desired length of the hash in bytes.
-    /// </summary>
-    public const uint HashSize = 32;
-
-    /// <summary>
-    /// Size of the public key in bytes.
-    /// </summary>
-    public const int PublicKeySize = 32;
-
-    /// <summary>
-    /// Size of the signature in bytes.
-    /// </summary>
-    public const int SignatureSize = 64;
-
-    /// <summary>
-    /// Field Element Size in bytes
-    /// </summary>
-    public const int FieldElementSize = 32;
+    public const uint MemoryCostKiB = 4096;
 
     /// <summary>
     /// The number of threads and compute lanes to use.
@@ -73,11 +28,6 @@ public static class DefaultConstants
     /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
     /// </summary>
     public const int HeapAllocThreshold = 1024;
-
-    /// <summary>
-    /// The amount of memory to use in kibibytes (KiB).
-    /// </summary>
-    public const uint MemoryCostKiB = 4096;
 
     /// <summary>
     /// The number of microseconds in one second (1,000,000).
