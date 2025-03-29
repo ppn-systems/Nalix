@@ -1,5 +1,6 @@
 using Notio.Common.Cryptography;
 using Notio.Cryptography.Utilities;
+using Notio.Defaults;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -78,9 +79,9 @@ public sealed class ChaCha20 : IDisposable
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        if (key.Length != CipherDefaults.KeySize)
+        if (key.Length != DefaultConstants.KeySize)
         {
-            throw new ArgumentException($"Key length must be {CipherDefaults.KeySize}. Actual: {key.Length}");
+            throw new ArgumentException($"Key length must be {DefaultConstants.KeySize}. Actual: {key.Length}");
         }
 
         State[4] = BitwiseUtils.U8To32Little(key, 0);
@@ -88,7 +89,7 @@ public sealed class ChaCha20 : IDisposable
         State[6] = BitwiseUtils.U8To32Little(key, 8);
         State[7] = BitwiseUtils.U8To32Little(key, 12);
 
-        byte[] constants = key.Length == CipherDefaults.KeySize ? Sigma : Tau;
+        byte[] constants = key.Length == DefaultConstants.KeySize ? Sigma : Tau;
         int keyIndex = key.Length - 16;
 
         State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
@@ -121,11 +122,11 @@ public sealed class ChaCha20 : IDisposable
             throw new ArgumentNullException(nameof(nonce));
         }
 
-        if (nonce.Length != CipherDefaults.NonceSize)
+        if (nonce.Length != DefaultConstants.NonceSize)
         {
             // There has already been some state set up. Clear it before exiting.
             Dispose();
-            throw new ArgumentException($"Nonce length must be {CipherDefaults.NonceSize}. Actual: {nonce.Length}", nameof(nonce));
+            throw new ArgumentException($"Nonce length must be {DefaultConstants.NonceSize}. Actual: {nonce.Length}", nameof(nonce));
         }
 
         State[12] = counter;
@@ -529,11 +530,11 @@ public sealed class ChaCha20 : IDisposable
         }
 
         uint[] x = new uint[StateLength];    // Working buffer
-        byte[] tmp = new byte[CipherDefaults.BlockSize];  // Temporary buffer
+        byte[] tmp = new byte[DefaultConstants.BlockSize];  // Temporary buffer
         int offset = 0;
 
-        int howManyFullLoops = numBytes / CipherDefaults.BlockSize;
-        int tailByteCount = numBytes - howManyFullLoops * CipherDefaults.BlockSize;
+        int howManyFullLoops = numBytes / DefaultConstants.BlockSize;
+        int tailByteCount = numBytes - howManyFullLoops * DefaultConstants.BlockSize;
 
         for (int loop = 0; loop < howManyFullLoops; loop++)
         {
@@ -585,7 +586,7 @@ public sealed class ChaCha20 : IDisposable
             }
             else
             {
-                for (int i = 0; i < CipherDefaults.BlockSize; i += 4)
+                for (int i = 0; i < DefaultConstants.BlockSize; i += 4)
                 {
                     // Small unroll
                     int start = i + offset;
@@ -596,7 +597,7 @@ public sealed class ChaCha20 : IDisposable
                 }
             }
 
-            offset += CipherDefaults.BlockSize;
+            offset += DefaultConstants.BlockSize;
         }
 
         // In case there are some bytes left

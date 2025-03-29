@@ -1,4 +1,5 @@
 using Notio.Cryptography.Hashing;
+using Notio.Defaults;
 using Notio.Extensions.Math;
 using System;
 using System.Numerics;
@@ -38,13 +39,13 @@ public sealed class Ed25519
 
         // Compute public key A = ScalarMul(B, a) and encode it
         var mul2 = ScalarMul(B, a);
-        Span<byte> aEncoded = stackalloc byte[CipherDefaults.PublicKeySize];
+        Span<byte> aEncoded = stackalloc byte[DefaultConstants.PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
         // Build the data: R (32 bytes) || AEncoded (32 bytes) || message
-        byte[] data = new byte[32 + CipherDefaults.PublicKeySize + message.Length];
+        byte[] data = new byte[32 + DefaultConstants.PublicKeySize + message.Length];
         EncodePoint(mul, data.AsSpan(0, 32));
-        aEncoded.CopyTo(data.AsSpan(32, CipherDefaults.PublicKeySize));
+        aEncoded.CopyTo(data.AsSpan(32, DefaultConstants.PublicKeySize));
         message.CopyTo(data, 64);
 
         // s = (r + Hashing(data) * a) mod L
@@ -52,7 +53,7 @@ public sealed class Ed25519
         s %= L; // Using Mod extension below
 
         // Create signature: R (32 bytes) || s (32 bytes)
-        byte[] signature = new byte[CipherDefaults.SignatureSize];
+        byte[] signature = new byte[DefaultConstants.SignatureSize];
         EncodePoint(mul, signature.AsSpan(0, 32));
         EncodeScalar(s, signature.AsSpan(32, 32));
         return signature;
@@ -89,8 +90,8 @@ public sealed class Ed25519
         if (publicKey == null)
             throw new ArgumentException("Public key cannot be null.", nameof(publicKey));
 
-        if (signature.Length != CipherDefaults.SignatureSize)
-            throw new ArgumentException($"Signature must be {CipherDefaults.SignatureSize} bytes long.", nameof(signature));
+        if (signature.Length != DefaultConstants.SignatureSize)
+            throw new ArgumentException($"Signature must be {DefaultConstants.SignatureSize} bytes long.", nameof(signature));
         if (publicKey.Length != 32)
             throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 

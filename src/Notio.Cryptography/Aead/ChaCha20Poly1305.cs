@@ -1,5 +1,6 @@
 using Notio.Cryptography.Mac;
 using Notio.Cryptography.Symmetric;
+using Notio.Defaults;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -12,10 +13,6 @@ namespace Notio.Cryptography.Aead;
 /// </summary>
 public static class ChaCha20Poly1305
 {
-    private const int TagSize = 16;
-    private const int KeySize = 32;
-    private const int NonceSize = 12;
-
     // -------------------------------
     // Public API: Encrypt and Decrypt
     // -------------------------------
@@ -30,20 +27,20 @@ public static class ChaCha20Poly1305
     /// <returns>Encrypted ciphertext followed by a 16-byte authentication tag.</returns>
     public static byte[] Encrypt(byte[] key, byte[] nonce, byte[] plaintext, byte[] aad = null)
     {
-        if (key == null || key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
+        if (key == null || key.Length != DefaultConstants.KeySize)
+            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes", nameof(key));
 
-        if (nonce == null || nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+        if (nonce == null || nonce.Length != DefaultConstants.NonceSize)
+            throw new ArgumentException($"Nonce must be {DefaultConstants.NonceSize} bytes", nameof(nonce));
 
         ArgumentNullException.ThrowIfNull(plaintext);
 
-        byte[] result = new byte[plaintext.Length + TagSize];
+        byte[] result = new byte[plaintext.Length + DefaultConstants.TagSize];
 
         // Generate Poly1305 key using first block of ChaCha20
-        byte[] poly1305Key = new byte[KeySize];
+        byte[] poly1305Key = new byte[DefaultConstants.KeySize];
         using (ChaCha20 chacha20 = new(key, nonce, 0))
-            chacha20.EncryptBytes(poly1305Key, new byte[KeySize]);
+            chacha20.EncryptBytes(poly1305Key, new byte[DefaultConstants.KeySize]);
 
         // Encrypt plaintext
         using (ChaCha20 chacha20 = new(key, nonce, 1))
@@ -52,10 +49,10 @@ public static class ChaCha20Poly1305
         // Compute MAC using Poly1305
         using (Poly1305 poly1305 = new(poly1305Key))
         {
-            byte[] mac = new byte[TagSize];
+            byte[] mac = new byte[DefaultConstants.TagSize];
             byte[] authData = PrepareAuthData(aad, result.AsSpan(0, plaintext.Length));
             poly1305.ComputeTag(authData, mac);
-            Buffer.BlockCopy(mac, 0, result, plaintext.Length, TagSize);
+            Buffer.BlockCopy(mac, 0, result, plaintext.Length, DefaultConstants.TagSize);
         }
 
         return result;
@@ -76,15 +73,15 @@ public static class ChaCha20Poly1305
         ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> aad,
         out byte[] ciphertext, out byte[] tag)
     {
-        if (key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
-        if (nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+        if (key.Length != DefaultConstants.KeySize)
+            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes", nameof(key));
+        if (nonce.Length != DefaultConstants.NonceSize)
+            throw new ArgumentException($"Nonce must be {DefaultConstants.NonceSize} bytes", nameof(nonce));
 
         // Generate Poly1305 key using first block of ChaCha20
-        byte[] poly1305Key = new byte[KeySize];
+        byte[] poly1305Key = new byte[DefaultConstants.KeySize];
         using (ChaCha20 chacha20 = new(key.ToArray(), nonce.ToArray(), 0))
-            chacha20.EncryptBytes(poly1305Key, new byte[KeySize]);
+            chacha20.EncryptBytes(poly1305Key, new byte[DefaultConstants.KeySize]);
 
         // Encrypt plaintext
         ciphertext = new byte[plaintext.Length];
@@ -92,7 +89,7 @@ public static class ChaCha20Poly1305
             chacha20.EncryptBytes(ciphertext, plaintext.ToArray(), plaintext.Length);
 
         // Compute MAC using Poly1305
-        tag = new byte[TagSize];
+        tag = new byte[DefaultConstants.TagSize];
         using Poly1305 poly1305 = new(poly1305Key);
         byte[] authData = PrepareAuthData(aad.ToArray(), ciphertext);
         poly1305.ComputeTag(authData, tag);
@@ -108,36 +105,40 @@ public static class ChaCha20Poly1305
     /// <returns>The decrypted plaintext if authentication is successful.</returns>
     public static byte[] Decrypt(byte[] key, byte[] nonce, byte[] ciphertext, byte[] aad = null)
     {
-        if (key == null || key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
-        if (nonce == null || nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
-        if (ciphertext == null || ciphertext.Length < TagSize)
+        if (key == null || key.Length != DefaultConstants.KeySize)
+            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes", nameof(key));
+        if (nonce == null || nonce.Length != DefaultConstants.NonceSize)
+            throw new ArgumentException($"Nonce must be {DefaultConstants.NonceSize} bytes", nameof(nonce));
+        if (ciphertext == null || ciphertext.Length < DefaultConstants.TagSize)
             throw new ArgumentException("Invalid ciphertext", nameof(ciphertext));
 
         // Generate Poly1305 key using first block of ChaCha20
-        byte[] poly1305Key = new byte[KeySize];
+        byte[] poly1305Key = new byte[DefaultConstants.KeySize];
         using (ChaCha20 chacha20 = new(key, nonce, 0))
-            chacha20.EncryptBytes(poly1305Key, new byte[KeySize]);
+            chacha20.EncryptBytes(poly1305Key, new byte[DefaultConstants.KeySize]);
 
         // Verify MAC
         using (Poly1305 poly1305 = new(poly1305Key))
         {
-            byte[] expectedMac = new byte[TagSize];
-            byte[] authData = PrepareAuthData(aad, ciphertext.AsSpan(0, ciphertext.Length - TagSize));
+            byte[] expectedMac = new byte[DefaultConstants.TagSize];
+            byte[] authData = PrepareAuthData(
+                aad, ciphertext.AsSpan(0, ciphertext.Length - DefaultConstants.TagSize));
             poly1305.ComputeTag(authData, expectedMac);
 
-            byte[] receivedMac = new byte[TagSize];
-            Buffer.BlockCopy(ciphertext, ciphertext.Length - TagSize, receivedMac, 0, TagSize);
+            byte[] receivedMac = new byte[DefaultConstants.TagSize];
+            Buffer.BlockCopy(
+                ciphertext, ciphertext.Length - DefaultConstants.TagSize,
+                receivedMac, 0, DefaultConstants.TagSize);
 
             if (!CompareBytes(expectedMac, receivedMac))
                 throw new InvalidOperationException("Authentication failed");
         }
 
         // Decrypt ciphertext
-        byte[] plaintext = new byte[ciphertext.Length - TagSize];
+        byte[] plaintext = new byte[ciphertext.Length - DefaultConstants.TagSize];
         using (ChaCha20 chacha20 = new(key, nonce, 1))
-            chacha20.DecryptBytes(plaintext, ciphertext.AsSpan(0, ciphertext.Length - TagSize).ToArray());
+            chacha20.DecryptBytes(
+                plaintext, ciphertext.AsSpan(0, ciphertext.Length - DefaultConstants.TagSize).ToArray());
 
         return plaintext;
     }
@@ -159,22 +160,22 @@ public static class ChaCha20Poly1305
     {
         plaintext = null;
 
-        if (key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
-        if (nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
-        if (tag.Length != TagSize)
-            throw new ArgumentException($"Tag must be {TagSize} bytes", nameof(tag));
+        if (key.Length != DefaultConstants.KeySize)
+            throw new ArgumentException($"Key must be {DefaultConstants.KeySize} bytes", nameof(key));
+        if (nonce.Length != DefaultConstants.NonceSize)
+            throw new ArgumentException($"Nonce must be {DefaultConstants.NonceSize} bytes", nameof(nonce));
+        if (tag.Length != DefaultConstants.TagSize)
+            throw new ArgumentException($"Tag must be {DefaultConstants.TagSize} bytes", nameof(tag));
 
         // Generate Poly1305 key using first block of ChaCha20
-        byte[] poly1305Key = new byte[KeySize];
+        byte[] poly1305Key = new byte[DefaultConstants.KeySize];
         using (ChaCha20 chacha20 = new(key.ToArray(), nonce.ToArray(), 0))
-            chacha20.EncryptBytes(poly1305Key, new byte[KeySize]);
+            chacha20.EncryptBytes(poly1305Key, new byte[DefaultConstants.KeySize]);
 
         // Verify MAC
         using (Poly1305 poly1305 = new(poly1305Key))
         {
-            byte[] expectedTag = new byte[TagSize];
+            byte[] expectedTag = new byte[DefaultConstants.TagSize];
             byte[] authData = PrepareAuthData(aad.ToArray(), ciphertext);
             poly1305.ComputeTag(authData, expectedTag);
 

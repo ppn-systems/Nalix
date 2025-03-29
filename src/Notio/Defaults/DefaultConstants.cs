@@ -8,22 +8,82 @@ namespace Notio.Defaults;
 public static class DefaultConstants
 {
     /// <summary>
-    /// The number of microseconds in one second (1,000,000).
-    /// This value is used for time conversions and time-based calculations.
+    /// The size of a tag (e.g., authentication tag) in bytes.
     /// </summary>
-    public const long MicrosecondsInSecond = 1_000_000L;
+    public const int TagSize = 16;
+
+    /// <summary>
+    /// The number of iterations.
+    /// </summary>
+    public const uint TimeCost = 3;
+
+    /// <summary>
+    /// Only allowed key length in bytes.
+    /// </summary>
+    public const int KeySize = 32;
+
+    /// <summary>
+    /// Only allowed nonce length in bytes.
+    /// </summary>
+    public const int NonceSize = 12;
+
+    /// <summary>
+    /// How many bytes are processed per loop.
+    /// </summary>
+    public const int BlockSize = 64;
+
+    /// <summary>
+    /// The desired length of the salt in bytes.
+    /// </summary>
+    public const uint SaltSize = 16;
+
+    /// <summary>
+    /// The desired length of the hash in bytes.
+    /// </summary>
+    public const uint HashSize = 32;
+
+    /// <summary>
+    /// Size of the public key in bytes.
+    /// </summary>
+    public const int PublicKeySize = 32;
+
+    /// <summary>
+    /// Size of the signature in bytes.
+    /// </summary>
+    public const int SignatureSize = 64;
+
+    /// <summary>
+    /// Field Element Size in bytes
+    /// </summary>
+    public const int FieldElementSize = 32;
+
+    /// <summary>
+    /// The number of threads and compute lanes to use.
+    /// </summary>
+    public const uint ParallelismDegree = 1;
 
     /// <summary>
     /// The threshold size (in bytes) for using stack-based memory allocation.
     /// This value represents the maximum size for which memory can be allocated on the stack.
     /// </summary>
-    public const int StackAllocThreshold = 0x100;
+    public const int StackAllocThreshold = 256;
 
     /// <summary>
     /// The threshold size (in bytes) for using heap-based memory allocation.
     /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
     /// </summary>
-    public const int HeapAllocThreshold = 0x400;
+    public const int HeapAllocThreshold = 1024;
+
+    /// <summary>
+    /// The amount of memory to use in kibibytes (KiB).
+    /// </summary>
+    public const uint MemoryCostKiB = 4096;
+
+    /// <summary>
+    /// The number of microseconds in one second (1,000,000).
+    /// This value is used for time conversions and time-based calculations.
+    /// </summary>
+    public const long MicrosecondsInSecond = 1_000_000L;
 
     /// <summary>
     /// The default encoding used for JSON serialization and deserialization.

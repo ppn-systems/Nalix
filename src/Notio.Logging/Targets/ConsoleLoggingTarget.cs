@@ -1,5 +1,5 @@
 using Notio.Common.Logging;
-using Notio.Logging.Formatters;
+using Notio.Logging.Core.Formatters;
 using System;
 
 namespace Notio.Logging.Targets;

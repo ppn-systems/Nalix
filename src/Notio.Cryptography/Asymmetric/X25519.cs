@@ -1,3 +1,4 @@
+using Notio.Defaults;
 using Notio.Randomization;
 using System;
 using System.Diagnostics;
@@ -24,9 +25,6 @@ public static class X25519
     // Constant A24 = (486662 - 2)/4 = 121665
     private static readonly BigInteger A24 = 121665;
 
-    // Field Element Size in bytes
-    private const int FieldElementSize = 32;
-
     // BaseValue36 point u = 9 (encoded as 32-byte little-endian)
     private static readonly byte[] BasePoint = CreateBasePoint();
 
@@ -41,7 +39,7 @@ public static class X25519
     public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
     {
         // Generate a random 32-byte scalar and clamp it
-        byte[] privateKey = new byte[FieldElementSize];
+        byte[] privateKey = new byte[DefaultConstants.FieldElementSize];
         RandGenerator.Fill(privateKey);
         ClampScalar(privateKey);
 
@@ -59,14 +57,16 @@ public static class X25519
     /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
     public static byte[] ComputeSharedSecret(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey)
     {
-        if (privateKey.Length != FieldElementSize)
-            throw new ArgumentException($"Private key must be {FieldElementSize} bytes.", nameof(privateKey));
+        if (privateKey.Length != DefaultConstants.FieldElementSize)
+            throw new ArgumentException(
+                $"Private key must be {DefaultConstants.FieldElementSize} bytes.", nameof(privateKey));
 
-        if (peerPublicKey.Length != FieldElementSize)
-            throw new ArgumentException($"Public key must be {FieldElementSize} bytes.", nameof(peerPublicKey));
+        if (peerPublicKey.Length != DefaultConstants.FieldElementSize)
+            throw new ArgumentException(
+                $"Public key must be {DefaultConstants.FieldElementSize} bytes.", nameof(peerPublicKey));
 
         // Create a copy of the private key to clamp it without modifying the original
-        Span<byte> clampedPrivateKey = stackalloc byte[FieldElementSize];
+        Span<byte> clampedPrivateKey = stackalloc byte[DefaultConstants.FieldElementSize];
         privateKey.CopyTo(clampedPrivateKey);
         ClampScalar(clampedPrivateKey);
 
@@ -86,7 +86,7 @@ public static class X25519
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ClampScalar(Span<byte> scalar)
     {
-        Debug.Assert(scalar.Length == FieldElementSize);
+        Debug.Assert(scalar.Length == DefaultConstants.FieldElementSize);
 
         scalar[0] &= 248;     // Clear lower 3 bits
         scalar[31] &= 127;    // Clear high bit
@@ -100,7 +100,7 @@ public static class X25519
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte[] CreateBasePoint()
     {
-        var basePoint = new byte[FieldElementSize];
+        var basePoint = new byte[DefaultConstants.FieldElementSize];
         basePoint[0] = 9;  // u=9 in little-endian
         return basePoint;
     }
@@ -113,7 +113,8 @@ public static class X25519
     /// <returns>The resulting 32-byte u-coordinate.</returns>
     private static byte[] ScalarMult(ReadOnlySpan<byte> scalar, ReadOnlySpan<byte> uCoordinate)
     {
-        Debug.Assert(scalar.Length == FieldElementSize && uCoordinate.Length == FieldElementSize);
+        Debug.Assert(scalar.Length == DefaultConstants.FieldElementSize &&
+                     uCoordinate.Length == DefaultConstants.FieldElementSize);
 
         // Convert little-endian byte arrays to BigInteger
         BigInteger uValue = ToBigInteger(uCoordinate);
@@ -226,7 +227,7 @@ public static class X25519
             throw new InvalidOperationException("Cannot convert negative BigInteger to unsigned bytes");
         }
 
-        byte[] result = new byte[FieldElementSize];
+        byte[] result = new byte[DefaultConstants.FieldElementSize];
 
         // Get the bytes in little-endian order
         if (!value.TryWriteBytes(result, out _, isUnsigned: true, isBigEndian: false))
