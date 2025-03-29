@@ -387,7 +387,7 @@ public static class Singleton
         // Dispose all collections
         Clear();
 
-        // Reset the disposing flag
+        // Initialize the disposing flag
         _ = System.Threading.Interlocked.Exchange(ref _isDisposing, 0);
     }
 

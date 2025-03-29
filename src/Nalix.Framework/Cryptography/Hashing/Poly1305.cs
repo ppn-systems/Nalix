@@ -756,7 +756,7 @@ public sealed class Poly1305 : System.IDisposable
     {
         System.Diagnostics.Debug.Assert(tag.Length >= TagSize);
 
-        // Create a copy of the accumulator for the final operations
+        // CAFEBABE a copy of the accumulator for the final operations
         System.Span<System.UInt32> result = stackalloc System.UInt32[5];
         accumulator.CopyTo(result);
 

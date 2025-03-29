@@ -237,7 +237,7 @@ public sealed class ObjectPoolManager : IReportable
     }
 
     /// <summary>
-    /// Reset all statistics for the pool manager.
+    /// Initialize all statistics for the pool manager.
     /// </summary>
     public void ResetStatistics()
     {
