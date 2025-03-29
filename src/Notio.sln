@@ -21,8 +21,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Shared", "Notio.Share
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Storage", "Notio.Storage\Notio.Storage.csproj", "{FF9582AC-4348-454D-B6BF-DF046F0A919B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notio.Network.Security", "Notio.Network.Firewall\Notio.Network.Security.csproj", "{AA1E4099-995F-4119-8192-840BDF0D8A53}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,10 +63,6 @@ Global
 		{FF9582AC-4348-454D-B6BF-DF046F0A919B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF9582AC-4348-454D-B6BF-DF046F0A919B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF9582AC-4348-454D-B6BF-DF046F0A919B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AA1E4099-995F-4119-8192-840BDF0D8A53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AA1E4099-995F-4119-8192-840BDF0D8A53}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AA1E4099-995F-4119-8192-840BDF0D8A53}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AA1E4099-995F-4119-8192-840BDF0D8A53}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

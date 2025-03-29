@@ -1,6 +1,7 @@
 using Notio.Common.Logging;
+using Notio.Network.PacketProcessing.Options;
 
-namespace Notio.Network.Networking.Handlers;
+namespace Notio.Network.PacketProcessing;
 
 /// <summary>
 /// BaseValue36 class for packet dispatchers, providing configuration options.
@@ -26,7 +27,7 @@ public abstract class PacketDispatcherBase
     /// If logging is enabled, this property provides access to the configured logger.
     /// Otherwise, it may be <c>null</c>.
     /// </remarks>
-    protected ILogger? Logger => Options.Logger;
+    protected ILogger? Logger => Options._logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase" /> class

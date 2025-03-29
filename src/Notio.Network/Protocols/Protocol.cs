@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Network.Networking.Protocols;
+namespace Notio.Network.Protocols;
 
 /// <summary>
 /// Represents an abstract base class for network protocols.

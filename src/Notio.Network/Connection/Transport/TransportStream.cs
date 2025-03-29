@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Networking.Transport;
+namespace Notio.Network.Connection.Transport;
 
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.

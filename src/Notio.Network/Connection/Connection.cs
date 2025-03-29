@@ -5,7 +5,7 @@ using Notio.Common.Identity;
 using Notio.Common.Logging;
 using Notio.Common.Security;
 using Notio.Identifiers;
-using Notio.Network.Networking.Transport;
+using Notio.Network.Connection.Transport;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;

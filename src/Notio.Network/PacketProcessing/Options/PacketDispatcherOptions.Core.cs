@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Networking.Handlers;
+namespace Notio.Network.PacketProcessing.Options;
 
 /// <summary>
 /// Provides configuration options for an instance of <see cref="PacketDispatcher"/>.
@@ -16,11 +16,17 @@ namespace Notio.Network.Networking.Handlers;
 /// </remarks>
 public sealed partial class PacketDispatcherOptions
 {
-    #region Fields
+    #region Const
 
     private const DynamicallyAccessedMemberTypes RequiredMembers =
         DynamicallyAccessedMemberTypes.PublicMethods |
         DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
+
+    #endregion
+
+    #region Fields
+
+    private ILogger? _logger;
 
     private Func<IPacket, IConnection, IPacket>? _encryptionMethod;
     private Func<IPacket, IConnection, IPacket>? _decryptionMethod;
@@ -29,22 +35,9 @@ public sealed partial class PacketDispatcherOptions
     private Func<IPacket, IConnection, IPacket>? _decompressionMethod;
 
     /// <summary>
-    /// The logger instance used for logging.
-    /// </summary>
-    /// <remarks>
-    /// If not configured, logging may be disabled.
-    /// </remarks>
-    internal ILogger? Logger;
-
-    /// <summary>
-    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
-    /// </summary>
-    internal readonly Dictionary<ushort, Func<IPacket, IConnection, Task>> PacketHandlers = [];
-
-    /// <summary>
     /// Indicates whether metrics tracking is enabled.
     /// </summary>
-    private bool EnableMetrics { get; set; }
+    private bool IsMetricsEnabled { get; set; }
 
     /// <summary>
     /// Custom error handling strategy for packet processing.
@@ -52,7 +45,7 @@ public sealed partial class PacketDispatcherOptions
     /// <remarks>
     /// If not set, the default behavior is to log errors.
     /// </remarks>
-    internal Action<Exception, ushort>? ErrorHandler;
+    private Action<Exception, ushort>? ErrorHandler;
 
     /// <summary>
     /// Callback function to collect execution time metrics for packet processing.
@@ -69,7 +62,7 @@ public sealed partial class PacketDispatcherOptions
     /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
     /// for transmission over the network or for storage.
     /// </remarks>
-    internal Func<IPacket, Memory<byte>>? SerializationMethod;
+    private Func<IPacket, Memory<byte>>? SerializationMethod;
 
     /// <summary>
     /// A function that deserializes a <see cref="Memory{Byte}"/> into an <see cref="IPacket"/>.
@@ -78,7 +71,30 @@ public sealed partial class PacketDispatcherOptions
     /// This function is responsible for converting the byte array received over the network or from storage
     /// back into an <see cref="IPacket"/> object for further processing.
     /// </remarks>
-    internal Func<ReadOnlyMemory<byte>, IPacket>? DeserializationMethod;
+    private Func<ReadOnlyMemory<byte>, IPacket>? DeserializationMethod;
+
+    /// <summary>
+    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
+    /// </summary>
+    private readonly Dictionary<ushort, Func<IPacket, IConnection, Task>> PacketHandlers = [];
+
+    /// <summary>
+    /// The logger instance used for logging.
+    /// </summary>
+    /// <remarks>
+    /// If not configured, logging may be disabled.
+    /// </remarks>
+    public ILogger? Logger => _logger;
+
+    /// <summary>
+    /// Checks if encryption is enabled.
+    /// </summary>
+    public bool IsEncryptionEnabled => _encryptionMethod != null && _decryptionMethod != null;
+
+    /// <summary>
+    /// Checks if compression is enabled.
+    /// </summary>
+    public bool IsCompressionEnabled => _compressionMethod != null && _decompressionMethod != null;
 
     #endregion
 

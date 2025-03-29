@@ -2,7 +2,7 @@ using Notio.Common.Connection;
 using Notio.Common.Package;
 using System;
 
-namespace Notio.Network.Networking.Handlers;
+namespace Notio.Network.PacketProcessing.Options;
 
 public sealed partial class PacketDispatcherOptions
 {
@@ -36,7 +36,7 @@ public sealed partial class PacketDispatcherOptions
         if (compressionMethod is not null) _compressionMethod = compressionMethod;
         if (decompressionMethod is not null) _decompressionMethod = decompressionMethod;
 
-        Logger?.Debug("Packet compression configured.");
+        _logger?.Debug("Packet compression configured.");
         return this;
     }
 
@@ -70,7 +70,7 @@ public sealed partial class PacketDispatcherOptions
         if (encryptionMethod is not null) _encryptionMethod = encryptionMethod;
         if (decryptionMethod is not null) _decryptionMethod = decryptionMethod;
 
-        Logger?.Debug("Packet encryption configured.");
+        _logger?.Debug("Packet encryption configured.");
         return this;
     }
 
@@ -99,7 +99,7 @@ public sealed partial class PacketDispatcherOptions
         if (serializationMethod is not null) SerializationMethod = serializationMethod;
         if (deserializationMethod is not null) DeserializationMethod = deserializationMethod;
 
-        Logger?.Debug("Packet serialization configured.");
+        _logger?.Debug("Packet serialization configured.");
         return this;
     }
 }

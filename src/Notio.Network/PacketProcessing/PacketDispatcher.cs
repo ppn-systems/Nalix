@@ -1,7 +1,8 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
+using Notio.Network.PacketProcessing.Options;
 
-namespace Notio.Network.Networking.Handlers;
+namespace Notio.Network.PacketProcessing;
 
 /// <summary>
 /// Ultra-high performance packet dispatcher with advanced dependency injection (DI) integration and async support.
@@ -26,14 +27,8 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
             return;
         }
 
-        if (Options.DeserializationMethod == null)
-        {
-            Logger?.Error("No deserialization method specified.");
-            return;
-        }
-
         Logger?.Debug("Deserializing packet...");
-        IPacket parsedPacket = Options.DeserializationMethod(packet);
+        IPacket parsedPacket = Options.Deserialization(packet);
         Logger?.Debug("Packet deserialized successfully.");
 
         HandlePacket(parsedPacket, connection).Wait();
@@ -73,13 +68,13 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
         ushort commandId = packet.Command;
         Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
-        if (Options.PacketHandlers.TryGetValue(commandId, out var handlerAction))
+        if (Options.TryGetPacketHandler(commandId, out var handler))
         {
             Logger?.Debug($"Invoking handler for CommandId: {commandId}");
 
             try
             {
-                await handlerAction(packet, connection).ConfigureAwait(false);
+                await handler!(packet, connection).ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {

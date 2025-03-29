@@ -1,7 +1,7 @@
 using Notio.Shared.Memory.Caches;
 using System;
 
-namespace Notio.Network.Networking.Transport;
+namespace Notio.Network.Connection.Transport;
 
 /// <summary>
 /// Manages packet caching.
