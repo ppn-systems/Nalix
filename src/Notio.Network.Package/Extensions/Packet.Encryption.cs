@@ -1,5 +1,5 @@
 using Notio.Common.Cryptography;
-using Notio.Network.Package.Serialization;
+using Notio.Network.Package.Security;
 
 namespace Notio.Network.Package.Extensions;
 
@@ -18,7 +18,7 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
     public static Packet EncryptPayload(this Packet packet,
         byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
-            => PacketEncryptionHelper.EncryptPayload(packet, key, algorithm);
+            => Security.PacketEncryption.EncryptPayload(packet, key, algorithm);
 
     /// <summary>
     /// Decrypts the Payload in the IPacket using the specified algorithm.
@@ -30,5 +30,5 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
     public static Packet DecryptPayload(this Packet packet,
         byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
-            => PacketEncryptionHelper.DecryptPayload(packet, key, algorithm);
+            => Security.PacketEncryption.DecryptPayload(packet, key, algorithm);
 }

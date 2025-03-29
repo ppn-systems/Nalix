@@ -1,6 +1,5 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Network.Package.Serialization;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Extensions;
@@ -15,14 +14,14 @@ public static class PacketCompression
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet CompressPayload(this in Packet packet)
-        => PacketCompressionHelper.CompressPayload(packet);
+        => Compression.PacketCompression.CompressPayload(packet);
 
     /// <summary>
     /// Decompresses the payload of the packet using the specified compression algorithm.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet DecompressPayload(this in Packet packet)
-        => PacketCompressionHelper.DecompressPayload(packet);
+        => Compression.PacketCompression.DecompressPayload(packet);
 
     /// <summary>
     /// Tries to compress the payload of the packet.

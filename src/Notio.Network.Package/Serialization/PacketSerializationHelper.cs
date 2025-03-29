@@ -1,5 +1,4 @@
 using Notio.Common.Exceptions;
-using Notio.Cryptography.Integrity;
 using Notio.Network.Package.Metadata;
 using System;
 using System.Runtime.CompilerServices;
@@ -11,25 +10,8 @@ namespace Notio.Network.Package.Serialization;
 /// Provides high-performance scaling methods for the IPacket class.
 /// </summary>
 [SkipLocalsInit]
-public static class PacketSerializeHelper
+public static class PacketSerializationHelper
 {
-    /// <summary>
-    /// Verifies if the checksum in the packet matches the computed checksum from its payload.
-    /// </summary>
-    /// <param name="packet">The packet to verify.</param>
-    /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
-    public static bool IsValidChecksum(in Packet packet)
-        => packet.Checksum == Crc32.HashToUInt32(packet.Payload.Span);
-
-    /// <summary>
-    /// Verifies if the checksum in the byte array packet matches the computed checksum from its payload.
-    /// </summary>
-    /// <param name="packet">The byte array representing the packet to verify.</param>
-    /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
-    public static bool IsValidChecksum(byte[] packet)
-        => BitConverter.ToUInt32(packet, PacketOffset.Checksum)
-        == Crc32.HashToUInt32(packet[PacketOffset.Payload..]);
-
     /// <summary>
     /// Serializes the specified packet to a byte array.
     /// </summary>

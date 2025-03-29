@@ -3,9 +3,7 @@ using System;
 
 namespace Notio.Network.Connection;
 
-/// <summary>
-/// Represents connection events and provides event data.
-/// </summary>
+/// <inheritdoc />
 public sealed class ConnectionEventArgs(Connection connection) : EventArgs, IConnectEventArgs
 {
     /// <inheritdoc />

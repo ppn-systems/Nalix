@@ -7,12 +7,12 @@ using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Security;
 
 /// <summary>
 /// Provides helper methods for encrypting and decrypting packet payloads.
 /// </summary>
-public static class PacketEncryptionHelper
+public static class PacketEncryption
 {
     /// <summary>
     /// Encrypts the payload of the given packet using the specified algorithm.

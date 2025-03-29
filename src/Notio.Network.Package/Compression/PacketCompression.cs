@@ -6,12 +6,12 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Compression;
 
 /// <summary>
 /// Provides helper methods for compressing and decompressing packet payloads.
 /// </summary>
-public static class PacketCompressionHelper
+public static class PacketCompression
 {
     /// <summary>
     /// Compresses the payload of the given packet.
