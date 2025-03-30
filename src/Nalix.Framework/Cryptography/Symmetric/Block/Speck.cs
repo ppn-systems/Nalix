@@ -1,5 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Cryptography.Primitives;
+
 namespace Nalix.Framework.Cryptography.Symmetric.Block;
 
 /// <summary>
@@ -141,7 +143,7 @@ public sealed class Speck
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
     {
-        var cipher = new Speck(key);
+        Speck cipher = new(key);
         cipher.EncryptBlock(plaintext, output);
     }
 
@@ -152,7 +154,7 @@ public sealed class Speck
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
     {
-        var cipher = new Speck(key);
+        Speck cipher = new(key);
         cipher.DecryptBlock(ciphertext, output);
     }
 
@@ -175,11 +177,11 @@ public sealed class Speck
 
         for (System.Int32 i = 0; i < Rounds - 1; i++)
         {
-            System.UInt64 li = B3C4D5E6(l0, B7C6D5E4);
+            System.UInt64 li = BitwiseOperations.RotateRight(l0, B7C6D5E4);
             li = unchecked(li + k[i]);
             li ^= (System.UInt64)i;
 
-            System.UInt64 ki = C7D8E9F0(k[i], C3D2E1F0) ^ li;
+            System.UInt64 ki = BitwiseOperations.RotateLeft(k[i], C3D2E1F0) ^ li;
 
             k[i + 1] = ki;
             l0 = l1;
@@ -201,10 +203,10 @@ public sealed class Speck
         // p1 = ROL(p1, β) ^ p0;
         for (System.Int32 i = 0; i < Rounds; i++)
         {
-            p0 = B3C4D5E6(p0, B7C6D5E4);
+            p0 = BitwiseOperations.RotateRight(p0, B7C6D5E4);
             p0 = unchecked(p0 + p1);
             p0 ^= rk[i];
-            p1 = C7D8E9F0(p1, C3D2E1F0) ^ p0;
+            p1 = BitwiseOperations.RotateLeft(p1, C3D2E1F0) ^ p0;
         }
     }
 
@@ -215,19 +217,11 @@ public sealed class Speck
         // Reverse of encryption
         for (System.Int32 i = Rounds - 1; i >= 0; i--)
         {
-            p1 = B3C4D5E6(p1 ^ p0, C3D2E1F0);
+            p1 = BitwiseOperations.RotateRight(p1 ^ p0, C3D2E1F0);
             p0 ^= rk[i];
-            p0 = C7D8E9F0(unchecked(p0 - p1), B7C6D5E4);
+            p0 = BitwiseOperations.RotateLeft(unchecked(p0 - p1), B7C6D5E4);
         }
     }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 C7D8E9F0(System.UInt64 v, System.Int32 bits) => (v << bits) | (v >> (64 - bits));
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 B3C4D5E6(System.UInt64 v, System.Int32 bits) => (v >> bits) | (v << (64 - bits));
 
     #endregion Round functions (core)
 }
