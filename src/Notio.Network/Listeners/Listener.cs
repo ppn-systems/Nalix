@@ -5,10 +5,10 @@ using Notio.Common.Logging;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,8 +29,6 @@ namespace Notio.Network.Listeners;
 public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     : IListener, IDisposable
 {
-    private const int True = 1;
-    private const int False = 0;
     private static ListenerConfig Config => ConfigurationStore.Instance.Get<ListenerConfig>();
 
     private readonly int _port = port;
@@ -44,12 +42,12 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     private Thread? _listenerThread;
     private CancellationTokenSource? _cts;
 
-    #region Public Methods
-
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
     public bool IsListening => _listenerThread != null && _listenerThread.IsAlive;
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
@@ -62,6 +60,10 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         : this(Config.Port, protocol, bufferPool, logger)
     {
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
@@ -299,7 +301,9 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         // Wait for the listener thread to complete with a timeout
         if (_listenerThread?.IsAlive == true)
+        {
             _listenerThread.Join(TimeSpan.FromSeconds(5));
+        }
 
         _logger.Debug("Listener stopped.");
     }
@@ -433,15 +437,57 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     private static void ConfigureHighPerformanceSocket(Socket socket)
     {
         // Performance tuning
         socket.NoDelay = Config.NoDelay;
+        socket.SendBufferSize = Config.BufferSize;
+        socket.ReceiveBufferSize = Config.BufferSize;
+        socket.LingerState = new LingerOption(true, ListenerConfig.False);
 
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            socket.SetSocketOption(SocketOptionLevel.Socket,
-                SocketOptionName.ReuseAddress, Config.ReuseAddress ? True : False);
+        if (Config.KeepAlive)
+        {
+            // Windows specific settings
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+
+            if (Config.IsWindows)
+            {
+                // Windows specific settings
+                socket.IOControl(IOControlCode.KeepAliveValues, KeepAliveConfig(), null);
+            }
+        }
+
+        if (!Config.IsWindows)
+        {
+            // Linux, MacOS, etc.
+            socket.SetSocketOption(
+                SocketOptionLevel.Socket,
+                SocketOptionName.ReuseAddress, Config.ReuseAddress ?
+                ListenerConfig.True : ListenerConfig.False);
+        }
     }
+
+    /// <summary>
+    /// Creates the byte array for configuring Keep-Alive on Windows.
+    /// </summary>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static byte[] KeepAliveConfig()
+    {
+        int on = 1;              // Turning on Keep-Alive
+        int time = 10_000;       // 10 seconds without data, send Keep-Alive
+        int interval = 5_000;    // Send every 5 seconds if there is no response
+
+        byte[] keepAlive = new byte[12];
+        BitConverter.GetBytes(on).CopyTo(keepAlive, 0);
+        BitConverter.GetBytes(time).CopyTo(keepAlive, 4);
+        BitConverter.GetBytes(interval).CopyTo(keepAlive, 8);
+
+        return keepAlive;
+    }
+
 
     #endregion
 }

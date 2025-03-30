@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Notio.Defaults;
 
 /// <summary>
@@ -11,9 +9,9 @@ public static class DefaultJsonOptions
     /// Standard JSON settings used across the application.
     /// Uses camelCase property naming and ignores null values.
     /// </summary>
-    public static JsonSerializerOptions Standard => new()
+    public static System.Text.Json.JsonSerializerOptions Standard => new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -21,10 +19,10 @@ public static class DefaultJsonOptions
     /// JSON settings optimized for HTTP requests and responses.
     /// Uses camelCase property naming and indented formatting for better readability.
     /// </summary>
-    public static JsonSerializerOptions HttpFormatted => new()
+    public static System.Text.Json.JsonSerializerOptions HttpFormatted => new()
     {
         WriteIndented = true, // Improves readability for debugging
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -32,10 +30,10 @@ public static class DefaultJsonOptions
     /// JSON settings optimized for TCP communication.
     /// Uses camelCase property naming and no indentation to reduce data size.
     /// </summary>
-    public static JsonSerializerOptions TcpCompact => new()
+    public static System.Text.Json.JsonSerializerOptions TcpCompact => new()
     {
         WriteIndented = false, // Optimized for compact payloads
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 }
