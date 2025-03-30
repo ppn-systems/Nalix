@@ -1,4 +1,4 @@
-namespace Notio.Cryptography.Hashing;
+namespace Notio.Cryptography.Enums;
 
 /// <summary>
 /// Supported hash algorithms for HMAC computation.

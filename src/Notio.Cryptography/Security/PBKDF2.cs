@@ -1,3 +1,4 @@
+using Notio.Cryptography.Enums;
 using Notio.Cryptography.Hashing;
 using System;
 using System.Buffers.Binary;

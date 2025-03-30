@@ -1,3 +1,4 @@
+using Notio.Cryptography.Enums;
 using Notio.Cryptography.Hashing;
 using Notio.Cryptography.Utilities;
 using System;
