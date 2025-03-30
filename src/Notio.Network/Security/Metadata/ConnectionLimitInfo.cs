@@ -8,7 +8,7 @@ namespace Notio.Network.Security.Metadata;
 /// Optimized as a readonly record struct for performance and memory usage.
 /// </summary>
 [DebuggerDisplay("Current: {CurrentConnections}, Total: {TotalConnectionsToday}, Last: {LastConnectionTime}")]
-internal readonly record struct ConnectionInfo
+internal readonly record struct ConnectionLimitInfo
 {
     /// <summary>
     /// The current number of active connections.
@@ -33,7 +33,7 @@ internal readonly record struct ConnectionInfo
     /// <summary>
     /// Creates a new connection info record.
     /// </summary>
-    public ConnectionInfo(
+    public ConnectionLimitInfo(
         int currentConnections,
         DateTime lastConnectionTime,
         int totalConnectionsToday,

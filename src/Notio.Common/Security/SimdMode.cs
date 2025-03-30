@@ -1,4 +1,4 @@
-namespace Notio.Common.Cryptography;
+namespace Notio.Common.Security;
 
 /// <summary>
 /// Chosen SIMD mode

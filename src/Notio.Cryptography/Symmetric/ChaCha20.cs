@@ -1,4 +1,4 @@
-using Notio.Common.Cryptography;
+using Notio.Common.Security;
 using Notio.Cryptography.Utilities;
 using System;
 using System.IO;

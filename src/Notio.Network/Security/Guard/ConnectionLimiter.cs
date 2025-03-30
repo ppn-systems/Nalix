@@ -22,7 +22,7 @@ public sealed class ConnectionLimiter : IDisposable
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
     private readonly ConnectionConfig _config;
-    private readonly ConcurrentDictionary<string, ConnectionInfo> _connectionInfo;
+    private readonly ConcurrentDictionary<string, ConnectionLimitInfo> _connectionInfo;
 
     // Cache frequently accessed configuration values
     private readonly int _maxConnectionsPerIp;
@@ -59,7 +59,7 @@ public sealed class ConnectionLimiter : IDisposable
         _inactivityThreshold = _config.InactivityThreshold;
 
         // Initialize with case-insensitive string comparer for IP addresses
-        _connectionInfo = new ConcurrentDictionary<string, ConnectionInfo>(
+        _connectionInfo = new ConcurrentDictionary<string, ConnectionLimitInfo>(
             StringComparer.OrdinalIgnoreCase);
         _cleanupLock = new SemaphoreSlim(1, 1);
 
@@ -135,7 +135,7 @@ public sealed class ConnectionLimiter : IDisposable
         }
 
         // New endpoint
-        var info = new ConnectionInfo(1, now, 1, now);
+        var info = new ConnectionLimitInfo(1, now, 1, now);
         _connectionInfo[endPoint] = info;
         return true;
     }
