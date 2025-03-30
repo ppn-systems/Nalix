@@ -1,6 +1,8 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
 using Notio.Network.PacketProcessing.Options;
+using System;
+using System.Threading.Tasks;
 
 namespace Notio.Network.PacketProcessing;
 
@@ -15,7 +17,7 @@ namespace Notio.Network.PacketProcessing;
 /// <param name="options">
 /// A delegate used to configure <see cref="PacketDispatcherOptions"/> before processing packets.
 /// </param>
-public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
+public sealed class PacketDispatcher(Action<PacketDispatcherOptions> options)
     : PacketDispatcherBase(options), IPacketDispatcher
 {
     /// <inheritdoc />
@@ -23,50 +25,35 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
     {
         if (packet == null)
         {
-            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
             return;
         }
 
-        Logger?.Debug("Deserializing packet...");
-        IPacket parsedPacket = Options.Deserialization(packet);
-        Logger?.Debug("Packet deserialized successfully.");
-
-        HandlePacket(parsedPacket, connection).Wait();
+        HandlePacket(Options.Deserialization(packet), connection).Wait();
     }
 
     /// <inheritdoc />
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
     {
         if (packet == null)
         {
-            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
             return;
         }
 
-        if (Options.DeserializationMethod == null)
-        {
-            Logger?.Error("No deserialization method specified.");
-            return;
-        }
-
-        Logger?.Debug("Deserializing packet...");
-        IPacket parsedPacket = Options.DeserializationMethod(packet.Value);
-        Logger?.Debug("Packet deserialized successfully.");
-
-        HandlePacket(parsedPacket, connection).Wait();
+        HandlePacket(Options.Deserialization(packet), connection).Wait();
     }
 
     /// <inheritdoc />
-    public async System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection)
+    public async Task HandlePacket(IPacket? packet, IConnection connection)
     {
         if (packet == null)
         {
-            Logger?.Error($"No packet data provided from Ip:{connection.RemoteEndPoint}.");
+            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
             return;
         }
 
         ushort commandId = packet.Command;
-        Logger?.Debug($"Processing packet with CommandId: {commandId}");
 
         if (Options.TryGetPacketHandler(commandId, out var handler))
         {
@@ -76,7 +63,7 @@ public class PacketDispatcher(System.Action<PacketDispatcherOptions> options)
             {
                 await handler!(packet, connection).ConfigureAwait(false);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}", ex);
             }

@@ -4,7 +4,6 @@ using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Security.Configurations;
@@ -67,19 +66,16 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     /// This value is limited to a range of 1 to 10000, where 100 is the default value.
     /// The configuration defines how many connections a single IP address can maintain simultaneously.
     /// </remarks>
-    [Range(1, 10000)]
     public int MaxConnectionsPerIpAddress { get; set; } = settings.MaxConnections;
 
     /// <summary>
     /// Gets or sets the interval in milliseconds between cleanup operations.
     /// </summary>
-    [Range(1000, int.MaxValue)]
     public int CleanupIntervalMs { get; set; } = settings.CleanupIntervalMs;
 
     /// <summary>
     /// Gets or sets the threshold in milliseconds after which an inactive connection entry is considered stale.
     /// </summary>
-    [Range(1000, int.MaxValue)]
     public int InactivityThresholdMs { get; set; } = settings.InactivityThresholdMs;
 
     /// <summary>

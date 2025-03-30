@@ -132,6 +132,34 @@ public sealed partial class PacketDispatcherOptions
     }
 
     /// <summary>
+    /// Deserializes the given byte array into an <see cref="IPacket"/> instance.
+    /// </summary>
+    /// <param name="bytes">The byte array representing the serialized packet data.</param>
+    /// <returns>The deserialized <see cref="IPacket"/>.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the deserialization method is not set.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
+    /// </exception>
+    public IPacket Deserialization(ReadOnlyMemory<byte>? bytes)
+    {
+        if (this.DeserializationMethod is null)
+        {
+            _logger?.Error("Deserialization method is not set.");
+            throw new InvalidOperationException("Deserialization method is not set.");
+        }
+
+        if (bytes is null || bytes.Value.Length == 0)
+        {
+            _logger?.Error("Attempted to deserialize null or empty byte array.");
+            throw new ArgumentNullException(nameof(bytes), "Byte array cannot be null or empty.");
+        }
+
+        return this.DeserializationMethod(bytes.Value);
+    }
+
+    /// <summary>
     /// Serializes the given <see cref="IPacket"/> instance into a <see cref="Memory{Byte}"/>.
     /// </summary>
     /// <param name="packet">The packet to be serialized.</param>
