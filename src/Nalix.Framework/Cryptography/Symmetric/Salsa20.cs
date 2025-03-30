@@ -1,8 +1,27 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Symmetric.Stream;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Framework.Cryptography.Symmetric;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the Salsa20 stream cipher.
