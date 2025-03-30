@@ -3,7 +3,7 @@
 
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Enums;
+using Nalix.Common.Enums;
 
 namespace Nalix.Common.Messaging.Packets.Attributes;
 

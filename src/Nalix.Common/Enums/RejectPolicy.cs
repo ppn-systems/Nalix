@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Enums;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Represents policies for handling rejected connections.

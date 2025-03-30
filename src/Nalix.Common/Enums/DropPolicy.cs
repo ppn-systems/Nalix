@@ -1,4 +1,4 @@
-﻿namespace Nalix.Common.Core.Enums;
+﻿namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Behavior when a per-connection queue is full.

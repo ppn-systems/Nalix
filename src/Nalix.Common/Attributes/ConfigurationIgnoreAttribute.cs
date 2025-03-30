@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Attributes;
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// An attribute that indicates that a property should be ignored during configuration container initialization.

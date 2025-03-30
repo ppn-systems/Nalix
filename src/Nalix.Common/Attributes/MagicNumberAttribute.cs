@@ -2,7 +2,7 @@
 
 using Nalix.Common.Messaging.Protocols;
 
-namespace Nalix.Common.Core.Attributes;
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// Attribute to specify the MagicNumber for a packet type.
