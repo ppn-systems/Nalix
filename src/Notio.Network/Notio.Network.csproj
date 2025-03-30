@@ -6,8 +6,8 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.4.43</Version>
-    <PackageVersion>0.4.43</PackageVersion>
+    <Version>0.4.71</Version>
+    <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
       Notio.Network is a high-performance .NET library for network communication. It provides essential components

@@ -5,8 +5,8 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.4.43</Version>
-    <PackageVersion>0.4.43</PackageVersion>
+    <Version>0.4.71</Version>
+    <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
       Notio.Common is a foundational .NET library that provides essential utilities for logging, memory management,
