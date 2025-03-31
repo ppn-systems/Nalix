@@ -11,7 +11,7 @@ namespace Notio.Common.Repositories.Async;
 /// Generic repository interface for asynchronous CRUD operations and querying entities.
 /// </summary>
 /// <typeparam name="T">The type of entity.</typeparam>
-public interface IRepositoryAsync<T> where T : class
+public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
 {
     /// <summary>
     /// Retrieves all entities with optional pagination.
@@ -120,41 +120,11 @@ public interface IRepositoryAsync<T> where T : class
     Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing entity asynchronously.
-    /// </summary>
-    /// <param name="entity">The entity to update.</param>
-    void Update(T entity);
-
-    /// <summary>
-    /// Updates multiple entities asynchronously.
-    /// </summary>
-    /// <param name="entities">The list of entities to update.</param>
-    void UpdateRange(IEnumerable<T> entities);
-
-    /// <summary>
     /// Deletes an entity by its ID asynchronously.
     /// </summary>
     /// <param name="id">The ID of the entity to delete.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     Task DeleteAsync(int id, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Deletes an entity asynchronously.
-    /// </summary>
-    /// <param name="entity">The entity to delete.</param>
-    void Delete(T entity);
-
-    /// <summary>
-    /// Deletes multiple entities asynchronously.
-    /// </summary>
-    /// <param name="entities">The list of entities to delete.</param>
-    void DeleteRange(IEnumerable<T> entities);
-
-    /// <summary>
-    /// Detaches the specified entity from the database context, stopping it from being tracked.
-    /// </summary>
-    /// <param name="entity">The entity to detach.</param>
-    void Detach(T entity);
 
     /// <summary>
     /// Saves all changes made in the context asynchronously.

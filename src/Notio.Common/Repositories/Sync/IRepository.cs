@@ -9,7 +9,7 @@ namespace Notio.Common.Repositories.Sync;
 /// Generic repository interface for synchronous CRUD operations and querying entities.
 /// </summary>
 /// <typeparam name="T">The type of entity.</typeparam>
-public interface IRepository<T> where T : class
+public interface IRepository<T> : IRepositoryBase<T> where T : class
 {
     /// <summary>
     /// Retrieves all entities with optional pagination.
@@ -91,40 +91,10 @@ public interface IRepository<T> where T : class
     void AddRange(IEnumerable<T> entities);
 
     /// <summary>
-    /// Updates an existing entity.
-    /// </summary>
-    /// <param name="entity">The entity to update.</param>
-    void Update(T entity);
-
-    /// <summary>
-    /// Updates multiple entities in the database.
-    /// </summary>
-    /// <param name="entities">The list of entities to update.</param>
-    void UpdateRange(IEnumerable<T> entities);
-
-    /// <summary>
     /// Deletes an entity by its ID.
     /// </summary>
     /// <param name="id">The ID of the entity to delete.</param>
     void Delete(int id);
-
-    /// <summary>
-    /// Deletes an entity.
-    /// </summary>
-    /// <param name="entity">The entity to delete.</param>
-    void Delete(T entity);
-
-    /// <summary>
-    /// Deletes multiple entities from the database.
-    /// </summary>
-    /// <param name="entities">The list of entities to delete.</param>
-    void DeleteRange(IEnumerable<T> entities);
-
-    /// <summary>
-    /// Detaches the specified entity from the database context, stopping it from being tracked.
-    /// </summary>
-    /// <param name="entity">The entity to detach.</param>
-    void Detach(T entity);
 
     /// <summary>
     /// Saves all changes made in the context.
