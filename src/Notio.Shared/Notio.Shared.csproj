@@ -11,9 +11,7 @@
     <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
-      Notio.Shared is a .NET library that provides shared utilities and configurations across Notio components.
-      It includes dependency injection, localization (L10N), memory management, time utilities, and configuration
-      handling to ensure consistency and reusability across multiple projects.
+      Notio.Shared is a .NET library that provides shared utilities and configurations across Notio components. It includes dependency injection, localization (L10N), memory management, time utilities, and configuration handling to ensure consistency and reusability across multiple projects.
     </Description>
 
     <PackageReleaseNotes>

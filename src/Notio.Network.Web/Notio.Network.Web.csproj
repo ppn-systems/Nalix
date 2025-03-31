@@ -8,9 +8,7 @@
     <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
-      Notio.Network.Web is a high-performance, lightweight web framework for .NET,
-      designed for building modular and extensible web servers. It supports
-      authentication, CORS, routing, sessions, WebSockets, and security features.
+      Notio.Network.Web is a high-performance, lightweight web framework for .NET, designed for building modular and extensible web servers. It supports authentication, CORS, routing, sessions, WebSockets, and security features.
     </Description>
 
     <PackageReleaseNotes>

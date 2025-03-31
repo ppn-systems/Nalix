@@ -10,8 +10,7 @@
     <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
-      Notio is a high-performance .NET library that provides essential utilities for diagnostics, runtime management,
-      secure randomization, unique identification, threading, and reflection. It offers a modular and extensible architecture, making it an ideal choice for building scalable and maintainable applications.
+      Notio is a high-performance .NET library that provides essential utilities for diagnostics, runtime management, secure randomization, unique identification, threading, and reflection. It offers a modular and extensible architecture, making it an ideal choice for building scalable and maintainable applications.
     </Description>
 
     <PackageReleaseNotes>

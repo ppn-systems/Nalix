@@ -9,8 +9,7 @@
     <PackageVersion>0.4.71</PackageVersion>
 
     <Description>
-      Notio.Common is a foundational .NET library that provides essential utilities for logging, memory management,
-      cryptography, security, exception handling, and system operations. It serves as a core dependency for the Notio ecosystem, offering reusable and high-performance components to enhance application development.
+      Notio.Common is a foundational .NET library that provides essential utilities for logging, memory management, cryptography, security, exception handling, and system operations. It serves as a core dependency for the Notio ecosystem, offering reusable and high-performance components to enhance application development.
     </Description>
 
     <PackageReleaseNotes>
