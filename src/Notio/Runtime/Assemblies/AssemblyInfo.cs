@@ -1,49 +1,49 @@
 using System;
 
-namespace Notio.Reflection;
+namespace Notio.Runtime.Assemblies;
 
 /// <summary>
 /// Structure containing comprehensive assembly version information.
 /// </summary>
-public struct AssemblyVersionInfo
+public readonly struct AssemblyInfo
 {
     /// <summary>
     /// The name of the assembly.
     /// </summary>
-    public string AssemblyName { get; internal set; }
+    public string AssemblyName { get; init; }
 
     /// <summary>
     /// The version of the assembly.
     /// </summary>
-    public string Version { get; internal set; }
+    public string Version { get; init; }
 
     /// <summary>
     /// The file version of the assembly.
     /// </summary>
-    public string FileVersion { get; internal set; }
+    public string FileVersion { get; init; }
 
     /// <summary>
     /// The informational version of the assembly.
     /// </summary>
-    public string InformationalVersion { get; internal set; }
+    public string InformationalVersion { get; init; }
 
     /// <summary>
     /// The company name associated with the assembly.
     /// </summary>
-    public string Company { get; internal set; }
+    public string Company { get; init; }
 
     /// <summary>
     /// The product name associated with the assembly.
     /// </summary>
-    public string Product { get; internal set; }
+    public string Product { get; init; }
 
     /// <summary>
     /// The copyright information associated with the assembly.
     /// </summary>
-    public string Copyright { get; internal set; }
+    public string Copyright { get; init; }
 
     /// <summary>
     /// The build time of the assembly.
     /// </summary>
-    public DateTime BuildTime { get; internal set; }
+    public DateTime BuildTime { get; init; }
 }

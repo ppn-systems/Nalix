@@ -1,4 +1,3 @@
-using Notio.Runtime;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -14,10 +13,19 @@ namespace Notio.Shared.Injection;
 /// </summary>
 public sealed class InstanceManager : IDisposable
 {
+    // Lazy-load the entry assembly.
+    private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
+        Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
+
     private static readonly Lock SyncLock = new();
 
+    /// <summary>
+    /// Gets the assembly that started the application.
+    /// </summary>
+    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
+
     private static readonly string ApplicationMutexName =
-        "Global\\{{" + ApplicationInfo.EntryAssembly.FullName + "}}";
+        "Global\\{{" + EntryAssembly.FullName + "}}";
 
     private readonly ConcurrentDictionary<Type, object> _instanceCache = new();
     private readonly ConcurrentDictionary<Type, ConstructorInfo> _constructorCache = new();

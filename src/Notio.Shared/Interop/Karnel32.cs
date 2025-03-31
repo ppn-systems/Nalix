@@ -1,3 +1,4 @@
+#if WINDOWS
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -251,3 +252,4 @@ public static partial class Karnel32
 
     #endregion
 }
+#endif

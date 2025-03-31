@@ -1,11 +1,12 @@
-using Notio.Common.Systems;
 using Notio.Network.Web.Enums;
 using Notio.Network.Web.Utilities;
+using Notio.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -105,7 +106,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && Runtime.OperatingSystemInfo.OS != OSType.Windows)
+            if (value && RuntimeOS.OS != OSPlatform.Windows)
             {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
@@ -128,7 +129,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && Runtime.OperatingSystemInfo.OS != OSType.Windows)
+            if (value && RuntimeOS.OS != OSPlatform.Windows)
             {
                 throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
             }
@@ -195,7 +196,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
 
     private X509Certificate2? LoadCertificate()
     {
-        if (Runtime.OperatingSystemInfo.OS != OSType.Windows)
+        if (RuntimeOS.OS != OSPlatform.Windows)
         {
             return null;
         }
@@ -288,7 +289,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
 
     private bool TryRegisterCertificate()
     {
-        if (Runtime.OperatingSystemInfo.OS != OSType.Windows)
+        if (RuntimeOS.OS != OSPlatform.Windows)
         {
             return false;
         }

@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.Serialization;
 
 namespace Notio.Common.Exceptions;
@@ -6,7 +5,7 @@ namespace Notio.Common.Exceptions;
 /// <summary>
 /// Represents errors that occur during the configuration process in the Notio real-time server.
 /// </summary>
-[Serializable]
+[System.Serializable]
 public class ConfigurationException : BaseException
 {
     /// <summary>
@@ -22,7 +21,7 @@ public class ConfigurationException : BaseException
     /// <summary>
     /// Gets the expected type of the configuration value.
     /// </summary>
-    public Type ExpectedType { get; }
+    public System.Type ExpectedType { get; }
 
     /// <summary>
     /// Gets the actual value that caused the error.
@@ -57,7 +56,7 @@ public class ConfigurationException : BaseException
     /// </summary>
     /// <param name="message">The error message that describes the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public ConfigurationException(string message, Exception innerException)
+    public ConfigurationException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }
@@ -75,7 +74,7 @@ public class ConfigurationException : BaseException
         string message,
         string section,
         string key,
-        Type expectedType = null,
+        System.Type expectedType = null,
         object actualValue = null,
         string configFilePath = null)
         : base($"{message} [Section: {section}, Key: {key}]")
@@ -102,8 +101,8 @@ public class ConfigurationException : BaseException
         string message,
         string section,
         string key,
-        Exception innerException,
-        Type expectedType = null,
+        System.Exception innerException,
+        System.Type expectedType = null,
         object actualValue = null,
         string configFilePath = null)
         : base($"{message} [Section: {section}, Key: {key}]", innerException)
@@ -123,7 +122,7 @@ public class ConfigurationException : BaseException
     [System.Obsolete("This method is obsolete and will be removed in future versions.")]
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
-        ArgumentNullException.ThrowIfNull(info);
+        System.ArgumentNullException.ThrowIfNull(info);
 
         base.GetObjectData(info, context);
         info.AddValue(nameof(ConfigurationSection), ConfigurationSection);

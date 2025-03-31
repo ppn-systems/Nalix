@@ -1,27 +1,27 @@
-using Notio.Common.Systems;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Notio.Runtime;
 
 /// <summary>
 /// Provides utility methods related to the operating system.
 /// </summary>
-public static class OperatingSystemInfo
+public static class RuntimeOS
 {
-    private static readonly Lazy<OSType> OsLazy = new(() =>
+    private static readonly Lazy<OSPlatform> OsLazy = new(() =>
     {
-        var windir = Environment.GetEnvironmentVariable("windir");
+        string windir = Environment.GetEnvironmentVariable("windir");
         if (!string.IsNullOrEmpty(windir) && windir.Contains('\\') && Directory.Exists(windir))
         {
-            return OSType.Windows;
+            return OSPlatform.Windows;
         }
         // Check for Unix-like system by the existence of /proc/sys/kernel/ostype
-        return File.Exists("/proc/sys/kernel/ostype") ? OSType.Unix : OSType.Osx;
+        return File.Exists("/proc/sys/kernel/ostype") ? OSPlatform.Linux : OSPlatform.OSX;
     });
 
     /// <summary>
     /// Gets the current operating system.
     /// </summary>
-    public static OSType OS => OsLazy.Value;
+    public static OSPlatform OS => OsLazy.Value;
 }

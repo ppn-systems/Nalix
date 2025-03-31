@@ -1,4 +1,4 @@
-namespace Notio.Common.Systems;
+namespace Notio.Runtime.Systems;
 
 /// <summary>
 /// Defines Endianness, big or little.

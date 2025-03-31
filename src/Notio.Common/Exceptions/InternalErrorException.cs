@@ -13,7 +13,7 @@ namespace Notio.Common.Exceptions;
 /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
 /// </summary>
 [System.Serializable]
-public class InternalErrorException : System.Exception
+public class InternalErrorException : BaseException
 {
     /// <summary>
     /// Gets the detailed information related to this log entry.
@@ -61,22 +61,5 @@ public class InternalErrorException : System.Exception
     /// <param name="details">The exception that is the cause of the current exception,
     /// or <see langword="null"/> if no inner exception is specified.</param>
     public InternalErrorException(string message, string details)
-        : base(message)
-    {
-        Details = details;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InternalErrorException"/> class.
-    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
-    /// </summary>
-    /// <param name="info">The <see cref="System.Runtime.Serialization.SerializationInfo"></see> that holds the serialized object data about the exception being thrown.</param>
-    /// <param name="context">The <see cref="System.Runtime.Serialization.StreamingContext"></see> that contains contextual information about the source or destination.</param>
-    [System.Obsolete("This API supports obsolete formatter-based serialization and should not be used.", DiagnosticId = "SYSLIB0051")]
-    protected InternalErrorException(
-        System.Runtime.Serialization.SerializationInfo info,
-        System.Runtime.Serialization.StreamingContext context)
-        : base(info, context)
-    {
-    }
+        : base(message) => Details = details;
 }
