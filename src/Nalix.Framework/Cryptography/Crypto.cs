@@ -41,7 +41,20 @@ public static class Crypto
         System.Byte[] key,
         CipherType algorithm)
     {
-        ValidateEncryptionInputs(data, key, algorithm);
+        if (key is null)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Encryption key cannot be null. Please provide a valid key.");
+        }
+
+        if (data.IsEmpty)
+        {
+            throw new System.ArgumentException("Data cannot be empty. Please provide data to encrypt.", nameof(data));
+        }
+
+        if (!System.Enum.IsDefined(algorithm))
+        {
+            throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
+        }
 
         try
         {
@@ -77,7 +90,20 @@ public static class Crypto
         System.Byte[] key,
         CipherType algorithm = CipherType.XTEA)
     {
-        ValidateDecryptionInputs(data, key, algorithm);
+        if (key is null)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
+        }
+
+        if (data.IsEmpty)
+        {
+            throw new System.ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
+        }
+
+        if (!System.Enum.IsDefined(algorithm))
+        {
+            throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
+        }
 
         try
         {
@@ -152,46 +178,6 @@ public static class Crypto
 
     #endregion APIs
 
-    #region Validation Methods
-
-    private static void ValidateEncryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, CipherType algorithm)
-    {
-        if (key is null)
-        {
-            throw new System.ArgumentNullException(nameof(key), "Encryption key cannot be null. Please provide a valid key.");
-        }
-
-        if (data.IsEmpty)
-        {
-            throw new System.ArgumentException("Data cannot be empty. Please provide data to encrypt.", nameof(data));
-        }
-
-        if (!System.Enum.IsDefined(algorithm))
-        {
-            throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
-        }
-    }
-
-    private static void ValidateDecryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, CipherType algorithm)
-    {
-        if (key is null)
-        {
-            throw new System.ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
-        }
-
-        if (data.IsEmpty)
-        {
-            throw new System.ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
-        }
-
-        if (!System.Enum.IsDefined(algorithm))
-        {
-            throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
-        }
-    }
-
-    #endregion
-
     #region Encryption Methods
 
     private static System.ReadOnlyMemory<System.Byte> EncryptChaCha20Poly1305(
@@ -237,7 +223,9 @@ public static class Crypto
 
         try
         {
-            WriteLengthPrefix(output, originalLength);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions
+                                                  .AsSpan(output)[..LengthPrefixSize], originalLength);
+
             System.Span<System.Byte> workSpan = System.MemoryExtensions.AsSpan(output, LengthPrefixSize, bufferSize);
 
             data.Span.CopyTo(workSpan);
@@ -269,7 +257,8 @@ public static class Crypto
 
         try
         {
-            WriteLengthPrefix(encrypted, originalLength);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions
+                                                  .AsSpan(encrypted)[..LengthPrefixSize], originalLength);
 
             data.Span.CopyTo(paddedInput);
             SecureRandom.Fill(System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
@@ -346,14 +335,28 @@ public static class Crypto
     private static System.ReadOnlyMemory<System.Byte> DecryptSpeck(
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
-        ValidateDataWithLengthPrefix(data, SpeckBlockSize);
+        if (data.Length < LengthPrefixSize)
+        {
+            throw new System.ArgumentException("Input data too short to contain length prefix.", nameof(data));
+        }
+
+        if (SpeckBlockSize > 1 && (data.Length - LengthPrefixSize) % SpeckBlockSize != 0)
+        {
+            throw new System.ArgumentException("Input data length is not aligned to block size.", nameof(data));
+        }
 
         System.ReadOnlySpan<System.Byte> input = data.Span;
-        System.Int32 originalLength = ReadLengthPrefix(input);
+        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..LengthPrefixSize]);
         System.Int32 bufferSize = data.Length - LengthPrefixSize;
 
-        ValidateOriginalLength(originalLength, bufferSize);
-        ValidateBlockAlignment(bufferSize, SpeckBlockSize);
+        if (originalLength < 0 || originalLength > bufferSize)
+        {
+            throw new System.ArgumentException("Invalid length prefix.");
+        }
+        if (bufferSize % SpeckBlockSize != 0)
+        {
+            throw new System.ArgumentException("Data length is not aligned to block size.");
+        }
 
         System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(bufferSize);
 
@@ -379,12 +382,23 @@ public static class Crypto
     private static System.ReadOnlyMemory<System.Byte> DecryptXTEA(
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
-        ValidateDataWithLengthPrefix(data);
+        if (data.Length < LengthPrefixSize)
+        {
+            throw new System.ArgumentException("Input data too short to contain length prefix.", nameof(data));
+        }
 
-        System.Int32 originalLength = ReadLengthPrefix(data.Span);
+        if (SpeckBlockSize > 1 && (data.Length - LengthPrefixSize) % SpeckBlockSize != 0)
+        {
+            throw new System.ArgumentException("Input data length is not aligned to block size.", nameof(data));
+        }
+
+        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..LengthPrefixSize]);
         System.Int32 encryptedLength = data.Length - LengthPrefixSize;
 
-        ValidateOriginalLength(originalLength, encryptedLength);
+        if (originalLength < 0 || originalLength > encryptedLength)
+        {
+            throw new System.ArgumentException("Invalid length prefix.");
+        }
 
         System.Byte[] decrypted = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(encryptedLength);
 
@@ -410,41 +424,6 @@ public static class Crypto
         return (blockSize & blockSize - 1) != 0
             ? throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be a power of two.")
             : length + blockSize - 1 & ~(blockSize - 1);
-    }
-
-    private static void WriteLengthPrefix(System.Span<System.Byte> buffer, System.Int32 length)
-        => System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(buffer[..LengthPrefixSize], length);
-
-    private static System.Int32 ReadLengthPrefix(System.ReadOnlySpan<System.Byte> buffer)
-        => System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(buffer[..LengthPrefixSize]);
-
-    private static void ValidateDataWithLengthPrefix(System.ReadOnlyMemory<System.Byte> data, System.Int32 blockSize = 1)
-    {
-        if (data.Length < LengthPrefixSize)
-        {
-            throw new System.ArgumentException("Input data too short to contain length prefix.", nameof(data));
-        }
-
-        if (blockSize > 1 && (data.Length - LengthPrefixSize) % blockSize != 0)
-        {
-            throw new System.ArgumentException("Input data length is not aligned to block size.", nameof(data));
-        }
-    }
-
-    private static void ValidateOriginalLength(System.Int32 originalLength, System.Int32 maxLength)
-    {
-        if (originalLength < 0 || originalLength > maxLength)
-        {
-            throw new System.ArgumentException("Invalid length prefix.");
-        }
-    }
-
-    private static void ValidateBlockAlignment(System.Int32 length, System.Int32 blockSize)
-    {
-        if (length % blockSize != 0)
-        {
-            throw new System.ArgumentException("Data length is not aligned to block size.");
-        }
     }
 
     private static void EncryptBlocks(
