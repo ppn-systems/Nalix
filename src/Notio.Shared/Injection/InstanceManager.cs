@@ -24,8 +24,7 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
 
-    private static readonly string ApplicationMutexName =
-        "Global\\{{" + EntryAssembly.FullName + "}}";
+    private static readonly string ApplicationMutexName = "Global\\{{" + EntryAssembly.FullName + "}}";
 
     private readonly ConcurrentDictionary<Type, object> _instanceCache = new();
     private readonly ConcurrentDictionary<Type, ConstructorInfo> _constructorCache = new();

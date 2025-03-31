@@ -1,5 +1,6 @@
 using Notio.Common.Logging;
 using Notio.Logging.Core.Formatters;
+using Notio.Logging.Options;
 using System;
 
 namespace Notio.Logging.Targets;
@@ -22,6 +23,13 @@ public sealed class ConsoleLoggingTarget(ILoggerFormatter loggerFormatter) : ILo
     public ConsoleLoggingTarget() : this(new LoggingFormatter(true))
     {
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class.
+    /// </summary>
+    /// <param name="options">The console logging options.</param>
+    public ConsoleLoggingTarget(ConsoleLoggingOptions options)
+        : this(new LoggingFormatter(options.EnableColors)) { }
 
     /// <summary>
     /// Outputs the log message to the console.

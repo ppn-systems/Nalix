@@ -1,9 +1,8 @@
-#if WINDOWS
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Notio.Shared.Injection;
+namespace Notio.Shared.Interop;
 
 /// <summary>
 /// Provides methods for interacting with the Windows Kernel32.dll and other related system functions.
@@ -252,4 +251,3 @@ public static partial class Karnel32
 
     #endregion
 }
-#endif
