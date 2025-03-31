@@ -29,22 +29,6 @@ internal static class ColorAnsi
     public const string LightCyan = "\u001b[38;5;51m";    // Light cyan text
     public const string LightMagenta = "\u001b[38;5;213m"; // Light magenta text
 
-    // Background colors
-    public const string BgBlack = "\u001b[40m";     // Black background
-    public const string BgRed = "\u001b[41m";       // Red background
-    public const string BgGreen = "\u001b[42m";     // Green background
-    public const string BgYellow = "\u001b[43m";    // Yellow background
-    public const string BgBlue = "\u001b[44m";      // Blue background
-    public const string BgMagenta = "\u001b[45m";   // Magenta background
-    public const string BgCyan = "\u001b[46m";      // Cyan background
-    public const string BgWhite = "\u001b[47m";     // White background
-
-    // Text styles
-    public const string Bold = "\u001b[1m";         // Bold text
-    public const string Underline = "\u001b[4m";    // Underlined text
-    public const string Italic = "\u001b[3m";       // Italic text (not widely supported)
-    public const string Blink = "\u001b[5m";        // Blinking text (not widely supported)
-
     // Cache of color codes by log level to avoid repeated switch statements
     private static readonly string[] _levelColorCache = new string[(int)LogLevel.None + 1];
 
@@ -78,13 +62,4 @@ internal static class ColorAnsi
 
         return White; // Default color for unknown levels
     }
-
-    /// <summary>
-    /// Applies color to the given text based on logging level.
-    /// </summary>
-    /// <param name="text">The text to colorize.</param>
-    /// <param name="level">The logging level determining the color.</param>
-    /// <returns>Colorized text string with reset code appended.</returns>
-    internal static string Colorize(string text, LogLevel level)
-        => GetColorCode(level) + text + Reset;
 }

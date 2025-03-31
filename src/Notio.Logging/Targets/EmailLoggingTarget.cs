@@ -1,9 +1,9 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
+using Notio.Logging.Options;
 using System;
 using System.Net;
 using System.Net.Mail;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Notio.Logging.Targets;
@@ -17,16 +17,26 @@ namespace Notio.Logging.Targets;
 /// </remarks>
 public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
 {
-    private readonly int _port;
-    private readonly string _to;
-    private readonly string _from;
-    private readonly string _password;
-    private readonly string _smtpServer;
-    private readonly Lock _lock = new();
+    private readonly EmailLoggingOptions _options;
     private readonly SmtpClient _smtpClient;
-    private readonly LogLevel _minimumLevel;
-
     private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EmailLoggingTarget"/> class using the provided configuration options.
+    /// </summary>
+    /// <param name="configure">The configuration options for email logging.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="configure"/> is null.</exception>
+    public EmailLoggingTarget(EmailLoggingOptions configure)
+    {
+        _options = configure ?? throw new ArgumentNullException(nameof(configure));
+
+        _smtpClient = new SmtpClient(_options.SmtpServer, _options.Port)
+        {
+            Credentials = new NetworkCredential(_options.From, _options.Password),
+            EnableSsl = _options.EnableSsl,
+            Timeout = _options.Timeout
+        };
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EmailLoggingTarget"/> class.
@@ -49,23 +59,19 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
         string password,
         LogLevel minimumLevel = LogLevel.Error,
         bool enableSsl = true,
-        int timeout = 30000) // 30 seconds default timeout
-    {
-        ValidateParameters(smtpServer, port, from, to, password);
-
-        _smtpServer = smtpServer;
-        _port = port;
-        _from = from;
-        _to = to;
-        _password = password;
-        _minimumLevel = minimumLevel;
-
-        _smtpClient = new SmtpClient(_smtpServer, _port)
+        int timeout = 30000)
+        : this(new EmailLoggingOptions
         {
-            Credentials = new NetworkCredential(_from, _password),
+            SmtpServer = smtpServer,
+            Port = port,
+            From = from,
+            To = to,
+            Password = password,
+            MinimumLevel = minimumLevel,
             EnableSsl = enableSsl,
             Timeout = timeout
-        };
+        })
+    {
     }
 
     /// <summary>
@@ -79,14 +85,10 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLoggingTarget));
 
-        if (entry.LogLevel < _minimumLevel)
+        if (entry.LogLevel < _options.MinimumLevel)
             return;
 
-        MailMessage mailMessage;
-        lock (_lock)
-        {
-            mailMessage = CreateMailMessage(entry);
-        }
+        using var mailMessage = CreateMailMessage(entry);
 
         try
         {
@@ -95,10 +97,6 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
         catch (SmtpException ex)
         {
             throw new InternalErrorException("Failed to send email log", ex);
-        }
-        finally
-        {
-            mailMessage.Dispose();
         }
     }
 
@@ -109,27 +107,53 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     public void Publish(LogEntry entry)
         => PublishAsync(entry).GetAwaiter().GetResult();
 
+    /// <summary>
+    /// Creates an HTML-formatted email message from the log entry.
+    /// </summary>
+    /// <param name="entry">The log entry.</param>
+    /// <returns>A formatted <see cref="MailMessage"/> instance.</returns>
     private MailMessage CreateMailMessage(LogEntry entry)
-        => new(_from, _to)
+    {
+        string htmlBody = $@"
+        <html>
+        <body style='font-family: Arial, sans-serif; font-size: 14px;'>
+            <h3 style='color: #333;'>Log Notification</h3>
+            <p><b>Timestamp:</b> {entry.TimeStamp}</p>
+            <p><b>Level:</b> <span style='color:{GetLogLevelColor(entry.LogLevel)};'>{entry.LogLevel}</span></p>
+            <p><b>Message:</b> {entry.Message}</p>";
+
+        if (entry.Exception is not null)
         {
-            Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss} \n",
-            Body = $"Timestamp: {entry.TimeStamp} \n" +
-                   $"Level: {entry.LogLevel} \n" +
-                   $"Message: {entry.Message} \n" +
-                   $"Exception: {"An error occurred. Please check the server logs for more details."}",
-            IsBodyHtml = false,
+            htmlBody +=
+                $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>";
+        }
+
+        htmlBody += "</body></html>";
+
+        return new MailMessage(_options.From, _options.To)
+        {
+            Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+            Body = htmlBody,
+            IsBodyHtml = true,
             Priority = entry.LogLevel == LogLevel.Critical ? MailPriority.High : MailPriority.Normal
         };
-
-    private static void ValidateParameters(
-        string smtpServer, int port, string from, string to, string password)
-    {
-        if (string.IsNullOrWhiteSpace(smtpServer)) throw new ArgumentNullException(nameof(smtpServer));
-        if (port < 1 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
-        if (string.IsNullOrWhiteSpace(from)) throw new ArgumentNullException(nameof(from));
-        if (string.IsNullOrWhiteSpace(to)) throw new ArgumentNullException(nameof(to));
-        if (string.IsNullOrWhiteSpace(password)) throw new ArgumentNullException(nameof(password));
     }
+
+    /// <summary>
+    /// Gets the color associated with each log level.
+    /// </summary>
+    /// <param name="level">The log level.</param>
+    /// <returns>A hex color code.</returns>
+    private static string GetLogLevelColor(LogLevel level) => level switch
+    {
+        LogLevel.Trace => "#6c757d",         // Gray
+        LogLevel.Debug => "#007bff",         // Blue
+        LogLevel.Information => "#17a2b8",   // Cyan
+        LogLevel.Warning => "#ffc107",       // Yellow
+        LogLevel.Error => "#dc3545",         // Red
+        LogLevel.Critical => "#b71c1c",      // Dark Red
+        _ => "#000000"                       // Black
+    };
 
     /// <summary>
     /// Disposes of resources used by the <see cref="EmailLoggingTarget"/>.
@@ -138,11 +162,8 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     {
         if (_disposed) return;
 
-        lock (_lock)
-        {
-            _smtpClient?.Dispose();
-            _disposed = true;
-        }
+        _smtpClient?.Dispose();
+        _disposed = true;
 
         GC.SuppressFinalize(this);
     }

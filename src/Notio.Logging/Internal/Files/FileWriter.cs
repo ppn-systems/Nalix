@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace Notio.Logging.Internal.File;
+namespace Notio.Logging.Internal.Files;
 
 /// <summary>
 /// Manages writing logs to a file with support for file rotation and error handling.
@@ -180,7 +180,7 @@ internal sealed class FileWriter : IDisposable
             {
                 var headerBuilder = new StringBuilder();
                 headerBuilder.AppendLine("-----------------------------------------------------");
-                headerBuilder.AppendLine($"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+                headerBuilder.AppendLine($"Log Files Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
                 headerBuilder.AppendLine($"User: {Environment.UserName}");
                 headerBuilder.AppendLine($"Machine: {Environment.MachineName}");
                 headerBuilder.AppendLine($"OS: {Environment.OSVersion}");

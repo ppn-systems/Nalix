@@ -1,7 +1,9 @@
+using Notio.Common.Exceptions;
+using Notio.Logging.Exceptions;
 using System;
 using System.IO;
 
-namespace Notio.Logging.Internal.File;
+namespace Notio.Logging.Options;
 
 /// <summary>
 /// Configuration options for the file logger.

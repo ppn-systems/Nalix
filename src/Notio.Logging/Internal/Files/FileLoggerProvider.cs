@@ -1,3 +1,6 @@
+using Notio.Common.Exceptions;
+using Notio.Logging.Exceptions;
+using Notio.Logging.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -5,12 +8,12 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Internal.File;
+namespace Notio.Logging.Internal.Files;
 
 /// <summary>
 /// A high-performance provider for file-based logging with support for file rotation and error handling.
 /// </summary>
-public sealed class FileLoggerProvider : IDisposable
+internal sealed class FileLoggerProvider : IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly BlockingCollection<string> _entryQueue;
@@ -380,7 +383,7 @@ public sealed class FileLoggerProvider : IDisposable
 
         return $"FileLoggerProvider Status [UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
                $"- Current User: {Environment.UserName}" + Environment.NewLine +
-               $"- Log File: {Path.GetFullPath(Path.Combine(Options.LogDirectory, Options.LogFileName))}" + Environment.NewLine +
+               $"- Log Files: {Path.GetFullPath(Path.Combine(Options.LogDirectory, Options.LogFileName))}" + Environment.NewLine +
                $"- Entries Written: {TotalEntriesWritten:N0}" + Environment.NewLine +
                $"- Entries Dropped: {EntriesDroppedCount:N0}" + Environment.NewLine +
                $"- Queue Size: {QueuedEntryCount:N0}/{Options.MaxQueueSize}" + Environment.NewLine +

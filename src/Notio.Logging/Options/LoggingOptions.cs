@@ -1,9 +1,8 @@
 using Notio.Common.Logging;
-using Notio.Logging.Internal.File;
 using System;
 using System.Threading;
 
-namespace Notio.Logging.Core;
+namespace Notio.Logging.Options;
 
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.

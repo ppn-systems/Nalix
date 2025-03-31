@@ -1,6 +1,7 @@
 using Notio.Common.Logging;
 using Notio.Logging.Core.Formatters;
-using Notio.Logging.Internal.File;
+using Notio.Logging.Internal.Files;
+using Notio.Logging.Options;
 using System;
 
 namespace Notio.Logging.Targets;
@@ -46,6 +47,15 @@ public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLogg
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with configurable log message formatting.
+    /// </summary>
+    /// <param name="configureOptions">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
+    public FileLoggingTarget(Action<FileLoggerOptions> configureOptions)
+        : this(new LoggingFormatter(), ConfigureOptions(configureOptions))
+    {
+    }
+
+    /// <summary>
     /// Publishes the formatted log entry to the log file.
     /// </summary>
     /// <param name="logMessage">The log entry to be published.</param>
@@ -59,5 +69,15 @@ public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLogg
     {
         _loggerPrv.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Helper method to apply configuration.
+    /// </summary>
+    private static FileLoggerOptions ConfigureOptions(Action<FileLoggerOptions> configureOptions)
+    {
+        var options = new FileLoggerOptions();
+        configureOptions?.Invoke(options);
+        return options;
     }
 }
