@@ -114,21 +114,17 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     /// <returns>A formatted <see cref="MailMessage"/> instance.</returns>
     private MailMessage CreateMailMessage(LogEntry entry)
     {
-        string htmlBody = $@"
-        <html>
-        <body style='font-family: Arial, sans-serif; font-size: 14px;'>
-            <h3 style='color: #333;'>Log Notification</h3>
-            <p><b>Timestamp:</b> {entry.TimeStamp}</p>
-            <p><b>Level:</b> <span style='color:{GetLogLevelColor(entry.LogLevel)};'>{entry.LogLevel}</span></p>
-            <p><b>Message:</b> {entry.Message}</p>";
+        string exceptionHtml = entry.Exception is not null
+                ? $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>"
+                : "";
 
-        if (entry.Exception is not null)
-        {
-            htmlBody +=
-                $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>";
-        }
-
-        htmlBody += "</body></html>";
+        string htmlBody = string.Format(HtmlTemplate,
+            entry.TimeStamp,
+            GetLogLevelColor(entry.LogLevel),
+            entry.LogLevel,
+            entry.Message,
+            exceptionHtml
+        );
 
         return new MailMessage(_options.From, _options.To)
         {
@@ -167,4 +163,15 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    private const string HtmlTemplate = @"
+        <html>
+        <body style='font-family: Arial, sans-serif; font-size: 14px;'>
+            <h3 style='color: #333;'>Log Notification</h3>
+            <p><b>Timestamp:</b> {0}</p>
+            <p><b>Level:</b> <span style='color:{1};'>{2}</span></p>
+            <p><b>Message:</b> {3}</p>
+            {4}
+        </body>
+        </html>";
 }
