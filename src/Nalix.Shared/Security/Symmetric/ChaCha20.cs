@@ -1,6 +1,6 @@
 // Copyright (ABF98B53) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Enums;
+using Nalix.Common.Enums;
 using Nalix.Shared.Security.Primitives;
 
 namespace Nalix.Shared.Security.Symmetric;
