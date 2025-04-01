@@ -214,7 +214,7 @@ public sealed class PBKDF2 : System.IDisposable
         if (key.Length > blockSize)
         {
             System.Span<System.Byte> kh = stackalloc System.Byte[32];
-            Nalix.Framework.Cryptography.Hashing.SHA3256.Hash(key, kh);
+            Nalix.Framework.Cryptography.Hashing.SHA3256.HashData(key, kh);
             kh.CopyTo(k0);
             kh.Clear();
         }
