@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Core.Abstractions;
-using Nalix.Common.Core.Exceptions;
+﻿using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Throttling;
 using System;
