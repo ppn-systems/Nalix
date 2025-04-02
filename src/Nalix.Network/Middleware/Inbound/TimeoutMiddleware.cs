@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Network.Abstractions;
@@ -12,6 +14,8 @@ namespace Nalix.Network.Middleware.Inbound;
 /// Middleware that enforces a timeout for packet processing. If the next middleware or handler does not complete within the specified timeout,
 /// a timeout response is sent to the client.
 /// </summary>
+[MiddlewareOrder(75)] // Execute late in inbound, wrap around handler
+[MiddlewareStage(MiddlewareStage.Inbound)]
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
