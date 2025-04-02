@@ -1,8 +1,8 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
+using Notio.Common.Package.Metadata;
 using Notio.Cryptography.Integrity;
 using Notio.Defaults;
-using Notio.Network.Package.Metadata;
 using Notio.Network.Package.Serialization;
 using Notio.Utilities;
 using System;

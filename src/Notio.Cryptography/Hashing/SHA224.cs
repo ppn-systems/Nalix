@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography.Hashing;
 using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
@@ -193,6 +194,8 @@ public sealed class Sha224 : ISha, IDisposable
         return sha224.FinalizeHash();
     }
 
+    #region SHA-224/256 Functions
+
     /// <summary>
     /// Processes a 64-byte block of data.
     /// </summary>
@@ -251,8 +254,6 @@ public sealed class Sha224 : ISha, IDisposable
         _state[7] += h;
     }
 
-    #region SHA-224/256 Functions
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Ch(uint x, uint y, uint z)
         => (x & y) ^ (~x & z);
@@ -306,4 +307,9 @@ public sealed class Sha224 : ISha, IDisposable
 
         _disposed = true;
     }
+
+    /// <summary>
+    /// Returns a string representation of the SHA-224 hash algorithm.
+    /// </summary>
+    public override string ToString() => "SHA-224";
 }

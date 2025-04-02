@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Cryptography.Hashing;
+namespace Notio.Common.Cryptography.Hashing;
 
 /// <summary>
 /// Defines a common interface for SHA-based cryptographic hash functions.

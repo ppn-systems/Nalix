@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography.Asymmetric;
 using Notio.Common.Exceptions;
 using Notio.Cryptography.Hashing;
 using Notio.Randomization;
@@ -18,17 +19,12 @@ namespace Notio.Cryptography.Asymmetric;
 /// <param name="username">User name.</param>
 /// <param name="salt">Salt value as byte array.</param>
 /// <param name="verifier">Verifier value as byte array.</param>
-public sealed class Srp6(string username, byte[] salt, byte[] verifier)
+public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 {
-    /// <summary>
-    /// BaseValue36 G.
-    /// </summary>
-    private static readonly BigInteger G = 2;
-
     /// <summary>
     /// Large prime number N.
     /// </summary>
-    private static readonly BigInteger N = new([
+    public static readonly BigInteger N = new([
         0xE3, 0x06, 0xEB, 0xC0, 0x2F, 0x1D, 0xC6, 0x9F, 0x5B, 0x43, 0x76, 0x83, 0xFE, 0x38, 0x51, 0xFD,
         0x9A, 0xAA, 0x6E, 0x97, 0xF4, 0xCB, 0xD4, 0x2F, 0xC0, 0x6C, 0x72, 0x05, 0x3C, 0xBC, 0xED, 0x68,
         0xEC, 0x57, 0x0E, 0x66, 0x66, 0xF5, 0x29, 0xC5, 0x85, 0x18, 0xCF, 0x7B, 0x29, 0x9B, 0x55, 0x82,
@@ -38,16 +34,23 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
         0x76, 0x65, 0x25, 0x9C, 0x4C, 0x31, 0xA2, 0x9E, 0x0B, 0x3C, 0xFF, 0x75, 0x87, 0x61, 0x72, 0x60,
         0xE8, 0xC5, 0x8F, 0xFA, 0x0A, 0xF8, 0x33, 0x9C, 0xD6, 0x8D, 0xB3, 0xAD, 0xB9, 0x0A, 0xAF, 0xEE ], true);
 
-    private readonly byte[] _usernameBytes = Encoding.UTF8.GetBytes(username);
-    private readonly BigInteger _verifier = new(verifier, true);
-    private readonly BigInteger _saltValue = new(salt, true);
+    /// <summary>
+    /// BaseValue36 G.
+    /// </summary>
+    public static readonly BigInteger G = 2;
 
-    private BigInteger _clientPublicValue;
-    private BigInteger _serverPrivateValue;
-    private BigInteger _serverPublicValue;
-    private BigInteger _sharedSecret;
-    private BigInteger _clientProof;
+    private readonly BigInteger _saltValue = new(salt, true);
+    private readonly BigInteger _verifier = new(verifier, true);
+    private readonly byte[] _usernameBytes = Encoding.UTF8.GetBytes(username);
+
     private BigInteger _sessionKey;
+    private BigInteger _clientProof;
+    private BigInteger _sharedSecret;
+    private BigInteger _clientPublicValue;
+    private BigInteger _serverPublicValue;
+    private BigInteger _serverPrivateValue;
+
+    #region Public Methods
 
     /// <summary>
     /// Create an authenticator from a salt, username, and password.
@@ -113,8 +116,11 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
     /// <returns>True if the client proof message is valid, otherwise false.</returns>
     public bool VerifyClientEvidenceMessage(byte[] clientProofMessage)
     {
-        if (_clientPublicValue == BigInteger.Zero || _serverPublicValue == BigInteger.Zero || _sharedSecret == BigInteger.Zero)
-            throw new CryptoException("Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
+        if (_clientPublicValue == BigInteger.Zero ||
+            _serverPublicValue == BigInteger.Zero ||
+            _sharedSecret == BigInteger.Zero)
+            throw new CryptoException(
+                "Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
 
         var usernameHash = Sha256.HashData(_usernameBytes);
         BigInteger expectedClientProof = Hash(false, Hash(false, N) ^ Hash(false, G),
@@ -142,6 +148,10 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
         ReverseBytesAsUInt32(serverProofBytes);
         return serverProofBytes;
     }
+
+    #endregion
+
+    #region Private Methods
 
     private static BigInteger Hash(bool reverse, params BigInteger[] integers)
     {
@@ -217,4 +227,6 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier)
             (byteArray[j + 3], byteArray[i + 3]) = (byteArray[i + 3], byteArray[j + 3]);
         }
     }
+
+    #endregion
 }

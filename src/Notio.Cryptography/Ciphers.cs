@@ -1,5 +1,5 @@
+using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
-using Notio.Common.Security;
 using Notio.Cryptography.Aead;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;

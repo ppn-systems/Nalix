@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography.Hashing;
 using Notio.Cryptography.Utilities;
 using System;
 using System.Buffers.Binary;
@@ -257,23 +258,7 @@ public sealed class Sha1 : ISha, IDisposable
         return sha1.FinalizeHash();
     }
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="Sha1"/> instance.
-    /// </summary>
-    /// <remarks>
-    /// This method clears sensitive data from memory and marks the instance as disposed.
-    /// </remarks>
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        // Clear sensitive data from memory
-        Array.Clear(_state, 0, _state.Length);
-        Array.Clear(_buffer, 0, _buffer.Length);
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
-    }
+    #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
@@ -463,4 +448,29 @@ public sealed class Sha1 : ISha, IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint MAJ(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);
+
+    #endregion
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="Sha1"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// This method clears sensitive data from memory and marks the instance as disposed.
+    /// </remarks>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        // Clear sensitive data from memory
+        Array.Clear(_state, 0, _state.Length);
+        Array.Clear(_buffer, 0, _buffer.Length);
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Returns a string representation of the SHA-1 hash algorithm.
+    /// </summary>
+    public override string ToString() => "SHA-1";
 }

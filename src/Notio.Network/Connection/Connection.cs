@@ -1,5 +1,6 @@
 using Notio.Common.Caching;
 using Notio.Common.Connection;
+using Notio.Common.Cryptography;
 using Notio.Common.Identity;
 using Notio.Common.Logging;
 using Notio.Common.Security;

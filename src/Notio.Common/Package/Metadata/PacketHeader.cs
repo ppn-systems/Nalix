@@ -1,14 +1,13 @@
-using Notio.Common.Package;
 using System.Runtime.InteropServices;
 
-namespace Notio.Network.Package.Metadata;
+namespace Notio.Common.Package.Metadata;
 
 /// <summary>
 /// Represents the header structure of a packet, containing metadata such as the packet type, flags, priority, command, timestamp, and checksum.
 /// This structure is used to describe the essential details of a packet for efficient transmission.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="PacketHeader"/> struct from the provided <see cref="Packet"/>.
+/// Initializes a new instance of the <see cref="PacketHeader"/> struct from the provided <see cref="IPacket"/>.
 /// </remarks>
 /// <param name="packet">The packet from which the header will be extracted.</param>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -27,17 +26,17 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.
     /// </summary>
-    public readonly byte Type = ((byte)packet.Type);
+    public readonly byte Type = (byte)packet.Type;
 
     /// <summary>
     /// Gets or sets the flags associated with the packet, used for additional control or state information.
     /// </summary>
-    public readonly byte Flags = ((byte)packet.Flags);
+    public readonly byte Flags = (byte)packet.Flags;
 
     /// <summary>
     /// Gets the priority level of the packet, which can affect how the packet is processed or prioritized.
     /// </summary>
-    public readonly byte Priority = ((byte)packet.Priority);
+    public readonly byte Priority = (byte)packet.Priority;
 
     /// <summary>
     /// Gets the command associated with the packet, which can specify an operation or request type.

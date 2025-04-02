@@ -5,10 +5,16 @@ namespace Notio.Common.Package;
 /// </summary>
 public enum PacketType : byte
 {
+    #region General Types
+
     /// <summary>
     /// General type: None.
     /// </summary>
     None = 0x00,
+
+    #endregion
+
+    #region Primitive Types
 
     /// <summary>
     /// Primitive type: Integer.
@@ -45,6 +51,10 @@ public enum PacketType : byte
     /// </summary>
     List = 0x07,
 
+    #endregion
+
+    #region Structured Data Types
+
     /// <summary>
     /// Structured data: JSON.
     /// </summary>
@@ -79,6 +89,10 @@ public enum PacketType : byte
     /// Structured data: Protocol Buffers.
     /// </summary>
     Protobuf = 0x10,
+
+    #endregion
+
+    #region Media Types
 
     /// <summary>
     /// Media type: Binary.
@@ -120,6 +134,10 @@ public enum PacketType : byte
     /// </summary>
     Model3D = 0x1B,
 
+    #endregion
+
+    #region Encoded or Compressed Data Types
+
     /// <summary>
     /// Encoded or compressed data: Base64.
     /// </summary>
@@ -130,33 +148,34 @@ public enum PacketType : byte
     /// </summary>
     Compressed = 0x1F,
 
+    #endregion
+
+    #region Miscellaneous Types
+
     /// <summary>
-    /// Miscellaneous: Timestamp.
+    /// Miscellaneous type: Timestamp.
     /// </summary>
     Timestamp = 0x28,
 
     /// <summary>
-    /// Miscellaneous: UUID.
+    /// Miscellaneous type: UUID.
     /// </summary>
     Uuid = 0x29,
 
     /// <summary>
-    /// Miscellaneous: Dictionary.
+    /// Miscellaneous type: Dictionary.
     /// </summary>
     Dictionary = 0x2A,
 
     /// <summary>
-    /// Miscellaneous
+    /// Miscellaneous type: Acknowledgment.
     /// </summary>
     Acknowledgment = 0x2B,
 
     /// <summary>
-    /// Object
+    /// Miscellaneous type: Object.
     /// </summary>
     Object = 0x2C,
 
-    /// <summary>
-    /// Custom or undefined type.
-    /// </summary>
-    Custom = 0xFF
+    #endregion
 }

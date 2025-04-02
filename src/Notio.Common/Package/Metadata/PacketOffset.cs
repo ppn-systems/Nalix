@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Package.Metadata;
+namespace Notio.Common.Package.Metadata;
 
 /// <summary>
 /// Offsets for the components in the packet header.

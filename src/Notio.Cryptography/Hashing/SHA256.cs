@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography.Hashing;
 using Notio.Cryptography.Utilities;
 using Notio.Extensions;
 using System;
@@ -264,27 +265,7 @@ public sealed class Sha256 : ISha, IDisposable
         return finalBlock;
     }
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="Sha256"/> instance.
-    /// </summary>
-    /// <remarks>
-    /// This method clears sensitive data from memory and marks the instance as disposed.
-    /// </remarks>
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        // Clear sensitive data from memory
-        Array.Clear(_buffer, 0, _buffer.Length);
-        Array.Clear(_state, 0, _state.Length);
-        if (_finalHash != null)
-        {
-            Array.Clear(_finalHash, 0, _finalHash.Length);
-        }
-
-        _disposed = true;
-        GC.SuppressFinalize(this);
-    }
+    #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ProcessBlock(ReadOnlySpan<byte> block)
@@ -629,4 +610,33 @@ public sealed class Sha256 : ISha, IDisposable
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
+
+    #endregion
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="Sha256"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// This method clears sensitive data from memory and marks the instance as disposed.
+    /// </remarks>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        // Clear sensitive data from memory
+        Array.Clear(_buffer, 0, _buffer.Length);
+        Array.Clear(_state, 0, _state.Length);
+        if (_finalHash != null)
+        {
+            Array.Clear(_finalHash, 0, _finalHash.Length);
+        }
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Returns a string representation of the SHA-256 hash algorithm.
+    /// </summary>
+    public override string ToString() => "SHA-256";
 }

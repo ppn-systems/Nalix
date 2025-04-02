@@ -1,3 +1,4 @@
+using Notio.Common.Cryptography.Asymmetric;
 using Notio.Randomization;
 using System;
 using System.Diagnostics;
@@ -14,7 +15,7 @@ namespace Notio.Cryptography.Asymmetric;
 /// It allows two parties to securely exchange keys without needing to share a secret in advance.
 /// This implementation follows RFC 7748 specifications.
 /// </remarks>
-public static class X25519
+public sealed class X25519 : IX25519
 {
     /// <summary>
     /// The size of a field element in bytes.
@@ -35,6 +36,22 @@ public static class X25519
     #endregion
 
     #region Public Methods
+
+    /// <summary>
+    /// Generates an X25519 key pair.
+    /// </summary>
+    /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
+    public (byte[] PrivateKey, byte[] PublicKey) Generate() => GenerateKeyPair();
+
+    /// <summary>
+    /// Computes the shared secret between your private key and a peer's public key.
+    /// </summary>
+    /// <param name="privateKey">Your 32-byte private key.</param>
+    /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
+    /// <returns>The shared secret as a 32-byte array.</returns>
+    /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
+    public byte[] Compute(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey)
+        => ComputeSharedSecret(privateKey, peerPublicKey);
 
     /// <summary>
     /// Generates an X25519 key pair.

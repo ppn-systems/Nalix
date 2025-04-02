@@ -1,5 +1,5 @@
 using Notio.Common.Exceptions;
-using Notio.Network.Package.Metadata;
+using Notio.Common.Package.Metadata;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;

@@ -1,4 +1,4 @@
-﻿namespace Notio.Network.Package.Metadata;
+namespace Notio.Common.Package.Metadata;
 
 /// <summary>
 /// Defines the sizes of the components in the packet header.
