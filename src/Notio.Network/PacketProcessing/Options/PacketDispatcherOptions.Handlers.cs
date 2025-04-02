@@ -1,8 +1,6 @@
 using Notio.Common.Attributes;
 using Notio.Common.Connection;
-using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Common.Security;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -71,17 +69,24 @@ public sealed partial class PacketDispatcherOptions
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
         (Func<TController> factory) where TController : class
     {
+        Type controllerType = typeof(TController);
+        PacketControllerAttribute controllerAttr = controllerType
+            .GetCustomAttribute<PacketControllerAttribute>() ?? throw new InvalidOperationException(
+                $"Controller {controllerType.Name} must be marked with [PacketController].");
+
+        string controllerName = controllerAttr.Name ?? controllerType.Name;
+
         TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
 
-        // Get methods from the controller that are decorated with PacketCommandAttribute
         List<MethodInfo> methods = [.. typeof(TController)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
         .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
 
         if (methods.Count == 0)
         {
+            _logger?.Warn($"[WithHandler] No methods found with [PacketCommand] in {controllerName}.");
             throw new InvalidOperationException(
-                $"No methods found with [PacketCommand] in {typeof(TController).Name}.");
+                $"No methods found with [PacketCommand] in {controllerName}.");
         }
 
         IEnumerable<ushort> duplicateCommandIds = methods
@@ -90,80 +95,56 @@ public sealed partial class PacketDispatcherOptions
             .Select(g => g.Key);
 
         if (duplicateCommandIds.Any())
-            throw new InvalidOperationException(
-                $"Duplicate CommandIds found in {typeof(TController).Name}: " +
+        {
+            _logger?.Error($"[WithHandler] Duplicate CommandIds in {controllerName}: " +
                 $"{string.Join(", ", duplicateCommandIds)}");
+            throw new InvalidOperationException(
+                $"Duplicate CommandIds found in {controllerName}: {string.Join(", ", duplicateCommandIds)}");
+        }
 
         List<ushort> registeredCommandIds = [];
 
-        // Register each method with its corresponding commandId
         foreach (MethodInfo method in methods)
         {
-            Type returnType = method.ReturnType;
             ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.CommandId;
-
-            PacketAccessAttribute? accessAttr = method.GetCustomAttribute<PacketAccessAttribute>();
-            bool hasAccessLevel = accessAttr != null;
-            AccessLevel level = hasAccessLevel && accessAttr != null ? accessAttr.Level : default;
-
-            Func<object?, IPacket, IConnection, Task> value = GetHandler(returnType);
 
             if (PacketHandlers.ContainsKey(commandId))
             {
-                throw new InvalidOperationException(
-                    $"CommandId {commandId} is already registered by another handler.");
+                _logger?.Error($"[WithHandler] CommandId {commandId} is already registered.");
+                throw new InvalidOperationException($"CommandId {commandId} is already registered.");
             }
 
             async Task Handler(IPacket packet, IConnection connection)
             {
-                Stopwatch? stopwatch = null;
+                Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
-                if (hasAccessLevel && level > connection.Authority)
+                if (method.GetCustomAttribute<PacketAccessAttribute>() is { } accessAttr &&
+                    accessAttr.Level > connection.Authority)
                 {
-                    _logger?.Warn(
-                        $"Unauthorized access to CommandId: {commandId} from {connection.RemoteEndPoint}");
+                    _logger?.Warn($"[WithHandler] Unauthorized access to CommandId: {commandId} from {connection.RemoteEndPoint}");
                     return;
                 }
 
                 try
                 {
-                    if (IsMetricsEnabled)
-                    {
-                        stopwatch = Stopwatch.StartNew();
-                    }
+                    packet = ProcessPacketFlag("Compression", packet, PacketFlags.IsCompressed, _decompressionMethod, connection);
+                    packet = ProcessPacketFlag("Encryption", packet, PacketFlags.IsEncrypted, _decryptionMethod, connection);
 
-                    TController controller = controllerInstance;
-                    object? result;
+                    object? result = method.Invoke(controllerInstance, [packet, connection]);
 
-                    try
-                    {
-                        packet = ProcessPacketFlag("Compression", packet,
-                            PacketFlags.IsCompressed, _decompressionMethod, connection);
-
-                        packet = ProcessPacketFlag("Encryption", packet,
-                            PacketFlags.IsEncrypted, _decryptionMethod, connection);
-
-                        result = method.Invoke(controller, [packet, connection]);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InternalErrorException($"Error invoking handler for CommandId: {commandId}", ex);
-                    }
-
-                    await value(result, packet, connection);
+                    await GetHandler(method.ReturnType)(result, packet, connection);
                 }
                 catch (Exception ex)
                 {
-                    if (ErrorHandler is not null) ErrorHandler(ex, commandId);
-                    else _logger?.Error($"Unhandled exception in CommandId {commandId}", ex);
+                    _logger?.Error($"[WithHandler] Exception in {controllerName}.{method.Name}: {ex.Message}");
+                    ErrorHandler?.Invoke(ex, commandId);
                 }
                 finally
                 {
-                    if (stopwatch != null)
+                    stopwatch?.Stop();
+                    if (stopwatch is not null)
                     {
-                        stopwatch.Stop();
-                        MetricsCallback?.Invoke(
-                            $"{typeof(TController).Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
+                        MetricsCallback?.Invoke($"{controllerName}.{method.Name}", stopwatch.ElapsedMilliseconds);
                     }
                 }
             }
@@ -173,10 +154,12 @@ public sealed partial class PacketDispatcherOptions
         }
 
         _logger?.Info(
-            $"Registered {typeof(TController).Name} for CommandIds: {string.Join(", ", registeredCommandIds)}");
+            $"[WithHandler] Registered {controllerName} for " +
+            $"CommandIds: {string.Join(", ", registeredCommandIds)}");
 
         return this;
     }
+
 
     /// <summary>
     /// Attempts to retrieve a registered packet handler for the specified command ID.
