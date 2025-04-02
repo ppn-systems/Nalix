@@ -147,7 +147,7 @@ public sealed class ReliableDispatcher : IReliableDispatcher
             }
 
             // Build new one-shot array excluding the ones already invoked
-            OneShot[] newOneShots = [.. current.OneShots.Where((os, idx) => !matchedIndexes.Contains(idx))];
+            OneShot[] newOneShots = [.. current.OneShots.Where((_, idx) => !matchedIndexes.Contains(idx))];
             Handlers newHandlers = new(current.Persistent, newOneShots);
             updated = _map.TryUpdate(t, newHandlers, current);
         } while (!updated);

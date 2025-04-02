@@ -12,6 +12,7 @@ namespace Nalix.Framework.Random.Core;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static partial class OsCsprng
 {
     #region Fields
