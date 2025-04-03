@@ -57,4 +57,15 @@ public sealed class PacketCommandAttribute : Attribute
 
         Command = Convert.ToUInt16(enumCommand);
     }
+
+    /// <summary>
+    /// Creates a PacketCommandAttribute with a command from an enum with ushort as underlying type.
+    /// </summary>
+    public static PacketCommandAttribute Create<TEnum>(TEnum command) where TEnum : struct, Enum
+    {
+        if (Enum.GetUnderlyingType(typeof(TEnum)) != typeof(ushort))
+            throw new ArgumentException("Enum must have ushort as underlying type.", nameof(command));
+
+        return new PacketCommandAttribute(Convert.ToUInt16(command));
+    }
 }

@@ -1,5 +1,6 @@
 using Notio.Common.Logging;
 using Notio.Network.Dispatcher.Options;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Notio.Network.Dispatcher;
 
@@ -23,6 +24,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : class
     /// with the specified configuration options.
     /// </summary>
     /// <param name="options">An existing <see cref="PacketDispatcherOptions{TPacket}"/> instance.</param>
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     protected PacketDispatcherBase(PacketDispatcherOptions<TPacket> options)
         => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
 

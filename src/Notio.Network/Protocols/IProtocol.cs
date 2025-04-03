@@ -6,7 +6,7 @@ namespace Notio.Network.Protocols;
 
 /// <summary>
 /// Interface representing a network protocol.
-/// Implement this interface to define how a network protocol handles connections and messages.
+/// Implemention this interface to define how a network protocol handles connections and messages.
 /// </summary>
 public interface IProtocol
 {

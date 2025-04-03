@@ -5,7 +5,7 @@ using Notio.Defaults;
 using Notio.Utilities;
 using System;
 
-namespace Notio.Network.Dispatcher.Implement;
+namespace Notio.Network.Dispatcher.Implemention;
 
 internal static class PacketSender
 {
