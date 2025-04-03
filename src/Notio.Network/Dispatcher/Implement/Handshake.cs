@@ -40,7 +40,8 @@ public class Handshake
     /// </summary>
     /// <param name="packet">The incoming packet containing the client's public key.</param>
     /// <param name="connection">The connection to the client.</param>
-    [PacketAccess(AccessLevel.Guest)]
+    [PacketPermission(PermissionLevel.Guest)]
+    [PacketCommand()]
     public void InitiateSecureConnection(IPacket packet, IConnection connection)
     {
         string address = connection.RemoteEndPoint;
@@ -82,7 +83,7 @@ public class Handshake
             if (PacketSender.BinaryPacket(connection, publicKey, 1))
             {
                 // Elevate the client's access level
-                connection.Authority = AccessLevel.User;
+                connection.Authority = PermissionLevel.User;
                 _logger?.Info($"Secure connection initiated successfully for connection {address}");
             }
             else

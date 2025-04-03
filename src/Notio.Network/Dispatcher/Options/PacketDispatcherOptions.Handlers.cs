@@ -91,7 +91,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
         }
 
         IEnumerable<ushort> duplicateCommandIds = methods
-            .GroupBy(m => m.GetCustomAttribute<PacketCommandAttribute>()!.CommandId)
+            .GroupBy(m => m.GetCustomAttribute<PacketCommandAttribute>()!.Command)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);
 
@@ -108,7 +108,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
 
         foreach (MethodInfo method in methods)
         {
-            ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.CommandId;
+            ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.Command;
 
             if (PacketHandlers.ContainsKey(commandId))
             {
@@ -122,7 +122,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
             {
                 Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
-                if (method.GetCustomAttribute<PacketAccessAttribute>() is { } accessAttr &&
+                if (method.GetCustomAttribute<PacketPermissionAttribute>() is { } accessAttr &&
                     accessAttr.Level > connection.Authority)
                 {
                     _logger?.Warn(string.Format(
@@ -208,11 +208,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     {
         if (PacketHandlers.TryGetValue(commandId, out handler))
         {
-            Logger?.Debug($"Handler found for CommandId: {commandId}");
+            Logger?.Debug($"Handler found for Command: {commandId}");
             return true;
         }
 
-        Logger?.Warn($"No handler found for CommandId: {commandId}");
+        Logger?.Warn($"No handler found for Command: {commandId}");
         return false;
     }
 

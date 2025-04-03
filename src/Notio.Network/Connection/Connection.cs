@@ -108,7 +108,7 @@ public sealed class Connection : IConnection
         => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
-    public AccessLevel Authority { get; set; } = AccessLevel.Guest;
+    public PermissionLevel Authority { get; set; } = PermissionLevel.Guest;
 
     /// <inheritdoc />
     public EncryptionMode Mode { get; set; } = EncryptionMode.XTEA;

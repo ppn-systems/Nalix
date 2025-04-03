@@ -63,7 +63,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
 
         if (Options.TryGetPacketHandler(commandId, out var handler))
         {
-            Logger?.Debug($"Invoking handler for CommandId: {commandId}");
+            Logger?.Debug($"Invoking handler for Command: {commandId}");
 
             try
             {
@@ -71,12 +71,12 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             }
             catch (Exception ex)
             {
-                Logger?.Error($"Error handling packet with CommandId {commandId}: {ex.Message}", ex);
+                Logger?.Error($"Error handling packet with Command {commandId}: {ex.Message}", ex);
             }
         }
         else
         {
-            Logger?.Warn($"No handler found for CommandId {commandId}");
+            Logger?.Warn($"No handler found for Command {commandId}");
         }
     }
 }
