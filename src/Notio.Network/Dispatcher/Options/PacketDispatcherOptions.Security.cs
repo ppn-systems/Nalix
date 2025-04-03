@@ -1,22 +1,19 @@
 using Notio.Common.Connection;
-using Notio.Common.Package;
 using System;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     /// <summary>
     /// Configures a type-specific packet encryption method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for encryption.</typeparam>
     /// <param name="encryptionMethod">
     /// A function that encrypts a packet of type <typeparamref name="TPacket"/> before sending.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions WithTypedEncryption<TPacket>(
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithTypedEncryption(
         Func<TPacket, IConnection, TPacket> encryptionMethod)
-        where TPacket : IPacket
     {
         if (encryptionMethod is not null)
         {
@@ -34,15 +31,13 @@ public sealed partial class PacketDispatcherOptions
     /// <summary>
     /// Configures a type-specific packet decryption method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for decryption.</typeparam>
     /// <param name="decryptionMethod">
     /// A function that decrypts a packet of type <typeparamref name="TPacket"/> before processing.
     /// The function receives the packet and connection context, and returns the decrypted packet.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions WithTypedDecryption<TPacket>(
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithTypedDecryption(
         Func<TPacket, IConnection, TPacket> decryptionMethod)
-        where TPacket : IPacket
     {
         if (decryptionMethod is not null)
         {

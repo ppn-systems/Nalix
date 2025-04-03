@@ -6,15 +6,15 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
 /// <summary>
-/// Provides configuration options for an instance of <see cref="PacketDispatcher"/>.
+/// Provides configuration options for an instance of <see cref="PacketDispatcher{TPacket}"/>.
 /// </summary>
 /// <remarks>
 /// This class allows registering packet handlers, configuring logging, and defining error-handling strategies.
 /// </remarks>
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     #region Const
 
@@ -28,11 +28,11 @@ public sealed partial class PacketDispatcherOptions
 
     private ILogger? _logger;
 
-    private Func<IPacket, IConnection, IPacket>? _encryptionMethod;
-    private Func<IPacket, IConnection, IPacket>? _decryptionMethod;
+    private Func<TPacket, IConnection, TPacket>? _encryptionMethod;
+    private Func<TPacket, IConnection, TPacket>? _decryptionMethod;
 
-    private Func<IPacket, IConnection, IPacket>? _compressionMethod;
-    private Func<IPacket, IConnection, IPacket>? _decompressionMethod;
+    private Func<TPacket, IConnection, TPacket>? _compressionMethod;
+    private Func<TPacket, IConnection, TPacket>? _decompressionMethod;
 
     /// <summary>
     /// Indicates whether metrics tracking is enabled.
@@ -62,7 +62,7 @@ public sealed partial class PacketDispatcherOptions
     /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
     /// for transmission over the network or for storage.
     /// </remarks>
-    private Func<IPacket, Memory<byte>>? SerializationMethod;
+    private Func<TPacket, Memory<byte>>? SerializationMethod;
 
     /// <summary>
     /// A function that deserializes a <see cref="Memory{Byte}"/> into an <see cref="IPacket"/>.
@@ -71,12 +71,12 @@ public sealed partial class PacketDispatcherOptions
     /// This function is responsible for converting the byte array received over the network or from storage
     /// back into an <see cref="IPacket"/> object for further processing.
     /// </remarks>
-    private Func<ReadOnlyMemory<byte>, IPacket>? DeserializationMethod;
+    private Func<ReadOnlyMemory<byte>, TPacket>? DeserializationMethod;
 
     /// <summary>
     /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
     /// </summary>
-    private readonly Dictionary<ushort, Func<IPacket, IConnection, Task>> PacketHandlers = [];
+    private readonly Dictionary<ushort, Func<TPacket, IConnection, Task>> PacketHandlers = [];
 
     /// <summary>
     /// The logger instance used for logging.
@@ -101,7 +101,7 @@ public sealed partial class PacketDispatcherOptions
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatcherOptions"/> class.
+    /// Initializes a new instance of the <see cref="PacketDispatcherOptions{TPacket}"/> class.
     /// </summary>
     /// <remarks>
     /// The constructor sets up the default packet handler methods and initializes the dictionary

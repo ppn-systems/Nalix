@@ -2,9 +2,10 @@ using Notio.Common.Connection;
 using Notio.Common.Package;
 using Notio.Common.Package.Metadata;
 using Notio.Defaults;
+using Notio.Utilities;
 using System;
 
-namespace Notio.Network.PacketProcessing.Implement;
+namespace Notio.Network.Dispatcher.Implement;
 
 internal static class PacketSender
 {
@@ -38,7 +39,7 @@ internal static class PacketSender
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
     private static bool SendPacket(IConnection connection, byte[] payload, PacketType packetType, short command)
     {
-        ulong timestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        ulong timestamp = MicrosecondClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
         byte[] packet = new byte[totalLength];
 

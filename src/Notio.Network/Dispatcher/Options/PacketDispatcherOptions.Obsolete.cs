@@ -2,9 +2,9 @@ using Notio.Common.Connection;
 using Notio.Common.Package;
 using System;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     /// <summary>
     /// Configures packet compression and decompression for the packet dispatcher.
@@ -24,13 +24,13 @@ public sealed partial class PacketDispatcherOptions
     /// compression or decompression step will be skipped.
     /// </remarks>
     /// <returns>
-    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     [Obsolete("Use WithTypedCompression and WithTypedDecompression for type-specific compression.")]
-    public PacketDispatcherOptions WithPacketCompression
+    public PacketDispatcherOptions<TPacket> WithPacketCompression
     (
-        Func<IPacket, IConnection, IPacket>? compressionMethod,
-        Func<IPacket, IConnection, IPacket>? decompressionMethod
+        Func<TPacket, IConnection, TPacket>? compressionMethod,
+        Func<TPacket, IConnection, TPacket>? decompressionMethod
     )
     {
         if (compressionMethod is not null) _compressionMethod = compressionMethod;
@@ -58,13 +58,13 @@ public sealed partial class PacketDispatcherOptions
     /// Ensure that the encryption and decryption functions are compatible with the packet's structure.
     /// </remarks>
     /// <returns>
-    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     [Obsolete("Use WithTypedEncryption and WithTypedDecryption for type-specific encryption.")]
-    public PacketDispatcherOptions WithPacketCrypto
+    public PacketDispatcherOptions<TPacket> WithPacketCrypto
     (
-        Func<IPacket, IConnection, IPacket>? encryptionMethod,
-        Func<IPacket, IConnection, IPacket>? decryptionMethod
+        Func<TPacket, IConnection, TPacket>? encryptionMethod,
+        Func<TPacket, IConnection, TPacket>? decryptionMethod
     )
     {
         if (encryptionMethod is not null) _encryptionMethod = encryptionMethod;
@@ -84,16 +84,16 @@ public sealed partial class PacketDispatcherOptions
     /// A function that deserializes a <see cref="Memory{Byte}"/> back into an <see cref="IPacket"/>.
     /// </param>
     /// <returns>
-    /// The current <see cref="PacketDispatcherOptions"/> instance for method chaining.
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
     /// This method allows customizing how packets are serialized before sending and deserialized upon receiving.
     /// </remarks>
     [Obsolete("Use WithTypedSerializer and WithTypedDeserializer for type-specific serialization.")]
-    public PacketDispatcherOptions WithPacketSerialization
+    public PacketDispatcherOptions<TPacket> WithPacketSerialization
     (
-        Func<IPacket, Memory<byte>>? serializationMethod,
-        Func<ReadOnlyMemory<byte>, IPacket>? deserializationMethod
+        Func<TPacket, Memory<byte>>? serializationMethod,
+        Func<ReadOnlyMemory<byte>, TPacket>? deserializationMethod
     )
     {
         if (serializationMethod is not null) SerializationMethod = serializationMethod;

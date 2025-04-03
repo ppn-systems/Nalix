@@ -2,21 +2,19 @@ using Notio.Common.Connection;
 using Notio.Common.Package;
 using System;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     /// <summary>
     /// Configures a type-specific packet compression method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for compression.</typeparam>
     /// <param name="compressionMethod">
     /// A function that compresses a packet of type <typeparamref name="TPacket"/> before sending.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions WithTypedCompression<TPacket>(
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithTypedCompression(
         Func<TPacket, IConnection, TPacket> compressionMethod)
-        where TPacket : IPacket
     {
         if (compressionMethod is not null)
         {
@@ -34,14 +32,12 @@ public sealed partial class PacketDispatcherOptions
     /// <summary>
     /// Configures a type-specific packet decompression method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for decompression.</typeparam>
     /// <param name="decompressionMethod">
     /// A function that decompresses a packet of type <typeparamref name="TPacket"/> before processing.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions WithTypedDecompression<TPacket>(
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithTypedDecompression(
         Func<TPacket, IConnection, TPacket> decompressionMethod)
-        where TPacket : IPacket
     {
         if (decompressionMethod is not null)
         {
@@ -59,12 +55,10 @@ public sealed partial class PacketDispatcherOptions
     /// <summary>
     /// Configures a type-specific packet serialization method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for serialization.</typeparam>
     /// <param name="serializer">A strongly-typed function that serializes a packet of type <typeparamref name="TPacket"/> into a <see cref="Memory{Byte}"/>.</param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions WithTypedSerializer<TPacket>(
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithTypedSerializer(
         Func<TPacket, Memory<byte>> serializer)
-        where TPacket : IPacket
     {
         ArgumentNullException.ThrowIfNull(serializer);
 
@@ -84,16 +78,13 @@ public sealed partial class PacketDispatcherOptions
     /// <summary>
     /// Configures a type-specific packet deserialization method.
     /// </summary>
-    /// <typeparam name="TPacket">The specific packet type for deserialization.</typeparam>
     /// <param name="deserializer">A strongly-typed function that deserializes a <see cref="ReadOnlyMemory{Byte}"/> into a packet of type <typeparamref name="TPacket"/>.</param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if deserializer is null.</exception>
     /// <remarks>
     /// This method provides type safety by ensuring the deserialization process returns the expected packet type.
     /// </remarks>
-    public PacketDispatcherOptions WithTypedDeserializer<TPacket>(
-        Func<ReadOnlyMemory<byte>, TPacket> deserializer)
-        where TPacket : IPacket
+    public PacketDispatcherOptions<TPacket> WithTypedDeserializer(Func<ReadOnlyMemory<byte>, TPacket> deserializer)
     {
         ArgumentNullException.ThrowIfNull(deserializer);
 
@@ -114,7 +105,7 @@ public sealed partial class PacketDispatcherOptions
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    public IPacket Deserialization(byte[]? bytes)
+    public TPacket Deserialization(byte[]? bytes)
     {
         if (this.DeserializationMethod is null)
         {
@@ -142,7 +133,7 @@ public sealed partial class PacketDispatcherOptions
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    public IPacket Deserialization(ReadOnlyMemory<byte>? bytes)
+    public TPacket Deserialization(ReadOnlyMemory<byte>? bytes)
     {
         if (this.DeserializationMethod is null)
         {
@@ -169,7 +160,7 @@ public sealed partial class PacketDispatcherOptions
     /// <exception cref="InvalidOperationException">
     /// Thrown when the <see cref="SerializationMethod"/> is not set.
     /// </exception>
-    public Memory<byte> Serialization(IPacket packet)
+    public Memory<byte> Serialization(TPacket packet)
     {
         if (this.SerializationMethod is null)
         {

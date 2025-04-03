@@ -7,7 +7,7 @@ using Notio.Common.Package;
 using Notio.Common.Security;
 using System;
 
-namespace Notio.Network.PacketProcessing.Implement;
+namespace Notio.Network.Dispatcher.Implement;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISha.

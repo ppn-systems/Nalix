@@ -1,7 +1,6 @@
 using Notio.Common.Connection;
-using Notio.Common.Package;
 
-namespace Notio.Network.PacketProcessing;
+namespace Notio.Network.Dispatcher;
 
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.
@@ -10,7 +9,7 @@ namespace Notio.Network.PacketProcessing;
 /// Implementations of this interface are responsible for processing incoming packets
 /// and handling them appropriately based on their content and associated connection.
 /// </remarks>
-public interface IPacketDispatcher
+public interface IPacketDispatcher<TPacket> where TPacket : class
 {
     /// <summary>
     /// Handles the incoming byte array packet and processes it using the specified connection.
@@ -43,5 +42,5 @@ public interface IPacketDispatcher
     /// Implementations should determine the appropriate action based on the packet's command ID
     /// and perform the necessary processing using the provided connection.
     /// </remarks>
-    System.Threading.Tasks.Task HandlePacket(IPacket? packet, IConnection connection);
+    System.Threading.Tasks.Task HandlePacket(TPacket? packet, IConnection connection);
 }

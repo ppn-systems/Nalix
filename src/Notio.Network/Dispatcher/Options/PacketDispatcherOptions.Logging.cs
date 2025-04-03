@@ -1,16 +1,16 @@
 using Notio.Common.Logging;
 using System;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     /// <summary>
     /// Enables metrics tracking and sets the callback function for reporting execution times.
     /// </summary>
     /// <param name="metricsCallback">The callback function receiving the handler name and execution time in milliseconds.</param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
-    public PacketDispatcherOptions WithMetrics(Action<string, long> metricsCallback)
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithMetrics(Action<string, long> metricsCallback)
     {
         IsMetricsEnabled = true;
         MetricsCallback = metricsCallback;
@@ -22,8 +22,8 @@ public sealed partial class PacketDispatcherOptions
     /// Configures logging for the packet dispatcher.
     /// </summary>
     /// <param name="logger">The logger instance to use.</param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
-    public PacketDispatcherOptions WithLogging(ILogger logger)
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithLogging(ILogger logger)
     {
         _logger = logger;
         _logger.Debug("Logging configured.");
@@ -34,8 +34,8 @@ public sealed partial class PacketDispatcherOptions
     /// Configures a custom error handler for exceptions occurring during packet processing.
     /// </summary>
     /// <param name="errorHandler">The error handler action.</param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
-    public PacketDispatcherOptions WithErrorHandler(Action<Exception, ushort> errorHandler)
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
+    public PacketDispatcherOptions<TPacket> WithErrorHandler(Action<Exception, ushort> errorHandler)
     {
         ErrorHandler = errorHandler;
         _logger?.Debug("Error handler configured.");

@@ -9,9 +9,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Notio.Network.PacketProcessing.Options;
+namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
 {
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
@@ -21,11 +21,11 @@ public sealed partial class PacketDispatcherOptions
     /// The type of the controller to register. 
     /// This type must have a parameterless constructor.
     /// </typeparam>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
-    public PacketDispatcherOptions WithHandler<[DynamicallyAccessedMembers(RequiredMembers)] TController>()
+    public PacketDispatcherOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(RequiredMembers)] TController>()
         where TController : class, new()
         => WithHandler(() => new TController());
 
@@ -39,12 +39,12 @@ public sealed partial class PacketDispatcherOptions
     /// An existing instance of <typeparamref name="TController"/>.
     /// </param>
     /// <returns>
-    /// The current <see cref="PacketDispatcherOptions"/> instance for chaining.
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.
     /// </returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="instance"/> is null.
     /// </exception>
-    public PacketDispatcherOptions WithHandler<
+    public PacketDispatcherOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
         (TController instance) where TController : class
         => WithHandler(() => EnsureNotNull(instance, nameof(instance)));
@@ -61,18 +61,18 @@ public sealed partial class PacketDispatcherOptions
     /// <param name="factory">
     /// A function that returns an instance of <typeparamref name="TController"/>.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions"/> instance for chaining.</returns>
+    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
-    public PacketDispatcherOptions WithHandler<
+    public PacketDispatcherOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
         (Func<TController> factory) where TController : class
     {
         Type controllerType = typeof(TController);
-        PacketControllerAttribute controllerAttr = controllerType
-            .GetCustomAttribute<PacketControllerAttribute>() ?? throw new InvalidOperationException(
-                $"Controller {controllerType.Name} must be marked with [PacketController].");
+        PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
+            ?? throw new InvalidOperationException(
+                string.Format(Messages.MissingControllerAttribute, controllerType.Name));
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
@@ -84,9 +84,10 @@ public sealed partial class PacketDispatcherOptions
 
         if (methods.Count == 0)
         {
-            _logger?.Warn($"[WithHandler] No methods found with [PacketCommand] in {controllerName}.");
-            throw new InvalidOperationException(
-                $"No methods found with [PacketCommand] in {controllerName}.");
+            string message = string.Format(Messages.NoMethodsWithPacketCommand, controllerType.Name);
+
+            _logger?.Warn(message);
+            throw new InvalidOperationException(message);
         }
 
         IEnumerable<ushort> duplicateCommandIds = methods
@@ -96,10 +97,11 @@ public sealed partial class PacketDispatcherOptions
 
         if (duplicateCommandIds.Any())
         {
-            _logger?.Error($"[WithHandler] Duplicate CommandIds in {controllerName}: " +
-                $"{string.Join(", ", duplicateCommandIds)}");
-            throw new InvalidOperationException(
-                $"Duplicate CommandIds found in {controllerName}: {string.Join(", ", duplicateCommandIds)}");
+            string message = string.Format(
+                Messages.DuplicateCommandIds, controllerName, string.Join(", ", duplicateCommandIds));
+
+            _logger?.Error(message);
+            throw new InvalidOperationException(message);
         }
 
         List<ushort> registeredCommandIds = [];
@@ -110,25 +112,34 @@ public sealed partial class PacketDispatcherOptions
 
             if (PacketHandlers.ContainsKey(commandId))
             {
-                _logger?.Error($"[WithHandler] CommandId {commandId} is already registered.");
-                throw new InvalidOperationException($"CommandId {commandId} is already registered.");
+                string message = string.Format(Messages.CommandIdAlreadyRegistered, commandId);
+
+                _logger?.Error(message);
+                throw new InvalidOperationException(message);
             }
 
-            async Task Handler(IPacket packet, IConnection connection)
+            async Task Handler(TPacket packet, IConnection connection)
             {
                 Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
                 if (method.GetCustomAttribute<PacketAccessAttribute>() is { } accessAttr &&
                     accessAttr.Level > connection.Authority)
                 {
-                    _logger?.Warn($"[WithHandler] Unauthorized access to CommandId: {commandId} from {connection.RemoteEndPoint}");
+                    _logger?.Warn(string.Format(
+                        Messages.UnauthorizedCommandAccess,
+                        commandId, connection.RemoteEndPoint));
                     return;
                 }
 
                 try
                 {
-                    packet = ProcessPacketFlag("Compression", packet, PacketFlags.IsCompressed, _decompressionMethod, connection);
-                    packet = ProcessPacketFlag("Encryption", packet, PacketFlags.IsEncrypted, _decryptionMethod, connection);
+                    packet = ProcessPacketFlag(
+                        "Compression", packet, PacketFlags.IsCompressed,
+                        _decompressionMethod, connection);
+
+                    packet = ProcessPacketFlag(
+                        "Encryption", packet, PacketFlags.IsEncrypted,
+                        _decryptionMethod, connection);
 
                     object? result = method.Invoke(controllerInstance, [packet, connection]);
 
@@ -136,7 +147,9 @@ public sealed partial class PacketDispatcherOptions
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error($"[WithHandler] Exception in {controllerName}.{method.Name}: {ex.Message}");
+                    _logger?.Error(string.Format(
+                        Messages.CommandHandlerException,
+                        controllerName, method.Name, ex.Message));
                     ErrorHandler?.Invoke(ex, commandId);
                 }
                 finally
@@ -153,9 +166,10 @@ public sealed partial class PacketDispatcherOptions
             registeredCommandIds.Add(commandId);
         }
 
-        _logger?.Info(
-            $"[WithHandler] Registered {controllerName} for " +
-            $"CommandIds: {string.Join(", ", registeredCommandIds)}");
+        _logger?.Info(string.Format(
+            Messages.RegisteredCommandForHandler,
+            controllerName,
+            string.Join(", ", registeredCommandIds)));
 
         return this;
     }
@@ -190,7 +204,7 @@ public sealed partial class PacketDispatcherOptions
     /// }
     /// </code>
     /// </example>
-    public bool TryGetPacketHandler(ushort commandId, out Func<IPacket, IConnection, Task>? handler)
+    public bool TryGetPacketHandler(ushort commandId, out Func<TPacket, IConnection, Task>? handler)
     {
         if (PacketHandlers.TryGetValue(commandId, out handler))
         {
@@ -207,7 +221,7 @@ public sealed partial class PacketDispatcherOptions
     /// <summary>
     /// Determines the correct handler based on the method's return type.
     /// </summary>
-    private Func<object?, IPacket, IConnection, Task> GetHandler(Type returnType) => returnType switch
+    private Func<object?, TPacket, IConnection, Task> GetHandler(Type returnType) => returnType switch
     {
         Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
         Type t when t == typeof(byte[]) => async (result, _, connection) =>
@@ -216,9 +230,9 @@ public sealed partial class PacketDispatcherOptions
                 await connection.SendAsync(data);
         }
         ,
-        Type t when t == typeof(IPacket) => async (result, _, connection) =>
+        Type t when t == typeof(TPacket) => async (result, _, connection) =>
         {
-            if (result is IPacket packet)
+            if (result is TPacket packet)
                 await SendPacketAsync(packet, connection);
         }
         ,
@@ -253,13 +267,13 @@ public sealed partial class PacketDispatcherOptions
             }
         }
         ,
-        Type t when t == typeof(ValueTask<IPacket>) => async (result, _, connection) =>
+        Type t when t == typeof(ValueTask<TPacket>) => async (result, _, connection) =>
         {
-            if (result is ValueTask<IPacket> task)
+            if (result is ValueTask<TPacket> task)
             {
                 try
                 {
-                    IPacket packet = await task;
+                    TPacket packet = await task;
                     await SendPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
@@ -300,13 +314,13 @@ public sealed partial class PacketDispatcherOptions
             }
         }
         ,
-        Type t when t == typeof(Task<IPacket>) => async (result, _, connection) =>
+        Type t when t == typeof(Task<TPacket>) => async (result, _, connection) =>
         {
-            if (result is Task<IPacket> task)
+            if (result is Task<TPacket> task)
             {
                 try
                 {
-                    IPacket packet = await task;
+                    TPacket packet = await task;
                     await SendPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
@@ -322,7 +336,7 @@ public sealed partial class PacketDispatcherOptions
     private static T EnsureNotNull<T>(T value, string paramName)
         where T : class => value ?? throw new ArgumentNullException(paramName);
 
-    private async Task SendPacketAsync(IPacket packet, IConnection connection)
+    private async Task SendPacketAsync(TPacket packet, IConnection connection)
     {
         if (SerializationMethod is null)
         {
@@ -339,14 +353,14 @@ public sealed partial class PacketDispatcherOptions
         await connection.SendAsync(SerializationMethod(packet));
     }
 
-    private IPacket ProcessPacketFlag(
+    private TPacket ProcessPacketFlag(
         string methodName,
-        IPacket packet,
+        TPacket packet,
         PacketFlags flag,
-        Func<IPacket, IConnection, IPacket>? method,
+        Func<TPacket, IConnection, TPacket>? method,
         IConnection context)
     {
-        if (!((packet.Flags & flag) == flag))
+        if (packet is not IPacket ipacket || (ipacket.Flags & flag) != flag)
             return packet;
 
         if (method is null)
