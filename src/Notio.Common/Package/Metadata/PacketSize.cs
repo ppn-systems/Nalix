@@ -11,7 +11,7 @@ public static class PacketSize
     public const int Length = sizeof(ushort);
 
     /// <summary>
-    /// The size of the Id field in the packet header, in bytes.
+    /// The size of the Number field in the packet header, in bytes.
     /// </summary>
     public const int Id = sizeof(ushort);
 
@@ -31,7 +31,7 @@ public static class PacketSize
     public const int Priority = sizeof(byte);
 
     /// <summary>
-    /// The size of the Command field in the packet header, in bytes.
+    /// The size of the Id field in the packet header, in bytes.
     /// </summary>
     public const int Command = sizeof(ushort);
 

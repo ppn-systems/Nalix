@@ -29,7 +29,7 @@ public static class PacketVerifier
     /// <param name="packet">The packet to verify.</param>
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     public static bool IsValidChecksum(in Packet packet)
-        => packet.Checksum == Crc32.HashToUInt32(packet.Payload.Span);
+        => packet.Checksum == Crc32.Compute(packet.Payload.Span);
 
     /// <summary>
     /// Verifies if the checksum in the byte array packet matches the computed checksum from its payload.
@@ -38,7 +38,7 @@ public static class PacketVerifier
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     public static bool IsValidChecksum(byte[] packet)
         => BitConverter.ToUInt32(packet, PacketOffset.Checksum)
-        == Crc32.HashToUInt32(packet[PacketOffset.Payload..]);
+        == Crc32.Compute(packet[PacketOffset.Payload..]);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)

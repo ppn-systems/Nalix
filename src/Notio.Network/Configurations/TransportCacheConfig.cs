@@ -6,7 +6,7 @@ namespace Notio.Network.Configurations;
 /// Represents the configuration settings for caching in the network layer.
 /// This class defines the limits for outgoing and incoming cache sizes.
 /// </summary>
-public sealed class CacheConfig : ConfigurationBinder
+public sealed class TransportCacheConfig : ConfigurationBinder
 {
     /// <summary>
     /// Gets or sets the maximum number of outgoing cache entries.

@@ -20,7 +20,7 @@ namespace Notio.Network.Package;
 /// This high-performance struct is optimized for efficient serialization and transmission.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-[DebuggerDisplay("Packet {Id}: Type={Type}, Command={Command}, Length={Length}")]
+[DebuggerDisplay("Packet {Number}: Type={Type}, Id={Id}, Length={Length}")]
 public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
 {
     #region Constants
@@ -42,7 +42,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <summary>
     /// Gets the packet identifier, which is a unique identifier for this packet instance.
     /// </summary>
-    public byte Id { get; }
+    public byte Number { get; }
 
     /// <summary>
     /// Gets the packet type, which specifies the kind of packet.
@@ -62,7 +62,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <summary>
     /// Gets the command associated with the packet, which specifies an operation type.
     /// </summary>
-    public ushort Command { get; }
+    public ushort Id { get; }
 
     /// <summary>
     /// Gets the timestamp when the packet was created in microseconds since system startup.
@@ -256,10 +256,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         }
 
         // Initialize fields
-        Id = id == 0 ? (byte)(timestamp % byte.MaxValue) : id;
+        Number = id == 0 ? (byte)(timestamp % byte.MaxValue) : id;
         Type = type;
         Flags = flags;
-        Command = command;
+        Id = command;
         Priority = priority;
         Timestamp = timestamp;
 
@@ -267,7 +267,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         Payload = MemoryAllocator.Allocate(payload);
 
         // Compute checksum only if needed
-        Checksum = computeChecksum ? Crc32.HashToUInt32(Payload.Span) : checksum;
+        Checksum = computeChecksum ? Crc32.Compute(Payload.Span) : checksum;
     }
 
     #endregion
@@ -279,7 +279,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     /// <returns>True if the checksum is valid; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsValid() => Crc32.HashToUInt32(Payload.Span) == Checksum;
+    public bool IsValid() => Crc32.Compute(Payload.Span) == Checksum;
 
     /// <summary>
     /// Determines if the packet has expired based on the provided timeout.
@@ -311,7 +311,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>A new packet with the updated flags.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithFlags(PacketFlags newFlags) =>
-        new(Id, Type, newFlags, Priority, Command, Timestamp, Checksum, Payload);
+        new(Number, Type, newFlags, Priority, Id, Timestamp, Checksum, Payload);
 
     /// <summary>
     /// Creates a new packet that is a copy of this one but with a new payload.
@@ -320,7 +320,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>A new packet with the same metadata but different payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithPayload(Memory<byte> newPayload)
-        => new(Id, Type, Flags, Priority, Command, Timestamp, 0, newPayload, true);
+        => new(Number, Type, Flags, Priority, Id, Timestamp, 0, newPayload, true);
 
     #endregion
 
@@ -358,7 +358,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         // Initial hash with key fields
         int hash = (byte)Type;
         hash = (hash * 397) ^ (byte)Flags;
-        hash = (hash * 397) ^ (byte)Command;
+        hash = (hash * 397) ^ (byte)Id;
         hash = (hash * 397) ^ (byte)Priority;
 
         // For small payloads, use the full content
@@ -439,7 +439,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         // Quick field comparison first
         if (Type != other.Type ||
             Flags != other.Flags ||
-            Command != other.Command ||
+            Id != other.Id ||
             Priority != other.Priority ||
             Payload.Length != other.Payload.Length)
         {
@@ -463,7 +463,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public bool Equals(Packet other) =>
         Type == other.Type &&
         Flags == other.Flags &&
-        Command == other.Command &&
+        Id == other.Id &&
         Priority == other.Priority &&
         Payload.Length == other.Payload.Length &&
         Payload.Span.SequenceEqual(other.Payload.Span);
@@ -530,10 +530,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public string ToDetailedString()
     {
         StringBuilder sb = new();
-        sb.AppendLine($"Packet [{Id}]:");
+        sb.AppendLine($"Packet [{Number}]:");
         sb.AppendLine($"  Type: {(PacketType)Type}");
         sb.AppendLine($"  Flags: {(PacketFlags)Flags}");
-        sb.AppendLine($"  Command: 0x{Command:X4}");
+        sb.AppendLine($"  Id: 0x{Id:X4}");
         sb.AppendLine($"  Priority: {(PacketPriority)Priority}");
         sb.AppendLine($"  Timestamp: {Timestamp}");
         sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");
@@ -566,7 +566,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     /// <returns>A string that represents this packet.</returns>
     public override string ToString()
-        => $"Packet ID={Id}, Type={Type}, Command={Command}, " +
+        => $"Packet ID={Number}, Type={Type}, Id={Id}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
            $"Checksum={IsValid()}, Payload={Payload.Length} bytes, Size={Length} bytes";
 

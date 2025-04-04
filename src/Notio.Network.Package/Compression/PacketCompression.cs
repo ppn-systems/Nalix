@@ -34,8 +34,8 @@ public static class PacketCompression
         {
             byte[] compressedData = BrotliCompressor.Compress(packet.Payload);
 
-            return new Packet(packet.Id, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, compressedData);
+            return new Packet(packet.Number, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
+                packet.Priority, packet.Id, packet.Timestamp, packet.Checksum, compressedData);
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
@@ -65,8 +65,8 @@ public static class PacketCompression
         {
             byte[] decompressedData = BrotliCompressor.Decompress(packet.Payload);
 
-            return new Packet(packet.Id, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Command, packet.Timestamp, packet.Checksum, decompressedData);
+            return new Packet(packet.Number, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
+                packet.Priority, packet.Id, packet.Timestamp, packet.Checksum, decompressedData);
         }
         catch (InvalidDataException ex)
         {

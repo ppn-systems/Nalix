@@ -45,7 +45,7 @@ public class Handshake
     /// <param name="packet">The incoming packet containing the client's public key.</param>
     /// <param name="connection">The connection to the client that is requesting the handshake.</param>
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketCommand((ushort)ProtocolCommand.InitiateHandshake)]
+    [PacketId((ushort)ProtocolCommand.InitiateHandshake)]
     public void InitiateHandshake(IPacket packet, IConnection connection)
     {
         string address = connection.RemoteEndPoint;
@@ -111,7 +111,7 @@ public class Handshake
     /// <param name="packet">The incoming packet containing the client's public key for finalization.</param>
     /// <param name="connection">The connection to the client.</param>
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketCommand((ushort)ProtocolCommand.CompleteHandshake)]
+    [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
     public void CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).

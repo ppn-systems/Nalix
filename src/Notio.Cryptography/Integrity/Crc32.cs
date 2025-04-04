@@ -13,7 +13,14 @@ namespace Notio.Cryptography.Integrity;
 /// </summary>
 public static class Crc32
 {
+    private const uint Polynomial = 0xEDB88320;
     private const uint InitialValue = 0xFFFFFFFF;
+
+    /// <summary>
+    /// Precomputed lookup table for CRC-32/MODBUS polynomial (0x04C11DB7).
+    /// This table is used to speed up CRC-32 calculations.
+    /// </summary>
+    private static readonly uint[] Crc32LookupTable = Crc.GenerateTable32(Polynomial);
 
     /// <summary>
     /// Computes the CRC32 checksum for the specified range in the byte array.
@@ -25,7 +32,7 @@ public static class Crc32
     /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint HashToUInt32(byte[] bytes, int start, int length)
+    public static uint Compute(byte[] bytes, int start, int length)
     {
         ArgumentNullException.ThrowIfNull(bytes);
 
@@ -38,7 +45,7 @@ public static class Crc32
         if (length < 0 || start + length > bytes.Length)
             throw new ArgumentOutOfRangeException(nameof(length));
 
-        return HashToUInt32(bytes.AsSpan(start, length));
+        return Compute(bytes.AsSpan(start, length));
     }
 
     /// <summary>
@@ -47,21 +54,21 @@ public static class Crc32
     /// <param name="bytes">The input span of bytes.</param>
     /// <returns>The 32-bit CRC value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint HashToUInt32(ReadOnlySpan<byte> bytes)
+    public static uint Compute(ReadOnlySpan<byte> bytes)
     {
         // Use hardware acceleration if available
         if (Sse42.IsSupported && bytes.Length >= 16)
         {
-            return HashToUInt32Sse42(bytes);
+            return ComputeSse42(bytes);
         }
 
         // Use SIMD acceleration for larger inputs
         if (Vector.IsHardwareAccelerated && bytes.Length >= 32)
         {
-            return HashToUInt32Simd(bytes);
+            return ComputeSimd(bytes);
         }
 
-        return HashToUInt32Scalar(bytes);
+        return ComputeScalar(bytes);
     }
 
     /// <summary>
@@ -70,11 +77,21 @@ public static class Crc32
     /// <param name="bytes">The input byte array.</param>
     /// <returns>The 32-bit CRC value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint HashToUInt32(params byte[] bytes)
+    public static uint Compute(params byte[] bytes)
     {
         ArgumentNullException.ThrowIfNull(bytes);
-        return HashToUInt32(bytes.AsSpan());
+        return Compute(bytes.AsSpan());
     }
+
+    /// <summary>
+    /// Computes CRC32 for any unmanaged type data.
+    /// </summary>
+    /// <typeparam name="T">Any unmanaged data type.</typeparam>
+    /// <param name="data">The data to compute CRC32 for.</param>
+    /// <returns>The 32-bit CRC value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint Compute<T>(ReadOnlySpan<T> data) where T : unmanaged
+        => Compute(MemoryMarshal.AsBytes(data));
 
     /// <summary>
     /// Verifies if the data matches the expected CRC32 checksum.
@@ -84,23 +101,34 @@ public static class Crc32
     /// <returns>True if the CRC matches, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Verify(ReadOnlySpan<byte> data, uint expectedCrc)
-        => HashToUInt32(data) == expectedCrc;
+        => Compute(data) == expectedCrc;
 
     /// <summary>
-    /// Computes CRC32 for any unmanaged type data.
+    /// Process 8 bytes at once for better performance.
     /// </summary>
-    /// <typeparam name="T">Any unmanaged data type.</typeparam>
-    /// <param name="data">The data to compute CRC32 for.</param>
-    /// <returns>The 32-bit CRC value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint HashToUInt32<T>(ReadOnlySpan<T> data) where T : unmanaged
-        => HashToUInt32(MemoryMarshal.AsBytes(data));
+    private static uint ProcessOctet(uint crc, ReadOnlySpan<byte> octet)
+    {
+        ref byte data = ref MemoryMarshal.GetReference(octet);
+
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ data];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 1)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 2)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 3)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 4)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 5)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 6)];
+        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 7)];
+
+        return crc;
+    }
+
 
     /// <summary>
     /// Scalar implementation of CRC32 calculation.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint HashToUInt32Scalar(ReadOnlySpan<byte> bytes)
+    private static uint ComputeScalar(ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
 
@@ -118,7 +146,7 @@ public static class Crc32
             // Process remaining bytes
             for (int i = bytes.Length - remainder; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
             }
         }
         else
@@ -126,7 +154,7 @@ public static class Crc32
             // Simple loop for small inputs
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
             }
         }
 
@@ -134,29 +162,10 @@ public static class Crc32
     }
 
     /// <summary>
-    /// Process 8 bytes at once for better performance.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ProcessOctet(uint crc, ReadOnlySpan<byte> octet)
-    {
-        // Process 8 bytes in sequence with manually unrolled loop
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[0]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[1]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[2]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[3]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[4]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[5]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[6]];
-        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ octet[7]];
-
-        return crc;
-    }
-
-    /// <summary>
     /// SIMD-accelerated implementation of CRC32 calculation using Vector&lt;byte&gt;.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe uint HashToUInt32Simd(ReadOnlySpan<byte> bytes)
+    private static unsafe uint ComputeSimd(ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
 
@@ -174,21 +183,21 @@ public static class Crc32
                     // Process each byte in the vector
                     for (int j = 0; j < vectorSize; j++)
                     {
-                        crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
+                        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
                     }
                 }
 
                 // Process remaining bytes
                 for (int i = vectorCount * vectorSize; i < bytes.Length; i++)
                 {
-                    crc = (crc >> 8) ^ Crc.Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
+                    crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
                 }
             }
         }
         else
         {
             // Fall back to scalar implementation for small inputs
-            return HashToUInt32Scalar(bytes);
+            return ComputeScalar(bytes);
         }
 
         return ~crc; // Final complement
@@ -198,7 +207,7 @@ public static class Crc32
     /// SSE4.2 hardware-accelerated implementation of CRC32 calculation.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe uint HashToUInt32Sse42(ReadOnlySpan<byte> bytes)
+    private static unsafe uint ComputeSse42(ReadOnlySpan<byte> bytes)
     {
         uint crc = InitialValue;
 

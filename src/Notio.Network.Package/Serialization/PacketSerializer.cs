@@ -41,12 +41,12 @@ public static class PacketSerializer
             MemoryMarshal.Write(buffer, in totalSize);
 
             // Write the rest of the header fields
-            buffer[PacketOffset.Id] = packet.Id;
+            buffer[PacketOffset.Id] = packet.Number;
             buffer[PacketOffset.Type] = (byte)packet.Type;
             buffer[PacketOffset.Flags] = (byte)packet.Flags;
             buffer[PacketOffset.Priority] = (byte)packet.Priority;
 
-            ushort command = packet.Command;
+            ushort command = packet.Id;
             MemoryMarshal.Write(buffer[PacketOffset.Command..], in command);
             ulong timestamp = packet.Timestamp;
             MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);

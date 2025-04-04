@@ -21,7 +21,7 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the unique identifier for the packet instance.
     /// </summary>
-    public readonly byte Id = packet.Id;
+    public readonly byte Id = packet.Number;
 
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.
@@ -41,7 +41,7 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the command associated with the packet, which can specify an operation or request type.
     /// </summary>
-    public readonly ushort Command = packet.Command;
+    public readonly ushort Command = packet.Id;
 
     /// <summary>
     /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.

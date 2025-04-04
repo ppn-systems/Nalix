@@ -13,10 +13,10 @@ namespace Notio.Common.Attributes;
 /// </remarks>
 /// <param name="id">The unique identifier for the packet associated with the method.</param>
 [AttributeUsage(AttributeTargets.Method)]
-public class PacketIdAttribute(short id) : Attribute
+public class PacketIdAttribute(ushort id) : Attribute
 {
     /// <summary>
     /// Gets the packet identifier associated with the method.
     /// </summary>
-    public short Id { get; } = id;
+    public ushort Id { get; } = id;
 }

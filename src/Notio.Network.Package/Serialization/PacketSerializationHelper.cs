@@ -145,6 +145,6 @@ public static class PacketSerializationHelper
         => $"Type: {packet.Type}, " +
            $"Flags: {packet.Flags}, " +
            $"Priority: {packet.Priority}, " +
-           $"Command: {packet.Command}, " +
+           $"Id: {packet.Id}, " +
            $"Payload Length: {packet.Payload.Length}";
 }

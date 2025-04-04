@@ -117,7 +117,7 @@ internal sealed class SystemHttpContext : IHttpContextImpl
             {
                 Debug.WriteLine(
                     "HTTP context",
-                    $"[Id] Exception thrown by a HTTP context close callback. Exception: {e}");
+                    $"[Number] Exception thrown by a HTTP context close callback. Exception: {e}");
             }
         }
     }

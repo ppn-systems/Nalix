@@ -79,8 +79,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
         TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
 
         List<MethodInfo> methods = [.. typeof(TController)
-        .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-        .Where(m => m.GetCustomAttribute<PacketCommandAttribute>() != null)];
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+            .Where(m => m.GetCustomAttribute<PacketIdAttribute>() != null)];
 
         if (methods.Count == 0)
         {
@@ -91,7 +91,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
         }
 
         IEnumerable<ushort> duplicateCommandIds = methods
-            .GroupBy(m => m.GetCustomAttribute<PacketCommandAttribute>()!.Command)
+            .GroupBy(m => m.GetCustomAttribute<PacketIdAttribute>()!.Id)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key);
 
@@ -108,7 +108,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
 
         foreach (MethodInfo method in methods)
         {
-            ushort commandId = method.GetCustomAttribute<PacketCommandAttribute>()!.Command;
+            ushort commandId = method.GetCustomAttribute<PacketIdAttribute>()!.Id;
 
             if (PacketHandlers.ContainsKey(commandId))
             {
@@ -208,11 +208,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     {
         if (PacketHandlers.TryGetValue(commandId, out handler))
         {
-            Logger?.Debug($"Handler found for Command: {commandId}");
+            Logger?.Debug($"Handler found for Id: {commandId}");
             return true;
         }
 
-        Logger?.Warn($"No handler found for Command: {commandId}");
+        Logger?.Warn($"No handler found for Id: {commandId}");
         return false;
     }
 

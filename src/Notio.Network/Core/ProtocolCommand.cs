@@ -7,13 +7,13 @@ namespace Notio.Network.Core;
 public enum ProtocolCommand : ushort
 {
     /// <summary>
-    /// Command to initiate the handshake by requesting the server's public key.
+    /// Id to initiate the handshake by requesting the server's public key.
     /// This command begins the process of securely establishing a connection.
     /// </summary>
     InitiateHandshake = 0x0001,
 
     /// <summary>
-    /// Command to complete the handshake by finalizing the secure connection.
+    /// Id to complete the handshake by finalizing the secure connection.
     /// This command verifies the client's public key and finalizes the encryption key exchange.
     /// </summary>
     CompleteHandshake = 0x0002

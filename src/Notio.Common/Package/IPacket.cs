@@ -15,7 +15,7 @@ public interface IPacket : IEquatable<IPacket>, IDisposable
     /// <summary>
     /// Gets the packet identifier.
     /// </summary>
-    byte Id { get; }
+    byte Number { get; }
 
     /// <summary>
     /// Gets the packet type.
@@ -35,7 +35,7 @@ public interface IPacket : IEquatable<IPacket>, IDisposable
     /// <summary>
     /// Gets the command associated with the packet.
     /// </summary>
-    ushort Command { get; }
+    ushort Id { get; }
 
     /// <summary>
     /// Gets the timestamp when the packet was created.

@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Notio.Common.Logging;
 
 /// <summary>
-/// Identifies a logging event. The primary identifier is the "Id" property, with the "Name" property providing a short description of this type of event.
+/// Identifies a logging event. The primary identifier is the "Number" property, with the "Name" property providing a short description of this type of event.
 /// </summary>
 /// <remarks>
 /// Initializes an instance of the <see cref="EventId"/> struct.

@@ -10,7 +10,7 @@ namespace Notio.Network.Transport;
 /// </summary>
 internal sealed class TransportCache : IDisposable
 {
-    private static CacheConfig Config => ConfigurationStore.Instance.Get<CacheConfig>();
+    private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
 
     /// <summary>
     /// Gets or sets the last ping time in milliseconds.
