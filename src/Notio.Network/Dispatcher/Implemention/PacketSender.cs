@@ -17,7 +17,7 @@ internal static class PacketSender
     /// <param name="command">The command identifier.</param>
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
     public static bool StringPacket(IConnection connection, string message, short command)
-        => SendPacket(connection, DefaultConstants.DefaultEncoding.GetBytes(message), PacketType.String, command);
+        => SendPacketLow(connection, DefaultConstants.DefaultEncoding.GetBytes(message), PacketType.String, command);
 
     /// <summary>
     /// Creates and sends a binary packet containing the server's public key to the client.
@@ -27,7 +27,7 @@ internal static class PacketSender
     /// <param name="command">The command identifier.</param>
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
     public static bool BinaryPacket(IConnection connection, byte[] payload, short command)
-        => SendPacket(connection, payload, PacketType.Binary, command);
+        => SendPacketLow(connection, payload, PacketType.Binary, command);
 
     /// <summary>
     /// Common method for creating and sending packets.
@@ -37,7 +37,7 @@ internal static class PacketSender
     /// <param name="packetType">The type of the packet.</param>
     /// <param name="command">The command identifier.</param>
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
-    private static bool SendPacket(IConnection connection, byte[] payload, PacketType packetType, short command)
+    private static bool SendPacketLow(IConnection connection, byte[] payload, PacketType packetType, short command)
     {
         ulong timestamp = MicrosecondClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
@@ -54,12 +54,12 @@ internal static class PacketSender
         Array.Copy(BitConverter.GetBytes(command), 0, packet, PacketOffset.Command, PacketSize.Command);
         Array.Copy(BitConverter.GetBytes(timestamp), 0, packet, PacketOffset.Timestamp, PacketSize.Timestamp);
 
+        // Calculate and set the checksum
+        Array.Copy(BitConverter.GetBytes(
+            CalculateChecksum(packet)), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
+
         // Populate the payload
         Array.Copy(payload, 0, packet, PacketOffset.Payload, payload.Length);
-
-        // Calculate and set the checksum
-        uint checksum = CalculateChecksum(packet);
-        Array.Copy(BitConverter.GetBytes(checksum), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
 
         // Send the packet to the client
         return connection.Send(packet);
