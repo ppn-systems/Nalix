@@ -19,17 +19,15 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     /// <param name="context">The packet context containing the packet, connection, and metadata.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
-    /// <param name="ct">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-        System.Threading.CancellationToken ct)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         var rl = context.Attributes.RateLimit;
         if (rl is null)
         {
-            await next(ct).ConfigureAwait(false);
+            await next(context.CancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -54,7 +52,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             }
         }
 
-        await next(ct).ConfigureAwait(false);
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
 
