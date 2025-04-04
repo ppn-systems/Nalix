@@ -38,7 +38,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Fields
 
     private readonly System.Net.Sockets.Socket _socket = socket;
-    private readonly System.String _epText = FormatEndpoint(socket);
+    private readonly System.String _epText = FORMAT_ENDPOINT(socket);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
@@ -117,7 +117,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         System.Threading.CancellationTokenSource linked =
             System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        _ = this.ReceiveLoopAsync(linked.Token).ContinueWith(static (t, state) =>
+        _ = this.RECEIVE_LOOP_ASYNC(linked.Token).ContinueWith(static (t, state) =>
         {
             (ILogger l, System.Threading.CancellationTokenSource link) = ((ILogger, System.Threading.CancellationTokenSource))state!;
             if (t.IsFaulted)
@@ -166,7 +166,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
-                WriteFrameHeader(bufferS, totalLength, data);
+                WRITE_FRAME_HEADER(bufferS, totalLength, data);
 
                 System.Int32 sent = 0;
                 while (sent < bufferS.Length)
@@ -174,8 +174,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                     System.Int32 n = _socket.Send(bufferS[sent..]);
                     if (n == 0)
                     {
-                        this.CancelReceiveOnce();
-                        this.InvokeCloseOnce();
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
                         return false;
                     }
                     sent += n;
@@ -213,8 +213,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 System.Int32 n = _socket.Send(buffer, sent, totalLength - sent, System.Net.Sockets.SocketFlags.None);
                 if (n == 0)
                 {
-                    this.CancelReceiveOnce();
-                    this.InvokeCloseOnce();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
@@ -267,7 +267,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         try
         {
-            WriteFrameHeader(System.MemoryExtensions.AsSpan(buffer), totalLength, data.Span);
+            WRITE_FRAME_HEADER(System.MemoryExtensions.AsSpan(buffer), totalLength, data.Span);
 
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -284,8 +284,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 if (n == 0)
                 {
                     // peer closed / connection issue
-                    this.CancelReceiveOnce();
-                    this.InvokeCloseOnce();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
 
@@ -312,11 +312,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     #region Private Methods
 
-    /// <summary>
-    /// Safely formats the remote endpoint string without throwing if the socket is already disposed.
-    /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    private static System.String FormatEndpoint(System.Net.Sockets.Socket s)
+    private static System.String FORMAT_ENDPOINT(System.Net.Sockets.Socket s)
     {
         try
         {
@@ -332,25 +329,12 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void InvokeCloseOnce()
-    {
-        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
-        {
-            return;
-        }
-
-        AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
-    }
-
     /// <summary>
     /// Returns true when the exception indicates a peer-initiated close or shutdown flow
     /// that should be treated as a normal disconnect (not an error).
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    private static System.Boolean IsBenignDisconnect(System.Exception ex)
+    private static System.Boolean IS_BENIGN_DISCONNECT(System.Exception ex)
     {
         if (ex is System.OperationCanceledException or
             System.ObjectDisposedException)
@@ -381,7 +365,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             agg = agg.Flatten();
             foreach (var inner in agg.InnerExceptions)
             {
-                if (!IsBenignDisconnect(inner))
+                if (!IS_BENIGN_DISCONNECT(inner))
                 {
                     return false;
                 }
@@ -396,9 +380,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private async System.Threading.Tasks.ValueTask ReceiveExactlyAsync(
-        System.Memory<System.Byte> dst,
-        System.Threading.CancellationToken token)
+    private async System.Threading.Tasks.ValueTask RECEIVE_EXACTLY_ASYNC(System.Memory<System.Byte> dst, System.Threading.CancellationToken token)
     {
         if (dst.Length == 0)
         {
@@ -423,10 +405,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteFrameHeader(
-        System.Span<System.Byte> buffer,
-        System.UInt16 totalLength,
-        System.ReadOnlySpan<System.Byte> payload)
+    private static void WRITE_FRAME_HEADER(System.Span<System.Byte> buffer, System.UInt16 totalLength, System.ReadOnlySpan<System.Byte> payload)
     {
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
         payload.CopyTo(buffer[HeaderSize..]);
@@ -435,14 +414,14 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.Task ReceiveLoopAsync(System.Threading.CancellationToken token)
+    private async System.Threading.Tasks.Task RECEIVE_LOOP_ASYNC(System.Threading.CancellationToken token)
     {
         try
         {
             while (!token.IsCancellationRequested)
             {
                 // 1) Read 2-byte header (little-endian length)
-                await this.ReceiveExactlyAsync(System.MemoryExtensions
+                await this.RECEIVE_EXACTLY_ASYNC(System.MemoryExtensions
                           .AsMemory(_buffer, 0, HeaderSize), token)
                           .ConfigureAwait(false);
 
@@ -451,7 +430,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] recv-header size(le)={size}");
+                                        .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] recv-header size(le)={size}");
 #endif
 
                 if (size is < HeaderSize or > PacketConstants.PacketSizeLimit)
@@ -475,13 +454,13 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 // 3) Read payload
                 System.Int32 payload = size - HeaderSize;
-                await this.ReceiveExactlyAsync(System.MemoryExtensions
+                await this.RECEIVE_EXACTLY_ASYNC(System.MemoryExtensions
                           .AsMemory(_buffer, HeaderSize, payload), token)
                           .ConfigureAwait(false);
 
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
+                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] " +
                                                $"recv-frame size={size} payload={payload} ep={_epText}");
 #endif
 
@@ -495,36 +474,32 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                                   .Rent(256); // prepare for next read
             }
         }
-        catch (System.Exception ex) when (IsBenignDisconnect(ex))
+        catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
+                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] " +
                                            $"receive-loop ended (peer closed/shutdown) ep={_epText}");
         }
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop cancelled");
+                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop cancelled");
         }
         catch (System.Exception ex)
         {
             var e = (ex as System.AggregateException)?.Flatten() ?? ex;
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop faulted", e);
+                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop faulted", e);
         }
         finally
         {
-            this.CancelReceiveOnce();
-            this.InvokeCloseOnce();
+            this.CANCEL_RECEIVE_ONCE();
+            this.INVOKE_CLOSE_ONCE();
         }
     }
 
-    /// <summary>
-    /// Disposes the managed and unmanaged resources.
-    /// </summary>
-    /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    private void Dispose(System.Boolean disposing)
+    private void DISPOSE(System.Boolean disposing)
     {
         if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
         {
@@ -533,8 +508,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
-            this.CancelReceiveOnce();
-            this.InvokeCloseOnce();
+            this.CANCEL_RECEIVE_ONCE();
+            this.INVOKE_CLOSE_ONCE();
 
             try
             {
@@ -566,9 +541,24 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 #endif
     }
 
+
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void CancelReceiveOnce()
+    private void INVOKE_CLOSE_ONCE()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
+        {
+            return;
+        }
+
+        AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
+    }
+
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void CANCEL_RECEIVE_ONCE()
     {
         if (System.Threading.Interlocked.Exchange(ref _cancelSignaled, 1) != 0)
         {
@@ -587,7 +577,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// </summary>
     public void Dispose()
     {
-        this.Dispose(true);
+        this.DISPOSE(true);
         System.GC.SuppressFinalize(this);
     }
 
