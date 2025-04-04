@@ -105,8 +105,7 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime now = DateTime.UtcNow;
         DateTime currentDate = now.Date;
 
-        if (_enableMetrics && _logger != null)
-            _logger.Trace($"{endPoint}|New");
+        if (_enableMetrics && _logger != null) _logger.Trace($"{endPoint}|New");
 
         // Check if endpoint already exists
         if (_connectionInfo.TryGetValue(endPoint, out var existingInfo))
@@ -154,12 +153,10 @@ public sealed class ConnectionLimiter : IDisposable
         if (string.IsNullOrWhiteSpace(endPoint))
             throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
-        if (_enableMetrics && _logger != null)
-            _logger.Trace($"{endPoint}|Closed");
+        if (_enableMetrics && _logger != null) _logger.Trace($"{endPoint}|Closed");
 
         // Fast path if entry doesn't exist
-        if (!_connectionInfo.TryGetValue(endPoint, out var existingInfo))
-            return false;
+        if (!_connectionInfo.TryGetValue(endPoint, out var existingInfo)) return false;
 
         // Update the current connections count
         var newInfo = existingInfo with
@@ -179,7 +176,8 @@ public sealed class ConnectionLimiter : IDisposable
     /// <returns>Connection statistics tuple.</returns>
     /// <exception cref="ArgumentException">Thrown if endpoint is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public (int CurrentConnections, int TotalToday, DateTime LastConnection) GetConnectionInfo([NotNull] string endPoint)
+    public (int CurrentConnections, int TotalToday, DateTime LastConnection) GetConnectionInfo(
+        [NotNull] string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -303,7 +301,9 @@ public sealed class ConnectionLimiter : IDisposable
         _connectionInfo.Clear();
 
         if (_enableLogging && _logger != null)
-            _logger.Info($"All connection counters have been reset [User: phcnguyen, UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]");
+            _logger.Info(
+                $"All connection counters have been reset " +
+                $"[UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]");
     }
 
     /// <summary>

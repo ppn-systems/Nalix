@@ -6,6 +6,8 @@ namespace Notio.Common.Attributes;
 /// An attribute used to define a packet command and its required authority level.
 /// This attribute is applied to methods to associate them with specific packet commands.
 /// </summary>
+[Obsolete("This attribute is obsolete and will be removed in future versions." +
+          "Use the new PacketIdAttribute instead.")]
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class PacketCommandAttribute : Attribute
 {
