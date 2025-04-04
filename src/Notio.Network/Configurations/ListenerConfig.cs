@@ -3,7 +3,7 @@ using Notio.Shared.Configuration;
 using System;
 using System.Runtime.InteropServices;
 
-namespace Notio.Network.Listeners;
+namespace Notio.Network.Configurations;
 
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.

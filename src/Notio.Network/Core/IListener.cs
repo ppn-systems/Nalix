@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace Notio.Network.Listeners;
+namespace Notio.Network.Core;
 
 /// <summary>
 /// Interface for network listener classes.

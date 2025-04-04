@@ -5,14 +5,14 @@ using Notio.Common.Identity;
 using Notio.Common.Logging;
 using Notio.Common.Security;
 using Notio.Identifiers;
-using Notio.Network.Connection.Transport;
+using Notio.Network.Transport;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Connection;
+namespace Notio.Network.Core.Connection;
 
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.
@@ -191,7 +191,7 @@ public sealed class Connection : IConnection
             if (_disposed) return;
 
             _ctokens.Cancel();
-            this.State = ConnectionState.Disconnected;
+            State = ConnectionState.Disconnected;
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
@@ -218,7 +218,7 @@ public sealed class Connection : IConnection
 
         try
         {
-            this.Disconnect();
+            Disconnect();
         }
         catch (Exception ex)
         {

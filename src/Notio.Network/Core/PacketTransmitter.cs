@@ -5,20 +5,10 @@ using Notio.Defaults;
 using Notio.Utilities;
 using System;
 
-namespace Notio.Network.Dispatcher.Implemention;
+namespace Notio.Network.Core;
 
-internal static class PacketSender
+internal static class PacketTransmitter
 {
-    /// <summary>
-    /// Creates and sends an error packet with a string message to the client.
-    /// </summary>
-    /// <param name="connection">The connection to send the packet through.</param>
-    /// <param name="message">The message to send.</param>
-    /// <param name="command">The command identifier.</param>
-    /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
-    public static bool StringPacket(IConnection connection, string message, short command)
-        => SendPacketLow(connection, DefaultConstants.DefaultEncoding.GetBytes(message), PacketType.String, command);
-
     /// <summary>
     /// Creates and sends a binary packet containing the server's public key to the client.
     /// </summary>
@@ -26,8 +16,18 @@ internal static class PacketSender
     /// <param name="payload">The payload to send.</param>
     /// <param name="command">The command identifier.</param>
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
-    public static bool BinaryPacket(IConnection connection, byte[] payload, short command)
-        => SendPacketLow(connection, payload, PacketType.Binary, command);
+    public static bool SendBinary(IConnection connection, byte[] payload, short command)
+        => SendRaw(connection, payload, PacketType.Binary, command);
+
+    /// <summary>
+    /// Creates and sends an error packet with a string message to the client.
+    /// </summary>
+    /// <param name="connection">The connection to send the packet through.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="command">The command identifier.</param>
+    /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
+    public static bool SendString(IConnection connection, string message, short command)
+        => SendRaw(connection, DefaultConstants.DefaultEncoding.GetBytes(message), PacketType.String, command);
 
     /// <summary>
     /// Common method for creating and sending packets.
@@ -37,7 +37,7 @@ internal static class PacketSender
     /// <param name="packetType">The type of the packet.</param>
     /// <param name="command">The command identifier.</param>
     /// <returns>True if the packet was sent successfully; otherwise, false.</returns>
-    private static bool SendPacketLow(IConnection connection, byte[] payload, PacketType packetType, short command)
+    private static bool SendRaw(IConnection connection, byte[] payload, PacketType packetType, short command)
     {
         ulong timestamp = MicrosecondClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
@@ -56,7 +56,7 @@ internal static class PacketSender
 
         // Calculate and set the checksum
         Array.Copy(BitConverter.GetBytes(
-            CalculateChecksum(packet)), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
+            CRC32(packet)), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
 
         // Populate the payload
         Array.Copy(payload, 0, packet, PacketOffset.Payload, payload.Length);
@@ -70,7 +70,7 @@ internal static class PacketSender
     /// </summary>
     /// <param name="data">The data to calculate the checksum for.</param>
     /// <returns>The calculated CRC32 checksum.</returns>
-    private static uint CalculateChecksum(byte[] data)
+    private static uint CRC32(byte[] data)
     {
         // Simple CRC32 implementation; consider replacing with a library for production use
         uint crc = 0xFFFFFFFF;
@@ -79,7 +79,7 @@ internal static class PacketSender
             crc ^= b;
             for (int i = 0; i < 8; i++)
             {
-                crc = (uint)((crc >> 1) ^ (0xEDB88320 & -(crc & 1)));
+                crc = (uint)(crc >> 1 ^ 0xEDB88320 & -(crc & 1));
             }
         }
         return ~crc;

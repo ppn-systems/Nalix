@@ -1,17 +1,16 @@
+using Notio.Network.Configurations;
+using Notio.Shared.Configuration;
 using Notio.Shared.Memory.Caches;
 using System;
 
-namespace Notio.Network.Connection.Transport;
+namespace Notio.Network.Transport;
 
 /// <summary>
 /// Manages packet caching.
 /// </summary>
 internal sealed class TransportCache : IDisposable
 {
-    /// <summary>
-    /// Event triggered when a new packet is added to the cache.
-    /// </summary>
-    public event Action? PacketCached;
+    private static CacheConfig Config => ConfigurationStore.Instance.Get<CacheConfig>();
 
     /// <summary>
     /// Gets or sets the last ping time in milliseconds.
@@ -19,14 +18,19 @@ internal sealed class TransportCache : IDisposable
     public long LastPingTime { get; set; }
 
     /// <summary>
+    /// Event triggered when a new packet is added to the cache.
+    /// </summary>
+    public event Action? PacketCached;
+
+    /// <summary>
     /// Caches for outgoing packets.
     /// </summary>
-    public readonly BinaryCache Outgoing = new(20);
+    public readonly BinaryCache Outgoing = new(Config.Outgoing);
 
     /// <summary>
     /// Caches for incoming packets.
     /// </summary>
-    public readonly FifoCache<ReadOnlyMemory<byte>> Incoming = new(40);
+    public readonly FifoCache<ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
 
     /// <summary>
     /// Adds an outgoing packet to the cache.

@@ -5,10 +5,11 @@ using Notio.Common.Cryptography.Hashing;
 using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Common.Security;
+using Notio.Network.Core;
 using System;
 using System.Linq;
 
-namespace Notio.Network.Dispatcher.Implemention;
+namespace Notio.Network.Dispatcher.BuiltIn;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISha.
@@ -56,7 +57,7 @@ public class Handshake
                 $"Received non-binary packet type {packet.Type} " +
                 $"from connection {connection.RemoteEndPoint}");
 
-            PacketSender.StringPacket(connection, "Unsupported packet type.", 0);
+            PacketTransmitter.SendString(connection, "Unsupported packet type.", 0);
             return;
         }
 
@@ -67,7 +68,7 @@ public class Handshake
                 $"Invalid public key length {packet.Payload.Length} " +
                 $"from connection {connection.RemoteEndPoint}");
 
-            PacketSender.StringPacket(connection, "Invalid public key.", 0);
+            PacketTransmitter.SendString(connection, "Invalid public key.", 0);
             return;
         }
 
@@ -83,7 +84,7 @@ public class Handshake
             connection.EncryptionKey = this.GenerateSharedSecret(privateKey, packet.Payload.ToArray());
 
             // Send the server's public key back to the client for the next phase of the handshake.
-            if (PacketSender.BinaryPacket(connection, publicKey, 1))
+            if (PacketTransmitter.SendBinary(connection, publicKey, 1))
             {
                 // Elevate the client's access level after successful handshake initiation.
                 connection.Authority = PermissionLevel.User;
@@ -99,7 +100,7 @@ public class Handshake
             // Log any errors that occur during the handshake process.
             _logger?.Error($"Failed to initiate secure connection for connection {address}", ex);
 
-            PacketSender.StringPacket(connection, "Internal error during secure connection initiation.", 0);
+            PacketTransmitter.SendString(connection, "Internal error during secure connection initiation.", 0);
         }
     }
 
@@ -116,7 +117,7 @@ public class Handshake
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)
         {
-            PacketSender.StringPacket(connection, "Unsupported packet type.", 0);
+            PacketTransmitter.SendString(connection, "Unsupported packet type.", 0);
             return;
         }
 
@@ -126,7 +127,7 @@ public class Handshake
             _logger?.Warn(
                 $"Invalid public key length {packet.Payload.Length} from connection {connection.RemoteEndPoint}");
 
-            PacketSender.StringPacket(connection, "Invalid public key.", 0);
+            PacketTransmitter.SendString(connection, "Invalid public key.", 0);
             return;
         }
 
@@ -135,7 +136,7 @@ public class Handshake
             privateKeyObj is not byte[] privateKey)
         {
             _logger?.Warn($"Missing or invalid X25519 private key for connection {connection.RemoteEndPoint}");
-            PacketSender.StringPacket(connection, "Invalid public key.", 0);
+            PacketTransmitter.SendString(connection, "Invalid public key.", 0);
             return;
         }
 
@@ -148,19 +149,19 @@ public class Handshake
             if (connection.EncryptionKey.SequenceEqual(derivedKey))
             {
                 _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
-                PacketSender.StringPacket(connection, "Secure connection established.", 0);
+                PacketTransmitter.SendString(connection, "Secure connection established.", 0);
             }
             else
             {
                 _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
-                PacketSender.StringPacket(connection, "Key mismatch.", 0);
+                PacketTransmitter.SendString(connection, "Key mismatch.", 0);
             }
         }
         catch (Exception ex)
         {
             // Log any errors that occur during the finalization of the handshake.
             _logger?.Error($"Failed to finalize secure connection for connection {connection.RemoteEndPoint}", ex);
-            PacketSender.StringPacket(connection, "Internal error during secure connection finalization.", 0);
+            PacketTransmitter.SendString(connection, "Internal error during secure connection finalization.", 0);
         }
     }
 

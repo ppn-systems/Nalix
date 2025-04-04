@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Security.Configurations;
+namespace Notio.Network.Configurations;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.

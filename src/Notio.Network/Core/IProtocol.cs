@@ -2,11 +2,11 @@ using Notio.Common.Connection;
 using System;
 using System.Threading;
 
-namespace Notio.Network.Protocols;
+namespace Notio.Network.Core;
 
 /// <summary>
 /// Interface representing a network protocol.
-/// Implemention this interface to define how a network protocol handles connections and messages.
+/// BuiltIn this interface to define how a network protocol handles connections and messages.
 /// </summary>
 public interface IProtocol
 {

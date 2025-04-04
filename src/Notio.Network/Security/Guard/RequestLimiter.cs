@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
-using Notio.Network.Security.Configurations;
+using Notio.Network.Configurations;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using System;
