@@ -1,5 +1,6 @@
 using Notio.Common.Attributes;
 using Notio.Common.Connection;
+using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using System;
 using System.Collections.Generic;
@@ -71,12 +72,14 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     {
         Type controllerType = typeof(TController);
         PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
-            ?? throw new InvalidOperationException(
-                string.Format(Messages.MissingControllerAttribute, controllerType.Name));
+            ?? throw new InvalidOperationException($"Controller '{controllerType.Name}' missing PacketController attribute.");
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
         TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
+
+        // Log method scanning process
+        _logger?.Debug($"Scanning methods in controller '{controllerName}' for packet handlers...");
 
         List<MethodInfo> methods = [.. typeof(TController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
@@ -84,8 +87,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
         if (methods.Count == 0)
         {
-            string message = string.Format(Messages.NoMethodsWithPacketCommand, controllerType.Name);
-
+            string message = $"No methods found with PacketId attribute in controller '{controllerType.Name}'.";
             _logger?.Warn(message);
             throw new InvalidOperationException(message);
         }
@@ -97,23 +99,21 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
         if (duplicateCommandIds.Any())
         {
-            string message = string.Format(
-                Messages.DuplicateCommandIds, controllerName, string.Join(", ", duplicateCommandIds));
-
+            string message = $"Duplicate command IDs detected in controller " +
+                             $"'{controllerName}': {string.Join(", ", duplicateCommandIds)}";
             _logger?.Error(message);
             throw new InvalidOperationException(message);
         }
 
-        List<ushort> registeredCommandIds = [];
+        List<ushort> registeredIds = [];
 
         foreach (MethodInfo method in methods)
         {
-            ushort commandId = method.GetCustomAttribute<PacketIdAttribute>()!.Id;
+            ushort id = method.GetCustomAttribute<PacketIdAttribute>()!.Id;
 
-            if (PacketHandlers.ContainsKey(commandId))
+            if (PacketHandlers.ContainsKey(id))
             {
-                string message = string.Format(Messages.CommandIdAlreadyRegistered, commandId);
-
+                string message = $"ID '{id}' already registered for handler.";
                 _logger?.Error(message);
                 throw new InvalidOperationException(message);
             }
@@ -125,9 +125,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 if (method.GetCustomAttribute<PacketPermissionAttribute>() is { } accessAttr &&
                     accessAttr.Level > connection.Authority)
                 {
-                    _logger?.Warn(string.Format(
-                        Messages.UnauthorizedCommandAccess,
-                        commandId, connection.RemoteEndPoint));
+                    string message = $"Unauthorized access attempt to command '{id}' by connection {connection.RemoteEndPoint}.";
+                    _logger?.Warn(message);
                     return;
                 }
 
@@ -135,31 +134,51 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 {
                     if (packet.IsEncrypted)
                     {
-                        _logger?.Error(string.Format(
-                            Messages.EncryptedPacketNotAllowed,
-                            commandId, connection.RemoteEndPoint));
+                        string message = $"Encrypted packet not allowed for command '{id}' " +
+                                         $"from connection {connection.RemoteEndPoint}.";
+
+                        _logger?.Error(message);
                         return;
                     }
                 }
 
                 try
                 {
-                    packet = ApplyFlagProcessor(
-                        "Compression", packet, PacketFlags.Compressed, _pDecompressionMethod, connection);
-
-                    packet = ApplyFlagProcessor(
-                        "Encryption", packet, PacketFlags.Encrypted, _pDecryptionMethod, connection);
+                    packet = ApplyCompression(packet, connection);
+                    packet = ApplyEncryption(packet, connection);
 
                     object? result = method.Invoke(controllerInstance, [packet, connection]);
 
                     await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection);
                 }
+                catch (PackageException ex)
+                {
+                    // Enhanced error log with context on the exception
+                    string errorMessage = string.Format(
+                        "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
+                        "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
+                        id,           // Command ID
+                        controllerName,      // Controller name
+                        method.Name,         // Method name that caused the error
+                        ex.GetType().Name,   // Exception type
+                        id,           // Command ID for context
+                        connection.RemoteEndPoint, // Connection details for traceability
+                        ex.Message           // Exception message itself
+                    );
+
+                    _logger?.Error(errorMessage); // Log the detailed error message
+                    ErrorHandler?.Invoke(ex, id); // Invoke custom error handler if set
+                }
                 catch (Exception ex)
                 {
-                    _logger?.Error(string.Format(
-                        Messages.CommandHandlerException,
-                        controllerName, method.Name, ex.Message));
-                    ErrorHandler?.Invoke(ex, commandId);
+                    string errorMessage = $"General error while processing command '{id}' " +
+                                          $"in controller '{controllerName}' (Method: '{method.Name}').\n" +
+                                          $"Exception: {ex.Message}, " +
+                                          $"Command ID: {id}, " +
+                                          $"Remote Endpoint: {connection.RemoteEndPoint}";
+
+                    _logger?.Error(errorMessage);
+                    ErrorHandler?.Invoke(ex, id);
                 }
                 finally
                 {
@@ -171,14 +190,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 }
             }
 
-            PacketHandlers[commandId] = Handler;
-            registeredCommandIds.Add(commandId);
+            PacketHandlers[id] = Handler;
+            registeredIds.Add(id);
         }
 
-        _logger?.Info(string.Format(
-            Messages.RegisteredCommandForHandler,
-            controllerName,
-            string.Join(", ", registeredCommandIds)));
+        _logger?.Info($"Successfully registered handlers for command IDs: " +
+                      $"{string.Join(", ", registeredIds)} in controller '{controllerName}'.");
 
         return this;
     }
@@ -203,7 +220,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <example>
     /// The following example demonstrates how to retrieve and invoke a packet handler:
     /// <code>
-    /// if (options.TryResolveHandler(commandId, out var handler))
+    /// if (options.TryResolveHandler(id, out var handler))
     /// {
     ///     await handler(packet, connection);
     /// }
@@ -347,38 +364,32 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
     private async Task DispatchPacketAsync(TPacket packet, IConnection connection)
     {
-        if (SerializationMethod is null)
-        {
-            _logger?.Error("Serialize method is not set.");
-            throw new InvalidOperationException("Serialize method is not set.");
-        }
-
-        packet = ApplyFlagProcessor(
-            "Compression", packet, PacketFlags.Compressed, _pCompressionMethod, connection);
-
-        packet = ApplyFlagProcessor(
-            "Encryption", packet, PacketFlags.Encrypted, _pEncryptionMethod, connection);
+        packet = ApplyCompression(packet, connection);
+        packet = ApplyEncryption(packet, connection);
 
         await connection.SendAsync(packet.Serialize());
     }
 
-    private TPacket ApplyFlagProcessor(
-        string methodName,
-        TPacket packet,
-        PacketFlags flag,
-        Func<TPacket, IConnection, TPacket>? method,
-        IConnection context)
+    private TPacket ApplyCompression(TPacket packet, IConnection connection)
     {
-        if (packet is not IPacket ipacket || (ipacket.Flags & flag) != flag)
-            return packet;
-
-        if (method is null)
+        if (_pCompressionMethod is null)
         {
-            _logger?.Error($"{methodName} method is not set, but packet requires {methodName.ToLower()}.");
+            _logger?.Error("Compression method is not set, but packet requires compression.");
             return packet;
         }
 
-        return method(packet, context);
+        return _pCompressionMethod(packet, connection);
+    }
+
+    private TPacket ApplyEncryption(TPacket packet, IConnection connection)
+    {
+        if (_pEncryptionMethod is null)
+        {
+            _logger?.Error("Encryption method is not set, but packet requires encryption.");
+            return packet;
+        }
+
+        return _pEncryptionMethod(packet, connection);
     }
 
     #endregion
