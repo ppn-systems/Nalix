@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,7 +21,7 @@ public static class ByteArrayExtensions
     public static string ToText(this IEnumerable<byte> buffer, Encoding encoding) =>
         encoding == null
             ? throw new ArgumentNullException(nameof(encoding))
-            : encoding.GetString(buffer.ToArray());
+            : encoding.GetString([.. buffer]);
 
     /// <summary>
     /// Converts an array of bytes into text with UTF8 encoding.

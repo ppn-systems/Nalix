@@ -1,6 +1,6 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Extensions;
+using Notio.Extensions.Primitives;
 using Notio.Utilities;
 using System;
 using System.IO;

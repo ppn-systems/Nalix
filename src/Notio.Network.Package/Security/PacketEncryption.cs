@@ -2,7 +2,7 @@ using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Cryptography;
-using Notio.Extensions;
+using Notio.Extensions.Primitives;
 using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;

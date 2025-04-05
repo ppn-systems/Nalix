@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Extensions;
+namespace Notio.Extensions.Primitives;
 
 /// <summary>
 /// Provides extension methods for working with any enumeration marked with the <see cref="FlagsAttribute"/>.
