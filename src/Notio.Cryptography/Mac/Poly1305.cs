@@ -32,7 +32,7 @@ public sealed class Poly1305 : IDisposable
     public const int TagSize = 16;
 
     /// <summary>
-    /// The prime number (2^130 - 5) used in Poly1305 algorithm.
+    /// The prime Number (2^130 - 5) used in Poly1305 algorithm.
     /// </summary>
     private static readonly uint[] s_prime = [0xFFFFFFFB, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x3];
 
@@ -351,7 +351,7 @@ public sealed class Poly1305 : IDisposable
     }
 
     /// <summary>
-    /// Determines if one number is greater than or equal to another.
+    /// Determines if one Number is greater than or equal to another.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsGreaterOrEqual(ReadOnlySpan<uint> a, ReadOnlySpan<uint> b)
@@ -370,7 +370,7 @@ public sealed class Poly1305 : IDisposable
     }
 
     /// <summary>
-    /// Subtracts one number from another.
+    /// Subtracts one Number from another.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Subtract(Span<uint> a, ReadOnlySpan<uint> b)

@@ -39,9 +39,9 @@ public static class BaseN
     }
 
     /// <summary>
-    /// Generates a unique identifier based on type, machine ID, timestamp, and randomness.
+    /// Generates a unique identifier based on type, machine Number, timestamp, and randomness.
     /// </summary>
-    /// <param name="type">The ID type used to differentiate categories of identifiers.</param>
+    /// <param name="type">The Number type used to differentiate categories of identifiers.</param>
     /// <param name="machineId">The machine identifier to support distributed environments.</param>
     /// <returns>A 32-bit unique identifier.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the <paramref name="type"/> exceeds its limit.</exception>
@@ -60,13 +60,13 @@ public static class BaseN
         // Combine the random value and timestamp with bit-shifting for better distribution
         uint uniqueValue = randomValue ^ ((timestamp << 5) | (timestamp >> 27));
 
-        // Incorporate type ID in the high 8 bits
+        // Incorporate type Number in the high 8 bits
         uint typeComponent = (uint)type << 24;
 
         // Combine all components:
-        // - High 8 bits: Type ID
+        // - High 8 bits: Type Number
         // - Middle 16 bits: Unique value (from random + timestamp mix)
-        // - Low 8 bits: Machine ID
+        // - Low 8 bits: Machine Number
         return (typeComponent) |
                (uniqueValue & 0x00FFFF00) |
                ((uint)(machineId & 0xFFFF));
@@ -90,7 +90,7 @@ public static class BaseN
     /// <param name="alphabet">The character set defining the BaseN encoding.</param>
     /// <param name="baseValue">The numeric base (e.g., 36 for Base36, 58 for Base58).</param>
     /// <param name="maxLength">The maximum possible length of the output string.</param>
-    /// <returns>A string representation of the encoded number.</returns>
+    /// <returns>A string representation of the encoded Number.</returns>
     public static string EncodeToBaseN(uint value, string alphabet, uint baseValue, int maxLength)
     {
         Span<char> buffer = stackalloc char[maxLength];

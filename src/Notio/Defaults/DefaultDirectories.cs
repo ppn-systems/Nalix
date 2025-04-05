@@ -394,7 +394,7 @@ public static class DefaultDirectories
     /// <param name="directoryPath">The directory to clean.</param>
     /// <param name="maxAge">The maximum age of files to keep.</param>
     /// <param name="searchPattern">The search pattern for files to consider.</param>
-    /// <returns>The number of files deleted.</returns>
+    /// <returns>The Number of files deleted.</returns>
     public static int CleanupDirectory(string directoryPath, TimeSpan maxAge, string searchPattern = "*")
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
@@ -600,7 +600,7 @@ public static class DefaultDirectories
     /// <param name="path">The path of the directory to check or create.</param>
     /// <param name="callerMemberName">The method or property name of the caller.</param>
     /// <param name="callerFilePath">The path of the source file that contains the caller.</param>
-    /// <param name="callerLineNumber">The line number in the source file at which the method is called.</param>
+    /// <param name="callerLineNumber">The line Number in the source file at which the method is called.</param>
     private static void EnsureDirectoryExists(string path,
         [CallerMemberName] string callerMemberName = "",
         [CallerFilePath] string callerFilePath = "",

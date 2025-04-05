@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Internal;
 using System;
 using System.Threading;
@@ -28,7 +28,7 @@ internal sealed class FileCacheItem
     // Computed as follows:
     //
     // * for 32-bit:
-    //     - initialize count to 3 (number of "hidden" pointers that compose the object header)
+    //     - initialize count to 3 (Number of "hidden" pointers that compose the object header)
     //     - for every field / auto property, in order of declaration:
     //         - increment count by 1 for reference types, 2 for long and TimeStamp
     //           (as of time of writing there are no fields of other types here)
@@ -38,7 +38,7 @@ internal sealed class FileCacheItem
     //     - if the result is not a multiple of 16, round it up to next multiple of 16
     //
     // * for 64-bit:
-    //     - initialize count to 3 (number of "hidden" pointers that compose the object header)
+    //     - initialize count to 3 (Number of "hidden" pointers that compose the object header)
     //     - for every field / auto property, in order of declaration, increment count by 1
     //       (at the time of writing there are no fields here that need padding on 64-bit)
     //     - multiply count by 8 (size of a pointer)

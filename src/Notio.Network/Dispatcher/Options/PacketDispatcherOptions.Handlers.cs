@@ -134,11 +134,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
                 try
                 {
                     packet = ProcessPacketFlag(
-                        "Compression", packet, PacketFlags.IsCompressed,
+                        "Compression", packet, PacketFlags.Compressed,
                         _decompressionMethod, connection);
 
                     packet = ProcessPacketFlag(
-                        "Encryption", packet, PacketFlags.IsEncrypted,
+                        "Encryption", packet, PacketFlags.Encrypted,
                         _decryptionMethod, connection);
 
                     object? result = method.Invoke(controllerInstance, [packet, connection]);
@@ -176,11 +176,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
 
 
     /// <summary>
-    /// Attempts to retrieve a registered packet handler for the specified command ID.
+    /// Attempts to retrieve a registered packet handler for the specified command Number.
     /// </summary>
     /// <param name="commandId">The unique identifier of the packet command.</param>
     /// <param name="handler">
-    /// When this method returns, contains the handler function associated with the command ID, 
+    /// When this method returns, contains the handler function associated with the command Number, 
     /// or <see langword="null"/> if no handler was found.
     /// </param>
     /// <returns>
@@ -188,7 +188,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
-    /// This method looks up the provided command ID in the internal dictionary of registered packet handlers.
+    /// This method looks up the provided command Number in the internal dictionary of registered packet handlers.
     /// If a matching handler is found, it is returned via the <paramref name="handler"/> output parameter.
     /// </remarks>
     /// <example>
@@ -208,11 +208,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     {
         if (PacketHandlers.TryGetValue(commandId, out handler))
         {
-            Logger?.Debug($"Handler found for Id: {commandId}");
+            Logger?.Debug($"Handler found for Number: {commandId}");
             return true;
         }
 
-        Logger?.Warn($"No handler found for Id: {commandId}");
+        Logger?.Warn($"No handler found for Number: {commandId}");
         return false;
     }
 
@@ -345,10 +345,10 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
         }
 
         packet = ProcessPacketFlag(
-            "Compression", packet, PacketFlags.IsCompressed, _compressionMethod, connection);
+            "Compression", packet, PacketFlags.Compressed, _compressionMethod, connection);
 
         packet = ProcessPacketFlag(
-            "Encryption", packet, PacketFlags.IsEncrypted, _encryptionMethod, connection);
+            "Encryption", packet, PacketFlags.Encrypted, _encryptionMethod, connection);
 
         await connection.SendAsync(SerializationMethod(packet));
     }

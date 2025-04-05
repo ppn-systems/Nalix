@@ -14,7 +14,7 @@ public interface IUnitOfWorkAsync : IRepositoryProviderAsync, ITransactionAsync,
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
-    /// A task representing the asynchronous operation, returning the number of affected database records.
+    /// A task representing the asynchronous operation, returning the Number of affected database records.
     /// </returns>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

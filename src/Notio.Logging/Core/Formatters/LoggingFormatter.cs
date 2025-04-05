@@ -17,7 +17,7 @@ public class LoggingFormatter(bool terminal = false) : ILoggerFormatter
     internal static readonly LoggingFormatter Instance = new();
 
     /// <summary>
-    /// Format a log message with timestamp, log level, event ID, message and exception.
+    /// Format a log message with timestamp, log level, event Number, message and exception.
     /// </summary>
     /// <param name="logMsg">The log message to format.</param>
     /// <returns>The log format string.</returns>
@@ -34,7 +34,7 @@ public class LoggingFormatter(bool terminal = false) : ILoggerFormatter
     /// </summary>
     /// <param name="timeStamp">Time of log creation.</param>
     /// <param name="logLevel">Log level.</param>
-    /// <param name="eventId">Event ID.</param>
+    /// <param name="eventId">Event Number.</param>
     /// <param name="message">Log message.</param>
     /// <param name="exception">The exception included (if any).</param>
     /// <returns>Log format string.</returns>

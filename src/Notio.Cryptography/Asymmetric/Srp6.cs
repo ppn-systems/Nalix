@@ -22,7 +22,7 @@ namespace Notio.Cryptography.Asymmetric;
 public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 {
     /// <summary>
-    /// Large prime number N.
+    /// Large prime Number N.
     /// </summary>
     public static readonly BigInteger N = new([
         0xE3, 0x06, 0xEB, 0xC0, 0x2F, 0x1D, 0xC6, 0x9F, 0x5B, 0x43, 0x76, 0x83, 0xFE, 0x38, 0x51, 0xFD,

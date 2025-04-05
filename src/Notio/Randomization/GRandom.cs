@@ -10,7 +10,7 @@ namespace Notio.Randomization;
 /// <remarks>
 /// Initializes a new instance of the <see cref="GRandom"/> class with a user-provided seed value.
 /// </remarks>
-/// <param name="seed">The seed to initialize the random number generator.</param>
+/// <param name="seed">The seed to initialize the random Number generator.</param>
 public sealed class GRandom(int seed)
 {
     #region Constants
@@ -30,12 +30,12 @@ public sealed class GRandom(int seed)
     #region Fields
 
     /// <summary>
-    /// Current seed value for the random number generator.
+    /// Current seed value for the random Number generator.
     /// </summary>
     private int _seed = seed;
 
     /// <summary>
-    /// Random number generator instance.
+    /// Random Number generator instance.
     /// </summary>
     private readonly Rand _rand = new((uint)seed);
     #endregion
@@ -54,7 +54,7 @@ public sealed class GRandom(int seed)
     #region Public Methods
 
     /// <summary>
-    /// Resets the seed for the random number generator.
+    /// Resets the seed for the random Number generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -131,14 +131,14 @@ public sealed class GRandom(int seed)
     }
 
     /// <summary>
-    /// Generates a random floating-point number in the range [0.0f, 1.0f].
+    /// Generates a random floating-point Number in the range [0.0f, 1.0f].
     /// </summary>
     /// <returns>A random float.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float NextFloat() => _rand.GetFloat();
 
     /// <summary>
-    /// Generates a random floating-point number in the range [0.0f, max).
+    /// Generates a random floating-point Number in the range [0.0f, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
@@ -146,7 +146,7 @@ public sealed class GRandom(int seed)
     public float NextFloat(float max) => NextFloat() * max;
 
     /// <summary>
-    /// Generates a random floating-point number in the range [min, max).
+    /// Generates a random floating-point Number in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -155,14 +155,14 @@ public sealed class GRandom(int seed)
     public float NextFloat(float min, float max) => min + NextFloat() * (max - min);
 
     /// <summary>
-    /// Generates a random double-precision floating-point number in the range [0.0, 1.0].
+    /// Generates a random double-precision floating-point Number in the range [0.0, 1.0].
     /// </summary>
     /// <returns>A random double.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double NextDouble() => _rand.GetDouble();
 
     /// <summary>
-    /// Generates a random double-precision floating-point number in the range [0.0, max).
+    /// Generates a random double-precision floating-point Number in the range [0.0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
@@ -170,7 +170,7 @@ public sealed class GRandom(int seed)
     public double NextDouble(double max) => NextDouble() * max;
 
     /// <summary>
-    /// Generates a random double-precision floating-point number in the range [min, max).
+    /// Generates a random double-precision floating-point Number in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -280,7 +280,7 @@ public sealed class GRandom(int seed)
     }
 
     /// <summary>
-    /// Returns a string representation of the random number generator state.
+    /// Returns a string representation of the random Number generator state.
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
     public override string ToString() => $"GRandom(seed={_seed}): {_rand}";

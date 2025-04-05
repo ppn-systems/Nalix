@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Http;
+using Notio.Network.Web.Http;
 using System.Threading;
 
 namespace Notio.Network.Web.Sessions;
@@ -17,9 +17,9 @@ public interface ISessionManager
 
     /// <summary>
     /// Returns the session associated with an <see cref="IHttpContext"/>.
-    /// If a session ID can be retrieved for the context and stored session data
+    /// If a session Number can be retrieved for the context and stored session data
     /// are available, the returned <see cref="ISession"/> will contain those data;
-    /// otherwise, a new session is created and its ID is stored in the response
+    /// otherwise, a new session is created and its Number is stored in the response
     /// to be retrieved by subsequent requests.
     /// </summary>
     /// <param name="context">The HTTP context.</param>
@@ -28,10 +28,10 @@ public interface ISessionManager
 
     /// <summary>
     /// Deletes the session (if any) associated with the specified context
-    /// and removes the session's ID from the context.
+    /// and removes the session's Number from the context.
     /// </summary>
     /// <param name="context">The HTTP context.</param>
-    /// <param name="id">The unique ID of the session.</param>
+    /// <param name="id">The unique Number of the session.</param>
     /// <seealso cref="ISession.Id"/>
     void Delete(IHttpContext context, string id);
 

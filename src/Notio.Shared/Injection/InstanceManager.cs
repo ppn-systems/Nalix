@@ -35,7 +35,7 @@ public sealed class InstanceManager : IDisposable
     private int _isDisposed;
 
     /// <summary>
-    /// Checks if this application (including version number) is the only instance currently running.
+    /// Checks if this application (including version Number) is the only instance currently running.
     /// </summary>
     public static bool IsTheOnlyInstance
     {
@@ -67,7 +67,7 @@ public sealed class InstanceManager : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of cached instances.
+    /// Gets the Number of cached instances.
     /// </summary>
     public int CachedInstanceCount => _instanceCache.Count;
 

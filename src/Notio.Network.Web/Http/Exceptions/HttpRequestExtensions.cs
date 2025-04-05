@@ -25,7 +25,7 @@ public static class HttpRequestExtensions
     /// If <paramref name="this"/> is <see langword="null"/>, or its <see cref="IHttpRequest.RemoteEndPoint">RemoteEndPoint</see>
     /// is <see langword="null"/>, the string <c>"&lt;null&gt;</c>; otherwise, the remote end point's
     /// <see cref="IPEndPoint.Address">Address</see> (or the string <c>"&lt;???&gt;"</c> if it is <see langword="null"/>)
-    /// followed by a colon and the <see cref="IPEndPoint.Port">Port</see> number.
+    /// followed by a colon and the <see cref="IPEndPoint.Port">Port</see> Number.
     /// </returns>
     public static string SafeGetRemoteEndpointStr(this IHttpRequest @this)
     {

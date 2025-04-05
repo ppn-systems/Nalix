@@ -10,7 +10,7 @@ namespace Notio.Network.Configurations;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.
-/// This configuration defines the maximum number of requests allowed, the lockout duration after exceeding limits,
+/// This configuration defines the maximum Number of requests allowed, the lockout duration after exceeding limits,
 /// and the time window for counting requests.
 /// </summary>
 /// <remarks>
@@ -36,7 +36,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestConfig"/> class with the specified rate limit settings.
     /// </summary>
-    /// <param name="requests">The maximum number of requests allowed.</param>
+    /// <param name="requests">The maximum Number of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
     public RequestConfig(int requests, int lockoutSeconds, int windowMilliseconds)
@@ -70,7 +70,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     /// <summary>
     /// Gets or sets the maximum allowed requests per time window.
     /// </summary>
-    /// <value>The maximum number of requests allowed in a given time window.</value>
+    /// <value>The maximum Number of requests allowed in a given time window.</value>
     /// <remarks>Value must be between 1 and 1000 requests per window.</remarks>
     public int MaxAllowedRequests { get; set; } = settings.Requests;
 

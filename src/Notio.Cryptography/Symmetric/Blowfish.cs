@@ -51,7 +51,7 @@ public class Blowfish
     /// Encrypts the given data in place.
     /// </summary>
     /// <param name="data">The byte array to encrypt.</param>
-    /// <param name="length">The number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     public void EncryptInPlace(byte[] data, int length) => EncryptBlock(data, 0, length);
 
@@ -60,7 +60,7 @@ public class Blowfish
     /// </summary>
     /// <param name="data">The byte array to encrypt.</param>
     /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     public void EncryptBlock(byte[] data, int offset, int length)
     {
@@ -94,7 +94,7 @@ public class Blowfish
     /// Decrypts the given data in place.
     /// </summary>
     /// <param name="data">The byte array to decrypt.</param>
-    /// <param name="length">The number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     public void DecryptInPlace(byte[] data, int length) => DecryptBlock(data, 0, length);
 
@@ -103,7 +103,7 @@ public class Blowfish
     /// </summary>
     /// <param name="data">The byte array to decrypt.</param>
     /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     public void DecryptBlock(byte[] data, int offset, int length)
     {

@@ -16,7 +16,7 @@ namespace Notio.Shared.Memory.Pools;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ObjectPool"/> class with the specified maximum items per type.
 /// </remarks>
-/// <param name="defaultMaxItemsPerType">The default maximum number of items to store per type.</param>
+/// <param name="defaultMaxItemsPerType">The default maximum Number of items to store per type.</param>
 public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
     /// <summary>
@@ -47,12 +47,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     public event Action<string>? TraceOccurred;
 
     /// <summary>
-    /// Gets the total number of objects created across all types.
+    /// Gets the total Number of objects created across all types.
     /// </summary>
     public long TotalCreatedCount => Interlocked.Read(ref _totalCreated);
 
     /// <summary>
-    /// Gets the total number of currently pooled objects across all types.
+    /// Gets the total Number of currently pooled objects across all types.
     /// </summary>
     public int TotalAvailableCount
     {
@@ -68,17 +68,17 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     }
 
     /// <summary>
-    /// Gets the number of object types currently being pooled.
+    /// Gets the Number of object types currently being pooled.
     /// </summary>
     public int TypeCount => _typePools.Count;
 
     /// <summary>
-    /// Gets the total number of objects returned to the pool.
+    /// Gets the total Number of objects returned to the pool.
     /// </summary>
     public long TotalReturnedCount => Interlocked.Read(ref _totalReturned);
 
     /// <summary>
-    /// Gets the total number of objects rented from the pool.
+    /// Gets the total Number of objects rented from the pool.
     /// </summary>
     public long TotalRentedCount => Interlocked.Read(ref _totalRented);
 
@@ -159,8 +159,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
     /// </summary>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
-    /// <param name="count">The number of instances to preallocate.</param>
-    /// <returns>The number of instances successfully preallocated.</returns>
+    /// <param name="count">The Number of instances to preallocate.</param>
+    /// <returns>The Number of instances successfully preallocated.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Prealloc<T>(int count) where T : IPoolable, new()
     {
@@ -272,7 +272,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Clears all objects from the pool.
     /// </summary>
-    /// <returns>The total number of objects removed.</returns>
+    /// <returns>The total Number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear()
     {
@@ -290,7 +290,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Clears a specific type's pool.
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
-    /// <returns>The number of objects removed.</returns>
+    /// <returns>The Number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ClearType<T>() where T : IPoolable
     {
@@ -309,7 +309,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Trims all type pools to their target sizes.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to trim to (0-100).</param>
-    /// <returns>The total number of objects removed.</returns>
+    /// <returns>The total Number of objects removed.</returns>
     public int Trim(int percentage = 50)
     {
         if (percentage < 0) percentage = 0;
@@ -372,7 +372,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     /// <typeparam name="T">The type of objects to return.</typeparam>
     /// <param name="objects">The objects to return to the pool.</param>
-    /// <returns>The number of objects successfully returned to the pool.</returns>
+    /// <returns>The Number of objects successfully returned to the pool.</returns>
     /// <exception cref="ArgumentNullException">Thrown when objects is null.</exception>
     public int ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable, new()
     {
@@ -407,7 +407,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Gets multiple objects from the pool at once.
     /// </summary>
     /// <typeparam name="T">The type of objects to get.</typeparam>
-    /// <param name="count">The number of objects to get.</param>
+    /// <param name="count">The Number of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     /// <exception cref="ArgumentException">Thrown when count is less than or equal to zero.</exception>
     public List<T> GetMultiple<T>(int count) where T : IPoolable, new()

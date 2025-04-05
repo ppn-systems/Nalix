@@ -45,13 +45,13 @@ internal static class PacketTransmitter
 
         // Populate the header
         Array.Copy(BitConverter.GetBytes(totalLength), 0, packet, PacketOffset.Length, PacketSize.Length);
-        Array.Copy(BitConverter.GetBytes((ushort)0), 0, packet, PacketOffset.Id, PacketSize.Id);
+        Array.Copy(BitConverter.GetBytes((ushort)0), 0, packet, PacketOffset.Number, PacketSize.Number);
 
         packet[PacketOffset.Type] = (byte)packetType;
         packet[PacketOffset.Flags] = (byte)PacketFlags.None;
         packet[PacketOffset.Priority] = (byte)PacketPriority.None;
 
-        Array.Copy(BitConverter.GetBytes(command), 0, packet, PacketOffset.Command, PacketSize.Command);
+        Array.Copy(BitConverter.GetBytes(command), 0, packet, PacketOffset.Id, PacketSize.Id);
         Array.Copy(BitConverter.GetBytes(timestamp), 0, packet, PacketOffset.Timestamp, PacketSize.Timestamp);
 
         // Calculate and set the checksum

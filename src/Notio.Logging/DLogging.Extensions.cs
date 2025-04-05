@@ -51,7 +51,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Debug(
         this string message,
         string? source = null,
@@ -71,7 +71,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Debug(
         this string message,
         Type source,
@@ -93,7 +93,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Debug(
         this Exception extendedData,
         string source,
@@ -115,7 +115,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Trace(
         this string message,
         string? source = null,
@@ -137,7 +137,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Trace(
         this string message,
         Type source,
@@ -159,7 +159,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Trace(
         this Exception extendedData,
         string source,
@@ -181,7 +181,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Warn(
         this string message,
         string? source = null,
@@ -203,7 +203,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Warn(
         this string message,
         Type source,
@@ -225,7 +225,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Warn(
         this Exception extendedData,
         string source,
@@ -247,7 +247,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Fatal(
         this string message,
         string? source = null,
@@ -269,7 +269,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Fatal(
         this string message,
         Type source,
@@ -291,7 +291,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Fatal(
         this Exception extendedData,
         string source,
@@ -313,7 +313,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Info(
         this string message,
         string? source = null,
@@ -335,7 +335,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Info(
         this string message,
         Type source,
@@ -357,7 +357,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Info(
         this Exception extendedData,
         string source,
@@ -379,7 +379,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Error(
         this string message,
         string? source = null,
@@ -401,7 +401,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Error(
         this string message,
         Type source,
@@ -423,7 +423,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Error(
         this Exception ex,
         string source,
@@ -446,7 +446,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Log(
         this string message,
         string source,
@@ -470,7 +470,7 @@ public static partial class DLogging
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line number.</param>
+    /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Log(
         this string message,
         Type source,
@@ -493,7 +493,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Log(
         this Exception ex,
         string? source = null,
@@ -518,7 +518,7 @@ public static partial class DLogging
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Log(
         this Exception ex,
         Type? source = null,

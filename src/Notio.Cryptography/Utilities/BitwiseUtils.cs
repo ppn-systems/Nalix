@@ -12,10 +12,10 @@ namespace Notio.Cryptography.Utilities;
 public static class BitwiseUtils
 {
     /// <summary>
-    /// Rotate a 32-bit word right by the specified number of bits using hardware intrinsics when available.
+    /// Rotate a 32-bit word right by the specified Number of bits using hardware intrinsics when available.
     /// </summary>
     /// <param name="value">The value to rotate.</param>
-    /// <param name="bits">The number of positions to rotate.</param>
+    /// <param name="bits">The Number of positions to rotate.</param>
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateRight(uint value, int bits)
@@ -28,7 +28,7 @@ public static class BitwiseUtils
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
     /// </summary>
     /// <param name="value">The value to rotate.</param>
-    /// <param name="bits">The number of positions to rotate.</param>
+    /// <param name="bits">The Number of positions to rotate.</param>
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateLeft(uint value, int bits)

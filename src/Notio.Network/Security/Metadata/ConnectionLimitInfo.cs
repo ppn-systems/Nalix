@@ -11,7 +11,7 @@ namespace Notio.Network.Security.Metadata;
 internal readonly record struct ConnectionLimitInfo
 {
     /// <summary>
-    /// The current number of active connections.
+    /// The current Number of active connections.
     /// </summary>
     public readonly int CurrentConnections { get; init; }
 
@@ -21,7 +21,7 @@ internal readonly record struct ConnectionLimitInfo
     public readonly DateTime LastConnectionTime { get; init; }
 
     /// <summary>
-    /// The total number of connections made today.
+    /// The total Number of connections made today.
     /// </summary>
     public readonly int TotalConnectionsToday { get; init; }
 

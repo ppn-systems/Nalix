@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace Notio.Randomization;
 
 /// <summary>
-/// A high-performance implementation of the Multiply-with-carry (MWC) random number generator algorithm.
+/// A high-performance implementation of the Multiply-with-carry (MWC) random Number generator algorithm.
 /// </summary>
 /// <remarks>
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
@@ -34,7 +34,7 @@ public abstract class RandMwc
     /// <summary>
     /// Initializes a RandMwc instance with a given seed value.
     /// </summary>
-    /// <param name="seed">The seed value to initialize the random number generator. If 0, uses the current time.</param>
+    /// <param name="seed">The seed value to initialize the random Number generator. If 0, uses the current time.</param>
     protected RandMwc(uint seed)
     {
         // If seed is 0, use current time ticks as a seed
@@ -49,7 +49,7 @@ public abstract class RandMwc
     }
 
     /// <summary>
-    /// Sets the seed value for the random number generator.
+    /// Sets the seed value for the random Number generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -70,9 +70,9 @@ public abstract class RandMwc
     public uint GetSeed() => (uint)_state;
 
     /// <summary>
-    /// Returns a random number in the range [0, RandMax].
+    /// Returns a random Number in the range [0, RandMax].
     /// </summary>
-    /// <returns>A random number as a uint.</returns>
+    /// <returns>A random Number as a uint.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint Get()
     {
@@ -82,10 +82,10 @@ public abstract class RandMwc
     }
 
     /// <summary>
-    /// Returns a random number in the range [0, max).
+    /// Returns a random Number in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random number in the range [0, max).</returns>
+    /// <returns>A random Number in the range [0, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint Get(uint max)
     {
@@ -108,11 +108,11 @@ public abstract class RandMwc
     }
 
     /// <summary>
-    /// Returns a random number in the range [min, max).
+    /// Returns a random Number in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random number in the range [min, max).</returns>
+    /// <returns>A random Number in the range [min, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint Get(uint min, uint max)
     {
@@ -123,9 +123,9 @@ public abstract class RandMwc
     }
 
     /// <summary>
-    /// Returns a 64-bit random number.
+    /// Returns a 64-bit random Number.
     /// </summary>
-    /// <returns>A random number as a ulong.</returns>
+    /// <returns>A random Number as a ulong.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected ulong Get64()
     {

@@ -1,7 +1,7 @@
 namespace Notio.Common.Identity;
 
 /// <summary>
-/// ID type to serve different purposes in the system.
+/// Number type to serve different purposes in the system.
 /// </summary>
 public enum IdType : byte
 {
@@ -131,7 +131,7 @@ public enum IdType : byte
     #endregion
 
     /// <summary>
-    /// The maximum valid value for ID types.
+    /// The maximum valid value for Number types.
     /// </summary>
     MaxValue = 255
 }

@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Enums;
+using Notio.Network.Web.Enums;
 using Notio.Network.Web.Http.Exceptions;
 using Notio.Network.Web.Http.Handlers;
 using Notio.Network.Web.MimeTypes;
@@ -44,8 +44,8 @@ public interface IWebServer : IWebModuleContainer, IMimeTypeCustomizer
     HttpExceptionHandlerCallback OnHttpException { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets the registered session ID manager, if any.</para>
-    /// <para>A session ID manager is an implementation of <see cref="ISessionManager"/>.</para>
+    /// <para>Gets or sets the registered session Number manager, if any.</para>
+    /// <para>A session Number manager is an implementation of <see cref="ISessionManager"/>.</para>
     /// <para>Note that this property can only be set before starting the web server.</para>
     /// </summary>
     /// <value>

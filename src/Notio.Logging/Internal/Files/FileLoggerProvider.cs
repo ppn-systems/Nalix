@@ -63,17 +63,17 @@ internal sealed class FileLoggerProvider : IDisposable
     }
 
     /// <summary>
-    /// Gets the number of entries currently in the queue waiting to be written.
+    /// Gets the Number of entries currently in the queue waiting to be written.
     /// </summary>
     public int QueuedEntryCount => _entryQueue.Count;
 
     /// <summary>
-    /// Gets the total number of log entries written since this provider was created.
+    /// Gets the total Number of log entries written since this provider was created.
     /// </summary>
     public long TotalEntriesWritten => Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>
-    /// Gets the number of entries that were dropped due to queue capacity constraints.
+    /// Gets the Number of entries that were dropped due to queue capacity constraints.
     /// </summary>
     public long EntriesDroppedCount => Interlocked.Read(ref _entriesDroppedCount);
 

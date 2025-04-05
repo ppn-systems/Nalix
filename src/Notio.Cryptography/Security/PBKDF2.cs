@@ -23,7 +23,7 @@ public sealed class Pbkdf2 : IDisposable
     /// Initializes a new instance of the <see cref="Pbkdf2"/> class.
     /// </summary>
     /// <param name="salt">The salt value to use in the key derivation process. Must not be null or empty.</param>
-    /// <param name="iterations">The number of iterations to perform. Must be greater than 0.</param>
+    /// <param name="iterations">The Number of iterations to perform. Must be greater than 0.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes. Must be greater than 0.</param>
     /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Defaults to SHA1.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
@@ -127,7 +127,7 @@ public sealed class Pbkdf2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <param name="salt">The salt bytes to use.</param>
-    /// <param name="iterations">The number of iterations to perform.</param>
+    /// <param name="iterations">The Number of iterations to perform.</param>
     /// <param name="keyLength">The desired key length in bytes.</param>
     /// <param name="hashLength">The length of the hash output (20 for SHA1, 32 for SHA256).</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>
@@ -162,7 +162,7 @@ public sealed class Pbkdf2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <param name="saltWithIndex">The salt concatenated with the block index.</param>
-    /// <param name="iterations">The number of iterations to perform.</param>
+    /// <param name="iterations">The Number of iterations to perform.</param>
     /// <param name="outputBlock">The span to store the computed block.</param>
     /// <param name="hashLength">The length of the hash output.</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>

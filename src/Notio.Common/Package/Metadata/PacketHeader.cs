@@ -19,9 +19,24 @@ public readonly struct PacketHeader(in IPacket packet)
     public readonly ushort Length = packet.Length;
 
     /// <summary>
+    /// Gets the command associated with the packet, which can specify an operation or request type.
+    /// </summary>
+    public readonly ushort Id = packet.Id;
+
+    /// <summary>
+    /// Gets the checksum of the packet, computed based on the payload. Used for integrity validation.
+    /// </summary>
+    public readonly uint Checksum = packet.Checksum;
+
+    /// <summary>
+    /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.
+    /// </summary>
+    public readonly ulong Timestamp = packet.Timestamp;
+
+    /// <summary>
     /// Gets the unique identifier for the packet instance.
     /// </summary>
-    public readonly byte Id = packet.Number;
+    public readonly byte Number = packet.Number;
 
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.
@@ -37,19 +52,4 @@ public readonly struct PacketHeader(in IPacket packet)
     /// Gets the priority level of the packet, which can affect how the packet is processed or prioritized.
     /// </summary>
     public readonly byte Priority = (byte)packet.Priority;
-
-    /// <summary>
-    /// Gets the command associated with the packet, which can specify an operation or request type.
-    /// </summary>
-    public readonly ushort Command = packet.Id;
-
-    /// <summary>
-    /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.
-    /// </summary>
-    public readonly ulong Timestamp = packet.Timestamp;
-
-    /// <summary>
-    /// Gets the checksum of the packet, computed based on the payload. Used for integrity validation.
-    /// </summary>
-    public readonly uint Checksum = packet.Checksum;
 }

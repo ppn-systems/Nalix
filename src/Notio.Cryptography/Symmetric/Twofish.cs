@@ -441,7 +441,7 @@ public static class Twofish
     {
         // Input: X, a 32-bit input
         // L, key material
-        // k, number of 64-bit words in key
+        // k, Number of 64-bit words in key
 
         byte y0 = Q00((byte)(X & 0xFF));
         byte y1 = Q01((byte)((X >> 8) & 0xFF));

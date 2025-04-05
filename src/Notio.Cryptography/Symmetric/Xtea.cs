@@ -20,7 +20,7 @@ public static class Xtea
     #region Constants
 
     /// <summary>
-    /// The number of rounds in the XTEA algorithm.
+    /// The Number of rounds in the XTEA algorithm.
     /// </summary>
     public const int DefaultNumRounds = 32;
 
@@ -54,7 +54,7 @@ public static class Xtea
     /// <param name="v0">The first 32 bits of the block.</param>
     /// <param name="v1">The second 32 bits of the block.</param>
     /// <param name="key">The 128-bit key as four 32-bit unsigned integers.</param>
-    /// <param name="rounds">The number of rounds (default is 32).</param>
+    /// <param name="rounds">The Number of rounds (default is 32).</param>
     /// <returns>The encrypted 64-bit block as two 32-bit values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (uint v0, uint v1) EncryptBlock(
@@ -78,7 +78,7 @@ public static class Xtea
     /// <param name="v0">The first 32 bits of the encrypted block.</param>
     /// <param name="v1">The second 32 bits of the encrypted block.</param>
     /// <param name="key">The 128-bit key as four 32-bit unsigned integers.</param>
-    /// <param name="rounds">The number of rounds (default is 32).</param>
+    /// <param name="rounds">The Number of rounds (default is 32).</param>
     /// <returns>The decrypted 64-bit block as two 32-bit values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (uint v0, uint v1) DecryptBlock(
@@ -107,7 +107,7 @@ public static class Xtea
     /// <param name="key">The encryption key (must be exactly 16 bytes / 4 words).</param>
     /// <param name="output">The buffer to store the encrypted data (must be large enough to hold the result).</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
     /// <exception cref="ArgumentException">
     /// Thrown when the data is empty, the key is not exactly 4 words,
     /// or the output buffer is too small.
@@ -213,7 +213,7 @@ public static class Xtea
     /// <param name="data">The data to encrypt.</param>
     /// <param name="key">The encryption key (must be exactly 16 bytes / 4 words).</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
     /// <returns>The encrypted data.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when the data is empty or the key is not exactly 4 words.
@@ -241,7 +241,7 @@ public static class Xtea
     /// <param name="data">The data to encrypt.</param>
     /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
     /// <returns>The encrypted data.</returns>
     public static byte[] Encrypt(
         ReadOnlySpan<byte> data,
@@ -269,8 +269,8 @@ public static class Xtea
     /// <param name="key">The decryption key (must be exactly 16 bytes / 4 words).</param>
     /// <param name="output">The buffer to store the decrypted data.</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
-    /// <returns>The number of bytes written to the output buffer after removing padding.</returns>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
+    /// <returns>The Number of bytes written to the output buffer after removing padding.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when the key is not exactly 4 words, the data length is not a multiple of 8,
     /// the output buffer is too small, or if the padding is invalid.
@@ -388,7 +388,7 @@ public static class Xtea
     /// <param name="data">The data to decrypt (must be a multiple of 8 bytes).</param>
     /// <param name="key">The decryption key (must be exactly 16 bytes / 4 words).</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
     /// <returns>The decrypted data with padding removed.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when the key is not exactly 4 words, the data length is not a multiple of 8,
@@ -425,7 +425,7 @@ public static class Xtea
     /// <param name="data">The data to decrypt (must be a multiple of 8 bytes).</param>
     /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
     /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The number of rounds to use (default is 32).</param>
+    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
     /// <returns>The decrypted data with padding removed.</returns>
     public static byte[] Decrypt(
         ReadOnlySpan<byte> data,

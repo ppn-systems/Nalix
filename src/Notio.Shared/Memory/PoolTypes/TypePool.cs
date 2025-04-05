@@ -18,7 +18,7 @@ internal class TypePool(int maxCapacity)
     private int _maxCapacity = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
 
     /// <summary>
-    /// Gets the number of objects available in this pool.
+    /// Gets the Number of objects available in this pool.
     /// </summary>
     public int AvailableCount => _objects.Count;
 
@@ -76,7 +76,7 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Clears all objects from this pool.
     /// </summary>
-    /// <returns>The number of objects removed.</returns>
+    /// <returns>The Number of objects removed.</returns>
     public int Clear()
     {
         int count = _objects.Count;
@@ -88,7 +88,7 @@ internal class TypePool(int maxCapacity)
     /// Trims the pool to a target size based on a percentage of the maximum capacity.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The number of objects removed.</returns>
+    /// <returns>The Number of objects removed.</returns>
     public int Trim(int percentage)
     {
         if (percentage >= 100)

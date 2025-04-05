@@ -49,7 +49,7 @@ public sealed class FileLoggerOptions
     }
 
     /// <summary>
-    /// The maximum number of entries that can be queued before blocking or discarding.
+    /// The maximum Number of entries that can be queued before blocking or discarding.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     public int MaxQueueSize
@@ -68,7 +68,7 @@ public sealed class FileLoggerOptions
     /// Gets or sets the name template for log files.
     /// </summary>
     /// <remarks>
-    /// The actual filename may have additional information appended like date or sequence number.
+    /// The actual filename may have additional information appended like date or sequence Number.
     /// </remarks>
     public string LogFileName
     {

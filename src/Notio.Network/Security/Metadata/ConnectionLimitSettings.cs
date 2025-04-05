@@ -8,7 +8,7 @@ namespace Notio.Network.Security.Metadata;
 public readonly struct ConnectionLimitSettings
 {
     /// <summary>
-    /// Gets the maximum number of connections allowed.
+    /// Gets the maximum Number of connections allowed.
     /// </summary>
     public int MaxConnections { get; }
 
@@ -25,7 +25,7 @@ public readonly struct ConnectionLimitSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionLimitSettings"/> struct.
     /// </summary>
-    /// <param name="maxConnections">The maximum number of connections allowed.</param>
+    /// <param name="maxConnections">The maximum Number of connections allowed.</param>
     /// <param name="cleanupIntervalMs">The interval in milliseconds for cleanup.</param>
     /// <param name="inactivityThresholdMs">The inactivity threshold in milliseconds.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if any value is invalid.</exception>

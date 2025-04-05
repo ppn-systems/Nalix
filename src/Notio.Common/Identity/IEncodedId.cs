@@ -18,14 +18,14 @@ public interface IEncodedId
     IdType Type { get; }
 
     /// <summary>
-    /// Gets the machine ID component encoded within this identifier.
+    /// Gets the machine Number component encoded within this identifier.
     /// </summary>
     ushort MachineId { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this ID is empty.
+    /// Gets a value indicating whether this Number is empty.
     /// </summary>
-    /// <returns>True if this ID is empty; otherwise, false.</returns>
+    /// <returns>True if this Number is empty; otherwise, false.</returns>
     bool IsEmpty();
 
     /// <summary>
@@ -45,7 +45,7 @@ public interface IEncodedId
     /// Tries to write the identifier to a span of bytes.
     /// </summary>
     /// <param name="destination">The destination span.</param>
-    /// <param name="bytesWritten">The number of bytes written.</param>
+    /// <param name="bytesWritten">The Number of bytes written.</param>
     /// <returns>True if successful; false if the destination is too small.</returns>
     bool TryWriteBytes(Span<byte> destination, out int bytesWritten);
 }

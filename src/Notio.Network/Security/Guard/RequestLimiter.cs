@@ -14,13 +14,13 @@ namespace Notio.Network.Security.Guard;
 
 /// <summary>
 /// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.
-/// It tracks the number of requests from each IP address within a defined time window
+/// It tracks the Number of requests from each IP address within a defined time window
 /// and blocks further requests when a threshold is exceeded.
 /// </summary>
 /// <remarks>
 /// This class provides a mechanism for tracking request attempts and enforcing rate limits.
 /// It uses a concurrent dictionary to track requests for each IP and enforces a lockout
-/// duration when the maximum number of requests is exceeded. A cleanup timer is used to periodically
+/// duration when the maximum Number of requests is exceeded. A cleanup timer is used to periodically
 /// remove inactive request data.
 /// </remarks>
 public sealed class RequestLimiter : IDisposable
@@ -68,7 +68,7 @@ public sealed class RequestLimiter : IDisposable
     }
 
     /// <summary>
-    /// Checks the number of requests from an IP address and determines whether further requests are allowed based on rate-limiting rules.
+    /// Checks the Number of requests from an IP address and determines whether further requests are allowed based on rate-limiting rules.
     /// </summary>
     /// <param name="endPoint">The IP address to check the request limit for.</param>
     /// <returns>true if the request is accepted, false if rejected.</returns>

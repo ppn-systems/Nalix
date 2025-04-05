@@ -36,7 +36,7 @@ public static class AssertionSentry
     public static bool CaptureStackTrace { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the maximum number of recent assertion failures to remember.
+    /// Gets or sets the maximum Number of recent assertion failures to remember.
     /// </summary>
     public static int MaxTrackedAssertions { get; set; } = 10;
 
@@ -98,7 +98,7 @@ public static class AssertionSentry
     /// <param name="message">Optional message to include in the exception.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="InvalidOperationException">Thrown when the condition is false.</exception>
     [Conditional("DEBUG")]
     public static void Assert(
@@ -127,7 +127,7 @@ public static class AssertionSentry
     /// <param name="objectName">Name of the object being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="ArgumentNullException">Thrown when the object is null.</exception>
     [Conditional("DEBUG")]
     public static void AssertNotNull(
@@ -156,7 +156,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="ArgumentException">Thrown when the string is null or empty.</exception>
     [Conditional("DEBUG")]
     public static void AssertNotNullOrEmpty(
@@ -185,7 +185,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="ArgumentException">Thrown when the string is null, empty or whitespace.</exception>
     [Conditional("DEBUG")]
     public static void AssertNotNullOrWhiteSpace(
@@ -217,7 +217,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is outside the specified range.</exception>
     [Conditional("DEBUG")]
     public static void AssertInRange<T>(
@@ -250,7 +250,7 @@ public static class AssertionSentry
     /// <param name="message">Optional message describing the assertion.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="InvalidOperationException">Thrown when the objects are not equal.</exception>
     [Conditional("DEBUG")]
     public static void AssertEqual<T>(
@@ -283,7 +283,7 @@ public static class AssertionSentry
     /// <param name="message">Optional message describing the assertion.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="InvalidOperationException">Thrown when the objects are equal.</exception>
     [Conditional("DEBUG")]
     public static void AssertNotEqual<T>(
@@ -313,7 +313,7 @@ public static class AssertionSentry
     /// <param name="message">The message for the failure.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="InvalidOperationException">Always thrown.</exception>
     [Conditional("DEBUG")]
     [DoesNotReturn]
@@ -344,7 +344,7 @@ public static class AssertionSentry
     /// <param name="message">Optional message to include if the assertion fails.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     [Conditional("DEBUG")]
     public static void AssertExecutionTime(
         Action action,
@@ -378,7 +378,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="ArgumentException">Thrown when the collection is null or empty.</exception>
     [Conditional("DEBUG")]
     public static void AssertNotNullOrEmpty<T>(
@@ -438,7 +438,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     [Conditional("DEBUG")]
     public static void AssertType(
         object value,
@@ -471,7 +471,7 @@ public static class AssertionSentry
     /// <param name="paramName">Name of the parameter being checked.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     [Conditional("DEBUG")]
     public static void AssertType<T>(
         object value,
@@ -494,7 +494,7 @@ public static class AssertionSentry
     /// <param name="message">Optional message to include in the exception.</param>
     /// <param name="callerMemberName">Auto-populated with the calling method name.</param>
     /// <param name="callerFilePath">Auto-populated with the source file path.</param>
-    /// <param name="callerLineNumber">Auto-populated with the source line number.</param>
+    /// <param name="callerLineNumber">Auto-populated with the source line Number.</param>
     /// <exception cref="InvalidOperationException">Thrown when the condition is false.</exception>
     public static void AlwaysAssert(
         [DoesNotReturnIf(false)] bool condition,
@@ -527,7 +527,7 @@ public static class AssertionSentry
     /// <param name="paramName">The parameter name related to the failure, if applicable.</param>
     /// <param name="callerMemberName">The method where the failure occurred.</param>
     /// <param name="callerFilePath">The file where the failure occurred.</param>
-    /// <param name="callerLineNumber">The line number where the failure occurred.</param>
+    /// <param name="callerLineNumber">The line Number where the failure occurred.</param>
     /// <param name="exceptionFactory">A function to create the appropriate exception type.</param>
     [DoesNotReturn]
     private static void HandleAssertionFailure(
@@ -589,7 +589,7 @@ public static class AssertionSentry
     /// <param name="message">The base message.</param>
     /// <param name="callerMemberName">The method name.</param>
     /// <param name="callerFilePath">The file path.</param>
-    /// <param name="callerLineNumber">The line number.</param>
+    /// <param name="callerLineNumber">The line Number.</param>
     /// <returns>A formatted message with caller information.</returns>
     private static string FormatAssertMessage(
         string message,

@@ -25,12 +25,12 @@ public sealed class BufferPoolShared : IDisposable
     private bool _isOptimizing;
 
     /// <summary>
-    /// The total number of buffers in the pool.
+    /// The total Number of buffers in the pool.
     /// </summary>
     public int TotalBuffers => Volatile.Read(ref _totalBuffers);
 
     /// <summary>
-    /// The number of free buffers in the pool.
+    /// The Number of free buffers in the pool.
     /// </summary>
     public int FreeBuffers => _freeBuffers.Count;
 

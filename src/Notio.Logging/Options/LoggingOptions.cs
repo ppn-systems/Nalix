@@ -35,7 +35,7 @@ public sealed class LoggingOptions : IDisposable
     public bool IncludeMachineName { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets whether to include process ID in log entries.
+    /// Gets or sets whether to include process Number in log entries.
     /// </summary>
     public bool IncludeProcessId { get; set; } = true;
 

@@ -188,7 +188,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
@@ -272,7 +272,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -348,7 +348,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
@@ -432,7 +432,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -533,7 +533,7 @@ public sealed class ChaCha20 : IDisposable
     }
 
     /// <summary>
-    /// Encrypt or decrypt an arbitrary-length byte array (input), writing the resulting byte array to the output buffer. The number of bytes to read from the input buffer is determined by numBytes.
+    /// Encrypt or decrypt an arbitrary-length byte array (input), writing the resulting byte array to the output buffer. The Number of bytes to read from the input buffer is determined by numBytes.
     /// </summary>
     /// <param name="output">Output byte array</param>
     /// <param name="input">Input byte array</param>
@@ -669,10 +669,10 @@ public sealed class ChaCha20 : IDisposable
     /// See <a href="https://tools.ietf.org/html/rfc7539#page-4">ChaCha20 Spec Sections 2.1 - 2.2</a>.
     /// </remarks>
     /// <param name="x">A ChaCha state (vector). Must contain 16 elements.</param>
-    /// <param name="a">Index of the first number</param>
-    /// <param name="b">Index of the second number</param>
-    /// <param name="c">Index of the third number</param>
-    /// <param name="d">Index of the fourth number</param>
+    /// <param name="a">Index of the first Number</param>
+    /// <param name="b">Index of the second Number</param>
+    /// <param name="c">Index of the third Number</param>
+    /// <param name="d">Index of the fourth Number</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QuarterRound(uint[] x, uint a, uint b, uint c, uint d)
     {

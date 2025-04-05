@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Internal;
+using Notio.Network.Web.Internal;
 using Notio.Network.Web.Net.Internal;
 using Notio.Network.Web.Utilities;
 using System;
@@ -185,7 +185,7 @@ public sealed class CookieList : List<Cookie>, ICookieCollection
         if (array.Length - index < Count)
         {
             throw new ArgumentException(
-                "The number of elements in this collection is greater than the available space of the destination array.");
+                "The Number of elements in this collection is greater than the available space of the destination array.");
         }
 
         if (array.GetType().GetElementType()?.IsAssignableFrom(typeof(Cookie)) != true)

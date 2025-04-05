@@ -62,12 +62,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the number of cache hits.
+    /// Gets the Number of cache hits.
     /// </summary>
     public long Hits => Interlocked.Read(ref _hits);
 
     /// <summary>
-    /// Gets the number of cache misses.
+    /// Gets the Number of cache misses.
     /// </summary>
     public long Misses => Interlocked.Read(ref _misses);
 
@@ -86,17 +86,17 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the number of items evicted from the cache.
+    /// Gets the Number of items evicted from the cache.
     /// </summary>
     public long Evictions => Interlocked.Read(ref _evictions);
 
     /// <summary>
-    /// Gets the number of items added to the cache.
+    /// Gets the Number of items added to the cache.
     /// </summary>
     public long Additions => Interlocked.Read(ref _additions);
 
     /// <summary>
-    /// Gets the number of items updated in the cache.
+    /// Gets the Number of items updated in the cache.
     /// </summary>
     public long Updates => Interlocked.Read(ref _updates);
 
@@ -108,7 +108,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Initializes a new instance of the <see cref="LruCache{TKey, TValue}"/> class.
     /// </summary>
-    /// <param name="capacity">The maximum number of items in the cache.</param>
+    /// <param name="capacity">The maximum Number of items in the cache.</param>
     /// <param name="comparer">Optional custom equality comparer for keys.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
     public LruCache(int capacity, IEqualityComparer<TKey>? comparer = null)

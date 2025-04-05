@@ -9,13 +9,13 @@ namespace Notio.Network.Configurations;
 public sealed class TransportCacheConfig : ConfigurationBinder
 {
     /// <summary>
-    /// Gets or sets the maximum number of outgoing cache entries.
+    /// Gets or sets the maximum Number of outgoing cache entries.
     /// The default value is 20.
     /// </summary>
     public int Outgoing { get; set; } = 20;
 
     /// <summary>
-    /// Gets or sets the maximum number of incoming cache entries.
+    /// Gets or sets the maximum Number of incoming cache entries.
     /// The default value is 40.
     /// </summary>
     public int Incoming { get; set; } = 40;

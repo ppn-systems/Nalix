@@ -185,7 +185,7 @@ public sealed class BufferManager : IDisposable
         if (size > keys[^1])
             return 0;
 
-        // Binary search for efficiency with large number of pools
+        // Binary search for efficiency with large Number of pools
         int left = 0;
         int right = keys.Length - 1;
 

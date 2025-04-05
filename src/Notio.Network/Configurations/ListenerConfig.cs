@@ -13,17 +13,17 @@ public sealed class ListenerConfig : ConfigurationBinder
     private int _port = 5000;
 
     /// <summary>
-    /// Gets or sets the port number for the network connection.
+    /// Gets or sets the port Number for the network connection.
     /// </summary>
     public const int True = 1;
 
     /// <summary>
-    /// Gets or sets the port number for the network connection.
+    /// Gets or sets the port Number for the network connection.
     /// </summary>
     public const int False = 0;
 
     /// <summary>
-    /// Gets or sets the port number for the network connection.
+    /// Gets or sets the port Number for the network connection.
     /// Must be within the range of 1 to 65535.
     /// Standard is 5000.
     /// </summary>

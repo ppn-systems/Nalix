@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.MimeTypes;
+using Notio.Network.Web.MimeTypes;
 using Notio.Network.Web.Routing;
 using Notio.Network.Web.Sessions;
 using Notio.Network.Web.WebModule;
@@ -27,12 +27,12 @@ public interface IHttpContext : IMimeTypeProvider
     CancellationToken CancellationToken { get; }
 
     /// <summary>
-    /// Gets the server IP address and port number to which the request is directed.
+    /// Gets the server IP address and port Number to which the request is directed.
     /// </summary>
     IPEndPoint LocalEndPoint { get; }
 
     /// <summary>
-    /// Gets the client IP address and port number from which the request originated.
+    /// Gets the client IP address and port Number from which the request originated.
     /// </summary>
     IPEndPoint RemoteEndPoint { get; }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Notio.Network.Web.Sessions;
@@ -32,10 +32,10 @@ public interface ISession
     DateTime LastActivity { get; }
 
     /// <summary>
-    /// Gets the number of key/value pairs contained in a session.
+    /// Gets the Number of key/value pairs contained in a session.
     /// </summary>
     /// <value>
-    /// The number of key/value pairs contained in the object that implements <see cref="ISession"/>.
+    /// The Number of key/value pairs contained in the object that implements <see cref="ISession"/>.
     /// </value>
     int Count { get; }
 

@@ -83,7 +83,7 @@ public static class PacketSerializationHelper
     /// </summary>
     /// <param name="packet">The packet to serialize.</param>
     /// <param name="destination">The destination span to hold the serialized packet.</param>
-    /// <param name="bytesWritten">The number of bytes written to the destination span.</param>
+    /// <param name="bytesWritten">The Number of bytes written to the destination span.</param>
     /// <returns>Returns true if serialization was successful; otherwise, false.</returns>
     public static bool TrySerialize(in Packet packet, Span<byte> destination, out int bytesWritten)
     {
@@ -145,6 +145,6 @@ public static class PacketSerializationHelper
         => $"Type: {packet.Type}, " +
            $"Flags: {packet.Flags}, " +
            $"Priority: {packet.Priority}, " +
-           $"Id: {packet.Id}, " +
+           $"Number: {packet.Id}, " +
            $"Payload Length: {packet.Payload.Length}";
 }

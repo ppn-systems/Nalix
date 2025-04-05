@@ -3,12 +3,12 @@ using System;
 namespace Notio.Network.Security.Metadata;
 
 /// <summary>
-/// Represents settings for rate limiting, including the number of requests, lockout duration, and time window.
+/// Represents settings for rate limiting, including the Number of requests, lockout duration, and time window.
 /// </summary>
 public readonly struct RequestLimitSettings
 {
     /// <summary>
-    /// Gets the maximum number of requests allowed.
+    /// Gets the maximum Number of requests allowed.
     /// </summary>
     public int Requests { get; }
 
@@ -25,7 +25,7 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimitSettings"/> struct.
     /// </summary>
-    /// <param name="requests">The maximum number of requests allowed.</param>
+    /// <param name="requests">The maximum Number of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
     /// <exception cref="ArgumentOutOfRangeException">

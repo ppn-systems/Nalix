@@ -27,7 +27,7 @@ internal static class LoggingBuilder
     /// <param name="builder">The StringBuilder to append the log to.</param>
     /// <param name="timeStamp">The timestamp of the log entry.</param>
     /// <param name="logLevel">The logging level.</param>
-    /// <param name="eventId">The event ID associated with the log entry.</param>
+    /// <param name="eventId">The event Number associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception information.</param>
     /// <param name="terminal">Whether to include ANSI color codes in the output.</param>
@@ -65,7 +65,7 @@ internal static class LoggingBuilder
     /// </summary>
     /// <param name="timeStamp">The timestamp of the log entry.</param>
     /// <param name="logLevel">The logging level.</param>
-    /// <param name="eventId">The event ID associated with the log entry.</param>
+    /// <param name="eventId">The event Number associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception information.</param>
     /// <param name="terminal">Whether to include ANSI color codes in the output.</param>
@@ -163,12 +163,12 @@ internal static class LoggingBuilder
     }
 
     /// <summary>
-    /// Appends a formatted event ID to the string builder if it exists.
+    /// Appends a formatted event Number to the string builder if it exists.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AppendEventId(StringBuilder builder, in EventId eventId, bool terminal)
     {
-        // Skip if it's the empty event ID
+        // Skip if it's the empty event Number
         if (eventId.Id == 0) return;
 
         builder.Append(LoggingConstants.LogSpaceSeparator)
@@ -177,7 +177,7 @@ internal static class LoggingBuilder
         if (terminal && eventId.Name != null)
             builder.Append(ColorAnsi.Blue);
 
-        // Append ID
+        // Append Number
         builder.Append(eventId.Id);
 
         // Append name if present
@@ -306,10 +306,10 @@ internal static class LoggingBuilder
         // Base size includes timestamp format, brackets, and separators
         int length = LoggingConstants.DefaultLogBufferSize + message.Length;
 
-        // Add event ID length if present
+        // Add event Number length if present
         if (eventId.Id != 0)
         {
-            length += 5; // Brackets, space, and typical ID length
+            length += 5; // Brackets, space, and typical Number length
             if (eventId.Name != null)
                 length += eventId.Name.Length + 1; // +1 for colon
         }

@@ -9,11 +9,11 @@ namespace Notio.Randomization;
 /// <remarks>
 /// Initializes a new instance of the <see cref="Rand"/> class with a specified seed.
 /// </remarks>
-/// <param name="seed">The seed value to initialize the random number generator.</param>
+/// <param name="seed">The seed value to initialize the random Number generator.</param>
 public sealed class Rand(uint seed) : RandMwc(seed)
 {
     /// <summary>
-    /// Returns a random floating-point number in the range [0.0, 1.0).
+    /// Returns a random floating-point Number in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
@@ -28,7 +28,7 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     }
 
     /// <summary>
-    /// Returns a random double-precision floating-point number in the range [0.0, 1.0).
+    /// Returns a random double-precision floating-point Number in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
@@ -204,10 +204,10 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point number in the range [0, max).
+    /// Returns a random floating-point Number in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point number in the range [0, max).</returns>
+    /// <returns>A random floating-point Number in the range [0, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float Get(float max)
     {
@@ -218,10 +218,10 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     }
 
     /// <summary>
-    /// Returns a random double-precision floating-point number in the range [0, max).
+    /// Returns a random double-precision floating-point Number in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point number in the range [0, max).</returns>
+    /// <returns>A random double-precision floating-point Number in the range [0, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Get(double max)
     {
@@ -232,11 +232,11 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point number in the range [min, max).
+    /// Returns a random floating-point Number in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point number in the range [min, max).</returns>
+    /// <returns>A random floating-point Number in the range [min, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float Get(float min, float max)
     {
@@ -247,11 +247,11 @@ public sealed class Rand(uint seed) : RandMwc(seed)
     }
 
     /// <summary>
-    /// Returns a random double-precision floating-point number in the range [min, max).
+    /// Returns a random double-precision floating-point Number in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point number in the range [min, max).</returns>
+    /// <returns>A random double-precision floating-point Number in the range [min, max).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Get(double min, double max)
     {

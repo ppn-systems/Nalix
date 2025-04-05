@@ -26,7 +26,7 @@ public static class AdvSimdExtensions
     /// Performs a right rotation on a 128-bit vector of 32-bit unsigned integers.
     /// </summary>
     /// <param name="value">The input vector.</param>
-    /// <param name="count">The number of bits to rotate.</param>
+    /// <param name="count">The Number of bits to rotate.</param>
     /// <returns>A vector with each 32-bit element rotated right by the specified count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<uint> RotateRight(Vector128<uint> value, byte count)

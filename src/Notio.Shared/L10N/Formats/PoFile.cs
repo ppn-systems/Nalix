@@ -122,7 +122,7 @@ public partial class PoFile
     }
 
     /// <summary>
-    /// Gets the translated string for a given ID.
+    /// Gets the translated string for a given Number.
     /// </summary>
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if available, otherwise returns the original text.</returns>
@@ -130,11 +130,11 @@ public partial class PoFile
         => _translations.TryGetValue(id, out var value) ? value : id;
 
     /// <summary>
-    /// Gets the pluralized translation for a given ID.
+    /// Gets the pluralized translation for a given Number.
     /// </summary>
     /// <param name="id">Singular form of the string.</param>
     /// <param name="idPlural">Plural form of the string.</param>
-    /// <param name="n">The number to determine the plural form.</param>
+    /// <param name="n">The Number to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     public string GetPluralString(string id, string idPlural, int n)
     {
@@ -165,7 +165,7 @@ public partial class PoFile
     /// <param name="context">Context to distinguish similar translations.</param>
     /// <param name="id">Singular form of the string.</param>
     /// <param name="idPlural">Plural form of the string.</param>
-    /// <param name="n">The number to determine the plural form.</param>
+    /// <param name="n">The Number to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     public string GetParticularPluralString(string context, string id, string idPlural, int n)
     {

@@ -20,7 +20,7 @@ public sealed class Codec
     /// </summary>
     /// <param name="packet">The byte array containing encrypted data.</param>
     /// <param name="offset">The starting position in the packet to begin decryption.</param>
-    /// <param name="len">The number of bytes to decrypt.</param>
+    /// <param name="len">The Number of bytes to decrypt.</param>
     public void Decrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
@@ -36,7 +36,7 @@ public sealed class Codec
     /// </summary>
     /// <param name="packet">The byte array containing plaintext data.</param>
     /// <param name="offset">The starting position in the packet to begin encryption.</param>
-    /// <param name="len">The number of bytes to encrypt.</param>
+    /// <param name="len">The Number of bytes to encrypt.</param>
     public void Encrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 

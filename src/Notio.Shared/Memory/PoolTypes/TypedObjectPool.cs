@@ -45,7 +45,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Gets multiple objects from the pool.
     /// </summary>
-    /// <param name="count">The number of objects to get.</param>
+    /// <param name="count">The Number of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     public List<T> GetMultiple(int count)
     {
@@ -56,7 +56,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
-    /// <returns>The number of objects successfully returned to the pool.</returns>
+    /// <returns>The Number of objects successfully returned to the pool.</returns>
     public int ReturnMultiple(IEnumerable<T> objects)
     {
         return _parentPool.ReturnMultiple(objects);
@@ -74,8 +74,8 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
-    /// <param name="count">The number of objects to preallocate.</param>
-    /// <returns>The number of objects successfully preallocated.</returns>
+    /// <param name="count">The Number of objects to preallocate.</param>
+    /// <returns>The Number of objects successfully preallocated.</returns>
     public int Prealloc(int count)
     {
         return _parentPool.Prealloc<T>(count);
@@ -93,7 +93,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
-    /// <returns>The number of objects removed.</returns>
+    /// <returns>The Number of objects removed.</returns>
     public int Clear()
     {
         return _parentPool.ClearType<T>();

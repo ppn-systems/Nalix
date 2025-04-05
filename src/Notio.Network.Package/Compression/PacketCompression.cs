@@ -27,15 +27,15 @@ public static class PacketCompression
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
 
-        if (packet.Flags.HasFlag(PacketFlags.IsEncrypted))
+        if (packet.Flags.HasFlag(PacketFlags.Encrypted))
             throw new PackageException("Payload is encrypted and cannot be compressed.");
 
         try
         {
             byte[] compressedData = BrotliCompressor.Compress(packet.Payload);
 
-            return new Packet(packet.Number, packet.Type, packet.Flags.AddFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Id, packet.Timestamp, packet.Checksum, compressedData);
+            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Number,
+                packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed), packet.Priority, compressedData);
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
@@ -58,15 +58,15 @@ public static class PacketCompression
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
 
-        if (!packet.Flags.HasFlag(PacketFlags.IsCompressed))
+        if (!packet.Flags.HasFlag(PacketFlags.Compressed))
             throw new PackageException("Payload is not marked as compressed.");
 
         try
         {
             byte[] decompressedData = BrotliCompressor.Decompress(packet.Payload);
 
-            return new Packet(packet.Number, packet.Type, packet.Flags.RemoveFlag(PacketFlags.IsCompressed),
-                packet.Priority, packet.Id, packet.Timestamp, packet.Checksum, decompressedData);
+            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Number, packet.Type,
+                packet.Flags.RemoveFlag(PacketFlags.Compressed), packet.Priority, decompressedData);
         }
         catch (InvalidDataException ex)
         {

@@ -8,7 +8,7 @@ namespace Notio.Cryptography.Symmetric;
 /// <summary>
 /// Implementation of the Speck lightweight block cipher developed by the NSA.
 /// This implementation does not rely on system cryptography libraries for the core algorithm,
-/// but uses secure random number generation for IV when needed.
+/// but uses secure random Number generation for IV when needed.
 /// </summary>
 public static class Speck
 {

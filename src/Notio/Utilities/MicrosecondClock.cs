@@ -18,7 +18,7 @@ public static class MicrosecondClock
     /// <summary>
     /// Gets the current timestamp in microseconds.
     /// </summary>
-    /// <returns>The number of microseconds elapsed since an arbitrary point in time.</returns>
+    /// <returns>The Number of microseconds elapsed since an arbitrary point in time.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong GetTimestamp()
         => (ulong)(Stopwatch.GetTimestamp() * TickMicroseconds);

@@ -8,7 +8,7 @@ using System.Threading;
 namespace Notio.Randomization;
 
 /// <summary>
-/// High-performance cryptographically strong random number generator 
+/// High-performance cryptographically strong random Number generator 
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 public static class RandGenerator
@@ -190,7 +190,7 @@ public static class RandGenerator
     /// <summary>
     /// Generates a random byte array of the specified length.
     /// </summary>
-    /// <param name="length">The number of random bytes to generate.</param>
+    /// <param name="length">The Number of random bytes to generate.</param>
     /// <returns>A byte array filled with random data.</returns>
     /// <exception cref="ArgumentException">Thrown if length is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -389,7 +389,7 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Reseeds the random number generator with additional entropy.
+    /// Reseeds the random Number generator with additional entropy.
     /// </summary>
     public static void Reseed()
     {
@@ -447,7 +447,7 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Ensures the random number generator is properly seeded with high-entropy sources.
+    /// Ensures the random Number generator is properly seeded with high-entropy sources.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EnsureSeeded()
@@ -496,7 +496,7 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Initialize the state of the random number generator.
+    /// Initialize the state of the random Number generator.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InitializeState()
@@ -589,7 +589,7 @@ public static class RandGenerator
     }
 
     /// <summary>
-    /// Core Xoshiro256++ random number generation algorithm.
+    /// Core Xoshiro256++ random Number generation algorithm.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong NextUInt64(ulong[] state)

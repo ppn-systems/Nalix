@@ -26,7 +26,7 @@ public readonly record struct BufferInfo : IEquatable<BufferInfo>
     public required int FreeBuffers { get; init; }
 
     /// <summary>
-    /// Total number of buffers
+    /// Total Number of buffers
     /// </summary>
     public required int TotalBuffers { get; init; }
 

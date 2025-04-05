@@ -1,4 +1,4 @@
-﻿using Notio.Network.Web.Net;
+using Notio.Network.Web.Net;
 using Notio.Network.Web.Sessions;
 using System;
 using System.Collections.Generic;
@@ -40,12 +40,12 @@ public interface IWebSocketContext
     IDictionary<object, object> Items { get; }
 
     /// <summary>
-    /// Gets the server IP address and port number to which the opening handshake request is directed.
+    /// Gets the server IP address and port Number to which the opening handshake request is directed.
     /// </summary>
     IPEndPoint LocalEndPoint { get; }
 
     /// <summary>
-    /// Gets the client IP address and port number from which the opening handshake request originated.
+    /// Gets the client IP address and port Number from which the opening handshake request originated.
     /// </summary>
     IPEndPoint RemoteEndPoint { get; }
 

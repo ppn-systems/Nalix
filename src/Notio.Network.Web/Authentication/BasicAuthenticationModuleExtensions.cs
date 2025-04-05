@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Notio.Network.Web.Authentication;
 
@@ -18,7 +18,7 @@ public static class BasicAuthenticationModuleExtensions
     /// <exception cref="ArgumentNullException"><paramref name="userName"/> is <see langword="null"/>.</exception>
     /// <exception cref="OverflowException">
     /// <para>The <see cref="BasicAuthenticationModule.Accounts">Accounts</see> dictionary already contains
-    /// the maximum number of elements (<see cref="int.MaxValue">MaxValue</see>).</para>
+    /// the maximum Number of elements (<see cref="int.MaxValue">MaxValue</see>).</para>
     /// </exception>
     /// <remarks>
     /// <para>If a <paramref name="userName"/> account already exists,

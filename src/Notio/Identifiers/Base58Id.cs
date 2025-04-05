@@ -57,7 +57,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     public IdType Type => (IdType)(_value >> 24);
 
     /// <summary>
-    /// Gets the machine ID component encoded within this Base58Id.
+    /// Gets the machine Number component encoded within this Base58Id.
     /// </summary>
     public ushort MachineId => (ushort)(_value & 0xFFFF);
 
@@ -68,10 +68,10 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     #region Static Methods
 
     /// <summary>
-    /// Generate a new ID from random and system elements.
+    /// Generate a new Number from random and system elements.
     /// </summary>
-    /// <param name="type">The unique ID type to generate.</param>
-    /// <param name="machineId">The unique ID for each different server.</param>
+    /// <param name="type">The unique Number type to generate.</param>
+    /// <param name="machineId">The unique Number for each different server.</param>
     /// <returns>A new <see cref="Base58Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -181,7 +181,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
         return new Base58Id(
             ((uint)type << 24) |              // Type in high 8 bits
             ((random & 0x00FFFF00) |          // Random value in middle bits
-            ((uint)machineId & 0xFFFF))       // Machine ID in low 16 bits
+            ((uint)machineId & 0xFFFF))       // Machine Number in low 16 bits
         );
     }
 
@@ -222,10 +222,10 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     #region Instance Methods
 
     /// <summary>
-    /// Converts the ID to a string representation.
+    /// Converts the Number to a string representation.
     /// </summary>
     /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base58 string.</param>
-    /// <returns>The string representation of the ID.</returns>
+    /// <returns>The string representation of the Number.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToString(bool isHex = false)
     {
@@ -241,7 +241,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     public override string ToString() => ToBase58String();
 
     /// <summary>
-    /// Converts the ID to a Base58 string with minimum padding.
+    /// Converts the Number to a Base58 string with minimum padding.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ToBase58String()
@@ -280,7 +280,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     /// Tries to write the Base58Id to a span of bytes.
     /// </summary>
     /// <param name="destination">The destination span.</param>
-    /// <param name="bytesWritten">The number of bytes written.</param>
+    /// <param name="bytesWritten">The Number of bytes written.</param>
     /// <returns>True if successful; false if the destination is too small.</returns>
     public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
     {
@@ -327,9 +327,9 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     public int CompareTo(Base58Id other) => _value.CompareTo(other._value);
 
     /// <summary>
-    /// Gets a value indicating whether this ID is empty (has a value of 0).
+    /// Gets a value indicating whether this Number is empty (has a value of 0).
     /// </summary>
-    /// <returns>True if this ID is empty; otherwise, false.</returns>
+    /// <returns>True if this Number is empty; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsEmpty() => _value == 0;
 

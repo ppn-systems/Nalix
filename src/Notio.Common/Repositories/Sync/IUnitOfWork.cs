@@ -10,6 +10,6 @@ public interface IUnitOfWorkSync : IRepositoryProvider, ITransaction, IDisposabl
     /// <summary>
     /// Saves all changes made in the current transaction.
     /// </summary>
-    /// <returns>The number of affected database records.</returns>
+    /// <returns>The Number of affected database records.</returns>
     int SaveChanges();
 }

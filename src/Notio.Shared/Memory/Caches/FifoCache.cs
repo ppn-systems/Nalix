@@ -32,22 +32,22 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     public int Capacity => _capacity;
 
     /// <summary>
-    /// Gets the number of elements currently stored in the cache.
+    /// Gets the Number of elements currently stored in the cache.
     /// </summary>
     public int Count => Volatile.Read(ref _currentSize);
 
     /// <summary>
-    /// Gets the number of items added to the cache.
+    /// Gets the Number of items added to the cache.
     /// </summary>
     public long Additions => Interlocked.Read(ref _additions);
 
     /// <summary>
-    /// Gets the number of items removed from the cache.
+    /// Gets the Number of items removed from the cache.
     /// </summary>
     public long Removals => Interlocked.Read(ref _removals);
 
     /// <summary>
-    /// Gets the number of trim operations performed on the cache.
+    /// Gets the Number of trim operations performed on the cache.
     /// </summary>
     public long TrimOperations => Interlocked.Read(ref _trimOperations);
 
@@ -69,7 +69,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Initializes a new instance of the <see cref="FifoCache{T}"/> class with the specified capacity.
     /// </summary>
-    /// <param name="capacity">The maximum number of elements the cache can hold.</param>
+    /// <param name="capacity">The maximum Number of elements the cache can hold.</param>
     /// <exception cref="ArgumentException">Thrown when the capacity is less than or equal to zero.</exception>
     public FifoCache(int capacity)
     {
@@ -223,7 +223,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Attempts to retrieve multiple elements from the cache in a batch operation.
     /// </summary>
-    /// <param name="count">The number of elements to retrieve.</param>
+    /// <param name="count">The Number of elements to retrieve.</param>
     /// <returns>A list containing the retrieved elements.</returns>
     /// <exception cref="ArgumentException">Thrown when the count is less than or equal to zero.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>

@@ -437,9 +437,9 @@ public static class HttpHeaderNames
     public const string XPoweredBy = "X-Powered-By";
 
     /// <summary>
-    /// The <c>X-Request-ID</c> HTTP header.
+    /// The <c>X-Request-Number</c> HTTP header.
     /// </summary>
-    public const string XRequestID = "X-Request-ID";
+    public const string XRequestID = "X-Request-Number";
 
     /// <summary>
     /// The <c>X-UA-Compatible</c> HTTP header.

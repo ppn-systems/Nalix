@@ -27,10 +27,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
     });
 
     /// <summary>
-    /// Writes a log entry with the specified level, event ID, message, and optional exception.
+    /// Writes a log entry with the specified level, event Number, message, and optional exception.
     /// </summary>
     /// <param name="level">The log level (e.g., Info, Warning, Error, etc.).</param>
-    /// <param name="eventId">The event ID to associate with the log entry.</param>
+    /// <param name="eventId">The event Number to associate with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception associated with the log entry.</param>
     private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)

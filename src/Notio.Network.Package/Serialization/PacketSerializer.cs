@@ -25,7 +25,7 @@ public static class PacketSerializer
     /// </summary>
     /// <param name="buffer">The buffer to write the packet data to.</param>
     /// <param name="packet">The packet to be written.</param>
-    /// <returns>The number of bytes written to the buffer.</returns>
+    /// <returns>The Number of bytes written to the buffer.</returns>
     /// <exception cref="PackageException">Thrown if the buffer size is too small for the packet.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int WritePacketFast(Span<byte> buffer, in Packet packet)
@@ -41,13 +41,13 @@ public static class PacketSerializer
             MemoryMarshal.Write(buffer, in totalSize);
 
             // Write the rest of the header fields
-            buffer[PacketOffset.Id] = packet.Number;
+            buffer[PacketOffset.Number] = packet.Number;
             buffer[PacketOffset.Type] = (byte)packet.Type;
             buffer[PacketOffset.Flags] = (byte)packet.Flags;
             buffer[PacketOffset.Priority] = (byte)packet.Priority;
 
             ushort command = packet.Id;
-            MemoryMarshal.Write(buffer[PacketOffset.Command..], in command);
+            MemoryMarshal.Write(buffer[PacketOffset.Id..], in command);
             ulong timestamp = packet.Timestamp;
             MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
             uint checksum = packet.Checksum;
@@ -76,7 +76,8 @@ public static class PacketSerializer
     public static Packet ReadPacketFast(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
-            throw new PackageException($"Data size ({data.Length}) is smaller than the minimum header size ({PacketSize.Header}).");
+            throw new PackageException(
+                $"Data size ({data.Length}) is smaller than the minimum header size ({PacketSize.Header}).");
 
         try
         {
@@ -90,14 +91,14 @@ public static class PacketSerializer
                 throw new PackageException($"Packet length ({length}) exceeds available data ({data.Length}).");
 
             // Extract header fields more efficiently using direct span access
-            byte id = data[PacketOffset.Id];
+            byte number = data[PacketOffset.Number];
             byte type = data[PacketOffset.Type];
             byte flags = data[PacketOffset.Flags];
             byte priority = data[PacketOffset.Priority];
 
-            ushort command = MemoryMarshal.Read<ushort>(data[PacketOffset.Command..]);
-            ulong timestamp = MemoryMarshal.Read<ulong>(data[PacketOffset.Timestamp..]);
+            ushort id = MemoryMarshal.Read<ushort>(data[PacketOffset.Id..]);
             uint checksum = MemoryMarshal.Read<uint>(data[PacketOffset.Checksum..]);
+            ulong timestamp = MemoryMarshal.Read<ulong>(data[PacketOffset.Timestamp..]);
 
             // Create payload - optimize for zero-copy when possible
             Memory<byte> payload;
@@ -124,7 +125,7 @@ public static class PacketSerializer
                 payload = Memory<byte>.Empty;
             }
 
-            return new Packet(id, type, flags, priority, command, timestamp, checksum, payload);
+            return new Packet(id, number, checksum, timestamp, type, flags, priority, payload);
         }
         catch (Exception ex) when (ex is not PackageException)
         {

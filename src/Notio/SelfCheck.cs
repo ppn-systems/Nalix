@@ -30,7 +30,7 @@ public static class SelfCheck
     /// <param name="message">The error message describing the failure.</param>
     /// <param name="callerMethod">The method where the failure occurred (automatically populated).</param>
     /// <param name="filePath">The source file path where the failure occurred (automatically populated).</param>
-    /// <param name="lineNumber">The line number where the failure occurred (automatically populated).</param>
+    /// <param name="lineNumber">The line Number where the failure occurred (automatically populated).</param>
     /// <returns>A new <see cref="InternalErrorException"/> with detailed context information.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static InternalErrorException Failure(
@@ -116,7 +116,7 @@ public static class SelfCheck
     /// <param name="message">The error message if the check fails.</param>
     /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
     /// <param name="filePath">The source file path (automatically populated).</param>
-    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the condition is false.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Validate(
@@ -136,7 +136,7 @@ public static class SelfCheck
     /// <param name="paramName">The parameter name to include in the error message.</param>
     /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
     /// <param name="filePath">The source file path (automatically populated).</param>
-    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the value is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void NotNull(
@@ -156,7 +156,7 @@ public static class SelfCheck
     /// <param name="paramName">The parameter name to include in the error message.</param>
     /// <param name="callerMethod">The method where this check occurs (automatically populated).</param>
     /// <param name="filePath">The source file path (automatically populated).</param>
-    /// <param name="lineNumber">The line number (automatically populated).</param>
+    /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the string is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void NotNullOrEmpty(

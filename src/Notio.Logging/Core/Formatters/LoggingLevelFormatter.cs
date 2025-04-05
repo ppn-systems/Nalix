@@ -119,7 +119,7 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level.</param>
     /// <param name="destination">The destination character span.</param>
-    /// <returns>The number of characters written.</returns>
+    /// <returns>The Number of characters written.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int CopyTo(LogLevel logLevel, Span<char> destination)
     {

@@ -8,7 +8,7 @@ namespace Notio.Shared.Memory.Buffers;
 public sealed class BufferConfig : ConfigurationBinder
 {
     /// <summary>
-    /// The total number of buffers to create.
+    /// The total Number of buffers to create.
     /// </summary>
     public int TotalBuffers { get; set; } = 100;
 
@@ -60,7 +60,7 @@ public sealed class BufferConfig : ConfigurationBinder
     public bool EnableQueueCompaction { get; set; } = false;
 
     /// <summary>
-    /// The number of buffer request/release operations between auto-tuning cycles
+    /// The Number of buffer request/release operations between auto-tuning cycles
     /// </summary>
     public int AutoTuneOperationThreshold { get; set; } = 10000;
 

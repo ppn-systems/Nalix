@@ -13,7 +13,7 @@ public static class DefaultConstants
     public const uint MemoryCostKiB = 4096;
 
     /// <summary>
-    /// The number of threads and compute lanes to use.
+    /// The Number of threads and compute lanes to use.
     /// </summary>
     public const uint ParallelismDegree = 1;
 
@@ -30,7 +30,7 @@ public static class DefaultConstants
     public const int HeapAllocThreshold = 1024;
 
     /// <summary>
-    /// The number of microseconds in one second (1,000,000).
+    /// The Number of microseconds in one second (1,000,000).
     /// This value is used for time conversions and time-based calculations.
     /// </summary>
     public const long MicrosecondsInSecond = 1_000_000L;

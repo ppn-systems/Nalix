@@ -14,7 +14,7 @@ namespace Notio.Common.Logging;
 public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
 {
     /// <summary>
-    /// Represents an empty or uninitialized <see cref="EventId"/> with an ID of 0.
+    /// Represents an empty or uninitialized <see cref="EventId"/> with an Number of 0.
     /// This value is commonly used to represent a default or missing event.
     /// </summary>
     public static readonly EventId Empty = new(0);
@@ -26,7 +26,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     public static implicit operator EventId(int i) => new(i);
 
     /// <summary>
-    /// Checks if two specified <see cref="EventId"/> instances have the same value. They are equal if they have the same ID.
+    /// Checks if two specified <see cref="EventId"/> instances have the same value. They are equal if they have the same Number.
     /// </summary>
     /// <param name="left">The first <see cref="EventId"/>.</param>
     /// <param name="right">The second <see cref="EventId"/>.</param>
@@ -55,7 +55,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     public override string ToString() => Name ?? Id.ToString();
 
     /// <summary>
-    /// Compares the current instance to another object of the same type. Two events are equal if they have the same ID.
+    /// Compares the current instance to another object of the same type. Two events are equal if they have the same Number.
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>

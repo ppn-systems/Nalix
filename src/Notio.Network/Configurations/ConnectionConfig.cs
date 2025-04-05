@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 namespace Notio.Network.Configurations;
 
 /// <summary>
-/// Configuration for limiting the number of concurrent connections per IP address.
-/// This configuration helps manage and control the number of simultaneous connections from each IP.
+/// Configuration for limiting the Number of concurrent connections per IP address.
+/// This configuration helps manage and control the Number of simultaneous connections from each IP.
 /// </summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with the specified connection limit settings.
@@ -60,7 +60,7 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     public bool EnableMetrics { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the maximum number of connections allowed per IP address.
+    /// Gets or sets the maximum Number of connections allowed per IP address.
     /// </summary>
     /// <remarks>
     /// This value is limited to a range of 1 to 10000, where 100 is the default value.

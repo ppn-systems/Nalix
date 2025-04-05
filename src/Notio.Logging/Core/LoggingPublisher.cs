@@ -29,17 +29,17 @@ public sealed class LoggingPublisher : ILoggerPublisher
     private long _publishErrorCount;
 
     /// <summary>
-    /// Gets the total number of log entries that have been published.
+    /// Gets the total Number of log entries that have been published.
     /// </summary>
     public long EntriesPublished => Interlocked.Read(ref _entriesPublished);
 
     /// <summary>
-    /// Gets the total number of target publish operations performed.
+    /// Gets the total Number of target publish operations performed.
     /// </summary>
     public long TargetsProcessed => Interlocked.Read(ref _targetsProcessed);
 
     /// <summary>
-    /// Gets the number of errors that occurred during publish operations.
+    /// Gets the Number of errors that occurred during publish operations.
     /// </summary>
     public long PublishErrorCount => Interlocked.Read(ref _publishErrorCount);
 

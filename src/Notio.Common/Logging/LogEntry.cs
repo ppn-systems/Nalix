@@ -6,7 +6,7 @@ namespace Notio.Common.Logging;
 /// Represents a log entry in the logging system.
 /// </summary>
 /// <param name="level">The log level of the entry.</param>
-/// <param name="eventId">The event ID associated with the log entry.</param>
+/// <param name="eventId">The event Number associated with the log entry.</param>
 /// <param name="message">The content of the log message.</param>
 /// <param name="exception">The accompanying exception (if any).</param>
 public readonly struct LogEntry(
@@ -28,7 +28,7 @@ public readonly struct LogEntry(
     public readonly LogLevel LogLevel = level;
 
     /// <summary>
-    /// The event ID associated with the log entry.
+    /// The event Number associated with the log entry.
     /// </summary>
     public readonly EventId EventId = eventId;
 

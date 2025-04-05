@@ -52,9 +52,9 @@ public static class PacketVerifier
 
         switch (isEncryption)
         {
-            case true when packet.Flags.HasFlag(PacketFlags.IsEncrypted):
+            case true when packet.Flags.HasFlag(PacketFlags.Encrypted):
                 throw new PackageException("Payload is already encrypted.");
-            case false when !packet.Flags.HasFlag(PacketFlags.IsEncrypted):
+            case false when !packet.Flags.HasFlag(PacketFlags.Encrypted):
                 throw new PackageException("Payload is not encrypted and cannot be decrypted.");
         }
     }

@@ -92,7 +92,7 @@ public abstract class RoutingModuleBase : WebModuleBase
     /// <para>See <see cref="RouteVerbResolverCollection.AddFrom(object)"/> for further information.</para>
     /// </summary>
     /// <param name="target">Where to look for compatible handlers.</param>
-    /// <returns>The number of handlers that were added.</returns>
+    /// <returns>The Number of handlers that were added.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="target"/> is <see langword="null"/>.</exception>
     protected int AddHandlersFrom(object target)
     {

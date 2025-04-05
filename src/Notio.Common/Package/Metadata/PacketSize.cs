@@ -16,6 +16,21 @@ public static class PacketSize
     public const int Id = sizeof(ushort);
 
     /// <summary>
+    /// The size of the Checksum field in the packet header, in bytes.
+    /// </summary>
+    public const int Checksum = sizeof(uint);
+
+    /// <summary>
+    /// The size of the Timestamp field in the packet header, in bytes.
+    /// </summary>
+    public const int Timestamp = sizeof(ulong);
+
+    /// <summary>
+    /// The size of the Number field in the packet header, in bytes.
+    /// </summary>
+    public const int Number = sizeof(byte);
+
+    /// <summary>
     /// The size of the Type field in the packet header, in bytes.
     /// </summary>
     public const int Type = sizeof(byte);
@@ -31,22 +46,7 @@ public static class PacketSize
     public const int Priority = sizeof(byte);
 
     /// <summary>
-    /// The size of the Id field in the packet header, in bytes.
-    /// </summary>
-    public const int Command = sizeof(ushort);
-
-    /// <summary>
-    /// The size of the Timestamp field in the packet header, in bytes.
-    /// </summary>
-    public const int Timestamp = sizeof(ulong);
-
-    /// <summary>
-    /// The size of the Checksum field in the packet header, in bytes.
-    /// </summary>
-    public const int Checksum = sizeof(uint);
-
-    /// <summary>
     /// The total size of the packet header, which is the sum of the sizes of all header fields.
     /// </summary>
-    public const int Header = Length + Id + Type + Flags + Priority + Command + Timestamp + Checksum;
+    public const int Header = Id + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
 }

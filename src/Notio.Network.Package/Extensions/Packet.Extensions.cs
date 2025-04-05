@@ -63,7 +63,7 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="packet">The packet to serialize.</param>
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
-    /// <param name="bytesWritten">Outputs the number of bytes written to the destination span.</param>
+    /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
     public static bool TrySerialize(this in Packet packet, Span<byte> destination, out int bytesWritten)
         => PacketSerializationHelper.TrySerialize(in packet, destination, out bytesWritten);

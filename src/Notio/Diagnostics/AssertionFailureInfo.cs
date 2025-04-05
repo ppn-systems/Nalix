@@ -39,7 +39,7 @@ public sealed class AssertionFailureInfo(
     public string FilePath { get; } = filePath;
 
     /// <summary>
-    /// Gets the line number where the assertion failed.
+    /// Gets the line Number where the assertion failed.
     /// </summary>
     public int LineNumber { get; } = lineNumber;
 

@@ -30,7 +30,7 @@ public sealed class RouteVerbResolverCollection : RouteResolverCollectionBase<Ht
     /// of <see cref="RouteAttribute">Route</see> attributes.</para>
     /// <para>A compatible handler is a static or instance method that takes 2
     /// parameters having the following types, in order:</para>
-    /// <list type="number">
+    /// <list type="Number">
     /// <item><description><see cref="IHttpContext"/></description></item>
     /// <item><description><see cref="RouteMatch"/></description></item>
     /// </list>
@@ -60,7 +60,7 @@ public sealed class RouteVerbResolverCollection : RouteResolverCollectionBase<Ht
     /// </summary>
     /// <param name="target">Where to look for compatible handlers. See the Summary section for more information.</param>
     /// <returns>
-    /// <para>The number of handlers that were added to the collection.</para>
+    /// <para>The Number of handlers that were added to the collection.</para>
     /// <para>Note that methods with multiple <see cref="RouteAttribute">Route</see> attributes
     /// will count as one for each attribute.</para>
     /// </returns>

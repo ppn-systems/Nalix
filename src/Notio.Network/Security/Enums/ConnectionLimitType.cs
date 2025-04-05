@@ -6,22 +6,22 @@ namespace Notio.Network.Security.Enums;
 public enum ConnectionLimitType
 {
     /// <summary>
-    /// Represents a low number of simultaneous connections, typically for minimal traffic environments.
+    /// Represents a low Number of simultaneous connections, typically for minimal traffic environments.
     /// </summary>
     Low,
 
     /// <summary>
-    /// Represents a medium number of simultaneous connections, suitable for moderate traffic environments.
+    /// Represents a medium Number of simultaneous connections, suitable for moderate traffic environments.
     /// </summary>
     Medium,
 
     /// <summary>
-    /// Represents a high number of simultaneous connections, suitable for high-traffic environments.
+    /// Represents a high Number of simultaneous connections, suitable for high-traffic environments.
     /// </summary>
     High,
 
     /// <summary>
-    /// Represents unlimited simultaneous connections, with no restrictions on the number of connections.
+    /// Represents unlimited simultaneous connections, with no restrictions on the Number of connections.
     /// </summary>
     Unlimited
 }

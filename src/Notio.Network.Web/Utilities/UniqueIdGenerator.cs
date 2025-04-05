@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Notio.Network.Web.Utilities;
 
@@ -8,9 +8,9 @@ namespace Notio.Network.Web.Utilities;
 public static class UniqueIdGenerator
 {
     /// <summary>
-    /// Generates and returns a unique ID.
+    /// Generates and returns a unique Number.
     /// </summary>
-    /// <returns>The generated ID.</returns>
+    /// <returns>The generated Number.</returns>
     public static string GetNext()
     {
         return Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..22];

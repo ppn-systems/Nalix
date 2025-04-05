@@ -74,7 +74,7 @@ public abstract class WebApiModuleBase(string baseRoute, ResponseSerializerCallb
     public ResponseSerializerCallback Serializer { get; } = Validate.NotNull(nameof(serializer), serializer);
 
     /// <summary>
-    /// Gets the number of controller types registered in this module.
+    /// Gets the Number of controller types registered in this module.
     /// </summary>
     public int ControllerCount => _controllerTypes.Count;
 

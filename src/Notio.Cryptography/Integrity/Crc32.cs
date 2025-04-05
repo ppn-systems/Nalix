@@ -27,7 +27,7 @@ public static class Crc32
     /// </summary>
     /// <param name="bytes">The input byte array.</param>
     /// <param name="start">The starting index to begin CRC computation.</param>
-    /// <param name="length">The number of bytes to process.</param>
+    /// <param name="length">The Number of bytes to process.</param>
     /// <returns>The 32-bit CRC value.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>

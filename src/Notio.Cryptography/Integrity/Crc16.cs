@@ -37,7 +37,7 @@ public static class Crc16
     /// </summary>
     /// <param name="bytes">The input byte array.</param>
     /// <param name="start">The index to start processing.</param>
-    /// <param name="length">The number of bytes to process.</param>
+    /// <param name="length">The Number of bytes to process.</param>
     /// <returns>The CRC16 value as a ushort.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort Compute(byte[] bytes, int start, int length)
