@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 
-namespace Notio.Storage.MimeTypes;
+namespace Notio.Storage.Helpers.MimeTypes;
 
 /// <summary>
 /// Represents a MIME type pattern to match against file data.

@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace Notio.Storage.MimeTypes;
+namespace Notio.Storage.Helpers.MimeTypes;
 
 /// <summary>
 /// Represents a MIME type mapping with its name, extension, MIME type, and pattern.

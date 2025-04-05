@@ -1,7 +1,7 @@
 using Notio.Common.Attributes;
 using Notio.Shared.Configuration;
 using Notio.Storage.Generator;
-using Notio.Storage.MimeTypes;
+using Notio.Storage.Helpers.MimeTypes;
 using Notio.Storage.Models;
 using System;
 using System.IO;

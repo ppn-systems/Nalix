@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Notio.Storage.MimeTypes;
+namespace Notio.Storage.Helpers.MimeTypes;
 
 /// <summary>
 /// Provides MIME type resolution based on file extensions.

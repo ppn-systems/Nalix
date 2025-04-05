@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace Notio.Storage.MimeTypes;
+namespace Notio.Storage.Helpers.MimeTypes;
 
 /// <summary>
 /// Defines an interface for resolving MIME types and file extensions based on file content.
