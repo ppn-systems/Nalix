@@ -18,7 +18,7 @@ public static class Crc08
     /// Precomputed lookup table for CRC-8/MODBUS polynomial (0x31).
     /// This table is used to speed up CRC-8 calculations.
     /// </summary>
-    private static readonly byte[] Crc8LookupTable = Crc.GenerateTable8(Polynomial);
+    private static readonly byte[] Crc8LookupTable = Crc00.GenerateTable8(Polynomial);
 
     /// <summary>
     /// Computes the CRC-8 checksum of the specified bytes

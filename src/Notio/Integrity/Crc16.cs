@@ -18,7 +18,7 @@ public static class Crc16
     /// Precomputed lookup table for CRC-16/MODBUS polynomial (0x8005).
     /// This table is used to speed up CRC-16 calculations.
     /// </summary>
-    private static readonly ushort[] Crc16LookupTable = Crc.GenerateTable16(Polynomial);
+    private static readonly ushort[] Crc16LookupTable = Crc00.GenerateTable16(Polynomial);
 
     /// <summary>
     /// Calculates the CRC16 for the entire byte array provided.

@@ -11,8 +11,8 @@ public static class Crc64
     private const ulong ECMA = 0xC96C5795D7870F42;
     private const ulong InitialValue = 0xFFFFFFFFFFFFFFFF;
 
-    private static readonly ulong[] IsoTable = Crc.GenerateTable64(ISO);
-    private static readonly ulong[] EcmaTable = Crc.GenerateTable64(ECMA);
+    private static readonly ulong[] IsoTable = Crc00.GenerateTable64(ISO);
+    private static readonly ulong[] EcmaTable = Crc00.GenerateTable64(ECMA);
 
     /// <summary>
     /// Computes the CRC-64 checksum of the given data.

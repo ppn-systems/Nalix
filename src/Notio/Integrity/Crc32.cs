@@ -20,7 +20,7 @@ public static class Crc32
     /// Precomputed lookup table for CRC-32/MODBUS polynomial (0x04C11DB7).
     /// This table is used to speed up CRC-32 calculations.
     /// </summary>
-    private static readonly uint[] Crc32LookupTable = Crc.GenerateTable32(Polynomial);
+    private static readonly uint[] Crc32LookupTable = Crc00.GenerateTable32(Polynomial);
 
     /// <summary>
     /// Computes the CRC32 checksum for the specified range in the byte array.

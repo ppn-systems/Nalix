@@ -3,7 +3,7 @@ namespace Notio.Integrity;
 /// <summary>
 /// Provides methods for computing Cyclic Redundancy Check (CRC) checksums.
 /// </summary>
-internal static class Crc
+internal static class Crc00
 {
     /// <summary>
     /// Generates a lookup table for CRC-8/MODBUS.
