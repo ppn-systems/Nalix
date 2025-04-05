@@ -7,9 +7,9 @@ using System.Runtime.Intrinsics.X86;
 namespace Notio.Integrity;
 
 /// <summary>
-/// A high-performance CRC-8 implementation using polynomial x^8 + x^7 + x^6 + x^4 + x^2 + 1
+/// A high-performance CRC-08 implementation using polynomial x^8 + x^7 + x^6 + x^4 + x^2 + 1
 /// </summary>
-public static class Crc8
+public static class Crc08
 {
     private const byte Polynomial = 0x31;
     private const byte InitialValue = 0xFF;
