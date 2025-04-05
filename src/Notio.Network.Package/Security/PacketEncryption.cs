@@ -34,8 +34,8 @@ public static class PacketEncryption
         {
             Memory<byte> encryptedPayload = Ciphers.Encrypt(packet.Payload, key, algorithm);
 
-            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Number, packet.Type,
-                packet.Flags.AddFlag(PacketFlags.Encrypted), packet.Priority, encryptedPayload);
+            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
+                packet.Flags.AddFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, encryptedPayload);
         }
         catch (Exception ex)
         {
@@ -63,8 +63,8 @@ public static class PacketEncryption
         {
             Memory<byte> decryptedPayload = Ciphers.Decrypt(packet.Payload, key, algorithm);
 
-            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Number, packet.Type,
-                packet.Flags.RemoveFlag(PacketFlags.Encrypted), packet.Priority, decryptedPayload);
+            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
+                packet.Flags.RemoveFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, decryptedPayload);
         }
         catch (Exception ex)
         {

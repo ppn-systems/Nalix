@@ -33,11 +33,12 @@ public static partial class PacketSerializer
         ushort id = packet.Id;
         ulong timestamp = packet.Timestamp;
         uint checksum = packet.Checksum;
+        ushort code = (ushort)packet.Code;
 
         try
         {
             // Write header first
-            EmitHeader(buffer, totalSize, id, timestamp, checksum, packet);
+            EmitHeader(buffer, totalSize, id, timestamp, checksum, code, packet);
 
             // Write the payload if it's not empty
             if (packet.Payload.Length > 0)
@@ -65,7 +66,8 @@ public static partial class PacketSerializer
 
         fixed (byte* pBuffer = buffer)
         {
-            EmitHeaderUnsafe(pBuffer, totalSize, packet.Id, packet.Timestamp, packet.Checksum, packet);
+            EmitHeaderUnsafe(pBuffer, totalSize, packet.Id, packet.Timestamp,
+                             packet.Checksum, (ushort)packet.Code, packet);
 
             if (packet.Payload.Length > 0)
             {

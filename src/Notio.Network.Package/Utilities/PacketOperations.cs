@@ -20,7 +20,7 @@ public static class PacketOperations
         byte[] payloadCopy = new byte[packet.Payload.Length];
         packet.Payload.Span.CopyTo(payloadCopy);
 
-        return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Number,
-                          packet.Type, packet.Flags, packet.Priority, payloadCopy);
+        return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
+                          packet.Type, packet.Flags, packet.Priority, packet.Number, payloadCopy);
     }
 }

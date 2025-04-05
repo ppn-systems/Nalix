@@ -11,12 +11,13 @@ public static partial class PacketSerializer
     private static void EmitHeader(
         Span<byte> buffer, int totalSize,
         ushort id, ulong timestamp,
-        uint checksum, in Packet packet)
+        uint checksum, ushort code, in Packet packet)
     {
         MemoryMarshal.Write(buffer, in totalSize);
         MemoryMarshal.Write(buffer[PacketOffset.Id..], in id);
         MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
         MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
+        MemoryMarshal.Write(buffer[PacketOffset.Code..], in code);
 
         buffer[PacketOffset.Number] = packet.Number;
         buffer[PacketOffset.Type] = (byte)packet.Type;
@@ -28,12 +29,13 @@ public static partial class PacketSerializer
     private static unsafe void EmitHeaderUnsafe(
         byte* buffer, int totalSize,
         ushort id, ulong timestamp,
-        uint checksum, in Packet packet)
+        uint checksum, ushort code, in Packet packet)
     {
         *(int*)buffer = totalSize;
         *(ushort*)(buffer + PacketOffset.Id) = id;
         *(ulong*)(buffer + PacketOffset.Timestamp) = timestamp;
         *(uint*)(buffer + PacketOffset.Checksum) = checksum;
+        *(ushort*)(buffer + PacketOffset.Code) = code;
 
         buffer[PacketOffset.Number] = packet.Number;
         buffer[PacketOffset.Type] = (byte)packet.Type;
@@ -45,11 +47,11 @@ public static partial class PacketSerializer
     private static unsafe void EmitHeaderUnsafe(
         Span<byte> buffer, int totalSize,
         ushort id, ulong timestamp,
-        uint checksum, in Packet packet)
+        uint checksum, ushort code, in Packet packet)
     {
         fixed (byte* pBuffer = buffer)
         {
-            EmitHeaderUnsafe(pBuffer, totalSize, id, timestamp, checksum, packet);
+            EmitHeaderUnsafe(pBuffer, totalSize, id, timestamp, checksum, code, packet);
         }
     }
 }

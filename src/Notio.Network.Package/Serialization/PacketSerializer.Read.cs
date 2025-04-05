@@ -39,6 +39,7 @@ public static partial class PacketSerializer
             ushort id = MemoryMarshal.Read<ushort>(data[PacketOffset.Id..]);
             uint checksum = MemoryMarshal.Read<uint>(data[PacketOffset.Checksum..]);
             ulong timestamp = MemoryMarshal.Read<ulong>(data[PacketOffset.Timestamp..]);
+            ushort code = MemoryMarshal.Read<ushort>(data[PacketOffset.Code..]);
 
             // Extract header fields more efficiently using direct span access
             byte number = data[PacketOffset.Number];
@@ -49,7 +50,7 @@ public static partial class PacketSerializer
             // Create payload - optimize for zero-copy when possible
             MaterializePayloadFast(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
-            return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
+            return new Packet(id, checksum, timestamp, code, number, type, flags, priority, payload);
         }
         catch (Exception ex) when (ex is not PackageException)
         {
@@ -91,6 +92,7 @@ public static partial class PacketSerializer
                 ushort id = pHeader->Id;
                 uint checksum = pHeader->Checksum;
                 ulong timestamp = pHeader->Timestamp;
+                ushort code = pHeader->Code;
                 byte number = pHeader->Number;
                 byte type = pHeader->Type;
                 byte flags = pHeader->Flags;
@@ -99,7 +101,7 @@ public static partial class PacketSerializer
                 // Create payload efficiently
                 MaterializePayloadFastUnsafe(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
-                return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
+                return new Packet(id, checksum, timestamp, code, number, type, flags, priority, payload);
             }
         }
         catch (Exception ex) when (ex is not PackageException)
