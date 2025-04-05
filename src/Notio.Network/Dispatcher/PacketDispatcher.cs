@@ -1,8 +1,3 @@
-using Notio.Common.Connection;
-using Notio.Network.Dispatcher.Options;
-using System;
-using System.Threading.Tasks;
-
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
@@ -14,13 +9,13 @@ namespace Notio.Network.Dispatcher;
 /// based on the registered command IDs. It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
 /// <param name="options">
-/// A delegate used to configure <see cref="PacketDispatcherOptions{TPacket}"/> before processing packets.
+/// A delegate used to configure <see cref="Options.PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
-public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPacket>> options)
+public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
     : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <inheritdoc />
-    public void HandlePacket(byte[]? packet, IConnection connection)
+    public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
     {
         if (packet == null)
         {
@@ -32,7 +27,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
     }
 
     /// <inheritdoc />
-    public void HandlePacket(ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection)
     {
         if (packet == null)
         {
@@ -44,7 +39,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
     }
 
     /// <inheritdoc />
-    public async Task HandlePacket(TPacket? packet, IConnection connection)
+    public async System.Threading.Tasks.Task HandlePacket(TPacket? packet, Common.Connection.IConnection connection)
     {
         if (packet == null)
         {
@@ -60,7 +55,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             {
                 await handler!(packet, connection).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Logger?.Error($"Error handling packet with Number {packet.Id}: {ex.Message}", ex);
             }

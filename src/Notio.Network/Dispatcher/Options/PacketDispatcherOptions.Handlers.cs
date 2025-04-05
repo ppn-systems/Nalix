@@ -2,6 +2,7 @@ using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
+using Notio.Network.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -125,8 +126,9 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 if (method.GetCustomAttribute<PacketPermissionAttribute>() is { } accessAttr &&
                     accessAttr.Level > connection.Authority)
                 {
-                    string message = $"Unauthorized access attempt to command '{id}' by connection {connection.RemoteEndPoint}.";
+                    string message = "You do not have permission to perform this action.";
                     _logger?.Warn(message);
+                    PacketTransmitter.SendString(connection, message, 0);
                     return;
                 }
 

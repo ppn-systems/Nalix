@@ -1,39 +1,34 @@
-using Notio.Common.Logging;
-using Notio.Common.Package;
-using Notio.Network.Dispatcher.Options;
-using System.Diagnostics.CodeAnalysis;
-
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
 /// Base class for packet dispatchers, providing configuration options.
 /// </summary>
-public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
+public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Gets the logger instance associated with this dispatcher.
     /// </summary>
-    protected ILogger? Logger => Options.Logger;
+    protected Common.Logging.ILogger? Logger => Options.Logger;
 
     /// <summary> 
     /// Gets the options object used to configure this instance.
     /// </summary>
-    protected readonly PacketDispatcherOptions<TPacket> Options;
+    protected readonly Options.PacketDispatcherOptions<TPacket> Options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}" /> class
     /// with the specified configuration options.
     /// </summary>
-    /// <param name="options">An existing <see cref="PacketDispatcherOptions{TPacket}"/> instance.</param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    protected PacketDispatcherBase(PacketDispatcherOptions<TPacket> options)
+    /// <param name="options">An existing <see cref="Options.PacketDispatcherOptions{TPacket}"/> instance.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    protected PacketDispatcherBase(Options.PacketDispatcherOptions<TPacket> options)
         => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}" /> class
     /// with an optional configuration action.
     /// </summary>
-    /// <param name="configure">An action to configure the <see cref="PacketDispatcherOptions{TPacket}"/>.</param>
-    protected PacketDispatcherBase(System.Action<PacketDispatcherOptions<TPacket>>? configure = null)
-        : this(new PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
+    /// <param name="configure">An action to configure the <see cref="Options.PacketDispatcherOptions{TPacket}"/>.</param>
+    protected PacketDispatcherBase(System.Action<Options.PacketDispatcherOptions<TPacket>>? configure = null)
+        : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
 }

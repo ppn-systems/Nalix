@@ -33,6 +33,11 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     ulong Timestamp { get; }
 
     /// <summary>
+    /// Gets the packet code.
+    /// </summary>
+    PacketCode Code { get; }
+
+    /// <summary>
     /// Gets the packet type.
     /// </summary>
     PacketType Type { get; }

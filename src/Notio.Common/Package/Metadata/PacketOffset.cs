@@ -26,9 +26,14 @@ public static class PacketOffset
     public const int Timestamp = Checksum + PacketSize.Checksum;
 
     /// <summary>
+    /// Offset for the packet code.
+    /// </summary>
+    public const int Code = Timestamp + PacketSize.Timestamp;
+
+    /// <summary>
     /// Offset for the packet Number.
     /// </summary>
-    public const int Number = Timestamp + PacketSize.Timestamp;
+    public const int Number = Code + PacketSize.Code;
 
     /// <summary>
     /// Offset for the packet type.
