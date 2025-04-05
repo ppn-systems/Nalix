@@ -8,7 +8,7 @@ namespace Notio.Network.Package.Serialization;
 public static partial class PacketSerializer
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void EmitHeader(
+    private static void EmitHeader(
         Span<byte> buffer, int totalSize,
         ushort id, ulong timestamp,
         uint checksum, in Packet packet)
@@ -25,7 +25,7 @@ public static partial class PacketSerializer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static unsafe void EmitHeaderUnsafe(
+    private static unsafe void EmitHeaderUnsafe(
         byte* buffer, int totalSize,
         ushort id, ulong timestamp,
         uint checksum, in Packet packet)
@@ -42,7 +42,7 @@ public static partial class PacketSerializer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static unsafe void EmitHeaderUnsafe(
+    private static unsafe void EmitHeaderUnsafe(
         Span<byte> buffer, int totalSize,
         ushort id, ulong timestamp,
         uint checksum, in Packet packet)

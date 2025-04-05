@@ -76,7 +76,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <returns>
     /// A byte array representing the serialized packet.
     /// </returns>
-    byte[] Serialize();
+    System.Memory<byte> Serialize();
 
     /// <summary>
     /// Serializes the packet into the provided buffer.

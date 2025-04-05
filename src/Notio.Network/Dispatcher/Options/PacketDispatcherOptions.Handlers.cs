@@ -359,7 +359,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
         packet = ApplyFlagProcessor(
             "Encryption", packet, PacketFlags.Encrypted, _pEncryptionMethod, connection);
 
-        await connection.SendAsync(SerializationMethod(packet));
+        await connection.SendAsync(packet.Serialize());
     }
 
     private TPacket ApplyFlagProcessor(

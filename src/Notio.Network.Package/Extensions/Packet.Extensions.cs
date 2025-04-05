@@ -1,4 +1,5 @@
 using Notio.Common.Package;
+using Notio.Network.Package.Serialization;
 using Notio.Network.Package.Utilities;
 using System;
 
@@ -23,7 +24,7 @@ public static class PacketExtensions
     /// <param name="packet">The packet to serialize.</param>
     /// <returns>A byte array representing the serialized packet.</returns>
     public static byte[] Serialize(this in Packet packet)
-        => PacketSerializationHelper.Serialize(in packet);
+        => PacketSerializer.Serialize(in packet);
 
     /// <summary>
     /// Deserializes a packet from a <see cref="ReadOnlySpan{T}"/> of bytes.
@@ -31,7 +32,7 @@ public static class PacketExtensions
     /// <param name="data">The byte span containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
     public static IPacket Deserialize(this ReadOnlySpan<byte> data)
-        => PacketSerializationHelper.Deserialize(data);
+        => PacketSerializer.Deserialize(data);
 
     /// <summary>
     /// Deserializes a packet from a <see cref="ReadOnlyMemory{T}"/> of bytes.
@@ -39,7 +40,7 @@ public static class PacketExtensions
     /// <param name="data">The memory segment containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
     public static IPacket Deserialize(this ReadOnlyMemory<byte> data)
-        => PacketSerializationHelper.Deserialize(data);
+        => PacketSerializer.Deserialize(data);
 
     /// <summary>
     /// Deserializes a packet from a byte array.
@@ -47,7 +48,7 @@ public static class PacketExtensions
     /// <param name="data">The byte array containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
     public static Packet Deserialize(this byte[] data)
-        => PacketSerializationHelper.Deserialize(data);
+        => PacketSerializer.Deserialize(data);
 
     /// <summary>
     /// Attempts to serialize a packet into a provided span of bytes.
@@ -57,7 +58,7 @@ public static class PacketExtensions
     /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
     public static bool TrySerialize(this in Packet packet, Span<byte> destination, out int bytesWritten)
-        => PacketSerializationHelper.TrySerialize(in packet, destination, out bytesWritten);
+        => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
 
     /// <summary>
     /// Attempts to deserialize a packet from a span of bytes.
@@ -66,5 +67,5 @@ public static class PacketExtensions
     /// <param name="packet">Outputs the deserialized packet if successful.</param>
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
     public static bool TryDeserialize(this ReadOnlySpan<byte> source, out Packet packet)
-        => PacketSerializationHelper.TryDeserialize(source, out packet);
+        => PacketSerializer.TryDeserialize(source, out packet);
 }

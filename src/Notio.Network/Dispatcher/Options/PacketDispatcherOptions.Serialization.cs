@@ -57,6 +57,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// </summary>
     /// <param name="serializer">A strongly-typed function that serializes a packet of type <typeparamref name="TPacket"/> into a <see cref="Memory{Byte}"/>.</param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    [Obsolete("This field is no longer used and will be removed in a future version.")]
     public PacketDispatcherOptions<TPacket> WithSerializer(
         Func<TPacket, Memory<byte>> serializer)
     {
@@ -160,6 +161,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <exception cref="InvalidOperationException">
     /// Thrown when the <see cref="SerializationMethod"/> is not set.
     /// </exception>
+    [Obsolete("This field is no longer used and will be removed in a future version.")]
     public Memory<byte> Serialize(TPacket packet)
     {
         if (this.SerializationMethod is null)

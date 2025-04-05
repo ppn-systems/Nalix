@@ -1,6 +1,3 @@
-using Notio.Common.Connection;
-using Notio.Common.Package;
-
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
@@ -10,7 +7,7 @@ namespace Notio.Network.Dispatcher;
 /// Implementations of this interface are responsible for processing incoming packets
 /// and handling them appropriately based on their content and associated connection.
 /// </remarks>
-public interface IPacketDispatcher<TPacket> where TPacket : IPacket
+public interface IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Handles the incoming byte array packet and processes it using the specified connection.
@@ -21,7 +18,7 @@ public interface IPacketDispatcher<TPacket> where TPacket : IPacket
     /// Implementations should deserialize the packet and then determine the appropriate action
     /// based on the packet's content and the associated command Number.
     /// </remarks>
-    void HandlePacket(byte[]? packet, IConnection connection);
+    void HandlePacket(byte[]? packet, Common.Connection.IConnection connection);
 
     /// <summary>
     /// Handles the incoming byte array packet and processes it using the specified connection.
@@ -32,7 +29,7 @@ public interface IPacketDispatcher<TPacket> where TPacket : IPacket
     /// Implementations should deserialize the packet and then determine the appropriate action
     /// based on the packet's content and the associated command Number.
     /// </remarks>
-    void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection);
+    void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection);
 
     /// <summary>
     /// Handles the incoming packet and processes it using the specified connection.
@@ -43,5 +40,5 @@ public interface IPacketDispatcher<TPacket> where TPacket : IPacket
     /// Implementations should determine the appropriate action based on the packet's command Number
     /// and perform the necessary processing using the provided connection.
     /// </remarks>
-    System.Threading.Tasks.Task HandlePacket(TPacket? packet, IConnection connection);
+    System.Threading.Tasks.Task HandlePacket(TPacket? packet, Common.Connection.IConnection connection);
 }

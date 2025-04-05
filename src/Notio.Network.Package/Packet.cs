@@ -344,7 +344,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>
     /// A byte array containing the serialized representation of the packet.
     /// </returns>
-    public byte[] Serialize() => PacketSerializer.Serialize(this);
+    public Memory<byte> Serialize() => PacketSerializer.Serialize(this);
 
     /// <summary>
     /// Serializes the packet into the provided buffer.
@@ -352,7 +352,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="buffer">
     /// A span of bytes to write the serialized packet into. The buffer must be large enough to hold the entire packet.
     /// </param>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="PackageException">
     /// Thrown if the buffer is too small to contain the serialized packet.
     /// </exception>
     public void Serialize(Span<byte> buffer) => PacketSerializer.WritePacketUnsafe(buffer, this);

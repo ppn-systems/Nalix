@@ -60,7 +60,7 @@ public static partial class PacketSerializer
             if (length < PacketSize.Header || length > source.Length)
                 return false;
 
-            packet = PacketSerializer.ReadPacketFast(source[..length]);
+            packet = ReadPacketFast(source[..length]);
             return true;
         }
         catch

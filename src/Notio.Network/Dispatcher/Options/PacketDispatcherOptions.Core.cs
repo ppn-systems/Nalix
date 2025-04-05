@@ -62,6 +62,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
     /// for transmission over the network or for storage.
     /// </remarks>
+    [Obsolete("This field is no longer used and will be removed in a future version.")]
     private Func<TPacket, Memory<byte>>? SerializationMethod;
 
     /// <summary>

@@ -56,7 +56,6 @@ public static partial class PacketSerializer
     /// Useful for high-performance scenarios where every allocation matters.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [SkipLocalsInit]
     public static unsafe int WritePacketUnsafe(Span<byte> buffer, in Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;

@@ -2,7 +2,7 @@ using Notio.Defaults;
 using Notio.Storage.Configurations;
 using Notio.Storage.FileFormats;
 using Notio.Storage.Generator;
-using Notio.Storage.MimeTypes;
+using Notio.Storage.Helpers.MimeTypes;
 using Notio.Storage.Models;
 using System;
 using System.Collections.Generic;

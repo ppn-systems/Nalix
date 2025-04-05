@@ -1,5 +1,4 @@
 using Notio.Common.Connection;
-using Notio.Common.Package;
 using Notio.Network.Dispatcher.Options;
 using System;
 using System.Threading.Tasks;
@@ -18,7 +17,7 @@ namespace Notio.Network.Dispatcher;
 /// A delegate used to configure <see cref="PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
 public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : IPacket
+    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, IConnection connection)
@@ -53,17 +52,9 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             return;
         }
 
-        if (packet is not IPacket ipacket)
+        if (Options.TryResolveHandler(packet.Id, out var handler))
         {
-            Logger?.Error($"Invalid packet type: {packet.GetType().Name} from Ip: {connection.RemoteEndPoint}.");
-            return;
-        }
-
-        ushort id = ipacket.Id;
-
-        if (Options.TryResolveHandler(id, out var handler))
-        {
-            Logger?.Debug($"Invoking handler for Number: {id}");
+            Logger?.Debug($"Invoking handler for Number: {packet.Id}");
 
             try
             {
@@ -71,12 +62,12 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             }
             catch (Exception ex)
             {
-                Logger?.Error($"Error handling packet with Number {id}: {ex.Message}", ex);
+                Logger?.Error($"Error handling packet with Number {packet.Id}: {ex.Message}", ex);
             }
         }
         else
         {
-            Logger?.Warn($"No handler found for Number {id}");
+            Logger?.Warn($"No handler found for Number {packet.Id}");
         }
     }
 }

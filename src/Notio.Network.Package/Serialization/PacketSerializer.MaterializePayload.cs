@@ -8,7 +8,7 @@ namespace Notio.Network.Package.Serialization;
 public static partial class PacketSerializer
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void MaterializePayloadFast(ReadOnlySpan<byte> data, int payloadLength, out Memory<byte> payload)
+    private static void MaterializePayloadFast(ReadOnlySpan<byte> data, int payloadLength, out Memory<byte> payload)
     {
         if (payloadLength > 0)
         {
