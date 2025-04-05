@@ -11,6 +11,10 @@ namespace Notio.Network.Package.Serialization;
 
 public static partial class PacketSerializer
 {
+    private const int ArrayPoolThreshold = 32768;
+
+    #region Public Method Sync
+
     /// <summary>
     /// Writes a packet to a given buffer in a fast and efficient way.
     /// </summary>
@@ -37,9 +41,7 @@ public static partial class PacketSerializer
 
             // Write the payload if it's not empty
             if (packet.Payload.Length > 0)
-            {
                 packet.Payload.Span.CopyTo(buffer[PacketSize.Header..]);
-            }
 
             return totalSize;
         }
@@ -50,12 +52,48 @@ public static partial class PacketSerializer
     }
 
     /// <summary>
+    /// Writes a packet directly to a buffer without intermediate allocations.
+    /// Useful for high-performance scenarios where every allocation matters.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [SkipLocalsInit]
+    public static unsafe int WritePacketUnsafe(Span<byte> buffer, in Packet packet)
+    {
+        int totalSize = PacketSize.Header + packet.Payload.Length;
+
+        if (buffer.Length < totalSize)
+            throw new PackageException($"Buffer size ({buffer.Length}) is too small for packet size ({totalSize}).");
+
+        fixed (byte* pBuffer = buffer)
+        {
+            EmitHeaderUnsafe(pBuffer, totalSize, packet.Id, packet.Timestamp, packet.Checksum, packet);
+
+            if (packet.Payload.Length > 0)
+            {
+                ReadOnlySpan<byte> payloadSpan = packet.Payload.Span;
+                fixed (byte* pPayload = payloadSpan)
+                {
+                    Buffer.MemoryCopy(pPayload, pBuffer + PacketSize.Header,
+                        buffer.Length - PacketSize.Header, packet.Payload.Length);
+                }
+            }
+        }
+
+        return totalSize;
+    }
+
+    #endregion
+
+    #region Public Method Async
+
+    /// <summary>
     /// Asynchronously writes a packet to a given memory buffer.
     /// </summary>
     /// <param name="buffer">The buffer to write the packet data to.</param>
     /// <param name="packet">The packet to be written.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous write operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ValueTask<int> WritePacketFastAsync(
         Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
     {
@@ -93,7 +131,7 @@ public static partial class PacketSerializer
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
         // For very large payloads, rent from the pool
-        byte[] buffer = totalSize <= 81920
+        byte[] buffer = totalSize <= ArrayPoolThreshold
             ? ArrayPool<byte>.Shared.Rent(totalSize)
             : new byte[totalSize]; // For extremely large packets, avoid exhausting the pool
 
@@ -117,10 +155,12 @@ public static partial class PacketSerializer
         finally
         {
             // Only return to pool if we rented from it
-            if (totalSize <= 81920)
+            if (totalSize <= ArrayPoolThreshold)
             {
                 ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             }
         }
     }
+
+    #endregion
 }

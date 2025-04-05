@@ -47,9 +47,60 @@ public static partial class PacketSerializer
             byte priority = data[PacketOffset.Priority];
 
             // Create payload - optimize for zero-copy when possible
-            MaterializePayload(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
+            MaterializePayloadFast(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
             return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
+        }
+        catch (Exception ex) when (ex is not PackageException)
+        {
+            throw new PackageException("Failed to deserialize packet", ex);
+        }
+    }
+
+    /// <summary>
+    /// Reads a packet from a given data span using unsafe direct memory access.
+    /// </summary>
+    /// <param name="data">The data span to read the packet from.</param>
+    /// <returns>The deserialized packet.</returns>
+    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe Packet ReadPacketFastUnsafe(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < PacketSize.Header)
+            throw new PackageException(
+                $"Data size ({data.Length}) is smaller than the minimum header size ({PacketSize.Header}).");
+
+        try
+        {
+            // Use unsafe direct pointer access for header
+            fixed (byte* pData = data)
+            {
+                // Read entire header at once instead of field by field
+                PacketHeader* pHeader = (PacketHeader*)pData;
+
+                ushort length = pHeader->Length;
+
+                // Validate packet length
+                if (length < PacketSize.Header)
+                    throw new PackageException($"Invalid packet length: {length}. Must be at least {PacketSize.Header}.");
+
+                if (length > data.Length)
+                    throw new PackageException($"Packet length ({length}) exceeds available data ({data.Length}).");
+
+                // Extract all fields from the header in one go
+                ushort id = pHeader->Id;
+                uint checksum = pHeader->Checksum;
+                ulong timestamp = pHeader->Timestamp;
+                byte number = pHeader->Number;
+                byte type = pHeader->Type;
+                byte flags = pHeader->Flags;
+                byte priority = pHeader->Priority;
+
+                // Create payload efficiently
+                MaterializePayloadFastUnsafe(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
+
+                return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
+            }
         }
         catch (Exception ex) when (ex is not PackageException)
         {
@@ -98,7 +149,7 @@ public static partial class PacketSerializer
         Stream stream, CancellationToken cancellationToken = default)
     {
         // Use thread-local buffer for the header to reduce allocations
-        byte[] headerBuffer = _threadLocalHeaderBuffer.Value!;
+        byte[] headerBuffer = RentHeaderBuffer();
 
         try
         {
@@ -106,7 +157,8 @@ public static partial class PacketSerializer
             int bytesRead = await stream.ReadAtLeastAsync(headerBuffer, PacketSize.Header, throwOnEndOfStream: true, cancellationToken);
 
             if (bytesRead < PacketSize.Header)
-                throw new PackageException($"Failed to read the packet header. Got {bytesRead} bytes instead of {PacketSize.Header}.");
+                throw new PackageException(
+                    $"Failed to read the packet header. Got {bytesRead} bytes instead of {PacketSize.Header}.");
 
             // Read the packet length from the header
             ushort length = MemoryMarshal.Read<ushort>(headerBuffer);

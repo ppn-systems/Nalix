@@ -11,14 +11,6 @@ namespace Notio.Network.Package.Extensions;
 public static class PacketExtensions
 {
     /// <summary>
-    /// Verifies if the packet's checksum matches the computed checksum.
-    /// </summary>
-    /// <param name="packet">The packet to verify.</param>
-    /// <returns>Returns true if the checksum is valid; otherwise, false.</returns>
-    public static bool IsValidChecksum(this in Packet packet)
-        => PacketVerifier.IsValidChecksum(in packet);
-
-    /// <summary>
     /// Verifies if the checksum in the byte array matches the computed checksum.
     /// </summary>
     /// <param name="packet">The byte array representing the packet.</param>

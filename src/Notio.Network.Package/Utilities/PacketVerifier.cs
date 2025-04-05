@@ -24,14 +24,6 @@ public static class PacketVerifier
            packet.Payload.Length + PacketSize.Header <= PacketConstants.PacketSizeLimit;
 
     /// <summary>
-    /// Verifies if the checksum in the packet matches the computed checksum from its payload.
-    /// </summary>
-    /// <param name="packet">The packet to verify.</param>
-    /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
-    public static bool IsValidChecksum(in Packet packet)
-        => packet.Checksum == Crc32.Compute(packet.Payload.Span);
-
-    /// <summary>
     /// Verifies if the checksum in the byte array packet matches the computed checksum from its payload.
     /// </summary>
     /// <param name="packet">The byte array representing the packet to verify.</param>
@@ -43,7 +35,7 @@ public static class PacketVerifier
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
     {
-        if (key is not { Length: 32 })
+        if (key.Length % 4 != 0)
             throw new PackageException(
                 isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");
 
