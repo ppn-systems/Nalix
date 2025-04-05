@@ -129,7 +129,7 @@ public sealed class SHA3256 : System.IDisposable
 
     #endregion Ctors
 
-    #region Static
+    #region Static API
 
     /// <summary>
     /// Computes a SHA3-256 hash for the specified input and returns a new 32-byte array with the digest.
@@ -165,7 +165,7 @@ public sealed class SHA3256 : System.IDisposable
         sha3.Finalize(output);
     }
 
-    #endregion Static
+    #endregion Static API
 
     #region Public API
 

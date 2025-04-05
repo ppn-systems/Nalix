@@ -20,8 +20,7 @@ internal static class BigInteger
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger ModAdd(
         this System.Numerics.BigInteger a,
-        System.Numerics.BigInteger b,
-        System.Numerics.BigInteger mod)
+        System.Numerics.BigInteger b, System.Numerics.BigInteger mod)
     {
         a += b;
         if (a >= mod)
@@ -49,8 +48,7 @@ internal static class BigInteger
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger ModSub(
         this System.Numerics.BigInteger a,
-        System.Numerics.BigInteger b,
-        System.Numerics.BigInteger mod)
+        System.Numerics.BigInteger b, System.Numerics.BigInteger mod)
     {
         a -= b;
         if (a < 0)
@@ -78,9 +76,7 @@ internal static class BigInteger
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger MultiplyMod(
         this System.Numerics.BigInteger a,
-        System.Numerics.BigInteger b,
-        System.Numerics.BigInteger mod)
-        => a * b % mod;
+        System.Numerics.BigInteger b, System.Numerics.BigInteger mod) => a * b % mod;
 
     /// <summary>
     /// Performs a modulo operation and ensures the result is non-negative.
@@ -93,8 +89,7 @@ internal static class BigInteger
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger Mod(
-        this System.Numerics.BigInteger num,
-        System.Numerics.BigInteger modulo)
+        this System.Numerics.BigInteger num, System.Numerics.BigInteger modulo)
     {
         System.Numerics.BigInteger result = num % modulo;
         return result < 0 ? result + modulo : result;

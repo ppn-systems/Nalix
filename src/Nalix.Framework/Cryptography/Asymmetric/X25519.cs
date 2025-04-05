@@ -84,8 +84,8 @@ public static class X25519
     /// The shared secret is computed by performing scalar multiplication of the local private key with the remote public key
     /// using the Curve25519 algorithm.
     /// </remarks>
-    public static System.Byte[] Agreement(System.Byte[] myPrivateKey, System.Byte[] otherPublicKey) =>
-        Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
+    public static System.Byte[] Agreement(System.Byte[] myPrivateKey, System.Byte[] otherPublicKey)
+        => Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
 }
 
 internal static class Curve25519
@@ -165,6 +165,7 @@ internal static class Curve25519
         x2 = x2.Multiply(z2);
         return x2.ToBytes();
     }
+
     /// <summary>
     /// <para>
     /// X25519 returns the result of the scalar multiplication (scalar * point),
