@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Cryptography.Integrity;
+namespace Notio.Integrity;
 
 /// <summary>
 /// High-performance implementation of CRC16 checksum calculation.
@@ -107,14 +107,14 @@ public static class Crc16
     {
         ref byte data = ref MemoryMarshal.GetReference(octet);
 
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ data) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 1)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 2)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 3)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 4)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 5)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 6)) & 0xFF]);
-        crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 7)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ data) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 1)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 2)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 3)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 4)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 5)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 6)) & 0xFF]);
+        crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref data, 7)) & 0xFF]);
 
         return crc;
     }
@@ -138,7 +138,7 @@ public static class Crc16
             // Process remaining bytes
             for (int i = bytes.Length - remaining; i < bytes.Length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
+                crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
         else
@@ -146,7 +146,7 @@ public static class Crc16
             // For small inputs, use the simple loop
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
+                crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
 
@@ -171,7 +171,7 @@ public static class Crc16
 
             for (; i < length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref start, i)) & 0xFF]);
+                crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref start, i)) & 0xFF]);
             }
         }
         else
@@ -202,7 +202,7 @@ public static class Crc16
 
             for (; i < bytes.Length; i++)
             {
-                crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref start, i)) & 0xFF]);
+                crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ Unsafe.Add(ref start, i)) & 0xFF]);
             }
         }
         else
@@ -218,7 +218,7 @@ public static class Crc16
     {
         for (int i = 0; i < Vector<byte>.Count; i++)
         {
-            crc = (ushort)((crc >> 8) ^ Crc16LookupTable[(crc ^ vec[i]) & 0xFF]);
+            crc = (ushort)(crc >> 8 ^ Crc16LookupTable[(crc ^ vec[i]) & 0xFF]);
         }
         return crc;
     }

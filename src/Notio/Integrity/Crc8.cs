@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Cryptography.Integrity;
+namespace Notio.Integrity;
 
 /// <summary>
 /// A high-performance CRC-8 implementation using polynomial x^8 + x^7 + x^6 + x^4 + x^2 + 1
@@ -210,7 +210,7 @@ public static class Crc8
 
             while (p < end)
             {
-                crc = (byte)System.Runtime.Intrinsics.X86.Sse42.Crc32(crc, *p);
+                crc = (byte)Sse42.Crc32(crc, *p);
                 p++;
             }
         }

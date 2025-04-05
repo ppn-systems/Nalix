@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Cryptography.Integrity;
+namespace Notio.Integrity;
 
 /// <summary>
 /// Provides methods for computing CRC-64 checksums using the ISO and ECMA polynomials.

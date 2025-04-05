@@ -1,7 +1,7 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Common.Package.Metadata;
-using Notio.Cryptography.Integrity;
+using Notio.Integrity;
 using System;
 using System.Runtime.CompilerServices;
 

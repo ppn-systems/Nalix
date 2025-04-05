@@ -1,6 +1,6 @@
 using Notio.Common.Cryptography.Hashing;
 using Notio.Cryptography.Utilities;
-using Notio.Extensions;
+using Notio.Extensions.Math;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

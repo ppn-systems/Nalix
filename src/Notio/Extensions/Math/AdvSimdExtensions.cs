@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Extensions;
+namespace Notio.Extensions.Math;
 
 /// <summary>
 /// Provides SIMD-accelerated cryptographic helper functions.

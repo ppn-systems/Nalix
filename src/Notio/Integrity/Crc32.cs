@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Notio.Cryptography.Integrity;
+namespace Notio.Integrity;
 
 /// <summary>
 /// High-performance implementation of CRC32 checksum calculation using the
@@ -29,8 +29,8 @@ public static class Crc32
     /// <param name="start">The starting index to begin CRC computation.</param>
     /// <param name="length">The Number of bytes to process.</param>
     /// <returns>The 32-bit CRC value.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if the input array is null.</exception>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if the input array is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if parameters are out of valid range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Compute(byte[] bytes, int start, int length)
     {
@@ -111,14 +111,14 @@ public static class Crc32
     {
         ref byte data = ref MemoryMarshal.GetReference(octet);
 
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ data];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 1)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 2)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 3)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 4)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 5)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 6)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ Unsafe.Add(ref data, 7)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ data];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 1)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 2)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 3)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 4)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 5)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 6)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ Unsafe.Add(ref data, 7)];
 
         return crc;
     }
@@ -146,7 +146,7 @@ public static class Crc32
             // Process remaining bytes
             for (int i = bytes.Length - remainder; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ bytes[i]];
             }
         }
         else
@@ -154,7 +154,7 @@ public static class Crc32
             // Simple loop for small inputs
             for (int i = 0; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ bytes[i]];
             }
         }
 
@@ -183,14 +183,14 @@ public static class Crc32
                     // Process each byte in the vector
                     for (int j = 0; j < vectorSize; j++)
                     {
-                        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
+                        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ ptr[i + j]];
                     }
                 }
 
                 // Process remaining bytes
                 for (int i = vectorCount * vectorSize; i < bytes.Length; i++)
                 {
-                    crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
+                    crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ ptr[i]];
                 }
             }
         }

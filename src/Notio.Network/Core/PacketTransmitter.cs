@@ -2,6 +2,7 @@ using Notio.Common.Connection;
 using Notio.Common.Package;
 using Notio.Common.Package.Metadata;
 using Notio.Defaults;
+using Notio.Integrity;
 using Notio.Utilities;
 using System;
 
@@ -46,7 +47,7 @@ internal static class PacketTransmitter
         // Populate the header
         Array.Copy(BitConverter.GetBytes(totalLength), 0, packet, PacketOffset.Length, PacketSize.Length);
         Array.Copy(BitConverter.GetBytes(command), 0, packet, PacketOffset.Id, PacketSize.Id);
-        Array.Copy(BitConverter.GetBytes(CRC32(packet)), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
+        Array.Copy(BitConverter.GetBytes(Crc32.Compute(packet)), 0, packet, PacketOffset.Checksum, PacketSize.Checksum);
         Array.Copy(BitConverter.GetBytes(timestamp), 0, packet, PacketOffset.Timestamp, PacketSize.Timestamp);
 
         packet[PacketOffset.Number] = (byte)0;
@@ -59,25 +60,5 @@ internal static class PacketTransmitter
 
         // Send the packet to the client
         return connection.Send(packet);
-    }
-
-    /// <summary>
-    /// Calculates the CRC32 checksum for the given data.
-    /// </summary>
-    /// <param name="data">The data to calculate the checksum for.</param>
-    /// <returns>The calculated CRC32 checksum.</returns>
-    private static uint CRC32(byte[] data)
-    {
-        // Simple CRC32 implementation; consider replacing with a library for production use
-        uint crc = 0xFFFFFFFF;
-        foreach (byte b in data)
-        {
-            crc ^= b;
-            for (int i = 0; i < 8; i++)
-            {
-                crc = (uint)(crc >> 1 ^ 0xEDB88320 & -(crc & 1));
-            }
-        }
-        return ~crc;
     }
 }
