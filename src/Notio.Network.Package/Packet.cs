@@ -20,7 +20,7 @@ namespace Notio.Network.Package;
 /// This high-performance struct is optimized for efficient serialization and transmission.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-[DebuggerDisplay("Packet {Number}: Type={Type}, Id={Id}, Length={Length}")]
+[DebuggerDisplay("Packet {Number}: Id={Id}, Type={Type}, number={number}, Length={Length}")]
 public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
 {
     #region Constants
@@ -40,9 +40,24 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
 
     /// <summary>
+    /// Gets the number associated with the packet, which specifies an operation type.
+    /// </summary>
+    public ushort Id { get; }
+
+    /// <summary>
     /// Gets the packet identifier, which is a unique identifier for this packet instance.
     /// </summary>
     public byte Number { get; }
+
+    /// <summary>
+    /// Gets the CRC32 checksum of the packet payload for integrity validation.
+    /// </summary>
+    public uint Checksum { get; }
+
+    /// <summary>
+    /// Gets the timestamp when the packet was created in microseconds since system startup.
+    /// </summary>
+    public ulong Timestamp { get; }
 
     /// <summary>
     /// Gets the packet type, which specifies the kind of packet.
@@ -60,21 +75,6 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public PacketPriority Priority { get; }
 
     /// <summary>
-    /// Gets the command associated with the packet, which specifies an operation type.
-    /// </summary>
-    public ushort Id { get; }
-
-    /// <summary>
-    /// Gets the timestamp when the packet was created in microseconds since system startup.
-    /// </summary>
-    public ulong Timestamp { get; }
-
-    /// <summary>
-    /// Gets the CRC32 checksum of the packet payload for integrity validation.
-    /// </summary>
-    public uint Checksum { get; }
-
-    /// <summary>
     /// Gets the payload data being transmitted in this packet.
     /// </summary>
     public Memory<byte> Payload { get; }
@@ -84,94 +84,91 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific number and payload.
     /// </summary>
-    /// <param name="command">The packet command.</param>
+    /// <param name="id">The packet number.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort command, byte[] payload)
-    : this(command, new Memory<byte>(payload))
+    public Packet(ushort id, byte[] payload)
+    : this(id, new Memory<byte>(payload))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific number and payload.
     /// </summary>
-    /// <param name="command">The packet command.</param>
+    /// <param name="id">The packet number.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort command, Span<byte> payload)
-    : this(command, new Memory<byte>(payload.ToArray()))
+    public Packet(ushort id, Span<byte> payload)
+    : this(id, new Memory<byte>(payload.ToArray()))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific command and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific number and payload.
     /// </summary>
-    /// <param name="command">The packet command.</param>
+    /// <param name="id">The packet number.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort command, Memory<byte> payload)
-        : this(PacketType.None, PacketFlags.None, PacketPriority.None, command, payload)
+    public Packet(ushort id, Memory<byte> payload)
+        : this(id, PacketType.None, PacketFlags.None, PacketPriority.None, payload)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
     /// </summary>
+    /// <param name="id">The packet number.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketFlags flags, PacketPriority priority, ushort command, string s)
-        : this(PacketType.String, flags, priority, command, Encoding.UTF8.GetBytes(s))
+    public Packet(ushort id, PacketFlags flags, PacketPriority priority, string s)
+        : this(id, PacketType.String, flags, priority, Encoding.UTF8.GetBytes(s))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with the specified flags, priority, command, and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with the specified flags, priority, number, and payload.
     /// </summary>
+    /// <param name="id">The number identifier for the packet.</param>
     /// <param name="flags">The packet flags indicating specific properties of the packet.</param>
     /// <param name="priority">The priority level of the packet.</param>
-    /// <param name="command">The command identifier for the packet.</param>
     /// <param name="obj">The payload of the packet.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON serialization.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(PacketFlags flags, PacketPriority priority,
-        ushort command, object obj, JsonTypeInfo<object> jsonTypeInfo)
-        : this(PacketType.Object, flags, priority, command,
-               JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
+        ushort id, object obj, JsonTypeInfo<object> jsonTypeInfo)
+        : this(id, PacketType.Object, flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, command, and payload.
+    /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, number, and payload.
     /// </summary>
+    /// <param name="id">The packet number.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(byte type, byte flags, byte priority, ushort command, Memory<byte> payload)
-        : this((PacketType)type, (PacketFlags)flags, (PacketPriority)priority, command, payload)
+    public Packet(ushort id, byte type, byte flags, byte priority, Memory<byte> payload)
+        : this(id, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for type, flags, and priority.
     /// </summary>
+    /// <param name="id">The packet number.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
     /// <param name="payload">The packet payload (data).</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(PacketType type, PacketFlags flags, PacketPriority priority,
-        ushort command, Memory<byte> payload)
-        : this(0, type, flags, priority, command,
-              MicrosecondClock.GetTimestamp(), 0, payload, true)
+    public Packet(ushort id, PacketType type, PacketFlags flags, PacketPriority priority, Memory<byte> payload)
+        : this(id, 0, 0, MicrosecondClock.GetTimestamp(), type, flags, priority, payload, true)
     {
     }
 
@@ -184,53 +181,60 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        byte id,
+        ushort id,
+        byte number,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        ushort command, Memory<byte> payload)
-        : this(id, type, flags, priority, command,
-               MicrosecondClock.GetTimestamp(), 0, payload, true)
+        Memory<byte> payload)
+        : this(id, number, 0, MicrosecondClock.GetTimestamp(), type, flags, priority, payload, true)
     {
     }
 
     /// <summary>
     /// Creates a new packet with full control over all fields.
     /// </summary>
-    /// <param name="id">The packet identifier.</param>
+    /// /// <param name="id">The packet number.</param>
+    /// <param name="number">The packet identifier.</param>
+    /// <param name="checksum">The packet checksum.</param>
+    /// <param name="timestamp">The packet timestamp.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
-    /// <param name="timestamp">The packet timestamp.</param>
-    /// <param name="checksum">The packet checksum.</param>
     /// <param name="payload">The packet payload.</param>
     /// <param name="computeChecksum">If true, computes the checksum; otherwise uses the provided value.</param>
     /// <exception cref="PackageException">Thrown when the packet size exceeds the maximum allowed size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        byte id,
+        ushort id,
+        byte number,
+        uint checksum,
+        ulong timestamp,
         byte type,
         byte flags,
         byte priority,
-        ushort command,
-        ulong timestamp,
-        uint checksum,
         Memory<byte> payload,
         bool computeChecksum = false)
-        : this(id, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority,
-               command, timestamp, checksum, payload, computeChecksum)
+        : this(id,
+              number,
+              checksum,
+              timestamp,
+              (PacketType)type,
+              (PacketFlags)flags,
+              (PacketPriority)priority,
+              payload,
+              computeChecksum)
     {
     }
 
     /// <summary>
     /// Creates a new packet with full control over all fields.
     /// </summary>
-    /// <param name="id">The packet identifier.</param>
+    /// <param name="number">The packet identifier.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
-    /// <param name="command">The packet command.</param>
+    /// <param name="id">The packet number.</param>
     /// <param name="timestamp">The packet timestamp.</param>
     /// <param name="checksum">The packet checksum.</param>
     /// <param name="payload">The packet payload.</param>
@@ -238,13 +242,13 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <exception cref="PackageException">Thrown when the packet size exceeds the maximum allowed size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        byte id,
+        ushort id,
+        byte number,
+        uint checksum,
+        ulong timestamp,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        ushort command,
-        ulong timestamp,
-        uint checksum,
         Memory<byte> payload,
         bool computeChecksum = false)
     {
@@ -256,10 +260,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         }
 
         // Initialize fields
-        Number = id == 0 ? (byte)(timestamp % byte.MaxValue) : id;
+        Number = number == 0 ? (byte)(timestamp % byte.MaxValue) : number;
         Type = type;
         Flags = flags;
-        Id = command;
+        Id = id;
         Priority = priority;
         Timestamp = timestamp;
 
@@ -311,7 +315,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>A new packet with the updated flags.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithFlags(PacketFlags newFlags) =>
-        new(Number, Type, newFlags, Priority, Id, Timestamp, Checksum, Payload);
+        new(Id, Number, Checksum, Timestamp, Type, newFlags, Priority, Payload);
 
     /// <summary>
     /// Creates a new packet that is a copy of this one but with a new payload.
@@ -320,7 +324,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>A new packet with the same metadata but different payload.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet WithPayload(Memory<byte> newPayload)
-        => new(Number, Type, Flags, Priority, Id, Timestamp, 0, newPayload, true);
+        => new(Id, Number, 0, Timestamp, Type, Flags, Priority, newPayload, true);
 
     #endregion
 
@@ -520,7 +524,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     /// <remarks>
     /// This method provides a structured view of the packet's contents, including:
-    /// - ID, type, flags, command, priority, timestamp, and checksum.
+    /// - ID, type, flags, number, priority, timestamp, and checksum.
     /// - Payload size and, if applicable, a hex dump of the payload data.
     /// - If the payload is larger than 32 bytes, only the first and last 16 bytes are displayed.
     /// </remarks>
@@ -533,7 +537,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
         sb.AppendLine($"Packet [{Number}]:");
         sb.AppendLine($"  Type: {(PacketType)Type}");
         sb.AppendLine($"  Flags: {(PacketFlags)Flags}");
-        sb.AppendLine($"  Id: 0x{Id:X4}");
+        sb.AppendLine($"  number: 0x{Id:X4}");
         sb.AppendLine($"  Priority: {(PacketPriority)Priority}");
         sb.AppendLine($"  Timestamp: {Timestamp}");
         sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");
@@ -566,7 +570,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// </summary>
     /// <returns>A string that represents this packet.</returns>
     public override string ToString()
-        => $"Packet ID={Number}, Type={Type}, Id={Id}, " +
+        => $"Packet ID={Number}, Type={Type}, number={Id}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
            $"Checksum={IsValid()}, Payload={Payload.Length} bytes, Size={Length} bytes";
 
