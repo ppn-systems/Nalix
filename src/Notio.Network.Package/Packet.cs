@@ -339,6 +339,25 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     #region Serialization Methods
 
     /// <summary>
+    /// Serializes the packet into a new byte array.
+    /// </summary>
+    /// <returns>
+    /// A byte array containing the serialized representation of the packet.
+    /// </returns>
+    public byte[] Serialize() => PacketSerializer.Serialize(this);
+
+    /// <summary>
+    /// Serializes the packet into the provided buffer.
+    /// </summary>
+    /// <param name="buffer">
+    /// A span of bytes to write the serialized packet into. The buffer must be large enough to hold the entire packet.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown if the buffer is too small to contain the serialized packet.
+    /// </exception>
+    public void Serialize(Span<byte> buffer) => PacketSerializer.WritePacketUnsafe(buffer, this);
+
+    /// <summary>
     /// Creates a packet from raw binary data.
     /// </summary>
     /// <param name="data">The binary data containing a serialized packet.</param>
@@ -542,10 +561,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     public string ToDetailedString()
     {
         StringBuilder sb = new();
-        sb.AppendLine($"Packet [{Number}]:");
+        sb.AppendLine($"Packet [{Id}]:");
         sb.AppendLine($"  Type: {(PacketType)Type}");
         sb.AppendLine($"  Flags: {(PacketFlags)Flags}");
-        sb.AppendLine($"  Number: 0x{Id:X4}");
+        sb.AppendLine($"  Number: 0x{Number:X4}");
         sb.AppendLine($"  Priority: {(PacketPriority)Priority}");
         sb.AppendLine($"  Timestamp: {Timestamp}");
         sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");

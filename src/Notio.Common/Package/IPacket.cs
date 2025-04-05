@@ -1,11 +1,9 @@
-using System;
-
 namespace Notio.Common.Package;
 
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
-public interface IPacket : IEquatable<IPacket>, IDisposable
+public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
 {
     #region Metadata
 
@@ -52,7 +50,7 @@ public interface IPacket : IEquatable<IPacket>, IDisposable
     /// <summary>
     /// Gets the payload of the packet.
     /// </summary>
-    Memory<byte> Payload { get; }
+    System.Memory<byte> Payload { get; }
 
     #endregion
 
@@ -70,5 +68,33 @@ public interface IPacket : IEquatable<IPacket>, IDisposable
     /// Checks if the packet has expired.
     /// </summary>
     /// <param name="timeout">The expiration timeout.</param>
-    bool IsExpired(TimeSpan timeout);
+    bool IsExpired(System.TimeSpan timeout);
+
+    /// <summary>
+    /// Serializes the packet into a byte array for transmission or storage.
+    /// </summary>
+    /// <returns>
+    /// A byte array representing the serialized packet.
+    /// </returns>
+    byte[] Serialize();
+
+    /// <summary>
+    /// Serializes the packet into the provided buffer.
+    /// </summary>
+    /// <param name="buffer">
+    /// The span of bytes where the serialized packet data will be written.
+    /// The buffer must be large enough to hold the entire packet.
+    /// </param>
+    /// <exception cref="Exceptions.PackageException">
+    /// Thrown if the buffer is too small to contain the serialized packet.
+    /// </exception>
+    void Serialize(System.Span<byte> buffer);
+
+    /// <summary>
+    /// Returns a string representation of the packet, useful for debugging or logging.
+    /// </summary>
+    /// <returns>
+    /// A string that describes the packet's key attributes.
+    /// </returns>
+    string ToString();
 }

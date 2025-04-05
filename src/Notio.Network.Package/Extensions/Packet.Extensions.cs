@@ -1,5 +1,4 @@
 using Notio.Common.Package;
-using Notio.Network.Package.Serialization;
 using Notio.Network.Package.Utilities;
 using System;
 
@@ -68,12 +67,4 @@ public static class PacketExtensions
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
     public static bool TryDeserialize(this ReadOnlySpan<byte> source, out Packet packet)
         => PacketSerializationHelper.TryDeserialize(source, out packet);
-
-    /// <summary>
-    /// Returns a human-readable string representation of a packet.
-    /// </summary>
-    /// <param name="packet">The packet to convert to a string.</param>
-    /// <returns>A string describing the packet's contents.</returns>
-    public static string ToReadableString(this in Packet packet)
-        => PacketSerializationHelper.ToReadableString(in packet);
 }

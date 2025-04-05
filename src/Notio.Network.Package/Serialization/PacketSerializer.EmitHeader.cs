@@ -7,7 +7,6 @@ namespace Notio.Network.Package.Serialization;
 
 public static partial class PacketSerializer
 {
-    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void EmitHeader(
         Span<byte> buffer, int totalSize,
@@ -25,7 +24,6 @@ public static partial class PacketSerializer
         buffer[PacketOffset.Priority] = (byte)packet.Priority;
     }
 
-    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static unsafe void EmitHeaderUnsafe(
         byte* buffer, int totalSize,
@@ -43,7 +41,6 @@ public static partial class PacketSerializer
         buffer[PacketOffset.Priority] = (byte)packet.Priority;
     }
 
-    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static unsafe void EmitHeaderUnsafe(
         Span<byte> buffer, int totalSize,
