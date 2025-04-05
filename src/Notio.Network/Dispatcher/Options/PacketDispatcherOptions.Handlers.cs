@@ -154,30 +154,30 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 catch (PackageException ex)
                 {
                     // Enhanced error log with context on the exception
-                    string errorMessage = string.Format(
+                    string message = string.Format(
                         "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
                         "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
-                        id,           // Command ID
-                        controllerName,      // Controller name
-                        method.Name,         // Method name that caused the error
-                        ex.GetType().Name,   // Exception type
-                        id,           // Command ID for context
-                        connection.RemoteEndPoint, // Connection details for traceability
-                        ex.Message           // Exception message itself
+                        id,                         // Command ID
+                        controllerName,             // Controller name
+                        method.Name,                // Method name that caused the error
+                        ex.GetType().Name,          // Exception type
+                        id,                         // Command ID for context
+                        connection.RemoteEndPoint,  // Connection details for traceability
+                        ex.Message                  // Exception message itself
                     );
 
-                    _logger?.Error(errorMessage); // Log the detailed error message
-                    ErrorHandler?.Invoke(ex, id); // Invoke custom error handler if set
+                    _logger?.Error(message);   // Log the detailed error message
+                    ErrorHandler?.Invoke(ex, id);   // Invoke custom error handler if set
                 }
                 catch (Exception ex)
                 {
-                    string errorMessage = $"General error while processing command '{id}' " +
-                                          $"in controller '{controllerName}' (Method: '{method.Name}').\n" +
-                                          $"Exception: {ex.Message}, " +
-                                          $"Command ID: {id}, " +
-                                          $"Remote Endpoint: {connection.RemoteEndPoint}";
+                    string message = $"General error while processing command '{id}' " +
+                                     $"in controller '{controllerName}' (Method: '{method.Name}')." +
+                                     $"Exception: {ex.Message}, " +
+                                     $"Packet info: Command ID: {id}, " +
+                                     $"Remote Endpoint: {connection.RemoteEndPoint}";
 
-                    _logger?.Error(errorMessage);
+                    _logger?.Error(message);
                     ErrorHandler?.Invoke(ex, id);
                 }
                 finally
