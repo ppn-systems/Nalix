@@ -1,9 +1,10 @@
 using Notio.Common.Logging;
+using Notio.Common.Package;
 using System;
 
 namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Enables metrics tracking and sets the callback function for reporting execution times.
@@ -35,7 +36,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// </summary>
     /// <param name="errorHandler">The error handler action.</param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithErrorHandler(Action<Exception, ushort> errorHandler)
+    public PacketDispatcherOptions<TPacket> WithErrorHandling(Action<Exception, ushort> errorHandler)
     {
         ErrorHandler = errorHandler;
         _logger?.Debug("Error handler configured.");

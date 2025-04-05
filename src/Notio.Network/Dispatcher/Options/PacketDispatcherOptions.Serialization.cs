@@ -4,7 +4,7 @@ using System;
 
 namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Configures a type-specific packet compression method.
@@ -13,12 +13,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// A function that compresses a packet of type <typeparamref name="TPacket"/> before sending.
     /// </param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithTypedCompression(
+    public PacketDispatcherOptions<TPacket> WithCompression(
         Func<TPacket, IConnection, TPacket> compressionMethod)
     {
         if (compressionMethod is not null)
         {
-            _compressionMethod = (packet, connection) =>
+            _pCompressionMethod = (packet, connection) =>
                 packet is TPacket typedPacket
                     ? compressionMethod(typedPacket, connection)
                     : packet;
@@ -36,12 +36,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// A function that decompresses a packet of type <typeparamref name="TPacket"/> before processing.
     /// </param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithTypedDecompression(
+    public PacketDispatcherOptions<TPacket> WithDecompression(
         Func<TPacket, IConnection, TPacket> decompressionMethod)
     {
         if (decompressionMethod is not null)
         {
-            _decompressionMethod = (packet, connection) =>
+            _pDecompressionMethod = (packet, connection) =>
                 packet is TPacket typedPacket
                     ? decompressionMethod(typedPacket, connection)
                     : packet;
@@ -57,7 +57,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// </summary>
     /// <param name="serializer">A strongly-typed function that serializes a packet of type <typeparamref name="TPacket"/> into a <see cref="Memory{Byte}"/>.</param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithTypedSerializer(
+    public PacketDispatcherOptions<TPacket> WithSerializer(
         Func<TPacket, Memory<byte>> serializer)
     {
         ArgumentNullException.ThrowIfNull(serializer);
@@ -84,7 +84,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <remarks>
     /// This method provides type safety by ensuring the deserialization process returns the expected packet type.
     /// </remarks>
-    public PacketDispatcherOptions<TPacket> WithTypedDeserializer(Func<ReadOnlyMemory<byte>, TPacket> deserializer)
+    public PacketDispatcherOptions<TPacket> WithDeserializer(Func<ReadOnlyMemory<byte>, TPacket> deserializer)
     {
         ArgumentNullException.ThrowIfNull(deserializer);
 
@@ -105,12 +105,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    public TPacket Deserialization(byte[]? bytes)
+    public TPacket Deserialize(byte[]? bytes)
     {
         if (this.DeserializationMethod is null)
         {
-            _logger?.Error("Deserialization method is not set.");
-            throw new InvalidOperationException("Deserialization method is not set.");
+            _logger?.Error("Deserialize method is not set.");
+            throw new InvalidOperationException("Deserialize method is not set.");
         }
 
         if (bytes is null)
@@ -133,12 +133,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    public TPacket Deserialization(ReadOnlyMemory<byte>? bytes)
+    public TPacket Deserialize(ReadOnlyMemory<byte>? bytes)
     {
         if (this.DeserializationMethod is null)
         {
-            _logger?.Error("Deserialization method is not set.");
-            throw new InvalidOperationException("Deserialization method is not set.");
+            _logger?.Error("Deserialize method is not set.");
+            throw new InvalidOperationException("Deserialize method is not set.");
         }
 
         if (bytes is null || bytes.Value.Length == 0)
@@ -160,12 +160,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <exception cref="InvalidOperationException">
     /// Thrown when the <see cref="SerializationMethod"/> is not set.
     /// </exception>
-    public Memory<byte> Serialization(TPacket packet)
+    public Memory<byte> Serialize(TPacket packet)
     {
         if (this.SerializationMethod is null)
         {
-            _logger?.Error("Serialization method is not set.");
-            throw new InvalidOperationException("Serialization method is not set.");
+            _logger?.Error("Serialize method is not set.");
+            throw new InvalidOperationException("Serialize method is not set.");
         }
 
         return this.SerializationMethod(packet);

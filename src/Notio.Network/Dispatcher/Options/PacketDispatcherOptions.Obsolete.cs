@@ -4,7 +4,7 @@ using System;
 
 namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Configures packet compression and decompression for the packet dispatcher.
@@ -26,15 +26,15 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [Obsolete("Use WithTypedCompression and WithTypedDecompression for type-specific compression.")]
+    [Obsolete("Use WithCompression and WithDecompression for type-specific compression.")]
     public PacketDispatcherOptions<TPacket> WithPacketCompression
     (
         Func<TPacket, IConnection, TPacket>? compressionMethod,
         Func<TPacket, IConnection, TPacket>? decompressionMethod
     )
     {
-        if (compressionMethod is not null) _compressionMethod = compressionMethod;
-        if (decompressionMethod is not null) _decompressionMethod = decompressionMethod;
+        if (compressionMethod is not null) _pCompressionMethod = compressionMethod;
+        if (decompressionMethod is not null) _pDecompressionMethod = decompressionMethod;
 
         _logger?.Debug("Packet compression configured.");
         return this;
@@ -60,15 +60,15 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [Obsolete("Use WithTypedEncryption and WithTypedDecryption for type-specific encryption.")]
+    [Obsolete("Use WithEncryption and WithDecryption for type-specific encryption.")]
     public PacketDispatcherOptions<TPacket> WithPacketCrypto
     (
         Func<TPacket, IConnection, TPacket>? encryptionMethod,
         Func<TPacket, IConnection, TPacket>? decryptionMethod
     )
     {
-        if (encryptionMethod is not null) _encryptionMethod = encryptionMethod;
-        if (decryptionMethod is not null) _decryptionMethod = decryptionMethod;
+        if (encryptionMethod is not null) _pEncryptionMethod = encryptionMethod;
+        if (decryptionMethod is not null) _pDecryptionMethod = decryptionMethod;
 
         _logger?.Debug("Packet encryption configured.");
         return this;
@@ -89,7 +89,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <remarks>
     /// This method allows customizing how packets are serialized before sending and deserialized upon receiving.
     /// </remarks>
-    [Obsolete("Use WithTypedSerializer and WithTypedDeserializer for type-specific serialization.")]
+    [Obsolete("Use WithSerializer and WithDeserializer for type-specific serialization.")]
     public PacketDispatcherOptions<TPacket> WithPacketSerialization
     (
         Func<TPacket, Memory<byte>>? serializationMethod,

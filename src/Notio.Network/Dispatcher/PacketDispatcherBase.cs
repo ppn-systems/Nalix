@@ -1,4 +1,5 @@
 using Notio.Common.Logging;
+using Notio.Common.Package;
 using Notio.Network.Dispatcher.Options;
 using System.Diagnostics.CodeAnalysis;
 
@@ -7,14 +8,14 @@ namespace Notio.Network.Dispatcher;
 /// <summary>
 /// Base class for packet dispatchers, providing configuration options.
 /// </summary>
-public abstract class PacketDispatcherBase<TPacket> where TPacket : class
+public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Gets the logger instance associated with this dispatcher.
     /// </summary>
     protected ILogger? Logger => Options.Logger;
 
-    /// <summary>
+    /// <summary> 
     /// Gets the options object used to configure this instance.
     /// </summary>
     protected readonly PacketDispatcherOptions<TPacket> Options;

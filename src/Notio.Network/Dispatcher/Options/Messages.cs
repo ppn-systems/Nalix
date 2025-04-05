@@ -9,4 +9,5 @@ internal static class Messages
     public static readonly string UnauthorizedCommandAccess = "[WithHandler] Unauthorized access to Number: {0} from {1}";
     public static readonly string CommandHandlerException = "[WithHandler] Exception in {0}.{1}: {2}";
     public static readonly string RegisteredCommandForHandler = "[WithHandler] Registered {0} for {1}";
+    public static readonly string EncryptedPacketNotAllowed = "[WithHandler] Encrypted packet not allowed for {0} from {1}";
 }

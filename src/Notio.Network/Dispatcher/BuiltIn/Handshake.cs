@@ -19,9 +19,9 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 [PacketController]
 public class Handshake
 {
-    private readonly ISha _sha;
-    private readonly IX25519 _x25519;
     private readonly ILogger? _logger;
+    private readonly ISha _hashAlgorithm;
+    private readonly IX25519 _keyExchangeAlgorithm;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Handshake"/> class with necessary components.
@@ -31,11 +31,11 @@ public class Handshake
     /// <param name="logger">Optional logger for recording events and errors during the handshake process.</param>
     public Handshake(ISha sha, IX25519 x25519, ILogger? logger)
     {
-        _sha = sha;
-        _x25519 = x25519;
+        _hashAlgorithm = sha;
+        _keyExchangeAlgorithm = x25519;
         _logger = logger;
 
-        _sha.Initialize(); // Initialize the hashing algorithm.
+        _hashAlgorithm.Initialize(); // Initialize the hashing algorithm.
     }
 
     /// <summary>
@@ -44,6 +44,7 @@ public class Handshake
     /// </summary>
     /// <param name="packet">The incoming packet containing the client's public key.</param>
     /// <param name="connection">The connection to the client that is requesting the handshake.</param>
+    [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ProtocolCommand.InitiateHandshake)]
     public void InitiateHandshake(IPacket packet, IConnection connection)
@@ -75,13 +76,13 @@ public class Handshake
         try
         {
             // Generate an X25519 key pair (private and public keys).
-            (byte[] privateKey, byte[] publicKey) = _x25519.Generate();
+            (byte[] privateKey, byte[] publicKey) = _keyExchangeAlgorithm.Generate();
 
             // Store the private key in connection metadata for later use.
             connection.Metadata["X25519_PrivateKey"] = privateKey;
 
             // Derive the shared secret key using the server's private key and the client's public key.
-            connection.EncryptionKey = this.GenerateSharedSecret(privateKey, packet.Payload.ToArray());
+            connection.EncryptionKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
 
             // Send the server's public key back to the client for the next phase of the handshake.
             if (PacketTransmitter.SendBinary(connection, publicKey, 1))
@@ -110,9 +111,10 @@ public class Handshake
     /// </summary>
     /// <param name="packet">The incoming packet containing the client's public key for finalization.</param>
     /// <param name="connection">The connection to the client.</param>
+    [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
-    public void CompleteHandshake(IPacket packet, IConnection connection)
+    public void FinalizeHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)
@@ -143,7 +145,7 @@ public class Handshake
         try
         {
             // Derive the shared secret using the private key and the client's public key.
-            byte[] derivedKey = this.GenerateSharedSecret(privateKey, packet.Payload.ToArray());
+            byte[] derivedKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
 
             // Compare the derived key with the encryption key in the connection.
             if (connection.EncryptionKey.SequenceEqual(derivedKey))
@@ -173,13 +175,13 @@ public class Handshake
     /// <param name="privateKey">The server's private key used in the key exchange.</param>
     /// <param name="publicKey">The client's public key involved in the key exchange.</param>
     /// <returns>The derived encryption key, which is used to establish a secure connection.</returns>
-    private byte[] GenerateSharedSecret(byte[] privateKey, byte[] publicKey)
+    private byte[] GenerateEncryptionKeyFromKeys(byte[] privateKey, byte[] publicKey)
     {
         // Perform the X25519 key exchange to derive the shared secret.
-        byte[] secret = _x25519.Compute(privateKey, publicKey);
+        byte[] secret = _keyExchangeAlgorithm.Compute(privateKey, publicKey);
 
         // Hash the shared secret to produce the final encryption key.
-        _sha.Update(secret);
-        return _sha.FinalizeHash();
+        _hashAlgorithm.Update(secret);
+        return _hashAlgorithm.FinalizeHash();
     }
 }

@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
-    /// and scanning its methods decorated with <see cref="PacketCommandAttribute"/>.
+    /// and scanning its methods decorated with <see cref="PacketIdAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register. 
@@ -52,7 +52,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// using a provided factory function, then scanning its methods decorated 
-    /// with <see cref="PacketCommandAttribute"/>.
+    /// with <see cref="PacketIdAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register. This type does not require 
@@ -131,19 +131,28 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
                     return;
                 }
 
+                if (method.GetCustomAttribute<PacketEncryptionAttribute>() is { IsEncrypted: true })
+                {
+                    if (packet.IsEncrypted)
+                    {
+                        _logger?.Error(string.Format(
+                            Messages.EncryptedPacketNotAllowed,
+                            commandId, connection.RemoteEndPoint));
+                        return;
+                    }
+                }
+
                 try
                 {
-                    packet = ProcessPacketFlag(
-                        "Compression", packet, PacketFlags.Compressed,
-                        _decompressionMethod, connection);
+                    packet = ApplyFlagProcessor(
+                        "Compression", packet, PacketFlags.Compressed, _pDecompressionMethod, connection);
 
-                    packet = ProcessPacketFlag(
-                        "Encryption", packet, PacketFlags.Encrypted,
-                        _decryptionMethod, connection);
+                    packet = ApplyFlagProcessor(
+                        "Encryption", packet, PacketFlags.Encrypted, _pDecryptionMethod, connection);
 
                     object? result = method.Invoke(controllerInstance, [packet, connection]);
 
-                    await GetHandler(method.ReturnType)(result, packet, connection);
+                    await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -194,7 +203,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <example>
     /// The following example demonstrates how to retrieve and invoke a packet handler:
     /// <code>
-    /// if (options.TryGetPacketHandler(commandId, out var handler))
+    /// if (options.TryResolveHandler(commandId, out var handler))
     /// {
     ///     await handler(packet, connection);
     /// }
@@ -204,7 +213,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// }
     /// </code>
     /// </example>
-    public bool TryGetPacketHandler(ushort commandId, out Func<TPacket, IConnection, Task>? handler)
+    public bool TryResolveHandler(ushort commandId, out Func<TPacket, IConnection, Task>? handler)
     {
         if (PacketHandlers.TryGetValue(commandId, out handler))
         {
@@ -221,7 +230,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <summary>
     /// Determines the correct handler based on the method's return type.
     /// </summary>
-    private Func<object?, TPacket, IConnection, Task> GetHandler(Type returnType) => returnType switch
+    private Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(Type returnType) => returnType switch
     {
         Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
         Type t when t == typeof(byte[]) => async (result, _, connection) =>
@@ -233,7 +242,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
         Type t when t == typeof(TPacket) => async (result, _, connection) =>
         {
             if (result is TPacket packet)
-                await SendPacketAsync(packet, connection);
+                await DispatchPacketAsync(packet, connection);
         }
         ,
         Type t when t == typeof(ValueTask) => async (result, _, _) =>
@@ -274,7 +283,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
                 try
                 {
                     TPacket packet = await task;
-                    await SendPacketAsync(packet, connection);
+                    await DispatchPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -321,7 +330,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
                 try
                 {
                     TPacket packet = await task;
-                    await SendPacketAsync(packet, connection);
+                    await DispatchPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -336,24 +345,24 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     private static T EnsureNotNull<T>(T value, string paramName)
         where T : class => value ?? throw new ArgumentNullException(paramName);
 
-    private async Task SendPacketAsync(TPacket packet, IConnection connection)
+    private async Task DispatchPacketAsync(TPacket packet, IConnection connection)
     {
         if (SerializationMethod is null)
         {
-            _logger?.Error("Serialization method is not set.");
-            throw new InvalidOperationException("Serialization method is not set.");
+            _logger?.Error("Serialize method is not set.");
+            throw new InvalidOperationException("Serialize method is not set.");
         }
 
-        packet = ProcessPacketFlag(
-            "Compression", packet, PacketFlags.Compressed, _compressionMethod, connection);
+        packet = ApplyFlagProcessor(
+            "Compression", packet, PacketFlags.Compressed, _pCompressionMethod, connection);
 
-        packet = ProcessPacketFlag(
-            "Encryption", packet, PacketFlags.Encrypted, _encryptionMethod, connection);
+        packet = ApplyFlagProcessor(
+            "Encryption", packet, PacketFlags.Encrypted, _pEncryptionMethod, connection);
 
         await connection.SendAsync(SerializationMethod(packet));
     }
 
-    private TPacket ProcessPacketFlag(
+    private TPacket ApplyFlagProcessor(
         string methodName,
         TPacket packet,
         PacketFlags flag,

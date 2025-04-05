@@ -14,7 +14,7 @@ namespace Notio.Network.Dispatcher.Options;
 /// <remarks>
 /// This class allows registering packet handlers, configuring logging, and defining error-handling strategies.
 /// </remarks>
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : class
+public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     #region Const
 
@@ -28,11 +28,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
 
     private ILogger? _logger;
 
-    private Func<TPacket, IConnection, TPacket>? _encryptionMethod;
-    private Func<TPacket, IConnection, TPacket>? _decryptionMethod;
+    private Func<TPacket, IConnection, TPacket>? _pEncryptionMethod;
+    private Func<TPacket, IConnection, TPacket>? _pDecryptionMethod;
 
-    private Func<TPacket, IConnection, TPacket>? _compressionMethod;
-    private Func<TPacket, IConnection, TPacket>? _decompressionMethod;
+    private Func<TPacket, IConnection, TPacket>? _pCompressionMethod;
+    private Func<TPacket, IConnection, TPacket>? _pDecompressionMethod;
 
     /// <summary>
     /// Indicates whether metrics tracking is enabled.
@@ -89,12 +89,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : cla
     /// <summary>
     /// Checks if encryption is enabled.
     /// </summary>
-    public bool IsEncryptionEnabled => _encryptionMethod != null && _decryptionMethod != null;
+    public bool IsPacketEncryptionEnabled => _pEncryptionMethod != null && _pDecryptionMethod != null;
 
     /// <summary>
     /// Checks if compression is enabled.
     /// </summary>
-    public bool IsCompressionEnabled => _compressionMethod != null && _decompressionMethod != null;
+    public bool IsPacketCompressionEnabled => _pCompressionMethod != null && _pDecompressionMethod != null;
 
     #endregion
 

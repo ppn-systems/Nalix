@@ -18,7 +18,7 @@ namespace Notio.Network.Dispatcher;
 /// A delegate used to configure <see cref="PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
 public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : class
+    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, IConnection connection)
@@ -29,7 +29,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             return;
         }
 
-        HandlePacket(Options.Deserialization(packet), connection).Wait();
+        HandlePacket(Options.Deserialize(packet), connection).Wait();
     }
 
     /// <inheritdoc />
@@ -41,7 +41,7 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             return;
         }
 
-        HandlePacket(Options.Deserialization(packet), connection).Wait();
+        HandlePacket(Options.Deserialize(packet), connection).Wait();
     }
 
     /// <inheritdoc />
@@ -59,11 +59,11 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             return;
         }
 
-        ushort commandId = ipacket.Id;
+        ushort id = ipacket.Id;
 
-        if (Options.TryGetPacketHandler(commandId, out var handler))
+        if (Options.TryResolveHandler(id, out var handler))
         {
-            Logger?.Debug($"Invoking handler for Number: {commandId}");
+            Logger?.Debug($"Invoking handler for Number: {id}");
 
             try
             {
@@ -71,12 +71,12 @@ public sealed class PacketDispatcher<TPacket>(Action<PacketDispatcherOptions<TPa
             }
             catch (Exception ex)
             {
-                Logger?.Error($"Error handling packet with Number {commandId}: {ex.Message}", ex);
+                Logger?.Error($"Error handling packet with Number {id}: {ex.Message}", ex);
             }
         }
         else
         {
-            Logger?.Warn($"No handler found for Number {commandId}");
+            Logger?.Warn($"No handler found for Number {id}");
         }
     }
 }
