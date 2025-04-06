@@ -177,11 +177,14 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 }
                 catch (Exception ex)
                 {
-                    string message = $"General error while processing command '{id}' " +
-                                     $"in controller '{controllerName}' (Method: '{method.Name}')." +
-                                     $"Exception: {ex.Message}, " +
-                                     $"Packet info: Command ID: {id}, " +
-                                     $"Remote Endpoint: {connection.RemoteEndPoint}";
+                    string message = string.Format(
+                        "General error while processing command '{0}' in controller '{1}' (Method: '{2}')." +
+                        "Exception: {3}, Remote Endpoint: {4}",
+                        id,
+                        controllerName,
+                        method.Name,
+                        ex.Message,
+                        connection.RemoteEndPoint);
 
                     _logger?.Error(message);
                     ErrorHandler?.Invoke(ex, id);
