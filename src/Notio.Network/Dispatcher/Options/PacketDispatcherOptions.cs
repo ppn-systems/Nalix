@@ -56,15 +56,6 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     private Action<string, long>? MetricsCallback { get; set; }
 
     /// <summary>
-    /// A function that deserializes a <see cref="Memory{Byte}"/> into an <see cref="IPacket"/>.
-    /// </summary>
-    /// <remarks>
-    /// This function is responsible for converting the byte array received over the network or from storage
-    /// back into an <see cref="IPacket"/> object for further processing.
-    /// </remarks>
-    private Func<ReadOnlyMemory<byte>, TPacket>? DeserializationMethod;
-
-    /// <summary>
     /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
     /// </summary>
     private readonly Dictionary<ushort, Func<TPacket, IConnection, Task>> PacketHandlers = [];

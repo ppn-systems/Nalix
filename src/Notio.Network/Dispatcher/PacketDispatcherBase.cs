@@ -3,7 +3,8 @@ namespace Notio.Network.Dispatcher;
 /// <summary>
 /// Base class for packet dispatchers, providing configuration options.
 /// </summary>
-public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Package.IPacket
+public abstract class PacketDispatcherBase<TPacket>
+    where TPacket : Common.Package.IPacket, Common.Package.IPacketDeserializer<TPacket>
 {
     /// <summary>
     /// Gets the logger instance associated with this dispatcher.

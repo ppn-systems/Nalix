@@ -12,7 +12,8 @@ namespace Notio.Network.Dispatcher;
 /// A delegate used to configure <see cref="Options.PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
 public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket
+    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket>
+    where TPacket : Common.Package.IPacket, Common.Package.IPacketDeserializer<TPacket>
 {
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
@@ -23,7 +24,7 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
             return;
         }
 
-        HandlePacket(Options.Deserialize(packet), connection).Wait();
+        HandlePacket(TPacket.Deserialize(packet), connection).Wait();
     }
 
     /// <inheritdoc />
@@ -35,7 +36,7 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
             return;
         }
 
-        HandlePacket(Options.Deserialize(packet), connection).Wait();
+        HandlePacket(TPacket.Deserialize(packet.Value.Span), connection).Wait();
     }
 
     /// <inheritdoc />

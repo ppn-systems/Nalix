@@ -21,7 +21,7 @@ namespace Notio.Network.Package;
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 [DebuggerDisplay("Packet {Number}: Number={Number}, Type={Type}, Number={Number}, Length={Length}")]
-public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
+public readonly struct Packet : IPacket, IPacketDeserializer<Packet>, IEquatable<Packet>, IDisposable
 {
     #region Constants
 
@@ -345,7 +345,8 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <returns>
     /// A byte array containing the serialized representation of the packet.
     /// </returns>
-    public Memory<byte> Serialize() => PacketSerializer.Serialize(this);
+    public Memory<byte> Serialize()
+        => PacketSerializer.Serialize(this);
 
     /// <summary>
     /// Serializes the packet into the provided buffer.
@@ -356,7 +357,20 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <exception cref="PackageException">
     /// Thrown if the buffer is too small to contain the serialized packet.
     /// </exception>
-    public void Serialize(Span<byte> buffer) => PacketSerializer.WritePacketUnsafe(buffer, this);
+    public void Serialize(Span<byte> buffer)
+        => PacketSerializer.WritePacketUnsafe(buffer, this);
+
+    /// <summary>
+    /// Deserializes a <see cref="Packet"/> from the given byte buffer using fast deserialization logic.
+    /// </summary>
+    /// <param name="buffer">
+    /// A read-only span of bytes that contains the serialized data of the packet.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Packet"/> instance reconstructed from the given buffer.
+    /// </returns>
+    static Packet IPacketDeserializer<Packet>.Deserialize(ReadOnlySpan<byte> buffer)
+        => PacketSerializer.ReadPacketFast(buffer);
 
     /// <summary>
     /// Creates a packet from raw binary data.
