@@ -479,7 +479,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         int on = 1;              // Turning on Keep-Alive
         int time = 10_000;       // 10 seconds without data, send Keep-Alive
-        int interval = 5_000;    // Send every 5 seconds if there is no response
+        int interval = 5_000;    // SendPacket every 5 seconds if there is no response
 
         byte[] keepAlive = new byte[12];
         BitConverter.GetBytes(on).CopyTo(keepAlive, 0);

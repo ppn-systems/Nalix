@@ -109,7 +109,7 @@ internal class TransportStream : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error("Send failed", ex);
+            _logger?.Error("SendPacket failed", ex);
             return false;
         }
     }

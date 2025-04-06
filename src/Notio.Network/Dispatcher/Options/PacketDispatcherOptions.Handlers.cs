@@ -2,7 +2,7 @@ using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Network.Core;
+using Notio.Network.Core.Packets;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -128,7 +128,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 {
                     string message = "You do not have permission to perform this action.";
                     _logger?.Warn(message);
-                    PacketTransmitter.SendString(connection, message, 0);
+
+                    connection.SendString(0, PacketCode.BadRequest, message);
                     return;
                 }
 
@@ -258,6 +259,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 await connection.SendAsync(data);
         }
         ,
+        Type t when t == typeof(Memory<byte>) => async (result, _, connection) =>
+        {
+            if (result is Memory<byte> memory)
+                await connection.SendAsync(memory);
+        }
+        ,
         Type t when t == typeof(TPacket) => async (result, _, connection) =>
         {
             if (result is TPacket packet)
@@ -287,6 +294,22 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 {
                     byte[] data = await task;
                     await connection.SendAsync(data);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(ValueTask<Memory<byte>>) => async (result, _, connection) =>
+        {
+            if (result is ValueTask<Memory<byte>> task)
+            {
+                try
+                {
+                    Memory<byte> memory = await task;
+                    await connection.SendAsync(memory);
                 }
                 catch (Exception ex)
                 {
@@ -334,6 +357,22 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 {
                     byte[] data = await task;
                     await connection.SendAsync(data);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error("Error invoking handler", ex);
+                }
+            }
+        }
+        ,
+        Type t when t == typeof(Task<Memory<byte>>) => async (result, _, connection) =>
+        {
+            if (result is Task<Memory<byte>> task)
+            {
+                try
+                {
+                    Memory<byte> memory = await task;
+                    await connection.SendAsync(memory);
                 }
                 catch (Exception ex)
                 {
