@@ -50,8 +50,6 @@ public class Handshake
     [PacketId((ushort)ProtocolCommand.InitiateHandshake)]
     public Memory<byte> InitiateHandshake(IPacket packet, IConnection connection)
     {
-        string address = connection.RemoteEndPoint;
-
         // Check if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
         {
@@ -72,30 +70,20 @@ public class Handshake
             return PacketBuilder.String(PacketCode.InvalidPayload);
         }
 
-        try
-        {
-            // Generate an X25519 key pair (private and public keys).
-            (byte[] privateKey, byte[] publicKey) = _keyExchangeAlgorithm.Generate();
+        // Generate an X25519 key pair (private and public keys).
+        (byte[] privateKey, byte[] publicKey) = _keyExchangeAlgorithm.Generate();
 
-            // Store the private key in connection metadata for later use.
-            connection.Metadata["X25519_PrivateKey"] = privateKey;
+        // Store the private key in connection metadata for later use.
+        connection.Metadata["X25519_PrivateKey"] = privateKey;
 
-            // Derive the shared secret key using the server's private key and the client's public key.
-            connection.EncryptionKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
+        // Derive the shared secret key using the server's private key and the client's public key.
+        connection.EncryptionKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
 
-            // Elevate the client's access level after successful handshake initiation.
-            connection.Level = PermissionLevel.User;
+        // Elevate the client's access level after successful handshake initiation.
+        connection.Level = PermissionLevel.User;
 
-            // SendPacket the server's public key back to the client for the next phase of the handshake.
-            return PacketBuilder.Binary(PacketCode.Success, publicKey);
-        }
-        catch (Exception ex)
-        {
-            // Log any errors that occur during the handshake process.
-            _logger?.Error($"Failed to initiate secure connection for connection {address}", ex);
-
-            return PacketBuilder.String(PacketCode.ServerError);
-        }
+        // SendPacket the server's public key back to the client for the next phase of the handshake.
+        return PacketBuilder.Binary(PacketCode.Success, publicKey);
     }
 
     /// <summary>
@@ -137,28 +125,19 @@ public class Handshake
             return PacketBuilder.String(PacketCode.UnknownError);
         }
 
-        try
-        {
-            // Derive the shared secret using the private key and the client's public key.
-            byte[] derivedKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
+        // Derive the shared secret using the private key and the client's public key.
+        byte[] derivedKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
 
-            // Compare the derived key with the encryption key in the connection.
-            if (connection.EncryptionKey.SequenceEqual(derivedKey))
-            {
-                _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
-                return PacketBuilder.String(PacketCode.Success);
-            }
-            else
-            {
-                _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
-                return PacketBuilder.String(PacketCode.Conflict);
-            }
-        }
-        catch (Exception ex)
+        // Compare the derived key with the encryption key in the connection.
+        if (connection.EncryptionKey.SequenceEqual(derivedKey))
         {
-            // Log any errors that occur during the finalization of the handshake.
-            _logger?.Error($"Failed to finalize secure connection for connection {connection.RemoteEndPoint}", ex);
-            return PacketBuilder.String(PacketCode.ServerError);
+            _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
+            return PacketBuilder.String(PacketCode.Success);
+        }
+        else
+        {
+            _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
+            return PacketBuilder.String(PacketCode.Conflict);
         }
     }
 
