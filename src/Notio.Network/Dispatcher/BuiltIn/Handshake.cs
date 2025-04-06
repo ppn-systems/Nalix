@@ -48,7 +48,7 @@ public class Handshake
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ProtocolCommand.InitiateHandshake)]
-    public void InitiateHandshake(IPacket packet, IConnection connection)
+    public Memory<byte> InitiateHandshake(IPacket packet, IConnection connection)
     {
         string address = connection.RemoteEndPoint;
 
@@ -59,8 +59,7 @@ public class Handshake
                 $"Received non-binary packet type {packet.Type} " +
                 $"from connection {connection.RemoteEndPoint}");
 
-            PacketSender.SendString(connection, "Unsupported packet type.", 0);
-            return;
+            return PacketBuilder.String(PacketCode.PacketType);
         }
 
         // Validate that the public key length is 32 bytes (X25519 standard).
@@ -70,8 +69,7 @@ public class Handshake
                 $"Invalid public key length {packet.Payload.Length} " +
                 $"from connection {connection.RemoteEndPoint}");
 
-            PacketSender.SendString(connection, "Invalid public key.", 0);
-            return;
+            return PacketBuilder.String(PacketCode.InvalidPayload);
         }
 
         try
@@ -85,24 +83,18 @@ public class Handshake
             // Derive the shared secret key using the server's private key and the client's public key.
             connection.EncryptionKey = this.GenerateEncryptionKeyFromKeys(privateKey, packet.Payload.ToArray());
 
+            // Elevate the client's access level after successful handshake initiation.
+            connection.Level = PermissionLevel.User;
+
             // SendPacket the server's public key back to the client for the next phase of the handshake.
-            if (PacketSender.SendBinary(connection, publicKey, 1))
-            {
-                // Elevate the client's access level after successful handshake initiation.
-                connection.Level = PermissionLevel.User;
-                _logger?.Info($"Secure connection initiated successfully for connection {address}");
-            }
-            else
-            {
-                _logger?.Error($"Failed to send public key response to connection {address}");
-            }
+            return PacketBuilder.Binary(PacketCode.Success, publicKey);
         }
         catch (Exception ex)
         {
             // Log any errors that occur during the handshake process.
             _logger?.Error($"Failed to initiate secure connection for connection {address}", ex);
 
-            PacketSender.SendString(connection, "Internal error during secure connection initiation.", 0);
+            return PacketBuilder.String(PacketCode.ServerError);
         }
     }
 
@@ -115,13 +107,16 @@ public class Handshake
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
-    public void FinalizeHandshake(IPacket packet, IConnection connection)
+    public Memory<byte> FinalizeHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)
         {
-            PacketSender.SendString(connection, "Unsupported packet type.", 0);
-            return;
+            _logger?.Warn(
+                $"Received non-binary packet type {packet.Type} " +
+                $"from connection {connection.RemoteEndPoint}");
+
+            return PacketBuilder.String(PacketCode.PacketType);
         }
 
         // Check if the public key length is correct (32 bytes).
@@ -130,8 +125,7 @@ public class Handshake
             _logger?.Warn(
                 $"Invalid public key length {packet.Payload.Length} from connection {connection.RemoteEndPoint}");
 
-            PacketSender.SendString(connection, "Invalid public key.", 0);
-            return;
+            return PacketBuilder.String(PacketCode.InvalidPayload);
         }
 
         // Retrieve the stored private key from connection metadata.
@@ -139,8 +133,8 @@ public class Handshake
             privateKeyObj is not byte[] privateKey)
         {
             _logger?.Warn($"Missing or invalid X25519 private key for connection {connection.RemoteEndPoint}");
-            PacketSender.SendString(connection, "Invalid public key.", 0);
-            return;
+
+            return PacketBuilder.String(PacketCode.UnknownError);
         }
 
         try
@@ -152,19 +146,19 @@ public class Handshake
             if (connection.EncryptionKey.SequenceEqual(derivedKey))
             {
                 _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
-                PacketSender.SendString(connection, "Secure connection established.", 0);
+                return PacketBuilder.String(PacketCode.Success);
             }
             else
             {
                 _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
-                PacketSender.SendString(connection, "Key mismatch.", 0);
+                return PacketBuilder.String(PacketCode.Conflict);
             }
         }
         catch (Exception ex)
         {
             // Log any errors that occur during the finalization of the handshake.
             _logger?.Error($"Failed to finalize secure connection for connection {connection.RemoteEndPoint}", ex);
-            PacketSender.SendString(connection, "Internal error during secure connection finalization.", 0);
+            return PacketBuilder.String(PacketCode.ServerError);
         }
     }
 

@@ -82,6 +82,10 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Encrypted packet is required, but the packet is not encrypted.")]
     PacketEncryption = 4003,
 
+    /// <summary>The packet type is invalid.</summary>
+    [PacketCodeMessage("The packet type is invalid.")]
+    PacketType = 4004,
+
 
     // ===== Rate limit =====
     /// <summary>The client has sent too many requests in a short time.</summary>

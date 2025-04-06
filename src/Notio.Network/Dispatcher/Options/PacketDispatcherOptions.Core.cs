@@ -56,16 +56,6 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     private Action<string, long>? MetricsCallback { get; set; }
 
     /// <summary>
-    /// A function that serializes an <see cref="IPacket"/> into a <see cref="ReadOnlyMemory{Byte}"/>.
-    /// </summary>
-    /// <remarks>
-    /// This function is used to convert an <see cref="IPacket"/> object into a byte array representation
-    /// for transmission over the network or for storage.
-    /// </remarks>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
-    private Func<TPacket, Memory<byte>>? SerializationMethod;
-
-    /// <summary>
     /// A function that deserializes a <see cref="Memory{Byte}"/> into an <see cref="IPacket"/>.
     /// </summary>
     /// <remarks>
