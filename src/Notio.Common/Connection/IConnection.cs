@@ -1,5 +1,6 @@
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
+using Notio.Common.Package;
 using Notio.Common.Security;
 using System;
 using System.Collections.Generic;
@@ -100,10 +101,28 @@ public interface IConnection : IDisposable
     void Close(bool force = false);
 
     /// <summary>
+    /// Sends a packet synchronously over the connection.
+    /// </summary>
+    /// <param name="packet">The packet to send.</param>
+    /// <returns></returns>
+    bool Send(IPacket packet);
+
+    /// <summary>
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
     bool Send(Memory<byte> message);
+
+    /// <summary>
+    /// Sends a message asynchronously over the connection.
+    /// </summary>
+    /// <param name="packet">The packet to send.</param>
+    /// <param name="cancellationToken">A token to cancel the sending operation.</param>
+    /// <returns>A task that represents the asynchronous sending operation.</returns>
+    /// <remarks>
+    /// If the connection has been authenticated, the data will be encrypted before sending.
+    /// </remarks>
+    Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.

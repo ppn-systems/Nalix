@@ -134,7 +134,7 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority, string s)
-        : this(id, code, PacketType.String, flags, priority, Encoding.UTF8.GetBytes(s))
+        : this(id, code, PacketType.String, flags, priority, DefaultConstants.DefaultEncoding.GetBytes(s))
     {
     }
 
@@ -148,9 +148,10 @@ public readonly struct Packet : IPacket, IEquatable<Packet>, IDisposable
     /// <param name="obj">The payload of the packet.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON serialization.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority,
-         object obj, JsonTypeInfo<object> jsonTypeInfo)
-        : this(id, code, PacketType.Object, flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
+    public Packet(ushort id, PacketCode code, PacketFlags flags,
+        PacketPriority priority, object obj, JsonTypeInfo<object> jsonTypeInfo)
+        : this(id, code, PacketType.Object,
+               flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
     {
     }
 

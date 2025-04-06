@@ -3,6 +3,7 @@ using Notio.Common.Connection;
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
 using Notio.Common.Logging;
+using Notio.Common.Package;
 using Notio.Common.Security;
 using Notio.Identifiers;
 using Notio.Network.Transport;
@@ -157,6 +158,9 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
+    public bool Send(IPacket packet) => this.Send(packet.Serialize());
+
+    /// <inheritdoc />
     public bool Send(Memory<byte> message)
     {
         bool success = _cstream.Send(message);
@@ -166,6 +170,10 @@ public sealed class Connection : IConnection
             _logger?.Warn("Failed to send message.");
         return success;
     }
+
+    /// <inheritdoc />
+    public async Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default)
+        => await this.SendAsync(packet.Serialize(), cancellationToken);
 
     /// <inheritdoc />
     public async Task<bool> SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
