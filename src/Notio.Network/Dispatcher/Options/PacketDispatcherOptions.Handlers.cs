@@ -124,23 +124,24 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
                 if (method.GetCustomAttribute<PacketPermissionAttribute>() is { } accessAttr &&
-                    accessAttr.Level > connection.Authority)
+                    accessAttr.Level > connection.Level)
                 {
-                    string message = "You do not have permission to perform this action.";
-                    _logger?.Warn(message);
+                    _logger?.Warn("You do not have permission to perform this action.");
 
-                    connection.SendString(0, PacketCode.BadRequest, message);
+                    connection.SendString(PacketCode.PermissionDenied);
                     return;
                 }
 
                 if (method.GetCustomAttribute<PacketEncryptionAttribute>() is { IsEncrypted: true })
                 {
-                    if (packet.IsEncrypted)
+                    if (!packet.IsEncrypted)
                     {
                         string message = $"Encrypted packet not allowed for command '{id}' " +
                                          $"from connection {connection.RemoteEndPoint}.";
 
                         _logger?.Error(message);
+
+                        connection.SendString(PacketCode.PacketEncryption);
                         return;
                     }
                 }
@@ -169,8 +170,10 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                         ex.Message                  // Exception message itself
                     );
 
-                    _logger?.Error(message);   // Log the detailed error message
+                    _logger?.Error(message);        // Log the detailed error message
                     ErrorHandler?.Invoke(ex, id);   // Invoke custom error handler if set
+
+                    connection.SendString(PacketCode.ServerError);
                 }
                 catch (Exception ex)
                 {
@@ -182,6 +185,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
                     _logger?.Error(message);
                     ErrorHandler?.Invoke(ex, id);
+
+                    connection.SendString(PacketCode.ServerError);
                 }
                 finally
                 {

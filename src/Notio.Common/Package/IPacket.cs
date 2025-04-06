@@ -18,7 +18,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     ushort Id { get; }
 
     /// <summary>
-    /// Gets the packet identifier.
+    /// Gets the sequence number of the packet.
     /// </summary>
     byte Number { get; }
 

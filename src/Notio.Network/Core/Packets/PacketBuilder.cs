@@ -4,6 +4,7 @@ using Notio.Defaults;
 using Notio.Integrity;
 using Notio.Utilities;
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 
@@ -15,22 +16,30 @@ namespace Notio.Network.Core.Packets;
 internal static class PacketBuilder
 {
     /// <summary>
-    /// Builds a complete packet with header and payload.
+    /// Builds a complete binary packet with header and payload.
     /// </summary>
-    /// <param name="code"></param>
-    /// <param name="payload"></param>
-    /// <returns></returns>
+    /// <param name="code">Packet code.</param>
+    /// <param name="payload">Raw payload.</param>
+    /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> Binary(PacketCode code, byte[] payload)
         => Assemble(code, PacketType.Binary, payload);
 
     /// <summary>
-    /// Builds a complete packet with header and payload.
+    /// Builds a complete string packet with header and payload.
     /// </summary>
-    /// <param name="code"></param>
-    /// <param name="message"></param>
-    /// <returns></returns>
-    internal static Memory<byte> String(PacketCode code, string message)
-        => Assemble(code, PacketType.String, DefaultConstants.DefaultEncoding.GetBytes(message));
+    /// <param name="code">Packet code.</param>
+    /// <param name="payload">String payload.</param>
+    /// <returns>Packet as Memory&lt;byte&gt;.</returns>
+    internal static Memory<byte> String(PacketCode code, string payload)
+        => Assemble(code, PacketType.String, DefaultConstants.DefaultEncoding.GetBytes(payload));
+
+    /// <summary>
+    /// Builds a complete string packet with header and payload from the message associated with the PacketCode.
+    /// </summary>
+    /// <param name="code">Packet code.</param>
+    /// <returns>Packet as Memory&lt;byte&gt;.</returns>
+    internal static Memory<byte> String(PacketCode code)
+        => Assemble(code, PacketType.String, PacketCodeHelper.GetMessageBytes(code));
 
     /// <summary>
     /// Builds a complete packet with header and payload.
@@ -38,45 +47,63 @@ internal static class PacketBuilder
     /// <param name="code">Packet code.</param>
     /// <param name="type">Packet type.</param>
     /// <param name="payload">Raw payload.</param>
+    /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> Assemble(PacketCode code, PacketType type, byte[] payload)
         => Assemble(code, type, PacketFlags.None, PacketPriority.None, payload);
 
+    internal static Memory<byte> Assemble(
+        PacketCode code, PacketType type, PacketFlags flag, PacketPriority priority, byte[] payload)
+        => Assemble(0, code, type, flag, priority, payload);
+
     /// <summary>
-    /// Builds a complete packet with header và payload.
+    /// Builds a complete packet with header and payload.
     /// </summary>
+    /// <param name="id">Packet ID.</param>
     /// <param name="code">Packet code.</param>
     /// <param name="type">Packet type.</param>
     /// <param name="flag">Packet flags.</param>
     /// <param name="priority">Packet priority.</param>
     /// <param name="payload">Raw payload.</param>
+    /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> Assemble(
-        PacketCode code, PacketType type, PacketFlags flag, PacketPriority priority, byte[] payload)
+        ushort id,
+        PacketCode code,
+        PacketType type,
+        PacketFlags flag,
+        PacketPriority priority,
+        byte[] payload)
     {
         ulong timestamp = MicrosecondClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
-        byte[] packet = new byte[totalLength];
+        byte[] packet = ArrayPool<byte>.Shared.Rent(totalLength);
 
-        Span<byte> span = packet;
+        try
+        {
+            Span<byte> span = packet.AsSpan(0, totalLength);
 
-        // Header - write directly using BinaryPrimitives
-        BinaryPrimitives.WriteUInt16LittleEndian(span[..PacketSize.Length], totalLength);
-        BinaryPrimitives.WriteInt16LittleEndian(span.Slice(PacketOffset.Id, PacketSize.Id), 0);
-        BinaryPrimitives.WriteUInt64LittleEndian(span.Slice(PacketOffset.Timestamp, PacketSize.Timestamp), timestamp);
-        BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(PacketOffset.Code, PacketSize.Code), (ushort)code);
+            // Header - write directly using BinaryPrimitives
+            BinaryPrimitives.WriteUInt16LittleEndian(span[..PacketSize.Length], totalLength);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(PacketOffset.Id, PacketSize.Id), id);
+            BinaryPrimitives.WriteUInt64LittleEndian(span.Slice(PacketOffset.Timestamp, PacketSize.Timestamp), timestamp);
+            BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(PacketOffset.Code, PacketSize.Code), (ushort)code);
 
-        span[PacketOffset.Number] = 0;
-        span[PacketOffset.Type] = (byte)type;
-        span[PacketOffset.Flags] = (byte)flag;
-        span[PacketOffset.Priority] = (byte)priority;
+            span[PacketOffset.Number] = 0;
+            span[PacketOffset.Type] = (byte)type;
+            span[PacketOffset.Flags] = (byte)flag;
+            span[PacketOffset.Priority] = (byte)priority;
 
-        // Payload
-        payload.CopyTo(span[PacketOffset.Payload..]);
+            // Payload
+            payload.CopyTo(span[PacketOffset.Payload..]);
 
-        // CRC32 - header + payload
-        uint crc = Crc32.Compute(packet);
-        BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(PacketOffset.Checksum, PacketSize.Checksum), crc);
+            // CRC32 - header + payload
+            uint crc = Crc32.Compute(packet.AsSpan(0, totalLength));
+            BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(PacketOffset.Checksum, PacketSize.Checksum), crc);
 
-        return packet.AsMemory();
+            return packet.AsMemory(0, totalLength);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(packet);
+        }
     }
 }
-

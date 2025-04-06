@@ -52,7 +52,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>
-    PermissionLevel Authority { get; set; }
+    PermissionLevel Level { get; set; }
 
     /// <summary>
     /// Gets the current state of the connection.

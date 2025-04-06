@@ -14,12 +14,14 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Operation completed successfully.")]
     Success = 0,
 
+
     // ===== General Errors =====
     /// <summary>
     /// Indicates an unknown error occurred.
     /// </summary>
     [PacketCodeMessage("An unknown error occurred.")]
     UnknownError = 1,
+
 
     // ===== Authorization Errors =====
     /// <summary>Client is not authenticated.</summary>
@@ -33,6 +35,7 @@ public enum PacketCode : ushort
     /// <summary>Client’s authority level is insufficient.</summary>
     [PacketCodeMessage("You do not have sufficient permission.")]
     PermissionDenied = 1003,
+
 
     // ===== Command Errors =====
     /// <summary>The command does not exist.</summary>
@@ -51,6 +54,7 @@ public enum PacketCode : ushort
     [PacketCodeMessage("The request conflicts with existing data.")]
     Conflict = 2004,
 
+
     // ===== Payload / Format Errors =====
     /// <summary>Payload structure is invalid or unreadable.</summary>
     [PacketCodeMessage("The payload format is invalid.")]
@@ -64,6 +68,7 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Packet checksum does not match.")]
     ChecksumMismatch = 3003,
 
+
     // ===== Timeout / Expired =====
     /// <summary>The client or server took too long to respond.</summary>
     [PacketCodeMessage("The request timed out.")]
@@ -73,10 +78,16 @@ public enum PacketCode : ushort
     [PacketCodeMessage("The packet has expired.")]
     PacketExpired = 4002,
 
+    /// <summary>Packet encryption required but not provided.</summary>
+    [PacketCodeMessage("Encrypted packet is required, but the packet is not encrypted.")]
+    PacketEncryption = 4003,
+
+
     // ===== Rate limit =====
     /// <summary>The client has sent too many requests in a short time.</summary>
     [PacketCodeMessage("You are being rate-limited. Please try again later.")]
     RateLimited = 4501,
+
 
     // ===== Server Errors =====
     /// <summary>An unexpected server error occurred.</summary>

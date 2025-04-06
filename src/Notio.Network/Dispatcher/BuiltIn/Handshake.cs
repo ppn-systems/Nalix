@@ -89,7 +89,7 @@ public class Handshake
             if (PacketSender.SendBinary(connection, publicKey, 1))
             {
                 // Elevate the client's access level after successful handshake initiation.
-                connection.Authority = PermissionLevel.User;
+                connection.Level = PermissionLevel.User;
                 _logger?.Info($"Secure connection initiated successfully for connection {address}");
             }
             else
