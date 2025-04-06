@@ -9,16 +9,6 @@ namespace Notio.Network.Core.Packets;
 internal static class PacketExtensions
 {
     /// <summary>
-    /// Sends a binary packet to the client.
-    /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="code"></param>
-    /// <param name="payload"></param>
-    /// <returns></returns>
-    internal static bool SendBinary(this IConnection connection, PacketCode code, byte[] payload)
-        => connection.SendAsync(PacketBuilder.Binary(code, payload)).Result;
-
-    /// <summary>
     /// Sends a string packet to the client.
     /// </summary>
     /// <param name="connection"></param>
