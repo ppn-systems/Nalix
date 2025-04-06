@@ -15,6 +15,11 @@ public interface IReliableDispatcher : System.IDisposable
     System.Boolean IsEmpty { get; }
 
     /// <summary>
+    /// Dispatch an incoming packet to registered handlers.
+    /// </summary>
+    void Dispatch(IPacket packet);
+
+    /// <summary>
     /// Register a persistent handler for packets of type TPacket.
     /// </summary>
     void Register<TPacket>(System.Action<TPacket> handler) where TPacket : class, IPacket;
@@ -24,9 +29,4 @@ public interface IReliableDispatcher : System.IDisposable
     /// The handler is removed after the first matching packet.
     /// </summary>
     void RegisterOnce<TPacket>(System.Func<TPacket, System.Boolean> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket;
-
-    /// <summary>
-    /// Dispatch an incoming packet to registered handlers.
-    /// </summary>
-    void Dispatch(IPacket packet);
 }
