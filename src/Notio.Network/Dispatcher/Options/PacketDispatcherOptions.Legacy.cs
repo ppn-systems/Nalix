@@ -46,7 +46,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [Obsolete("Use WithCompression and WithDecompression for type-specific compression.")]
+    [Obsolete("Use WithCompression and WithDecompression for type-specific compression.", true)]
     public PacketDispatcherOptions<TPacket> WithPacketCompression
     (
         Func<TPacket, IConnection, TPacket>? compressionMethod,
@@ -80,7 +80,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [Obsolete("Use WithEncryption and WithDecryption for type-specific encryption.")]
+    [Obsolete("Use WithEncryption and WithDecryption for type-specific encryption.", true)]
     public PacketDispatcherOptions<TPacket> WithPacketCrypto
     (
         Func<TPacket, IConnection, TPacket>? encryptionMethod,
@@ -109,7 +109,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <remarks>
     /// This method allows customizing how packets are serialized before sending and deserialized upon receiving.
     /// </remarks>
-    [Obsolete("Use WithSerializer and WithDeserializer for type-specific serialization.")]
+    [Obsolete("Use WithSerializer and WithDeserializer for type-specific serialization.", true)]
     public PacketDispatcherOptions<TPacket> WithPacketSerialization
     (
         Func<TPacket, Memory<byte>>? serializationMethod,
@@ -128,7 +128,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// </summary>
     /// <param name="serializer">A strongly-typed function that serializes a packet of type <typeparamref name="TPacket"/> into a <see cref="Memory{Byte}"/>.</param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
+    [Obsolete("This field is no longer used and will be removed in a future version.", true)]
     public PacketDispatcherOptions<TPacket> WithSerializer(
         Func<TPacket, Memory<byte>> serializer)
     {
@@ -157,7 +157,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <exception cref="InvalidOperationException">
     /// Thrown when the <see cref="SerializationMethod"/> is not set.
     /// </exception>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
+    [Obsolete("This field is no longer used and will be removed in a future version.", true)]
     public Memory<byte> Serialize(TPacket packet)
     {
         if (this.SerializationMethod is null)
@@ -178,7 +178,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <remarks>
     /// This method provides type safety by ensuring the deserialization process returns the expected packet type.
     /// </remarks>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
+    [Obsolete("This field is no longer used and will be removed in a future version.", true)]
     public PacketDispatcherOptions<TPacket> WithDeserializer(Func<ReadOnlyMemory<byte>, TPacket> deserializer)
     {
         ArgumentNullException.ThrowIfNull(deserializer);
@@ -200,7 +200,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
+    [Obsolete("This field is no longer used and will be removed in a future version.", true)]
     public TPacket Deserialize(byte[]? bytes)
     {
         if (this.DeserializationMethod is null)
@@ -229,7 +229,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="bytes"/> is <see langword="null"/>.
     /// </exception>
-    [Obsolete("This field is no longer used and will be removed in a future version.")]
+    [Obsolete("This field is no longer used and will be removed in a future version.", true)]
     public TPacket Deserialize(ReadOnlyMemory<byte>? bytes)
     {
         if (this.DeserializationMethod is null)

@@ -18,10 +18,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     {
         if (compressionMethod is not null)
         {
-            _pCompressionMethod = (packet, connection) =>
-                packet is TPacket typedPacket
-                    ? compressionMethod(typedPacket, connection)
-                    : packet;
+            _pCompressionMethod = compressionMethod;
 
             _logger?.Debug($"Type-specific packet compression configured for {typeof(TPacket).Name}.");
         }
@@ -41,10 +38,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     {
         if (decompressionMethod is not null)
         {
-            _pDecompressionMethod = (packet, connection) =>
-                packet is TPacket typedPacket
-                    ? decompressionMethod(typedPacket, connection)
-                    : packet;
+            _pDecompressionMethod = decompressionMethod;
 
             _logger?.Debug($"Type-specific packet decompression configured for {typeof(TPacket).Name}.");
         }
