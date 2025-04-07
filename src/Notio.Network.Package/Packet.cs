@@ -1,8 +1,12 @@
+using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Common.Package.Metadata;
+using Notio.Common.Security;
 using Notio.Defaults;
 using Notio.Integrity;
+using Notio.Network.Package.Extensions;
 using Notio.Network.Package.Serialization;
 using Notio.Utilities;
 using System;
@@ -21,7 +25,11 @@ namespace Notio.Network.Package;
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 [DebuggerDisplay("Packet {Number}: Number={Number}, Type={Type}, Number={Number}, Length={Length}")]
-public readonly struct Packet : IPacket, IPacketDeserializer<Packet>, IEquatable<Packet>, IDisposable
+public readonly struct Packet : IDisposable, IEquatable<Packet>,
+    IPacket,
+    IPacketEncryptor<Packet>,
+    IPacketCompressor<Packet>,
+    IPacketDeserializer<Packet>
 {
     #region Constants
 
@@ -372,23 +380,29 @@ public readonly struct Packet : IPacket, IPacketDeserializer<Packet>, IEquatable
     static Packet IPacketDeserializer<Packet>.Deserialize(ReadOnlySpan<byte> buffer)
         => PacketSerializer.ReadPacketFast(buffer);
 
-    /// <summary>
-    /// Creates a packet from raw binary data.
-    /// </summary>
-    /// <param name="data">The binary data containing a serialized packet.</param>
-    /// <returns>A new packet deserialized from the data.</returns>
-    /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
-    public static Packet FromRawData(ReadOnlySpan<byte> data)
-        => PacketSerializer.ReadPacketFast(data);
+    #endregion
 
-    /// <summary>
-    /// Writes this packet to a binary buffer.
-    /// </summary>
-    /// <param name="buffer">The buffer to write to.</param>
-    /// <returns>The Number of bytes written.</returns>
-    /// <exception cref="PackageException">Thrown if the buffer is too small.</exception>
-    public int WriteTo(Span<byte> buffer)
-        => PacketSerializer.WritePacketFast(buffer, this);
+    #region Compression Methods
+
+    /// <inheritdoc />
+    static Packet IPacketCompressor<Packet>.Compress(Packet packet, CompressionType type)
+        => PacketCompression.CompressPayload(packet, type);
+
+    /// <inheritdoc />
+    static Packet IPacketCompressor<Packet>.Decompress(Packet packet, CompressionType type)
+        => PacketCompression.DecompressPayload(packet, type);
+
+    #endregion
+
+    #region Encryption Methods
+
+    /// <inheritdoc />
+    static Packet IPacketEncryptor<Packet>.Encrypt(Packet packet, byte[] key, EncryptionMode algorithm)
+        => PacketEncryption.EncryptPayload(packet, key, algorithm);
+
+    /// <inheritdoc />
+    static Packet IPacketEncryptor<Packet>.Decrypt(Packet packet, byte[] key, EncryptionMode algorithm)
+        => PacketEncryption.DecryptPayload(packet, key, algorithm);
 
     #endregion
 

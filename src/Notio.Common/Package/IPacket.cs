@@ -1,3 +1,5 @@
+using Notio.Common.Package.Enums;
+
 namespace Notio.Common.Package;
 
 /// <summary>

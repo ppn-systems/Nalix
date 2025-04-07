@@ -1,4 +1,4 @@
-using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Common.Package.Metadata;
 using Notio.Defaults;
 using Notio.Integrity;

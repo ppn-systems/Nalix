@@ -1,5 +1,5 @@
 using Notio.Common.Connection;
-using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 
 namespace Notio.Network.Core.Packets;
 

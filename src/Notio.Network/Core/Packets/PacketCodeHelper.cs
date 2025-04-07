@@ -1,5 +1,5 @@
 using Notio.Common.Attributes;
-using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Defaults;
 using System;
 using System.Collections.Concurrent;

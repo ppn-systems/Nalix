@@ -18,7 +18,8 @@ namespace Notio.Network.Dispatcher.Options;
 /// Use this class to register packet handlers, enable compression/encryption, configure logging,
 /// and define custom error-handling or metrics tracking logic.
 /// </remarks>
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
+public sealed partial class PacketDispatcherOptions<TPacket>
+    where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
 {
     #region Const
 
@@ -31,12 +32,6 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     #region Fields
 
     private ILogger? _logger;
-
-    private Func<TPacket, IConnection, TPacket>? _pEncryptionMethod;
-    private Func<TPacket, IConnection, TPacket>? _pDecryptionMethod;
-
-    private Func<TPacket, IConnection, TPacket>? _pCompressionMethod;
-    private Func<TPacket, IConnection, TPacket>? _pDecompressionMethod;
 
     /// <summary>
     /// Gets or sets the callback used to report the execution time of packet handlers.
@@ -74,23 +69,6 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// If not configured, logging may be disabled.
     /// </remarks>
     public ILogger? Logger => _logger;
-
-    /// <summary>
-    /// Gets a value indicating whether packet encryption and decryption are both enabled.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if both encryption and decryption methods are configured; otherwise, <c>false</c>.
-    /// </value>
-
-    public bool IsPacketEncryptionEnabled => _pEncryptionMethod != null && _pDecryptionMethod != null;
-
-    /// <summary>
-    /// Gets a value indicating whether packet compression and decompression are both enabled.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if both compression and decompression methods are configured; otherwise, <c>false</c>.
-    /// </value>
-    public bool IsPacketCompressionEnabled => _pCompressionMethod != null && _pDecompressionMethod != null;
 
     #endregion
 

@@ -4,6 +4,7 @@ using Notio.Common.Cryptography.Asymmetric;
 using Notio.Common.Cryptography.Hashing;
 using Notio.Common.Logging;
 using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Core;
 using Notio.Network.Core.Packets;

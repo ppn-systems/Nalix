@@ -2,6 +2,7 @@ using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Network.Core.Packets;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,8 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatcher.Options;
 
-public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
+public sealed partial class PacketDispatcherOptions<TPacket>
+    where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
 {
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
@@ -355,17 +357,13 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
             try
             {
+                // Handle Compression (e.g., apply compression to packet)
                 if (!packet.IsCompression)
-                {
-                    // Handle Compression (e.g., apply compression to packet)
-                    packet = ApplyPacketCompression(packet, connection);
-                }
+                    packet = TPacket.Decompress(packet, Common.Security.CompressionType.Brotli);
 
+                // Handle Encryption (e.g., apply encryption to packet)
                 if (!packet.IsEncrypted)
-                {
-                    // Handle Encryption (e.g., apply encryption to packet)
-                    packet = ApplyPacketEncryption(packet, connection);
-                }
+                    packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Mode);
 
                 object? result;
 
@@ -457,32 +455,10 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
     private async Task DispatchPacketAsync(TPacket packet, IConnection connection)
     {
-        packet = ApplyPacketCompression(packet, connection);
-        packet = ApplyPacketEncryption(packet, connection);
+        packet = TPacket.Compress(packet, Common.Security.CompressionType.Brotli);
+        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Mode);
 
         await connection.SendAsync(packet.Serialize());
-    }
-
-    private TPacket ApplyPacketCompression(TPacket packet, IConnection connection)
-    {
-        if (_pCompressionMethod is null)
-        {
-            _logger?.Error("Compression method is not set, but packet requires compression.");
-            return packet;
-        }
-
-        return _pCompressionMethod(packet, connection);
-    }
-
-    private TPacket ApplyPacketEncryption(TPacket packet, IConnection connection)
-    {
-        if (_pEncryptionMethod is null)
-        {
-            _logger?.Error("Encryption method is not set, but packet requires encryption.");
-            return packet;
-        }
-
-        return _pEncryptionMethod(packet, connection);
     }
 
     #endregion

@@ -1,6 +1,6 @@
 using Notio.Common.Attributes;
 
-namespace Notio.Common.Package;
+namespace Notio.Common.Package.Enums;
 
 /// <summary>
 /// Represents standard error codes used in packet communication between clients and servers.

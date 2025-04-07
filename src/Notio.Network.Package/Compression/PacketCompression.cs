@@ -1,5 +1,5 @@
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Extensions.Primitives;
 using Notio.Utilities;

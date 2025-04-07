@@ -1,6 +1,6 @@
 using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
-using Notio.Common.Package;
+using Notio.Common.Package.Enums;
 using Notio.Cryptography;
 using Notio.Extensions.Primitives;
 using Notio.Network.Package.Utilities;
