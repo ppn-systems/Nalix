@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatcher.Options;
@@ -337,7 +338,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
             if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
-                connection.SendString(PacketCode.PermissionDenied);
+                connection.SendCode(PacketCode.PermissionDenied);
                 return;
             }
 
@@ -348,17 +349,41 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Error(message);
-                connection.SendString(PacketCode.PacketEncryption);
+                connection.SendCode(PacketCode.PacketEncryption);
                 return;
             }
+            else
+            {
+                packet = ApplyEncryption(packet, connection);
+            }
+
+            object? result;
 
             try
             {
                 packet = ApplyCompression(packet, connection);
-                packet = ApplyEncryption(packet, connection);
 
                 // Cache method invocation with improved performance
-                object? result = method.Invoke(controllerInstance, [packet, connection]);
+                if (attributes.Timeout != null)
+                {
+                    using var cts = new CancellationTokenSource(attributes.Timeout.TimeoutMilliseconds);
+                    try
+                    {
+                        result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger?.Error(
+                            $"Packet '{attributes.PacketId.Id}' timed out after {attributes.Timeout.TimeoutMilliseconds}ms.");
+                        connection.SendCode(PacketCode.RequestTimeout);
+
+                        return;
+                    }
+                }
+                else
+                {
+                    result = method.Invoke(controllerInstance, [packet, connection]);
+                }
 
                 // Await the return result, could be ValueTask if method is synchronous
                 await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
@@ -378,7 +403,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 );
                 _logger?.Error(message);
                 ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
-                connection.SendString(PacketCode.ServerError);
+                connection.SendCode(PacketCode.ServerError);
             }
             catch (Exception ex)
             {
@@ -393,7 +418,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
                 _logger?.Error(message);
                 ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
-                connection.SendString(PacketCode.ServerError);
+                connection.SendCode(PacketCode.ServerError);
             }
             finally
             {
@@ -409,14 +434,16 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     private record PacketAttributes(
         PacketIdAttribute PacketId,
         PacketPermissionAttribute? Permission,
-        PacketEncryptionAttribute? Encryption
+        PacketEncryptionAttribute? Encryption,
+        PacketTimeoutAttribute? Timeout
     );
 
     private PacketAttributes GetPacketAttributes(MethodInfo method)
         => new(
             method.GetCustomAttribute<PacketIdAttribute>()!,
             method.GetCustomAttribute<PacketPermissionAttribute>(),
-            method.GetCustomAttribute<PacketEncryptionAttribute>()
+            method.GetCustomAttribute<PacketEncryptionAttribute>(),
+            method.GetCustomAttribute<PacketTimeoutAttribute>()
         );
 
     private static T EnsureNotNull<T>(T value, string paramName)

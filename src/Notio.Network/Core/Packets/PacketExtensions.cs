@@ -24,6 +24,6 @@ internal static class PacketExtensions
     /// <param name="connection"></param>
     /// <param name="code"></param>
     /// <returns></returns>
-    internal static bool SendString(this IConnection connection, PacketCode code)
+    internal static bool SendCode(this IConnection connection, PacketCode code)
       => connection.SendAsync(PacketBuilder.String(code)).Result;
 }
