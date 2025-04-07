@@ -37,10 +37,6 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     }
 
     /// <inheritdoc />
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability", "CA2012:UseInbound ValueTasks correctly", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void HandlePacket(IBufferLease? raw, IConnection connection)
