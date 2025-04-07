@@ -114,94 +114,12 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
             if (PacketHandlers.ContainsKey(id))
             {
-                string message = $"ID '{id}' already registered for handler.";
+                string message = $"Id '{id}' already registered for handler.";
                 _logger?.Error(message);
                 throw new InvalidOperationException(message);
             }
 
-            async Task Handler(TPacket packet, IConnection connection)
-            {
-                Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
-
-                if (method.GetCustomAttribute<PacketPermissionAttribute>() is { } accessAttr &&
-                    accessAttr.Level > connection.Level)
-                {
-                    _logger?.Warn("You do not have permission to perform this action.");
-
-                    connection.SendString(PacketCode.PermissionDenied);
-                    return;
-                }
-
-                if (method.GetCustomAttribute<PacketEncryptionAttribute>() is { IsEncrypted: true })
-                {
-                    if (!packet.IsEncrypted)
-                    {
-                        string message = $"Encrypted packet not allowed for command '{id}' " +
-                                         $"from connection {connection.RemoteEndPoint}.";
-
-                        _logger?.Error(message);
-
-                        connection.SendString(PacketCode.PacketEncryption);
-                        return;
-                    }
-                }
-
-                try
-                {
-                    packet = ApplyCompression(packet, connection);
-                    packet = ApplyEncryption(packet, connection);
-
-                    object? result = method.Invoke(controllerInstance, [packet, connection]);
-
-                    await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection);
-                }
-                catch (PackageException ex)
-                {
-                    // Enhanced error log with context on the exception
-                    string message = string.Format(
-                        "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
-                        "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
-                        id,                         // Command ID
-                        controllerName,             // Controller name
-                        method.Name,                // Method name that caused the error
-                        ex.GetType().Name,          // Exception type
-                        id,                         // Command ID for context
-                        connection.RemoteEndPoint,  // Connection details for traceability
-                        ex.Message                  // Exception message itself
-                    );
-
-                    _logger?.Error(message);        // Log the detailed error message
-                    ErrorHandler?.Invoke(ex, id);   // Invoke custom error handler if set
-
-                    connection.SendString(PacketCode.ServerError);
-                }
-                catch (Exception ex)
-                {
-                    string message = string.Format(
-                        "General error while processing command '{0}' in controller '{1}' (Method: '{2}')." +
-                        "Exception: {3}, Remote Endpoint: {4}",
-                        id,
-                        controllerName,
-                        method.Name,
-                        ex.Message,
-                        connection.RemoteEndPoint);
-
-                    _logger?.Error(message);
-                    ErrorHandler?.Invoke(ex, id);
-
-                    connection.SendString(PacketCode.ServerError);
-                }
-                finally
-                {
-                    stopwatch?.Stop();
-                    if (stopwatch is not null)
-                    {
-                        MetricsCallback?.Invoke($"{controllerName}.{method.Name}", stopwatch.ElapsedMilliseconds);
-                    }
-                }
-            }
-
-            PacketHandlers[id] = Handler;
+            PacketHandlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
             registeredIds.Add(id);
         }
 
@@ -215,13 +133,13 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// <summary>
     /// Attempts to retrieve a registered packet handler for the specified command Number.
     /// </summary>
-    /// <param name="commandId">The unique identifier of the packet command.</param>
+    /// <param name="id">The unique identifier of the packet command.</param>
     /// <param name="handler">
     /// When this method returns, contains the handler function associated with the command Number, 
     /// or <see langword="null"/> if no handler was found.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a handler for the given <paramref name="commandId"/> was found; 
+    /// <see langword="true"/> if a handler for the given <paramref name="id"/> was found; 
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
@@ -241,15 +159,15 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// }
     /// </code>
     /// </example>
-    public bool TryResolveHandler(ushort commandId, out Func<TPacket, IConnection, Task>? handler)
+    public bool TryResolveHandler(ushort id, out Func<TPacket, IConnection, Task>? handler)
     {
-        if (PacketHandlers.TryGetValue(commandId, out handler))
+        if (PacketHandlers.TryGetValue(id, out handler))
         {
-            Logger?.Debug($"Handler found for Number: {commandId}");
+            Logger?.Debug($"Handler found for Number: {id}");
             return true;
         }
 
-        Logger?.Warn($"No handler found for Number: {commandId}");
+        Logger?.Warn($"No handler found for Number: {id}");
         return false;
     }
 
@@ -407,6 +325,88 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
         ,
         _ => throw new InvalidOperationException($"Unsupported return type: {returnType}")
     };
+
+    private Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
+    {
+        PacketIdAttribute packetIdAttr = method.GetCustomAttribute<PacketIdAttribute>()!;
+        PacketPermissionAttribute? permissionAttr = method.GetCustomAttribute<PacketPermissionAttribute>();
+        PacketEncryptionAttribute? encryptionAttr = method.GetCustomAttribute<PacketEncryptionAttribute>();
+
+        return async (packet, connection) =>
+        {
+            Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
+
+            if (permissionAttr?.Level > connection.Level)
+            {
+                _logger?.Warn("You do not have permission to perform this action.");
+                connection.SendString(PacketCode.PermissionDenied);
+                return;
+            }
+
+            if (encryptionAttr?.IsEncrypted == true && !packet.IsEncrypted)
+            {
+                string message = $"Encrypted packet not allowed for command " +
+                                 $"'{method.GetCustomAttribute<PacketIdAttribute>()!.Id}' " +
+                                 $"from connection {connection.RemoteEndPoint}.";
+
+                _logger?.Error(message);
+                connection.SendString(PacketCode.PacketEncryption);
+                return;
+            }
+
+            try
+            {
+                packet = ApplyCompression(packet, connection);
+                packet = ApplyEncryption(packet, connection);
+
+                // Cache method invocation with improved performance
+                object? result = method.Invoke(controllerInstance, [packet, connection]);
+
+                // Await the return result, could be ValueTask if method is synchronous
+                await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
+            }
+            catch (PackageException ex)
+            {
+                string message = string.Format(
+                    "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
+                    "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
+                    packetIdAttr.Id,                 // Command ID
+                    controllerInstance.GetType().Name,// Controller name
+                    method.Name,                      // Method name
+                    ex.GetType().Name,                // Exception type
+                    packetIdAttr.Id,                 // Command ID for context
+                    connection.RemoteEndPoint,        // Connection details for traceability
+                    ex.Message                        // Exception message itself
+                );
+                _logger?.Error(message);
+                ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
+                connection.SendString(PacketCode.ServerError);
+            }
+            catch (Exception ex)
+            {
+                string message = string.Format(
+                    "General error while processing command '{0}' in controller '{1}' (Method: '{2}')." +
+                    "Exception: {3}, Remote Endpoint: {4}",
+                    method.GetCustomAttribute<PacketIdAttribute>()!.Id,
+                    controllerInstance.GetType().Name,
+                    method.Name,
+                    ex.Message,
+                    connection.RemoteEndPoint);
+
+                _logger?.Error(message);
+                ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
+                connection.SendString(PacketCode.ServerError);
+            }
+            finally
+            {
+                if (stopwatch is not null)
+                {
+                    stopwatch.Stop();
+                    MetricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
+                }
+            }
+        };
+    }
 
     private static T EnsureNotNull<T>(T value, string paramName)
         where T : class => value ?? throw new ArgumentNullException(paramName);

@@ -20,11 +20,11 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
     {
         if (packet == null)
         {
-            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
+            base.Logger?.Error($"[Dispatcher] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        HandlePacket(TPacket.Deserialize(packet), connection).Wait();
+        this.HandlePacket(System.MemoryExtensions.AsSpan(packet), connection);
     }
 
     /// <inheritdoc />
@@ -32,38 +32,62 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
     {
         if (packet == null)
         {
-            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
+            base.Logger?.Error(
+                $"[Dispatcher] Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        HandlePacket(TPacket.Deserialize(packet.Value.Span), connection).Wait();
+        this.HandlePacket(packet.Value.Span, connection);
     }
 
     /// <inheritdoc />
-    public async System.Threading.Tasks.Task HandlePacket(TPacket? packet, Common.Connection.IConnection connection)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    public void HandlePacket(in System.ReadOnlySpan<byte> packet, Common.Connection.IConnection connection)
     {
-        if (packet == null)
+        if (packet.IsEmpty)
         {
-            Logger?.Error($"No packet data provided from Ip: {connection.RemoteEndPoint}.");
+            base.Logger?.Error(
+                $"[Dispatcher] Empty ReadOnlySpan<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        if (Options.TryResolveHandler(packet.Id, out var handler))
+        this.HandlePacketAsync(TPacket.Deserialize(packet), connection);
+    }
+
+    /// <inheritdoc />
+    public async void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
+    {
+        if (base.Options.TryResolveHandler(packet.Id, out var handler) && handler != null)
         {
-            Logger?.Debug($"Invoking handler for Number: {packet.Id}");
+            base.Logger?.Debug($"[Dispatcher] Dispatching packet Id: " +
+                               $"{packet.Id} from {connection.RemoteEndPoint}...");
 
             try
             {
-                await handler!(packet, connection).ConfigureAwait(false);
+                await PacketDispatcher<TPacket>.ExecuteHandler(handler, packet, connection).ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {
-                Logger?.Error($"Error handling packet with Number {packet.Id}: {ex.Message}", ex);
+                base.Logger?.Error(
+                    $"[Dispatcher] Exception occurred while handling packet Id: " +
+                    $"{packet.Id} from {connection.RemoteEndPoint}. " +
+                    $"Error: {ex.GetType().Name} - {ex.Message}", ex);
             }
+
+            return;
         }
-        else
-        {
-            Logger?.Warn($"No handler found for Number {packet.Id}");
-        }
+
+        base.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
+    }
+
+    private static async System.Threading.Tasks.ValueTask ExecuteHandler(
+        System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
+        TPacket packet,
+        Common.Connection.IConnection connection)
+    {
+        await handler(packet, connection).ConfigureAwait(false);
     }
 }

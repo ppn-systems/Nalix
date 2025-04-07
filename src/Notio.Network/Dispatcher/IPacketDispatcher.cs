@@ -33,6 +33,17 @@ public interface IPacketDispatcher<TPacket>
     void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection);
 
     /// <summary>
+    /// Handles the incoming byte array packet and processes it using the specified connection.
+    /// </summary>
+    /// <param name="packet">The byte array representing the received packet to be processed.</param>
+    /// <param name="connection">The connection through which the packet was received.</param>
+    /// <remarks>
+    /// Implementations should deserialize the packet and then determine the appropriate action
+    /// based on the packet's content and the associated command Number.
+    /// </remarks>
+    void HandlePacket(in System.ReadOnlySpan<byte> packet, Common.Connection.IConnection connection);
+
+    /// <summary>
     /// Handles the incoming packet and processes it using the specified connection.
     /// </summary>
     /// <param name="packet">The received packet to be handled.</param>
@@ -41,5 +52,5 @@ public interface IPacketDispatcher<TPacket>
     /// Implementations should determine the appropriate action based on the packet's command Number
     /// and perform the necessary processing using the provided connection.
     /// </remarks>
-    System.Threading.Tasks.Task HandlePacket(TPacket? packet, Common.Connection.IConnection connection);
+    void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection);
 }
