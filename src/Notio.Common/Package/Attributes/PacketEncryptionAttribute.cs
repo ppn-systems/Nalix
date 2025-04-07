@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// Custom attribute to indicate if a method should have packet encryption.

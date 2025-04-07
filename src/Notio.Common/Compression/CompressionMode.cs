@@ -1,9 +1,9 @@
-namespace Notio.Common.Security;
+namespace Notio.Common.Compression;
 
 /// <summary>
 /// Represents the available compression types.
 /// </summary>
-public enum CompressionMode
+public enum CompressionMode : byte
 {
     /// <summary>
     /// Represents GZip compression.

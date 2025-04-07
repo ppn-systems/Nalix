@@ -1,6 +1,5 @@
 using Notio.Common.Exceptions;
 using Notio.Common.Package.Enums;
-using Notio.Common.Security;
 using Notio.Extensions.Primitives;
 using Notio.Utilities;
 using System;
@@ -25,7 +24,7 @@ public static class PacketCompression
     /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
+    public static Packet CompressPayload(in Packet packet, Common.Compression.CompressionMode compressionType = Common.Compression.CompressionMode.GZip)
     {
         ValidatePacketForCompression(packet);
 
@@ -33,9 +32,9 @@ public static class PacketCompression
         {
             Memory<byte> compressedData = compressionType switch
             {
-                Common.Security.CompressionMode.GZip => CompressGZip(packet.Payload),
-                Common.Security.CompressionMode.Brotli => BrotliCompressor.Compress(packet.Payload),
-                Common.Security.CompressionMode.Deflate => CompressDeflate(packet.Payload),
+                Common.Compression.CompressionMode.GZip => CompressGZip(packet.Payload),
+                Common.Compression.CompressionMode.Brotli => BrotliCompressor.Compress(packet.Payload),
+                Common.Compression.CompressionMode.Deflate => CompressDeflate(packet.Payload),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
             return CreateCompressedPacket(packet, compressedData);
@@ -57,7 +56,7 @@ public static class PacketCompression
     /// or if an error occurs during decompression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
+    public static Packet DecompressPayload(in Packet packet, Common.Compression.CompressionMode compressionType = Common.Compression.CompressionMode.GZip)
     {
         ValidatePacketForDecompression(packet);
 
@@ -65,9 +64,9 @@ public static class PacketCompression
         {
             Memory<byte> decompressedData = compressionType switch
             {
-                Common.Security.CompressionMode.GZip => DecompressGZip(packet.Payload),
-                Common.Security.CompressionMode.Brotli => BrotliCompressor.Decompress(packet.Payload),
-                Common.Security.CompressionMode.Deflate => DecompressDeflate(packet.Payload),
+                Common.Compression.CompressionMode.GZip => DecompressGZip(packet.Payload),
+                Common.Compression.CompressionMode.Brotli => BrotliCompressor.Decompress(packet.Payload),
+                Common.Compression.CompressionMode.Deflate => DecompressDeflate(packet.Payload),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
             return CreateDecompressedPacket(packet, decompressedData);

@@ -1,4 +1,4 @@
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// An attribute that specifies the timeout duration for a packet operation.

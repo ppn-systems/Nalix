@@ -1,5 +1,5 @@
-using Notio.Common.Attributes;
 using Notio.Common.Logging;
+using Notio.Shared.Configuration.Attributes;
 using Notio.Shared.Configuration.Metadata;
 using Notio.Shared.Internal;
 using System;

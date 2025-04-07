@@ -1,5 +1,5 @@
-using Notio.Common.Attributes;
 using Notio.Shared.Configuration;
+using Notio.Shared.Configuration.Attributes;
 using System;
 using System.Runtime.InteropServices;
 

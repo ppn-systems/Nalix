@@ -1,7 +1,7 @@
-using Notio.Common.Attributes;
 using Notio.Network.Security.Enums;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
+using Notio.Shared.Configuration.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;

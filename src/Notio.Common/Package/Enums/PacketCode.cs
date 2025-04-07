@@ -1,4 +1,4 @@
-using Notio.Common.Attributes;
+using Notio.Common.Package.Attributes;
 
 namespace Notio.Common.Package.Enums;
 

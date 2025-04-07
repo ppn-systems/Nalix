@@ -1,4 +1,4 @@
-using Notio.Common.Security;
+using Notio.Common.Compression;
 
 namespace Notio.Common.Package;
 

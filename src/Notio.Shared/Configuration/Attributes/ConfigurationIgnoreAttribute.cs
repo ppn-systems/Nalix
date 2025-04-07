@@ -1,6 +1,4 @@
-using System;
-
-namespace Notio.Common.Attributes;
+namespace Notio.Shared.Configuration.Attributes;
 
 /// <summary>
 /// An attribute that indicates that a property should be ignored during configuration container initialization.
@@ -13,11 +11,11 @@ namespace Notio.Common.Attributes;
 /// Initializes a new instance of the <see cref="ConfiguredIgnoreAttribute"/> class.
 /// </remarks>
 /// <param name="reason">The optional reason for ignoring the property.</param>
-[AttributeUsage(AttributeTargets.Property)]
-public class ConfiguredIgnoreAttribute(string reason = null) : Attribute
+[System.AttributeUsage(System.AttributeTargets.Property)]
+public class ConfiguredIgnoreAttribute(string? reason = null) : System.Attribute
 {
     /// <summary>
     /// Optional reason for ignoring the property during configuration.
     /// </summary>
-    public string Reason { get; } = reason;
+    public string Reason { get; } = reason ?? string.Empty;
 }
