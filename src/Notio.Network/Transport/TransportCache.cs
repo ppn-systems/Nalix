@@ -3,39 +3,38 @@ using Notio.Shared.Configuration;
 using Notio.Shared.Memory.Caches;
 using System;
 
-namespace Notio.Network.Transport;
-
 /// <summary>
-/// Manages packet caching.
+/// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
 internal sealed class TransportCache : IDisposable
 {
     private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
 
     /// <summary>
-    /// Gets or sets the last ping time in milliseconds.
+    /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// </summary>
     public long LastPingTime { get; set; }
 
     /// <summary>
-    /// Event triggered when a new packet is added to the cache.
+    /// Occurs when a new incoming packet is added to the cache.
     /// </summary>
     public event Action? PacketCached;
 
     /// <summary>
-    /// Caches for outgoing packets.
+    /// Gets the cache that stores recently sent (outgoing) packets.
     /// </summary>
     public readonly BinaryCache Outgoing = new(Config.Outgoing);
 
     /// <summary>
-    /// Caches for incoming packets.
+    /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
     public readonly FifoCache<ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
 
     /// <summary>
-    /// Adds an outgoing packet to the cache.
+    /// Adds a sent packet to the outgoing cache.
+    /// A composite key is generated from the first and last 4 bytes of the packet.
     /// </summary>
-    /// <param name="data">The packet data to be added.</param>
+    /// <param name="data">The packet data to cache.</param>
     public void PushOutgoing(ReadOnlyMemory<byte> data)
     {
         Span<byte> key = stackalloc byte[8];
@@ -46,9 +45,9 @@ internal sealed class TransportCache : IDisposable
     }
 
     /// <summary>
-    /// Adds an incoming packet to the cache.
+    /// Adds a received packet to the incoming cache and triggers the <see cref="PacketCached"/> event.
     /// </summary>
-    /// <param name="data">The received packet data to be added.</param>
+    /// <param name="data">The received packet data.</param>
     public void PushIncoming(ReadOnlyMemory<byte> data)
     {
         Incoming.Add(data);
@@ -56,7 +55,8 @@ internal sealed class TransportCache : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="TransportCache"/> instance.
+    /// Releases all resources used by this <see cref="TransportCache"/> instance.
+    /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
     public void Dispose()
     {

@@ -7,12 +7,18 @@ namespace Notio.Network.Dispatcher.Options;
 public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
-    /// Configures a type-specific packet encryption method.
+    /// Configures a custom encryption function for outgoing packets of type <typeparamref name="TPacket"/>.
     /// </summary>
     /// <param name="encryptionMethod">
-    /// A function that encrypts a packet of type <typeparamref name="TPacket"/> before sending.
+    /// A function that takes the original packet and connection context, then returns an encrypted version of the packet.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance to allow method chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method enables encryption for outgoing packets. The encryption logic is fully customizable
+    /// and is applied before sending the packet to the remote endpoint.
+    /// </remarks>
     public PacketDispatcherOptions<TPacket> WithEncryption(
         Func<TPacket, IConnection, TPacket> encryptionMethod)
     {
@@ -30,13 +36,18 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     }
 
     /// <summary>
-    /// Configures a type-specific packet decryption method.
+    /// Configures a custom decryption function for incoming packets of type <typeparamref name="TPacket"/>.
     /// </summary>
     /// <param name="decryptionMethod">
-    /// A function that decrypts a packet of type <typeparamref name="TPacket"/> before processing.
-    /// The function receives the packet and connection context, and returns the decrypted packet.
+    /// A function that takes the received packet and connection context, then returns a decrypted version of the packet.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance to allow method chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method enables decryption for incoming packets. The provided function is invoked
+    /// immediately after deserialization and before dispatching to the registered handler.
+    /// </remarks>
     public PacketDispatcherOptions<TPacket> WithDecryption(
         Func<TPacket, IConnection, TPacket> decryptionMethod)
     {

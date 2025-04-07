@@ -101,6 +101,15 @@ public interface IConnection : IDisposable
     void Close(bool force = false);
 
     /// <summary>
+    /// Disconnects the connection safely with an optional reason.
+    /// </summary>
+    /// <param name="reason">An optional string providing the reason for disconnection.</param>
+    /// <remarks>
+    /// Use this method to terminate the connection gracefully.
+    /// </remarks>
+    void Disconnect(string reason = null);
+
+    /// <summary>
     /// Sends a packet synchronously over the connection.
     /// </summary>
     /// <param name="packet">The packet to send.</param>
@@ -111,7 +120,7 @@ public interface IConnection : IDisposable
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    bool Send(Memory<byte> message);
+    bool Send(ReadOnlySpan<byte> message);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
@@ -133,14 +142,5 @@ public interface IConnection : IDisposable
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task<bool> SendAsync(Memory<byte> message, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Disconnects the connection safely with an optional reason.
-    /// </summary>
-    /// <param name="reason">An optional string providing the reason for disconnection.</param>
-    /// <remarks>
-    /// Use this method to terminate the connection gracefully.
-    /// </remarks>
-    void Disconnect(string reason = null);
+    Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
 }

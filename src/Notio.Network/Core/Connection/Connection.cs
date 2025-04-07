@@ -158,16 +158,16 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public bool Send(IPacket packet) => this.Send(packet.Serialize());
+    public bool Send(IPacket packet) => this.Send(packet.Serialize().Span);
 
     /// <inheritdoc />
-    public bool Send(Memory<byte> message)
+    public bool Send(ReadOnlySpan<byte> message)
     {
         bool success = _cstream.Send(message);
         if (success)
             _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
         else
-            _logger?.Warn("Failed to send message.");
+            _logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
         return success;
     }
 
@@ -176,14 +176,16 @@ public sealed class Connection : IConnection
         => await this.SendAsync(packet.Serialize(), cancellationToken);
 
     /// <inheritdoc />
-    public async Task<bool> SendAsync(Memory<byte> message, CancellationToken cancellationToken = default)
+    public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
-        bool success = await _cstream.SendAsync(message, cancellationToken);
-        if (success)
+        if (await _cstream.SendAsync(message, cancellationToken))
+        {
             _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-        else
-            _logger?.Warn("Failed to send message asynchronously.");
-        return success;
+            return true;
+        }
+
+        _logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
+        return false;
     }
 
     /// <inheritdoc />

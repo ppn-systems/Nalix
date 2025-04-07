@@ -40,7 +40,6 @@ internal class TransportStream : IDisposable
         _buffer = _bufferPool.Rent();
         _cache = new TransportCache();
         _stream = new NetworkStream(socket);
-        _logger?.Debug("TransportStream initialized.");
     }
 
     /// <summary>
@@ -51,13 +50,13 @@ internal class TransportStream : IDisposable
     {
         if (_disposed)
         {
-            _logger?.Debug("BeginReceive called on disposed TransportStream.");
+            _logger?.Debug($"[{nameof(TransportStream)}] BeginReceive called on disposed TransportStream.");
             return;
         }
 
         try
         {
-            _logger?.Debug("Starting asynchronous read operation.");
+            _logger?.Debug($"[{nameof(TransportStream)}] Starting asynchronous read operation.");
             _stream.ReadAsync(_buffer, 0, 2, cancellationToken)
                    .ContinueWith(async (task, state) =>
                    {
@@ -70,12 +69,12 @@ internal class TransportStream : IDisposable
                        when (ex.InnerException is SocketException se &&
                              se.SocketErrorCode == SocketError.ConnectionReset)
                        {
-                           self._logger?.Debug("Connection forcibly closed by remote host.");
+                           self._logger?.Debug($"[{nameof(TransportStream)}] Connection forcibly closed by remote host.");
                            self.Disconnected?.Invoke();
                        }
                        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
                        {
-                           self._logger?.Debug("Socket connection reset.");
+                           self._logger?.Debug($"[{nameof(TransportStream)}] Socket connection reset.");
                            self.Disconnected?.Invoke();
                        }
                        catch (Exception ex)
@@ -91,25 +90,26 @@ internal class TransportStream : IDisposable
     }
 
     /// <summary>
-    /// Sends a data synchronously.
+    /// Sends data synchronously using a Span.
     /// </summary>
-    /// <param name="data">The data to send.</param>
+    /// <param name="data">The data to send as a Span.</param>
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
-    public bool Send(ReadOnlyMemory<byte> data)
+    public bool Send(ReadOnlySpan<byte> data)
     {
         try
         {
             if (data.IsEmpty) return false;
 
-            _logger?.Debug("Sending data synchronously.");
-            _stream.Write(data.Span);
+            _logger?.Debug($"[{nameof(TransportStream)}] Sending data synchronously (Span).");
+            _stream.Write(data);
 
-            _cache.PushOutgoing(data);
+            // Note: _cache only supports ReadOnlyMemory<byte>, so convert
+            _cache.PushOutgoing(data.ToArray());
             return true;
         }
         catch (Exception ex)
         {
-            _logger?.Error("SendPacket failed", ex);
+            _logger?.Error($"[{nameof(TransportStream)}] Send(Span) failed", ex);
             return false;
         }
     }
@@ -127,7 +127,7 @@ internal class TransportStream : IDisposable
         {
             if (data.IsEmpty) return false;
 
-            _logger?.Debug("Sending data asynchronously.");
+            _logger?.Debug($"[{nameof(TransportStream)}] Sending data asynchronously.");
             await _stream.WriteAsync(data, cancellationToken);
 
             _cache.PushOutgoing(data);
@@ -135,7 +135,7 @@ internal class TransportStream : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error("SendAsync failed", ex);
+            _logger?.Error($"[{nameof(TransportStream)}] SendAsync failed", ex);
             return false;
         }
     }
@@ -182,7 +182,7 @@ internal class TransportStream : IDisposable
             int totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
-                _logger?.Debug("Client closed connection gracefully.");
+                _logger?.Debug($"[{nameof(TransportStream)}] Client closed connection gracefully.");
                 // Close the connection on the server when the client disconnects
                 Disconnected?.Invoke();
                 return;
@@ -191,20 +191,20 @@ internal class TransportStream : IDisposable
             if (totalBytesRead < 2) return;
 
             ushort size = BitConverter.ToUInt16(_buffer, 0);
-            _logger?.Debug($"Received packet size: {size} bytes.");
+            _logger?.Debug($"[{nameof(TransportStream)}] Received packet size: {size} bytes.");
 
             if (size > _bufferPool.MaxBufferSize)
             {
                 _logger?.Error(
-                    $"Data length ({size} bytes) exceeds the maximum " +
-                    $"allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
+                    $"[{nameof(TransportStream)}] Data length ({size} bytes) exceeds " +
+                    $"the maximum allowed buffer size ({_bufferPool.MaxBufferSize} bytes).");
 
                 return;
             }
 
             if (size > _buffer.Length)
             {
-                _logger?.Debug("Renting a larger buffer to accommodate the packet size.");
+                _logger?.Debug($"[{nameof(TransportStream)}] Renting a larger buffer to accommodate the packet size.");
                 _bufferPool.Return(_buffer);
                 _buffer = _bufferPool.Rent(size);
             }
@@ -216,7 +216,7 @@ internal class TransportStream : IDisposable
 
                 if (bytesRead == 0)
                 {
-                    _logger?.Debug("Client closed connection while reading.");
+                    _logger?.Debug($"[{nameof(TransportStream)}] Client closed connection while reading.");
                     Disconnected?.Invoke();
 
                     return;
@@ -227,26 +227,26 @@ internal class TransportStream : IDisposable
 
             if (totalBytesRead == size)
             {
-                _logger?.Debug("Packet received completely.");
+                _logger?.Debug($"[{nameof(TransportStream)}] Packet received completely.");
 
                 _cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
                 _cache.PushIncoming(_buffer.AsMemory(0, totalBytesRead));
             }
             else
             {
-                _logger?.Error("Incomplete packet received.");
+                _logger?.Error($"[{nameof(TransportStream)}] Incomplete packet received.");
             }
         }
         catch (IOException ex)
         when (ex.InnerException is SocketException se &&
               se.SocketErrorCode == SocketError.ConnectionReset)
         {
-            _logger?.Debug("Connection forcibly closed by remote host.");
+            _logger?.Debug($"[{nameof(TransportStream)}] Connection forcibly closed by remote host.");
             Disconnected?.Invoke();
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
         {
-            _logger?.Debug("Socket connection reset.");
+            _logger?.Debug($"[{nameof(TransportStream)}] Socket connection reset.");
             Disconnected?.Invoke();
         }
         catch (Exception ex)
@@ -278,7 +278,6 @@ internal class TransportStream : IDisposable
 
         if (disposing)
         {
-            _logger?.Debug("Disposing TransportStream.");
             _bufferPool.Return(_buffer);
             _stream.Dispose();
 

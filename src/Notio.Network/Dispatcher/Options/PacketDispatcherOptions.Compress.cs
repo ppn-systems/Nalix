@@ -7,14 +7,19 @@ namespace Notio.Network.Dispatcher.Options;
 public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
     /// <summary>
-    /// Configures a type-specific packet compression method.
+    /// Configures a custom compression strategy for outgoing packets of type <typeparamref name="TPacket"/>.
     /// </summary>
     /// <param name="compressionMethod">
-    /// A function that compresses a packet of type <typeparamref name="TPacket"/> before sending.
+    /// A delegate that takes a packet and its associated <see cref="IConnection"/>, returning a compressed version of the packet.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithCompression(
-        Func<TPacket, IConnection, TPacket> compressionMethod)
+    /// <returns>
+    /// Returns the current <see cref="PacketDispatcherOptions{TPacket}"/> instance, allowing for fluent configuration chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method is useful for reducing packet size before transmission. The provided delegate will be invoked
+    /// right before the packet is dispatched through the connection.
+    /// </remarks>
+    public PacketDispatcherOptions<TPacket> WithCompression(Func<TPacket, IConnection, TPacket> compressionMethod)
     {
         if (compressionMethod is not null)
         {
@@ -27,14 +32,19 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     }
 
     /// <summary>
-    /// Configures a type-specific packet decompression method.
+    /// Configures a custom decompression strategy for incoming packets of type <typeparamref name="TPacket"/>.
     /// </summary>
     /// <param name="decompressionMethod">
-    /// A function that decompresses a packet of type <typeparamref name="TPacket"/> before processing.
+    /// A delegate that takes a packet and its associated <see cref="IConnection"/>, returning a decompressed version of the packet.
     /// </param>
-    /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for method chaining.</returns>
-    public PacketDispatcherOptions<TPacket> WithDecompression(
-        Func<TPacket, IConnection, TPacket> decompressionMethod)
+    /// <returns>
+    /// Returns the current <see cref="PacketDispatcherOptions{TPacket}"/> instance, allowing for fluent configuration chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method allows you to handle packets that were compressed prior to transmission.
+    /// The provided delegate is invoked immediately after deserialization and before handler execution.
+    /// </remarks>
+    public PacketDispatcherOptions<TPacket> WithDecompression(Func<TPacket, IConnection, TPacket> decompressionMethod)
     {
         if (decompressionMethod is not null)
         {

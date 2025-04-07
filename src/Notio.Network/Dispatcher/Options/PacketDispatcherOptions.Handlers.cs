@@ -328,22 +328,20 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
     private Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
     {
-        PacketIdAttribute packetIdAttr = method.GetCustomAttribute<PacketIdAttribute>()!;
-        PacketPermissionAttribute? permissionAttr = method.GetCustomAttribute<PacketPermissionAttribute>();
-        PacketEncryptionAttribute? encryptionAttr = method.GetCustomAttribute<PacketEncryptionAttribute>();
+        PacketAttributes attributes = GetPacketAttributes(method);
 
         return async (packet, connection) =>
         {
             Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
-            if (permissionAttr?.Level > connection.Level)
+            if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
                 connection.SendString(PacketCode.PermissionDenied);
                 return;
             }
 
-            if (encryptionAttr?.IsEncrypted == true && !packet.IsEncrypted)
+            if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
             {
                 string message = $"Encrypted packet not allowed for command " +
                                  $"'{method.GetCustomAttribute<PacketIdAttribute>()!.Id}' " +
@@ -370,11 +368,11 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 string message = string.Format(
                     "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
                     "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
-                    packetIdAttr.Id,                 // Command ID
+                    attributes.PacketId.Id,           // Command ID
                     controllerInstance.GetType().Name,// Controller name
                     method.Name,                      // Method name
                     ex.GetType().Name,                // Exception type
-                    packetIdAttr.Id,                 // Command ID for context
+                    attributes.PacketId.Id,           // Command ID for context
                     connection.RemoteEndPoint,        // Connection details for traceability
                     ex.Message                        // Exception message itself
                 );
@@ -407,6 +405,19 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
             }
         };
     }
+
+    private record PacketAttributes(
+        PacketIdAttribute PacketId,
+        PacketPermissionAttribute? Permission,
+        PacketEncryptionAttribute? Encryption
+    );
+
+    private PacketAttributes GetPacketAttributes(MethodInfo method)
+        => new(
+            method.GetCustomAttribute<PacketIdAttribute>()!,
+            method.GetCustomAttribute<PacketPermissionAttribute>(),
+            method.GetCustomAttribute<PacketEncryptionAttribute>()
+        );
 
     private static T EnsureNotNull<T>(T value, string paramName)
         where T : class => value ?? throw new ArgumentNullException(paramName);

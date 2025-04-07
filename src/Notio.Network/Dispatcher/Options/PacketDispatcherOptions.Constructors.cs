@@ -9,10 +9,14 @@ using System.Threading.Tasks;
 namespace Notio.Network.Dispatcher.Options;
 
 /// <summary>
-/// Provides configuration options for an instance of <see cref="PacketDispatcher{TPacket}"/>.
+/// Provides configurable options for <see cref="PacketDispatcher{TPacket}"/> behavior and lifecycle.
 /// </summary>
+/// <typeparam name="TPacket">
+/// The packet type this dispatcher handles. Must implement <see cref="IPacket"/>.
+/// </typeparam>
 /// <remarks>
-/// This class allows registering packet handlers, configuring logging, and defining error-handling strategies.
+/// Use this class to register packet handlers, enable compression/encryption, configure logging,
+/// and define custom error-handling or metrics tracking logic.
 /// </remarks>
 public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPacket
 {
@@ -35,15 +39,18 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     private Func<TPacket, IConnection, TPacket>? _pDecompressionMethod;
 
     /// <summary>
-    /// Indicates whether metrics tracking is enabled.
+    /// Gets or sets the callback used to report the execution time of packet handlers.
     /// </summary>
+    /// <remarks>
+    /// This is invoked after each packet is processed, passing the handler name and time taken (ms).
+    /// </remarks>
     private bool IsMetricsEnabled { get; set; }
 
     /// <summary>
-    /// Custom error handling strategy for packet processing.
+    /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
     /// </summary>
     /// <remarks>
-    /// If not set, the default behavior is to log errors.
+    /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
     private Action<Exception, ushort>? ErrorHandler;
 
@@ -69,13 +76,20 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     public ILogger? Logger => _logger;
 
     /// <summary>
-    /// Checks if encryption is enabled.
+    /// Gets a value indicating whether packet encryption and decryption are both enabled.
     /// </summary>
+    /// <value>
+    /// <c>true</c> if both encryption and decryption methods are configured; otherwise, <c>false</c>.
+    /// </value>
+
     public bool IsPacketEncryptionEnabled => _pEncryptionMethod != null && _pDecryptionMethod != null;
 
     /// <summary>
-    /// Checks if compression is enabled.
+    /// Gets a value indicating whether packet compression and decompression are both enabled.
     /// </summary>
+    /// <value>
+    /// <c>true</c> if both compression and decompression methods are configured; otherwise, <c>false</c>.
+    /// </value>
     public bool IsPacketCompressionEnabled => _pCompressionMethod != null && _pDecompressionMethod != null;
 
     #endregion
@@ -83,14 +97,10 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatcherOptions{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="PacketDispatcherOptions{TPacket}"/> class with default values.
     /// </summary>
     /// <remarks>
-    /// The constructor sets up the default packet handler methods and initializes the dictionary
-    /// that stores the handlers for various return types. It also prepares fields for encryption,
-    /// decryption, serialization, and compression methods, which can later be customized using
-    /// the appropriate configuration methods (e.g., <see cref="WithPacketCrypto"/> or
-    /// <see cref="WithPacketSerialization"/>).
+    /// This constructor sets up the packet handler map and allows subsequent fluent configuration.
     /// </remarks>
     public PacketDispatcherOptions()
     {
