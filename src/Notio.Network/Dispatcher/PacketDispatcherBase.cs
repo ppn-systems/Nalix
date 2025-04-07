@@ -6,8 +6,10 @@ namespace Notio.Network.Dispatcher;
 /// <typeparam name="TPacket">
 /// The packet type that implements both <see cref="Common.Package.IPacket"/> and <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
-public abstract class PacketDispatcherBase<TPacket>
-    where TPacket : Common.Package.IPacket, Common.Package.IPacketDeserializer<TPacket>
+public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketEncryptor<TPacket>,
+    Common.Package.IPacketCompressor<TPacket>,
+    Common.Package.IPacketDeserializer<TPacket>
 {
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.

@@ -13,7 +13,10 @@ namespace Notio.Network.Dispatcher;
 /// </param>
 public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
     : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket>
-    where TPacket : Common.Package.IPacket, Common.Package.IPacketDeserializer<TPacket>
+    where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketEncryptor<TPacket>,
+    Common.Package.IPacketCompressor<TPacket>,
+    Common.Package.IPacketDeserializer<TPacket>
 {
     /// <inheritdoc />
     public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
