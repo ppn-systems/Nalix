@@ -352,16 +352,22 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
                 connection.SendCode(PacketCode.PacketEncryption);
                 return;
             }
-            else
-            {
-                packet = ApplyEncryption(packet, connection);
-            }
-
-            object? result;
 
             try
             {
-                packet = ApplyCompression(packet, connection);
+                if (!packet.IsCompression)
+                {
+                    // Handle Compression (e.g., apply compression to packet)
+                    packet = ApplyPacketCompression(packet, connection);
+                }
+
+                if (!packet.IsEncrypted)
+                {
+                    // Handle Encryption (e.g., apply encryption to packet)
+                    packet = ApplyPacketEncryption(packet, connection);
+                }
+
+                object? result;
 
                 // Cache method invocation with improved performance
                 if (attributes.Timeout != null)
@@ -451,13 +457,13 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
 
     private async Task DispatchPacketAsync(TPacket packet, IConnection connection)
     {
-        packet = ApplyCompression(packet, connection);
-        packet = ApplyEncryption(packet, connection);
+        packet = ApplyPacketCompression(packet, connection);
+        packet = ApplyPacketEncryption(packet, connection);
 
         await connection.SendAsync(packet.Serialize());
     }
 
-    private TPacket ApplyCompression(TPacket packet, IConnection connection)
+    private TPacket ApplyPacketCompression(TPacket packet, IConnection connection)
     {
         if (_pCompressionMethod is null)
         {
@@ -468,7 +474,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
         return _pCompressionMethod(packet, connection);
     }
 
-    private TPacket ApplyEncryption(TPacket packet, IConnection connection)
+    private TPacket ApplyPacketEncryption(TPacket packet, IConnection connection)
     {
         if (_pEncryptionMethod is null)
         {

@@ -65,6 +65,11 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     bool IsEncrypted => (Flags & PacketFlags.Encrypted) != 0;
 
     /// <summary>
+    /// Gets a value indicating whether the packet is compressed.
+    /// </summary>
+    bool IsCompression => (Flags & PacketFlags.Compressed) != 0;
+
+    /// <summary>
     /// Verifies if the packet's checksum is valid.
     /// </summary>
     bool IsValid();

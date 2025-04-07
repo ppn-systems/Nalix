@@ -19,7 +19,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// This method is useful for reducing packet size before transmission. The provided delegate will be invoked
     /// right before the packet is dispatched through the connection.
     /// </remarks>
-    public PacketDispatcherOptions<TPacket> WithCompression(Func<TPacket, IConnection, TPacket> compressionMethod)
+    public PacketDispatcherOptions<TPacket> WithCompression(
+        Func<TPacket, IConnection, TPacket> compressionMethod)
     {
         if (compressionMethod is not null)
         {
@@ -44,7 +45,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket : IPa
     /// This method allows you to handle packets that were compressed prior to transmission.
     /// The provided delegate is invoked immediately after deserialization and before handler execution.
     /// </remarks>
-    public PacketDispatcherOptions<TPacket> WithDecompression(Func<TPacket, IConnection, TPacket> decompressionMethod)
+    public PacketDispatcherOptions<TPacket> WithDecompression(
+        Func<TPacket, IConnection, TPacket> decompressionMethod)
     {
         if (decompressionMethod is not null)
         {
