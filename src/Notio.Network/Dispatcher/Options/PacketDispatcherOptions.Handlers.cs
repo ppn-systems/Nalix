@@ -165,10 +165,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     public bool TryResolveHandler(ushort id, out Func<TPacket, IConnection, Task>? handler)
     {
         if (PacketHandlers.TryGetValue(id, out handler))
-        {
-            Logger?.Debug($"Handler found for Number: {id}");
             return true;
-        }
 
         Logger?.Warn($"No handler found for Number: {id}");
         return false;
@@ -204,11 +201,11 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             {
                 // Handle Compression (e.g., apply compression to packet)
                 if (!packet.IsCompression)
-                    packet = TPacket.Decompress(packet, Common.Security.CompressionType.Brotli);
+                    packet = TPacket.Decompress(packet, connection.ComMode);
 
                 // Handle Encryption (e.g., apply encryption to packet)
                 if (!packet.IsEncrypted)
-                    packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Mode);
+                    packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.EncMode);
 
                 object? result;
 

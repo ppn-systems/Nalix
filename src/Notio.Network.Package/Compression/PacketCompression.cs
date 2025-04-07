@@ -25,7 +25,7 @@ public static class PacketCompression
     /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(in Packet packet, CompressionType compressionType = CompressionType.GZip)
+    public static Packet CompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForCompression(packet);
 
@@ -33,9 +33,9 @@ public static class PacketCompression
         {
             Memory<byte> compressedData = compressionType switch
             {
-                CompressionType.GZip => CompressGZip(packet.Payload),
-                CompressionType.Brotli => BrotliCompressor.Compress(packet.Payload),
-                CompressionType.Deflate => CompressDeflate(packet.Payload),
+                Common.Security.CompressionMode.GZip => CompressGZip(packet.Payload),
+                Common.Security.CompressionMode.Brotli => BrotliCompressor.Compress(packet.Payload),
+                Common.Security.CompressionMode.Deflate => CompressDeflate(packet.Payload),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
             return CreateCompressedPacket(packet, compressedData);
@@ -57,7 +57,7 @@ public static class PacketCompression
     /// or if an error occurs during decompression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(in Packet packet, CompressionType compressionType = CompressionType.GZip)
+    public static Packet DecompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForDecompression(packet);
 
@@ -65,9 +65,9 @@ public static class PacketCompression
         {
             Memory<byte> decompressedData = compressionType switch
             {
-                CompressionType.GZip => DecompressGZip(packet.Payload),
-                CompressionType.Brotli => BrotliCompressor.Decompress(packet.Payload),
-                CompressionType.Deflate => DecompressDeflate(packet.Payload),
+                Common.Security.CompressionMode.GZip => DecompressGZip(packet.Payload),
+                Common.Security.CompressionMode.Brotli => BrotliCompressor.Decompress(packet.Payload),
+                Common.Security.CompressionMode.Deflate => DecompressDeflate(packet.Payload),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
             return CreateDecompressedPacket(packet, decompressedData);
@@ -114,7 +114,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using var memoryStream = new MemoryStream();
-            using var gzipStream = new GZipStream(memoryStream, CompressionMode.Compress);
+            using var gzipStream = new GZipStream(memoryStream, System.IO.Compression.CompressionMode.Compress);
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             gzipStream.Write(span);
             gzipStream.Close();
@@ -127,7 +127,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new(data.ToArray());
-            using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
+            using GZipStream gzipStream = new(memoryStream, System.IO.Compression.CompressionMode.Decompress);
             using MemoryStream outputStream = new();
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             gzipStream.CopyTo(outputStream);
@@ -141,7 +141,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new();
-            using DeflateStream deflateStream = new(memoryStream, CompressionMode.Compress);
+            using DeflateStream deflateStream = new(memoryStream, System.IO.Compression.CompressionMode.Compress);
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             deflateStream.Write(span);
             deflateStream.Close();
@@ -154,7 +154,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new(data.ToArray());
-            using DeflateStream deflateStream = new(memoryStream, CompressionMode.Decompress);
+            using DeflateStream deflateStream = new(memoryStream, System.IO.Compression.CompressionMode.Decompress);
             using MemoryStream outputStream = new();
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             deflateStream.CopyTo(outputStream);

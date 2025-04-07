@@ -109,13 +109,16 @@ public sealed class Connection : IConnection
         => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+
+    /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
 
     /// <inheritdoc />
-    public EncryptionMode Mode { get; set; } = EncryptionMode.XTEA;
+    public EncryptionMode EncMode { get; set; } = EncryptionMode.XTEA;
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+    public CompressionMode ComMode { get; set; } = CompressionMode.Brotli;
 
     /// <inheritdoc />
     public ConnectionState State { get; set; } = ConnectionState.Connected;

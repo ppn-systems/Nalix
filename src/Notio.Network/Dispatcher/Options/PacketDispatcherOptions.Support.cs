@@ -28,10 +28,10 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         method.GetCustomAttribute<PacketTimeoutAttribute>()
     );
 
-    private async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
+    private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
     {
-        packet = TPacket.Compress(packet, Common.Security.CompressionType.Brotli);
-        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Mode);
+        packet = TPacket.Compress(packet, connection.ComMode);
+        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.EncMode);
 
         await connection.SendAsync(packet);
     }
@@ -57,7 +57,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         Type t when t == typeof(TPacket) => async (result, _, connection) =>
         {
             if (result is TPacket packet)
-                await DispatchPacketAsync(packet, connection);
+                await PacketDispatcherOptions<TPacket>.DispatchPacketAsync(packet, connection);
         }
         ,
         Type t when t == typeof(ValueTask) => async (result, _, _) =>
@@ -114,7 +114,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 try
                 {
                     TPacket packet = await task;
-                    await DispatchPacketAsync(packet, connection);
+                    await PacketDispatcherOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {
@@ -177,7 +177,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 try
                 {
                     TPacket packet = await task;
-                    await DispatchPacketAsync(packet, connection);
+                    await PacketDispatcherOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
                 catch (Exception ex)
                 {

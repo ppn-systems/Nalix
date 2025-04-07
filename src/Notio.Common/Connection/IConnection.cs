@@ -48,7 +48,12 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    public EncryptionMode Mode { get; set; }
+    public EncryptionMode EncMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compression mode used.
+    /// </summary>
+    public CompressionMode ComMode { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.

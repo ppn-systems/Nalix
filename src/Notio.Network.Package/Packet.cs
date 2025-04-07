@@ -385,11 +385,11 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     #region Compression Methods
 
     /// <inheritdoc />
-    static Packet IPacketCompressor<Packet>.Compress(Packet packet, CompressionType type)
+    static Packet IPacketCompressor<Packet>.Compress(Packet packet, CompressionMode type)
         => PacketCompression.CompressPayload(packet, type);
 
     /// <inheritdoc />
-    static Packet IPacketCompressor<Packet>.Decompress(Packet packet, CompressionType type)
+    static Packet IPacketCompressor<Packet>.Decompress(Packet packet, CompressionMode type)
         => PacketCompression.DecompressPayload(packet, type);
 
     #endregion
