@@ -132,7 +132,6 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         return this;
     }
 
-
     /// <summary>
     /// Attempts to retrieve a registered packet handler for the specified command Number.
     /// </summary>
@@ -186,33 +185,34 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 return;
             }
 
+            // Handle Compression (e.g., apply compression to packet)
+            if (packet.IsCompression)
+                packet = TPacket.Decompress(packet, connection.ComMode);
+
             if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
             {
                 string message = $"Encrypted packet not allowed for command " +
                                  $"'{method.GetCustomAttribute<PacketIdAttribute>()!.Id}' " +
                                  $"from connection {connection.RemoteEndPoint}.";
 
-                _logger?.Error(message);
+                _logger?.Warn(message);
                 connection.SendCode(PacketCode.PacketEncryption);
                 return;
+            }
+            else
+            {
+                // Handle Encryption (e.g., apply encryption to packet)
+                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.EncMode);
             }
 
             try
             {
-                // Handle Compression (e.g., apply compression to packet)
-                if (!packet.IsCompression)
-                    packet = TPacket.Decompress(packet, connection.ComMode);
-
-                // Handle Encryption (e.g., apply encryption to packet)
-                if (!packet.IsEncrypted)
-                    packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.EncMode);
-
                 object? result;
 
                 // Cache method invocation with improved performance
                 if (attributes.Timeout != null)
                 {
-                    using var cts = new CancellationTokenSource(attributes.Timeout.TimeoutMilliseconds);
+                    using CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
                     try
                     {
                         result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
