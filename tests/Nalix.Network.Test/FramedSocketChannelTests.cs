@@ -52,7 +52,7 @@ public sealed class FramedSocketChannelTests
         // Hub should auto-unregister via its OnClose handler
         // Give a tiny breath for handler scheduling
         await Task.Delay(50);
-        Assert.Equal(0, hub.ConnectionCount);
+        Assert.Equal(0, hub.Count);
 
         // Cleanup
         connection.Dispose();
@@ -78,7 +78,7 @@ public sealed class FramedSocketChannelTests
 
         Assert.True(closed.Wait(TimeSpan.FromSeconds(3)), "OnCloseEvent was not fired within timeout.");
         await Task.Delay(50);
-        Assert.Equal(0, hub.ConnectionCount);
+        Assert.Equal(0, hub.Count);
 
         connection.Dispose();
     }
