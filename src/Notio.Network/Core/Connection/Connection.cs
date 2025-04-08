@@ -62,6 +62,9 @@ public sealed class Connection : IConnection
         };
 
         _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+
+        _logger?.Debug("[{0}] Connection created for {1}",
+            nameof(Connection), _socket.RemoteEndPoint?.ToString());
     }
 
     #endregion
@@ -156,8 +159,11 @@ public sealed class Connection : IConnection
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(Connection));
+
         using CancellationTokenSource linkedCts = CancellationTokenSource
             .CreateLinkedTokenSource(cancellationToken, _ctokens.Token);
+
         _cstream.BeginReceive(linkedCts.Token);
     }
 
@@ -202,15 +208,17 @@ public sealed class Connection : IConnection
                 return;
             }
 
-            if (_disposed) return;
+            if (_disposed)
+                return;
+
+            this.State = ConnectionState.Disconnected;
 
             _ctokens.Cancel();
-            State = ConnectionState.Disconnected;
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (Exception ex)
         {
-            _logger?.Error(ex);
+            _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
         }
     }
 
@@ -226,17 +234,19 @@ public sealed class Connection : IConnection
     {
         lock (_lock)
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
+
             _disposed = true;
         }
 
         try
         {
-            Disconnect();
+            this.Disconnect();
         }
         catch (Exception ex)
         {
-            _logger?.Error(ex);
+            _logger?.Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
         }
         finally
         {

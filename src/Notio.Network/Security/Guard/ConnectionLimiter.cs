@@ -257,6 +257,7 @@ public sealed class ConnectionLimiter : IDisposable
     /// Gets connection statistics for all tracked IP addresses.
     /// </summary>
     /// <returns>Dictionary of IP addresses and their statistics.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, (int Current, int Total)> GetAllConnections()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -298,6 +299,7 @@ public sealed class ConnectionLimiter : IDisposable
     /// <remarks>
     /// This method is intended for use during system maintenance or after error recovery.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetAllCounters()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -332,6 +334,7 @@ public sealed class ConnectionLimiter : IDisposable
     /// <summary>
     /// Creates a configured connection configuration.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConnectionConfig CreateConfiguredConfig(Action<ConnectionConfig>? configure)
     {
         var config = ConfigurationStore.Instance.Get<ConnectionConfig>();
