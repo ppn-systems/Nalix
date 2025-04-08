@@ -79,17 +79,11 @@ public abstract class LoggingEngine : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void CreateLogEntry(LogLevel level, EventId eventId, string message, Exception? error = null)
     {
-        if (_isDisposed != 0)
-            return;
-
-        // Fast early return if level is below minimum
-        if (level < _minLogLevel)
+        if (_isDisposed != 0 || level < _minLogLevel)
             return;
 
         // Create and publish the log entry
-        LogEntry entry = new(level, eventId, message, error);
-
-        _publisher.Publish(entry);
+        _publisher.Publish(new LogEntry(level, eventId, message, error));
     }
 
     /// <summary>
@@ -100,15 +94,14 @@ public abstract class LoggingEngine : IDisposable
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object?[] args)
+    protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
         if (_isDisposed != 0 || level < _minLogLevel)
             return;
 
         // Format the message only if we're going to use it
-        string message = string.Format(format, args);
-        CreateLogEntry(level, eventId, message);
+        CreateLogEntry(level, eventId, FormatMessage(format, args));
     }
 
     /// <summary>
@@ -142,4 +135,7 @@ public abstract class LoggingEngine : IDisposable
             _loggingOptions.Dispose();
         }
     }
+
+    private static string FormatMessage(string format, object[]? args)
+        => args == null || args.Length == 0 ? format : string.Format(format, args);
 }

@@ -52,6 +52,8 @@ public class KeyExchangeController
     [PacketId((ushort)InternalProtocolCommand.StartHandshake)]
     public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
+        _logger?.Debug($"Starting handshake for {connection.RemoteEndPoint}");
+
         // Check if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
         {
@@ -72,20 +74,27 @@ public class KeyExchangeController
             return PacketBuilder.String(PacketCode.InvalidPayload);
         }
 
+        if (IsReplayAttempt(connection))
+        {
+            _logger?.Warn($"Handshake replay attempt from {connection.RemoteEndPoint}");
+            return PacketBuilder.String(PacketCode.RateLimited);
+        }
+
         // Generate an X25519 key pair (private and public keys).
-        (byte[] privateKey, byte[] publicKey) = _keyExchangeAlgorithm.Generate();
+        (byte[] @private, byte[] @public) = _keyExchangeAlgorithm.Generate();
 
         // Store the private key in connection metadata for later use.
-        connection.Metadata["X25519_PrivateKey"] = privateKey;
+        connection.Metadata[Meta.PrivateKey] = @private;
+        connection.Metadata[Meta.LastHandshakeTime] = DateTime.UtcNow;
 
         // Derive the shared secret key using the server's private key and the client's public key.
-        connection.EncryptionKey = this.DeriveSharedKey(privateKey, packet.Payload.ToArray());
+        connection.EncryptionKey = this.DeriveSharedKey(@private, packet.Payload.ToArray());
 
         // Elevate the client's access level after successful handshake initiation.
         connection.Level = PermissionLevel.User;
 
         // SendPacket the server's public key back to the client for the next phase of the handshake.
-        return PacketBuilder.Binary(PacketCode.Success, publicKey);
+        return PacketBuilder.Binary(PacketCode.Success, @public);
     }
 
     /// <summary>
@@ -120,8 +129,8 @@ public class KeyExchangeController
         }
 
         // Retrieve the stored private key from connection metadata.
-        if (!connection.Metadata.TryGetValue("X25519_PrivateKey", out object? privateKeyObj) ||
-            privateKeyObj is not byte[] privateKey)
+        if (!connection.Metadata.TryGetValue(Meta.PrivateKey, out object? privateKeyObj) ||
+            privateKeyObj is not byte[] @private)
         {
             _logger?.Warn($"Missing or invalid X25519 private key for connection {connection.RemoteEndPoint}");
 
@@ -129,19 +138,19 @@ public class KeyExchangeController
         }
 
         // Derive the shared secret using the private key and the client's public key.
-        byte[] derivedKey = this.DeriveSharedKey(privateKey, packet.Payload.ToArray());
+        byte[] derivedKey = this.DeriveSharedKey(@private, packet.Payload.ToArray());
+
+        connection.Metadata.Remove(Meta.PrivateKey);
 
         // Compare the derived key with the encryption key in the connection.
-        if (connection.EncryptionKey.SequenceEqual(derivedKey))
-        {
-            _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
-            return PacketBuilder.String(PacketCode.Success);
-        }
-        else
+        if (connection.EncryptionKey is null || !connection.EncryptionKey.SequenceEqual(derivedKey))
         {
             _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
             return PacketBuilder.String(PacketCode.Conflict);
         }
+
+        _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
+        return PacketBuilder.String(PacketCode.Success);
     }
 
     /// <summary>
@@ -160,5 +169,25 @@ public class KeyExchangeController
         // Hash the shared secret to produce the final encryption key.
         _hashAlgorithm.Update(secret);
         return _hashAlgorithm.FinalizeHash();
+    }
+
+    /// <summary>
+    /// Checks if the connection is attempting to replay a previous handshake.
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    private static bool IsReplayAttempt(IConnection connection)
+    {
+        if (connection.Metadata.TryGetValue(Meta.LastHandshakeTime,
+            out object? lastTimeObj) && lastTimeObj is DateTime lastTime)
+            return (DateTime.UtcNow - lastTime).TotalSeconds < 10;
+
+        return false;
+    }
+
+    private static class Meta
+    {
+        public const string PrivateKey = "X25519_PrivateKey";
+        public const string LastHandshakeTime = "LastHandshakeTime";
     }
 }

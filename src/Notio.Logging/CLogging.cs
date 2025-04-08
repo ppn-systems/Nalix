@@ -14,8 +14,7 @@ namespace Notio.Logging;
 /// Initializes the logging system with optional configuration.
 /// </remarks>
 /// <param name="configure">An optional action to configure the logging system.</param>
-public sealed class CLogging(Action<LoggingOptions>? configure = null)
-    : LoggingEngine(configure), ILogger
+public sealed class CLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
 {
     /// <summary>
     /// Gets the single instance of the <see cref="CLogging"/> class.
@@ -34,12 +33,16 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
     /// <param name="message">The log message.</param>
     /// <param name="exception">Optional exception associated with the log entry.</param>
     private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)
-       => CreateLogEntry(level, eventId, message, exception);
+       => base.CreateLogEntry(level, eventId, message, exception);
 
     /// <inheritdoc />
     public void Meta(string message)
-
         => WriteLog(LogLevel.Meta, EventId.Empty, message);
+
+    /// <inheritdoc />
+    public void Meta(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Meta, EventId.Empty, format, args);
+
     /// <inheritdoc />
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Meta, eventId ?? EventId.Empty, message);
@@ -49,12 +52,20 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
         => WriteLog(LogLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
+    public void Trace(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Trace, EventId.Empty, format, args);
+
+    /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     public void Debug(string message)
         => WriteLog(LogLevel.Debug, EventId.Empty, SanitizeLogMessage(message));
+
+    /// <inheritdoc />
+    public void Debug(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Debug, EventId.Empty, format, args);
 
     /// <inheritdoc />
     public void Debug(string message, EventId? eventId = null)
@@ -71,7 +82,7 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
 
     /// <inheritdoc />
     public void Info(string format, params object[] args)
-        => WriteLog(LogLevel.Information, EventId.Empty, string.Format(format, args));
+        => base.CreateFormattedLogEntry(LogLevel.Information, EventId.Empty, format, args);
 
     /// <inheritdoc />
     public void Info(string message, EventId? eventId = null)
@@ -82,12 +93,20 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
         => WriteLog(LogLevel.Warning, EventId.Empty, message);
 
     /// <inheritdoc />
+    public void Warn(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Warning, EventId.Empty, format, args);
+
+    /// <inheritdoc />
     public void Warn(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Warning, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     public void Error(string message)
         => WriteLog(LogLevel.Error, EventId.Empty, message);
+
+    /// <inheritdoc />
+    public void Error(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Error, EventId.Empty, format, args);
 
     /// <inheritdoc />
     public void Error(Exception exception)
@@ -112,6 +131,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null)
     /// <inheritdoc />
     public void Fatal(string message)
         => WriteLog(LogLevel.Critical, EventId.Empty, message);
+
+    /// <inheritdoc />
+    public void Fatal(string format, params object[] args)
+        => base.CreateFormattedLogEntry(LogLevel.Critical, EventId.Empty, format, args);
 
     /// <inheritdoc />
     public void Fatal(string message, EventId? eventId = null)

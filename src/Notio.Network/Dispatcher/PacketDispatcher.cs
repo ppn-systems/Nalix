@@ -12,8 +12,7 @@ namespace Notio.Network.Dispatcher;
 /// A delegate used to configure <see cref="Options.PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
 public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket>
-    where TPacket : Common.Package.IPacket,
+    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

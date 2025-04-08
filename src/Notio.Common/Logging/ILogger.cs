@@ -14,6 +14,13 @@ public interface ILogger
     void Meta(string message);
 
     /// <summary>
+    /// Logs metadata information with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Meta(string format, params object[] args);
+
+    /// <summary>
     /// Logs metadata information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
@@ -27,6 +34,13 @@ public interface ILogger
     void Trace(string message);
 
     /// <summary>
+    /// Logs trace information with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Trace(string format, params object[] args);
+
+    /// <summary>
     /// Logs trace-level information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
@@ -38,6 +52,13 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The message to log.</param>
     void Debug(string message);
+
+    /// <summary>
+    /// Logs debug information with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Debug(string format, params object[] args);
 
     /// <summary>
     /// Logs debug information with optional event identifier.
@@ -83,6 +104,13 @@ public interface ILogger
     void Warn(string message);
 
     /// <summary>
+    /// Logs warning information with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Warn(string format, params object[] args);
+
+    /// <summary>
     /// Logs a warning with optional event identifier.
     /// </summary>
     /// <param name="message">The warning message to log.</param>
@@ -107,6 +135,13 @@ public interface ILogger
     /// </summary>
     /// <param name="exception">The exception to log.</param>
     void Error(Exception exception);
+
+    /// <summary>
+    /// Logs an error message with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Error(string format, params object[] args);
 
     /// <summary>
     /// Logs an exception as an error with optional event identifier.
@@ -135,6 +170,13 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
     void Fatal(string message);
+
+    /// <summary>
+    /// Logs a critical error with format and arguments.
+    /// </summary>
+    /// <param name="format">The format string.</param>
+    /// <param name="args">The arguments to format.</param>
+    void Fatal(string format, params object[] args);
 
     /// <summary>
     /// Logs a critical error with custom message and exception details.
