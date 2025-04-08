@@ -1,4 +1,4 @@
-using Notio.Common.Attributes;
+using Notio.Common.Package.Attributes;
 using Notio.Network.Configurations;
 using System.Collections.Concurrent;
 

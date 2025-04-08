@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// Specifies a group name for packet rate limiting.

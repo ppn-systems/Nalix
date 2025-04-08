@@ -6,8 +6,8 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.5.11</Version>
-    <PackageVersion>0.5.11</PackageVersion>
+    <Version>0.5.33</Version>
+    <PackageVersion>0.5.33</PackageVersion>
 
     <Description>
       Notio.Storage is a .NET library for efficient file storage and streaming. It supports multiple storage formats, local storage handling, MIME type detection, and configurable file storage providers. The library provides interfaces for both synchronous and asynchronous file management.

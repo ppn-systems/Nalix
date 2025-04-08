@@ -1,7 +1,7 @@
 using Notio.Common.Security;
 using System;
 
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// Specifies the minimum authority level required to execute a command.

@@ -1,10 +1,10 @@
-using Notio.Common.Attributes;
 using Notio.Common.Compression;
 using Notio.Common.Connection;
 using Notio.Common.Constants;
 using Notio.Common.Cryptography;
 using Notio.Common.Logging;
 using Notio.Common.Package;
+using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Core;
@@ -32,9 +32,11 @@ public class ConnectionController(ILogger? logger)
     /// <param name="connection">The active client connection.</param>
     /// <returns>A response packet indicating success or failure.</returns>
     [PacketEncryption(false)]
+    [PacketRateGroup("Control")]
     [PacketTimeout(Timeouts.Instant)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.SetCompressionMode)]
+    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
         => SetMode<CompressionMode>(packet, connection);
 
@@ -46,9 +48,11 @@ public class ConnectionController(ILogger? logger)
     /// <param name="connection">The active client connection.</param>
     /// <returns>A response packet indicating success or failure.</returns>
     [PacketEncryption(false)]
+    [PacketRateGroup("Control")]
     [PacketTimeout(Timeouts.Instant)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.SetEncryptionMode)]
+    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
         => SetMode<EncryptionMode>(packet, connection);
 

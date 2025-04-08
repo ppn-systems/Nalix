@@ -1,10 +1,10 @@
-using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Constants;
 using Notio.Common.Cryptography.Asymmetric;
 using Notio.Common.Cryptography.Hashing;
 using Notio.Common.Logging;
 using Notio.Common.Package;
+using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Core;
@@ -20,19 +20,19 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISha.
 /// </summary>
 [PacketController]
-public class KeyExchangeController
+public class Handshake
 {
     private readonly ILogger? _logger;
     private readonly ISha _hashAlgorithm;
     private readonly IX25519 _keyExchangeAlgorithm;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="KeyExchangeController"/> class with necessary components.
+    /// Initializes a new instance of the <see cref="Handshake"/> class with necessary components.
     /// </summary>
     /// <param name="sha">The hashing algorithm implementation to use (e.g., SHA-256).</param>
     /// <param name="x25519">The X25519 implementation for key exchange.</param>
     /// <param name="logger">Optional logger for recording events and errors during the handshake process.</param>
-    public KeyExchangeController(ISha sha, IX25519 x25519, ILogger? logger)
+    public Handshake(ISha sha, IX25519 x25519, ILogger? logger)
     {
         _logger = logger;
         _hashAlgorithm = sha;
@@ -48,9 +48,11 @@ public class KeyExchangeController
     /// <param name="packet">The incoming packet containing the client's public key.</param>
     /// <param name="connection">The connection to the client that is requesting the handshake.</param>
     [PacketEncryption(false)]
+    [PacketRateGroup("Control")]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.StartHandshake)]
+    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
         // CheckLimit if the packet type is binary (as expected for X25519 public key).
@@ -101,9 +103,11 @@ public class KeyExchangeController
     /// <param name="packet">The incoming packet containing the client's public key for finalization.</param>
     /// <param name="connection">The connection to the client.</param>
     [PacketEncryption(false)]
+    [PacketRateGroup("Control")]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.CompleteHandshake)]
+    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     public Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).

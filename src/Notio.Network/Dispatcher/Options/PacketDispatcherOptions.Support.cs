@@ -1,6 +1,6 @@
-using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Package;
+using Notio.Common.Package.Attributes;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;

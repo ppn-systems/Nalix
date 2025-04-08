@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// Custom attribute to specify a packet identifier for a class.

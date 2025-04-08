@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Attributes;
+namespace Notio.Common.Package.Attributes;
 
 /// <summary>
 /// Specifies the maximum number of times a packet handler method can be invoked 
