@@ -66,6 +66,9 @@ public sealed class ConnectionLimiter : IDisposable
             _config.CleanupInterval,
             _config.CleanupInterval
         );
+
+        _logger?.Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
+                        _maxConnectionsPerIp, _inactivityThreshold.TotalSeconds);
     }
 
     /// <summary>
@@ -101,16 +104,14 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime now = DateTime.UtcNow;
         DateTime currentDate = now.Date;
 
-        _logger?.Trace($"Connection from {endPoint} denied");
-
         // CheckLimit if endpoint already exists
         if (_connectionInfo.TryGetValue(endPoint, out var existingInfo))
         {
             // Fast path for already at limit
             if (existingInfo.CurrentConnections >= _maxConnectionsPerIp)
             {
-                _logger?.Trace("Connection limit exceeded for IP: {0} ({1}/{2})",
-                               endPoint, existingInfo.CurrentConnections, _maxConnectionsPerIp);
+                _logger?.Trace("Limit exceeded for {0}: {1}/{2}",
+                    endPoint, existingInfo.CurrentConnections, _maxConnectionsPerIp);
 
                 return false;
             }
@@ -126,12 +127,16 @@ public sealed class ConnectionLimiter : IDisposable
             };
 
             _connectionInfo[endPoint] = newInfo;
+            _logger?.Trace("Allowed {0}", endPoint);
+
             return true;
         }
 
         // New endpoint
         var info = new ConnectionLimitInfo(1, now, 1, now);
         _connectionInfo[endPoint] = info;
+        _logger?.Trace("Allowed {0}", endPoint);
+
         return true;
     }
 
@@ -149,8 +154,6 @@ public sealed class ConnectionLimiter : IDisposable
         if (string.IsNullOrWhiteSpace(endPoint))
             throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
-        _logger?.Trace($"{endPoint}|Closed");
-
         // Fast path if entry doesn't exist
         if (!_connectionInfo.TryGetValue(endPoint, out var existingInfo)) return false;
 
@@ -162,6 +165,8 @@ public sealed class ConnectionLimiter : IDisposable
         };
 
         _connectionInfo[endPoint] = newInfo;
+        _logger?.Trace("Closed {0}", endPoint);
+
         return true;
     }
 
@@ -181,7 +186,11 @@ public sealed class ConnectionLimiter : IDisposable
             throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
         if (_connectionInfo.TryGetValue(endPoint, out var stats))
+        {
+            _logger?.Trace("Stats for {0}: {1} current, {2} today",
+                endPoint, stats.CurrentConnections, stats.TotalConnectionsToday);
             return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
+        }
 
         return (0, 0, DateTimeUnixEpoch);
     }
@@ -221,8 +230,7 @@ public sealed class ConnectionLimiter : IDisposable
                     keysToRemove ??= new List<string>(Math.Min(EstimatedCollectionCapacity, _connectionInfo.Count));
                     keysToRemove.Add(key);
 
-                    _logger?.Trace($"Removing stale connection for IP: {0} (inactive since {1:yyyy-MM-dd HH:mm:ss})",
-                                     key, info.LastConnectionTime);
+                    _logger?.Trace("Removed stale {0}", key);
                 }
 
                 processedCount++;
@@ -237,7 +245,7 @@ public sealed class ConnectionLimiter : IDisposable
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            _logger?.Error("Error during connection cleanup", ex);
+            _logger?.Error("Cleanup error: {0}", ex.Message);
         }
         finally
         {
@@ -279,6 +287,7 @@ public sealed class ConnectionLimiter : IDisposable
         {
             total += info.CurrentConnections;
         }
+        _logger?.Debug("Total connections: {0}", total);
 
         return total;
     }
@@ -294,10 +303,7 @@ public sealed class ConnectionLimiter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         _connectionInfo.Clear();
-
-        _logger?.Info(
-                $"All connection counters have been reset " +
-                $"[UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]");
+        _logger?.Info("Counters reset");
     }
 
     /// <summary>
@@ -315,9 +321,9 @@ public sealed class ConnectionLimiter : IDisposable
             _cleanupLock?.Dispose();
             _connectionInfo.Clear();
         }
-        catch (Exception ex) when (_logger != null)
+        catch (Exception ex)
         {
-            _logger.Error("Error disposing ConnectionLimiter", ex);
+            _logger?.Error("Dispose error: {0}", ex.Message);
         }
 
         GC.SuppressFinalize(this);

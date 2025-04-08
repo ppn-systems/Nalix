@@ -178,14 +178,13 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             }
         }
         ,
-        _ => throw new InvalidOperationException($"Unsupported return type: {returnType}")
+        _ => (_, _, _) =>
+        {
+            _logger?.Warn("Unsupported return type: {0}", returnType.Name);
+            return Task.CompletedTask;
+        }
     };
 
     private void LogHandlerError(Type returnType, Exception ex)
-        => _logger?.Error(
-            "Packet handler execution failed. ReturnType: {0}, ExceptionType: {1}, Message: {2}",
-            returnType.Name,
-            ex.GetType().Name,
-            ex.Message
-        );
+        => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
 }

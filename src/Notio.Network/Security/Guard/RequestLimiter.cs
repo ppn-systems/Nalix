@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Network.Security.Guard;
@@ -60,11 +59,11 @@ public sealed class RequestLimiter : IDisposable
         _timeWindowTicks = TimeSpan.FromMilliseconds(_config.TimeWindowInMilliseconds).Ticks;
         _lockoutDurationTicks = TimeSpan.FromSeconds(_config.LockoutDurationSeconds).Ticks;
 
-        _cleanupTimer = new Timer(
-            static s => ((RequestLimiter)s!).Cleanup(),
-            this,
-            TimeSpan.FromMinutes(1),
-            TimeSpan.FromMinutes(1));
+        _cleanupTimer = new Timer(static s
+            => ((RequestLimiter)s!).Cleanup(), this, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+
+        _logger?.Debug("RequestLimiter initialized with maxRequests={0}, timeWindow={1}ms, lockout={2}s",
+            _config.MaxAllowedRequests, _config.TimeWindowInMilliseconds, _config.LockoutDurationSeconds);
     }
 
     /// <summary>
@@ -90,8 +89,15 @@ public sealed class RequestLimiter : IDisposable
 
         bool allowed = data.BlockedUntilTicks < current;
 
-        _logger?.Meta($"{endPoint}|{allowed}|{Stopwatch.GetElapsedTime(data.LastRequestTicks):g}");
+        if (allowed)
+        {
+            _logger?.Debug("Request from {0} allowed, elapsed: {1:g}",
+                            endPoint, Stopwatch.GetElapsedTime(data.LastRequestTicks));
+            return allowed;
+        }
 
+        _logger?.Warn("Request from {0} blocked, elapsed: {1:g}",
+                       endPoint, Stopwatch.GetElapsedTime(data.LastRequestTicks));
         return allowed;
     }
 
@@ -104,20 +110,21 @@ public sealed class RequestLimiter : IDisposable
             return;
 
         List<string> toRemove = [];
-
         try
         {
             long current = Stopwatch.GetTimestamp();
-
             foreach (var kvp in _ipData)
             {
                 (string ip, RequestLimiterInfo info) = kvp;
                 info.Cleanup(current, _timeWindowTicks);
-
                 if (info.RequestCount == 0 && info.BlockedUntilTicks < current) toRemove.Add(ip);
             }
-
             foreach (string key in toRemove) _ipData.TryRemove(key, out _);
+            _logger?.Debug("Cleanup removed {0} inactive IPs", toRemove.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error("Cleanup failed: {0}", ex.Message);
         }
         finally
         {
@@ -133,12 +140,6 @@ public sealed class RequestLimiter : IDisposable
         _disposed = true;
         _cleanupTimer.Dispose();
         _ipData.Clear();
-    }
-
-    private static class StopwatchExtensions
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TimeSpan GetElapsedTime(long startTicks)
-            => TimeSpan.FromTicks((Stopwatch.GetTimestamp() - startTicks) * TimeSpan.TicksPerSecond / Stopwatch.Frequency);
+        _logger?.Debug("RequestLimiter disposed");
     }
 }

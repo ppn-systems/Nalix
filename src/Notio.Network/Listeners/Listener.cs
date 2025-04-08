@@ -77,7 +77,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         if (this.IsListening) return;
 
-        _logger.Debug("Starting to listen for incoming connections.");
+        _logger.Debug("Starting listener");
 
         // Create a linked token source to combine external cancellation with internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -94,7 +94,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 try
                 {
                     _tcpListener.Start();
-                    _logger.Info($"{_protocol} is online on port {_port}");
+                    _logger.Info("{0} online on {1}", _protocol, _port);
 
                     // Create worker threads for accepting connections
                     const int maxParallelAccepts = 5;
@@ -111,11 +111,11 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                             }
                             catch (OperationCanceledException)
                             {
-                                _logger.Debug($"Accept thread {threadIndex} cancelled");
+                                _logger.Debug("Accept thread {0} cancelled", threadIndex);
                             }
                             catch (Exception ex)
                             {
-                                _logger.Error($"Error in accept thread {threadIndex}: {ex.Message}");
+                                _logger.Error("Accept thread {0} error: {1}", threadIndex, ex.Message);
                             }
                         })
                         {
@@ -145,28 +145,27 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.Info($"Listener on port {_port} stopped gracefully");
+                    _logger.Info("Listener on {0} stopped", _port);
                 }
                 catch (SocketException ex)
                 {
-                    _logger.Error($"Could not start {_protocol} on port {_port}: {ex.Message}");
+                    _logger.Error("{0} start failed on {1}: {2}", _protocol, _port, ex.Message);
                     throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Critical error in listener on port {_port}: {ex.Message}");
+                    _logger.Error("Critical error on {0}: {1}", _port, ex.Message);
                     throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
                 }
                 finally
                 {
                     _tcpListener.Stop();
                     _listenerLock.Release();
-                    _logger.Debug("Stopped listening for incoming connections.");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Unhandled exception in listener thread: {ex.Message}");
+                _logger.Error("Thread error: {0}", ex.Message);
             }
         })
         {
@@ -220,13 +219,11 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.Error($"Error accepting connection on port {_port}", ex);
+                _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
                 // Brief delay to prevent CPU spinning on repeated errors
                 Task.Delay(50, cancellationToken);
             }
         }
-
-        _logger.Debug("Stopped accepting incoming connections.");
     }
 
     /// <summary>
@@ -240,7 +237,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         if (this.IsListening) return;
 
-        _logger.Debug("Starting to listen for incoming connections.");
+        _logger.Debug("Starting listener");
         const int maxParallelAccepts = 5;
 
         // Create a linked token source to combine external cancellation with internal cancellation
@@ -253,7 +250,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         try
         {
             _tcpListener.Start();
-            _logger.Info($"{_protocol} is online on port {_port}");
+            _logger.Info("{0} online on {1}", _protocol, _port);
 
             // Create multiple accept tasks in parallel for higher throughput
             Task[] acceptTasks = new Task[maxParallelAccepts];
@@ -265,7 +262,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         }
         catch (OperationCanceledException)
         {
-            _logger.Info($"Listener on port {_port} stopped gracefully");
+            _logger.Info("Listener on {0} stopped", _port);
         }
         catch (SocketException ex)
         {
@@ -279,7 +276,6 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         {
             _tcpListener.Stop();
             _listenerLock.Release();
-            _logger.Debug("Stopped listening for incoming connections.");
         }
     }
 
@@ -290,13 +286,11 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
 
-        _logger.Debug("Stopping the listener.");
-
         _cts?.Cancel();
 
         if (_tcpListener?.Server != null)
         {
-            _logger.Info($"Stopping listener on port {_port}");
+            _logger.Info("Stopping on {0}", _port);
             _tcpListener.Stop();
         }
 
@@ -306,7 +300,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             _listenerThread.Join(TimeSpan.FromSeconds(5));
         }
 
-        _logger.Debug("Listener stopped.");
+        _logger.Info("Listener stopped.");
     }
 
     /// <summary>
@@ -328,7 +322,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         if (disposing)
         {
-            _logger.Info($"Disposing listener on port {_port}");
+            _logger.Info("Disposing on {0}", _port);
 
             _cts?.Cancel();
             _cts?.Dispose();
@@ -340,7 +334,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
         }
 
         _isDisposed = true;
-        _logger.Debug("Listener disposed.");
+        _logger.Debug("Listener disposed");
     }
 
     #endregion
@@ -367,13 +361,11 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.Error($"Error accepting connection on port {_port}", ex);
+                _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
                 // Brief delay to prevent CPU spinning on repeated errors
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        _logger.Debug("Stopped accepting incoming connections.");
     }
 
     /// <summary>
@@ -384,12 +376,12 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     {
         try
         {
-            _logger.Debug($"Processing new connection from {connection.RemoteEndPoint}");
+            _logger.Debug("New connection from {0}", connection.RemoteEndPoint);
             _protocol.OnAccept(connection);
         }
         catch (Exception ex)
         {
-            _logger.Error($"Error processing new connection from {connection.RemoteEndPoint}", ex);
+            _logger.Error("Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
             connection.Close();
         }
     }
@@ -424,7 +416,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
-        _logger.Debug($"Closing connection from {args.Connection.RemoteEndPoint}");
+        _logger.Debug("Closing {0}", args.Connection.RemoteEndPoint);
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= OnConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
