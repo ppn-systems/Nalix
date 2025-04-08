@@ -75,7 +75,10 @@ public sealed class Connection : IConnection
     public IEncodedId Id => _id;
 
     /// <inheritdoc />
-    public long LastPingTime => _cstream.GetLastPingTime();
+    public long UpTime => _cstream.UpTime;
+
+    /// <inheritdoc />
+    public long LastPingTime => _cstream.LastPingTime;
 
     /// <inheritdoc/>
     public Dictionary<string, object> Metadata { get; } = [];

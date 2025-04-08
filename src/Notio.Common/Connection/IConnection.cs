@@ -21,6 +21,12 @@ public interface IConnection : IDisposable
     IEncodedId Id { get; }
 
     /// <summary>
+    /// Gets the total duration (in milliseconds) since the connection was established.
+    /// Useful for measuring connection lifetime or session activity.
+    /// </summary>
+    long UpTime { get; }
+
+    /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>

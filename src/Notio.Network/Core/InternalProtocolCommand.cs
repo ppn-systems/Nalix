@@ -52,5 +52,10 @@ public enum InternalProtocolCommand : ushort
     /// <summary>
     /// Sent by the client to request the server's current ping time.
     /// </summary>
-    PingTime = 0x0009
+    PingTime = 0x0009,
+
+    /// <summary>
+    /// Sent by the server in response to a PingInfo request.
+    /// </summary>
+    PingInfo = 0x000A,
 }

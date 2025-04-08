@@ -50,19 +50,4 @@ public static class SessionController
 
         return PacketBuilder.Json(PacketCode.Success, status, NotioJsonContext.Default.ConnectionStatusDto);
     }
-
-    /// <summary>
-    /// Returns the round-trip time (RTT) of the connection in milliseconds.
-    /// </summary>
-    [PacketEncryption(false)]
-    [PacketTimeout(Timeouts.Short)]
-    [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
-    [PacketId((ushort)InternalProtocolCommand.PingTime)]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static Memory<byte> GetPingTime(IPacket _, IConnection connection)
-    {
-        long rtt = connection.LastPingTime; // e.g. 32 (ms)
-        return PacketBuilder.String(PacketCode.Success, $"Ping: {rtt} ms");
-    }
 }

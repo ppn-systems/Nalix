@@ -157,7 +157,12 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
-    public long GetLastPingTime() => _cache.LastPingTime;
+    public long UpTime => _cache.Uptime;
+
+    /// <summary>
+    /// Gets the last ping time in milliseconds.
+    /// </summary>
+    public long LastPingTime => _cache.LastPingTime;
 
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached.

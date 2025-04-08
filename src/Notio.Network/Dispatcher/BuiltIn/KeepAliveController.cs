@@ -6,6 +6,7 @@ using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Core;
 using Notio.Network.Core.Packets;
+using Notio.Network.Dispatcher.Dto;
 using System;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
@@ -35,8 +36,40 @@ public static class KeepAliveController
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveController))]
-    [PacketId((ushort)InternalProtocolCommand.Ping)]
+    [PacketId((ushort)InternalProtocolCommand.Pong)]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     public static Memory<byte> Pong(IPacket _, IConnection __)
         => PacketBuilder.String(PacketCode.Success, "Ping");
+
+    /// <summary>
+    /// Returns the round-trip time (RTT) of the connection in milliseconds.
+    /// </summary>
+    [PacketEncryption(false)]
+    [PacketTimeout(Timeouts.Short)]
+    [PacketPermission(PermissionLevel.Guest)]
+    [PacketRateGroup(nameof(SessionController))]
+    [PacketId((ushort)InternalProtocolCommand.PingTime)]
+    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    public static Memory<byte> GetPingTime(IPacket _, IConnection connection)
+        => PacketBuilder.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
+
+    /// <summary>
+    /// Returns the ping information of the connection, including up time and last ping time.
+    /// </summary>
+    [PacketEncryption(false)]
+    [PacketTimeout(Timeouts.Short)]
+    [PacketPermission(PermissionLevel.Guest)]
+    [PacketRateGroup(nameof(SessionController))]
+    [PacketId((ushort)InternalProtocolCommand.PingInfo)]
+    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    public static Memory<byte> GetPingInfo(IPacket _, IConnection connection)
+    {
+        PingInfoDto pingInfoDto = new()
+        {
+            UpTime = connection.UpTime,
+            LastPingTime = connection.LastPingTime,
+        };
+
+        return PacketBuilder.Json(PacketCode.Success, pingInfoDto, NotioJsonContext.Default.PingInfoDto);
+    }
 }
