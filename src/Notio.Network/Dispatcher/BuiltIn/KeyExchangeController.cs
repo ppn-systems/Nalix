@@ -1,9 +1,10 @@
+using Notio.Common.Attributes;
 using Notio.Common.Connection;
+using Notio.Common.Constants;
 using Notio.Common.Cryptography.Asymmetric;
 using Notio.Common.Cryptography.Hashing;
 using Notio.Common.Logging;
 using Notio.Common.Package;
-using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Core;
@@ -46,20 +47,17 @@ public class KeyExchangeController
     /// </summary>
     /// <param name="packet">The incoming packet containing the client's public key.</param>
     /// <param name="connection">The connection to the client that is requesting the handshake.</param>
-    [PacketTimeout(5000)]
     [PacketEncryption(false)]
+    [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.StartHandshake)]
     public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
-        _logger?.Debug($"Starting handshake for {connection.RemoteEndPoint}");
-
         // Check if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
         {
-            _logger?.Warn(
-                $"Received non-binary packet type {packet.Type} " +
-                $"from connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
+                           packet.Type, connection.RemoteEndPoint);
 
             return PacketBuilder.String(PacketCode.PacketType);
         }
@@ -67,16 +65,15 @@ public class KeyExchangeController
         // Validate that the public key length is 32 bytes (X25519 standard).
         if (packet.Payload.Length != 32)
         {
-            _logger?.Warn(
-                $"Invalid public key length {packet.Payload.Length} " +
-                $"from connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Invalid public key length [Length={0}] from {1}",
+                           packet.Payload.Length, connection.RemoteEndPoint);
 
             return PacketBuilder.String(PacketCode.InvalidPayload);
         }
 
         if (IsReplayAttempt(connection))
         {
-            _logger?.Warn($"Handshake replay attempt from {connection.RemoteEndPoint}");
+            _logger?.Debug("Detected handshake replay attempt from {0}", connection.RemoteEndPoint);
             return PacketBuilder.String(PacketCode.RateLimited);
         }
 
@@ -103,8 +100,8 @@ public class KeyExchangeController
     /// </summary>
     /// <param name="packet">The incoming packet containing the client's public key for finalization.</param>
     /// <param name="connection">The connection to the client.</param>
-    [PacketTimeout(5000)]
     [PacketEncryption(false)]
+    [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)InternalProtocolCommand.CompleteHandshake)]
     public Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
@@ -112,9 +109,8 @@ public class KeyExchangeController
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)
         {
-            _logger?.Warn(
-                $"Received non-binary packet type {packet.Type} " +
-                $"from connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
+                           packet.Type, connection.RemoteEndPoint);
 
             return PacketBuilder.String(PacketCode.PacketType);
         }
@@ -122,8 +118,8 @@ public class KeyExchangeController
         // Check if the public key length is correct (32 bytes).
         if (packet.Payload.Length != 32)
         {
-            _logger?.Warn(
-                $"Invalid public key length {packet.Payload.Length} from connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Invalid public key length [Length={0}] from {1}",
+                           packet.Payload.Length, connection.RemoteEndPoint);
 
             return PacketBuilder.String(PacketCode.InvalidPayload);
         }
@@ -132,7 +128,7 @@ public class KeyExchangeController
         if (!connection.Metadata.TryGetValue(Meta.PrivateKey, out object? privateKeyObj) ||
             privateKeyObj is not byte[] @private)
         {
-            _logger?.Warn($"Missing or invalid X25519 private key for connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Missing or invalid private key for {0}", connection.RemoteEndPoint);
 
             return PacketBuilder.String(PacketCode.UnknownError);
         }
@@ -145,11 +141,11 @@ public class KeyExchangeController
         // Compare the derived key with the encryption key in the connection.
         if (connection.EncryptionKey is null || !connection.EncryptionKey.SequenceEqual(derivedKey))
         {
-            _logger?.Warn($"Key mismatch during finalization for connection {connection.RemoteEndPoint}");
+            _logger?.Debug("Key mismatch during handshake finalization for {0}", connection.RemoteEndPoint);
             return PacketBuilder.String(PacketCode.Conflict);
         }
 
-        _logger?.Info($"Secure connection finalized successfully for connection {connection.RemoteEndPoint}");
+        _logger?.Debug("Secure connection established for {0}", connection.RemoteEndPoint);
         return PacketBuilder.String(PacketCode.Success);
     }
 

@@ -1,7 +1,7 @@
+using Notio.Common.Attributes;
 using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Package;
-using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Network.Core.Packets;
 using System;

@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Common.Package.Attributes;
+namespace Notio.Common.Attributes;
 
 /// <summary>
 /// Marks a class as a packet controller responsible for handling packet commands.
