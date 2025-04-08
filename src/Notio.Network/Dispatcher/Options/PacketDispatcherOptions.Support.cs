@@ -84,10 +84,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 {
                     await task;
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -100,10 +97,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     byte[] data = await task;
                     await connection.SendAsync(data);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -116,10 +110,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     Memory<byte> memory = await task;
                     await connection.SendAsync(memory);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -132,10 +123,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     TPacket packet = await task;
                     await PacketDispatcherOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -147,10 +135,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 {
                     await task;
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -163,10 +148,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     byte[] data = await task;
                     await connection.SendAsync(data);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -179,10 +161,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     Memory<byte> memory = await task;
                     await connection.SendAsync(memory);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
@@ -195,13 +174,18 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     TPacket packet = await task;
                     await PacketDispatcherOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
-                catch (Exception ex)
-                {
-                    _logger?.Error("Error invoking handler", ex);
-                }
+                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
             }
         }
         ,
         _ => throw new InvalidOperationException($"Unsupported return type: {returnType}")
     };
+
+    private void LogHandlerError(Type returnType, Exception ex)
+        => _logger?.Error(
+            "Packet handler execution failed. ReturnType: {0}, ExceptionType: {1}, Message: {2}",
+            returnType.Name,
+            ex.GetType().Name,
+            ex.Message
+        );
 }

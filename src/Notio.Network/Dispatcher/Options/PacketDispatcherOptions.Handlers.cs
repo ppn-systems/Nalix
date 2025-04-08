@@ -83,7 +83,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
 
         // Log method scanning process
-        _logger?.Debug($"Scanning methods in controller '{controllerName}' for packet handlers...");
+        _logger?.Debug("Scanning '{0}' for packet handler methods...", controllerName);
 
         List<MethodInfo> methods = [.. typeof(TController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
@@ -91,7 +91,9 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
         if (methods.Count == 0)
         {
-            string message = $"No methods found with PacketId attribute in controller '{controllerType.Name}'.";
+            string message = $"Controller '{controllerType.FullName}' has no methods marked with [PacketId]. " +
+                             $"Ensure at least one public method is decorated.";
+
             _logger?.Warn(message);
             throw new InvalidOperationException(message);
         }
@@ -103,8 +105,10 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
         if (duplicateCommandIds.Any())
         {
-            string message = $"Duplicate command IDs detected in controller " +
-                             $"'{controllerName}': {string.Join(", ", duplicateCommandIds)}";
+            string message = $"Duplicate PacketId values found in controller " +
+                             $"'{controllerName}': {string.Join(", ", duplicateCommandIds)}. " +
+                             $"Each handler must have a unique ID.";
+
             _logger?.Error(message);
             throw new InvalidOperationException(message);
         }
@@ -117,17 +121,18 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
             if (PacketHandlers.ContainsKey(id))
             {
-                string message = $"Id '{id}' already registered for handler.";
-                _logger?.Error(message);
-                throw new InvalidOperationException(message);
+                _logger?.Error("PacketId '{0}' already registered in another controller. Conflict in controller '{1}'.",
+                                id, controllerName);
+
+                throw new InvalidOperationException($"PacketId '{id}' already registered.");
             }
 
             PacketHandlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
             registeredIds.Add(id);
         }
 
-        _logger?.Info($"Successfully registered handlers for command IDs: " +
-                      $"{string.Join(", ", registeredIds)} in controller '{controllerName}'.");
+        _logger?.Info("Registered {0} packet handlers in controller '{1}': [{2}]",
+                       registeredIds.Count, controllerName, string.Join(", ", registeredIds));
 
         return this;
     }
@@ -166,7 +171,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         if (PacketHandlers.TryGetValue(id, out handler))
             return true;
 
-        Logger?.Warn($"No handler found for Number: {id}");
+        Logger?.Warn("No handler found for packet [ID={0}]", id);
         return false;
     }
 
@@ -250,13 +255,12 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             }
             catch (PackageException ex)
             {
-                _logger?.Error("Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
-                               "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
+                _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
+                               "Exception: {3}. Remote: {4}, Exception Details: {5}",
                     attributes.PacketId.Id,           // Command ID
                     controllerInstance.GetType().Name,// Controller name
                     method.Name,                      // Method name
                     ex.GetType().Name,                // Exception type
-                    attributes.PacketId.Id,           // Command ID for context
                     connection.RemoteEndPoint,        // Connection details for traceability
                     ex.Message                        // Exception message itself
                 );
@@ -265,7 +269,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             }
             catch (Exception ex)
             {
-                _logger?.Error("Command '{0}' ({1}.{2}) threw {3}: {4} [Remote: {5}]",
+                _logger?.Error("Packet [Id={0}] ({1}.{2}) threw {3}: {4} [Remote: {5}]",
                     attributes.PacketId.Id,
                     controllerInstance.GetType().Name,
                     method.Name,

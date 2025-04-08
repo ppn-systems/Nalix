@@ -23,9 +23,10 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     /// </remarks>
     public PacketDispatcherOptions<TPacket> WithMetrics(Action<string, long> metricsCallback)
     {
+        _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
         IsMetricsEnabled = true;
         MetricsCallback = metricsCallback;
-        _logger?.Debug("Metrics tracking enabled.");
+
         return this;
     }
 
@@ -43,7 +44,8 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     public PacketDispatcherOptions<TPacket> WithLogging(ILogger logger)
     {
         _logger = logger;
-        _logger.Debug("Logging configured.");
+        _logger.Info("Logger instance successfully attached to PacketDispatcher. Logging is now active.");
+
         return this;
     }
 
@@ -64,8 +66,9 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     /// </remarks>
     public PacketDispatcherOptions<TPacket> WithErrorHandling(Action<Exception, ushort> errorHandler)
     {
+        _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
         ErrorHandler = errorHandler;
-        _logger?.Debug("Error handler configured.");
+
         return this;
     }
 }
