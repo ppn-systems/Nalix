@@ -62,12 +62,6 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether metrics collection is enabled.
-    /// <c>true</c> if metrics collection is enabled; otherwise, <c>false</c>.
-    /// </summary>
-    public bool EnableMetrics { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the maximum allowed requests per time window.
     /// </summary>
     /// <value>The maximum Number of requests allowed in a given time window.</value>

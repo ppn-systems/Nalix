@@ -26,8 +26,6 @@ public sealed class ConnectionLimiter : IDisposable
 
     // Cache frequently accessed configuration values
     private readonly int _maxConnectionsPerIp;
-    private readonly bool _enableLogging;
-    private readonly bool _enableMetrics;
     private readonly TimeSpan _inactivityThreshold;
 
     // Constants for optimization
@@ -54,8 +52,6 @@ public sealed class ConnectionLimiter : IDisposable
 
         // Cache configuration values for performance
         _maxConnectionsPerIp = _config.MaxConnectionsPerIpAddress;
-        _enableLogging = _config.EnableLogging;
-        _enableMetrics = _config.EnableMetrics;
         _inactivityThreshold = _config.InactivityThreshold;
 
         // Initialize with case-insensitive string comparer for IP addresses
@@ -105,16 +101,16 @@ public sealed class ConnectionLimiter : IDisposable
         DateTime now = DateTime.UtcNow;
         DateTime currentDate = now.Date;
 
-        if (_enableMetrics && _logger != null) _logger.Trace($"{endPoint}|New");
+        _logger?.Trace($"Connection from {endPoint} denied");
 
-        // Check if endpoint already exists
+        // CheckLimit if endpoint already exists
         if (_connectionInfo.TryGetValue(endPoint, out var existingInfo))
         {
             // Fast path for already at limit
             if (existingInfo.CurrentConnections >= _maxConnectionsPerIp)
             {
-                if (_enableLogging && _logger != null)
-                    _logger.Trace($"Connection limit exceeded for IP: {endPoint} ({existingInfo.CurrentConnections}/{_maxConnectionsPerIp})");
+                _logger?.Trace("Connection limit exceeded for IP: {0} ({1}/{2})",
+                               endPoint, existingInfo.CurrentConnections, _maxConnectionsPerIp);
 
                 return false;
             }
@@ -153,7 +149,7 @@ public sealed class ConnectionLimiter : IDisposable
         if (string.IsNullOrWhiteSpace(endPoint))
             throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
-        if (_enableMetrics && _logger != null) _logger.Trace($"{endPoint}|Closed");
+        _logger?.Trace($"{endPoint}|Closed");
 
         // Fast path if entry doesn't exist
         if (!_connectionInfo.TryGetValue(endPoint, out var existingInfo)) return false;
@@ -225,8 +221,8 @@ public sealed class ConnectionLimiter : IDisposable
                     keysToRemove ??= new List<string>(Math.Min(EstimatedCollectionCapacity, _connectionInfo.Count));
                     keysToRemove.Add(key);
 
-                    if (_enableLogging && _logger != null)
-                        _logger.Trace($"Removing stale connection for IP: {key} (inactive since {info.LastConnectionTime:yyyy-MM-dd HH:mm:ss})");
+                    _logger?.Trace($"Removing stale connection for IP: {0} (inactive since {1:yyyy-MM-dd HH:mm:ss})",
+                                     key, info.LastConnectionTime);
                 }
 
                 processedCount++;
@@ -241,8 +237,7 @@ public sealed class ConnectionLimiter : IDisposable
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            if (_enableLogging && _logger != null)
-                _logger.Error("Error during connection cleanup", ex);
+            _logger?.Error("Error during connection cleanup", ex);
         }
         finally
         {
@@ -300,8 +295,7 @@ public sealed class ConnectionLimiter : IDisposable
 
         _connectionInfo.Clear();
 
-        if (_enableLogging && _logger != null)
-            _logger.Info(
+        _logger?.Info(
                 $"All connection counters have been reset " +
                 $"[UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]");
     }

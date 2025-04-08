@@ -53,7 +53,7 @@ public class KeyExchangeController
     [PacketId((ushort)InternalProtocolCommand.StartHandshake)]
     public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
-        // Check if the packet type is binary (as expected for X25519 public key).
+        // CheckLimit if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
         {
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
@@ -115,7 +115,7 @@ public class KeyExchangeController
             return PacketBuilder.String(PacketCode.PacketType);
         }
 
-        // Check if the public key length is correct (32 bytes).
+        // CheckLimit if the public key length is correct (32 bytes).
         if (packet.Payload.Length != 32)
         {
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",

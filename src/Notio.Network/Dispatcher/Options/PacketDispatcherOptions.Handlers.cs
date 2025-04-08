@@ -178,6 +178,14 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         {
             Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
 
+            if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
+            {
+                _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
+
+                connection.SendCode(PacketCode.RateLimited);
+                return;
+            }
+
             if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
@@ -186,13 +194,18 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             }
 
             // Handle Compression (e.g., apply compression to packet)
-            if (packet.IsCompression)
-                packet = TPacket.Decompress(packet, connection.ComMode);
+            try { packet = TPacket.Decompress(packet, connection.ComMode); }
+            catch (Exception ex)
+            {
+                _logger?.Error("Failed to decompress packet: {0}", ex.Message);
+                connection.SendCode(PacketCode.ServerError);
+                return;
+            }
 
             if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
             {
                 string message = $"Encrypted packet not allowed for command " +
-                                 $"'{method.GetCustomAttribute<PacketIdAttribute>()!.Id}' " +
+                                 $"'{attributes.PacketId.Id}' " +
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Warn(message);
@@ -219,8 +232,9 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Error(
-                            $"Packet '{attributes.PacketId.Id}' timed out after {attributes.Timeout.TimeoutMilliseconds}ms.");
+                        _logger?.Error("Packet '{0}' timed out after {1}ms.",
+                            attributes.PacketId.Id,
+                            attributes.Timeout.TimeoutMilliseconds);
                         connection.SendCode(PacketCode.RequestTimeout);
 
                         return;
@@ -236,9 +250,8 @@ public sealed partial class PacketDispatcherOptions<TPacket>
             }
             catch (PackageException ex)
             {
-                string message = string.Format(
-                    "Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
-                    "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
+                _logger?.Error("Error occurred while processing command '{0}' in controller '{1}' (Method: '{2}'). " +
+                               "Exception: {3}. Packet info: Command ID: {4}, RemoteEndPoint: {5}, Exception Details: {6}",
                     attributes.PacketId.Id,           // Command ID
                     controllerInstance.GetType().Name,// Controller name
                     method.Name,                      // Method name
@@ -247,23 +260,20 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     connection.RemoteEndPoint,        // Connection details for traceability
                     ex.Message                        // Exception message itself
                 );
-                _logger?.Error(message);
-                ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
+                ErrorHandler?.Invoke(ex, attributes.PacketId.Id);
                 connection.SendCode(PacketCode.ServerError);
             }
             catch (Exception ex)
             {
-                string message = string.Format(
-                    "General error while processing command '{0}' in controller '{1}' (Method: '{2}')." +
-                    "Exception: {3}, Remote Endpoint: {4}",
-                    method.GetCustomAttribute<PacketIdAttribute>()!.Id,
+                _logger?.Error("Command '{0}' ({1}.{2}) threw {3}: {4} [Remote: {5}]",
+                    attributes.PacketId.Id,
                     controllerInstance.GetType().Name,
                     method.Name,
+                    ex.GetType().Name,
                     ex.Message,
-                    connection.RemoteEndPoint);
-
-                _logger?.Error(message);
-                ErrorHandler?.Invoke(ex, method.GetCustomAttribute<PacketIdAttribute>()!.Id);
+                    connection.RemoteEndPoint
+                );
+                ErrorHandler?.Invoke(ex, attributes.PacketId.Id);
                 connection.SendCode(PacketCode.ServerError);
             }
             finally

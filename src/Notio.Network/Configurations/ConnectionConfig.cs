@@ -50,16 +50,6 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether logging is enabled.
-    /// </summary>
-    public bool EnableLogging { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether metrics collection is enabled.
-    /// </summary>
-    public bool EnableMetrics { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the maximum Number of connections allowed per IP address.
     /// </summary>
     /// <remarks>

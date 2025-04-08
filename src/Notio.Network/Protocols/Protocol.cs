@@ -36,7 +36,7 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     public virtual void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
     {
-        // Check cancellation
+        // CheckLimit cancellation
         cancellationToken.ThrowIfCancellationRequested();
 
         ArgumentNullException.ThrowIfNull(connection);

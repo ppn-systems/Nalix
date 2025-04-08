@@ -6,9 +6,10 @@ using Notio.Shared.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Security.Guard;
 
@@ -27,44 +28,43 @@ public sealed class RequestLimiter : IDisposable
 {
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
-    private readonly SemaphoreSlim _cleanupLock;
-    private readonly RequestConfig _RequestConfig;
+    private readonly RequestConfig _config;
+    private readonly long _timeWindowTicks;
+    private readonly long _lockoutDurationTicks;
     private readonly ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
 
     private bool _disposed;
+    private int _cleanupRunning;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimiter"/> class with the provided firewall configuration and optional logger.
     /// </summary>
-    /// <param name="requestConfig">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
+    /// <param name="config">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
     /// <param name="logger">An optional logger for logging purposes. If <see langword="null"/>, no logging will be done.</param>
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(RequestConfig? requestConfig, ILogger? logger = null)
+    public RequestLimiter(RequestConfig? config = null, ILogger? logger = null)
     {
         _logger = logger;
-        _RequestConfig = requestConfig ?? ConfigurationStore.Instance.Get<RequestConfig>();
+        _config = config ?? ConfigurationStore.Instance.Get<RequestConfig>();
 
-        if (_RequestConfig.MaxAllowedRequests <= 0)
+        if (_config.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
-
-        if (_RequestConfig.LockoutDurationSeconds <= 0)
+        if (_config.LockoutDurationSeconds <= 0)
             throw new InternalErrorException("LockoutDurationSeconds must be greater than 0");
-
-        if (_RequestConfig.TimeWindowInMilliseconds <= 0)
+        if (_config.TimeWindowInMilliseconds <= 0)
             throw new InternalErrorException("TimeWindowInMilliseconds must be greater than 0");
 
-        _ipData = new ConcurrentDictionary<string, RequestLimiterInfo>();
-        _cleanupLock = new SemaphoreSlim(1, 1);
+        _ipData = new();
+        _timeWindowTicks = TimeSpan.FromMilliseconds(_config.TimeWindowInMilliseconds).Ticks;
+        _lockoutDurationTicks = TimeSpan.FromSeconds(_config.LockoutDurationSeconds).Ticks;
 
-        // Initialize the cleanup timer for automatic request cleanup
         _cleanupTimer = new Timer(
-            async void (_) => await CleanupInactiveRequestsAsync(),
-            null,
+            static s => ((RequestLimiter)s!).Cleanup(),
+            this,
             TimeSpan.FromMinutes(1),
-            TimeSpan.FromMinutes(1)
-        );
+            TimeSpan.FromMinutes(1));
     }
 
     /// <summary>
@@ -74,81 +74,54 @@ public sealed class RequestLimiter : IDisposable
     /// <returns>true if the request is accepted, false if rejected.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the object has been disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if the IP address is invalid.</exception>
-    public bool CheckLimit(string endPoint)
+    public bool CheckLimit([NotNull] string endPoint)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
 
         if (string.IsNullOrWhiteSpace(endPoint))
             throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
 
-        var currentTime = DateTime.UtcNow;
-
-        bool status = _ipData.AddOrUpdate(
+        long current = Stopwatch.GetTimestamp();
+        RequestLimiterInfo data = _ipData.AddOrUpdate(
             endPoint,
-            _ => new RequestLimiterInfo(new Queue<DateTime>([currentTime]), null),
-            (_, data) => ProcessRequest(data, currentTime)
-        ).BlockedUntil?.CompareTo(currentTime) <= 0;
+            _ => new RequestLimiterInfo(current),
+            (_, existing) => existing.Process(current, _config.MaxAllowedRequests, _timeWindowTicks, _lockoutDurationTicks)
+        );
 
-        if (_RequestConfig.EnableMetrics)
-            _logger?.Meta($"{endPoint}|{status}|{currentTime.Minute}ms");
+        bool allowed = data.BlockedUntilTicks < current;
 
-        return status;
-    }
+        _logger?.Meta($"{endPoint}|{allowed}|{Stopwatch.GetElapsedTime(data.LastRequestTicks):g}");
 
-    private RequestLimiterInfo ProcessRequest(RequestLimiterInfo data, DateTime currentTime)
-    {
-        var (requests, blockedUntil) = data;
-
-        // Check if the IP is currently blocked
-        if (blockedUntil.HasValue && currentTime < blockedUntil.Value)
-            return data;
-
-        // Remove old requests
-        while (requests.Count > 0 && currentTime - requests.Peek() >
-            TimeSpan.FromMilliseconds(_RequestConfig.TimeWindowInMilliseconds))
-            requests.Dequeue();
-
-        // If the maximum requests are reached, block the IP for the lockout duration
-        if (requests.Count >= _RequestConfig.MaxAllowedRequests)
-            return new RequestLimiterInfo(requests, currentTime.AddSeconds(_RequestConfig.LockoutDurationSeconds));
-
-        requests.Enqueue(currentTime);
-        return new RequestLimiterInfo(requests, null);
+        return allowed;
     }
 
     /// <summary>
     /// Periodically cleans up inactive requests to remove expired data from the IP request tracking.
     /// </summary>
-    private async Task CleanupInactiveRequestsAsync()
+    private void Cleanup()
     {
-        if (_disposed) return;
+        if (_disposed || Interlocked.Exchange(ref _cleanupRunning, 1) == 1)
+            return;
+
+        List<string> toRemove = [];
 
         try
         {
-            await _cleanupLock.WaitAsync();
-            var currentTime = DateTime.UtcNow;
-            var keysToRemove = new List<string>();
+            long current = Stopwatch.GetTimestamp();
 
             foreach (var kvp in _ipData)
             {
-                var (ip, data) = kvp;
-                var cleanedRequests = new Queue<DateTime>(
-                    data.Requests.Where(time => currentTime - time <=
-                    TimeSpan.FromMilliseconds(_RequestConfig.TimeWindowInMilliseconds))
-                );
+                (string ip, RequestLimiterInfo info) = kvp;
+                info.Cleanup(current, _timeWindowTicks);
 
-                if (cleanedRequests.Count == 0 && (!data.BlockedUntil.HasValue || currentTime > data.BlockedUntil.Value))
-                    keysToRemove.Add(ip);
-                else
-                    _ipData.TryUpdate(ip, new RequestLimiterInfo(cleanedRequests, data.BlockedUntil), data);
+                if (info.RequestCount == 0 && info.BlockedUntilTicks < current) toRemove.Add(ip);
             }
 
-            foreach (var key in keysToRemove)
-                _ipData.TryRemove(key, out _);
+            foreach (string key in toRemove) _ipData.TryRemove(key, out _);
         }
         finally
         {
-            _cleanupLock.Release();
+            Interlocked.Exchange(ref _cleanupRunning, 0);
         }
     }
 
@@ -159,7 +132,13 @@ public sealed class RequestLimiter : IDisposable
 
         _disposed = true;
         _cleanupTimer.Dispose();
-        _cleanupLock.Dispose();
         _ipData.Clear();
+    }
+
+    private static class StopwatchExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static TimeSpan GetElapsedTime(long startTicks)
+            => TimeSpan.FromTicks((Stopwatch.GetTimestamp() - startTicks) * TimeSpan.TicksPerSecond / Stopwatch.Frequency);
     }
 }

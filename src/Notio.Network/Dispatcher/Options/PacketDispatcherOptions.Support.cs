@@ -15,17 +15,22 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
     private record PacketAttributes(
         PacketIdAttribute PacketId,
+        PacketTimeoutAttribute? Timeout,
+        PacketRateGroupAttribute? RateGroup,
+        PacketRateLimitAttribute? RateLimit,
         PacketPermissionAttribute? Permission,
-        PacketEncryptionAttribute? Encryption,
-        PacketTimeoutAttribute? Timeout
+        PacketEncryptionAttribute? Encryption
     );
 
     private static PacketAttributes GetPacketAttributes(MethodInfo method)
     => new(
         method.GetCustomAttribute<PacketIdAttribute>()!,
+        method.GetCustomAttribute<PacketTimeoutAttribute>(),
+        method.GetCustomAttribute<PacketRateGroupAttribute>(),
+        method.GetCustomAttribute<PacketRateLimitAttribute>(),
         method.GetCustomAttribute<PacketPermissionAttribute>(),
-        method.GetCustomAttribute<PacketEncryptionAttribute>(),
-        method.GetCustomAttribute<PacketTimeoutAttribute>()
+        method.GetCustomAttribute<PacketEncryptionAttribute>()
+
     );
 
     private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
@@ -34,6 +39,17 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.EncMode);
 
         await connection.SendAsync(packet);
+    }
+
+    private bool CheckRateLimit(string remoteEndPoint, PacketAttributes attributes, MethodInfo method)
+    {
+        if (attributes.RateLimit != null && !_rateLimiter.Check(
+            remoteEndPoint, attributes.RateGroup?.GroupName ?? method.Name,
+            attributes.RateLimit, attributes.RateGroup))
+        {
+            return false;
+        }
+        return true;
     }
 
     /// <summary>

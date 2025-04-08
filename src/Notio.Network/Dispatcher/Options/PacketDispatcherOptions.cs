@@ -1,6 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Package;
+using Notio.Network.Security.Guard;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -32,6 +33,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     #region Fields
 
     private ILogger? _logger;
+    private readonly PacketRateLimitGuard _rateLimiter = new();
 
     /// <summary>
     /// Gets or sets the callback used to report the execution time of packet handlers.
