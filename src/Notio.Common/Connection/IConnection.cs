@@ -24,7 +24,7 @@ public interface IConnection : IDisposable
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>
-    long PingTime { get; }
+    long LastPingTime { get; }
 
     /// <summary>
     /// Gets the incoming packet of data.

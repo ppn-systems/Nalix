@@ -7,6 +7,8 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Notio.Network.Core.Packets;
 
@@ -40,6 +42,12 @@ internal static class PacketBuilder
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> String(PacketCode code)
         => Assemble(code, PacketType.String, PacketCodeHelper.GetMessageBytes(code));
+
+    internal static Memory<byte> Json<T>(PacketCode code, T payload, JsonTypeInfo<T> context)
+    {
+        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload, context);
+        return Assemble(code, PacketType.Json, jsonBytes);
+    }
 
     /// <summary>
     /// Builds a complete packet with header and payload.

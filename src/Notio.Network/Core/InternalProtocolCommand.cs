@@ -27,4 +27,30 @@ public enum InternalProtocolCommand : ushort
     /// Command to set the encryption mode for the connection.
     /// </summary>
     SetEncryptionMode = 0x0004,
+
+    /// <summary>
+    /// Sent by the client to gracefully terminate the connection with the server.
+    /// This allows for a clean shutdown without triggering unexpected disconnect handling.
+    /// </summary>
+    Disconnect = 0x0005,
+
+    /// <summary>
+    /// Sent by the client to request current connection status information such as compression or encryption settings.
+    /// </summary>
+    ConnectionStatus = 0x0006,
+
+    /// <summary>
+    /// Sent by the client to check if the server is alive and measure latency.
+    /// </summary>
+    Ping = 0x0007,
+
+    /// <summary>
+    /// Sent by the server in response to a Ping request.
+    /// </summary>
+    Pong = 0x0008,
+
+    /// <summary>
+    /// Sent by the client to request the server's current ping time.
+    /// </summary>
+    PingTime = 0x0009
 }

@@ -76,7 +76,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     {
         Type controllerType = typeof(TController);
         PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
-            ?? throw new InvalidOperationException($"Controller '{controllerType.Name}' missing PacketController attribute.");
+            ?? throw new InvalidOperationException($"SessionController '{controllerType.Name}' missing PacketController attribute.");
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
@@ -91,7 +91,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
         if (methods.Count == 0)
         {
-            string message = $"Controller '{controllerType.FullName}' has no methods marked with [PacketId]. " +
+            string message = $"SessionController '{controllerType.FullName}' has no methods marked with [PacketId]. " +
                              $"Ensure at least one public method is decorated.";
 
             _logger?.Warn(message);
@@ -258,7 +258,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                "Exception: {3}. Remote: {4}, Exception Details: {5}",
                     attributes.PacketId.Id,           // Command ID
-                    controllerInstance.GetType().Name,// Controller name
+                    controllerInstance.GetType().Name,// SessionController name
                     method.Name,                      // Method name
                     ex.GetType().Name,                // Exception type
                     connection.RemoteEndPoint,        // Connection details for traceability

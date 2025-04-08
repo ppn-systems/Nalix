@@ -15,12 +15,10 @@ using System.Runtime.CompilerServices;
 namespace Notio.Network.Dispatcher.BuiltIn;
 
 /// <summary>
-/// Provides handlers for managing connection-level configuration commands, 
-/// such as setting compression and encryption modes during the handshake phase.
-/// This controller is designed to be used with Dependency Injection and supports logging.
+/// Handles connection mode settings for compression and encryption.
 /// </summary>
 [PacketController]
-public class ConnectionController(ILogger? logger)
+public sealed class ModeController(ILogger? logger)
 {
     private readonly ILogger? _logger = logger;
 
@@ -32,9 +30,9 @@ public class ConnectionController(ILogger? logger)
     /// <param name="connection">The active client connection.</param>
     /// <returns>A response packet indicating success or failure.</returns>
     [PacketEncryption(false)]
-    [PacketRateGroup("Control")]
-    [PacketTimeout(Timeouts.Instant)]
+    [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
+    [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)InternalProtocolCommand.SetCompressionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
@@ -48,9 +46,9 @@ public class ConnectionController(ILogger? logger)
     /// <param name="connection">The active client connection.</param>
     /// <returns>A response packet indicating success or failure.</returns>
     [PacketEncryption(false)]
-    [PacketRateGroup("Control")]
-    [PacketTimeout(Timeouts.Instant)]
+    [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
+    [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)InternalProtocolCommand.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
@@ -81,7 +79,6 @@ public class ConnectionController(ILogger? logger)
                 value, typeof(TEnum).Name, connection.RemoteEndPoint);
             return PacketBuilder.String(PacketCode.InvalidPayload);
         }
-
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
         if (typeof(TEnum) == typeof(CompressionMode))
