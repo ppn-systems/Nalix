@@ -1,8 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Attributes;
 using Nalix.Common.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
@@ -17,7 +15,6 @@ namespace Nalix.Network.Middleware.Inbound;
 /// If a connection exceeds the allowed request rate, a rate limit response is sent
 /// and further processing is halted.
 /// </summary>
-[Middleware(MiddlewareStage.Inbound, order: 0, name: "RateLimit")]
 public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly TokenBucketLimiter _limiter;

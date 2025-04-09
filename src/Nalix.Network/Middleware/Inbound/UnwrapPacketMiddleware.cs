@@ -1,9 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Protocols;
@@ -17,7 +15,6 @@ namespace Nalix.Network.Middleware.Inbound;
 /// <summary>
 /// Middleware that unwraps (decrypts and/or decompresses) packets before further processing.
 /// </summary>
-[Middleware(MiddlewareStage.Inbound, order: 3, name: "Unwrap")]
 public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
