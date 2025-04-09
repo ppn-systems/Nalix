@@ -51,7 +51,7 @@ public sealed class HandshakeController
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(HandshakeController))]
-    [PacketId((ushort)InternalProtocolCommand.StartHandshake)]
+    [PacketId((ushort)ProtocolPacket.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
@@ -106,7 +106,7 @@ public sealed class HandshakeController
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(HandshakeController))]
-    [PacketId((ushort)InternalProtocolCommand.CompleteHandshake)]
+    [PacketId((ushort)ProtocolPacket.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     public Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {

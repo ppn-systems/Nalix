@@ -24,6 +24,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     public PacketDispatcherOptions<TPacket> WithMetrics(Action<string, long> metricsCallback)
     {
         _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
+
         IsMetricsEnabled = true;
         MetricsCallback = metricsCallback;
 

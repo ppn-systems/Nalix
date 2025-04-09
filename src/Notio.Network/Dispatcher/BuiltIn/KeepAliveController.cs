@@ -24,7 +24,7 @@ public static class KeepAliveController
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveController))]
-    [PacketId((ushort)InternalProtocolCommand.Ping)]
+    [PacketId((ushort)ProtocolPacket.Ping)]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     public static Memory<byte> Ping(IPacket _, IConnection __)
         => PacketBuilder.String(PacketCode.Success, "Pong");
@@ -36,7 +36,7 @@ public static class KeepAliveController
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveController))]
-    [PacketId((ushort)InternalProtocolCommand.Pong)]
+    [PacketId((ushort)ProtocolPacket.Pong)]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     public static Memory<byte> Pong(IPacket _, IConnection __)
         => PacketBuilder.String(PacketCode.Success, "Ping");
@@ -48,7 +48,7 @@ public static class KeepAliveController
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController))]
-    [PacketId((ushort)InternalProtocolCommand.PingTime)]
+    [PacketId((ushort)ProtocolPacket.PingTime)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     public static Memory<byte> GetPingTime(IPacket _, IConnection connection)
         => PacketBuilder.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
@@ -60,7 +60,7 @@ public static class KeepAliveController
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController))]
-    [PacketId((ushort)InternalProtocolCommand.PingInfo)]
+    [PacketId((ushort)ProtocolPacket.PingInfo)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     public static Memory<byte> GetPingInfo(IPacket _, IConnection connection)
     {

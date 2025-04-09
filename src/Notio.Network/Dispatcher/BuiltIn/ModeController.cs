@@ -33,7 +33,7 @@ public sealed class ModeController(ILogger? logger)
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController))]
-    [PacketId((ushort)InternalProtocolCommand.SetCompressionMode)]
+    [PacketId((ushort)ProtocolPacket.SetCompressionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
         => SetMode<CompressionMode>(packet, connection);
@@ -49,7 +49,7 @@ public sealed class ModeController(ILogger? logger)
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController))]
-    [PacketId((ushort)InternalProtocolCommand.SetEncryptionMode)]
+    [PacketId((ushort)ProtocolPacket.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
         => SetMode<EncryptionMode>(packet, connection);
