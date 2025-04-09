@@ -10,17 +10,17 @@ using System;
 internal sealed class TransportCache : IDisposable
 {
     private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
-    private readonly long _connectionStartTime = (long)Clock.UnixTime().TotalMilliseconds;
+    private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
+
+    /// <summary>
+    /// Gets the connection uptime in milliseconds (how long the connection has been active).
+    /// </summary>
+    public long Uptime => (long)Clock.UnixTime().TotalMilliseconds - _startTime;
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// </summary>
     public long LastPingTime { get; set; }
-
-    /// <summary>
-    /// Gets the connection uptime in milliseconds (how long the connection has been active).
-    /// </summary>
-    public long Uptime => (long)Clock.UnixTime().TotalMilliseconds - _connectionStartTime;
 
     /// <summary>
     /// Occurs when a new incoming packet is added to the cache.
