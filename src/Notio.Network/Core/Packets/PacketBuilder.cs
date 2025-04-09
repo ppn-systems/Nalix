@@ -6,7 +6,6 @@ using Notio.Utilities;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
@@ -23,7 +22,7 @@ internal static class PacketBuilder
     /// <param name="code">Packet code.</param>
     /// <param name="payload">Raw payload.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
-    internal static Memory<byte> Binary(PacketCode code, byte[] payload)
+    internal static Memory<byte> Binary(PacketCode code, ReadOnlySpan<byte> payload)
         => Assemble(code, PacketType.Binary, payload);
 
     /// <summary>
@@ -56,11 +55,11 @@ internal static class PacketBuilder
     /// <param name="type">Packet type.</param>
     /// <param name="payload">Raw payload.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
-    internal static Memory<byte> Assemble(PacketCode code, PacketType type, byte[] payload)
+    internal static Memory<byte> Assemble(PacketCode code, PacketType type, ReadOnlySpan<byte> payload)
         => Assemble(code, type, PacketFlags.None, PacketPriority.None, payload);
 
     internal static Memory<byte> Assemble(
-        PacketCode code, PacketType type, PacketFlags flag, PacketPriority priority, byte[] payload)
+        PacketCode code, PacketType type, PacketFlags flag, PacketPriority priority, ReadOnlySpan<byte> payload)
         => Assemble(0, code, type, flag, priority, payload);
 
     /// <summary>
@@ -79,7 +78,7 @@ internal static class PacketBuilder
         PacketType type,
         PacketFlags flag,
         PacketPriority priority,
-        byte[] payload)
+        ReadOnlySpan<byte> payload)
     {
         ulong timestamp = MicrosecondClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
@@ -87,7 +86,10 @@ internal static class PacketBuilder
 
         try
         {
-            Span<byte> span = packet.AsSpan(0, totalLength);
+            Span<byte> span = payload.Length <= 1024
+                ? stackalloc byte[PacketSize.Header + payload.Length]
+                : ArrayPool<byte>.Shared.Rent(PacketSize.Header + payload.Length)
+                    .AsSpan(0, PacketSize.Header + payload.Length);
 
             // Header - write directly using BinaryPrimitives
             BinaryPrimitives.WriteUInt16LittleEndian(span[..PacketSize.Length], totalLength);
