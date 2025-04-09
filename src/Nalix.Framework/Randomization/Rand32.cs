@@ -9,12 +9,11 @@ namespace Nalix.Framework.Randomization;
 /// This class wraps a low-level random number generator (SeededRandom)
 /// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
-/// <param name="seed">The seed to initialize the random ProtocolType generator.</param>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class Rand32(System.Int32 seed)
+public sealed class Rand32
 {
     #region Constants
 
@@ -32,21 +31,31 @@ public sealed class Rand32(System.Int32 seed)
 
     #region Fields
 
-    private System.String DebuggerDisplay => $"Rand32[Seed={_seed}]";
-
     /// <summary>
     /// Current seed value for the random ProtocolType generator.
     /// </summary>
-    private System.Int32 _seed = seed;
+    private System.Int32 _seed;
 
     /// <summary>
     /// Random ProtocolType generator instance.
     /// </summary>
-    private readonly SeededRandom _rand = new((System.UInt32)seed);
+    private readonly SeededRandom _rand;
+
+    private System.String DebuggerDisplay => $"Rand32[Seed={_seed}]";
 
     #endregion Fields
 
     #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rand32"/> class with the default seed value of 0.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    public Rand32(System.Int32 seed)
+    {
+        _seed = seed;
+        _rand = new((System.UInt32)seed);
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Rand32"/> class with the default seed value of 0.
@@ -143,11 +152,11 @@ public sealed class Rand32(System.Int32 seed)
         System.Int64 range = (System.Int64)max - min;
         if (range <= System.Int32.MaxValue)
         {
-            return min + Next((System.Int32)range);
+            return min + this.Next((System.Int32)range);
         }
 
         // Handle large ranges that exceed int.MaxValue
-        return min + (System.Int32)(NextDouble() * range);
+        return min + (System.Int32)(this.NextDouble() * range);
     }
 
     /// <summary>
@@ -167,7 +176,7 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single NextFloat(System.Single max) => NextFloat() * max;
+    public System.Single NextFloat(System.Single max) => this.NextFloat() * max;
 
     /// <summary>
     /// Generates a random floating-point ProtocolType in the range [min, max).
@@ -178,7 +187,7 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
+    public System.Single NextFloat(System.Single min, System.Single max) => min + (this.NextFloat() * (max - min));
 
     /// <summary>
     /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
@@ -197,7 +206,7 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double NextDouble(System.Double max) => NextDouble() * max;
+    public System.Double NextDouble(System.Double max) => this.NextDouble() * max;
 
     /// <summary>
     /// Generates a random double-precision floating-point ProtocolType in the range [min, max).
@@ -208,7 +217,7 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double NextDouble(System.Double min, System.Double max) => min + (NextDouble() * (max - min));
+    public System.Double NextDouble(System.Double min, System.Double max) => min + (this.NextDouble() * (max - min));
 
     /// <summary>
     /// Performs a random check with a given percentage probability.
@@ -218,7 +227,7 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean NextPct(System.Int32 pct) => pct > 0 && (pct >= 100 || Next(100) < pct);
+    public System.Boolean NextPct(System.Int32 pct) => pct > 0 && (pct >= 100 || this.Next(100) < pct);
 
     /// <summary>
     /// Performs a random check with a given probability.
@@ -228,7 +237,8 @@ public sealed class Rand32(System.Int32 seed)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean NextProbability(System.Double probability) => probability > 0.0 && (probability >= 1.0 || NextDouble() < probability);
+    public System.Boolean NextProbability(System.Double probability)
+        => probability > 0.0 && (probability >= 1.0 || this.NextDouble() < probability);
 
     /// <summary>
     /// Randomly shuffles a list using the Fisher-Yates algorithm.
@@ -243,7 +253,7 @@ public sealed class Rand32(System.Int32 seed)
         while (n > 1)
         {
             n--;
-            System.Int32 k = Next(n + 1);
+            System.Int32 k = this.Next(n + 1);
             (list[k], list[n]) = (list[n], list[k]);
         }
     }
@@ -259,7 +269,7 @@ public sealed class Rand32(System.Int32 seed)
         while (n > 1)
         {
             n--;
-            System.Int32 k = Next(n + 1);
+            System.Int32 k = this.Next(n + 1);
             (span[k], span[n]) = (span[n], span[k]);
         }
     }
@@ -275,7 +285,7 @@ public sealed class Rand32(System.Int32 seed)
     {
         return list == null || list.Count == 0
             ? throw new System.ArgumentException("Cannot choose from an empty list", nameof(list))
-            : list[Next(list.Count)];
+            : list[this.Next(list.Count)];
     }
 
     /// <summary>
@@ -287,7 +297,7 @@ public sealed class Rand32(System.Int32 seed)
     /// <exception cref="System.ArgumentException">Thrown when the span is empty.</exception>
     public T Choose<T>(System.ReadOnlySpan<T> span)
         => span.IsEmpty ? throw new System.ArgumentException(
-            "Cannot choose from an empty span", nameof(span)) : span[Next(span.Length)];
+            "Cannot choose from an empty span", nameof(span)) : span[this.Next(span.Length)];
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
