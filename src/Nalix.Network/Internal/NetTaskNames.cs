@@ -164,7 +164,7 @@ internal static class NetTaskNames
     /// <summary>
     /// Worker name for packet dispatching loop.
     /// </summary>
-    public static readonly System.String PacketDispatchWorker = TaskNaming.Workers.Build(Segments.Packet, TaskNaming.Tags.Dispatch);
+    public static System.String PacketDispatchWorker() => TaskNaming.Workers.Build(Segments.Packet, TaskNaming.Tags.Dispatch);
 
     #endregion Workers (Dot-style: tcp.accept.8080.0)
 }
