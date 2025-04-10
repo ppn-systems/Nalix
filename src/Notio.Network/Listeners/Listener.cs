@@ -4,6 +4,7 @@ using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Network.Configurations;
 using Notio.Network.Core;
+using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -198,7 +199,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
                 ConfigureHighPerformanceSocket(socket);
 
                 // Create and process connection similar to async version
-                Core.Connection.Connection connection = new(socket, _bufferPool, _logger);
+                Connection.Connection connection = new(socket, _bufferPool, _logger);
                 connection.OnCloseEvent += OnConnectionClose;
                 connection.OnProcessEvent += _protocol.ProcessMessage!;
                 connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
@@ -399,7 +400,7 @@ public abstract class Listener(int port, IProtocol protocol, IBufferPool bufferP
 
         ConfigureHighPerformanceSocket(socket);
 
-        Core.Connection.Connection connection = new(socket, _bufferPool, _logger);
+        Connection.Connection connection = new(socket, _bufferPool, _logger);
 
         // Use weak event pattern to avoid memory leaks
         connection.OnCloseEvent += OnConnectionClose;

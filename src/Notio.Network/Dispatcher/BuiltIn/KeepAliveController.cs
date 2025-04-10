@@ -4,9 +4,9 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Core;
-using Notio.Network.Core.Packets;
 using Notio.Network.Dispatcher.Dto;
+using Notio.Network.Dispatcher.Packets;
+using Notio.Network.Protocols;
 using System;
 
 namespace Notio.Network.Dispatcher.BuiltIn;

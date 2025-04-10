@@ -1,4 +1,4 @@
-namespace Notio.Network.Core;
+namespace Notio.Network.Protocols;
 
 /// <summary>
 /// Defines the protocol commands used for managing secure connection processes.

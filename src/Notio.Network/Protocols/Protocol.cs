@@ -1,5 +1,4 @@
 using Notio.Common.Connection;
-using Notio.Network.Core;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;

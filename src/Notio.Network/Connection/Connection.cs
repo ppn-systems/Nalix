@@ -7,14 +7,15 @@ using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Common.Security;
 using Notio.Identifiers;
-using Notio.Network.Transport;
+using Notio.Network.Connection.Transport;
+using Notio.Network.Core.Connection;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Core.Connection;
+namespace Notio.Network.Connection;
 
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.
@@ -171,7 +172,7 @@ public sealed class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public bool Send(IPacket packet) => this.Send(packet.Serialize().Span);
+    public bool Send(IPacket packet) => Send(packet.Serialize().Span);
 
     /// <inheritdoc />
     public bool Send(ReadOnlySpan<byte> message)
@@ -186,7 +187,7 @@ public sealed class Connection : IConnection
 
     /// <inheritdoc />
     public async Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-        => await this.SendAsync(packet.Serialize(), cancellationToken);
+        => await SendAsync(packet.Serialize(), cancellationToken);
 
     /// <inheritdoc />
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
@@ -214,7 +215,7 @@ public sealed class Connection : IConnection
             if (_disposed)
                 return;
 
-            this.State = ConnectionState.Disconnected;
+            State = ConnectionState.Disconnected;
 
             _ctokens.Cancel();
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
@@ -245,7 +246,7 @@ public sealed class Connection : IConnection
 
         try
         {
-            this.Disconnect();
+            Disconnect();
         }
         catch (Exception ex)
         {

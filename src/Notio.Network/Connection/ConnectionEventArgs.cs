@@ -1,7 +1,7 @@
 using Notio.Common.Connection;
 using System;
 
-namespace Notio.Network.Core.Connection;
+namespace Notio.Network.Connection;
 
 /// <inheritdoc />
 public sealed class ConnectionEventArgs(Connection connection) : EventArgs, IConnectEventArgs
