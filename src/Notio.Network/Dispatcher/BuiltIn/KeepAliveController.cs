@@ -15,7 +15,7 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 /// A controller for managing keep-alive packets in a network dispatcher.
 /// </summary>
 [PacketController]
-public static class KeepAliveController
+public sealed class KeepAliveController
 {
     /// <summary>
     /// Handles a ping request from the client.

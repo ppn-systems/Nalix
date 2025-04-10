@@ -17,7 +17,7 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>
 [PacketController]
-public static class SessionController
+public sealed class SessionController
 {
     /// <summary>
     /// Handles a client-initiated disconnect request.

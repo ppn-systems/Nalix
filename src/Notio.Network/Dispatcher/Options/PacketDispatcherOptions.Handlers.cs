@@ -4,6 +4,7 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Network.Core.Packets;
+using Notio.Network.Dispatcher.BuiltIn;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +19,23 @@ namespace Notio.Network.Dispatcher.Options;
 public sealed partial class PacketDispatcherOptions<TPacket>
     where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
 {
+    /// <summary>
+    /// Registers default handlers for the packet dispatcher, including controllers for session management,
+    /// keep-alive functionality, and mode handling. This method sets up the standard set of handlers 
+    /// used by the dispatcher using their respective controller types.
+    /// </summary>
+    /// <returns>
+    /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance, allowing for method chaining.
+    /// </returns>
+    public PacketDispatcherOptions<TPacket> WithHandlerDefault()
+    {
+        this.WithHandler<SessionController>();
+        this.WithHandler<KeepAliveController>();
+        this.WithHandler(() => new ModeController(_logger));
+
+        return this;
+    }
+
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// and scanning its methods decorated with <see cref="PacketIdAttribute"/>.
