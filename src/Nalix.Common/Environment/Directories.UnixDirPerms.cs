@@ -226,8 +226,7 @@ public static partial class Directories
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean SetUnixFileModeCompat(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path,
-        System.IO.UnixFileMode mode)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path, System.IO.UnixFileMode mode)
     {
         try
         {
