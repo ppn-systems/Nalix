@@ -3,8 +3,6 @@ using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
-using Notio.Cryptography.Asymmetric;
-using Notio.Cryptography.Hashing;
 using Notio.Network.Core.Packets;
 using Notio.Network.Dispatcher.BuiltIn;
 using System;
@@ -34,7 +32,6 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         this.WithHandler<SessionController>();
         this.WithHandler<KeepAliveController>();
         this.WithHandler(() => new ModeController(_logger));
-        this.WithHandler(() => new HandshakeController(new Sha256(), new X25519(), _logger));
 
         return this;
     }
