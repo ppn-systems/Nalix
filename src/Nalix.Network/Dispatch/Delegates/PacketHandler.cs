@@ -10,7 +10,7 @@ namespace Nalix.Network.Dispatch.Delegates;
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 public readonly struct PacketHandler<TPacket>(
-    System.UInt16 opCode, PacketMetadata attributes,
+    System.UInt16 opCode, PacketMetadata metadata,
     System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
     System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> compiledInvoker)
 {
@@ -27,26 +27,26 @@ public readonly struct PacketHandler<TPacket>(
     public readonly System.Type ReturnType = returnType;
 
     /// <summary>
-    /// Metadata attributes for this handler (e.g., timeout, rate limiting, permissions).
+    /// Metadata metadata for this handler (e.g., timeout, rate limiting, permissions).
     /// </summary>
-    public readonly PacketMetadata Attributes = attributes;
+    public readonly PacketMetadata Metadata = metadata;
 
     /// <summary>
     /// The controller instance to invoke the handler on (cached for reuse).
     /// </summary>
-    public readonly System.Object ControllerInstance = controllerInstance;
+    public readonly System.Object Instance = controllerInstance;
 
     /// <summary>
     /// The original method info, useful for debugging or reflection fallback.
     /// </summary>
-    public readonly System.Reflection.MethodInfo Method = method;
+    public readonly System.Reflection.MethodInfo MethodInfo = method;
 
     /// <summary>
     /// A compiled delegate for invoking the handler directly.
     /// PERFORMANCE CRITICAL: avoids reflection and allocations.
     /// </summary>
     public readonly System.Func<System.Object, PacketContext<TPacket>,
-                    System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker = compiledInvoker;
+                    System.Threading.Tasks.ValueTask<System.Object?>> Invoker = compiledInvoker;
 
     #endregion Fields
 
@@ -62,8 +62,7 @@ public readonly struct PacketHandler<TPacket>(
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context)
-        => this.CompiledInvoker(this.ControllerInstance, context);
+    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context) => this.Invoker(this.Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
