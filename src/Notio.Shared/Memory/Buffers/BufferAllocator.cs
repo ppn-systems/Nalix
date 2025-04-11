@@ -111,15 +111,11 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     {
         // Fast path for exact matches to common sizes
         if (size == 256 || size == 512 || size == 1024 || size == 2048 || size == 4096)
-        {
             return _poolManager.RentBuffer(size);
-        }
 
         // Use size cache for frequent sizes
         if (_suitablePoolSizeCache.TryGetValue(size, out int cachedPoolSize))
-        {
             return _poolManager.RentBuffer(cachedPoolSize);
-        }
 
         try
         {
@@ -127,9 +123,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
 
             // Update cache for this size if it's within reasonable limits
             if (size > 64 && size < 1_000_000 && _suitablePoolSizeCache.Count < 1000)
-            {
                 _suitablePoolSizeCache.TryAdd(size, buffer.Length);
-            }
 
             return buffer;
         }
@@ -281,10 +275,8 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         int excessBuffers = poolInfo.FreeBuffers - targetBuffers;
 
         // Add safety margin based on pool size to avoid frequent resizing
-        int safetyMargin = (int)Math.Min(
-            20,
-            Math.Sqrt(minimumBuffers) // Square root scaling for safety margin
-        );
+        // Square root scaling for safety margin
+        int safetyMargin = (int)Math.Min(20, Math.Sqrt(minimumBuffers));
 
         int buffersToShrink = Math.Clamp(excessBuffers - safetyMargin, 0, 20);
 

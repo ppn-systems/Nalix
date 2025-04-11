@@ -15,9 +15,9 @@ namespace Notio.Network.Connection.Transport;
 internal class TransportStream : IDisposable
 {
     private readonly ILogger? _logger;
-    private readonly TransportCache _cache;
+    private readonly IBufferPool _pool;
     private readonly NetworkStream _stream;
-    private readonly IBufferPool _bufferPool;
+    private readonly TransportCache _cache;
 
     private byte[] _buffer;
     private bool _disposed;
@@ -36,8 +36,8 @@ internal class TransportStream : IDisposable
     public TransportStream(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
         _logger = logger;
-        _bufferPool = bufferPool;
-        _buffer = _bufferPool.Rent();
+        _pool = bufferPool;
+        _buffer = _pool.Rent();
         _cache = new TransportCache();
         _stream = new NetworkStream(socket);
 
@@ -201,10 +201,10 @@ internal class TransportStream : IDisposable
             ushort size = BitConverter.ToUInt16(_buffer, 0);
             _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
-            if (size > _bufferPool.MaxBufferSize)
+            if (size > _pool.MaxBufferSize)
             {
                 _logger?.Error("[{0}] Size {1} exceeds max {2} ",
-                                nameof(TransportStream), size, _bufferPool.MaxBufferSize);
+                                nameof(TransportStream), size, _pool.MaxBufferSize);
 
                 return;
             }
@@ -212,8 +212,8 @@ internal class TransportStream : IDisposable
             if (size > _buffer.Length)
             {
                 _logger?.Debug("[{0}] Renting larger buffer", nameof(TransportStream));
-                _bufferPool.Return(_buffer);
-                _buffer = _bufferPool.Rent(size);
+                _pool.Return(_buffer);
+                _buffer = _pool.Rent(size);
             }
 
             while (totalBytesRead < size)
@@ -285,7 +285,7 @@ internal class TransportStream : IDisposable
 
         if (disposing)
         {
-            _bufferPool.Return(_buffer);
+            _pool.Return(_buffer);
             _stream.Dispose();
 
             _cache.Dispose();

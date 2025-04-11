@@ -18,6 +18,11 @@ namespace Notio.Network.Security.Guard;
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
 {
+    // Constants for optimization
+    private const int MaxCleanupKeys = 1000;
+    private const int EstimatedCollectionCapacity = 256;
+    private static readonly DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
@@ -27,11 +32,6 @@ public sealed class ConnectionLimiter : IDisposable
     // Cache frequently accessed configuration values
     private readonly int _maxConnectionsPerIp;
     private readonly TimeSpan _inactivityThreshold;
-
-    // Constants for optimization
-    private const int MaxCleanupKeys = 1000;
-    private const int EstimatedCollectionCapacity = 256;
-    private static readonly DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private bool _disposed;
 

@@ -23,20 +23,20 @@ public sealed class Connection : IConnection
 {
     #region Fields
 
+    private readonly Lock _lock;
+    private readonly Base36Id _id;
     private readonly Socket _socket;
     private readonly ILogger? _logger;
-    private readonly Lock _lock = new();
     private readonly TransportStream _cstream;
-    private readonly CancellationTokenSource _ctokens = new();
-    private readonly Base36Id _id = Base36Id.NewId(IdType.Session);
+    private readonly CancellationTokenSource _ctokens;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
-    private bool _disposed = false;
+    private bool _disposed;
+    private byte[] _encryptionKey;
     private string? _remoteEndPoint;
-    private byte[] _encryptionKey = new byte[32];
 
     #endregion
 
@@ -51,6 +51,10 @@ public sealed class Connection : IConnection
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
     public Connection(Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
+        _lock = new Lock();
+        _id = Base36Id.NewId(IdType.Session);
+        _ctokens = new CancellationTokenSource();
+
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _logger = logger;
         _cstream = new TransportStream(socket, bufferAllocator, _logger)
@@ -62,6 +66,9 @@ public sealed class Connection : IConnection
         };
 
         _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+
+        _disposed = false;
+        _encryptionKey = new byte[32];
 
         _logger?.Debug("[{0}] Connection created for {1}",
             nameof(Connection), _socket.RemoteEndPoint?.ToString());
@@ -107,7 +114,7 @@ public sealed class Connection : IConnection
             if (_remoteEndPoint == null && _socket.Connected)
                 _remoteEndPoint = _socket.RemoteEndPoint?.ToString() ?? "0.0.0.0";
 
-            return _remoteEndPoint ?? "Disconnected";
+            return _remoteEndPoint ?? "0.0.0.0";
         }
     }
 
