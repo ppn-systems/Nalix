@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Serialization;
+namespace Nalix.Common.Serialization;
 
 /// <summary>
 /// Defines constant values used during serialization to represent special cases
