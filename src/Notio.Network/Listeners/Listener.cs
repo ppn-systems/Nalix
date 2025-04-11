@@ -3,7 +3,6 @@ using Notio.Common.Connection;
 using Notio.Common.Exceptions;
 using Notio.Common.Logging;
 using Notio.Network.Configurations;
-using Notio.Network.Core;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;

@@ -8,7 +8,6 @@ using Notio.Common.Package;
 using Notio.Common.Security;
 using Notio.Identifiers;
 using Notio.Network.Connection.Transport;
-using Notio.Network.Core.Connection;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
