@@ -14,14 +14,14 @@ namespace Notio.Logging;
 public static partial class DLogging
 {
     /// <summary>
+    /// Gets or sets the minimum logging level. Messages below this level will not be logged.
+    /// </summary>
+    public static LogLevel MinimumLevel { get; set; }
+
+    /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.
     /// </summary>
     public static readonly ILoggerPublisher Publisher;
-
-    /// <summary>
-    /// Gets or sets the minimum logging level. Messages below this level will not be logged.
-    /// </summary>
-    public static LogLevel MinimumLevel { get; set; } = LogLevel.Trace;
 
     /// <summary>
     /// Initializes static members of the <see cref="DLogging"/> class.
@@ -29,6 +29,9 @@ public static partial class DLogging
     /// </summary>
     static DLogging()
     {
+        MinimumLevel = LogLevel.Trace;
+        Publisher = new LoggingPublisher();
+
         FileLoggerOptions fileLoggerOpts = new()
         {
             FormatLogFileName = (fname) =>
@@ -37,8 +40,6 @@ public static partial class DLogging
                        "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
             }
         };
-
-        Publisher = new LoggingPublisher();
 
         Publisher.AddTarget(new ConsoleLoggingTarget());
     }

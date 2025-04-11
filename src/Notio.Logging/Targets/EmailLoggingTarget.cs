@@ -17,8 +17,9 @@ namespace Notio.Logging.Targets;
 /// </remarks>
 public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
 {
-    private readonly EmailLoggingOptions _options;
     private readonly SmtpClient _smtpClient;
+    private readonly EmailLoggingOptions _options;
+
     private bool _disposed;
 
     /// <summary>

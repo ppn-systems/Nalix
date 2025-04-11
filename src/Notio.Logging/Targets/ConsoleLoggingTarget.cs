@@ -15,8 +15,8 @@ namespace Notio.Logging.Targets;
 /// <param name="loggerFormatter">The object responsible for formatting the log message.</param>
 public sealed class ConsoleLoggingTarget(ILoggerFormatter loggerFormatter) : ILoggerTarget
 {
-    private readonly ILoggerFormatter _loggerFormatter = loggerFormatter;
     private readonly ConsoleLoggingOptions? _options;
+    private readonly ILoggerFormatter _loggerFormatter = loggerFormatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class with a default log formatter.
