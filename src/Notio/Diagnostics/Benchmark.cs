@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -37,7 +37,7 @@ namespace Notio.Diagnostics;
 public static partial class Benchmark
 {
     private static readonly Lock SyncLock = new();
-    private static readonly Dictionary<string, List<TimeSpan>> Measures = new Dictionary<string, List<TimeSpan>>();
+    private static readonly Dictionary<string, List<TimeSpan>> Measures = [];
 
     /// <summary>
     /// Starts measuring with the given identifier.

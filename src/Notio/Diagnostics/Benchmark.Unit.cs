@@ -1,6 +1,3 @@
-﻿using System;
-using System.Diagnostics;
-
 namespace Notio.Diagnostics;
 
 public static partial class Benchmark
@@ -8,12 +5,12 @@ public static partial class Benchmark
     /// <summary>
     /// Represents a disposable benchmark unit.
     /// </summary>
-    /// <seealso cref="IDisposable" />
-    private sealed class BenchmarkUnit : IDisposable
+    /// <seealso cref="System.IDisposable" />
+    private sealed class BenchmarkUnit : System.IDisposable
     {
         private readonly string _identifier;
         private bool _isDisposed; // To detect redundant calls
-        private Stopwatch _stopwatch = new();
+        private System.Diagnostics.Stopwatch _stopwatch = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BenchmarkUnit" /> class.
@@ -38,7 +35,7 @@ public static partial class Benchmark
 
             if (alsoManaged)
             {
-                Add(_identifier, _stopwatch?.Elapsed ?? TimeSpan.Zero);
+                Add(_identifier, _stopwatch?.Elapsed ?? System.TimeSpan.Zero);
                 _stopwatch?.Stop();
             }
 

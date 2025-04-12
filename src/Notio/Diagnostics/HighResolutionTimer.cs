@@ -1,24 +1,11 @@
-using System;
-using System.Diagnostics;
-
 namespace Notio.Diagnostics;
 
 /// <summary>
 /// Provides access to a high-resolution, time measuring device.
 /// </summary>
-/// <seealso cref="Stopwatch" />
-public sealed class HighResolutionTimer : Stopwatch
+/// <seealso cref="System.Diagnostics.Stopwatch" />
+public sealed class HighResolutionTimer : System.Diagnostics.Stopwatch
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="HighResolutionTimer"/> class.
-    /// </summary>
-    /// <exception cref="NotSupportedException">High-resolution timer not available.</exception>
-    public HighResolutionTimer()
-    {
-        if (!IsHighResolution)
-            throw new NotSupportedException("High-resolution timer not available");
-    }
-
     /// <summary>
     /// Gets the Number of microseconds per timer tick.
     /// </summary>
@@ -28,4 +15,14 @@ public sealed class HighResolutionTimer : Stopwatch
     /// Gets the elapsed microseconds.
     /// </summary>
     public long ElapsedMicroseconds => (long)(ElapsedTicks * MicrosecondsPerTick);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HighResolutionTimer"/> class.
+    /// </summary>
+    /// <exception cref="System.NotSupportedException">High-resolution timer not available.</exception>
+    public HighResolutionTimer()
+    {
+        if (!IsHighResolution)
+            throw new System.NotSupportedException("High-resolution timer not available");
+    }
 }

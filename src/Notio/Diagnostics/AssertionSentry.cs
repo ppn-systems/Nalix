@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Threading;
 
 namespace Notio.Diagnostics;
 
@@ -79,13 +79,13 @@ public static class AssertionSentry
     /// <summary>
     /// Lock object for thread-safe access to the recent failures queue.
     /// </summary>
-    private static readonly object _failuresLock = new();
+    private static readonly Lock _lock = new();
 
     /// <summary>
     /// StringBuilder used for formatting error messages to avoid allocations.
     /// </summary>
     [ThreadStatic]
-    private static StringBuilder _messageBuilder;
+    private static System.Text.StringBuilder _messageBuilder;
 
     #endregion
 
@@ -598,7 +598,7 @@ public static class AssertionSentry
         int callerLineNumber)
     {
         // Use a thread-local StringBuilder to avoid allocations
-        _messageBuilder ??= new StringBuilder(256);
+        _messageBuilder ??= new System.Text.StringBuilder(256);
         _messageBuilder.Clear();
 
         _messageBuilder.Append(message ?? "AssertionSentry assertion failed");
@@ -632,7 +632,7 @@ public static class AssertionSentry
         if (MaxTrackedAssertions <= 0)
             return;
 
-        lock (_failuresLock)
+        lock (_lock)
         {
             _recentFailures.Enqueue(failureInfo);
 
@@ -650,9 +650,9 @@ public static class AssertionSentry
     /// <returns>An array of recent assertion failures.</returns>
     public static AssertionFailureInfo[] GetRecentFailures()
     {
-        lock (_failuresLock)
+        lock (_lock)
         {
-            return _recentFailures.ToArray();
+            return [.. _recentFailures];
         }
     }
 
@@ -661,7 +661,7 @@ public static class AssertionSentry
     /// </summary>
     public static void ClearFailureHistory()
     {
-        lock (_failuresLock)
+        lock (_lock)
         {
             _recentFailures.Clear();
         }

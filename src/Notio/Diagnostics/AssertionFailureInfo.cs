@@ -1,6 +1,3 @@
-using System;
-using System.Diagnostics;
-
 namespace Notio.Diagnostics;
 
 /// <summary>
@@ -15,23 +12,13 @@ public sealed class AssertionFailureInfo(
     string memberName,
     string filePath,
     int lineNumber,
-    StackTrace stackTrace,
-    DateTime timestamp)
+    System.Diagnostics.StackTrace stackTrace,
+    System.DateTime timestamp)
 {
     /// <summary>
     /// Gets the error message.
     /// </summary>
     public string Message { get; } = message;
-
-    /// <summary>
-    /// Gets the parameter name associated with the failure, if applicable.
-    /// </summary>
-    public string ParameterName { get; } = parameterName;
-
-    /// <summary>
-    /// Gets the name of the method where the assertion failed.
-    /// </summary>
-    public string MemberName { get; } = memberName;
 
     /// <summary>
     /// Gets the path to the file where the assertion failed.
@@ -44,14 +31,24 @@ public sealed class AssertionFailureInfo(
     public int LineNumber { get; } = lineNumber;
 
     /// <summary>
-    /// Gets the stack trace at the time of the failure, if captured.
+    /// Gets the name of the method where the assertion failed.
     /// </summary>
-    public StackTrace StackTrace { get; } = stackTrace;
+    public string MemberName { get; } = memberName;
+
+    /// <summary>
+    /// Gets the parameter name associated with the failure, if applicable.
+    /// </summary>
+    public string ParameterName { get; } = parameterName;
 
     /// <summary>
     /// Gets the timestamp when the failure occurred.
     /// </summary>
-    public DateTime Timestamp { get; } = timestamp;
+    public System.DateTime Timestamp { get; } = timestamp;
+
+    /// <summary>
+    /// Gets the stack trace at the time of the failure, if captured.
+    /// </summary>
+    public System.Diagnostics.StackTrace StackTrace { get; } = stackTrace;
 
     /// <summary>
     /// Returns a string representation of the assertion failure.
