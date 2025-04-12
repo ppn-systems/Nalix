@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Notio.Defaults;
 
 /// <summary>
@@ -38,5 +36,5 @@ public static class DefaultConstants
     /// <summary>
     /// The default encoding used for JSON serialization and deserialization.
     /// </summary>
-    public static Encoding DefaultEncoding { get; set; } = Encoding.UTF8;
+    public static System.Text.Encoding DefaultEncoding { get; set; } = System.Text.Encoding.UTF8;
 }

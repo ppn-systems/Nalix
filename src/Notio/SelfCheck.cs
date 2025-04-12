@@ -1,6 +1,4 @@
 using Notio.Common.Exceptions;
-using System;
-using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace Notio;
@@ -48,9 +46,9 @@ public static class SelfCheck
         {
             try
             {
-                fileName = Path.GetFileName(filePath);
+                fileName = System.IO.Path.GetFileName(filePath);
             }
-            catch (ArgumentException)
+            catch (System.ArgumentException)
             {
                 // If filename extraction fails, use the raw path or default
                 fileName = string.IsNullOrEmpty(filePath) ? DefaultFile : filePath;
@@ -90,11 +88,11 @@ public static class SelfCheck
 
         // Include current time and user for additional context
         sb.AppendLine();
-        sb.Append("[UTC: ").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")).Append(']');
+        sb.Append("[UTC: ").Append(System.DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")).Append(']');
 
         try
         {
-            string username = Environment.UserName;
+            string username = System.Environment.UserName;
             if (!string.IsNullOrEmpty(username))
             {
                 sb.Append(" [User: ").Append(username).Append(']');
