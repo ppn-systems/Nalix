@@ -1,11 +1,9 @@
-using Notio.Common.Connection;
-using System;
-
 namespace Notio.Network.Connection;
 
 /// <inheritdoc />
-public sealed class ConnectionEventArgs(Connection connection) : EventArgs, IConnectEventArgs
+public sealed class ConnectionEventArgs(Connection connection)
+    : System.EventArgs, Common.Connection.IConnectEventArgs
 {
     /// <inheritdoc />
-    public IConnection Connection { get; } = connection;
+    public Common.Connection.IConnection Connection { get; } = connection;
 }

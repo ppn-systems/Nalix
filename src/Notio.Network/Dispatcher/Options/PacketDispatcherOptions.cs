@@ -2,7 +2,6 @@ using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Network.Security.Guard;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
@@ -49,7 +48,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
-    private Action<Exception, ushort>? ErrorHandler;
+    private System.Action<System.Exception, ushort>? ErrorHandler;
 
     /// <summary>
     /// Callback function to collect execution time metrics for packet processing.
@@ -57,12 +56,12 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// <remarks>
     /// The callback receives the packet handler name and execution time in milliseconds.
     /// </remarks>
-    private Action<string, long>? MetricsCallback { get; set; }
+    private System.Action<string, long>? MetricsCallback { get; set; }
 
     /// <summary>
     /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
     /// </summary>
-    private readonly Dictionary<ushort, Func<TPacket, IConnection, Task>> PacketHandlers = [];
+    private readonly Dictionary<ushort, System.Func<TPacket, IConnection, Task>> PacketHandlers = [];
 
     /// <summary>
     /// The logger instance used for logging.

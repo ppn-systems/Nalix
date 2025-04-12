@@ -2,12 +2,14 @@ using Notio.Network.Configurations;
 using Notio.Shared.Configuration;
 using Notio.Shared.Memory.Caches;
 using Notio.Shared.Time;
-using System;
+using System.Runtime.CompilerServices;
+
+namespace Notio.Network.Connection.Transport;
 
 /// <summary>
 /// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
-internal sealed class TransportCache : IDisposable
+public sealed class TransportCache : System.IDisposable
 {
     private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
     private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
@@ -25,7 +27,7 @@ internal sealed class TransportCache : IDisposable
     /// <summary>
     /// Occurs when a new incoming packet is added to the cache.
     /// </summary>
-    public event Action? PacketCached;
+    public event System.Action? PacketCached;
 
     /// <summary>
     /// Gets the cache that stores recently sent (outgoing) packets.
@@ -35,16 +37,17 @@ internal sealed class TransportCache : IDisposable
     /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
-    public readonly FifoCache<ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
+    public readonly FifoCache<System.ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
 
     /// <summary>
     /// Adds a sent packet to the outgoing cache.
     /// A composite key is generated from the first and last 4 bytes of the packet.
     /// </summary>
     /// <param name="data">The packet data to cache.</param>
-    public void PushOutgoing(ReadOnlyMemory<byte> data)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void PushOutgoing(System.ReadOnlyMemory<byte> data)
     {
-        Span<byte> key = stackalloc byte[8];
+        System.Span<byte> key = stackalloc byte[8];
         data.Span[0..4].CopyTo(key);
         data.Span[^4..].CopyTo(key[4..]);
 
@@ -55,7 +58,8 @@ internal sealed class TransportCache : IDisposable
     /// Adds a received packet to the incoming cache and triggers the <see cref="PacketCached"/> event.
     /// </summary>
     /// <param name="data">The received packet data.</param>
-    public void PushIncoming(ReadOnlyMemory<byte> data)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void PushIncoming(System.ReadOnlyMemory<byte> data)
     {
         Incoming.Add(data);
         PacketCached?.Invoke();
@@ -65,6 +69,7 @@ internal sealed class TransportCache : IDisposable
     /// Releases all resources used by this <see cref="TransportCache"/> instance.
     /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Incoming.Clear();

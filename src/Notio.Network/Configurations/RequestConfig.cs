@@ -2,7 +2,6 @@ using Notio.Network.Security.Enums;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -86,13 +85,13 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     /// Gets the time window as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public TimeSpan TimeWindow => TimeSpan.FromMilliseconds(TimeWindowInMilliseconds);
+    public System.TimeSpan TimeWindow => System.TimeSpan.FromMilliseconds(TimeWindowInMilliseconds);
 
     /// <summary>
     /// Gets the lockout duration as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public TimeSpan LockoutDuration => TimeSpan.FromSeconds(LockoutDurationSeconds);
+    public System.TimeSpan LockoutDuration => System.TimeSpan.FromSeconds(LockoutDurationSeconds);
 
     /// <summary>
     /// Gets predefined settings for a request limit level.

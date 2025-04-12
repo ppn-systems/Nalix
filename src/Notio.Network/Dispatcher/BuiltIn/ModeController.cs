@@ -9,7 +9,6 @@ using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Dispatcher.Packets;
 using Notio.Network.Protocols;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
@@ -35,7 +34,7 @@ public sealed class ModeController(ILogger? logger)
     [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.SetCompressionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
-    public Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
+    public System.Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
         => SetMode<CompressionMode>(packet, connection);
 
     /// <summary>
@@ -51,11 +50,11 @@ public sealed class ModeController(ILogger? logger)
     [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
-    public Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
+    public System.Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
         => SetMode<EncryptionMode>(packet, connection);
 
-    private Memory<byte> SetMode<TEnum>(IPacket packet, IConnection connection)
-        where TEnum : struct, Enum
+    private System.Memory<byte> SetMode<TEnum>(IPacket packet, IConnection connection)
+        where TEnum : struct, System.Enum
     {
         if (packet.Type != PacketType.Binary)
         {
@@ -73,7 +72,7 @@ public sealed class ModeController(ILogger? logger)
 
         byte value = packet.Payload.Span[0];
 
-        if (!Enum.IsDefined(typeof(TEnum), value))
+        if (!System.Enum.IsDefined(typeof(TEnum), value))
         {
             _logger?.Debug("Invalid enum value [{0}] in SetMode<{1}> from {2}",
                 value, typeof(TEnum).Name, connection.RemoteEndPoint);

@@ -7,7 +7,6 @@ using Notio.Common.Security;
 using Notio.Network.Dispatcher.Dto;
 using Notio.Network.Dispatcher.Packets;
 using Notio.Network.Protocols;
-using System;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
 
@@ -40,7 +39,7 @@ public sealed class SessionController
     [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.ConnectionStatus)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
+    public static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
     {
         ConnectionStatusDto status = new()
         {

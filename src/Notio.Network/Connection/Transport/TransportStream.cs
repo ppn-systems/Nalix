@@ -2,10 +2,7 @@ using Notio.Common.Caching;
 using Notio.Common.Logging;
 using Notio.Shared.Time;
 using System;
-using System.IO;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Connection.Transport;
 
@@ -48,7 +45,7 @@ internal class TransportStream : IDisposable
     /// Begins receiving data asynchronously.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public void BeginReceive(CancellationToken cancellationToken = default)
+    public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
         if (_disposed)
         {
@@ -67,7 +64,7 @@ internal class TransportStream : IDisposable
                        {
                            await self.OnReceiveCompleted(task, cancellationToken);
                        }
-                       catch (IOException ex)
+                       catch (System.IO.IOException ex)
                        when (ex.InnerException is SocketException se &&
                              se.SocketErrorCode == SocketError.ConnectionReset)
                        {
@@ -123,8 +120,9 @@ internal class TransportStream : IDisposable
     /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
-    public async Task<bool> SendAsync(
-        ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public async System.Threading.Tasks.Task<bool> SendAsync(
+        ReadOnlyMemory<byte> data,
+        System.Threading.CancellationToken cancellationToken)
     {
         try
         {
@@ -181,7 +179,9 @@ internal class TransportStream : IDisposable
     /// </summary>
     /// <param name="task">The task representing the read operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    private async Task OnReceiveCompleted(Task<int> task, CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task OnReceiveCompleted(
+        System.Threading.Tasks.Task<int> task,
+        System.Threading.CancellationToken cancellationToken)
     {
         if (task.IsCanceled || _disposed) return;
 
@@ -244,7 +244,7 @@ internal class TransportStream : IDisposable
                 _logger?.Error("[{0}] Incomplete packet", nameof(TransportStream));
             }
         }
-        catch (IOException ex)
+        catch (System.IO.IOException ex)
         when (ex.InnerException is SocketException se &&
               se.SocketErrorCode == SocketError.ConnectionReset)
         {

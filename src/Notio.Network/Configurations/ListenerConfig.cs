@@ -1,6 +1,5 @@
 using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
-using System;
 using System.Runtime.InteropServices;
 
 namespace Notio.Network.Configurations;
@@ -33,7 +32,8 @@ public sealed class ListenerConfig : ConfigurationBinder
         private set
         {
             if (value < 1 || value > 65535)
-                throw new ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(value), "Port must be between 1 and 65535.");
             else
                 _port = value;
         }

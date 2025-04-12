@@ -9,7 +9,6 @@ using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Dispatcher.Packets;
 using Notio.Network.Protocols;
-using System;
 using System.Linq;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
@@ -53,7 +52,7 @@ public sealed class HandshakeController
     [PacketRateGroup(nameof(HandshakeController))]
     [PacketId((ushort)ProtocolPacket.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    public Memory<byte> StartHandshake(IPacket packet, IConnection connection)
+    public System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
         // CheckLimit if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
@@ -84,7 +83,7 @@ public sealed class HandshakeController
 
         // Store the private key in connection metadata for later use.
         connection.Metadata[Meta.PrivateKey] = @private;
-        connection.Metadata[Meta.LastHandshakeTime] = DateTime.UtcNow;
+        connection.Metadata[Meta.LastHandshakeTime] = System.DateTime.UtcNow;
 
         // Derive the shared secret key using the server's private key and the client's public key.
         connection.EncryptionKey = this.DeriveSharedKey(@private, packet.Payload.ToArray());
@@ -108,7 +107,7 @@ public sealed class HandshakeController
     [PacketRateGroup(nameof(HandshakeController))]
     [PacketId((ushort)ProtocolPacket.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    public Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
+    public System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)
@@ -179,8 +178,8 @@ public sealed class HandshakeController
     private static bool IsReplayAttempt(IConnection connection)
     {
         if (connection.Metadata.TryGetValue(Meta.LastHandshakeTime,
-            out object? lastTimeObj) && lastTimeObj is DateTime lastTime)
-            return (DateTime.UtcNow - lastTime).TotalSeconds < 10;
+            out object? lastTimeObj) && lastTimeObj is System.DateTime lastTime)
+            return (System.DateTime.UtcNow - lastTime).TotalSeconds < 10;
 
         return false;
     }

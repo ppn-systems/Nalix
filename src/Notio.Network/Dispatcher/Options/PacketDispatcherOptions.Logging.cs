@@ -1,6 +1,5 @@
 using Notio.Common.Logging;
 using Notio.Common.Package;
-using System;
 
 namespace Notio.Network.Dispatcher.Options;
 
@@ -21,7 +20,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     /// Enabling this feature helps to track how long packet handlers take to execute, which can be useful
     /// for performance monitoring and optimization. The callback provides a way to record or process these metrics.
     /// </remarks>
-    public PacketDispatcherOptions<TPacket> WithMetrics(Action<string, long> metricsCallback)
+    public PacketDispatcherOptions<TPacket> WithMetrics(System.Action<string, long> metricsCallback)
     {
         _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
 
@@ -65,7 +64,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     /// sending notifications, or taking corrective action in case of failures during packet processing.
     /// If no custom error handler is configured, the default behavior is to log the exception.
     /// </remarks>
-    public PacketDispatcherOptions<TPacket> WithErrorHandling(Action<Exception, ushort> errorHandler)
+    public PacketDispatcherOptions<TPacket> WithErrorHandling(System.Action<System.Exception, ushort> errorHandler)
     {
         _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
         ErrorHandler = errorHandler;

@@ -2,7 +2,6 @@ using Notio.Network.Security.Enums;
 using Notio.Network.Security.Metadata;
 using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -72,13 +71,13 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     /// Gets the cleanup interval as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public TimeSpan CleanupInterval => TimeSpan.FromMilliseconds(CleanupIntervalMs);
+    public System.TimeSpan CleanupInterval => System.TimeSpan.FromMilliseconds(CleanupIntervalMs);
 
     /// <summary>
     /// Gets the inactivity threshold as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public TimeSpan InactivityThreshold => TimeSpan.FromMilliseconds(InactivityThresholdMs);
+    public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(InactivityThresholdMs);
 
     /// <summary>
     /// Gets predefined settings for a connection limit level.

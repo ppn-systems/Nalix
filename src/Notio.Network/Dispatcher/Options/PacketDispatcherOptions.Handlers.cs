@@ -5,7 +5,6 @@ using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Network.Dispatcher.BuiltIn;
 using Notio.Network.Dispatcher.Packets;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -45,7 +44,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// This type must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
     public PacketDispatcherOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(RequiredMembers)] TController>()
@@ -64,7 +63,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
+    /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="instance"/> is null.
     /// </exception>
     public PacketDispatcherOptions<TPacket> WithHandler<
@@ -85,16 +84,17 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// A function that returns an instance of <typeparamref name="TController"/>.
     /// </param>
     /// <returns>The current <see cref="PacketDispatcherOptions{TPacket}"/> instance for chaining.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
     public PacketDispatcherOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
-        (Func<TController> factory) where TController : class
+        (System.Func<TController> factory) where TController : class
     {
-        Type controllerType = typeof(TController);
+        System.Type controllerType = typeof(TController);
         PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
-            ?? throw new InvalidOperationException($"SessionController '{controllerType.Name}' missing PacketController attribute.");
+            ?? throw new System.InvalidOperationException(
+                $"SessionController '{controllerType.Name}' missing PacketController attribute.");
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
@@ -113,7 +113,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                              $"Ensure at least one public method is decorated.";
 
             _logger?.Warn(message);
-            throw new InvalidOperationException(message);
+            throw new System.InvalidOperationException(message);
         }
 
         IEnumerable<ushort> duplicateCommandIds = methods
@@ -128,7 +128,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                              $"Each handler must have a unique ID.";
 
             _logger?.Error(message);
-            throw new InvalidOperationException(message);
+            throw new System.InvalidOperationException(message);
         }
 
         List<ushort> registeredIds = [];
@@ -142,7 +142,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 _logger?.Error("PacketId '{0}' already registered in another controller. Conflict in controller '{1}'.",
                                 id, controllerName);
 
-                throw new InvalidOperationException($"PacketId '{id}' already registered.");
+                throw new System.InvalidOperationException($"PacketId '{id}' already registered.");
             }
 
             PacketHandlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
@@ -184,7 +184,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// }
     /// </code>
     /// </example>
-    public bool TryResolveHandler(ushort id, out Func<TPacket, IConnection, Task>? handler)
+    public bool TryResolveHandler(ushort id, out System.Func<TPacket, IConnection, Task>? handler)
     {
         if (PacketHandlers.TryGetValue(id, out handler))
             return true;
@@ -193,7 +193,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
         return false;
     }
 
-    private Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
+    private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
     {
         PacketAttributes attributes = PacketDispatcherOptions<TPacket>.GetPacketAttributes(method);
 
@@ -218,7 +218,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
 
             // Handle Compression (e.g., apply compression to packet)
             try { packet = TPacket.Decompress(packet, connection.ComMode); }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Error("Failed to decompress packet: {0}", ex.Message);
                 connection.SendCode(PacketCode.ServerError);
@@ -253,7 +253,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                     {
                         result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
                     }
-                    catch (OperationCanceledException)
+                    catch (System.OperationCanceledException)
                     {
                         _logger?.Error("Packet '{0}' timed out after {1}ms.",
                             attributes.PacketId.Id,
@@ -285,7 +285,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
                 ErrorHandler?.Invoke(ex, attributes.PacketId.Id);
                 connection.SendCode(PacketCode.ServerError);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Error("Packet [Id={0}] ({1}.{2}) threw {3}: {4} [Remote: {5}]",
                     attributes.PacketId.Id,

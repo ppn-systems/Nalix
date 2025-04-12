@@ -7,7 +7,6 @@ using Notio.Common.Security;
 using Notio.Network.Dispatcher.Dto;
 using Notio.Network.Dispatcher.Packets;
 using Notio.Network.Protocols;
-using System;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
 
@@ -26,7 +25,7 @@ public sealed class KeepAliveController
     [PacketRateGroup(nameof(KeepAliveController))]
     [PacketId((ushort)ProtocolPacket.Ping)]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
-    public static Memory<byte> Ping(IPacket _, IConnection __)
+    public static System.Memory<byte> Ping(IPacket _, IConnection __)
         => PacketBuilder.String(PacketCode.Success, "Pong");
 
     /// <summary>
@@ -38,7 +37,7 @@ public sealed class KeepAliveController
     [PacketRateGroup(nameof(KeepAliveController))]
     [PacketId((ushort)ProtocolPacket.Pong)]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
-    public static Memory<byte> Pong(IPacket _, IConnection __)
+    public static System.Memory<byte> Pong(IPacket _, IConnection __)
         => PacketBuilder.String(PacketCode.Success, "Ping");
 
     /// <summary>
@@ -50,7 +49,7 @@ public sealed class KeepAliveController
     [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.PingTime)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static Memory<byte> GetPingTime(IPacket _, IConnection connection)
+    public static System.Memory<byte> GetPingTime(IPacket _, IConnection connection)
         => PacketBuilder.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
 
     /// <summary>
@@ -62,7 +61,7 @@ public sealed class KeepAliveController
     [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.PingInfo)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static Memory<byte> GetPingInfo(IPacket _, IConnection connection)
+    public static System.Memory<byte> GetPingInfo(IPacket _, IConnection connection)
     {
         PingInfoDto pingInfoDto = new()
         {
