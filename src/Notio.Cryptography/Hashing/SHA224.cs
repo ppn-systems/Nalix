@@ -16,6 +16,8 @@ namespace Notio.Cryptography.Hashing;
 /// </remarks>
 public sealed class Sha224 : ISha, IDisposable
 {
+    #region Fields
+
     private readonly uint[] _state = new uint[8];    // Hash state
     private readonly byte[] _buffer = new byte[64];  // Input buffer (64 bytes = 512 bits)
     private readonly uint[] _w = new uint[64];       // Message schedule
@@ -26,6 +28,10 @@ public sealed class Sha224 : ISha, IDisposable
     private bool _disposed;                          // Whether instance has been disposed
     private byte[] _finalHash;                       // Final hash value (28 bytes for SHA-224)
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Sha224"/> class.
     /// </summary>
@@ -33,6 +39,10 @@ public sealed class Sha224 : ISha, IDisposable
     {
         Initialize();
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Resets the hash state to its initial values.
@@ -194,6 +204,8 @@ public sealed class Sha224 : ISha, IDisposable
         return sha224.FinalizeHash();
     }
 
+    #endregion
+
     #region SHA-224/256 Functions
 
     /// <summary>
@@ -286,6 +298,8 @@ public sealed class Sha224 : ISha, IDisposable
 
     #endregion
 
+    #region IDisposable
+
     /// <summary>
     /// Releases resources used by the Sha224 instance.
     /// </summary>
@@ -307,6 +321,8 @@ public sealed class Sha224 : ISha, IDisposable
 
         _disposed = true;
     }
+
+    #endregion
 
     /// <summary>
     /// Returns a string representation of the SHA-224 hash algorithm.

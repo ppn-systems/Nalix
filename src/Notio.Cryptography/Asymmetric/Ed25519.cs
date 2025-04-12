@@ -12,6 +12,8 @@ namespace Notio.Cryptography.Asymmetric;
 /// </summary>
 public sealed class Ed25519
 {
+    #region Constants
+
     /// <summary>
     /// Size of the public key in bytes.
     /// </summary>
@@ -21,6 +23,8 @@ public sealed class Ed25519
     /// Size of the private key in bytes.
     /// </summary>
     public const int SignatureSize = 64;
+
+    #endregion
 
     #region API Methods
 

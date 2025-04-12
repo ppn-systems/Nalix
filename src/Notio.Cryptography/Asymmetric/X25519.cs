@@ -17,12 +17,16 @@ namespace Notio.Cryptography.Asymmetric;
 /// </remarks>
 public sealed class X25519 : IX25519
 {
+    #region Constants
+
     /// <summary>
     /// The size of a field element in bytes.
     /// </summary>
     public const int FieldElementSize = 32;
 
-    #region Constants
+    #endregion
+
+    #region Fields
 
     // Prime p = 2^255 - 19
     private static readonly BigInteger P = BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");

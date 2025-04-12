@@ -19,6 +19,8 @@ namespace Notio.Cryptography.Hashing;
 /// </remarks>
 public sealed class Sha256 : ISha, IDisposable
 {
+    #region Fields
+
     private readonly byte[] _buffer = new byte[64];
     private readonly uint[] _state = new uint[8];
 
@@ -28,10 +30,18 @@ public sealed class Sha256 : ISha, IDisposable
     private bool _finalized;
     private bool _disposed;
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Sha256"/> class and resets the hash state.
     /// </summary>
     public Sha256() => Initialize();
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Resets the hash state to its initial values.
@@ -264,6 +274,8 @@ public sealed class Sha256 : ISha, IDisposable
         _finalHash = FinalizeHash();
         return finalBlock;
     }
+
+    #endregion
 
     #region Private Methods
 
@@ -613,6 +625,8 @@ public sealed class Sha256 : ISha, IDisposable
 
     #endregion
 
+    #region IDisposable
+
     /// <summary>
     /// Releases all resources used by the <see cref="Sha256"/> instance.
     /// </summary>
@@ -634,6 +648,8 @@ public sealed class Sha256 : ISha, IDisposable
         _disposed = true;
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 
     /// <summary>
     /// Returns a string representation of the SHA-256 hash algorithm.

@@ -16,6 +16,8 @@ namespace Notio.Cryptography.Mac;
 /// </remarks>
 public sealed class Hmac : IDisposable
 {
+    #region Constants
+
     private const int Sha1BlockSize = 64;
     private const int Sha1HashSize = 20;
     private const int Sha256BlockSize = 64;
@@ -24,11 +26,20 @@ public sealed class Hmac : IDisposable
     private const byte OuterPadValue = 0x5C;
     private const byte InnerPadValue = 0x36;
 
-    private readonly HashAlgorithm _algorithm;
-    private readonly int _blockSize;
-    private readonly int _hashSize;
+    #endregion
+
+    #region Fields
+
     private readonly byte[] _key;
+    private readonly int _hashSize;
+    private readonly int _blockSize;
+    private readonly HashAlgorithm _algorithm;
+
     private bool _disposed;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Hmac"/> class with the specified key and algorithm.
@@ -57,6 +68,10 @@ public sealed class Hmac : IDisposable
         _disposed = false;
     }
 
+    #endregion
+
+    #region Public Methods
+
     /// <summary>
     /// Creates a one-time use HMAC and computes the result in a single operation.
     /// </summary>
@@ -64,7 +79,9 @@ public sealed class Hmac : IDisposable
     /// <param name="data">The message to authenticate.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
-    public static byte[] ComputeHash(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data, HashAlgorithm algorithm = HashAlgorithm.Sha256)
+    public static byte[] ComputeHash(
+        ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
+        HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
         using var hmac = new Hmac(key, algorithm);
         return hmac.ComputeHash(data);
@@ -95,6 +112,81 @@ public sealed class Hmac : IDisposable
 
         // Compute outer hash (H(Ka ⊕ opad || inner_hash))
         return ComputeOuterHash(outerKeyPad, innerHash);
+    }
+
+    /// <summary>
+    /// Verifies if the provided HMAC matches the computed HMAC for the message.
+    /// </summary>
+    /// <param name="data">The message that was authenticated.</param>
+    /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
+    /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    /// <remarks>
+    /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
+    /// </remarks>
+    public bool VerifyHash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> expectedHmac)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (expectedHmac.Length != _hashSize)
+            return false;
+
+        byte[] computedHmac = ComputeHash(data);
+
+        // Use constant time comparison to prevent timing attacks
+        return BitwiseUtils.FixedTimeEquals(computedHmac, expectedHmac);
+    }
+
+    /// <summary>
+    /// Static method to verify an HMAC.
+    /// </summary>
+    /// <param name="key">The secret key used for HMAC generation.</param>
+    /// <param name="data">The message that was authenticated.</param>
+    /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
+    /// <param name="algorithm">The hash algorithm to use.</param>
+    /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
+    public static bool Verify(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
+                             ReadOnlySpan<byte> expectedHmac, HashAlgorithm algorithm = HashAlgorithm.Sha256)
+    {
+        using var hmac = new Hmac(key, algorithm);
+        return hmac.VerifyHash(data, expectedHmac);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private byte[] PrepareKey(ReadOnlySpan<byte> key)
+    {
+        byte[] normalizedKey = new byte[_blockSize];
+
+        // If key is longer than block size, hash it
+        if (key.Length > _blockSize)
+        {
+            byte[] hashedKey;
+
+            if (_algorithm == HashAlgorithm.Sha1)
+            {
+                hashedKey = Sha1.HashData(key);
+            }
+            else
+            {
+                hashedKey = Sha256.HashData(key);
+            }
+
+            Array.Copy(hashedKey, normalizedKey, Math.Min(hashedKey.Length, _blockSize));
+        }
+        // If key is shorter than or equal to block size, use it as is with zero padding
+        else
+        {
+            key.CopyTo(normalizedKey.AsSpan(0, key.Length));
+        }
+
+        return normalizedKey;
     }
 
     /// <summary>
@@ -155,80 +247,14 @@ public sealed class Hmac : IDisposable
         }
     }
 
-    /// <summary>
-    /// Verifies if the provided HMAC matches the computed HMAC for the message.
-    /// </summary>
-    /// <param name="data">The message that was authenticated.</param>
-    /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
-    /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    /// <remarks>
-    /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
-    /// </remarks>
-    public bool VerifyHash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> expectedHmac)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+    #endregion
 
-        if (expectedHmac.Length != _hashSize)
-            return false;
-
-        byte[] computedHmac = ComputeHash(data);
-
-        // Use constant time comparison to prevent timing attacks
-        return BitwiseUtils.FixedTimeEquals(computedHmac, expectedHmac);
-    }
-
-    /// <summary>
-    /// Static method to verify an HMAC.
-    /// </summary>
-    /// <param name="key">The secret key used for HMAC generation.</param>
-    /// <param name="data">The message that was authenticated.</param>
-    /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
-    /// <param name="algorithm">The hash algorithm to use.</param>
-    /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
-    public static bool Verify(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
-                             ReadOnlySpan<byte> expectedHmac, HashAlgorithm algorithm = HashAlgorithm.Sha256)
-    {
-        using var hmac = new Hmac(key, algorithm);
-        return hmac.VerifyHash(data, expectedHmac);
-    }
-
-    /// <summary>
-    /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] PrepareKey(ReadOnlySpan<byte> key)
-    {
-        byte[] normalizedKey = new byte[_blockSize];
-
-        // If key is longer than block size, hash it
-        if (key.Length > _blockSize)
-        {
-            byte[] hashedKey;
-
-            if (_algorithm == HashAlgorithm.Sha1)
-            {
-                hashedKey = Sha1.HashData(key);
-            }
-            else
-            {
-                hashedKey = Sha256.HashData(key);
-            }
-
-            Array.Copy(hashedKey, normalizedKey, Math.Min(hashedKey.Length, _blockSize));
-        }
-        // If key is shorter than or equal to block size, use it as is with zero padding
-        else
-        {
-            key.CopyTo(normalizedKey.AsSpan(0, key.Length));
-        }
-
-        return normalizedKey;
-    }
+    #region IDisposable Implementation
 
     /// <summary>
     /// Disposes resources used by the HMAC instance.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed) return;
@@ -241,4 +267,6 @@ public sealed class Hmac : IDisposable
 
         _disposed = true;
     }
+
+    #endregion
 }

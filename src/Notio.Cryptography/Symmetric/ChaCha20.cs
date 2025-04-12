@@ -13,6 +13,8 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class ChaCha20 : IDisposable
 {
+    #region Constants
+
     /// <summary>
     /// Only allowed key length in bytes.
     /// </summary>
@@ -33,10 +35,27 @@ public sealed class ChaCha20 : IDisposable
     /// </summary>
     public const int StateLength = 16;
 
+    #endregion
+
+    #region Fields
+
     /// <summary>
     /// Determines if the objects in this class have been disposed of. Set to true by the Dispose() method.
     /// </summary>
     private bool _isDisposed;
+
+    /// <summary>
+    /// The ChaCha20 state (aka "context"). Read-Only.
+    /// </summary>
+    private uint[] State { get; } = new uint[StateLength];
+
+    // These are the same constants defined in the reference implementation.
+    // http://cr.yp.to/streamciphers/timings/estreambench/submissions/salsa20/chacha8/ref/chacha.c
+    private static readonly byte[] Sigma = "expand 32-byte k"u8.ToArray();
+
+    private static readonly byte[] Tau = "expand 16-byte k"u8.ToArray();
+
+    #endregion
 
     /// <summary>
     /// Set up a new ChaCha20 state. The lengths of the given parameters are checked before encryption happens.
@@ -73,17 +92,6 @@ public sealed class ChaCha20 : IDisposable
         KeySetup(key.ToArray());
         IvSetup(nonce.ToArray(), counter);
     }
-
-    /// <summary>
-    /// The ChaCha20 state (aka "context"). Read-Only.
-    /// </summary>
-    private uint[] State { get; } = new uint[StateLength];
-
-    // These are the same constants defined in the reference implementation.
-    // http://cr.yp.to/streamciphers/timings/estreambench/submissions/salsa20/chacha8/ref/chacha.c
-    private static readonly byte[] Sigma = "expand 32-byte k"u8.ToArray();
-
-    private static readonly byte[] Tau = "expand 16-byte k"u8.ToArray();
 
     /// <summary>
     /// Set up the ChaCha state with the given key. A 32-byte key is required and enforced.

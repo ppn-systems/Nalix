@@ -12,6 +12,8 @@ namespace Notio.Cryptography.Aead;
 /// </summary>
 public static class ChaCha20Poly1305
 {
+    #region Constants
+
     /// <summary>
     /// The size of the authentication tag in bytes.
     /// </summary>
@@ -26,6 +28,8 @@ public static class ChaCha20Poly1305
     /// The size of the nonce in bytes.
     /// </summary>
     private const int NonceSize = 12;
+
+    #endregion
 
     // -------------------------------
     // Public API: Encrypt and Decrypt

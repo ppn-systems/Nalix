@@ -18,6 +18,8 @@ namespace Notio.Cryptography.Hashing;
 /// </remarks>
 public sealed class Sha1 : ISha, IDisposable
 {
+    #region Fields
+
     // Hash state instance field
     private readonly uint[] _state = new uint[5];
     private bool _disposed;
@@ -28,6 +30,10 @@ public sealed class Sha1 : ISha, IDisposable
     private ulong _totalBytesProcessed = 0;        // Total bytes processed
     private bool _finalized = false;               // Flag indicating hash has been finalized
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the SHA-1 hash algorithm.
     /// </summary>
@@ -36,6 +42,10 @@ public sealed class Sha1 : ISha, IDisposable
         _disposed = false;
         this.Initialize();
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Resets the hash state to initial values.
@@ -258,6 +268,8 @@ public sealed class Sha1 : ISha, IDisposable
         return sha1.FinalizeHash();
     }
 
+    #endregion
+
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -451,6 +463,8 @@ public sealed class Sha1 : ISha, IDisposable
 
     #endregion
 
+    #region IDisposable Implementation
+
     /// <summary>
     /// Releases all resources used by the <see cref="Sha1"/> instance.
     /// </summary>
@@ -468,6 +482,8 @@ public sealed class Sha1 : ISha, IDisposable
         _disposed = true;
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 
     /// <summary>
     /// Returns a string representation of the SHA-1 hash algorithm.

@@ -21,6 +21,8 @@ namespace Notio.Cryptography.Mac;
 /// </remarks>
 public sealed class Poly1305 : IDisposable
 {
+    #region Constants
+
     /// <summary>
     /// The size of the authentication tag produced by Poly1305 (16 bytes).
     /// </summary>
@@ -30,6 +32,10 @@ public sealed class Poly1305 : IDisposable
     /// The size of the authentication tag produced by Poly1305 (16 bytes).
     /// </summary>
     public const int TagSize = 16;
+
+    #endregion
+
+    #region Fields
 
     /// <summary>
     /// The prime Number (2^130 - 5) used in Poly1305 algorithm.
@@ -50,6 +56,10 @@ public sealed class Poly1305 : IDisposable
     /// Flag indicating if this instance has been disposed.
     /// </summary>
     private bool _disposed;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Poly1305"/> class using a 32-byte key.
@@ -77,6 +87,10 @@ public sealed class Poly1305 : IDisposable
             _s[i] = BinaryPrimitives.ReadUInt32LittleEndian(sBytes.Slice(i * 4, 4));
         }
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Computes the Poly1305 MAC for a message using the specified key.
@@ -198,6 +212,10 @@ public sealed class Poly1305 : IDisposable
         // Finalize the tag
         FinalizeTag(accumulator, destination);
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Clamps the r value according to RFC 8439.
@@ -418,6 +436,10 @@ public sealed class Poly1305 : IDisposable
         }
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Securely clears sensitive data when the object is disposed.
     /// </summary>
@@ -443,4 +465,6 @@ public sealed class Poly1305 : IDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }

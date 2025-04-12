@@ -21,6 +21,8 @@ namespace Notio.Cryptography.Asymmetric;
 /// <param name="verifier">Verifier value as byte array.</param>
 public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 {
+    #region Properties
+
     /// <summary>
     /// Large prime Number N.
     /// </summary>
@@ -39,6 +41,10 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// </summary>
     public static readonly BigInteger G = 2;
 
+    #endregion
+
+    #region Fields
+
     private readonly BigInteger _saltValue = new(salt, true);
     private readonly BigInteger _verifier = new(verifier, true);
     private readonly byte[] _usernameBytes = Encoding.UTF8.GetBytes(username);
@@ -49,6 +55,8 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     private BigInteger _clientPublicValue;
     private BigInteger _serverPublicValue;
     private BigInteger _serverPrivateValue;
+
+    #endregion
 
     #region Public Methods
 

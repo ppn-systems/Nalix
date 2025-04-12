@@ -11,12 +11,16 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class Arc4 : IDisposable
 {
+    #region Fields
+
     // Store state as individual fields for better performance
     private byte _i;
 
     private byte _j;
     private readonly byte[] _s = new byte[256];
     private bool _disposed;
+
+    #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Arc4"/> class with the given key.
