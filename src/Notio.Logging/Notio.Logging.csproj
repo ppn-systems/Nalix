@@ -6,8 +6,8 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.5.33</Version>
-    <PackageVersion>0.5.33</PackageVersion>
+    <Version>0.5.47</Version>
+    <PackageVersion>0.5.47</PackageVersion>
 
     <Description>
       Notio.Logging is a flexible and high-performance logging library for .NET. It provides core logging infrastructure, customizable formatters, multiple logging targets, and internal utilities for efficient log processing. Designed for developers who need structured and extensible logging capabilities in high-performance applications.
