@@ -104,15 +104,11 @@ public static class EnvelopeCipher
             CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
-            CipherSuiteType.CHACHA20
-                => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
-
+            CipherSuiteType.CHACHA20 => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
             CipherSuiteType.XTEA_POLY1305 or
             CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
-            CipherSuiteType.CHACHA20_POLY1305
-                => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
-
+            CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
             _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm))
         };
     }
@@ -165,15 +161,11 @@ public static class EnvelopeCipher
             CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
-            CipherSuiteType.CHACHA20
-                => SymmetricEngine.Decrypt(key, envelope, out plaintext),
-
+            CipherSuiteType.CHACHA20 => SymmetricEngine.Decrypt(key, envelope, out plaintext),
             CipherSuiteType.XTEA_POLY1305 or
             CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
-            CipherSuiteType.CHACHA20_POLY1305
-                => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
-
+            CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
             _ => false
         };
     }
