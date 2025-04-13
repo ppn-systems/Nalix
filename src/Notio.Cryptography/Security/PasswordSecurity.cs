@@ -9,6 +9,8 @@ namespace Notio.Cryptography.Security;
 /// </summary>
 public static class PasswordSecurity
 {
+    #region Constants
+
     /// <summary>
     /// Standard key size in bytes.
     /// </summary>
@@ -23,6 +25,8 @@ public static class PasswordSecurity
     /// Number of iterations for PBKDF2.
     /// </summary>
     public const int Iterations = 100_000;
+
+    #endregion
 
     /// <summary>
     /// Hashes a password using PBKDF2 and returns the salt and hash.

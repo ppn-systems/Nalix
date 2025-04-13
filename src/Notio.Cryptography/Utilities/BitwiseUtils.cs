@@ -19,10 +19,7 @@ public static class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateRight(uint value, int bits)
-    {
-        // Use BitOperations.RotateRight which will use hardware intrinsics when available
-        return BitOperations.RotateRight(value, bits);
-    }
+        => BitOperations.RotateRight(value, bits);
 
     /// <summary>
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
@@ -32,10 +29,7 @@ public static class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateLeft(uint value, int bits)
-    {
-        // Use BitOperations.RotateLeft which will use hardware intrinsics when available
-        return BitOperations.RotateLeft(value, bits);
-    }
+        => BitOperations.RotateLeft(value, bits);
 
     /// <summary>
     /// Unchecked integer exclusive or (XOR) operation.
@@ -234,7 +228,11 @@ public static class BitwiseUtils
         if (left.Length != right.Length) return false;
 
         int result = 0;
-        for (int i = 0; i < left.Length; i++) result |= left[i] ^ right[i];
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            result |= left[i] ^ right[i];
+        }
 
         return result == 0;
     }
@@ -247,6 +245,8 @@ public static class BitwiseUtils
     public static void IncrementCounter(Span<byte> counter)
     {
         for (int i = 0; i < counter.Length; i++)
+        {
             if (++counter[i] != 0) break;
+        }
     }
 }

@@ -87,9 +87,7 @@ public static class Salsa20
         return Encrypt(key, nonce, counter, ciphertext, plaintext);
     }
 
-    // ----------------------------
-    // Utility Methods
-    // ----------------------------
+    #region Utility Methods
 
     /// <summary>
     /// Converts a string passphrase into a 32-byte key using a simple hash function.
@@ -235,4 +233,6 @@ public static class Salsa20
         d ^= BitwiseUtils.RotateLeft(c + b, 13);
         a ^= BitwiseUtils.RotateLeft(d + c, 18);
     }
+
+    #endregion
 }

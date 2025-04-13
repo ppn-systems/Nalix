@@ -240,10 +240,6 @@ public static class Twofish
         }
     }
 
-    // --------------------------
-    // Core Implementation
-    // --------------------------
-
     #region Core Implementation
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

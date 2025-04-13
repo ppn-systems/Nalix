@@ -47,7 +47,7 @@ public sealed class Codec
     public void Encrypt(byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
-    #region Data
+    #region Fields
 
     private readonly static uint[] SBox =
     [

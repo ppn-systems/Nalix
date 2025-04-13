@@ -13,11 +13,15 @@ namespace Notio.Cryptography.Security;
 /// </summary>
 public sealed class Pbkdf2 : IDisposable
 {
+    #region Fields
+
     private readonly byte[] _salt;
     private readonly int _keyLength;
     private readonly int _iterations;
     private readonly HashAlgorithm _hashType;
     private bool _disposed;
+
+    #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Pbkdf2"/> class.

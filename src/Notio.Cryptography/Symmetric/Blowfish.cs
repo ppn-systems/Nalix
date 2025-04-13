@@ -10,209 +10,11 @@ namespace Notio.Cryptography.Symmetric;
 public class Blowfish
 {
     private const int N = 16;
+
+    #region Fields  
+
     private readonly uint[] P;
     private readonly uint[,] S;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
-    /// </summary>
-    /// <param name="schedule"></param>
-    /// <param name="key"></param>
-    public Blowfish(uint[] schedule, byte[] key)
-    {
-        P = new uint[18];
-        S = new uint[4, 256];
-        Buffer.BlockCopy(schedule, 0, P, 0, 18 * 4);
-        Buffer.BlockCopy(schedule, 18 * 4, S, 0, 1024 * 4);
-        InitializeKeySchedule(key);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
-    /// </summary>
-    /// <param name="key">The encryption key (must be between 4 and 56 bytes).</param>
-    public Blowfish(byte[] key)
-    {
-        P = _P.Clone() as uint[];
-        S = _S.Clone() as uint[,];
-        InitializeKeySchedule(key);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Blowfish"/> class with a string key.
-    /// </summary>
-    /// <param name="key">The encryption key as a string.</param>
-    public Blowfish(string key)
-        : this(Encoding.ASCII.GetBytes(key))
-    {
-    }
-
-    /// <summary>
-    /// Encrypts the given data in place.
-    /// </summary>
-    /// <param name="data">The byte array to encrypt.</param>
-    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
-    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void EncryptInPlace(byte[] data, int length) => EncryptBlock(data, 0, length);
-
-    /// <summary>
-    /// Encrypts a specific block of data in place.
-    /// </summary>
-    /// <param name="data">The byte array to encrypt.</param>
-    /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
-    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void EncryptBlock(byte[] data, int offset, int length)
-    {
-        if (length % 8 != 0)
-            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
-
-        for (int i = offset; i < offset + length; i += 8)
-        {
-            uint left = BitConverter.ToUInt32(data, i);
-            uint right = BitConverter.ToUInt32(data, i + 4);
-            EncryptBlock(ref left, ref right);
-
-            Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
-        }
-    }
-
-    /// <summary>
-    /// Encrypts a string and returns a Base64-encoded result.
-    /// </summary>
-    /// <param name="plainText">The plaintext string to encrypt.</param>
-    /// <returns>A Base64-encoded encrypted string.</returns>
-    public string EncryptToBase64(string plainText)
-    {
-        byte[] data = Encoding.Unicode.GetBytes(plainText);
-        EncryptInPlace(data, data.Length);
-        return Convert.ToBase64String(data);
-    }
-
-    /// <summary>
-    /// Decrypts the given data in place.
-    /// </summary>
-    /// <param name="data">The byte array to decrypt.</param>
-    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
-    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void DecryptInPlace(byte[] data, int length) => DecryptBlock(data, 0, length);
-
-    /// <summary>
-    /// Decrypts a specific block of data in place.
-    /// </summary>
-    /// <param name="data">The byte array to decrypt.</param>
-    /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
-    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void DecryptBlock(byte[] data, int offset, int length)
-    {
-        if (length % 8 != 0)
-            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
-
-        for (int i = offset; i < offset + length; i += 8)
-        {
-            uint left = BitConverter.ToUInt32(data, i);
-            uint right = BitConverter.ToUInt32(data, i + 4);
-            DecryptBlock(ref left, ref right);
-
-            Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
-        }
-    }
-
-    /// <summary>
-    /// Decrypts a Base64-encoded string.
-    /// </summary>
-    /// <param name="cipherText">The Base64-encoded encrypted string.</param>
-    /// <returns>The decrypted plaintext string.</returns>
-    public string DecryptFromBase64(string cipherText)
-    {
-        byte[] data = Convert.FromBase64String(cipherText);
-        DecryptInPlace(data, data.Length);
-        return Encoding.Unicode.GetString(data);
-    }
-
-    /// <summary>
-    /// Encrypts a single 8-byte block.
-    /// </summary>
-    /// <param name="left">The left 32-bit half of the block.</param>
-    /// <param name="right">The right 32-bit half of the block.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EncryptBlock(ref uint left, ref uint right)
-    {
-        for (int i = 0; i < N; ++i)
-        {
-            left ^= P[i];
-            right ^= SubstitutionFunction(left);
-            (left, right) = (right, left);
-        }
-
-        (left, right) = (right, left);
-
-        right ^= P[N];
-        left ^= P[N + 1];
-    }
-
-    /// <summary>
-    /// Decrypts a single 8-byte block.
-    /// </summary>
-    /// <param name="left">The left 32-bit half of the block.</param>
-    /// <param name="right">The right 32-bit half of the block.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DecryptBlock(ref uint left, ref uint right)
-    {
-        for (int i = N + 1; i > 1; --i)
-        {
-            left ^= P[i];
-            right ^= SubstitutionFunction(left);
-            (left, right) = (right, left);
-        }
-
-        (left, right) = (right, left);
-
-        right ^= P[1];
-        left ^= P[0];
-    }
-
-    /// <summary>
-    /// Blowfish substitution function (F function).
-    /// </summary>
-    /// <param name="value">The 32-bit input value.</param>
-    /// <returns>The transformed value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private uint SubstitutionFunction(uint value)
-    {
-        ushort a = (ushort)((value >> 24) & 0xFF);
-        ushort b = (ushort)((value >> 16) & 0xFF);
-        ushort c = (ushort)((value >> 8) & 0xFF);
-        ushort d = (ushort)(value & 0xFF);
-
-        return (S[0, a] + S[1, b]) ^ S[2, c] + S[3, d];
-    }
-
-    /// <summary>
-    /// Initializes the key schedule using the provided key.
-    /// </summary>
-    /// <param name="key">The encryption key.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InitializeKeySchedule(byte[] key)
-    {
-        short j = 0;
-        uint data = 0;
-
-        for (short i = 0; i < N + 2; ++i)
-        {
-            for (short k = 0; k < 4; ++k)
-            {
-                data = (data << 8) | key[j++];
-                if (j >= key.Length) j = 0;
-            }
-            P[i] ^= data;
-        }
-    }
-
-    #region Readonly
 
     private static readonly uint[] _P =
     [
@@ -404,6 +206,217 @@ public class Blowfish
             0XB74E6132, 0XCE77E25B, 0X578FDFE3, 0X3AC372E6
         }
     };
+
+    #endregion
+
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
+    /// </summary>
+    /// <param name="schedule"></param>
+    /// <param name="key"></param>
+    public Blowfish(uint[] schedule, byte[] key)
+    {
+        P = new uint[18];
+        S = new uint[4, 256];
+        Buffer.BlockCopy(schedule, 0, P, 0, 18 * 4);
+        Buffer.BlockCopy(schedule, 18 * 4, S, 0, 1024 * 4);
+        InitializeKeySchedule(key);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Blowfish"/> class with the specified key.
+    /// </summary>
+    /// <param name="key">The encryption key (must be between 4 and 56 bytes).</param>
+    public Blowfish(byte[] key)
+    {
+        P = _P.Clone() as uint[];
+        S = _S.Clone() as uint[,];
+        InitializeKeySchedule(key);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Blowfish"/> class with a string key.
+    /// </summary>
+    /// <param name="key">The encryption key as a string.</param>
+    public Blowfish(string key)
+        : this(Encoding.ASCII.GetBytes(key))
+    {
+    }
+
+    #endregion
+
+    #region Public Methods
+
+    /// <summary>
+    /// Encrypts the given data in place.
+    /// </summary>
+    /// <param name="data">The byte array to encrypt.</param>
+    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    public void EncryptInPlace(byte[] data, int length) => EncryptBlock(data, 0, length);
+
+    /// <summary>
+    /// Encrypts a specific block of data in place.
+    /// </summary>
+    /// <param name="data">The byte array to encrypt.</param>
+    /// <param name="offset">The starting position in the array.</param>
+    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    public void EncryptBlock(byte[] data, int offset, int length)
+    {
+        if (length % 8 != 0)
+            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
+
+        for (int i = offset; i < offset + length; i += 8)
+        {
+            uint left = BitConverter.ToUInt32(data, i);
+            uint right = BitConverter.ToUInt32(data, i + 4);
+            EncryptBlock(ref left, ref right);
+
+            Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
+        }
+    }
+
+    /// <summary>
+    /// Encrypts a string and returns a Base64-encoded result.
+    /// </summary>
+    /// <param name="plainText">The plaintext string to encrypt.</param>
+    /// <returns>A Base64-encoded encrypted string.</returns>
+    public string EncryptToBase64(string plainText)
+    {
+        byte[] data = Encoding.Unicode.GetBytes(plainText);
+        EncryptInPlace(data, data.Length);
+        return Convert.ToBase64String(data);
+    }
+
+    /// <summary>
+    /// Decrypts the given data in place.
+    /// </summary>
+    /// <param name="data">The byte array to decrypt.</param>
+    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    public void DecryptInPlace(byte[] data, int length) => DecryptBlock(data, 0, length);
+
+    /// <summary>
+    /// Decrypts a specific block of data in place.
+    /// </summary>
+    /// <param name="data">The byte array to decrypt.</param>
+    /// <param name="offset">The starting position in the array.</param>
+    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    public void DecryptBlock(byte[] data, int offset, int length)
+    {
+        if (length % 8 != 0)
+            throw new ArgumentException("Length must be a multiple of 8.", nameof(length));
+
+        for (int i = offset; i < offset + length; i += 8)
+        {
+            uint left = BitConverter.ToUInt32(data, i);
+            uint right = BitConverter.ToUInt32(data, i + 4);
+            DecryptBlock(ref left, ref right);
+
+            Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
+        }
+    }
+
+    /// <summary>
+    /// Decrypts a Base64-encoded string.
+    /// </summary>
+    /// <param name="cipherText">The Base64-encoded encrypted string.</param>
+    /// <returns>The decrypted plaintext string.</returns>
+    public string DecryptFromBase64(string cipherText)
+    {
+        byte[] data = Convert.FromBase64String(cipherText);
+        DecryptInPlace(data, data.Length);
+        return Encoding.Unicode.GetString(data);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Encrypts a single 8-byte block.
+    /// </summary>
+    /// <param name="left">The left 32-bit half of the block.</param>
+    /// <param name="right">The right 32-bit half of the block.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EncryptBlock(ref uint left, ref uint right)
+    {
+        for (int i = 0; i < N; ++i)
+        {
+            left ^= P[i];
+            right ^= SubstitutionFunction(left);
+            (left, right) = (right, left);
+        }
+
+        (left, right) = (right, left);
+
+        right ^= P[N];
+        left ^= P[N + 1];
+    }
+
+    /// <summary>
+    /// Decrypts a single 8-byte block.
+    /// </summary>
+    /// <param name="left">The left 32-bit half of the block.</param>
+    /// <param name="right">The right 32-bit half of the block.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void DecryptBlock(ref uint left, ref uint right)
+    {
+        for (int i = N + 1; i > 1; --i)
+        {
+            left ^= P[i];
+            right ^= SubstitutionFunction(left);
+            (left, right) = (right, left);
+        }
+
+        (left, right) = (right, left);
+
+        right ^= P[1];
+        left ^= P[0];
+    }
+
+    /// <summary>
+    /// Blowfish substitution function (F function).
+    /// </summary>
+    /// <param name="value">The 32-bit input value.</param>
+    /// <returns>The transformed value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private uint SubstitutionFunction(uint value)
+    {
+        ushort a = (ushort)((value >> 24) & 0xFF);
+        ushort b = (ushort)((value >> 16) & 0xFF);
+        ushort c = (ushort)((value >> 8) & 0xFF);
+        ushort d = (ushort)(value & 0xFF);
+
+        return (S[0, a] + S[1, b]) ^ S[2, c] + S[3, d];
+    }
+
+    /// <summary>
+    /// Initializes the key schedule using the provided key.
+    /// </summary>
+    /// <param name="key">The encryption key.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void InitializeKeySchedule(byte[] key)
+    {
+        short j = 0;
+        uint data = 0;
+
+        for (short i = 0; i < N + 2; ++i)
+        {
+            for (short k = 0; k < 4; ++k)
+            {
+                data = (data << 8) | key[j++];
+                if (j >= key.Length) j = 0;
+            }
+            P[i] ^= data;
+        }
+    }
 
     #endregion
 }

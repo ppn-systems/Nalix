@@ -57,6 +57,8 @@ public sealed class ChaCha20 : IDisposable
 
     #endregion
 
+    #region Constructors
+
     /// <summary>
     /// Set up a new ChaCha20 state. The lengths of the given parameters are checked before encryption happens.
     /// </summary>
@@ -74,8 +76,8 @@ public sealed class ChaCha20 : IDisposable
     /// </param>
     public ChaCha20(byte[] key, byte[] nonce, uint counter)
     {
-        KeySetup(key);
-        IvSetup(nonce, counter);
+        this.KeySetup(key);
+        this.IvSetup(nonce, counter);
     }
 
     /// <summary>
@@ -89,95 +91,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="counter">A 4-byte (32-bit) block counter, treated as a 32-bit little-endian unsigned integer</param>
     public ChaCha20(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, uint counter)
     {
-        KeySetup(key.ToArray());
-        IvSetup(nonce.ToArray(), counter);
+        this.KeySetup(key.ToArray());
+        this.IvSetup(nonce.ToArray(), counter);
     }
 
-    /// <summary>
-    /// Set up the ChaCha state with the given key. A 32-byte key is required and enforced.
-    /// </summary>
-    /// <param name="key">
-    /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
-    /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void KeySetup(byte[] key)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-
-        if (key.Length != KeySize)
-        {
-            throw new ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
-        }
-
-        State[4] = BitwiseUtils.U8To32Little(key, 0);
-        State[5] = BitwiseUtils.U8To32Little(key, 4);
-        State[6] = BitwiseUtils.U8To32Little(key, 8);
-        State[7] = BitwiseUtils.U8To32Little(key, 12);
-
-        byte[] constants = key.Length == KeySize ? Sigma : Tau;
-        int keyIndex = key.Length - 16;
-
-        State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
-        State[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
-        State[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
-        State[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
-
-        State[0] = BitwiseUtils.U8To32Little(constants, 0);
-        State[1] = BitwiseUtils.U8To32Little(constants, 4);
-        State[2] = BitwiseUtils.U8To32Little(constants, 8);
-        State[3] = BitwiseUtils.U8To32Little(constants, 12);
-    }
-
-    /// <summary>
-    /// Set up the ChaCha state with the given nonce (aka Initialization Vector or IV) and block counter. A 12-byte nonce and a 4-byte counter are required.
-    /// </summary>
-    /// <param name="nonce">
-    /// A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers
-    /// </param>
-    /// <param name="counter">
-    /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
-    /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void IvSetup(byte[] nonce, uint counter)
-    {
-        if (nonce == null)
-        {
-            // There has already been some state set up. Clear it before exiting.
-            Dispose();
-            throw new ArgumentNullException(nameof(nonce));
-        }
-
-        if (nonce.Length != NonceSize)
-        {
-            // There has already been some state set up. Clear it before exiting.
-            Dispose();
-            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}", nameof(nonce));
-        }
-
-        State[12] = counter;
-        State[13] = BitwiseUtils.U8To32Little(nonce, 0);
-        State[14] = BitwiseUtils.U8To32Little(nonce, 4);
-        State[15] = BitwiseUtils.U8To32Little(nonce, 8);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SimdMode DetectSimdMode()
-    {
-        if (Vector512.IsHardwareAccelerated)
-        {
-            return SimdMode.V512;
-        }
-        else if (Vector256.IsHardwareAccelerated)
-        {
-            return SimdMode.V256;
-        }
-        else if (Vector128.IsHardwareAccelerated)
-        {
-            return SimdMode.V128;
-        }
-
-        return SimdMode.None;
-    }
+    #endregion
 
     #region Encryption methods
 
@@ -339,7 +257,7 @@ public sealed class ChaCha20 : IDisposable
 
     #endregion Encryption methods
 
-    #region // Decryption methods
+    #region Decryption methods
 
     /// <summary>
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array to the output buffer.
@@ -497,6 +415,94 @@ public sealed class ChaCha20 : IDisposable
     }
 
     #endregion // Decryption methods
+
+    #region Private Methods
+
+    /// <summary>
+    /// Set up the ChaCha state with the given key. A 32-byte key is required and enforced.
+    /// </summary>
+    /// <param name="key">
+    /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void KeySetup(byte[] key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (key.Length != KeySize)
+        {
+            throw new ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
+        }
+
+        State[4] = BitwiseUtils.U8To32Little(key, 0);
+        State[5] = BitwiseUtils.U8To32Little(key, 4);
+        State[6] = BitwiseUtils.U8To32Little(key, 8);
+        State[7] = BitwiseUtils.U8To32Little(key, 12);
+
+        byte[] constants = key.Length == KeySize ? Sigma : Tau;
+        int keyIndex = key.Length - 16;
+
+        State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
+        State[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
+        State[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
+        State[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
+
+        State[0] = BitwiseUtils.U8To32Little(constants, 0);
+        State[1] = BitwiseUtils.U8To32Little(constants, 4);
+        State[2] = BitwiseUtils.U8To32Little(constants, 8);
+        State[3] = BitwiseUtils.U8To32Little(constants, 12);
+    }
+
+    /// <summary>
+    /// Set up the ChaCha state with the given nonce (aka Initialization Vector or IV) and block counter. A 12-byte nonce and a 4-byte counter are required.
+    /// </summary>
+    /// <param name="nonce">
+    /// A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers
+    /// </param>
+    /// <param name="counter">
+    /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void IvSetup(byte[] nonce, uint counter)
+    {
+        if (nonce == null)
+        {
+            // There has already been some state set up. Clear it before exiting.
+            Dispose();
+            throw new ArgumentNullException(nameof(nonce));
+        }
+
+        if (nonce.Length != NonceSize)
+        {
+            // There has already been some state set up. Clear it before exiting.
+            Dispose();
+            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}", nameof(nonce));
+        }
+
+        State[12] = counter;
+        State[13] = BitwiseUtils.U8To32Little(nonce, 0);
+        State[14] = BitwiseUtils.U8To32Little(nonce, 4);
+        State[15] = BitwiseUtils.U8To32Little(nonce, 8);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static SimdMode DetectSimdMode()
+    {
+        if (Vector512.IsHardwareAccelerated)
+        {
+            return SimdMode.V512;
+        }
+        else if (Vector256.IsHardwareAccelerated)
+        {
+            return SimdMode.V256;
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            return SimdMode.V128;
+        }
+
+        return SimdMode.None;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WorkStreams(
@@ -696,6 +702,8 @@ public sealed class ChaCha20 : IDisposable
         x[c] = BitwiseUtils.Add(x[c], x[d]);
         x[b] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[b], x[c]), 7);
     }
+
+    #endregion
 
     #region Destructor and Disposer
 
