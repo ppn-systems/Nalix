@@ -265,7 +265,7 @@ public class Srp6Tests
         byte[] zeroPublicValue = [0];
 
         // Act & Assert
-        Assert.Throws<CryptographicException>(() => server.CalculateSecret(zeroPublicValue));
+        Assert.Throws<CryptoException>(() => server.CalculateSecret(zeroPublicValue));
     }
     #endregion
 
@@ -300,7 +300,7 @@ public class Srp6Tests
         var server = new Srp6(TestUsername, salt, verifier);
 
         // Act & Assert
-        Assert.Throws<CryptographicException>(() => server.CalculateSessionKey());
+        Assert.Throws<CryptoException>(() => server.CalculateSessionKey());
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class Srp6Tests
         byte[] clientProof = new byte[32]; // Mock proof
 
         // Act & Assert
-        Assert.Throws<CryptographicException>(() => server.VerifyClientEvidenceMessage(clientProof));
+        Assert.Throws<CryptoException>(() => server.VerifyClientEvidenceMessage(clientProof));
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public class Srp6Tests
         var server = new Srp6(TestUsername, salt, verifier);
 
         // Act & Assert
-        Assert.Throws<CryptographicException>(() => server.CalculateServerEvidenceMessage());
+        Assert.Throws<CryptoException>(() => server.CalculateServerEvidenceMessage());
     }
 
     [Fact]
