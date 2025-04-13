@@ -19,8 +19,4 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Symmetric\" />
-  </ItemGroup>
-
 </Project>
