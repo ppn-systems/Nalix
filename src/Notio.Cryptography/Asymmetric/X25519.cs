@@ -60,16 +60,26 @@ public sealed class X25519 : IX25519
     /// <summary>
     /// Generates an X25519 key pair.
     /// </summary>
-    /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
-    public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
+    /// <param name="privateKey">Output 32-byte private key.</param>
+    /// <param name="publicKey">Output 32-byte public key.</param>
+    public static void GenerateKeyPair(out byte[] privateKey, out byte[] publicKey)
     {
-        // Generate a random 32-byte scalar and clamp it
-        byte[] privateKey = new byte[FieldElementSize];
+        // Allocate and fill private key
+        privateKey = new byte[FieldElementSize];
         RandGenerator.Fill(privateKey);
         ClampScalar(privateKey);
 
-        // Compute public key using the base point
-        byte[] publicKey = ScalarMult(privateKey, BasePoint);
+        // Compute public key from private key
+        publicKey = ScalarMult(privateKey, BasePoint);
+    }
+
+    /// <summary>
+    /// Generates an X25519 key pair.
+    /// </summary>
+    /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
+    public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
+    {
+        GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
         return (privateKey, publicKey);
     }
 

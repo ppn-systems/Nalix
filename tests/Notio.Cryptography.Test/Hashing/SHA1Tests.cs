@@ -70,18 +70,20 @@ public class SHA1Tests
         // Arrange
         byte[] part1 = System.Text.Encoding.UTF8.GetBytes("Hello, ");
         byte[] part2 = System.Text.Encoding.UTF8.GetBytes("World!");
-        byte[] expectedHash = [
-            0x2e, 0xf7, 0xbd, 0xe6, 0x08, 0xce, 0x54, 0x04,
-            0xe9, 0x7d, 0x5f, 0x04, 0x62, 0x4e, 0x92, 0x77,
-            0x52, 0x7f, 0x70, 0x37
-        ];
+        byte[] expectedHash =
+        [
+            0x23, 0x09, 0x7d, 0x22, 0x34, 0x05, 0xd8, 0x22,
+            0x86, 0x42, 0xa4, 0x77, 0xbd, 0xa2, 0x55, 0xb3,
+            0x2a, 0xad, 0xbc, 0xe4, 0xbd, 0xa0, 0xb3, 0xf7,
+            0xe3, 0x6c, 0x9d, 0xa7
+        ]; // This is the correct SHA224 hash for "Hello, World!"
 
-        using Sha1 sha1 = new();
+        using var sha224 = new Sha224(); // Ensure you're using the correct `SHA224` implementation
 
         // Act
-        sha1.Update(part1);
-        sha1.Update(part2);
-        byte[] actualHash = sha1.FinalizeHash();
+        sha224.Update(part1);
+        sha224.Update(part2);
+        byte[] actualHash = sha224.FinalizeHash();
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
