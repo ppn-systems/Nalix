@@ -6,8 +6,8 @@
 		<OutputType>Library</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>0.5.47</Version>
-    <PackageVersion>0.5.47</PackageVersion>
+    <Version>0.5.55</Version>
+    <PackageVersion>0.5.55</PackageVersion>
 
     <Description>
       Notio is a high-performance .NET library that provides essential utilities for diagnostics, runtime management, secure randomization, unique identification, threading, and reflection. It offers a modular and extensible architecture, making it an ideal choice for building scalable and maintainable applications.
