@@ -2,7 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Environment;
+using Nalix.Common.Infrastructure.Environment;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Shared.Extensions;
