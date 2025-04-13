@@ -13,12 +13,12 @@ public static class PacketCompression
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet CompressPayload(this in Packet packet, CompressionMode type)
-        => Compression.PacketCompression.CompressPayload(packet, type);
+        => Utilities.PacketCompression.CompressPayload(packet, type);
 
     /// <summary>
     /// Decompresses the payload of the packet using the specified compression algorithm.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Packet DecompressPayload(this in Packet packet, CompressionMode type)
-        => Compression.PacketCompression.DecompressPayload(packet, type);
+        => Utilities.PacketCompression.DecompressPayload(packet, type);
 }

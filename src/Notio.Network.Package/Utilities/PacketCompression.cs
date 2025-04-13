@@ -7,7 +7,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Compression;
+namespace Notio.Network.Package.Utilities;
 
 /// <summary>
 /// Provides helper methods for compressing and decompressing packet payloads.
@@ -113,7 +113,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using var memoryStream = new MemoryStream();
-            using var gzipStream = new GZipStream(memoryStream, System.IO.Compression.CompressionMode.Compress);
+            using var gzipStream = new GZipStream(memoryStream, CompressionMode.Compress);
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             gzipStream.Write(span);
             gzipStream.Close();
@@ -126,7 +126,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new(data.ToArray());
-            using GZipStream gzipStream = new(memoryStream, System.IO.Compression.CompressionMode.Decompress);
+            using GZipStream gzipStream = new(memoryStream, CompressionMode.Decompress);
             using MemoryStream outputStream = new();
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             gzipStream.CopyTo(outputStream);
@@ -140,7 +140,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new();
-            using DeflateStream deflateStream = new(memoryStream, System.IO.Compression.CompressionMode.Compress);
+            using DeflateStream deflateStream = new(memoryStream, CompressionMode.Compress);
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             deflateStream.Write(span);
             deflateStream.Close();
@@ -153,7 +153,7 @@ public static class PacketCompression
         fixed (byte* dataPtr = data.Span)
         {
             using MemoryStream memoryStream = new(data.ToArray());
-            using DeflateStream deflateStream = new(memoryStream, System.IO.Compression.CompressionMode.Decompress);
+            using DeflateStream deflateStream = new(memoryStream, CompressionMode.Decompress);
             using MemoryStream outputStream = new();
             var span = new ReadOnlySpan<byte>(dataPtr, data.Length);
             deflateStream.CopyTo(outputStream);

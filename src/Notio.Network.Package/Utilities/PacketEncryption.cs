@@ -3,11 +3,10 @@ using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Cryptography;
 using Notio.Extensions.Primitives;
-using Notio.Network.Package.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Security;
+namespace Notio.Network.Package.Utilities;
 
 /// <summary>
 /// Provides helper methods for encrypting and decrypting packet payloads.

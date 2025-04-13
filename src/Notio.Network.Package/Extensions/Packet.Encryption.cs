@@ -16,7 +16,7 @@ public static class PacketEncryption
     /// <param name="algorithm">The encryption algorithm to use (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
     public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
-        => Security.PacketEncryption.EncryptPayload(packet, key, algorithm);
+        => Utilities.PacketEncryption.EncryptPayload(packet, key, algorithm);
 
     /// <summary>
     /// Decrypts the Payload in the IPacket using the specified algorithm.
@@ -27,5 +27,5 @@ public static class PacketEncryption
     /// <param name="algorithm">The encryption algorithm that was used (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
     public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
-        => Security.PacketEncryption.DecryptPayload(packet, key, algorithm);
+        => Utilities.PacketEncryption.DecryptPayload(packet, key, algorithm);
 }
