@@ -8,7 +8,6 @@ using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Dispatcher.Packets;
-using Notio.Network.Protocols;
 using System.Linq;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
@@ -21,9 +20,15 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 [PacketController]
 public sealed class HandshakeController
 {
+    #region Fields
+
     private readonly ILogger? _logger;
     private readonly ISha _hashAlgorithm;
     private readonly IX25519 _keyExchangeAlgorithm;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HandshakeController"/> class with necessary components.
@@ -39,6 +44,8 @@ public sealed class HandshakeController
 
         _hashAlgorithm.Initialize(); // Initialize the hashing algorithm.
     }
+
+    #endregion
 
     /// <summary>
     /// Initiates a secure connection by performing a handshake with the client.
@@ -152,6 +159,8 @@ public sealed class HandshakeController
         return PacketBuilder.String(PacketCode.Success);
     }
 
+    #region Private Methods
+
     /// <summary>
     /// Computes a derived encryption key by performing the X25519 key exchange and then hashing the result.
     /// This method produces a shared secret by combining the client's public key and the server's private key,
@@ -189,4 +198,6 @@ public sealed class HandshakeController
         public const string PrivateKey = "X25519_PrivateKey";
         public const string LastHandshakeTime = "LastHandshakeTime";
     }
+
+    #endregion
 }

@@ -91,6 +91,8 @@ public sealed class RequestLimiter : IDisposable
 
     #endregion
 
+    #region Public Methods
+
     /// <summary>
     /// Checks the Number of requests from an IP address and determines whether further requests are allowed based on rate-limiting rules.
     /// </summary>
@@ -126,6 +128,10 @@ public sealed class RequestLimiter : IDisposable
         return allowed;
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Periodically cleans up inactive requests to remove expired data from the IP request tracking.
     /// </summary>
@@ -157,6 +163,21 @@ public sealed class RequestLimiter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Creates a configured connection configuration.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static RequestConfig CreateConfiguredConfig(Action<RequestConfig>? configure)
+    {
+        RequestConfig config = ConfigurationStore.Instance.Get<RequestConfig>();
+        configure?.Invoke(config);
+        return config;
+    }
+
+    #endregion
+
+    #region IDisposable
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -168,14 +189,5 @@ public sealed class RequestLimiter : IDisposable
         _logger?.Debug("RequestLimiter disposed");
     }
 
-    /// <summary>
-    /// Creates a configured connection configuration.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static RequestConfig CreateConfiguredConfig(Action<RequestConfig>? configure)
-    {
-        RequestConfig config = ConfigurationStore.Instance.Get<RequestConfig>();
-        configure?.Invoke(config);
-        return config;
-    }
+    #endregion
 }

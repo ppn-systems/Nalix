@@ -7,11 +7,22 @@ namespace Notio.Network.Security.Metadata;
 /// </summary>
 internal readonly struct RequestLimiterInfo
 {
+    #region Fields
+
     private readonly Queue<long> _requests;
+
+    #endregion
+
+    #region Properties
+
     public long BlockedUntilTicks { get; }
     public long LastRequestTicks { get; }
     public int RequestCount => _requests.Count;
     public IReadOnlyCollection<long> Requests => _requests;
+
+    #endregion
+
+    #region Constructors
 
     public RequestLimiterInfo(long firstRequest)
     {
@@ -20,6 +31,10 @@ internal readonly struct RequestLimiterInfo
         BlockedUntilTicks = 0;
         LastRequestTicks = firstRequest;
     }
+
+    #endregion
+
+    #region Public Methods
 
     public RequestLimiterInfo Process(long now, int maxRequests, long windowTicks, long blockDurationTicks)
     {
@@ -41,10 +56,16 @@ internal readonly struct RequestLimiterInfo
             _requests.Dequeue();
     }
 
+    #endregion
+
+    #region Private Methods
+
     private RequestLimiterInfo(Queue<long> requests, long blockedUntilTicks, long lastRequestTicks)
     {
         _requests = requests;
         BlockedUntilTicks = blockedUntilTicks;
         LastRequestTicks = lastRequestTicks;
     }
+
+    #endregion
 }

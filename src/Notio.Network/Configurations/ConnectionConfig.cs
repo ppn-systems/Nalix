@@ -1,5 +1,5 @@
 using Notio.Network.Security.Enums;
-using Notio.Network.Security.Metadata;
+using Notio.Network.Security.Settings;
 using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
 using System.Collections.Generic;
@@ -17,6 +17,8 @@ namespace Notio.Network.Configurations;
 /// <param name="settings">The connection limit settings to apply.</param>
 public sealed class ConnectionConfig(ConnectionLimitSettings settings) : ConfigurationBinder
 {
+    #region Predefined Connection Limit Settings
+
     // Pre-defined connection limits to avoid repetitive calculations
     private static readonly ConnectionLimitSettings LowSettings = new(20, 30_000, 120_000);
     private static readonly ConnectionLimitSettings MediumSettings = new(100, 60_000, 300_000);
@@ -31,6 +33,10 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
         { ConnectionLimitType.Unlimited, UnlimitedSettings }
     };
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a specified connection limit.
     /// </summary>
@@ -41,12 +47,16 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimitType.Medium"/>.
+    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimitType.Medium"/> .
     /// </summary>
     public ConnectionConfig()
         : this(ConnectionLimitType.Medium)
     {
     }
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets or sets the maximum Number of connections allowed per IP address.
@@ -79,10 +89,16 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     [ConfiguredIgnore]
     public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(InactivityThresholdMs);
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Gets predefined settings for a connection limit level.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConnectionLimitSettings GetConnectionSettings(ConnectionLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
+
+    #endregion
 }

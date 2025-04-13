@@ -6,7 +6,6 @@ using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Dispatcher.Dto;
 using Notio.Network.Dispatcher.Packets;
-using Notio.Network.Protocols;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
 

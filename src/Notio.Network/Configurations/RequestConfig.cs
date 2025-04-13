@@ -1,5 +1,5 @@
 using Notio.Network.Security.Enums;
-using Notio.Network.Security.Metadata;
+using Notio.Network.Security.Settings;
 using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
 using System.Collections.Generic;
@@ -18,6 +18,8 @@ namespace Notio.Network.Configurations;
 /// <param name="settings">The rate limit settings to apply.</param>
 public sealed class RequestConfig(RequestLimitSettings settings) : ConfigurationBinder
 {
+    #region Fields
+
     // Pre-defined configurations to avoid memory allocations
     private static readonly RequestLimitSettings LowSettings = new(50, 600, 30_000);
     private static readonly RequestLimitSettings MediumSettings = new(100, 300, 60_000);
@@ -31,6 +33,10 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
         { RequestLimitType.High, HighSettings },
         { RequestLimitType.Unlimited, UnlimitedSettings }
     };
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestConfig"/> class with the specified rate limit settings.
@@ -59,6 +65,10 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
         : this(RequestLimitType.Medium)
     {
     }
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets or sets the maximum allowed requests per time window.
@@ -93,6 +103,10 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     [ConfiguredIgnore]
     public System.TimeSpan LockoutDuration => System.TimeSpan.FromSeconds(LockoutDurationSeconds);
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Gets predefined settings for a request limit level.
     /// </summary>
@@ -101,4 +115,6 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static RequestLimitSettings GetSettingsForLimit(RequestLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
+
+    #endregion
 }

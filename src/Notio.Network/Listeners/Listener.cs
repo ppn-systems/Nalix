@@ -24,7 +24,7 @@ public abstract class Listener : IListener, IDisposable
 {
     #region Fields
 
-    private static readonly ListenerConfig Config;
+    private static readonly TcpConfig Config;
 
     private readonly int _port;
     private readonly ILogger _logger;
@@ -39,16 +39,20 @@ public abstract class Listener : IListener, IDisposable
 
     #endregion
 
+    #region Properties
+
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
     public bool IsListening => _listenerThread != null && _listenerThread.IsAlive;
 
+    #endregion
+
     #region Constructors
 
     static Listener()
     {
-        Config = ConfigurationStore.Instance.Get<ListenerConfig>();
+        Config = ConfigurationStore.Instance.Get<TcpConfig>();
     }
 
     /// <summary>
@@ -461,7 +465,7 @@ public abstract class Listener : IListener, IDisposable
         socket.NoDelay = Config.NoDelay;
         socket.SendBufferSize = Config.BufferSize;
         socket.ReceiveBufferSize = Config.BufferSize;
-        socket.LingerState = new LingerOption(true, ListenerConfig.False);
+        socket.LingerState = new LingerOption(true, TcpConfig.False);
 
         if (Config.KeepAlive)
         {
@@ -481,7 +485,7 @@ public abstract class Listener : IListener, IDisposable
             socket.SetSocketOption(
                 SocketOptionLevel.Socket,
                 SocketOptionName.ReuseAddress, Config.ReuseAddress ?
-                ListenerConfig.True : ListenerConfig.False);
+                TcpConfig.True : TcpConfig.False);
         }
     }
 

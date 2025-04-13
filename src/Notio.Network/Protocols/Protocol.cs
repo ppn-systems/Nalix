@@ -11,8 +11,14 @@ namespace Notio.Network.Protocols;
 /// </summary>
 public abstract class Protocol : IProtocol, IDisposable
 {
+    #region Fields
+
     private bool _isDisposed;
     private int _keepConnectionOpen;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets or sets a value indicating whether the connection should be kept open after processing.
@@ -24,6 +30,10 @@ public abstract class Protocol : IProtocol, IDisposable
         get => Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
         protected set => Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
@@ -96,6 +106,9 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
     public abstract void ProcessMessage(object sender, IConnectEventArgs args);
+    #endregion
+
+    #region Protected Methods
 
     /// <summary>
     /// Validates the incoming connection before accepting it.
@@ -138,6 +151,10 @@ public abstract class Protocol : IProtocol, IDisposable
         // Standard implementation does nothing
     }
 
+    #endregion
+
+    #region Disposal Methods
+
     /// <summary>
     /// Disposes resources used by this Protocol.
     /// </summary>
@@ -164,4 +181,6 @@ public abstract class Protocol : IProtocol, IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }

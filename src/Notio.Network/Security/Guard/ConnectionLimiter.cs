@@ -100,6 +100,8 @@ public sealed class ConnectionLimiter : IDisposable
 
     #endregion
 
+    #region Public Methods
+
     /// <summary>
     /// Determines whether a new connection is allowed for the specified IP address.
     /// </summary>
@@ -209,6 +211,65 @@ public sealed class ConnectionLimiter : IDisposable
     }
 
     /// <summary>
+    /// Gets connection statistics for all tracked IP addresses.
+    /// </summary>
+    /// <returns>Dictionary of IP addresses and their statistics.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Dictionary<string, (int Current, int Total)> GetAllConnections()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        // Pre-allocate dictionary with capacity to avoid resizing
+        var result = new Dictionary<string, (int Current, int Total)>(
+            _connectionInfo.Count, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var kvp in _connectionInfo)
+        {
+            result[kvp.Key] = (kvp.Value.CurrentConnections, kvp.Value.TotalConnectionsToday);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets the total Number of concurrent connections across all IPs.
+    /// </summary>
+    /// <returns>The total connection count.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetTotalConnectionCount()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        int total = 0;
+        foreach (var info in _connectionInfo.Values)
+        {
+            total += info.CurrentConnections;
+        }
+        _logger?.Debug("Total connections: {0}", total);
+
+        return total;
+    }
+
+    /// <summary>
+    /// Forcibly resets all connection counters.
+    /// </summary>
+    /// <remarks>
+    /// This method is intended for use during system maintenance or after error recovery.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetAllCounters()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        _connectionInfo.Clear();
+        _logger?.Info("Counters reset");
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
     /// Cleans up stale connection records to prevent memory leaks.
     /// </summary>
     private async Task CleanupStaleConnectionsAsync()
@@ -267,59 +328,19 @@ public sealed class ConnectionLimiter : IDisposable
     }
 
     /// <summary>
-    /// Gets connection statistics for all tracked IP addresses.
+    /// Creates a configured connection configuration.
     /// </summary>
-    /// <returns>Dictionary of IP addresses and their statistics.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<string, (int Current, int Total)> GetAllConnections()
+    private static ConnectionConfig CreateConfiguredConfig(Action<ConnectionConfig>? configure)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        // Pre-allocate dictionary with capacity to avoid resizing
-        var result = new Dictionary<string, (int Current, int Total)>(
-            _connectionInfo.Count, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var kvp in _connectionInfo)
-        {
-            result[kvp.Key] = (kvp.Value.CurrentConnections, kvp.Value.TotalConnectionsToday);
-        }
-
-        return result;
+        var config = ConfigurationStore.Instance.Get<ConnectionConfig>();
+        configure?.Invoke(config);
+        return config;
     }
 
-    /// <summary>
-    /// Gets the total Number of concurrent connections across all IPs.
-    /// </summary>
-    /// <returns>The total connection count.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetTotalConnectionCount()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+    #endregion
 
-        int total = 0;
-        foreach (var info in _connectionInfo.Values)
-        {
-            total += info.CurrentConnections;
-        }
-        _logger?.Debug("Total connections: {0}", total);
-
-        return total;
-    }
-
-    /// <summary>
-    /// Forcibly resets all connection counters.
-    /// </summary>
-    /// <remarks>
-    /// This method is intended for use during system maintenance or after error recovery.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ResetAllCounters()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        _connectionInfo.Clear();
-        _logger?.Info("Counters reset");
-    }
+    #region IDisposable
 
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionLimiter"/> instance.
@@ -344,14 +365,5 @@ public sealed class ConnectionLimiter : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Creates a configured connection configuration.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConnectionConfig CreateConfiguredConfig(Action<ConnectionConfig>? configure)
-    {
-        var config = ConfigurationStore.Instance.Get<ConnectionConfig>();
-        configure?.Invoke(config);
-        return config;
-    }
+    #endregion
 }

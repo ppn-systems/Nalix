@@ -1,6 +1,6 @@
 using System;
 
-namespace Notio.Network.Security.Metadata;
+namespace Notio.Network.Security.Settings;
 
 /// <summary>
 /// Represents settings for connection limits, including maximum connections, cleanup interval, and inactivity threshold.

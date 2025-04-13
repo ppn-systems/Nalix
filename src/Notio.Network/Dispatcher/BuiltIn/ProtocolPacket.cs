@@ -1,4 +1,4 @@
-namespace Notio.Network.Protocols;
+namespace Notio.Network.Dispatcher.BuiltIn;
 
 /// <summary>
 /// Defines the protocol commands used for managing secure connection processes.

@@ -1,12 +1,14 @@
 using System;
 
-namespace Notio.Network.Security.Metadata;
+namespace Notio.Network.Security.Settings;
 
 /// <summary>
 /// Represents settings for rate limiting, including the Number of requests, lockout duration, and time window.
 /// </summary>
 public readonly struct RequestLimitSettings
 {
+    #region Properties
+
     /// <summary>
     /// Gets the maximum Number of requests allowed.
     /// </summary>
@@ -21,6 +23,10 @@ public readonly struct RequestLimitSettings
     /// Gets the time window in milliseconds for measuring the request rate.
     /// </summary>
     public int TimeWindowMs { get; }
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimitSettings"/> struct.
@@ -48,9 +54,15 @@ public readonly struct RequestLimitSettings
         TimeWindowMs = windowMilliseconds;
     }
 
+    #endregion
+
+    #region Methods
+
     /// <summary>
     /// Returns a string representation of the settings.
     /// </summary>
     public override string ToString() =>
         $"Requests: {Requests}, Lockout: {LockoutDurationSec}s, Window: {TimeWindowMs}ms";
+
+    #endregion
 }

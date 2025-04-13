@@ -9,7 +9,7 @@ namespace Notio.Network.Connection.Transport;
 /// <summary>
 /// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
-public sealed class TransportCache : System.IDisposable
+internal sealed class TransportCache : System.IDisposable
 {
     #region Fields
 

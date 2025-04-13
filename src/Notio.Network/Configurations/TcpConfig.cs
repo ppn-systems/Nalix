@@ -7,22 +7,32 @@ namespace Notio.Network.Configurations;
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
-public sealed class ListenerConfig : ConfigurationBinder
+public sealed class TcpConfig : ConfigurationBinder
 {
+    #region Fields
+
     private int _port = 5000;
 
+    #endregion
+
+    #region Constants
+
     /// <summary>
-    /// Gets or sets the port Number for the network connection.
+    /// Constant value for True (1).
     /// </summary>
     public const int True = 1;
 
     /// <summary>
-    /// Gets or sets the port Number for the network connection.
+    /// Constant value for False (0).
     /// </summary>
     public const int False = 0;
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
-    /// Gets or sets the port Number for the network connection.
+    /// Gets or sets the port number for the network connection.
     /// Must be within the range of 1 to 65535.
     /// Standard is 5000.
     /// </summary>
@@ -75,4 +85,6 @@ public sealed class ListenerConfig : ConfigurationBinder
     /// </value>
     [ConfiguredIgnore]
     public bool IsWindows { get; set; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+    #endregion
 }

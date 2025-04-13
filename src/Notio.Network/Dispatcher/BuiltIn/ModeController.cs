@@ -6,7 +6,6 @@ using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
 using Notio.Network.Dispatcher.Packets;
-using Notio.Network.Protocols;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Dispatcher.BuiltIn;
@@ -17,7 +16,11 @@ namespace Notio.Network.Dispatcher.BuiltIn;
 [PacketController]
 public sealed class ModeController(ILogger? logger)
 {
+    #region Fields
+
     private readonly ILogger? _logger = logger;
+
+    #endregion
 
     /// <summary>
     /// Handles a request to set the compression mode for the current connection.
@@ -50,6 +53,8 @@ public sealed class ModeController(ILogger? logger)
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public System.Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
         => SetMode<EncryptionMode>(packet, connection);
+
+    #region Private Methods
 
     private System.Memory<byte> SetMode<TEnum>(IPacket packet, IConnection connection)
         where TEnum : struct, System.Enum
@@ -86,4 +91,6 @@ public sealed class ModeController(ILogger? logger)
         _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
         return PacketBuilder.String(PacketCode.Success);
     }
+
+    #endregion
 }
