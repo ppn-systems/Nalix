@@ -286,7 +286,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void CacheSuitablePoolSize(System.Int32 requestedSize, System.Int32 actualSize)
     {
-        if (requestedSize <= 64 || requestedSize >= 1_000_000)
+        if (requestedSize is <= 64 or >= 1_000_000)
         {
             return;
         }
@@ -495,12 +495,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     {
         System.Int32 desiredFree = (System.Int32)(info.TotalBuffers * 0.5);
         System.Int32 excess = info.FreeBuffers - desiredFree;
-        if (excess <= 0)
-        {
-            return 0;
-        }
-
-        return System.Math.Min(_maxIncrease, System.Math.Max(1, excess));
+        return excess <= 0 ? 0 : System.Math.Min(_maxIncrease, System.Math.Max(1, excess));
     }
 
     /// <summary>
