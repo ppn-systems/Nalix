@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Network.Security.Guard;
@@ -25,6 +26,8 @@ namespace Notio.Network.Security.Guard;
 /// </remarks>
 public sealed class RequestLimiter : IDisposable
 {
+    #region Fields
+
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
     private readonly RequestConfig _config;
@@ -34,6 +37,10 @@ public sealed class RequestLimiter : IDisposable
 
     private bool _disposed;
     private int _cleanupRunning;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimiter"/> class with the provided firewall configuration and optional logger.
@@ -65,6 +72,24 @@ public sealed class RequestLimiter : IDisposable
         _logger?.Debug("RequestLimiter initialized with maxRequests={0}, timeWindow={1}ms, lockout={2}s",
             _config.MaxAllowedRequests, _config.TimeWindowInMilliseconds, _config.LockoutDurationSeconds);
     }
+
+    /// <summary>
+    /// Initializes with default configuration and logger.
+    /// </summary>
+    public RequestLimiter(ILogger? logger = null)
+        : this((RequestConfig?)null, logger)
+    {
+    }
+
+    /// <summary>
+    /// Initializes with custom configuration via action callback.
+    /// </summary>
+    public RequestLimiter(Action<RequestConfig>? configure = null, ILogger? logger = null)
+        : this(CreateConfiguredConfig(configure), logger)
+    {
+    }
+
+    #endregion
 
     /// <summary>
     /// Checks the Number of requests from an IP address and determines whether further requests are allowed based on rate-limiting rules.
@@ -141,5 +166,16 @@ public sealed class RequestLimiter : IDisposable
         _cleanupTimer.Dispose();
         _ipData.Clear();
         _logger?.Debug("RequestLimiter disposed");
+    }
+
+    /// <summary>
+    /// Creates a configured connection configuration.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static RequestConfig CreateConfiguredConfig(Action<RequestConfig>? configure)
+    {
+        RequestConfig config = ConfigurationStore.Instance.Get<RequestConfig>();
+        configure?.Invoke(config);
+        return config;
     }
 }

@@ -11,8 +11,14 @@ namespace Notio.Network.Connection.Transport;
 /// </summary>
 public sealed class TransportCache : System.IDisposable
 {
+    #region Fields
+
     private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
     private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
@@ -38,6 +44,8 @@ public sealed class TransportCache : System.IDisposable
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
     public readonly FifoCache<System.ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
+
+    #endregion
 
     /// <summary>
     /// Adds a sent packet to the outgoing cache.

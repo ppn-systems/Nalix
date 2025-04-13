@@ -18,9 +18,16 @@ namespace Notio.Network.Security.Guard;
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
 {
+    #region Constants
+
     // Constants for optimization
     private const int MaxCleanupKeys = 1000;
     private const int EstimatedCollectionCapacity = 256;
+
+    #endregion
+
+    #region Fields
+
     private static readonly DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private readonly ILogger? _logger;
@@ -34,6 +41,10 @@ public sealed class ConnectionLimiter : IDisposable
     private readonly TimeSpan _inactivityThreshold;
 
     private bool _disposed;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class.
@@ -86,6 +97,8 @@ public sealed class ConnectionLimiter : IDisposable
         : this(CreateConfiguredConfig(configure), logger)
     {
     }
+
+    #endregion
 
     /// <summary>
     /// Determines whether a new connection is allowed for the specified IP address.

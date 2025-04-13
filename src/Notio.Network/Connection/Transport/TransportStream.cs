@@ -11,6 +11,8 @@ namespace Notio.Network.Connection.Transport;
 /// </summary>
 internal class TransportStream : IDisposable
 {
+    #region Fields
+
     private readonly ILogger? _logger;
     private readonly IBufferPool _pool;
     private readonly NetworkStream _stream;
@@ -18,6 +20,8 @@ internal class TransportStream : IDisposable
 
     private byte[] _buffer;
     private bool _disposed;
+
+    #endregion
 
     /// <summary>
     /// Event triggered when the connection is disconnected.
@@ -294,4 +298,9 @@ internal class TransportStream : IDisposable
         _disposed = true;
         _logger?.Debug("TransportStream disposed");
     }
+
+    public override string ToString()
+        => $"TransportStream (Remote = {_stream.Socket?.RemoteEndPoint}, " +
+           $"Disposed = {_disposed}, UpTime = {UpTime}ms, LastPing = {LastPingTime}ms)" +
+           $"IncomingCount = {_cache.Incoming.Count}, OutgoingCount = {_cache.Outgoing.Count} }}";
 }

@@ -22,6 +22,8 @@ namespace Notio.Network.Listeners;
 /// </summary>
 public abstract class Listener : IListener, IDisposable
 {
+    #region Fields
+
     private static readonly ListenerConfig Config;
 
     private readonly int _port;
@@ -34,6 +36,8 @@ public abstract class Listener : IListener, IDisposable
     private bool _isDisposed;
     private Thread? _listenerThread;
     private CancellationTokenSource? _cts;
+
+    #endregion
 
     /// <summary>
     /// Gets the current state of the listener.
