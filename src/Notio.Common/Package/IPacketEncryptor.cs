@@ -1,3 +1,5 @@
+using Notio.Common.Security;
+
 namespace Notio.Common.Package;
 
 /// <summary>
@@ -23,7 +25,7 @@ public interface IPacketEncryptor<T> where T : IPacket
     /// <returns>
     /// A new instance of <typeparamref name="T"/> that contains the encrypted packet data.
     /// </returns>
-    static abstract T Encrypt(T packet, byte[] key, Cryptography.EncryptionMode algorithm);
+    static abstract T Encrypt(T packet, byte[] key, EncryptionMode algorithm);
 
     /// <summary>
     /// Decrypts a packet of type <typeparamref name="T"/> using a specific encryption algorithm.
@@ -40,5 +42,5 @@ public interface IPacketEncryptor<T> where T : IPacket
     /// <returns>
     /// A new instance of <typeparamref name="T"/> that contains the decrypted packet data.
     /// </returns>
-    static abstract T Decrypt(T packet, byte[] key, Cryptography.EncryptionMode algorithm);
+    static abstract T Decrypt(T packet, byte[] key, EncryptionMode algorithm);
 }

@@ -1,4 +1,4 @@
-namespace Notio.Common.Compression;
+namespace Notio.Common.Security;
 
 /// <summary>
 /// Represents the available compression types.

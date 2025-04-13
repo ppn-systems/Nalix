@@ -1,4 +1,4 @@
-using Notio.Common.Compression;
+using Notio.Common.Security;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Package.Extensions;

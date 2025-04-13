@@ -1,7 +1,5 @@
-using Notio.Common.Compression;
 using Notio.Common.Connection;
 using Notio.Common.Constants;
-using Notio.Common.Cryptography;
 using Notio.Common.Logging;
 using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
