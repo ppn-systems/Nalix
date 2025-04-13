@@ -12,12 +12,15 @@ namespace Notio.Logging.Core;
 /// </summary>
 public abstract class LoggingEngine : IDisposable
 {
-    // Cache the minimum log level for faster filtering
-    private readonly LogLevel _minLogLevel;
+    #region Fields
+
+    private readonly LogLevel _minLevel;
     private readonly LoggingPublisher _publisher;
     private readonly LoggingOptions _loggingOptions;
 
     private int _isDisposed;
+
+    #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingEngine"/> class.
@@ -48,7 +51,7 @@ public abstract class LoggingEngine : IDisposable
         }
 
         // Cache min level for faster checks
-        _minLogLevel = _loggingOptions.MinLevel;
+        _minLevel = _loggingOptions.MinLevel;
     }
 
     /// <summary>
@@ -67,7 +70,7 @@ public abstract class LoggingEngine : IDisposable
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected bool IsEnabled(LogLevel level) => level >= _minLogLevel;
+    protected bool IsEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -79,7 +82,7 @@ public abstract class LoggingEngine : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void CreateLogEntry(LogLevel level, EventId eventId, string message, Exception? error = null)
     {
-        if (_isDisposed != 0 || level < _minLogLevel)
+        if (_isDisposed != 0 || level < _minLevel)
             return;
 
         // Create and publish the log entry
@@ -97,7 +100,7 @@ public abstract class LoggingEngine : IDisposable
     protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
-        if (_isDisposed != 0 || level < _minLogLevel)
+        if (_isDisposed != 0 || level < _minLevel)
             return;
 
         // Format the message only if we're going to use it

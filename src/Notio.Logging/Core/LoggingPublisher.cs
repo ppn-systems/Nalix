@@ -14,6 +14,8 @@ namespace Notio.Logging.Core;
 /// </summary>
 public sealed class LoggingPublisher : ILoggerPublisher
 {
+    #region Fields
+
     // Using a concurrent dictionary for thread-safe operations on targets
     private readonly ConcurrentDictionary<ILoggerTarget, byte> _targets = new();
 
@@ -27,6 +29,10 @@ public sealed class LoggingPublisher : ILoggerPublisher
     private long _entriesPublished;
     private long _targetsProcessed;
     private long _publishErrorCount;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the total Number of log entries that have been published.
@@ -42,6 +48,8 @@ public sealed class LoggingPublisher : ILoggerPublisher
     /// Gets the Number of errors that occurred during publish operations.
     /// </summary>
     public long PublishErrorCount => Interlocked.Read(ref _publishErrorCount);
+
+    #endregion
 
     /// <summary>
     /// Publishes a log entry to all registered logging targets.
@@ -216,7 +224,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
     /// Creates a diagnostic report about the publisher's state.
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
-    public string GetDiagnosticInfo()
+    public override string ToString()
         => $"[LoggingPublisher Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
            $"- User: {Environment.UserName}" + Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + Environment.NewLine +

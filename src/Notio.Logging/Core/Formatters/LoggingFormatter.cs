@@ -7,9 +7,9 @@ namespace Notio.Logging.Core.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
-public class LoggingFormatter(bool terminal = false) : ILoggerFormatter
+public class LoggingFormatter(bool colors = false) : ILoggerFormatter
 {
-    private readonly bool _terminal = terminal;
+    private readonly bool _colors = colors;
 
     /// <summary>
     /// Singleton instances of <see cref="LoggingFormatter"/> can be reused.
@@ -48,7 +48,7 @@ public class LoggingFormatter(bool terminal = false) : ILoggerFormatter
         StringBuilder logBuilder = new();
 
         LoggingBuilder.BuildLog(logBuilder, timeStamp,
-            logLevel, eventId, message, exception, _terminal);
+            logLevel, eventId, message, exception, _colors);
 
         return logBuilder.ToString();
     }
