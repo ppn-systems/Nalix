@@ -57,9 +57,7 @@ public sealed class BufferManager : IDisposable
     public void CreatePool(int bufferSize, int initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
-        {
-            UpdateSortedKeys();
-        }
+            this.UpdateSortedKeys();
     }
 
     /// <summary>

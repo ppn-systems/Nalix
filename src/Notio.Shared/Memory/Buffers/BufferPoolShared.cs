@@ -66,9 +66,7 @@ public sealed class BufferPoolShared : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
-    {
-        return Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
-    }
+        => Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
 
     /// <summary>
     /// Acquires a buffer from the pool with fast path optimization.
@@ -78,9 +76,7 @@ public sealed class BufferPoolShared : IDisposable
     {
         // Fast path - most common case
         if (_freeBuffers.TryDequeue(out var buffer))
-        {
             return buffer;
-        }
 
         // Slow path - need to rent new buffer
         Interlocked.Increment(ref _misses);
@@ -97,9 +93,7 @@ public sealed class BufferPoolShared : IDisposable
     {
         // Validate buffer
         if (buffer == null || buffer.Length != _bufferSize)
-        {
             throw new ArgumentException("Invalid buffer.");
-        }
 
         // Clear sensitive data for security if needed
         // Array.Clear(buffer, 0, buffer.Length);
@@ -113,9 +107,7 @@ public sealed class BufferPoolShared : IDisposable
     public void IncreaseCapacity(int additionalCapacity)
     {
         if (additionalCapacity <= 0)
-        {
             throw new ArgumentException("The additional quantity must be greater than zero.");
-        }
 
         if (_isOptimizing) return;
 
@@ -124,16 +116,12 @@ public sealed class BufferPoolShared : IDisposable
             _isOptimizing = true;
 
             // Batch allocation for better performance
-            var buffersToAdd = new List<byte[]>(additionalCapacity);
+            List<byte[]> buffersToAdd = new(additionalCapacity);
             for (int i = 0; i < additionalCapacity; ++i)
-            {
                 buffersToAdd.Add(_arrayPool.Rent(_bufferSize));
-            }
 
-            foreach (var buffer in buffersToAdd)
-            {
+            foreach (byte[] buffer in buffersToAdd)
                 _freeBuffers.Enqueue(buffer);
-            }
 
             Interlocked.Add(ref _totalBuffers, additionalCapacity);
         }
@@ -175,15 +163,10 @@ public sealed class BufferPoolShared : IDisposable
             }
 
             // Return buffers in batch
-            foreach (var buffer in buffersToReturn)
-            {
+            foreach (byte[] buffer in buffersToReturn)
                 _arrayPool.Return(buffer);
-            }
 
-            if (removed > 0)
-            {
-                Interlocked.Add(ref _totalBuffers, -removed);
-            }
+            if (removed > 0) Interlocked.Add(ref _totalBuffers, -removed);
         }
         finally
         {
@@ -196,15 +179,13 @@ public sealed class BufferPoolShared : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferInfo GetPoolInfo()
-    {
-        return new BufferInfo
+        => new()
         {
             FreeBuffers = _freeBuffers.Count,
             TotalBuffers = Volatile.Read(ref _totalBuffers),
             BufferSize = _bufferSize,
             Misses = Volatile.Read(ref _misses)
         };
-    }
 
     /// <summary>
     /// Gets information about the buffer pool by reference for better performance.

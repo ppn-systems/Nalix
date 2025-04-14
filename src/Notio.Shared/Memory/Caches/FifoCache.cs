@@ -14,6 +14,8 @@ namespace Notio.Shared.Memory.Caches;
 /// <typeparam name="T">The type of elements stored in the cache.</typeparam>
 public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
 {
+    #region Fields
+
     private readonly ConcurrentQueue<T> _queue;
     private readonly int _capacity;
     private int _currentSize;
@@ -25,6 +27,10 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     private long _removals;
     private long _trimOperations;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the maximum capacity of the cache.
@@ -66,6 +72,10 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     public bool IsFull => Count >= Capacity;
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// Initializes a new instance of the <see cref="FifoCache{T}"/> class with the specified capacity.
     /// </summary>
@@ -80,6 +90,10 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
         _queue = new ConcurrentQueue<T>();
         _currentSize = 0;
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Adds an element to the cache. If the cache is at capacity, the oldest element is removed.
@@ -348,6 +362,10 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Disposes of the resources used by the cache.
     /// </summary>
@@ -359,4 +377,6 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
         _cacheLock.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }

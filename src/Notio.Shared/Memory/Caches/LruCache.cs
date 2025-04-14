@@ -13,6 +13,8 @@ namespace Notio.Shared.Memory.Caches;
 /// <typeparam name="TValue">The type of the cache value.</typeparam>
 public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
 {
+    #region Nested Types
+
     // Private storage class for cache items
     private sealed class CacheItem
     {
@@ -21,6 +23,10 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         public DateTime LastAccessTime { get; set; }
         public long AccessCount { get; set; }
     }
+
+    #endregion
+
+    #region Fields
 
     // Core data structures
     private readonly int _capacity;
@@ -36,6 +42,10 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     private long _updates;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
     private bool _isDisposed;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the capacity of the cache.
@@ -106,6 +116,34 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     public long UptimeMs => _uptime.ElapsedMilliseconds;
 
     /// <summary>
+    /// Returns an enumerable collection of the keys in the cache.
+    /// </summary>
+    /// <returns>An enumerable collection of the keys in the cache.</returns>
+    public IEnumerable<TKey> Keys
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+            _cacheLock.EnterReadLock();
+            try
+            {
+                // Create a copy of keys to avoid modification during enumeration
+                TKey[] keys = new TKey[_cacheMap.Count];
+                _cacheMap.Keys.CopyTo(keys, 0);
+                return keys;
+            }
+            finally
+            {
+                _cacheLock.ExitReadLock();
+            }
+        }
+    }
+
+    #endregion
+
+    #region Constructors
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="LruCache{TKey, TValue}"/> class.
     /// </summary>
     /// <param name="capacity">The maximum Number of items in the cache.</param>
@@ -119,6 +157,10 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         _capacity = capacity;
         _cacheMap = new Dictionary<TKey, LinkedListNode<CacheItem>>(capacity, comparer);
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Adds or updates an item in the cache.
@@ -161,7 +203,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 }
 
                 // Add new item
-                var newItem = new CacheItem
+                CacheItem newItem = new()
                 {
                     Key = key,
                     Value = value,
@@ -169,7 +211,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                     AccessCount = 1
                 };
 
-                var newNode = new LinkedListNode<CacheItem>(newItem);
+                LinkedListNode<CacheItem> newNode = new(newItem);
                 _usageOrder.AddFirst(newNode);
                 _cacheMap[key] = newNode;
 
@@ -326,30 +368,6 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Returns an enumerable collection of the keys in the cache.
-    /// </summary>
-    /// <returns>An enumerable collection of the keys in the cache.</returns>
-    public IEnumerable<TKey> Keys
-    {
-        get
-        {
-            ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
-            _cacheLock.EnterReadLock();
-            try
-            {
-                // Create a copy of keys to avoid modification during enumeration
-                var keys = new TKey[_cacheMap.Count];
-                _cacheMap.Keys.CopyTo(keys, 0);
-                return keys;
-            }
-            finally
-            {
-                _cacheLock.ExitReadLock();
-            }
-        }
-    }
-
-    /// <summary>
     /// Gets information about a cache item without updating its position in the LRU order.
     /// </summary>
     /// <param name="key">The key of the item.</param>
@@ -434,6 +452,10 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         };
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Disposes of the resources used by the cache.
     /// </summary>
@@ -445,4 +467,6 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         _cacheLock.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }
