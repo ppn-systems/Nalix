@@ -19,10 +19,16 @@ namespace Notio.Shared.Memory.Pools;
 /// <param name="defaultMaxItemsPerType">The default maximum Number of items to store per type.</param>
 public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
+    #region Constants
+
     /// <summary>
     /// Standard maximum pool size to prevent unbounded memory growth
     /// </summary>
     public const int DefaultMaxSize = 1024;
+
+    #endregion
+
+    #region Fields
 
     // Type-specific storage for pooled objects
     private readonly ConcurrentDictionary<Type, TypePool> _typePools = new();
@@ -35,6 +41,10 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
     // Configuration
     private readonly int _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the singleton instance of the object pool.
@@ -87,12 +97,20 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ObjectPool"/> class with default settings.
     /// </summary>
     public ObjectPool() : this(DefaultMaxSize)
     {
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Gets or creates and returns an instance of <typeparamref name="T"/>.
@@ -434,4 +452,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <returns>A type-specific pool adapter.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
+
+    #endregion
 }

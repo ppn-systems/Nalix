@@ -16,6 +16,8 @@ namespace Notio.Shared.Memory.Pools;
 /// </summary>
 public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
 {
+    #region Fields
+
     // Thread-safe storage for pools
     private readonly ConcurrentDictionary<Type, ObjectPool> _poolDict = new();
 
@@ -26,6 +28,10 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     internal long _totalGetOperations;
     internal long _totalReturnOperations;
     internal DateTime _startTime = DateTime.UtcNow;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the default maximum size for new pools.
@@ -56,10 +62,18 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     public TimeSpan Uptime => DateTime.UtcNow - _startTime;
 
+    #endregion
+
+    #region Constructor
+
     private ObjectPoolManager()
     {
         // Private constructor for singleton pattern
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Gets or creates and returns an instance of <typeparamref name="T"/>.
@@ -342,4 +356,6 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
         Type type = typeof(T);
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
+
+    #endregion
 }

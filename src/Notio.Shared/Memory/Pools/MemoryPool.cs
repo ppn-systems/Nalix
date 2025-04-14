@@ -11,31 +11,17 @@ namespace Notio.Shared.Memory.Pools;
 /// <typeparam name="T">The type of the elements in the pooled array.</typeparam>
 public readonly struct MemoryPool<T> : IDisposable
 {
+    #region Fields
+
     // Private fields
     private readonly T[] _array;
     private readonly int _length;
     private readonly ArrayPool<T> _pool;
     private readonly object _disposeTracker;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MemoryPool{T}"/> struct.
-    /// </summary>
-    /// <param name="array">The array representing the memory chunk.</param>
-    /// <param name="length">The length of the memory used in the array.</param>
-    /// <param name="pool">The array pool from which the array was rented.</param>
-    /// <exception cref="ArgumentNullException">Thrown when array or pool is null.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative or greater than array length.</exception>
-    public MemoryPool(T[] array, int length, ArrayPool<T> pool)
-    {
-        _array = array ?? throw new ArgumentNullException(nameof(array));
-        _pool = pool ?? throw new ArgumentNullException(nameof(pool));
+    #endregion
 
-        if (length < 0 || length > array.Length)
-            throw new ArgumentOutOfRangeException(nameof(length), "Length must be between 0 and array length.");
-
-        _length = length;
-        _disposeTracker = new DisposableTracker<T>(array, length, pool);
-    }
+    #region Properties
 
     /// <summary>
     /// Gets a <see cref="ReadOnlyMemory{T}"/> representing the memory of the pooled array.
@@ -66,6 +52,34 @@ public readonly struct MemoryPool<T> : IDisposable
     /// Gets the total capacity of the pooled array.
     /// </summary>
     public int Capacity => _array.Length;
+
+    #endregion
+
+    #region Constructor
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MemoryPool{T}"/> struct.
+    /// </summary>
+    /// <param name="array">The array representing the memory chunk.</param>
+    /// <param name="length">The length of the memory used in the array.</param>
+    /// <param name="pool">The array pool from which the array was rented.</param>
+    /// <exception cref="ArgumentNullException">Thrown when array or pool is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative or greater than array length.</exception>
+    public MemoryPool(T[] array, int length, ArrayPool<T> pool)
+    {
+        _array = array ?? throw new ArgumentNullException(nameof(array));
+        _pool = pool ?? throw new ArgumentNullException(nameof(pool));
+
+        if (length < 0 || length > array.Length)
+            throw new ArgumentOutOfRangeException(nameof(length), "Length must be between 0 and array length.");
+
+        _length = length;
+        _disposeTracker = new DisposableTracker<T>(array, length, pool);
+    }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Creates a new <see cref="MemoryPool{T}"/> instance with the specified length.
@@ -142,6 +156,10 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <returns>A new array containing copies of the elements.</returns>
     public T[] ToArray() => ReadOnlySpan.ToArray();
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Releases the pooled memory back to the <see cref="ArrayPool{T}"/> and clears the array.
     /// </summary>
@@ -155,4 +173,6 @@ public readonly struct MemoryPool<T> : IDisposable
             tracker.Dispose();
         }
     }
+
+    #endregion
 }
