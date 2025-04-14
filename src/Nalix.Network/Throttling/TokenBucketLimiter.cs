@@ -79,8 +79,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
     private sealed class Shard
     {
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<IPAddressKey, EndpointState> Map
-            = new();
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<IPAddressKey, EndpointState> Map = new();
 
         // No shard-wide lock necessary for map ops; per-key Gate handles mutation.
     }
