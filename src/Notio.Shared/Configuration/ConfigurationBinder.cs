@@ -21,6 +21,8 @@ namespace Notio.Shared.Configuration;
 /// </remarks>
 public abstract class ConfigurationBinder
 {
+    #region Fields
+
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
     private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
 
@@ -28,6 +30,10 @@ public abstract class ConfigurationBinder
 
     private int _isInitialized; // Flag to track initialization status
     private DateTime _lastInitializationTime; // Track the last initialization time
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets a value indicating whether this instance has been initialized.
@@ -38,6 +44,10 @@ public abstract class ConfigurationBinder
     /// Gets the time when this configuration was last initialized.
     /// </summary>
     public DateTime LastInitializationTime => _lastInitializationTime;
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
@@ -53,6 +63,40 @@ public abstract class ConfigurationBinder
     /// </summary>
     /// <param name="logger">The logger to log events and errors.</param>
     public ConfigurationBinder(ILogger logger) => _logger = logger;
+
+    #endregion
+
+    #region Public Methods
+
+    /// <summary>
+    /// Creates a shallow clone of this configuration instance.
+    /// </summary>
+    /// <returns>A new instance with the same property values.</returns>
+    public T Clone<T>() where T : ConfigurationBinder, new()
+    {
+        T clone = new();
+        Type type = GetType();
+
+        // Get the configuration metadata
+        var metadata = GetOrCreateMetadata(type);
+
+        // Copy each property value to the clone
+        foreach (var propertyInfo in metadata.BindableProperties)
+        {
+            object? value = propertyInfo.PropertyInfo.GetValue(this);
+            propertyInfo.PropertyInfo.SetValue(clone, value);
+        }
+
+        // Mark as initialized
+        Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
+        clone._lastInitializationTime = _lastInitializationTime;
+
+        return clone;
+    }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Initializes an instance of <see cref="ConfigurationBinder"/> from the provided <see cref="ConfiguredIniFile"/>
@@ -222,29 +266,5 @@ public abstract class ConfigurationBinder
             _ => string.Empty,
         };
 
-    /// <summary>
-    /// Creates a shallow clone of this configuration instance.
-    /// </summary>
-    /// <returns>A new instance with the same property values.</returns>
-    public T Clone<T>() where T : ConfigurationBinder, new()
-    {
-        T clone = new();
-        Type type = GetType();
-
-        // Get the configuration metadata
-        var metadata = GetOrCreateMetadata(type);
-
-        // Copy each property value to the clone
-        foreach (var propertyInfo in metadata.BindableProperties)
-        {
-            object? value = propertyInfo.PropertyInfo.GetValue(this);
-            propertyInfo.PropertyInfo.SetValue(clone, value);
-        }
-
-        // Mark as initialized
-        Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
-        clone._lastInitializationTime = _lastInitializationTime;
-
-        return clone;
-    }
+    #endregion
 }

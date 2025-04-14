@@ -18,12 +18,18 @@ namespace Notio.Shared.Configuration;
 /// </remarks>
 public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 {
+    #region Fields
+
     private readonly ConcurrentDictionary<Type, ConfigurationBinder> _configContainerDict = new();
     private readonly ReaderWriterLockSlim _configLock = new(LockRecursionPolicy.NoRecursion);
     private readonly Lazy<ConfiguredIniFile> _iniFile;
 
     private int _isReloading;
     private bool _directoryChecked;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the path to the configuration file.
@@ -39,6 +45,10 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// Gets the last reload timestamp.
     /// </summary>
     public DateTime LastReloadTime { get; private set; } = DateTime.UtcNow;
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationStore"/> class.
@@ -57,30 +67,9 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    /// <summary>
-    /// Ensures the configuration directory exists.
-    /// </summary>
-    private void EnsureConfigDirectoryExists()
-    {
-        if (!_directoryChecked)
-        {
-            string? directory = Path.GetDirectoryName(ConfigFilePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            {
-                try
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to create configuration directory: {directory}", ex);
-                }
-            }
+    #endregion
 
-            _directoryChecked = true;
-        }
-    }
+    #region Public Methods
 
     /// <summary>
     /// Initializes if needed and returns an instance of <typeparamref name="TClass"/>.
@@ -216,6 +205,10 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }
     }
 
+    #endregion
+
+    #region Protected Methods
+
     /// <summary>
     /// Protected implementation of Dispose pattern.
     /// </summary>
@@ -244,4 +237,35 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 
         base.Dispose(disposing);
     }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Ensures the configuration directory exists.
+    /// </summary>
+    private void EnsureConfigDirectoryExists()
+    {
+        if (!_directoryChecked)
+        {
+            string? directory = Path.GetDirectoryName(ConfigFilePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                try
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to create configuration directory: {directory}", ex);
+                }
+            }
+
+            _directoryChecked = true;
+        }
+    }
+
+    #endregion
 }
