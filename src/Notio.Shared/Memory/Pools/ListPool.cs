@@ -19,10 +19,16 @@ namespace Notio.Shared.Memory.Pools;
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
 public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 {
+    #region Constants
+
     // Configuration constants
     private const int DefaultMaxPoolSize = 1024;
     private const int DefaultInitialCapacity = 16;
     private const int MaxInitialCapacity = 8192;
+
+    #endregion
+
+    #region Fields
 
     // Thread-safe storage for pooled lists
     private readonly ConcurrentBag<List<T>> _listBag = [];
@@ -36,6 +42,10 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 
     private readonly int _maxPoolSize = maxPoolSize > 0 ? maxPoolSize : DefaultMaxPoolSize;
     private readonly int _initialCapacity = ValidateCapacity(initialCapacity);
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Event for trace information.
@@ -82,6 +92,10 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// Initializes the default instance of the <see cref="ListPool{T}"/>.
     /// </summary>
@@ -90,17 +104,9 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     {
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ValidateCapacity(int capacity)
-    {
-        if (capacity <= 0)
-            return DefaultInitialCapacity;
+    #endregion
 
-        if (capacity > MaxInitialCapacity)
-            return MaxInitialCapacity;
-
-        return capacity;
-    }
+    #region Public Methods
 
     /// <summary>
     /// Rents a <see cref="List{T}"/> instance from the pool.
@@ -262,4 +268,22 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         Interlocked.Exchange(ref _trimmed, 0);
         _uptime.Restart();
     }
+
+    #endregion
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ValidateCapacity(int capacity)
+    {
+        if (capacity <= 0)
+            return DefaultInitialCapacity;
+
+        if (capacity > MaxInitialCapacity)
+            return MaxInitialCapacity;
+
+        return capacity;
+    }
+
+    #endregion
 }
