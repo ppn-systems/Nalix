@@ -12,11 +12,17 @@ namespace Notio.Shared.L10N;
 /// </summary>
 public partial class PoFile
 {
+    #region Fields
+
     private readonly Dictionary<string, string> _metadata = [];
     private readonly Dictionary<string, string> _translations = [];
     private readonly Dictionary<string, string[]> _pluralTranslations = [];
 
     private Func<int, int> _pluralRule = n => n == 1 ? 0 : 1; // Standard rule (English)
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes an empty PO file.
@@ -29,6 +35,8 @@ public partial class PoFile
     /// <param name="path">The file path to the PO file.</param>
     /// <exception cref="FileNotFoundException">Thrown if the specified file does not exist.</exception>
     public PoFile(string path) => LoadFromFile(path);
+
+    #endregion
 
     #region Public API
 

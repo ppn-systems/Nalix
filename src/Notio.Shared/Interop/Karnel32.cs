@@ -9,11 +9,15 @@ namespace Notio.Shared.Interop;
 /// </summary>
 public static partial class Karnel32
 {
+    #region 🔴 Constants
+
     private const int STD_OUTPUT_HANDLE = -11;
     private const int SW_HIDE = 0;
     private const int SW_SHOW = 5;
     private const int MAX_TITLE_LENGTH = 256;
     private const uint ATTACH_PARENT_PROCESS = 0xFFFFFFFF;
+
+    #endregion
 
     #region 🟢 Public API
 

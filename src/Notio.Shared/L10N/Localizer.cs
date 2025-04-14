@@ -13,7 +13,13 @@ namespace Notio.Shared.L10N;
 /// </remarks>
 public sealed class Localizer
 {
+    #region Fields
+
     private readonly PoFile _catalog;
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Localizer"/> class 
@@ -45,6 +51,10 @@ public sealed class Localizer
     /// </code>
     /// </example>
     public Localizer(string path) => _catalog = new PoFile(path);
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Loads localization messages from a PO file.
@@ -135,4 +145,6 @@ public sealed class Localizer
     /// </example>
     public string GetParticularPlural(string context, string id, string idPlural, int n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);
+
+    #endregion
 }

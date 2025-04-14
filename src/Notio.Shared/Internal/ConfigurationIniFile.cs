@@ -13,6 +13,8 @@ namespace Notio.Shared.Internal;
 /// </summary>
 internal sealed class ConfiguredIniFile
 {
+    #region Constants
+
     // Constants for better readability and performance
     private const char SectionStart = '[';
     private const char SectionEnd = ']';
@@ -21,6 +23,10 @@ internal sealed class ConfiguredIniFile
 
     // Standard buffer sizes
     private const int DefaultBufferSize = 4096;
+
+    #endregion
+
+    #region Fields
 
     // Thread synchronization for file operations
     private readonly ReaderWriterLockSlim _fileLock = new(LockRecursionPolicy.NoRecursion);
@@ -35,10 +41,18 @@ internal sealed class ConfiguredIniFile
     private bool _isDirty;
     private DateTime _lastFileReadTime;
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
     /// Checks whether the file exists at the provided path.
     /// </summary>
     public bool ExistsFile => File.Exists(_path);
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfiguredIniFile"/> class for the specified path.
@@ -54,125 +68,18 @@ internal sealed class ConfiguredIniFile
         // Load the file if it exists
         if (ExistsFile)
         {
-            LoadWithRetry();
+            this.LoadWithRetry();
         }
     }
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
-    /// Loads the INI file with retry logic for handling file access issues.
+    /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
-    private void LoadWithRetry()
-    {
-        const int maxRetries = 3;
-        int retryCount = 0;
-        bool success = false;
-
-        while (!success && retryCount < maxRetries)
-        {
-            try
-            {
-                Load();
-                success = true;
-            }
-            catch (IOException)
-            {
-                retryCount++;
-                if (retryCount >= maxRetries)
-                    throw;
-
-                // Add exponential backoff delay
-                Thread.Sleep(100 * (int)Math.Pow(2, retryCount - 1));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Loads the data from the INI file into memory with optimized parsing.
-    /// </summary>
-    private void Load()
-    {
-        if (!ExistsFile)
-            return;
-
-        _fileLock.EnterReadLock();
-        try
-        {
-            // Clear existing data
-            _iniData.Clear();
-            _valueCache.Clear();
-
-            string currentSection = string.Empty;
-            Dictionary<string, string> currentSectionData = new(StringComparer.OrdinalIgnoreCase);
-            _iniData[currentSection] = currentSectionData;
-
-            // Use a buffered reader for better performance
-            using var reader = new StreamReader(_path, Encoding.UTF8, true, DefaultBufferSize);
-
-            string? line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                string trimmedLine = line.Trim();
-
-                // Skip empty lines or comments
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine[0] == CommentChar)
-                    continue;
-
-                // Process section
-                if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
-                {
-                    currentSection = trimmedLine[1..^1].Trim();
-
-                    if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
-                    {
-                        currentSectionData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                        _iniData[currentSection] = currentSectionData;
-                    }
-                }
-                else
-                {
-                    // Handle key-value pairs with optimized parsing
-                    int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
-                    if (separatorIndex > 0)
-                    {
-                        string key = trimmedLine[..separatorIndex].Trim();
-                        string value = trimmedLine[(separatorIndex + 1)..].Trim();
-
-                        // Store the key-value pair in the current section
-                        currentSectionData[key] = value;
-                    }
-                }
-            }
-
-            // Store the last read time for file change detection
-            _lastFileReadTime = File.GetLastWriteTimeUtc(_path);
-            _isDirty = false;
-        }
-        finally
-        {
-            _fileLock.ExitReadLock();
-        }
-    }
-
-    /// <summary>
-    /// Checks if the file has been modified externally and reloads if necessary.
-    /// </summary>
-    private void CheckFileChanges()
-    {
-        if (!ExistsFile) return;
-
-        try
-        {
-            DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
-            if (lastWriteTime > _lastFileReadTime)
-            {
-                Load();
-            }
-        }
-        catch (IOException)
-        {
-            // Ignore file access errors - we'll use the data we have
-        }
-    }
+    public void Reload() => Load();
 
     /// <summary>
     /// Writes a value to the INI file if the key does not already exist.
@@ -233,24 +140,6 @@ internal sealed class ConfiguredIniFile
         {
             _fileLock.ExitUpgradeableReadLock();
         }
-    }
-
-    /// <summary>
-    /// Formats a value for storage in the INI file.
-    /// </summary>
-    private static string FormatValue(object value)
-    {
-        if (value == null) return string.Empty;
-
-        // Format numeric values with invariant culture for consistency
-        return value switch
-        {
-            float f => f.ToString("G", CultureInfo.InvariantCulture),
-            double d => d.ToString("G", CultureInfo.InvariantCulture),
-            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
-            DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? string.Empty
-        };
     }
 
     /// <summary>
@@ -728,10 +617,143 @@ internal sealed class ConfiguredIniFile
         }
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
-    /// Reloads the INI file from disk, discarding any unsaved changes.
+    /// Loads the INI file with retry logic for handling file access issues.
     /// </summary>
-    public void Reload() => Load();
+    private void LoadWithRetry()
+    {
+        const int maxRetries = 3;
+        int retryCount = 0;
+        bool success = false;
+
+        while (!success && retryCount < maxRetries)
+        {
+            try
+            {
+                Load();
+                success = true;
+            }
+            catch (IOException)
+            {
+                retryCount++;
+                if (retryCount >= maxRetries)
+                    throw;
+
+                // Add exponential backoff delay
+                Thread.Sleep(100 * (int)Math.Pow(2, retryCount - 1));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads the data from the INI file into memory with optimized parsing.
+    /// </summary>
+    private void Load()
+    {
+        if (!ExistsFile)
+            return;
+
+        _fileLock.EnterReadLock();
+        try
+        {
+            // Clear existing data
+            _iniData.Clear();
+            _valueCache.Clear();
+
+            string currentSection = string.Empty;
+            Dictionary<string, string> currentSectionData = new(StringComparer.OrdinalIgnoreCase);
+            _iniData[currentSection] = currentSectionData;
+
+            // Use a buffered reader for better performance
+            using var reader = new StreamReader(_path, Encoding.UTF8, true, DefaultBufferSize);
+
+            string? line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                string trimmedLine = line.Trim();
+
+                // Skip empty lines or comments
+                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine[0] == CommentChar)
+                    continue;
+
+                // Process section
+                if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
+                {
+                    currentSection = trimmedLine[1..^1].Trim();
+
+                    if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
+                    {
+                        currentSectionData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        _iniData[currentSection] = currentSectionData;
+                    }
+                }
+                else
+                {
+                    // Handle key-value pairs with optimized parsing
+                    int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
+                    if (separatorIndex > 0)
+                    {
+                        string key = trimmedLine[..separatorIndex].Trim();
+                        string value = trimmedLine[(separatorIndex + 1)..].Trim();
+
+                        // Store the key-value pair in the current section
+                        currentSectionData[key] = value;
+                    }
+                }
+            }
+
+            // Store the last read time for file change detection
+            _lastFileReadTime = File.GetLastWriteTimeUtc(_path);
+            _isDirty = false;
+        }
+        finally
+        {
+            _fileLock.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Checks if the file has been modified externally and reloads if necessary.
+    /// </summary>
+    private void CheckFileChanges()
+    {
+        if (!ExistsFile) return;
+
+        try
+        {
+            DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
+            if (lastWriteTime > _lastFileReadTime)
+            {
+                Load();
+            }
+        }
+        catch (IOException)
+        {
+            // Ignore file access errors - we'll use the data we have
+        }
+    }
+
+    /// <summary>
+    /// Formats a value for storage in the INI file.
+    /// </summary>
+    private static string FormatValue(object value)
+    {
+        if (value == null) return string.Empty;
+
+        // Format numeric values with invariant culture for consistency
+        return value switch
+        {
+            float f => f.ToString("G", CultureInfo.InvariantCulture),
+            double d => d.ToString("G", CultureInfo.InvariantCulture),
+            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
+            DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
+    }
 
     /// <summary>
     /// Writes the INI data to the file with optimized I/O and error handling.
@@ -794,4 +816,6 @@ internal sealed class ConfiguredIniFile
             _fileLock.ExitWriteLock();
         }
     }
+
+    #endregion
 }

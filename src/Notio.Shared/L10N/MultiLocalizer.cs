@@ -13,8 +13,14 @@ namespace Notio.Shared.L10N;
 /// </remarks>
 public sealed class MultiLocalizer
 {
+    #region Fields
+
     private Localizer _defaultLocalizer = new();
     private readonly Dictionary<string, Localizer> _localizers = [];
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Loads a PO file for a specified language and creates a corresponding localizer.
@@ -156,7 +162,7 @@ public sealed class MultiLocalizer
     /// </example>
     public void SetDefault(string languageName)
     {
-        var loweredName = languageName.ToLower();
+        string loweredName = languageName.ToLower();
 
         lock (_localizers)
         {
@@ -181,4 +187,6 @@ public sealed class MultiLocalizer
         lock (_localizers)
             return _defaultLocalizer;
     }
+
+    #endregion
 }

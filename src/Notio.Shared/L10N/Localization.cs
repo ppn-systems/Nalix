@@ -11,7 +11,13 @@ namespace Notio.Shared.L10N;
 /// </remarks>
 public static class Localization
 {
+    #region Fields
+
     private static Localizer Localizer = new();
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Sets the global localizer instance to be used for translations.
@@ -90,4 +96,6 @@ public static class Localization
     /// </example>
     public static string GetParticularPlural(string context, string id, string idPlural, int n)
         => Localizer.GetParticularPlural(context, id, idPlural, n);
+
+    #endregion
 }
