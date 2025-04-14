@@ -14,8 +14,14 @@ namespace Notio.Shared.Memory.PoolTypes;
 /// <param name="maxCapacity">The maximum capacity of this pool.</param>
 internal class TypePool(int maxCapacity)
 {
+    #region Fields
+
     private readonly ConcurrentStack<IPoolable> _objects = new();
     private int _maxCapacity = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the Number of objects available in this pool.
@@ -26,6 +32,10 @@ internal class TypePool(int maxCapacity)
     /// Gets the maximum capacity of this pool.
     /// </summary>
     public int MaxCapacity => _maxCapacity;
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Sets the maximum capacity of this pool.
@@ -40,9 +50,7 @@ internal class TypePool(int maxCapacity)
 
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
-        {
-            Trim(100); // Trim to exactly the max capacity
-        }
+            this.Trim(100); // Trim to exactly the max capacity
     }
 
     /// <summary>
@@ -54,9 +62,7 @@ internal class TypePool(int maxCapacity)
     public bool TryPush(IPoolable obj)
     {
         if (_objects.Count >= _maxCapacity)
-        {
             return false;
-        }
 
         _objects.Push(obj);
         return true;
@@ -68,10 +74,7 @@ internal class TypePool(int maxCapacity)
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop(out IPoolable? obj)
-    {
-        return _objects.TryPop(out obj);
-    }
+    public bool TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
 
     /// <summary>
     /// Clears all objects from this pool.
@@ -138,8 +141,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <remarks>This is primarily for diagnostic purposes and should not be used in performance-critical code.</remarks>
     /// <returns>An array containing the objects in this pool.</returns>
-    public IPoolable[] ToArray()
-    {
-        return [.. _objects];
-    }
+    public IPoolable[] ToArray() => [.. _objects];
+
+    #endregion
 }

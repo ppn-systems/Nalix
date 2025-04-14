@@ -13,8 +13,14 @@ namespace Notio.Shared.Memory.PoolTypes;
 /// <typeparam name="T">The type of objects managed by this pool.</typeparam>
 public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
 {
+    #region Fields
+
     private readonly ObjectPool _pool;
     private readonly ObjectPoolManager _manager;
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TypedObjectPoolAdapter{T}"/> class.
@@ -26,6 +32,10 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
         _pool = pool;
         _manager = manager;
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Gets an object from the pool.
@@ -63,6 +73,19 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     }
 
     /// <summary>
+    /// Trims this type's pool to a target size.
+    /// </summary>
+    /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
+    /// <returns>The Number of objects removed.</returns>
+    public int Trim(int percentage = 50)
+    {
+        if (percentage < 0) percentage = 0;
+        if (percentage > 100) percentage = 100;
+
+        return _pool.Trim(percentage);
+    }
+
+    /// <summary>
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
@@ -77,11 +100,10 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     }
 
     /// <summary>
-    /// Sets the maximum capacity for this type's pool.
+    /// Clears this type's pool.
     /// </summary>
-    /// <param name="maxCapacity">The maximum capacity.</param>
-    public void SetMaxCapacity(int maxCapacity)
-        => _pool.SetMaxCapacity<T>(maxCapacity);
+    /// <returns>The Number of objects removed.</returns>
+    public int Clear() => _pool.ClearType<T>();
 
     /// <summary>
     /// Preallocates objects in the pool.
@@ -97,21 +119,10 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     public Dictionary<string, object> GetInfo() => _pool.GetTypeInfo<T>();
 
     /// <summary>
-    /// Clears this type's pool.
+    /// Sets the maximum capacity for this type's pool.
     /// </summary>
-    /// <returns>The Number of objects removed.</returns>
-    public int Clear() => _pool.ClearType<T>();
+    /// <param name="maxCapacity">The maximum capacity.</param>
+    public void SetMaxCapacity(int maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
 
-    /// <summary>
-    /// Trims this type's pool to a target size.
-    /// </summary>
-    /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The Number of objects removed.</returns>
-    public int Trim(int percentage = 50)
-    {
-        if (percentage < 0) percentage = 0;
-        if (percentage > 100) percentage = 100;
-
-        return _pool.Trim(percentage);
-    }
+    #endregion
 }
