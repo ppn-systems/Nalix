@@ -15,8 +15,14 @@ namespace Notio.Shared.Memory.Buffers;
 /// </summary>
 public sealed class BufferAllocator : IBufferPool, IDisposable
 {
+    #region Constants
+
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
+
+    #endregion
+
+    #region Fields
 
     private readonly ILogger? _logger;
     private readonly int _totalBuffers;
@@ -34,6 +40,10 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     private int _trimCycleCount;
     private Timer? _trimTimer;
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
     /// Gets the largest buffer size from the buffer allocations list.
     /// </summary>
@@ -43,6 +53,10 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// Gets the smallest buffer size from the buffer allocations list.
     /// </summary>
     public int MinBufferSize => _minBufferSize;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferAllocator"/> class with improved performance.
@@ -71,6 +85,10 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         if (_enableTrimming)
             _trimTimer = new Timer(TrimExcessBuffers, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Periodically trims excess buffers to reduce memory footprint
@@ -188,6 +206,10 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
                                                 : _bufferAllocations.Last().Allocation;
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
@@ -367,6 +389,10 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         }
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Releases all resources of the buffer pools.
     /// </summary>
@@ -384,4 +410,6 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }

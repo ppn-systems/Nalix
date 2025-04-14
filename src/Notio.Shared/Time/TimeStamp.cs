@@ -8,13 +8,23 @@ namespace Notio.Shared.Time;
 /// </summary>
 public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
 {
+    #region Fields
+
     private readonly long _timestamp;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TimeStamp"/> struct.
     /// </summary>
     /// <param name="timestamp">The raw timestamp value.</param>
     internal TimeStamp(long timestamp) => _timestamp = timestamp;
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Gets the elapsed time since this timestamp was created.
@@ -74,6 +84,10 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// </summary>
     public static TimeStamp Now => new(Stopwatch.GetTimestamp());
 
+    #endregion
+
+    #region Operators
+
     /// <inheritdoc/>
     public bool Equals(TimeStamp other) => _timestamp == other._timestamp;
 
@@ -115,6 +129,8 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// Checks if the left timestamp is greater than or equal to the right timestamp.
     /// </summary>
     public static bool operator >=(TimeStamp left, TimeStamp right) => left._timestamp >= right._timestamp;
+
+    #endregion
 
     /// <summary>
     /// Returns a string representation of this timestamp.
