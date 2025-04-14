@@ -27,17 +27,6 @@ bld/
 # Configuration files
 *.dotSettings.user
 
-# Crash Reports and Debugging
-_crashreports/
-_crashdumps/
-
-# NPM Packages
-node_modules/
-
-# Microsoft Azure Web App
-project.lock.json
-wwwroot/node_modules/
-
 # Other files
 *.pidb
 *.booproj
@@ -48,11 +37,6 @@ wwwroot/node_modules/
 *.log
 *.db
 
-# Web
-client-side/*
-*.css.map
-*.js.map
-
 # Uncomment if publishing code to a public repository
 #*.env
 
@@ -60,3 +44,4 @@ client-side/*
 *.snk
 nuget.key
 appsettings.json
+artifacts/
