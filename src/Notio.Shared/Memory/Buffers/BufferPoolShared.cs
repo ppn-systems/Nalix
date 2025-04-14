@@ -12,6 +12,8 @@ namespace Notio.Shared.Memory.Buffers;
 /// </summary>
 public sealed class BufferPoolShared : IDisposable
 {
+    #region Fields
+
     private static readonly ConcurrentDictionary<int, BufferPoolShared> Pools = new();
     private readonly ConcurrentQueue<byte[]> _freeBuffers;
     private readonly ArrayPool<byte> _arrayPool;
@@ -24,6 +26,10 @@ public sealed class BufferPoolShared : IDisposable
     private int _misses;
     private bool _isOptimizing;
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
     /// The total Number of buffers in the pool.
     /// </summary>
@@ -33,6 +39,10 @@ public sealed class BufferPoolShared : IDisposable
     /// The Number of free buffers in the pool.
     /// </summary>
     public int FreeBuffers => _freeBuffers.Count;
+
+    #endregion
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolShared"/> class.
@@ -44,31 +54,12 @@ public sealed class BufferPoolShared : IDisposable
         _freeBuffers = new ConcurrentQueue<byte[]>();
 
         // Pre-allocate buffers for better initial performance
-        PreallocateBuffers(initialCapacity);
+        this.PreallocateBuffers(initialCapacity);
     }
 
-    /// <summary>
-    /// Pre-allocates buffers to the specified capacity
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void PreallocateBuffers(int capacity)
-    {
-        var buffers = new byte[capacity][];
+    #endregion
 
-        // Rent all buffers at once for better locality
-        for (int i = 0; i < capacity; i++)
-        {
-            buffers[i] = _arrayPool.Rent(_bufferSize);
-        }
-
-        // Enqueue all buffers to the free queue
-        foreach (var buffer in buffers)
-        {
-            _freeBuffers.Enqueue(buffer);
-        }
-
-        _totalBuffers = capacity;
-    }
+    #region Public Methods
 
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
@@ -233,6 +224,10 @@ public sealed class BufferPoolShared : IDisposable
         return ref _poolInfo;
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Releases the buffer pool and returns all buffers to the array pool.
     /// </summary>
@@ -240,6 +235,36 @@ public sealed class BufferPoolShared : IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Finalizer for cleanup when Dispose is not called.
+    /// </summary>
+    ~BufferPoolShared()
+    {
+        this.Dispose(false);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Pre-allocates buffers to the specified capacity
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void PreallocateBuffers(int capacity)
+    {
+        byte[][] buffers = new byte[capacity][];
+
+        // Rent all buffers at once for better locality
+        for (int i = 0; i < capacity; i++)
+            buffers[i] = _arrayPool.Rent(_bufferSize);
+
+        // Enqueue all buffers to the free queue
+        foreach (byte[] buffer in buffers) _freeBuffers.Enqueue(buffer);
+
+        _totalBuffers = capacity;
     }
 
     /// <summary>
@@ -283,11 +308,5 @@ public sealed class BufferPoolShared : IDisposable
         }
     }
 
-    /// <summary>
-    /// Finalizer for cleanup when Dispose is not called.
-    /// </summary>
-    ~BufferPoolShared()
-    {
-        Dispose(false);
-    }
+    #endregion
 }

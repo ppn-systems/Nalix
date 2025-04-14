@@ -12,11 +12,17 @@ namespace Notio.Shared.Memory.Buffers;
 /// </summary>
 public sealed class BufferManager : IDisposable
 {
+    #region Fields
+
     private readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
     private readonly ConcurrentDictionary<int, BufferCounters> _adjustmentCounters = new();
     private readonly ReaderWriterLockSlim _keysLock = new(LockRecursionPolicy.NoRecursion);
 
     private int[] _sortedKeys = [];
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Event triggered when buffer pool needs to increase capacity.
@@ -28,6 +34,10 @@ public sealed class BufferManager : IDisposable
     /// </summary>
     public event Action<BufferPoolShared>? EventShrink;
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// Private structure to track buffer usage counters
     /// </summary>
@@ -36,6 +46,10 @@ public sealed class BufferManager : IDisposable
         public int RentCounter;
         public int ReturnCounter;
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
@@ -104,6 +118,10 @@ public sealed class BufferManager : IDisposable
         if (AdjustCounter(buffer.Length, isRent: false))
             EventShrink?.Invoke(pool);
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Adjusts the rent and return counters with optimized logic.
@@ -207,6 +225,10 @@ public sealed class BufferManager : IDisposable
         return left < keys.Length ? keys[left] : 0;
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Releases all resources used by the buffer pools.
     /// </summary>
@@ -234,4 +256,6 @@ public sealed class BufferManager : IDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    #endregion
 }
