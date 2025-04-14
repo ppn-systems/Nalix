@@ -9,6 +9,8 @@ namespace Notio.Shared.Internal;
 /// </summary>
 internal class PropertyMetadata
 {
+    #region Properties
+
     /// <summary>
     /// Gets or sets the property information.
     /// </summary>
@@ -28,6 +30,10 @@ internal class PropertyMetadata
     /// Gets or sets the type code of the property.
     /// </summary>
     public TypeCode TypeCode { get; init; }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Sets the value of this property on the specified target object.
@@ -49,4 +55,6 @@ internal class PropertyMetadata
                 $"Expected {PropertyType}, but got {value.GetType()}");
         }
     }
+
+    #endregion
 }

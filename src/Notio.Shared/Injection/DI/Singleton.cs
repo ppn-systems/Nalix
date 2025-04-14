@@ -13,6 +13,8 @@ namespace Notio.Shared.Injection.DI;
 /// </summary>
 public static class Singleton
 {
+    #region Fields
+
     // Using ConcurrentDictionaries for thread-safe operations
     private static readonly ConcurrentDictionary<Type, Type> TypeMapping = new();
     private static readonly ConcurrentDictionary<Type, Lazy<object>> Services = new();
@@ -22,6 +24,10 @@ public static class Singleton
 
     // Track whether we're in the dispose process
     private static int _isDisposing;
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Registers an instance of a class for dependency injection.
@@ -268,6 +274,10 @@ public static class Singleton
         Factories.Clear();
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Helper method to get all cached types for clearing
     /// </summary>
@@ -285,6 +295,10 @@ public static class Singleton
 
         return result;
     }
+
+    #endregion
+
+    #region Disposal
 
     /// <summary>
     /// Disposes of the Singleton container, releasing any resources held by registered services.
@@ -326,4 +340,6 @@ public static class Singleton
         // Reset the disposing flag
         Interlocked.Exchange(ref _isDisposing, 0);
     }
+
+    #endregion
 }

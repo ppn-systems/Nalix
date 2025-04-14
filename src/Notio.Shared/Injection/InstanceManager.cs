@@ -13,6 +13,8 @@ namespace Notio.Shared.Injection;
 /// </summary>
 public sealed class InstanceManager : IDisposable
 {
+    #region Fields
+
     // Lazy-load the entry assembly.
     private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
         Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
@@ -33,6 +35,10 @@ public sealed class InstanceManager : IDisposable
 
     // Thread safety for disposal
     private int _isDisposed;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Checks if this application (including version Number) is the only instance currently running.
@@ -70,6 +76,10 @@ public sealed class InstanceManager : IDisposable
     /// Gets the Number of cached instances.
     /// </summary>
     public int CachedInstanceCount => _instanceCache.Count;
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
@@ -256,6 +266,10 @@ public sealed class InstanceManager : IDisposable
         _activatorCache.Clear();
     }
 
+    #endregion
+
+    #region IDisposable
+
     /// <summary>
     /// Disposes of all instances in the cache that implement <see cref="IDisposable"/>.
     /// </summary>
@@ -279,6 +293,10 @@ public sealed class InstanceManager : IDisposable
         Clear(disposeInstances: true);
         GC.SuppressFinalize(this);
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Finds the best matching constructor for the given arguments.
@@ -373,4 +391,6 @@ public sealed class InstanceManager : IDisposable
             }
         };
     }
+
+    #endregion
 }

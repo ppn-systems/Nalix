@@ -10,10 +10,16 @@ namespace Notio.Shared.Internal;
 /// </summary>
 internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> pool) : IDisposable
 {
+    #region Fields
+
     private int _disposed;
     private T[]? _array = array;
     private readonly int _length = length;
     private readonly ArrayPool<T> _pool = pool;
+
+    #endregion
+
+    #region IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
@@ -23,8 +29,7 @@ internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> p
 
         T[]? array = _array;
 
-        if (array == null)
-            return;
+        if (array == null) return;
 
         _array = null;
 
@@ -32,4 +37,6 @@ internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> p
         Array.Clear(array, 0, _length);
         _pool.Return(array);
     }
+
+    #endregion
 }

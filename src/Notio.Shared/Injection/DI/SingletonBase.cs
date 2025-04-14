@@ -11,6 +11,8 @@ namespace Notio.Shared.Injection.DI;
 public abstract class SingletonBase<T> : IDisposable
     where T : class
 {
+    #region Fields
+
     // Using ExecutionAndPublication mode for maximum thread safety
     private static readonly Lazy<T> Instances = new(
         valueFactory: CreateInstanceInternal,
@@ -19,6 +21,10 @@ public abstract class SingletonBase<T> : IDisposable
     // Use volatile for thread-safety without locks
     private volatile bool _isDisposed;
     private int _disposeSignaled;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the single instance of the <typeparamref name="T"/> class.
@@ -36,11 +42,19 @@ public abstract class SingletonBase<T> : IDisposable
     /// </remarks>
     public static bool IsCreated => Instances.IsValueCreated;
 
+    #endregion
+
+    #region Constructor
+
     /// <summary>
     /// A protected constructor to prevent direct instantiation from outside the class.
     /// </summary>
     protected SingletonBase()
     { }
+
+    #endregion
+
+    #region IDisposable
 
     /// <inheritdoc />
     public void Dispose()
@@ -52,6 +66,39 @@ public abstract class SingletonBase<T> : IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+
+    /// <summary>
+    /// Releases unmanaged and, optionally, managed resources.
+    /// If overridden, make sure to call base.Dispose(disposing).
+    /// </summary>
+    /// <param name="disposeManaged">
+    /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
+    /// </param>
+    protected virtual void Dispose(bool disposeManaged)
+    {
+        if (_isDisposed)
+            return;
+
+        if (disposeManaged)
+        {
+            // Dispose any managed resources specific to the derived class
+            // (This space intentionally left blank for derived classes to implement)
+        }
+
+        _isDisposed = true;
+    }
+
+    /// <summary>
+    /// Finalizer to ensure resources are properly cleaned up if Dispose is not called.
+    /// </summary>
+    ~SingletonBase()
+    {
+        Dispose(false);
+    }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Creates an instance of the Singleton class with error handling.
@@ -103,32 +150,5 @@ public abstract class SingletonBase<T> : IDisposable
         // that will be checked in Instance getter in a test environment
     }
 
-    /// <summary>
-    /// Releases unmanaged and, optionally, managed resources.
-    /// If overridden, make sure to call base.Dispose(disposing).
-    /// </summary>
-    /// <param name="disposeManaged">
-    /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
-    /// </param>
-    protected virtual void Dispose(bool disposeManaged)
-    {
-        if (_isDisposed)
-            return;
-
-        if (disposeManaged)
-        {
-            // Dispose any managed resources specific to the derived class
-            // (This space intentionally left blank for derived classes to implement)
-        }
-
-        _isDisposed = true;
-    }
-
-    /// <summary>
-    /// Finalizer to ensure resources are properly cleaned up if Dispose is not called.
-    /// </summary>
-    ~SingletonBase()
-    {
-        Dispose(false);
-    }
+    #endregion
 }
