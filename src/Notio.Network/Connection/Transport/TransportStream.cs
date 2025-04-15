@@ -23,10 +23,24 @@ internal class TransportStream : IDisposable
 
     #endregion
 
+    #region Properties
+
     /// <summary>
     /// Event triggered when the connection is disconnected.
     /// </summary>
     public Action? Disconnected;
+
+    /// <summary>
+    /// Gets the last ping time in milliseconds.
+    /// </summary>
+    public long UpTime => _cache.Uptime;
+
+    /// <summary>
+    /// Gets the last ping time in milliseconds.
+    /// </summary>
+    public long LastPingTime => _cache.LastPingTime;
+
+    #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportStream"/> class.
@@ -155,16 +169,6 @@ internal class TransportStream : IDisposable
 
         return ReadOnlyMemory<byte>.Empty; // Avoid null
     }
-
-    /// <summary>
-    /// Gets the last ping time in milliseconds.
-    /// </summary>
-    public long UpTime => _cache.Uptime;
-
-    /// <summary>
-    /// Gets the last ping time in milliseconds.
-    /// </summary>
-    public long LastPingTime => _cache.LastPingTime;
 
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached.
