@@ -51,6 +51,8 @@ public sealed class LoggingPublisher : ILoggerPublisher
 
     #endregion
 
+    #region Public Methods
+
     /// <summary>
     /// Publishes a log entry to all registered logging targets.
     /// </summary>
@@ -232,4 +234,6 @@ public sealed class LoggingPublisher : ILoggerPublisher
            $"- Target Operations: {TargetsProcessed:N0}" + Environment.NewLine +
            $"- Errors: {PublishErrorCount:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
+
+    #endregion
 }

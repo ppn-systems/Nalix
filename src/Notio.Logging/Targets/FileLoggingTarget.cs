@@ -13,21 +13,31 @@ namespace Notio.Logging.Targets;
 /// This logger uses a specified formatter to format the log message before writing it to a file.
 /// The default behavior can be customized by providing a custom <see cref="ILoggerFormatter"/>.
 /// </remarks>
-/// <remarks>
-/// Initializes a new instance of the <see cref="FileLoggingTarget"/> class.
-/// </remarks>
-/// <param name="loggerFormatter">The log message formatter.</param>
-/// <param name="fileLoggerOptions">The file logger options.</param>
-public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
-    : ILoggerTarget, IDisposable
+
+public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
 {
-    private readonly ILoggerFormatter _loggerFormatter = loggerFormatter ??
-        throw new ArgumentNullException(nameof(loggerFormatter));
+    #region Fields
+
+    private readonly FileLoggerProvider _loggerPrv;
+    private readonly ILoggerFormatter _loggerFormatter;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
-    /// The provider responsible for writing logs to a file.
+    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> class.
     /// </summary>
-    private readonly FileLoggerProvider _loggerPrv = new(fileLoggerOptions);
+    /// <param name="loggerFormatter">The log message formatter.</param>
+    /// <param name="fileLoggerOptions">The file logger options.</param>
+    public FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
+    {
+        ArgumentNullException.ThrowIfNull(loggerFormatter);
+        ArgumentNullException.ThrowIfNull(fileLoggerOptions);
+
+        _loggerFormatter = loggerFormatter;
+        _loggerPrv = new FileLoggerProvider(fileLoggerOptions);
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
@@ -55,12 +65,20 @@ public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLogg
     {
     }
 
+    #endregion
+
+    #region Public Methods
+
     /// <summary>
     /// Publishes the formatted log entry to the log file.
     /// </summary>
     /// <param name="logMessage">The log entry to be published.</param>
     public void Publish(LogEntry logMessage)
         => _loggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
+
+    #endregion
+
+    #region IDisposable
 
     /// <summary>
     /// Disposes of the file logger and any resources it uses.
@@ -71,13 +89,19 @@ public sealed class FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLogg
         GC.SuppressFinalize(this);
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Helper method to apply configuration.
     /// </summary>
     private static FileLoggerOptions ConfigureOptions(Action<FileLoggerOptions> configureOptions)
     {
-        var options = new FileLoggerOptions();
+        FileLoggerOptions options = new();
         configureOptions?.Invoke(options);
         return options;
     }
+
+    #endregion
 }

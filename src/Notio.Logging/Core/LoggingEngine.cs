@@ -22,6 +22,8 @@ public abstract class LoggingEngine : IDisposable
 
     #endregion
 
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingEngine"/> class.
     /// </summary>
@@ -54,6 +56,10 @@ public abstract class LoggingEngine : IDisposable
         _minLevel = _loggingOptions.MinLevel;
     }
 
+    #endregion
+
+    #region Logging Methods
+
     /// <summary>
     /// Reconfigure logging options after initialization.
     /// </summary>
@@ -61,7 +67,7 @@ public abstract class LoggingEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    public void Configure(Action<LoggingOptions> configureOptions)
+    protected void Configure(Action<LoggingOptions> configureOptions)
         => configureOptions?.Invoke(_loggingOptions);
 
     /// <summary>
@@ -115,15 +121,6 @@ public abstract class LoggingEngine : IDisposable
     protected static DateTime GetTimestamp() => DateTime.UtcNow;
 
     /// <summary>
-    /// Disposes the logging engine and all related resources.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
     /// Releases managed and unmanaged resources used by the logging engine.
     /// </summary>
     /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
@@ -139,6 +136,25 @@ public abstract class LoggingEngine : IDisposable
         }
     }
 
+    #endregion
+
+    #region Disposable
+
+    /// <summary>
+    /// Disposes the logging engine and all related resources.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
+
+    #region Private Methods
+
     private static string FormatMessage(string format, object[]? args)
         => args == null || args.Length == 0 ? format : string.Format(format, args);
+
+    #endregion
 }
