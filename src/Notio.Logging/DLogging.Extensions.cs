@@ -13,6 +13,8 @@ namespace Notio.Logging;
 /// </summary>
 public static partial class DLogging
 {
+    #region Properties
+
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will not be logged.
     /// </summary>
@@ -22,6 +24,10 @@ public static partial class DLogging
     /// The global logging publisher used for distributing log messages to various targets.
     /// </summary>
     public static readonly ILoggerPublisher Publisher;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes static members of the <see cref="DLogging"/> class.
@@ -43,6 +49,10 @@ public static partial class DLogging
 
         Publisher.AddTarget(new ConsoleLoggingTarget());
     }
+
+    #endregion
+
+    #region Debug Methods
 
     /// <summary>
     /// Logs a debug message to the console.
@@ -107,6 +117,10 @@ public static partial class DLogging
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
+
+    #endregion
+
+    #region Trace Methods
 
     /// <summary>
     /// Logs a trace message to the console.
@@ -174,6 +188,10 @@ public static partial class DLogging
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
+    #endregion
+
+    #region Warning Methods
+
     /// <summary>
     /// Logs a warning message to the console.
     /// </summary>
@@ -239,6 +257,10 @@ public static partial class DLogging
             LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
+
+    #endregion
+
+    #region Fatal Methods
 
     /// <summary>
     /// Logs a warning message to the console.
@@ -306,6 +328,10 @@ public static partial class DLogging
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
+    #endregion
+
+    #region Info Methods
+
     /// <summary>
     /// Logs an info message to the console.
     /// </summary>
@@ -372,6 +398,10 @@ public static partial class DLogging
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
+    #endregion
+
+    #region Error Methods
+
     /// <summary>
     /// Logs an error message to the console's standard error.
     /// </summary>
@@ -437,6 +467,10 @@ public static partial class DLogging
             LogLevel.Error, message, source, ex,
             callerMemberName, callerFilePath, callerLineNumber);
     }
+
+    #endregion
+
+    #region Log Methods
 
     /// <summary>
     /// Logs the specified message.
@@ -536,6 +570,10 @@ public static partial class DLogging
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
+    #endregion
+
+    #region Private Methods
+
     private static void CreateLogEntry(
         LogLevel level,
         string message,
@@ -555,12 +593,12 @@ public static partial class DLogging
     }
 
     private static string BuildFullMessage(
-    string message,
-    string? sourceName,
-    object? extendedData,
-    string callerMemberName,
-    string callerFilePath,
-    int callerLineNumber)
+        string message,
+        string? sourceName,
+        object? extendedData,
+        string callerMemberName,
+        string callerFilePath,
+        int callerLineNumber)
     {
         string extendedDataString = extendedData != null ? $"ExtendedData: {extendedData}" : "";
 
@@ -569,4 +607,6 @@ public static partial class DLogging
                $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}\n" +
                $"{extendedDataString.Trim()}";
     }
+
+    #endregion
 }

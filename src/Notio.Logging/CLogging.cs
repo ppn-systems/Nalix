@@ -10,12 +10,10 @@ namespace Notio.Logging;
 /// <summary>
 /// A singleton class that provides logging functionality for the application.
 /// </summary>
-/// <remarks>
-/// Initializes the logging system with optional configuration.
-/// </remarks>
-/// <param name="configure">An optional action to configure the logging system.</param>
-public sealed class CLogging(Action<LoggingOptions>? configure = null) : LoggingEngine(configure), ILogger
+public sealed class CLogging : LoggingEngine, ILogger
 {
+    #region Properties
+
     /// <summary>
     /// Gets the single instance of the <see cref="CLogging"/> class.
     /// </summary>
@@ -25,15 +23,23 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
            .AddTarget(new FileLoggingTarget());
     });
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
-    /// Writes a log entry with the specified level, event Number, message, and optional exception.
+    /// Initializes the logging system with optional configuration.
     /// </summary>
-    /// <param name="level">The log level (e.g., Info, Warning, Error, etc.).</param>
-    /// <param name="eventId">The event Number to associate with the log entry.</param>
-    /// <param name="message">The log message.</param>
-    /// <param name="exception">Optional exception associated with the log entry.</param>
-    private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)
-       => base.CreateLogEntry(level, eventId, message, exception);
+    /// <param name="configure">An optional action to configure the logging system.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    public CLogging(Action<LoggingOptions>? configure = null)
+        : base(configure)
+    {
+    }
+
+    #endregion
+
+    #region Meta Methods
 
     /// <inheritdoc />
     public void Meta(string message)
@@ -47,6 +53,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Meta, eventId ?? EventId.Empty, message);
 
+    #endregion
+
+    #region Trace Methods
+
     /// <inheritdoc />
     public void Trace(string message)
         => WriteLog(LogLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
@@ -58,6 +68,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     /// <inheritdoc />
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
+
+    #endregion
+
+    #region Debug Methods
 
     /// <inheritdoc />
     public void Debug(string message)
@@ -76,6 +90,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
         where TClass : class
         => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
 
+    #endregion
+
+    #region Info Methods
+
     /// <inheritdoc />
     public void Info(string message)
         => WriteLog(LogLevel.Information, EventId.Empty, message);
@@ -88,6 +106,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     public void Info(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Information, eventId ?? EventId.Empty, message);
 
+    #endregion
+
+    #region Warn Methods
+
     /// <inheritdoc />
     public void Warn(string message)
         => WriteLog(LogLevel.Warning, EventId.Empty, message);
@@ -99,6 +121,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     /// <inheritdoc />
     public void Warn(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Warning, eventId ?? EventId.Empty, message);
+
+    #endregion
+
+    #region Error Methods
 
     /// <inheritdoc />
     public void Error(string message)
@@ -128,6 +154,10 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     public void Error(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message, exception);
 
+    #endregion
+
+    #region Fatal Methods
+
     /// <inheritdoc />
     public void Fatal(string message)
         => WriteLog(LogLevel.Critical, EventId.Empty, message);
@@ -148,8 +178,24 @@ public sealed class CLogging(Action<LoggingOptions>? configure = null) : Logging
     public void Fatal(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
+    #endregion
+
+    #region Private Methods
+
     // Sanitize log message to prevent log forging
     // Removes potentially dangerous characters (e.g., newlines or control characters)
     private static string SanitizeLogMessage(string? message)
         => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
+
+    /// <summary>
+    /// Writes a log entry with the specified level, event Number, message, and optional exception.
+    /// </summary>
+    /// <param name="level">The log level (e.g., Info, Warning, Error, etc.).</param>
+    /// <param name="eventId">The event Number to associate with the log entry.</param>
+    /// <param name="message">The log message.</param>
+    /// <param name="exception">Optional exception associated with the log entry.</param>
+    private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)
+       => base.CreateLogEntry(level, eventId, message, exception);
+
+    #endregion
 }
