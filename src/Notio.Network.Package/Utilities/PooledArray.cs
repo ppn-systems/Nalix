@@ -14,9 +14,13 @@ namespace Notio.Network.Package.Utilities;
 /// <param name="pool">The array pool to return the array to.</param>
 internal sealed class PooledArray(byte[] array, ArrayPool<byte> pool) : IDisposable
 {
+    #region Fields
+
     private readonly byte[] _array = array;
     private readonly ArrayPool<byte> _pool = pool;
     private bool _disposed;
+
+    #endregion
 
     /// <summary>
     /// Returns the array to the pool and clears it if not already disposed.

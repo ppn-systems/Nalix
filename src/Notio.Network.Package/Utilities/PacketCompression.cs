@@ -81,6 +81,8 @@ public static class PacketCompression
         }
     }
 
+    #region Private Methods
+
     private static void ValidatePacketForCompression(Packet packet)
     {
         if (packet.Payload.IsEmpty)
@@ -161,4 +163,5 @@ public static class PacketCompression
         }
     }
 
+    #endregion
 }
