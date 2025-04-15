@@ -8,11 +8,15 @@ namespace Notio.Logging.Options;
 /// </summary>
 public sealed class EmailLoggingOptions
 {
+    #region Fields
+
     private int _port;
     private string _to = null!;
     private string _from = null!;
     private string _password = null!;
     private string _smtpServer = null!;
+
+    #endregion
 
     /// <summary>
     /// Gets or sets the SMTP server address.

@@ -1,4 +1,3 @@
-using Notio.Common.Exceptions;
 using Notio.Logging.Exceptions;
 using System;
 using System.IO;
@@ -10,10 +9,17 @@ namespace Notio.Logging.Options;
 /// </summary>
 public sealed class FileLoggerOptions
 {
+    #region Constants
+
     // Default values
     private const int DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
     private const int DefaultMaxQueueSize = 4096;
     private const bool DefaultAppendToFile = true;
+
+    #endregion
+
+    #region Fields
+
     private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(1);
 
     private static readonly string DefaultBaseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
@@ -22,6 +28,10 @@ public sealed class FileLoggerOptions
     private int _maxFileSize = DefaultMaxFileSize;
     private int _maxQueueSize = DefaultMaxQueueSize;
     private string _logFileName = $"log_{Environment.MachineName}_.log";
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Specifies whether to append to existing log files or overwrite them.
@@ -131,8 +141,14 @@ public sealed class FileLoggerOptions
     /// </remarks>
     public bool BlockWhenQueueFull { get; set; } = false;
 
+    #endregion
+
+    #region Methods
+
     /// <summary>
     /// Gets full path to the current log file.
     /// </summary>
     public string GetFullLogFilePath() => Path.Combine(LogDirectory, LogFileName);
+
+    #endregion
 }

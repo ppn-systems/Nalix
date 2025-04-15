@@ -9,11 +9,17 @@ namespace Notio.Logging.Options;
 /// </summary>
 public sealed class LoggingOptions : IDisposable
 {
+    #region Fields
+
     private readonly ILoggerPublisher _publisher;
     private int _disposed;
 
     // Default values that can be customized
     private LogLevel _minLevel = LogLevel.Trace;
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// Gets the file logger configuration options.
@@ -53,6 +59,8 @@ public sealed class LoggingOptions : IDisposable
     /// Gets or sets whether to use UTC time for timestamps.
     /// </summary>
     public bool UseUtcTimestamp { get; set; } = true;
+
+    #endregion
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LoggingOptions"/> class.
