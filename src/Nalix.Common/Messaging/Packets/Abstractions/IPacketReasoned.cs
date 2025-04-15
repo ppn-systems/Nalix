@@ -1,9 +1,11 @@
-﻿using Nalix.Common.Messaging.Protocols;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Messaging.Protocols;
 
 namespace Nalix.Common.Messaging.Packets.Abstractions;
 
 /// <summary>
-/// Defines a contract for packets that carry a reason code, 
+/// Defines a contract for packets that carry a reason code,
 /// typically used in control scenarios such as disconnect, error, or nack.
 /// </summary>
 public interface IPacketReasoned
