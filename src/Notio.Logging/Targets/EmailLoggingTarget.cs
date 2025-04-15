@@ -17,10 +17,16 @@ namespace Notio.Logging.Targets;
 /// </remarks>
 public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
 {
+    #region Fields
+
     private readonly SmtpClient _smtpClient;
     private readonly EmailLoggingOptions _options;
 
     private bool _disposed;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EmailLoggingTarget"/> class using the provided configuration options.
@@ -75,6 +81,10 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     {
     }
 
+    #endregion
+
+    #region Public Methods
+
     /// <summary>
     /// Asynchronously publishes a log entry by sending an email.
     /// </summary>
@@ -107,6 +117,27 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     /// <param name="entry">The log entry to send via email.</param>
     public void Publish(LogEntry entry)
         => PublishAsync(entry).GetAwaiter().GetResult();
+
+    #endregion
+
+    #region IDisposable
+
+    /// <summary>
+    /// Disposes of resources used by the <see cref="EmailLoggingTarget"/>.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _smtpClient?.Dispose();
+        _disposed = true;
+
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Creates an HTML-formatted email message from the log entry.
@@ -152,19 +183,6 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
         _ => "#000000"                       // Black
     };
 
-    /// <summary>
-    /// Disposes of resources used by the <see cref="EmailLoggingTarget"/>.
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        _smtpClient?.Dispose();
-        _disposed = true;
-
-        GC.SuppressFinalize(this);
-    }
-
     private const string HtmlTemplate = @"
         <html>
         <body style='font-family: Arial, sans-serif; font-size: 14px;'>
@@ -175,4 +193,6 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
             {4}
         </body>
         </html>";
+
+    #endregion
 }
