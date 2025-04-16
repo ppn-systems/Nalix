@@ -485,8 +485,12 @@ public sealed class Sha1 : ISha, IDisposable
 
     #endregion
 
+    #region Overrides
+
     /// <summary>
     /// Returns a string representation of the SHA-1 hash algorithm.
     /// </summary>
     public override string ToString() => "SHA-1";
+
+    #endregion
 }
