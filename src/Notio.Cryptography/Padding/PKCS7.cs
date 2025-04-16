@@ -8,6 +8,8 @@ namespace Notio.Cryptography.Padding;
 /// </summary>
 public static class PKCS7
 {
+    #region Pad Methods
+
     /// <summary>
     /// Pads the input span to the specified block size using PKCS7 padding.
     /// </summary>
@@ -27,6 +29,10 @@ public static class PKCS7
 
         return paddedData;
     }
+
+    #endregion
+
+    #region Unpad Methods
 
     /// <summary>
     /// Removes PKCS7 padding from the input span.
@@ -49,6 +55,10 @@ public static class PKCS7
         return data[..^paddingSize].ToArray();
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Checks if the given data has valid PKCS7 padding.
     /// </summary>
@@ -56,14 +66,8 @@ public static class PKCS7
     /// <param name="paddingSize">The expected padding size.</param>
     /// <returns>True if the padding is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
-    {
-        byte expected = (byte)paddingSize;
-        bool isValid = true;
+    private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize) =>
+        paddingSize > 0 && paddingSize <= data.Length && !(data[^paddingSize..].IndexOfAnyExcept((byte)paddingSize) >= 0);
 
-        for (int i = data.Length - paddingSize; i < data.Length; i++)
-            isValid &= data[i] == expected;
-
-        return isValid;
-    }
+    #endregion
 }

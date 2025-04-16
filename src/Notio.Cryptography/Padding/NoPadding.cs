@@ -8,6 +8,8 @@ namespace Notio.Cryptography.Padding;
 /// </summary>
 public static class NoPadding
 {
+    #region Pad Methods
+
     /// <summary>
     /// Verifies the input byte array is already properly aligned to the block size.
     /// Does not add any padding.
@@ -55,6 +57,10 @@ public static class NoPadding
         return result;
     }
 
+    #endregion
+
+    #region Unpad Methods
+
     /// <summary>
     /// Returns the original data without any modification.
     /// </summary>
@@ -97,4 +103,6 @@ public static class NoPadding
         data.CopyTo(result);
         return result;
     }
+
+    #endregion
 }

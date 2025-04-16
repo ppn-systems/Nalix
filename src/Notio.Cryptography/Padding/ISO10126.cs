@@ -9,6 +9,8 @@ namespace Notio.Cryptography.Padding;
 /// </summary>
 public static class ISO10126
 {
+    #region Pad Methods
+
     /// <summary>
     /// Pads the input byte array to the specified block size using ISO 10126 padding.
     /// </summary>
@@ -72,6 +74,10 @@ public static class ISO10126
         return paddedData;
     }
 
+    #endregion
+
+    #region Unpad Methods
+
     /// <summary>
     /// Removes ISO 10126 padding from the input byte array.
     /// </summary>
@@ -126,4 +132,6 @@ public static class ISO10126
 
         return unpaddedData;
     }
+
+    #endregion
 }

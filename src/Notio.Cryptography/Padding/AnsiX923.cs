@@ -8,6 +8,8 @@ namespace Notio.Cryptography.Padding;
 /// </summary>
 public static class AnsiX923
 {
+    #region Pad Methods
+
     /// <summary>
     /// Pads the input byte array to the specified block size using ANSI X.923 padding.
     /// </summary>
@@ -66,6 +68,10 @@ public static class AnsiX923
 
         return paddedData;
     }
+
+    #endregion
+
+    #region Unpad Methods
 
     /// <summary>
     /// Removes ANSI X.923 padding from the input byte array.
@@ -126,6 +132,10 @@ public static class AnsiX923
         return unpaddedData;
     }
 
+    #endregion
+
+    #region Internal Methods
+
     /// <summary>
     /// Validates the ANSI X.923 padding in a constant-time manner.
     /// </summary>
@@ -133,7 +143,7 @@ public static class AnsiX923
     /// <param name="paddingSize">The padding size obtained from the last byte.</param>
     /// <returns>True if the padding is valid, false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
+    internal static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
     {
         bool isValid = true;
 
@@ -144,4 +154,6 @@ public static class AnsiX923
 
         return isValid;
     }
+
+    #endregion
 }

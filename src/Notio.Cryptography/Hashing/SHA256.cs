@@ -651,8 +651,12 @@ public sealed class Sha256 : ISha, IDisposable
 
     #endregion
 
+    #region Overrides
+
     /// <summary>
     /// Returns a string representation of the SHA-256 hash algorithm.
     /// </summary>
     public override string ToString() => "SHA-256";
+
+    #endregion
 }

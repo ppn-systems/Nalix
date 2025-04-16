@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Cryptography.Padding;
 
@@ -7,6 +8,8 @@ namespace Notio.Cryptography.Padding;
 /// </summary>
 public static class ISO7816
 {
+    #region Pad Methods
+
     /// <summary>
     /// Pads the input byte array to the specified block size using ISO/IEC 7816-4 padding.
     /// </summary>
@@ -61,6 +64,10 @@ public static class ISO7816
         return paddedData;
     }
 
+    #endregion
+
+    #region Unpad Methods
+
     /// <summary>
     /// Removes ISO/IEC 7816-4 padding from the input byte array.
     /// </summary>
@@ -112,32 +119,32 @@ public static class ISO7816
         return unpaddedData;
     }
 
+    #endregion
+
+    #region Private Methods
+
     /// <summary>
     /// Finds the start of the ISO/IEC 7816-4 padding by locating the 0x80 marker.
     /// </summary>
     /// <param name="data">The data to search.</param>
     /// <returns>The index of the 0x80 marker, or -1 if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int FindPaddingStart(ReadOnlySpan<byte> data)
     {
-        // Start from the end and work backwards
         for (int i = data.Length - 1; i >= 0; i--)
         {
             if (data[i] == 0x80)
             {
-                // Found the 0x80 byte, now validate all bytes after it are zeros
                 if (AnsiX923.IsValidPadding(data, i))
-                {
                     return i;
-                }
-                return -1; // Invalid padding
             }
             else if (data[i] != 0x00)
             {
-                // Found a non-zero byte that isn't 0x80, invalid padding
-                return -1;
+                break;
             }
         }
-
-        return -1; // No 0x80 byte found
+        return -1;
     }
+
+    #endregion
 }

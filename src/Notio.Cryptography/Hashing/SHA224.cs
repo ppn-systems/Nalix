@@ -324,8 +324,12 @@ public sealed class Sha224 : ISha, IDisposable
 
     #endregion
 
+    #region Overrides
+
     /// <summary>
     /// Returns a string representation of the SHA-224 hash algorithm.
     /// </summary>
     public override string ToString() => "SHA-224";
+
+    #endregion
 }

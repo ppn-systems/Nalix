@@ -249,7 +249,7 @@ public sealed class Hmac : IDisposable
 
     #endregion
 
-    #region IDisposable Implementation
+    #region IDisposable
 
     /// <summary>
     /// Disposes resources used by the HMAC instance.
