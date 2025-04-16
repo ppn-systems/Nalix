@@ -1,5 +1,5 @@
+using Notio.Common.Cryptography;
 using Notio.Common.Exceptions;
-using Notio.Common.Security;
 using Notio.Cryptography.Aead;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
@@ -65,6 +65,54 @@ public static class Ciphers
                         ciphertext.CopyTo(result.AsSpan(8));
 
                         return result;
+                    }
+
+                case EncryptionMode.Speck:
+                    {
+                        // Prepare output buffer
+                        byte[] output = new byte[data.Length];
+                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int fullBlocks = data.Length / blockSize;
+
+                        // Process data in 8-byte blocks
+                        for (int i = 0; i < fullBlocks; i++)
+                        {
+                            // Get the current 8-byte block
+                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
+                            Span<byte> ciphertext = new byte[blockSize];
+
+                            // Encrypt the block
+                            Speck.Encrypt(block, key, ciphertext);
+
+                            // Copy encrypted block to the output
+                            ciphertext.CopyTo(output.AsSpan(i * blockSize));
+                        }
+
+                        return output;
+                    }
+
+                case EncryptionMode.SpeckCBC:
+                    {
+                        // Prepare output buffer
+                        byte[] output = new byte[data.Length];
+                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int fullBlocks = data.Length / blockSize;
+
+                        // Process data in 8-byte blocks
+                        for (int i = 0; i < fullBlocks; i++)
+                        {
+                            // Get the current 8-byte block
+                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
+                            Span<byte> ciphertext = new byte[blockSize];
+
+                            // Encrypt the block
+                            Speck.CBC.Encrypt(block, key, ciphertext);
+
+                            // Copy encrypted block to the output
+                            ciphertext.CopyTo(output.AsSpan(i * blockSize));
+                        }
+
+                        return output;
                     }
 
                 case EncryptionMode.TwofishECB:
@@ -183,6 +231,54 @@ public static class Ciphers
                         Salsa20.Decrypt(key, nonce, counter, ciphertext, plaintext);
 
                         return plaintext;
+                    }
+
+                case EncryptionMode.Speck:
+                    {
+                        // Prepare output buffer
+                        byte[] output = new byte[data.Length];
+                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int fullBlocks = data.Length / blockSize;
+
+                        // Process data in 8-byte blocks
+                        for (int i = 0; i < fullBlocks; i++)
+                        {
+                            // Get the current 8-byte block
+                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
+                            Span<byte> plaintext = new byte[blockSize];
+
+                            // Decrypt the block
+                            Speck.Decrypt(block, key, plaintext);
+
+                            // Copy decrypted block to the output
+                            plaintext.CopyTo(output.AsSpan(i * blockSize));
+                        }
+
+                        return output;
+                    }
+
+                case EncryptionMode.SpeckCBC:
+                    {
+                        // Prepare output buffer
+                        byte[] output = new byte[data.Length];
+                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int fullBlocks = data.Length / blockSize;
+
+                        // Process data in 8-byte blocks
+                        for (int i = 0; i < fullBlocks; i++)
+                        {
+                            // Get the current 8-byte block
+                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
+                            Span<byte> plaintext = new byte[blockSize];
+
+                            // Decrypt the block
+                            Speck.CBC.Decrypt(block, key, plaintext);
+
+                            // Copy decrypted block to the output
+                            plaintext.CopyTo(output.AsSpan(i * blockSize));
+                        }
+
+                        return output;
                     }
 
                 case EncryptionMode.TwofishECB:

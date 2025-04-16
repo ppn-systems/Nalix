@@ -1,4 +1,4 @@
-using Notio.Cryptography.Enums;
+using Notio.Common.Cryptography.Hashing;
 using Notio.Randomization;
 using System;
 

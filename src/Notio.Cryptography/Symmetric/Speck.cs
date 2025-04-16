@@ -57,6 +57,31 @@ public static class Speck
     }
 
     /// <summary>
+    /// Encrypts data using the Speck64/128 variant (64-bit block with 128-bit key).
+    /// </summary>
+    /// <param name="plaintext">The decrypted plaintext (8 bytes).</param>
+    /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
+    /// <param name="ciphertext">The ciphertext to decrypt (must be exactly 8 bytes).</param>
+    /// <exception cref="ArgumentException"></exception>
+    public static void Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, Span<byte> ciphertext)
+    {
+        if (plaintext.Length != 8)
+            throw new ArgumentException("Plaintext must be exactly 8 bytes for Speck64/128.", nameof(plaintext));
+
+        if (key.Length != 16)
+            throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128.", nameof(key));
+
+        uint x = BitwiseUtils.U8To32Little(plaintext, 0);
+        uint y = BitwiseUtils.U8To32Little(plaintext, 4);
+
+        uint[] subkeys = GenerateSubkeys64_128(key.ToArray());
+        (x, y) = EncryptBlock(x, y, subkeys);
+
+        BitwiseUtils.ToBytes(ciphertext, x, 0);
+        BitwiseUtils.ToBytes(ciphertext, y, 4);
+    }
+
+    /// <summary>
     /// Decrypts data using the Speck64/128 variant (64-bit block with 128-bit key).
     /// </summary>
     /// <param name="ciphertext">The ciphertext to decrypt (must be exactly 8 bytes).</param>
@@ -88,6 +113,36 @@ public static class Speck
         BitwiseUtils.ToBytes(plaintext, y, 4);
 
         return plaintext;
+    }
+
+    /// <summary>
+    /// Decrypts data using the Speck64/128 variant (64-bit block with 128-bit key).
+    /// </summary>
+    /// <param name="ciphertext">The ciphertext to decrypt (must be exactly 8 bytes).</param>
+    /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
+    /// <param name="plaintext">The decrypted plaintext (8 bytes).</param>
+    /// <exception cref="ArgumentException"></exception>
+    public static void Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, Span<byte> plaintext)
+    {
+        if (ciphertext.Length != 8)
+            throw new ArgumentException("Ciphertext must be exactly 8 bytes for Speck64/128.", nameof(ciphertext));
+
+        if (key.Length != 16)
+            throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128.", nameof(key));
+
+        // Extract two 32-bit blocks from ciphertext
+        uint x = BitwiseUtils.U8To32Little(ciphertext, 0);
+        uint y = BitwiseUtils.U8To32Little(ciphertext, 4);
+
+        // Generate subkeys from the main key
+        uint[] subkeys = GenerateSubkeys64_128(key.ToArray());
+
+        // Apply decryption rounds (in reverse)
+        (x, y) = DecryptBlock(x, y, subkeys);
+
+        // Prepare output
+        BitwiseUtils.ToBytes(plaintext, x, 0);
+        BitwiseUtils.ToBytes(plaintext, y, 4);
     }
 
     /// <summary>
@@ -169,6 +224,72 @@ public static class Speck
         }
 
         /// <summary>
+        /// Encrypts data using CBC mode with the Speck64/128 variant.
+        /// </summary>
+        /// <param name="plaintext">The plaintext to encrypt (length must be multiple of 8 bytes).</param>
+        /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
+        /// <param name="iv">The initialization vector (must be exactly 8 bytes). If null, a random IV will be generated.</param>
+        /// <param name="ciphertext">The output ciphertext with IV prepended (IV + ciphertext).</param>
+        /// <exception cref="ArgumentException"></exception>
+        public static void Encrypt(
+            ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key,
+            Span<byte> ciphertext, ReadOnlySpan<byte> iv = default)
+        {
+            if (plaintext.Length % 8 != 0)
+                throw new ArgumentException(
+                    "Plaintext length must be a multiple of 8 bytes for CBC mode",
+                    nameof(plaintext));
+
+            if (key.Length != 16)
+                throw new ArgumentException(
+                    "Key must be exactly 16 bytes for Speck64/128", nameof(key));
+
+            // Generate IV if not provided
+            byte[] ivArray = iv.IsEmpty ? new byte[8] : iv.ToArray();
+            if (iv.IsEmpty)
+            {
+                RandGenerator.Fill(ivArray);
+            }
+            else if (ivArray.Length != 8)
+            {
+                throw new ArgumentException("IV must be exactly 8 bytes for Speck64/128", nameof(iv));
+            }
+
+            // Generate subkeys
+            uint[] subkeys = GenerateSubkeys64_128(key.ToArray());
+
+            // Prepare output (IV + ciphertext)
+            ivArray.CopyTo(ciphertext[..8]);
+
+            // Previous block for CBC chaining (initially the IV)
+            Span<byte> previousBlock = ivArray;
+
+            // Process each block
+            for (int i = 0; i < plaintext.Length; i += 8)
+            {
+                Span<byte> currentBlock = new byte[8];
+                for (int j = 0; j < 8; j++)
+                {
+                    currentBlock[j] = (byte)(plaintext[i + j] ^ previousBlock[j]);
+                }
+
+                // Extract words
+                uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
+                uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
+
+                // Encrypt block
+                (x, y) = EncryptBlock(x, y, subkeys);
+
+                // Store result in the ciphertext
+                BitwiseUtils.ToBytes(ciphertext[(8 + i)..], x, 0);
+                BitwiseUtils.ToBytes(ciphertext[(8 + i)..], y, 4);
+
+                // Update previous block for next iteration
+                previousBlock = ciphertext.Slice(8 + i, 8);
+            }
+        }
+
+        /// <summary>
         /// Decrypts data using CBC mode with the Speck64/128 variant.
         /// </summary>
         /// <param name="ciphertext">The ciphertext to decrypt (includes IV as first 8 bytes).</param>
@@ -228,6 +349,63 @@ public static class Speck
             }
 
             return plaintext;
+        }
+
+        /// <summary>
+        /// Decrypts data using CBC mode with the Speck64/128 variant.
+        /// </summary>
+        /// <param name="ciphertext">The ciphertext to decrypt (includes IV as first 8 bytes).</param>
+        /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
+        /// <param name="plaintext">The decrypted plaintext.</param>
+        /// <exception cref="ArgumentException"></exception>
+        public static void Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, Span<byte> plaintext)
+        {
+            if (ciphertext.Length < 9 || ciphertext.Length % 8 != 0)
+                throw new ArgumentException(
+                    "Ciphertext must include IV (at least 9 bytes) and be multiple of 8 bytes in length",
+                    nameof(ciphertext));
+
+            if (key.Length != 16)
+                throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
+
+            // Extract IV from first block
+            ReadOnlySpan<byte> iv = ciphertext[..8];
+
+            // Generate subkeys
+            uint[] subkeys = GenerateSubkeys64_128(key.ToArray());
+
+            // Prepare output (plaintext without IV)
+            int plaintextLength = ciphertext.Length - 8;
+
+            // Previous block for CBC chaining (initially the IV)
+            ReadOnlySpan<byte> previousBlock = iv;
+
+            // Process each block
+            for (int i = 0; i < plaintextLength; i += 8)
+            {
+                ReadOnlySpan<byte> currentBlock = ciphertext.Slice(8 + i, 8);
+
+                // Extract words
+                uint x = BitwiseUtils.U8To32Little(currentBlock, 0);
+                uint y = BitwiseUtils.U8To32Little(currentBlock, 4);
+
+                // Decrypt block
+                (x, y) = DecryptBlock(x, y, subkeys);
+
+                // XOR with previous ciphertext block or IV
+                Span<byte> decryptedBlock = new byte[8];
+                BitwiseUtils.ToBytes(decryptedBlock, x, 0);
+                BitwiseUtils.ToBytes(decryptedBlock, y, 4);
+
+                // XOR with previous ciphertext block or IV
+                for (int j = 0; j < 8; j++)
+                {
+                    plaintext[i + j] = (byte)(decryptedBlock[j] ^ previousBlock[j]);
+                }
+
+                // Update previous block for next iteration
+                previousBlock = currentBlock;
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-namespace Notio.Cryptography.Enums;
+namespace Notio.Common.Cryptography.Hashing;
 
 /// <summary>
 /// Supported hash algorithms for HMAC computation.
@@ -23,5 +23,5 @@ public enum HashAlgorithm : byte
     /// <summary>
     /// SHA-256 hash algorithm (256-bit output)
     /// </summary>
-    Sha256 = 3,
+    Sha256 = 3
 }
