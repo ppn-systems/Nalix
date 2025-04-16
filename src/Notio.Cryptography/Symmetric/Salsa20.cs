@@ -12,6 +12,8 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public static class Salsa20
 {
+    #region Encryption/Decryption Methods
+
     // ----------------------------
     // Public API: Encrypt and Decrypt
     // ----------------------------
@@ -63,13 +65,9 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, must be same as used for encryption.</param>
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <returns>Decrypted bytes.</returns>
-    public static byte[] Decrypt(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
-        ulong counter, ReadOnlySpan<byte> ciphertext)
-    {
-        // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
-        return Encrypt(key, nonce, counter, ciphertext);
-    }
+    // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
+    public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
+        ulong counter, ReadOnlySpan<byte> ciphertext) => Encrypt(key, nonce, counter, ciphertext);
 
     /// <summary>
     /// Decrypts ciphertext using Salsa20 stream cipher, writing the output to the provided buffer.
@@ -80,12 +78,11 @@ public static class Salsa20
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <param name="plaintext">Buffer to receive the decrypted data.</param>
     /// <returns>Number of bytes written.</returns>
+    // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
-                             ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
-    {
-        // Salsa20 decryption is identical to encryption
-        return Encrypt(key, nonce, counter, ciphertext, plaintext);
-    }
+        ReadOnlySpan<byte> ciphertext, Span<byte> plaintext) => Encrypt(key, nonce, counter, ciphertext, plaintext);
+
+    #endregion
 
     #region Utility Methods
 

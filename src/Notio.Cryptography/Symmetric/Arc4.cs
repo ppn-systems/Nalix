@@ -22,6 +22,8 @@ public sealed class Arc4 : IDisposable
 
     #endregion
 
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Arc4"/> class with the given key.
     /// </summary>
@@ -40,8 +42,12 @@ public sealed class Arc4 : IDisposable
         if (key.Length < 5 || key.Length > 256)
             throw new ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
 
-        Initialize(key);
+        this.Initialize(key);
     }
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Encrypts or decrypts the given data in-place using the ARC4 stream cipher.
@@ -91,6 +97,8 @@ public sealed class Arc4 : IDisposable
             _disposed = true;
         }
     }
+
+    #endregion
 
     #region Private API
 

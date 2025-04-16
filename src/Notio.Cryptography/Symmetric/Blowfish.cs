@@ -9,7 +9,14 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public class Blowfish
 {
-    private const int N = 16;
+    #region Constants
+
+    /// <summary>
+    /// The number of rounds used in Blowfish encryption.
+    /// </summary>
+    public const int N = 16;
+
+    #endregion
 
     #region Fields  
 

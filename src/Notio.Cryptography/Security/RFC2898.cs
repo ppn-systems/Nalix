@@ -22,10 +22,8 @@ public static class RFC2898
     /// <exception cref="ArgumentException">Thrown if password or salt is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
     public static byte[] DeriveKey(
-        string password,
-        byte[] salt,
-        int iterations,
-        int keyLength,
+        string password, byte[] salt,
+        int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         if (string.IsNullOrEmpty(password))
@@ -51,10 +49,8 @@ public static class RFC2898
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A Base64-encoded string representing the derived key.</returns>
     public static string DeriveKeyBase64(
-        string password,
-        byte[] salt,
-        int iterations,
-        int keyLength,
+        string password, byte[] salt,
+        int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
@@ -71,10 +67,8 @@ public static class RFC2898
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A lowercase hexadecimal string representing the derived key.</returns>
     public static string DeriveKeyHex(
-        string password,
-        byte[] salt,
-        int iterations,
-        int keyLength,
+        string password, byte[] salt,
+        int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);

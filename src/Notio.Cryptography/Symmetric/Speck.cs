@@ -12,9 +12,15 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public static class Speck
 {
+    #region Constants
+
     // Speck configuration constants
     private const uint ALPHA = 8; // Rotation constant alpha
     private const uint BETA = 3;  // Rotation constant beta
+
+    #endregion
+
+    #region Public API
 
     /// <summary>
     /// Encrypts data using the Speck64/128 variant (64-bit block with 128-bit key).
@@ -224,6 +230,8 @@ public static class Speck
             return plaintext;
         }
     }
+
+    #endregion
 
     #region Private API
 
