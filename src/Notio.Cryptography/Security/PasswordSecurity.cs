@@ -28,6 +28,8 @@ public static class PasswordSecurity
 
     #endregion
 
+    #region Public Methods
+
     /// <summary>
     /// Hashes a password using PBKDF2 and returns the salt and hash.
     /// </summary>
@@ -99,4 +101,6 @@ public static class PasswordSecurity
             return false; // Base64 không hợp lệ
         }
     }
+
+    #endregion
 }

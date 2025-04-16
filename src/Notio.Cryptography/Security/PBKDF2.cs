@@ -32,7 +32,9 @@ public sealed class Pbkdf2 : IDisposable
     /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Defaults to SHA1.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
-    public Pbkdf2(byte[] salt, int iterations, int keyLength, HashAlgorithm hashType = HashAlgorithm.Sha1)
+    public Pbkdf2(
+        byte[] salt, int iterations, int keyLength,
+        HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         if (salt == null || salt.Length == 0)
             throw new ArgumentException("Salt cannot be empty.", nameof(salt));
@@ -62,9 +64,14 @@ public sealed class Pbkdf2 : IDisposable
         if (string.IsNullOrEmpty(password)) throw new ArgumentException("Password cannot be empty.", nameof(password));
 
         ReadOnlySpan<byte> passwordBytes = Encoding.UTF8.GetBytes(password);
-        return _hashType == HashAlgorithm.Sha256
-            ? DeriveKeyUsingHmacSha256(passwordBytes)
-            : DeriveKeyUsingHmacSha1(passwordBytes);
+
+        return _hashType switch
+        {
+            HashAlgorithm.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
+            HashAlgorithm.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
+            HashAlgorithm.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
+            _ => throw new NotSupportedException($"Hash algorithm {_hashType} is not supported.")
+        };
     }
 
     /// <summary>
@@ -79,9 +86,13 @@ public sealed class Pbkdf2 : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, nameof(Pbkdf2));
         if (passwordBytes.IsEmpty) throw new ArgumentException("Password bytes cannot be empty.", nameof(passwordBytes));
 
-        return _hashType == HashAlgorithm.Sha256
-            ? DeriveKeyUsingHmacSha256(passwordBytes)
-            : DeriveKeyUsingHmacSha1(passwordBytes);
+        return _hashType switch
+        {
+            HashAlgorithm.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
+            HashAlgorithm.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
+            HashAlgorithm.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
+            _ => throw new NotSupportedException($"Hash algorithm {_hashType} is not supported.")
+        };
     }
 
     /// <summary>
@@ -117,6 +128,14 @@ public sealed class Pbkdf2 : IDisposable
     /// <returns>A byte array containing the derived key.</returns>
     private byte[] DeriveKeyUsingHmacSha1(ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 20, ComputeHmacSha1);
+
+    /// <summary>
+    /// Derives a key using HMAC-SHA224.
+    /// </summary>
+    /// <param name="password">The password bytes to derive the key from.</param>
+    /// <returns>A byte array containing the derived key.</returns>
+    private byte[] DeriveKeyUsingHmacSha224(ReadOnlySpan<byte> password)
+        => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 28, ComputeHmacSha224);
 
     /// <summary>
     /// Derives a key using HMAC-SHA256.
@@ -249,6 +268,53 @@ public sealed class Pbkdf2 : IDisposable
         sha1Outer.Update(opad);
         sha1Outer.Update(innerHash);
         sha1Outer.FinalizeHash().CopyTo(output);
+    }
+
+    /// <summary>
+    /// Computes an HMAC-SHA1 hash.
+    /// </summary>
+    /// <param name="key">The key for the HMAC computation.</param>
+    /// <param name="message">The message to hash.</param>
+    /// <param name="output">The span to store the hash output (28 bytes).</param>
+    private static void ComputeHmacSha224(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
+    {
+        const int BlockSize = 64; // SHA-1 block size in bytes
+        Span<byte> keyBlock = stackalloc byte[BlockSize];
+        keyBlock.Clear();
+
+        // Step 1: Process Key
+        if (key.Length > BlockSize)
+        {
+            using Sha224 sha224 = new();
+            sha224.ComputeHash(key).CopyTo(keyBlock);
+        }
+        else
+        {
+            key.CopyTo(keyBlock);
+        }
+
+        // Step 2: Generate ipad and opad
+        Span<byte> ipad = stackalloc byte[BlockSize];
+        Span<byte> opad = stackalloc byte[BlockSize];
+
+        for (int i = 0; i < BlockSize; i++)
+        {
+            ipad[i] = (byte)(keyBlock[i] ^ 0x36);
+            opad[i] = (byte)(keyBlock[i] ^ 0x5C);
+        }
+
+        // Step 3: Compute inner hash (H(K ⊕ ipad || message))
+        using Sha224 sha224Inner = new();
+        sha224Inner.Update(ipad);
+        sha224Inner.Update(message);
+        Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
+        sha224Inner.FinalizeHash().CopyTo(innerHash);
+
+        // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
+        using Sha224 sha224Outer = new();
+        sha224Outer.Update(opad);
+        sha224Outer.Update(innerHash);
+        sha224Outer.FinalizeHash().CopyTo(output);
     }
 
     /// <summary>

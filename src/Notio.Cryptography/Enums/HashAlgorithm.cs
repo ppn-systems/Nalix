@@ -6,6 +6,11 @@ namespace Notio.Cryptography.Enums;
 public enum HashAlgorithm : byte
 {
     /// <summary>
+    /// No hash algorithm specified
+    /// </summary>
+    None = 0,
+
+    /// <summary>
     /// SHA-1 hash algorithm (160-bit output)
     /// </summary>
     Sha1 = 1,
