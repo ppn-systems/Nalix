@@ -14,29 +14,6 @@ namespace Nalix.Framework.Binaries;
 internal static class Crc00
 {
     /// <summary>
-    /// Generates a lookup table for CRC-16 based on the specified polynomial.
-    /// </summary>
-    /// <param name="poly">The polynomial to use for table generation (e.g., <c>0x8005</c>).</param>
-    /// <returns>An array of 256 precomputed CRC-16 values.</returns>
-    internal static System.UInt16[] GenerateTable16(System.UInt16 poly)
-    {
-        var table = new System.UInt16[256];
-
-        for (System.Int16 i = 0; i < 256; i++)
-        {
-            System.UInt16 crc = (System.UInt16)i;
-            for (System.Byte j = 0; j < 8; j++)
-            {
-                crc = (System.UInt16)((crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1);
-            }
-
-            table[i] = crc;
-        }
-
-        return table;
-    }
-
-    /// <summary>
     /// Generates a lookup table for CRC-32 based on the specified polynomial.
     /// </summary>
     /// <param name="poly">The polynomial to use for table generation (e.g., <c>0xEDB88320</c>).</param>
