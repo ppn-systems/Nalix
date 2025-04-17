@@ -69,7 +69,9 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
 
             try
             {
-                await PacketDispatcher<TPacket>.ExecuteHandler(handler, packet, connection).ConfigureAwait(false);
+                await PacketDispatcherBase<TPacket>
+                    .ExecuteHandler(handler, packet, connection)
+                    .ConfigureAwait(false);
             }
             catch (System.Exception ex)
             {
@@ -83,13 +85,5 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
         }
 
         base.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
-    }
-
-    private static async System.Threading.Tasks.ValueTask ExecuteHandler(
-        System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
-        TPacket packet,
-        Common.Connection.IConnection connection)
-    {
-        await handler(packet, connection).ConfigureAwait(false);
     }
 }

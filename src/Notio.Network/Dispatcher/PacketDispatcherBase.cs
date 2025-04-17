@@ -44,4 +44,17 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
     /// </param>
     protected PacketDispatcherBase(System.Action<Options.PacketDispatcherOptions<TPacket>>? configure = null)
         : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
+
+    /// <summary>
+    /// Executes the registered handler for a given packet and connection context asynchronously.
+    /// </summary>
+    /// <param name="handler">The delegate method responsible for processing the packet.</param>
+    /// <param name="packet">The deserialized packet to be handled.</param>
+    /// <param name="connection">The client connection that sent the packet.</param>
+    /// <returns>A task that represents the asynchronous execution of the handler.</returns>
+    protected static async System.Threading.Tasks.ValueTask ExecuteHandler(
+        System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
+        TPacket packet,
+        Common.Connection.IConnection connection)
+        => await handler(packet, connection).ConfigureAwait(false);
 }
