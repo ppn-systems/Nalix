@@ -40,10 +40,8 @@ public sealed class PacketQueueDispatcher<TPacket>
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly System.Collections.Generic.Queue<(
-        TPacket Packet, Common.Connection.IConnection Connection)> _packetQueue = new();
-
-    private readonly Queue.PacketQueue<TPacket> _queue;
+    private readonly Queue.PacketQueue<TPacket> _packetQueue;
+    private readonly System.Collections.Generic.Dictionary<ulong, Common.Connection.IConnection> _mapping = [];
 
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
@@ -90,7 +88,8 @@ public sealed class PacketQueueDispatcher<TPacket>
     {
         _isProcessing = false;
 
-        _queue = new Queue.PacketQueue<TPacket>();
+        _packetQueue = new Queue.PacketQueue<TPacket>();
+
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
@@ -184,39 +183,31 @@ public sealed class PacketQueueDispatcher<TPacket>
         }
 
         // Deserialize and enqueue the packet for processing
-        this.EnqueuePacket(TPacket.Deserialize(packet), connection);
-        _queue.Enqueue(TPacket);
+        this.HandlePacketAsync(TPacket.Deserialize(packet), connection);
     }
 
     /// <inheritdoc />
     public void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
-        => this.EnqueuePacket(packet, connection);
+    {
+        _packetQueue.Enqueue(packet);
+
+        lock (_lock)
+        {
+            _mapping[CombineValues(packet.Number, packet.Id, packet.Timestamp)] = connection;
+        }
+
+        _semaphore.Release();
+    }
 
     #endregion
 
     #region Private Methods
 
     /// <summary>
-    /// Adds a packet to the processing queue
+    /// Combines a byte, short, and ulong into a single ulong value
     /// </summary>
-    private void EnqueuePacket(TPacket packet, Common.Connection.IConnection connection)
-    {
-        lock (_lock)
-        {
-            // Check if queue is full
-            if (MaxQueueSize > 0 && _packetQueue.Count >= MaxQueueSize)
-            {
-                base.Logger?.Warn($"[Dispatcher] Queue full ({MaxQueueSize} packets). Packet Id: {packet.Id} from {connection.RemoteEndPoint} dropped.");
-                return;
-            }
-
-            _packetQueue.Enqueue((packet, connection));
-            base.Logger?.Debug($"[Dispatcher] Packet Id: {packet.Id} from {connection.RemoteEndPoint} queued. Queue size: {_packetQueue.Count}");
-        }
-
-        // Signal that a new item is available for processing
-        _semaphore.Release();
-    }
+    private static ulong CombineValues(byte b, ushort s, ulong ul)
+        => unchecked(((ulong)b << 48) | ((ulong)s << 32) | ul);
 
     /// <summary>
     /// Continuously processes packets from the queue
@@ -239,7 +230,11 @@ public sealed class PacketQueueDispatcher<TPacket>
                     if (_packetQueue.Count == 0)
                         continue;
 
-                    (packet, connection) = _packetQueue.Dequeue();
+                    packet = _packetQueue.Dequeue();
+                    lock (_lock)
+                    {
+                        connection = _mapping[CombineValues(packet.Number, packet.Id, packet.Timestamp)];
+                    }
                 }
 
                 await base.ExecutePacketHandlerAsync(packet, connection);

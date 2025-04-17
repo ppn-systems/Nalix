@@ -31,9 +31,10 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
         {
             Interlocked.Increment(ref _totalCount);
+            Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
             if (_collectStatistics)
-                _enqueuedCounts[priorityIndex]++;
+                Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
 
             return true;
         }
@@ -55,7 +56,6 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         throw new InvalidOperationException("Cannot dequeue from an empty queue.");
     }
 
-
     /// <summary>
     /// Get a packet from the queue in priority order
     /// </summary>
@@ -64,34 +64,43 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
+        long startTicks = _collectStatistics ? Stopwatch.GetTimestamp() : 0;
+
+        // Iterate from highest to lowest priority
         for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            if (_priorityChannels[i].Reader.TryRead(out var tempPacket))
+            while (_priorityChannels[i].Reader.TryRead(out var tempPacket))
             {
+                Interlocked.Decrement(ref _priorityCounts[i]);
+                Interlocked.Decrement(ref _totalCount);
+
                 bool isExpired = _packetTimeout != TimeSpan.Zero && tempPacket.IsExpired(_packetTimeout);
                 bool isValid = !_validateOnDequeue || tempPacket.IsValid();
 
                 if (isExpired)
                 {
-                    if (_collectStatistics) _expiredCounts[i]++;
+                    if (_collectStatistics)
+                        Interlocked.Increment(ref _expiredCounts[i]);
+
                     tempPacket.Dispose();
                     continue;
                 }
 
                 if (!isValid)
                 {
-                    if (_collectStatistics) _invalidCounts[i]++;
+                    if (_collectStatistics)
+                        Interlocked.Increment(ref _invalidCounts[i]);
+
                     tempPacket.Dispose();
                     continue;
                 }
 
                 if (_collectStatistics)
                 {
-                    _dequeuedCounts[i]++;
-                    UpdatePerformanceStats(Stopwatch.GetTimestamp());
+                    Interlocked.Increment(ref _dequeuedCounts[i]);
+                    UpdatePerformanceStats(startTicks);
                 }
 
-                Interlocked.Decrement(ref _totalCount);
                 packet = tempPacket;
                 return true;
             }
@@ -106,15 +115,13 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// </summary>
     /// <param name="maxCount">Maximum number of packets to retrieve</param>
     /// <returns>List of valid packets</returns>
-    public List<TPacket> DequeueBatch(int maxCount)
+    public List<TPacket> DequeueBatch(int maxCount = 100)
     {
         List<TPacket> result = new(Math.Min(maxCount, _totalCount));
 
         for (int i = 0; i < maxCount; i++)
         {
-            if (!TryDequeue(out var packet))
-                break;
-
+            if (!TryDequeue(out var packet)) break;
             result.Add(packet);
         }
 
@@ -122,7 +129,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
-    /// Get number of packets for each priority level
+    /// Get the number of packets for each priority level
     /// </summary>
     public Dictionary<PacketPriority, int> GetQueueSizeByPriority()
     {
@@ -130,13 +137,11 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            int count = Volatile.Read(ref _priorityCounts[i]);
-            result[(PacketPriority)i] = count;
+            result[(PacketPriority)i] = Volatile.Read(ref _priorityCounts[i]);
         }
 
         return result;
     }
-
 
     #endregion
 }
