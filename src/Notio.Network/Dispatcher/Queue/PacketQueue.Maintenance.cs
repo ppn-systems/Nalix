@@ -7,6 +7,8 @@ namespace Notio.Network.Dispatcher.Queue;
 
 public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
+    #region Public Methods
+
     /// <summary>
     /// Remove expired packets from all queues
     /// </summary>
@@ -91,21 +93,6 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         }
     }
 
-    private void ClearInternal()
-    {
-        for (int i = 0; i < _priorityCount; i++)
-        {
-            // Release resources of packets before clearing
-            while (_priorityQueues[i].Count > 0)
-            {
-                TPacket packet = _priorityQueues[i].Dequeue();
-                packet.Dispose();
-            }
-        }
-
-        _totalCount = 0;
-    }
-
     /// <summary>
     /// Initialize a periodic task to remove expired packets
     /// </summary>
@@ -134,4 +121,25 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             }
         }, cancellationToken);
     }
+
+    #endregion
+
+    #region Private Methods
+
+    private void ClearInternal()
+    {
+        for (int i = 0; i < _priorityCount; i++)
+        {
+            // Release resources of packets before clearing
+            while (_priorityQueues[i].Count > 0)
+            {
+                TPacket packet = _priorityQueues[i].Dequeue();
+                packet.Dispose();
+            }
+        }
+
+        _totalCount = 0;
+    }
+
+    #endregion
 }

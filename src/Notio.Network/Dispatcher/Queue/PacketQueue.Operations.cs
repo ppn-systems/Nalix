@@ -8,6 +8,8 @@ namespace Notio.Network.Dispatcher.Queue;
 
 public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
+    #region Public Methods
+
     /// <summary>
     /// Add a packet to the queue
     /// </summary>
@@ -33,6 +35,29 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
+    /// Dequeues a packet from the queue according to priority order.
+    /// </summary>
+    /// <returns>The dequeued packet.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the queue is empty.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TPacket Dequeue()
+    {
+        if (_isThreadSafe)
+        {
+            lock (_syncLock)
+            {
+                return DequeueInternal()
+                    ?? throw new InvalidOperationException("Cannot dequeue from an empty queue.");
+            }
+        }
+        else
+        {
+            return DequeueInternal()
+                ?? throw new InvalidOperationException("Cannot dequeue from an empty queue.");
+        }
+    }
+
+    /// <summary>
     /// Get a packet from the queue in priority order
     /// </summary>
     /// <param name="packet">The dequeued packet, if available</param>
@@ -44,12 +69,14 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                return this.TryDequeueInternal(out packet);
+                packet = this.DequeueInternal();
+                return packet != null;
             }
         }
         else
         {
-            return this.TryDequeueInternal(out packet);
+            packet = this.DequeueInternal();
+            return packet != null;
         }
     }
 
@@ -99,6 +126,8 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         return result;
     }
 
+    #endregion
+
     #region Privates Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,8 +152,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TryDequeueInternal(out TPacket? packet)
+    private TPacket? DequeueInternal()
     {
+        TPacket packet;
         long startTicks = _collectStatistics ? Stopwatch.GetTimestamp() : 0;
 
         // Iterate from highest to lowest priority
@@ -168,7 +198,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
                         _dequeuedCounts[i]++;
                         UpdatePerformanceStats(startTicks);
                     }
-                    return true;
+                    return packet;
                 }
 
                 // Packet is invalid or expired, free its resources
@@ -180,17 +210,19 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             }
         }
 
-        packet = default; // Ensure packet is explicitly set to default (null for reference types)
-        return false;
+        // If no valid packet is found, return default
+        return default;
     }
 
     private void DequeueBatchInternal(List<TPacket> result, int maxCount)
     {
+        TPacket? packet;
         int dequeued = 0;
 
         while (dequeued < maxCount)
         {
-            if (TryDequeueInternal(out TPacket? packet) && packet != null)
+            packet = DequeueInternal();
+            if (packet != null)
             {
                 result.Add(packet);
                 dequeued++;

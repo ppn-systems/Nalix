@@ -8,6 +8,8 @@ namespace Notio.Network.Dispatcher.Queue;
 
 public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
+    #region Public Methods
+
     /// <summary>
     /// Get queue statistics
     /// </summary>
@@ -42,6 +44,8 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
         };
     }
+
+    #endregion
 
     #region Private Methods
 
