@@ -35,6 +35,11 @@ public sealed class ChaCha20 : IDisposable
     /// </summary>
     public const int StateLength = 16;
 
+    /// <summary>
+    /// 2^30 bytes per nonce
+    /// </summary>
+    private const int MaxBytesPerNonce = 1 << 30;
+
     #endregion
 
     #region Fields
@@ -427,30 +432,20 @@ public sealed class ChaCha20 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void KeySetup(byte[] key)
     {
-        ArgumentNullException.ThrowIfNull(key);
-
         if (key.Length != KeySize)
         {
             throw new ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
-        State[4] = BitwiseUtils.U8To32Little(key, 0);
-        State[5] = BitwiseUtils.U8To32Little(key, 4);
-        State[6] = BitwiseUtils.U8To32Little(key, 8);
-        State[7] = BitwiseUtils.U8To32Little(key, 12);
+        State[0] = 0x61707865; // Constant ("expand 32-byte k")
+        State[1] = 0x3320646e;
+        State[2] = 0x79622d32;
+        State[3] = 0x6b206574;
 
-        byte[] constants = key.Length == KeySize ? Sigma : Tau;
-        int keyIndex = key.Length - 16;
-
-        State[8] = BitwiseUtils.U8To32Little(key, keyIndex + 0);
-        State[9] = BitwiseUtils.U8To32Little(key, keyIndex + 4);
-        State[10] = BitwiseUtils.U8To32Little(key, keyIndex + 8);
-        State[11] = BitwiseUtils.U8To32Little(key, keyIndex + 12);
-
-        State[0] = BitwiseUtils.U8To32Little(constants, 0);
-        State[1] = BitwiseUtils.U8To32Little(constants, 4);
-        State[2] = BitwiseUtils.U8To32Little(constants, 8);
-        State[3] = BitwiseUtils.U8To32Little(constants, 12);
+        for (int i = 0; i < 8; i++)
+        {
+            State[4 + i] = BitwiseUtils.U8To32Little(key, i * 4);
+        }
     }
 
     /// <summary>
@@ -465,24 +460,18 @@ public sealed class ChaCha20 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IvSetup(byte[] nonce, uint counter)
     {
-        if (nonce == null)
-        {
-            // There has already been some state set up. Clear it before exiting.
-            Dispose();
-            throw new ArgumentNullException(nameof(nonce));
-        }
-
         if (nonce.Length != NonceSize)
         {
-            // There has already been some state set up. Clear it before exiting.
             Dispose();
-            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}", nameof(nonce));
+            throw new ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
         }
 
         State[12] = counter;
-        State[13] = BitwiseUtils.U8To32Little(nonce, 0);
-        State[14] = BitwiseUtils.U8To32Little(nonce, 4);
-        State[15] = BitwiseUtils.U8To32Little(nonce, 8);
+
+        for (int i = 0; i < 3; i++)
+        {
+            State[13 + i] = BitwiseUtils.U8To32Little(nonce, i * 4);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -644,12 +633,13 @@ public sealed class ChaCha20 : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UpdateStateAndGenerateTemporaryBuffer(uint[] stateToModify, uint[] workingBuffer, byte[] temporaryBuffer)
+    private static void UpdateStateAndGenerateTemporaryBuffer(
+        uint[] stateToModify, uint[] workingBuffer, byte[] temporaryBuffer)
     {
         // Copy state to working buffer
         Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, StateLength * sizeof(uint));
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++) // 20 rounds (10 double rounds)
         {
             QuarterRound(workingBuffer, 0, 4, 8, 12);
             QuarterRound(workingBuffer, 1, 5, 9, 13);

@@ -14,9 +14,11 @@ public static class Speck
 {
     #region Constants
 
-    // Speck configuration constants
     private const uint ALPHA = 8; // Rotation constant alpha
     private const uint BETA = 3;  // Rotation constant beta
+
+    private const int Rounds = 27; // Number of rounds for Speck64/128
+    private const int KeySizeBytes = 16; // Key size in bytes (128-bit key)
 
     #endregion
 
@@ -453,9 +455,11 @@ public static class Speck
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint[] GenerateSubkeys64_128(byte[] key)
     {
-        // For Speck64/128, we need 27 rounds
-        const int rounds = 27;
-        uint[] subkeys = new uint[rounds];
+        if (key.Length != KeySizeBytes)
+        {
+            throw new ArgumentException($"Invalid key length. Expected {KeySizeBytes} bytes, got {key.Length}.");
+        }
+        uint[] subkeys = new uint[Rounds];
 
         // Initialize key parts
         uint k0 = BitwiseUtils.U8To32Little(key, 0);  // l[0]
@@ -467,19 +471,13 @@ public static class Speck
         subkeys[0] = k3;
 
         // Generate remaining subkeys
-        for (int i = 0; i < rounds - 1; i++)
+        for (int i = 0; i < Rounds - 1; i++)
         {
-            uint tmp = k0;
-            k0 = Round(k0, k3, (uint)i);
-            k3 = k0;
-
-            // Rotate through key parts
-            k0 = k1;
-            k1 = k2;
-            k2 = tmp;
-
-            // Add to subkeys array
+            k3 = Round(k0, k3, (uint)i);
             subkeys[i + 1] = k3;
+
+            // Rotate key parts
+            (k0, k1, k2) = (k1, k2, k0);
         }
 
         return subkeys;

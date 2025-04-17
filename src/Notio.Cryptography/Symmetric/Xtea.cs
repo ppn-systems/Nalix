@@ -60,13 +60,17 @@ public static class Xtea
     private static (uint v0, uint v1) EncryptBlock(
         uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
     {
+        if (key.Length != 4)
+            throw new ArgumentException("Key must contain exactly 4 unsigned 32-bit integers.", nameof(key));
+
         uint sum = 0;
 
+        // Perform encryption rounds
         for (int i = 0; i < rounds; i++)
         {
-            v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]);
-            sum += Delta;
-            v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]);
+            v0 = unchecked(v0 + (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]));
+            sum = unchecked(sum + Delta);
+            v1 = unchecked(v1 + (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]));
         }
 
         return (v0, v1);
@@ -84,13 +88,17 @@ public static class Xtea
     private static (uint v0, uint v1) DecryptBlock(
         uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
     {
-        uint sum = unchecked(Delta * (uint)rounds);
+        if (key.Length != 4)
+            throw new ArgumentException("Key must contain exactly 4 unsigned 32-bit integers.", nameof(key));
 
+        uint sum = unchecked((uint)rounds * Delta);
+
+        // Perform decryption rounds
         for (int i = 0; i < rounds; i++)
         {
-            v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]);
-            sum -= Delta;
-            v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]);
+            v1 = unchecked(v1 - (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]));
+            sum = unchecked(sum - Delta);
+            v0 = unchecked(v0 - (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]));
         }
 
         return (v0, v1);
