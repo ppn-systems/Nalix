@@ -85,6 +85,7 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     /// </summary>
     public void Dispose()
     {
+        _loggerPrv.FlushQueue();
         _loggerPrv.Dispose();
         GC.SuppressFinalize(this);
     }
