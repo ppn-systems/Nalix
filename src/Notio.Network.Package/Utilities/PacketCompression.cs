@@ -24,7 +24,8 @@ public static class PacketCompression
     /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
+    public static Packet CompressPayload(in Packet packet,
+        Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForCompression(packet);
 
@@ -56,7 +57,8 @@ public static class PacketCompression
     /// or if an error occurs during decompression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(in Packet packet, Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
+    public static Packet DecompressPayload(in Packet packet,
+        Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForDecompression(packet);
 
