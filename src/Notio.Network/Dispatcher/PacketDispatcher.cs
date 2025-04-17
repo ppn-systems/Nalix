@@ -61,29 +61,5 @@ public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispat
 
     /// <inheritdoc />
     public async void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
-    {
-        if (base.Options.TryResolveHandler(packet.Id, out var handler) && handler != null)
-        {
-            base.Logger?.Debug($"[Dispatcher] Dispatching packet Id: " +
-                               $"{packet.Id} from {connection.RemoteEndPoint}...");
-
-            try
-            {
-                await PacketDispatcherBase<TPacket>
-                    .ExecuteHandler(handler, packet, connection)
-                    .ConfigureAwait(false);
-            }
-            catch (System.Exception ex)
-            {
-                base.Logger?.Error(
-                    $"[Dispatcher] Exception occurred while handling packet Id: " +
-                    $"{packet.Id} from {connection.RemoteEndPoint}. " +
-                    $"Error: {ex.GetType().Name} - {ex.Message}", ex);
-            }
-
-            return;
-        }
-
-        base.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
-    }
+        => await base.ExecutePacketHandlerAsync(packet, connection);
 }

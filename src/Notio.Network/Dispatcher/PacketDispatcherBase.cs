@@ -11,6 +11,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
 {
+    #region Prop
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
@@ -46,15 +47,83 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
         : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
 
     /// <summary>
-    /// Executes the registered handler for a given packet and connection context asynchronously.
+    /// Executes the registered packet handler asynchronously using the provided packet and connection context.
     /// </summary>
-    /// <param name="handler">The delegate method responsible for processing the packet.</param>
-    /// <param name="packet">The deserialized packet to be handled.</param>
-    /// <param name="connection">The client connection that sent the packet.</param>
-    /// <returns>A task that represents the asynchronous execution of the handler.</returns>
+    /// <param name="handler">
+    /// A delegate that processes the packet. This delegate should implement the packet-specific logic,
+    /// such as validation, response preparation, or triggering related workflows.
+    /// </param>
+    /// <param name="packet">
+    /// The deserialized packet instance containing the data to be handled. Assumed to be already validated and routed.
+    /// </param>
+    /// <param name="connection">
+    /// The connection instance representing the client that sent the packet. Provides context such as the remote address
+    /// and any relevant session or authentication data.
+    /// </param>
+    /// <returns>
+    /// A <see cref="System.Threading.Tasks.ValueTask"/> that represents the asynchronous execution of the handler logic.
+    /// </returns>
+    /// <remarks>
+    /// This method is a thin wrapper around the provided delegate. It exists primarily to isolate the handler execution
+    /// for logging, diagnostics, or future extensibility (e.g., execution hooks, cancellation, metrics).
+    /// The call to the delegate is awaited with <c>ConfigureAwait(false)</c> to avoid context capture in asynchronous environments.
+    /// </remarks>
     protected static async System.Threading.Tasks.ValueTask ExecuteHandler(
         System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
         TPacket packet,
         Common.Connection.IConnection connection)
         => await handler(packet, connection).ConfigureAwait(false);
+
+    /// <summary>
+    /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.
+    /// </summary>
+    /// <param name="packet">
+    /// The packet to be processed. Must contain a valid <c>Id</c> to resolve a handler.
+    /// </param>
+    /// <param name="connection">
+    /// The connection from which the packet was received. Provides context such as the remote endpoint.
+    /// </param>
+    /// <returns>
+    /// A task that represents the asynchronous operation of handling the packet.
+    /// </returns>
+    /// <remarks>
+    /// This method attempts to resolve a packet handler using the packet's <c>Id</c> via <c>Options.TryResolveHandler</c>.
+    /// If a handler is found, it is invoked asynchronously with the provided <paramref name="packet"/> and 
+    /// <paramref name="connection"/>. Any exceptions thrown by the handler are caught and logged as errors.
+    /// If no handler is found, a warning is logged instead.
+    /// </remarks>
+    /// <exception cref="System.Exception">
+    /// Exceptions thrown by the handler are caught and logged, but not rethrown. This prevents one faulty handler
+    /// from crashing the dispatcher loop.
+    /// </exception>
+    protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
+        TPacket packet,
+        Common.Connection.IConnection connection)
+    {
+        if (this.Options.TryResolveHandler(packet.Id,
+            out System.Func<TPacket,
+            Common.Connection.IConnection,
+            System.Threading.Tasks.Task>? handler))
+        {
+            this.Logger?.Debug($"[Dispatcher] Processing packet Id: {packet.Id} from {connection.RemoteEndPoint}...");
+
+            try
+            {
+                await PacketDispatcherBase<TPacket>
+                    .ExecuteHandler(handler, packet, connection)
+                    .ConfigureAwait(false);
+            }
+            catch (System.Exception ex)
+            {
+                this.Logger?.Error(
+                    $"[Dispatcher] Exception occurred while handling packet Id: " +
+                    $"{packet.Id} from {connection.RemoteEndPoint}. " +
+                    $"Error: {ex.GetType().Name} - {ex.Message}", ex);
+            }
+
+            return;
+        }
+
+        this.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
+    }
 }

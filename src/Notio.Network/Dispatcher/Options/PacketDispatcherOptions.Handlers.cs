@@ -184,7 +184,7 @@ public sealed partial class PacketDispatcherOptions<TPacket>
     /// }
     /// </code>
     /// </example>
-    public bool TryResolveHandler(ushort id, out System.Func<TPacket, IConnection, Task>? handler)
+    public bool TryResolveHandler(ushort id, [NotNullWhen(true)] out System.Func<TPacket, IConnection, Task>? handler)
     {
         if (PacketHandlers.TryGetValue(id, out handler))
             return true;

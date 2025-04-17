@@ -1,34 +1,54 @@
-using Notio.Common.Connection;
-using Notio.Common.Package;
-
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
-/// Ultra-high performance packet dispatcher with queue-based processing, advanced dependency injection (DI) 
-/// integration and async support. This implementation uses reflection to map packet command IDs to controller methods.
+/// Represents an ultra-high performance packet dispatcher designed for asynchronous, queue-based processing
+/// with dependency injection (DI) support and flexible packet handling via reflection-based routing.
 /// </summary>
+/// <typeparam name="TPacket">
+/// The packet type implementing <see cref="Common.Package.IPacket"/>,
+/// <see cref="Common.Package.IPacketEncryptor{TPacket}"/>, 
+/// <see cref="Common.Package.IPacketCompressor{TPacket}"/>,
+/// <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
+/// </typeparam>
 /// <remarks>
-/// The <see cref="PacketQueueDispatcher{TPacket}"/> enqueues incoming packets and processes them asynchronously.
-/// It logs errors and warnings when handling failures or unregistered commands.
+/// <para>
+/// This dispatcher works by queuing incoming packets and processing them in a background loop. Packet handling
+/// is done asynchronously using handlers resolved via packet command IDs.
+/// </para>
+/// <para>
+/// It is suitable for high-throughput systems such as custom TCP servers, IoT message brokers, or game servers
+/// where latency, memory pressure, and throughput are critical.
+/// </para>
 /// </remarks>
-public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options),
-    IPacketDispatcher<TPacket> where TPacket : IPacket,
-    IPacketEncryptor<TPacket>,
-    IPacketCompressor<TPacket>,
-    IPacketDeserializer<TPacket>
+/// <example>
+/// Example usage:
+/// <code>
+/// var dispatcher = new PacketQueueDispatcher`Packet`(opts => {
+///     opts.WithHandler(...);
+/// });
+/// dispatcher.Start();
+/// ...
+/// dispatcher.HandlePacket(data, connection);
+/// </code>
+/// </example>
+public sealed class PacketQueueDispatcher<TPacket>
+    : PacketDispatcherBase<TPacket>, IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketEncryptor<TPacket>,
+    Common.Package.IPacketCompressor<TPacket>,
+    Common.Package.IPacketDeserializer<TPacket>
 {
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly System.Collections.Generic.Queue<(TPacket Packet, IConnection Connection)> _packetQueue = new();
+    private readonly System.Collections.Generic.Queue<(
+        TPacket Packet, Common.Connection.IConnection Connection)> _packetQueue = new();
 
     // Locks for thread safety
-    private readonly System.Threading.Lock _lock = new();
-    private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
+    private readonly System.Threading.Lock _lock;
+    private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Processing state
-    private bool _isProcessing = false;
+    private bool _isProcessing;
     private readonly System.Threading.CancellationTokenSource _ctokens = new();
 
     #endregion
@@ -52,6 +72,28 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
                 return _packetQueue.Count;
             }
         }
+    }
+
+    #endregion
+
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketQueueDispatcher{TPacket}"/> class
+    /// with custom configuration options.
+    /// </summary>
+    /// <param name="options">A delegate used to configure dispatcher options</param>
+    public PacketQueueDispatcher(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
+        : base(options)
+    {
+        _isProcessing = false;
+
+        _lock = new System.Threading.Lock();
+        _semaphore = new System.Threading.SemaphoreSlim(0);
+        _ctokens = new System.Threading.CancellationTokenSource();
+
+        // Add any additional initialization here if needed
+        base.Logger?.Debug("[Dispatcher] Initialized with custom options");
     }
 
     #endregion
@@ -104,7 +146,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
     }
 
     /// <inheritdoc />
-    public void HandlePacket(byte[]? packet, IConnection connection)
+    public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
     {
         if (packet == null)
         {
@@ -116,7 +158,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
     }
 
     /// <inheritdoc />
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection)
     {
         if (packet == null)
         {
@@ -129,7 +171,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
     }
 
     /// <inheritdoc />
-    public void HandlePacket(in System.ReadOnlySpan<byte> packet, IConnection connection)
+    public void HandlePacket(in System.ReadOnlySpan<byte> packet, Common.Connection.IConnection connection)
     {
         if (packet.IsEmpty)
         {
@@ -143,7 +185,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
     }
 
     /// <inheritdoc />
-    public void HandlePacketAsync(TPacket packet, IConnection connection)
+    public void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
         => this.EnqueuePacket(packet, connection);
 
     #endregion
@@ -153,7 +195,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
     /// <summary>
     /// Adds a packet to the processing queue
     /// </summary>
-    private void EnqueuePacket(TPacket packet, IConnection connection)
+    private void EnqueuePacket(TPacket packet, Common.Connection.IConnection connection)
     {
         lock (_lock)
         {
@@ -186,7 +228,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
 
                 // Dequeue and process packet
                 TPacket packet;
-                IConnection connection;
+                Common.Connection.IConnection connection;
 
                 lock (_lock)
                 {
@@ -196,7 +238,7 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
                     (packet, connection) = _packetQueue.Dequeue();
                 }
 
-                await ExecutePacketHandlerAsync(packet, connection);
+                await base.ExecutePacketHandlerAsync(packet, connection);
             }
         }
         catch (System.OperationCanceledException)
@@ -211,35 +253,6 @@ public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketD
         {
             _isProcessing = false;
         }
-    }
-
-    /// <summary>
-    /// Processes a single packet
-    /// </summary>
-    private async System.Threading.Tasks.Task ExecutePacketHandlerAsync(TPacket packet, IConnection connection)
-    {
-        if (base.Options.TryResolveHandler(packet.Id, out var handler) && handler != null)
-        {
-            base.Logger?.Debug($"[Dispatcher] Processing packet Id: {packet.Id} from {connection.RemoteEndPoint}...");
-
-            try
-            {
-                await PacketDispatcherBase<TPacket>
-                    .ExecuteHandler(handler, packet, connection)
-                    .ConfigureAwait(false);
-            }
-            catch (System.Exception ex)
-            {
-                base.Logger?.Error(
-                    $"[Dispatcher] Exception occurred while handling packet Id: " +
-                    $"{packet.Id} from {connection.RemoteEndPoint}. " +
-                    $"Error: {ex.GetType().Name} - {ex.Message}", ex);
-            }
-
-            return;
-        }
-
-        base.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
     }
 
     #endregion
