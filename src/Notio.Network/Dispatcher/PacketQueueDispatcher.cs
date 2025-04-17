@@ -1,8 +1,5 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatcher;
 
@@ -11,25 +8,28 @@ namespace Notio.Network.Dispatcher;
 /// integration and async support. This implementation uses reflection to map packet command IDs to controller methods.
 /// </summary>
 /// <remarks>
-/// The <see cref="QueuedPacketDispatcher{TPacket}"/> enqueues incoming packets and processes them asynchronously.
+/// The <see cref="PacketQueueDispatcher{TPacket}"/> enqueues incoming packets and processes them asynchronously.
 /// It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
-public sealed class QueuedPacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket>
-    where TPacket : IPacket, IPacketEncryptor<TPacket>, IPacketCompressor<TPacket>, IPacketDeserializer<TPacket>
+public sealed class PacketQueueDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
+    : PacketDispatcherBase<TPacket>(options),
+    IPacketDispatcher<TPacket> where TPacket : IPacket,
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>,
+    IPacketDeserializer<TPacket>
 {
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly Queue<(TPacket Packet, IConnection Connection)> _packetQueue = new();
+    private readonly System.Collections.Generic.Queue<(TPacket Packet, IConnection Connection)> _packetQueue = new();
 
     // Locks for thread safety
-    private readonly Lock _lock = new();
-    private readonly SemaphoreSlim _semaphore = new(0);
+    private readonly System.Threading.Lock _lock = new();
+    private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
 
     // Processing state
     private bool _isProcessing = false;
-    private readonly CancellationTokenSource _ctokens = new();
+    private readonly System.Threading.CancellationTokenSource _ctokens = new();
 
     #endregion
 
@@ -61,24 +61,46 @@ public sealed class QueuedPacketDispatcher<TPacket>(System.Action<Options.Packet
     /// <summary>
     /// Starts the packet processing loop
     /// </summary>
-    public void BeginDispatching()
+    public void Start()
     {
-        if (_isProcessing) return;
+        if (_isProcessing)
+        {
+            base.Logger?.Debug("[Dispatcher] Start() called but dispatcher is already running.");
+            return;
+        }
 
         _isProcessing = true;
-        Task.Run(RunQueueLoopAsync);
+
+        base.Logger?.Info("[Dispatcher] Dispatch loop starting...");
+        System.Threading.Tasks.Task.Run(RunQueueLoopAsync);
     }
 
     /// <summary>
     /// Stops the packet processing loop
     /// </summary>
-    public void Shutdown()
+    public void Stop()
     {
         if (!_isProcessing)
             return;
 
         _isProcessing = false;
-        _ctokens.Cancel();
+
+        try
+        {
+            if (!_ctokens.IsCancellationRequested)
+            {
+                _ctokens.Cancel();
+                base.Logger?.Info("[Dispatcher] Dispatch loop stopped gracefully.");
+            }
+        }
+        catch (System.ObjectDisposedException)
+        {
+            base.Logger?.Warn("[Dispatcher] Attempted to cancel a disposed CancellationTokenSource.");
+        }
+        catch (System.Exception ex)
+        {
+            base.Logger?.Error($"[Dispatcher] Error while stopping dispatcher: {ex.Message}", ex);
+        }
     }
 
     /// <inheritdoc />
@@ -153,7 +175,7 @@ public sealed class QueuedPacketDispatcher<TPacket>(System.Action<Options.Packet
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
-    private async Task RunQueueLoopAsync()
+    private async System.Threading.Tasks.Task RunQueueLoopAsync()
     {
         try
         {
@@ -194,7 +216,7 @@ public sealed class QueuedPacketDispatcher<TPacket>(System.Action<Options.Packet
     /// <summary>
     /// Processes a single packet
     /// </summary>
-    private async Task ExecutePacketHandlerAsync(TPacket packet, IConnection connection)
+    private async System.Threading.Tasks.Task ExecutePacketHandlerAsync(TPacket packet, IConnection connection)
     {
         if (base.Options.TryResolveHandler(packet.Id, out var handler) && handler != null)
         {
@@ -229,7 +251,7 @@ public sealed class QueuedPacketDispatcher<TPacket>(System.Action<Options.Packet
     /// </summary>
     public void Dispose()
     {
-        this.Shutdown();
+        this.Stop();
         _ctokens.Dispose();
         _semaphore.Dispose();
     }
