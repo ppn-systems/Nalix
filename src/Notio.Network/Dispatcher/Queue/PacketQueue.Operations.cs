@@ -23,12 +23,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                return EnqueueInternal(packet);
+                return this.EnqueueInternal(packet);
             }
         }
         else
         {
-            return EnqueueInternal(packet);
+            return this.EnqueueInternal(packet);
         }
     }
 
@@ -44,12 +44,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                return TryDequeueInternal(out packet);
+                return this.TryDequeueInternal(out packet);
             }
         }
         else
         {
-            return TryDequeueInternal(out packet);
+            return this.TryDequeueInternal(out packet);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <returns>List of valid packets</returns>
     public List<TPacket> DequeueBatch(int maxCount)
     {
-        var result = new List<TPacket>(Math.Min(maxCount, Count));
+        List<TPacket> result = new(Math.Min(maxCount, Count));
 
         if (_isThreadSafe)
         {
@@ -80,7 +80,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// </summary>
     public Dictionary<PacketPriority, int> GetQueueSizeByPriority()
     {
-        var result = new Dictionary<PacketPriority, int>();
+        Dictionary<PacketPriority, int> result = [];
 
         if (_isThreadSafe)
         {

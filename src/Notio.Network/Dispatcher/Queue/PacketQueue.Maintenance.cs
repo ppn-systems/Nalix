@@ -17,12 +17,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                return RemoveExpiredPacketsInternal();
+                return this.RemoveExpiredPacketsInternal();
             }
         }
         else
         {
-            return RemoveExpiredPacketsInternal();
+            return this.RemoveExpiredPacketsInternal();
         }
     }
 
@@ -82,12 +82,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                ClearInternal();
+                this.ClearInternal();
             }
         }
         else
         {
-            ClearInternal();
+            this.ClearInternal();
         }
     }
 

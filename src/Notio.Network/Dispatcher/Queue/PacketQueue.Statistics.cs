@@ -22,12 +22,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         {
             lock (_syncLock)
             {
-                CollectStatisticsInternal(stats);
+                this.CollectStatisticsInternal(stats);
             }
         }
         else
         {
-            CollectStatisticsInternal(stats);
+            this.CollectStatisticsInternal(stats);
         }
 
         float avgProcessingMs = 0;
