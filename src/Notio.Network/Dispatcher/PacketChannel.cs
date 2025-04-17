@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Dispatcher.Channel;
+namespace Notio.Network.Dispatcher;
 
 /// <summary>
 /// Hàng đợi packet hiệu năng cao sử dụng System.Threading.Channels

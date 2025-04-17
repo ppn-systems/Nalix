@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Notio.Network.Dispatcher.Queue;
 
@@ -22,17 +23,22 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         if (packet == null)
             return false;
 
-        if (_isThreadSafe)
+        int priorityIndex = (int)packet.Priority;
+
+        if (_maxQueueSize > 0 && _totalCount >= _maxQueueSize)
+            return false;
+
+        if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
         {
-            lock (_syncLock)
-            {
-                return this.EnqueueInternal(packet);
-            }
+            Interlocked.Increment(ref _totalCount);
+
+            if (_collectStatistics)
+                _enqueuedCounts[priorityIndex]++;
+
+            return true;
         }
-        else
-        {
-            return this.EnqueueInternal(packet);
-        }
+
+        return false;
     }
 
     /// <summary>
@@ -43,20 +49,12 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TPacket Dequeue()
     {
-        if (_isThreadSafe)
-        {
-            lock (_syncLock)
-            {
-                return DequeueInternal()
-                    ?? throw new InvalidOperationException("Cannot dequeue from an empty queue.");
-            }
-        }
-        else
-        {
-            return DequeueInternal()
-                ?? throw new InvalidOperationException("Cannot dequeue from an empty queue.");
-        }
+        if (TryDequeue(out TPacket? packet))
+            return packet;
+
+        throw new InvalidOperationException("Cannot dequeue from an empty queue.");
     }
+
 
     /// <summary>
     /// Get a packet from the queue in priority order
@@ -66,19 +64,41 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
-        if (_isThreadSafe)
+        for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            lock (_syncLock)
+            if (_priorityChannels[i].Reader.TryRead(out var tempPacket))
             {
-                packet = this.DequeueInternal();
-                return packet != null;
+                bool isExpired = _packetTimeout != TimeSpan.Zero && tempPacket.IsExpired(_packetTimeout);
+                bool isValid = !_validateOnDequeue || tempPacket.IsValid();
+
+                if (isExpired)
+                {
+                    if (_collectStatistics) _expiredCounts[i]++;
+                    tempPacket.Dispose();
+                    continue;
+                }
+
+                if (!isValid)
+                {
+                    if (_collectStatistics) _invalidCounts[i]++;
+                    tempPacket.Dispose();
+                    continue;
+                }
+
+                if (_collectStatistics)
+                {
+                    _dequeuedCounts[i]++;
+                    UpdatePerformanceStats(Stopwatch.GetTimestamp());
+                }
+
+                Interlocked.Decrement(ref _totalCount);
+                packet = tempPacket;
+                return true;
             }
         }
-        else
-        {
-            packet = this.DequeueInternal();
-            return packet != null;
-        }
+
+        packet = default;
+        return false;
     }
 
     /// <summary>
@@ -88,16 +108,14 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <returns>List of valid packets</returns>
     public List<TPacket> DequeueBatch(int maxCount)
     {
-        List<TPacket> result = new(Math.Min(maxCount, Count));
+        List<TPacket> result = new(Math.Min(maxCount, _totalCount));
 
-        if (_isThreadSafe)
+        for (int i = 0; i < maxCount; i++)
         {
-            lock (_syncLock)
-                this.DequeueBatchInternal(result, maxCount);
-        }
-        else
-        {
-            this.DequeueBatchInternal(result, maxCount);
+            if (!TryDequeue(out var packet))
+                break;
+
+            result.Add(packet);
         }
 
         return result;
@@ -110,130 +128,15 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     {
         Dictionary<PacketPriority, int> result = [];
 
-        if (_isThreadSafe)
+        for (int i = 0; i < _priorityCount; i++)
         {
-            lock (_syncLock)
-            {
-                for (int i = 0; i < _priorityCount; i++)
-                    result[(PacketPriority)i] = _priorityQueues[i].Count;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < _priorityCount; i++)
-                result[(PacketPriority)i] = _priorityQueues[i].Count;
+            int count = Volatile.Read(ref _priorityCounts[i]);
+            result[(PacketPriority)i] = count;
         }
 
         return result;
     }
 
-    #endregion
-
-    #region Privates Methods
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool EnqueueInternal(TPacket packet)
-    {
-        // Check queue size limit if any
-        if (_maxQueueSize > 0 && _totalCount >= _maxQueueSize)
-        {
-            return false;
-        }
-
-        int priorityIndex = (int)packet.Priority;
-        _priorityQueues[priorityIndex].Enqueue(packet);
-        _totalCount++;
-
-        if (_collectStatistics)
-        {
-            _enqueuedCounts[priorityIndex]++;
-        }
-
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TPacket? DequeueInternal()
-    {
-        TPacket packet;
-        long startTicks = _collectStatistics ? Stopwatch.GetTimestamp() : 0;
-
-        // Iterate from highest to lowest priority
-        for (int i = _priorityCount - 1; i >= 0; i--)
-        {
-            Queue<TPacket> queue = _priorityQueues[i];
-
-            while (queue.Count > 0)
-            {
-                packet = queue.Dequeue();
-                _totalCount--;
-
-                bool isValid = true;
-                bool isExpired = false;
-
-                // Check expiration if needed
-                if (_packetTimeout != TimeSpan.Zero)
-                {
-                    isExpired = packet.IsExpired(_packetTimeout);
-                    if (isExpired && _collectStatistics)
-                    {
-                        _expiredCounts[i]++;
-                    }
-                }
-
-                // Check validity if needed
-                if (_validateOnDequeue && !isExpired)
-                {
-                    isValid = packet.IsValid();
-                    if (!isValid && _collectStatistics)
-                    {
-                        _invalidCounts[i]++;
-                    }
-                }
-
-                // If the packet is valid and not expired, return it
-                if (!isExpired && isValid)
-                {
-                    if (_collectStatistics)
-                    {
-                        _dequeuedCounts[i]++;
-                        UpdatePerformanceStats(startTicks);
-                    }
-                    return packet;
-                }
-
-                // Packet is invalid or expired, free its resources
-                packet.Dispose();
-
-                // Continue checking next packet in same queue
-                if (queue.Count > 0)
-                    continue;
-            }
-        }
-
-        // If no valid packet is found, return default
-        return default;
-    }
-
-    private void DequeueBatchInternal(List<TPacket> result, int maxCount)
-    {
-        TPacket? packet;
-        int dequeued = 0;
-
-        while (dequeued < maxCount)
-        {
-            packet = DequeueInternal();
-            if (packet != null)
-            {
-                result.Add(packet);
-                dequeued++;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
 
     #endregion
 }

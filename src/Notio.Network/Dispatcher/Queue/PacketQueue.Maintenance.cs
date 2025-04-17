@@ -13,85 +13,13 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// Remove expired packets from all queues
     /// </summary>
     /// <returns>Number of packets removed</returns>
-    public int RemoveExpiredPackets()
-    {
-        if (_isThreadSafe)
-        {
-            lock (_syncLock)
-            {
-                return this.RemoveExpiredPacketsInternal();
-            }
-        }
-        else
-        {
-            return this.RemoveExpiredPacketsInternal();
-        }
-    }
-
-    private int RemoveExpiredPacketsInternal()
-    {
-        int removedCount = 0;
-
-        for (int i = 0; i < _priorityCount; i++)
-        {
-            Queue<TPacket> currentQueue = _priorityQueues[i];
-            int queueCount = currentQueue.Count;
-
-            if (queueCount == 0)
-                continue;
-
-            // Create a new queue to store non-expired packets
-            var newQueue = new Queue<TPacket>(queueCount);
-
-            // Check each packet
-            while (currentQueue.Count > 0)
-            {
-                TPacket packet = currentQueue.Dequeue();
-
-                if (packet.IsExpired(_packetTimeout))
-                {
-                    // Free expired packet
-                    packet.Dispose();
-                    removedCount++;
-
-                    if (_collectStatistics)
-                    {
-                        _expiredCounts[i]++;
-                    }
-                }
-                else
-                {
-                    // Keep non-expired packet
-                    newQueue.Enqueue(packet);
-                }
-            }
-
-            // Replace old queue with new one
-            _priorityQueues[i] = newQueue;
-        }
-
-        // Update total packet count
-        _totalCount -= removedCount;
-        return removedCount;
-    }
+    public async Task<int> RemoveExpiredPacketsAsync()
+        => await this.RemoveExpiredPacketsInternalAsync();
 
     /// <summary>
     /// Clear all packets from the queue
     /// </summary>
-    public void Clear()
-    {
-        if (_isThreadSafe)
-        {
-            lock (_syncLock)
-            {
-                this.ClearInternal();
-            }
-        }
-        else
-        {
-            this.ClearInternal();
-        }
-    }
+    public void Clear() => this.ClearInternal();
 
     /// <summary>
     /// Initialize a periodic task to remove expired packets
@@ -108,7 +36,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
                 try
                 {
                     await Task.Delay(interval, cancellationToken);
-                    RemoveExpiredPackets();
+                    await RemoveExpiredPacketsAsync();
                 }
                 catch (OperationCanceledException)
                 {
@@ -126,19 +54,50 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
     #region Private Methods
 
+    private async Task<int> RemoveExpiredPacketsInternalAsync()
+    {
+        int removedCount = 0;
+
+        for (int i = 0; i < _priorityCount; i++)
+        {
+            var tempQueue = new Queue<TPacket>();
+
+            while (_priorityChannels[i].Reader.TryRead(out var packet))
+            {
+                if (packet.IsExpired(_packetTimeout))
+                {
+                    packet.Dispose();
+                    removedCount++;
+
+                    if (_collectStatistics)
+                        _expiredCounts[i]++;
+                }
+                else
+                {
+                    tempQueue.Enqueue(packet);
+                }
+            }
+
+            // Re-insert non-expired packets
+            while (tempQueue.Count > 0)
+            {
+                await _priorityChannels[i].Writer.WriteAsync(tempQueue.Dequeue());
+            }
+        }
+
+        Interlocked.Add(ref _totalCount, -removedCount);
+        return removedCount;
+    }
+
     private void ClearInternal()
     {
         for (int i = 0; i < _priorityCount; i++)
         {
-            // Release resources of packets before clearing
-            while (_priorityQueues[i].Count > 0)
-            {
-                TPacket packet = _priorityQueues[i].Dequeue();
+            while (_priorityChannels[i].Reader.TryRead(out var packet))
                 packet.Dispose();
-            }
         }
 
-        _totalCount = 0;
+        Interlocked.Exchange(ref _totalCount, 0);
     }
 
     #endregion

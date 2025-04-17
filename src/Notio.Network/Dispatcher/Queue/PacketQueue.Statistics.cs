@@ -3,6 +3,7 @@ using Notio.Network.Dispatcher.Statistics;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Notio.Network.Dispatcher.Queue;
 
@@ -20,17 +21,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
         Dictionary<PacketPriority, PriorityStatistics> stats = [];
 
-        if (_isThreadSafe)
-        {
-            lock (_syncLock)
-            {
-                this.CollectStatisticsInternal(stats);
-            }
-        }
-        else
-        {
-            this.CollectStatisticsInternal(stats);
-        }
+        this.CollectStatisticsInternal(stats);
 
         float avgProcessingMs = 0;
         if (_packetsProcessed > 0)
@@ -53,10 +44,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     {
         for (int i = 0; i < _priorityCount; i++)
         {
-            var priority = (PacketPriority)i;
-            stats[priority] = new PriorityStatistics
+            stats[(PacketPriority)i] = new PriorityStatistics
             {
-                CurrentQueueSize = _priorityQueues[i].Count,
+                CurrentQueueSize = Volatile.Read(ref _priorityCounts[i]),
                 EnqueuedCount = _enqueuedCounts[i],
                 DequeuedCount = _dequeuedCounts[i],
                 ExpiredCount = _expiredCounts[i],

@@ -1,9 +1,9 @@
 using Notio.Common.Package.Enums;
 using Notio.Network.Dispatcher.Options;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Channels;
 
 namespace Notio.Network.Dispatcher.Queue;
 
@@ -16,7 +16,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     #region Fields
 
     // Use array instead of Dictionary for performance optimization
-    private readonly Queue<TPacket>[] _priorityQueues;
+    private readonly Channel<TPacket>[] _priorityChannels;
     private int _totalCount;
 
     // Statistics variables
@@ -27,10 +27,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
     // Cache priority count to avoid repeated enum lookups
     private readonly int _priorityCount;
+    private readonly int[] _priorityCounts;
 
     // Settings and configuration
-    private readonly bool _isThreadSafe;
-    private readonly Lock _syncLock;
     private readonly int _maxQueueSize;
     private readonly TimeSpan _packetTimeout;
     private readonly bool _validateOnDequeue;
@@ -48,7 +47,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <summary>
     /// Total number of packets in the queue
     /// </summary>
-    public int Count => _isThreadSafe ? Volatile.Read(ref _totalCount) : _totalCount;
+    public int Count => Volatile.Read(ref _totalCount);
 
     #endregion
 
@@ -60,16 +59,20 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <param name="options">Configuration options for the packet queue</param>
     public PacketQueue(PacketQueueOptions options)
     {
+        _priorityCounts = new int[Enum.GetValues<PacketPriority>().Length];
         _priorityCount = Enum.GetValues<PacketPriority>().Length;
-        _priorityQueues = new Queue<TPacket>[_priorityCount];
+        _priorityChannels = new Channel<TPacket>[_priorityCount];
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            _priorityQueues[i] = new Queue<TPacket>();
+            _priorityChannels[i] = Channel.CreateUnbounded<TPacket>(
+                new UnboundedChannelOptions
+                {
+                    SingleReader = false,
+                    SingleWriter = false
+                });
         }
 
-        _isThreadSafe = options.IsThreadSafe;
-        _syncLock = new Lock();
         _maxQueueSize = options.MaxQueueSize;
         _packetTimeout = options.PacketTimeout;
         _validateOnDequeue = options.ValidateOnDequeue;

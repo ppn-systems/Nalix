@@ -43,6 +43,8 @@ public sealed class PacketQueueDispatcher<TPacket>
     private readonly System.Collections.Generic.Queue<(
         TPacket Packet, Common.Connection.IConnection Connection)> _packetQueue = new();
 
+    private readonly Queue.PacketQueue<TPacket> _queue;
+
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
     private readonly System.Threading.SemaphoreSlim _semaphore;
@@ -88,6 +90,7 @@ public sealed class PacketQueueDispatcher<TPacket>
     {
         _isProcessing = false;
 
+        _queue = new Queue.PacketQueue<TPacket>();
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
@@ -182,6 +185,7 @@ public sealed class PacketQueueDispatcher<TPacket>
 
         // Deserialize and enqueue the packet for processing
         this.EnqueuePacket(TPacket.Deserialize(packet), connection);
+        _queue.Enqueue(TPacket);
     }
 
     /// <inheritdoc />
