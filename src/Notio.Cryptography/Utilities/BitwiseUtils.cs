@@ -91,10 +91,8 @@ public static class BitwiseUtils
         else
         {
             // Fallback path for big-endian architectures
-            return (uint)(p[inputOffset]) |
-                  ((uint)(p[inputOffset + 1]) << 8) |
-                  ((uint)(p[inputOffset + 2]) << 16) |
-                  ((uint)(p[inputOffset + 3]) << 24);
+            return (uint)(p[inputOffset]) | ((uint)(p[inputOffset + 1]) << 8) |
+                   ((uint)(p[inputOffset + 2]) << 16) | ((uint)(p[inputOffset + 3]) << 24);
         }
     }
 
@@ -117,10 +115,8 @@ public static class BitwiseUtils
         else
         {
             // Fallback path for big-endian architectures
-            return (uint)(data[offset]) |
-                  ((uint)(data[offset + 1]) << 8) |
-                  ((uint)(data[offset + 2]) << 16) |
-                  ((uint)(data[offset + 3]) << 24);
+            return (uint)(data[offset]) | ((uint)(data[offset + 1]) << 8) |
+                   ((uint)(data[offset + 2]) << 16) | ((uint)(data[offset + 3]) << 24);
         }
     }
 

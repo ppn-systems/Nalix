@@ -171,11 +171,11 @@ public sealed class Hmac : IDisposable
 
             if (_algorithm == HashAlgorithm.Sha1)
             {
-                hashedKey = Sha1.HashData(key);
+                hashedKey = SHA1.HashData(key);
             }
             else
             {
-                hashedKey = Sha256.HashData(key);
+                hashedKey = SHA256.HashData(key);
             }
 
             Array.Copy(hashedKey, normalizedKey, Math.Min(hashedKey.Length, _blockSize));
@@ -197,9 +197,9 @@ public sealed class Hmac : IDisposable
     {
         if (_algorithm == HashAlgorithm.Sha1)
         {
-            // For Sha1, we'll use the static implementation
+            // For SHA1, we'll use the static implementation
             using var ms = new System.IO.MemoryStream();
-            using var sha1 = new Sha1();
+            using var sha1 = new SHA1();
 
             sha1.Update(innerKeyPad);
 
@@ -214,8 +214,8 @@ public sealed class Hmac : IDisposable
         }
         else
         {
-            // For Sha256, we'll use the instance-based implementation
-            using var sha256 = new Sha256();
+            // For SHA256, we'll use the instance-based implementation
+            using var sha256 = new SHA256();
             sha256.Update(innerKeyPad);
             sha256.Update(data);
             return sha256.FinalizeHash();
@@ -230,17 +230,17 @@ public sealed class Hmac : IDisposable
     {
         if (_algorithm == HashAlgorithm.Sha1)
         {
-            // For Sha1, we'll use the static implementation
+            // For SHA1, we'll use the static implementation
             using var ms = new System.IO.MemoryStream();
-            using var sha1 = new Sha1();
+            using var sha1 = new SHA1();
             sha1.Update(outerKeyPad);
             sha1.Update(innerHash);
             return sha1.FinalizeHash();
         }
         else
         {
-            // For Sha256, we'll use the instance-based implementation
-            using var sha256 = new Sha256();
+            // For SHA256, we'll use the instance-based implementation
+            using var sha256 = new SHA256();
             sha256.Update(outerKeyPad);
             sha256.Update(innerHash);
             return sha256.FinalizeHash();

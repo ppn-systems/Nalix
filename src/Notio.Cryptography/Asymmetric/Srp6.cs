@@ -69,7 +69,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <returns>Verifier as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] salt, string username, string password)
     {
-        byte[] data = Sha256.HashData(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        byte[] data = SHA256.HashData(Encoding.UTF8.GetBytes($"{username}:{password}"));
         BigInteger x = Hash(true, new BigInteger(salt, true), new BigInteger(data, true));
 
         return BigInteger.ModPow(G, x, N).ToByteArray();
@@ -130,7 +130,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
             throw new CryptoException(
                 "Missing data from previous operations: clientPublicValue, serverPublicValue, sharedSecret");
 
-        var usernameHash = Sha256.HashData(_usernameBytes);
+        var usernameHash = SHA256.HashData(_usernameBytes);
         BigInteger expectedClientProof = Hash(false, Hash(false, N) ^ Hash(false, G),
             new BigInteger(usernameHash, true), _saltValue, _clientPublicValue, _serverPublicValue, _sessionKey);
 
@@ -163,7 +163,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     private static BigInteger Hash(bool reverse, params BigInteger[] integers)
     {
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
         sha256.Initialize();
 
         for (int i = 0; i < integers.Length; i++)
@@ -204,8 +204,8 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
         for (uint i = 0u; i < oddIndexedBytes.Length; i++)
             oddIndexedBytes[i] = reversedSecretBytes[i * 2 + 1];
 
-        byte[] evenHash = Sha256.HashData(evenIndexedBytes);
-        byte[] oddHash = Sha256.HashData(oddIndexedBytes);
+        byte[] evenHash = SHA256.HashData(evenIndexedBytes);
+        byte[] oddHash = SHA256.HashData(oddIndexedBytes);
 
         byte[] interleavedHash = new byte[evenHash.Length + oddHash.Length];
         for (uint i = 0u; i < interleavedHash.Length; i++)

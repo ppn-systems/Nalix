@@ -16,7 +16,7 @@ namespace Notio.Cryptography.Hashing;
 /// It is considered weak due to known vulnerabilities but is still used in legacy systems.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public sealed class Sha1 : ISha, IDisposable
+public sealed class SHA1 : ISHA, IDisposable
 {
     #region Fields
 
@@ -37,7 +37,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// <summary>
     /// Initializes a new instance of the SHA-1 hash algorithm.
     /// </summary>
-    public Sha1()
+    public SHA1()
     {
         _disposed = false;
         this.Initialize();
@@ -52,7 +52,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// </summary>
     public void Initialize()
     {
-        Buffer.BlockCopy(Sha.H1, 0, _state, 0, Sha.H1.Length * sizeof(uint));
+        Buffer.BlockCopy(SHA.H1, 0, _state, 0, SHA.H1.Length * sizeof(uint));
         _bufferIndex = 0;
         _totalBytesProcessed = 0;
         _finalized = false;
@@ -70,7 +70,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// </exception>
     public void Update(ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
         if (_finalized)
             throw new InvalidOperationException("Hash has been finalized");
@@ -117,7 +117,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// </exception>
     public byte[] FinalizeHash()
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
         byte[] result = new byte[20];
 
@@ -199,7 +199,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// </remarks>
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha1));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
         // Reset the state to ensure independence from previous operations
         Initialize();
@@ -263,7 +263,7 @@ public sealed class Sha1 : ISha, IDisposable
     /// </remarks>
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
-        using Sha1 sha1 = new();
+        using SHA1 sha1 = new();
         sha1.Update(data);
         return sha1.FinalizeHash();
     }
@@ -309,7 +309,7 @@ public sealed class Sha1 : ISha, IDisposable
         // Main loop - optimized with function inlining
         for (int j = 0; j < 20; j++)
         {
-            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + Sha.K1[0] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + SHA.K1[0] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -319,7 +319,7 @@ public sealed class Sha1 : ISha, IDisposable
 
         for (int j = 20; j < 40; j++)
         {
-            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[1] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[1] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -329,7 +329,7 @@ public sealed class Sha1 : ISha, IDisposable
 
         for (int j = 40; j < 60; j++)
         {
-            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + Sha.K1[2] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + SHA.K1[2] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -339,7 +339,7 @@ public sealed class Sha1 : ISha, IDisposable
 
         for (int j = 60; j < 80; j++)
         {
-            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + Sha.K1[3] + w[j];
+            uint temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[3] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -398,38 +398,38 @@ public sealed class Sha1 : ISha, IDisposable
         // Process rounds with loop unrolling
         for (int j = 0; j < 20; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, CH(b, c, d), Sha.K1[0], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, CH(a, b, c), Sha.K1[0], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, CH(e, a, b), Sha.K1[0], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, CH(d, e, a), Sha.K1[0], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, CH(c, d, e), Sha.K1[0], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, CH(b, c, d), SHA.K1[0], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, CH(a, b, c), SHA.K1[0], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, CH(e, a, b), SHA.K1[0], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, CH(d, e, a), SHA.K1[0], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, CH(c, d, e), SHA.K1[0], w[j + 4]);
         }
 
         for (int j = 20; j < 40; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), Sha.K1[1], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), Sha.K1[1], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), Sha.K1[1], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), Sha.K1[1], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), Sha.K1[1], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), SHA.K1[1], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), SHA.K1[1], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), SHA.K1[1], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), SHA.K1[1], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), SHA.K1[1], w[j + 4]);
         }
 
         for (int j = 40; j < 60; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, MAJ(b, c, d), Sha.K1[2], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, MAJ(a, b, c), Sha.K1[2], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, MAJ(e, a, b), Sha.K1[2], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, MAJ(d, e, a), Sha.K1[2], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, MAJ(c, d, e), Sha.K1[2], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, MAJ(b, c, d), SHA.K1[2], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, MAJ(a, b, c), SHA.K1[2], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, MAJ(e, a, b), SHA.K1[2], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, MAJ(d, e, a), SHA.K1[2], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, MAJ(c, d, e), SHA.K1[2], w[j + 4]);
         }
 
         for (int j = 60; j < 80; j += 5)
         {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), Sha.K1[3], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), Sha.K1[3], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), Sha.K1[3], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), Sha.K1[3], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), Sha.K1[3], w[j + 4]);
+            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), SHA.K1[3], w[j]);
+            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), SHA.K1[3], w[j + 1]);
+            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), SHA.K1[3], w[j + 2]);
+            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), SHA.K1[3], w[j + 3]);
+            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), SHA.K1[3], w[j + 4]);
         }
 
         // Update hash state
@@ -466,7 +466,7 @@ public sealed class Sha1 : ISha, IDisposable
     #region IDisposable Implementation
 
     /// <summary>
-    /// Releases all resources used by the <see cref="Sha1"/> instance.
+    /// Releases all resources used by the <see cref="SHA1"/> instance.
     /// </summary>
     /// <remarks>
     /// This method clears sensitive data from memory and marks the instance as disposed.

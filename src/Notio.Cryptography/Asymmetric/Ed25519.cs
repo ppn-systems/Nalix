@@ -138,7 +138,7 @@ public sealed class Ed25519
     /// <param name="data">The data to hash.</param>
     /// <returns>The hash of the data as a byte array.</returns>
     private static byte[] ComputeHash(ReadOnlySpan<byte> data)
-        => (Sha256.Value ?? new Sha256()).ComputeHash(data);
+        => (Sha256.Value ?? new SHA256()).ComputeHash(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
@@ -322,7 +322,7 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly ThreadLocal<Sha256> Sha256 = new();
+    private static readonly ThreadLocal<SHA256> Sha256 = new();
 
     #endregion
 }

@@ -14,7 +14,7 @@ namespace Notio.Cryptography.Hashing;
 /// It is essentially SHA-256 with different initialization values and truncated output.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
-public sealed class Sha224 : ISha, IDisposable
+public sealed class SHA224 : ISHA, IDisposable
 {
     #region Fields
 
@@ -33,9 +33,9 @@ public sealed class Sha224 : ISha, IDisposable
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Sha224"/> class.
+    /// Initializes a new instance of the <see cref="SHA224"/> class.
     /// </summary>
-    public Sha224()
+    public SHA224()
     {
         Initialize();
     }
@@ -50,7 +50,7 @@ public sealed class Sha224 : ISha, IDisposable
     public void Initialize()
     {
         // Initialize state with SHA-224 specific values
-        Buffer.BlockCopy(Sha.H224, 0, _state, 0, Sha.H224.Length * sizeof(uint));
+        Buffer.BlockCopy(SHA.H224, 0, _state, 0, SHA.H224.Length * sizeof(uint));
 
         _totalLength = 0;
         _bufferOffset = 0;
@@ -187,7 +187,7 @@ public sealed class Sha224 : ISha, IDisposable
     /// </remarks>
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha224));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA224));
         Update(data);
         return FinalizeHash();
     }
@@ -199,7 +199,7 @@ public sealed class Sha224 : ISha, IDisposable
     /// <returns>The computed 224-bit hash as a byte array.</returns>
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
-        using Sha224 sha224 = new();
+        using SHA224 sha224 = new();
         sha224.Update(data);
         return sha224.FinalizeHash();
     }
@@ -242,7 +242,7 @@ public sealed class Sha224 : ISha, IDisposable
         // Main loop
         for (int t = 0; t < 64; t++)
         {
-            uint t1 = h + BigSigma1(e) + Ch(e, f, g) + Sha.K224[t] + _w[t];
+            uint t1 = h + BigSigma1(e) + Ch(e, f, g) + SHA.K224[t] + _w[t];
             uint t2 = BigSigma0(a) + Maj(a, b, c);
 
             h = g;
@@ -301,7 +301,7 @@ public sealed class Sha224 : ISha, IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Releases resources used by the Sha224 instance.
+    /// Releases resources used by the SHA224 instance.
     /// </summary>
     public void Dispose()
     {

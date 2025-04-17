@@ -23,6 +23,8 @@ public sealed class Pbkdf2 : IDisposable
 
     #endregion
 
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Pbkdf2"/> class.
     /// </summary>
@@ -50,6 +52,10 @@ public sealed class Pbkdf2 : IDisposable
         _iterations = iterations;
         _hashType = hashType;
     }
+
+    #endregion
+
+    #region Public Methods
 
     /// <summary>
     /// Derives a key from the specified password using PBKDF2 with UTF-8 encoding.
@@ -120,6 +126,10 @@ public sealed class Pbkdf2 : IDisposable
         Array.Clear(_salt, 0, _salt.Length);
         _disposed = true;
     }
+
+    #endregion
+
+    #region Private Methods
 
     /// <summary>
     /// Derives a key using HMAC-SHA1.
@@ -238,7 +248,7 @@ public sealed class Pbkdf2 : IDisposable
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
-            Sha1 sha1 = new();
+            SHA1 sha1 = new();
             sha1.ComputeHash(key).CopyTo(keyBlock);
         }
         else
@@ -257,14 +267,14 @@ public sealed class Pbkdf2 : IDisposable
         }
 
         // Step 3: Compute inner hash (H(K ⊕ ipad || message))
-        Sha1 sha1Inner = new();
+        SHA1 sha1Inner = new();
         sha1Inner.Update(ipad);
         sha1Inner.Update(message);
         Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
         sha1Inner.FinalizeHash().CopyTo(innerHash);
 
         // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
-        Sha1 sha1Outer = new();
+        SHA1 sha1Outer = new();
         sha1Outer.Update(opad);
         sha1Outer.Update(innerHash);
         sha1Outer.FinalizeHash().CopyTo(output);
@@ -285,7 +295,7 @@ public sealed class Pbkdf2 : IDisposable
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
-            using Sha224 sha224 = new();
+            using SHA224 sha224 = new();
             sha224.ComputeHash(key).CopyTo(keyBlock);
         }
         else
@@ -304,14 +314,14 @@ public sealed class Pbkdf2 : IDisposable
         }
 
         // Step 3: Compute inner hash (H(K ⊕ ipad || message))
-        using Sha224 sha224Inner = new();
+        using SHA224 sha224Inner = new();
         sha224Inner.Update(ipad);
         sha224Inner.Update(message);
         Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
         sha224Inner.FinalizeHash().CopyTo(innerHash);
 
         // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
-        using Sha224 sha224Outer = new();
+        using SHA224 sha224Outer = new();
         sha224Outer.Update(opad);
         sha224Outer.Update(innerHash);
         sha224Outer.FinalizeHash().CopyTo(output);
@@ -333,7 +343,7 @@ public sealed class Pbkdf2 : IDisposable
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
-            Sha256.HashData(key).CopyTo(keyPadded);
+            SHA256.HashData(key).CopyTo(keyPadded);
         }
         else
         {
@@ -349,7 +359,7 @@ public sealed class Pbkdf2 : IDisposable
 
         // Step 3: Hash (ipad || message)
         Span<byte> innerHash = stackalloc byte[32];
-        using (Sha256 sha256 = new())
+        using (SHA256 sha256 = new())
         {
             sha256.Update(ipad);
             sha256.Update(message);
@@ -357,11 +367,13 @@ public sealed class Pbkdf2 : IDisposable
         }
 
         // Step 4: Hash (opad || innerHash)
-        using (Sha256 sha256 = new())
+        using (SHA256 sha256 = new())
         {
             sha256.Update(opad);
             sha256.Update(innerHash);
             sha256.FinalizeHash().CopyTo(output);
         }
     }
+
+    #endregion
 }

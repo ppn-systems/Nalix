@@ -17,7 +17,7 @@ namespace Notio.Cryptography.Hashing;
 /// This implementation processes data in 512-bit (64-byte) blocks, maintaining an internal state.
 /// It supports incremental updates and can be used in a streaming manner.
 /// </remarks>
-public sealed class Sha256 : ISha, IDisposable
+public sealed class SHA256 : ISHA, IDisposable
 {
     #region Fields
 
@@ -35,9 +35,9 @@ public sealed class Sha256 : ISha, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Sha256"/> class and resets the hash state.
+    /// Initializes a new instance of the <see cref="SHA256"/> class and resets the hash state.
     /// </summary>
-    public Sha256() => Initialize();
+    public SHA256() => Initialize();
 
     #endregion
 
@@ -51,7 +51,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public void Initialize()
     {
-        Buffer.BlockCopy(Sha.H256, 0, _state, 0, Sha.H256.Length * sizeof(uint));
+        Buffer.BlockCopy(SHA.H256, 0, _state, 0, SHA.H256.Length * sizeof(uint));
 
         _byteCount = 0;
         _bufferLength = 0;
@@ -76,7 +76,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
         sha256.Update(data);
         return sha256.FinalizeHash();
     }
@@ -92,7 +92,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
         Update(data);
         return FinalizeHash();
     }
@@ -108,7 +108,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public void Update(ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
         if (_finalized)
             throw new InvalidOperationException("Cannot update after finalization.");
@@ -162,7 +162,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public byte[] FinalizeHash()
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
         if (_finalized) return (byte[])_finalHash.Clone();
 
@@ -206,7 +206,7 @@ public sealed class Sha256 : ISha, IDisposable
     {
         get
         {
-            ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+            ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
             if (!_finalized)
                 throw new InvalidOperationException(
@@ -231,7 +231,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
         ArgumentNullException.ThrowIfNull(inputBuffer);
         if (inputOffset < 0 || inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
@@ -262,7 +262,7 @@ public sealed class Sha256 : ISha, IDisposable
     /// </remarks>
     public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Sha256));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
         ArgumentNullException.ThrowIfNull(inputBuffer);
         if (inputOffset < 0 || inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
@@ -321,14 +321,14 @@ public sealed class Sha256 : ISha, IDisposable
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], Sha.K256[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], Sha.K256[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], Sha.K256[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], Sha.K256[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], Sha.K256[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], Sha.K256[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], Sha.K256[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], Sha.K256[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], SHA.K256[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], SHA.K256[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], SHA.K256[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], SHA.K256[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], SHA.K256[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], SHA.K256[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], SHA.K256[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], SHA.K256[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -381,14 +381,14 @@ public sealed class Sha256 : ISha, IDisposable
         // Process rounds.
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], Sha.K256[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], Sha.K256[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], Sha.K256[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], Sha.K256[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], Sha.K256[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], Sha.K256[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], Sha.K256[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], Sha.K256[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], SHA.K256[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], SHA.K256[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], SHA.K256[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], SHA.K256[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], SHA.K256[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], SHA.K256[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], SHA.K256[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], SHA.K256[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -470,14 +470,14 @@ public sealed class Sha256 : ISha, IDisposable
         // Process rounds with optimized operations
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], Sha.K256[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], Sha.K256[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], Sha.K256[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], Sha.K256[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], Sha.K256[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], Sha.K256[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], Sha.K256[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], Sha.K256[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], SHA.K256[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], SHA.K256[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], SHA.K256[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], SHA.K256[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], SHA.K256[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], SHA.K256[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], SHA.K256[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], SHA.K256[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -535,14 +535,14 @@ public sealed class Sha256 : ISha, IDisposable
         // Process rounds with optimized operations
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], Sha.K256[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], Sha.K256[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], Sha.K256[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], Sha.K256[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], Sha.K256[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], Sha.K256[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], Sha.K256[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], Sha.K256[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], SHA.K256[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], SHA.K256[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], SHA.K256[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], SHA.K256[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], SHA.K256[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], SHA.K256[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], SHA.K256[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], SHA.K256[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -609,14 +609,14 @@ public sealed class Sha256 : ISha, IDisposable
         // Process rounds with constant-time operations
         for (int i = 0; i < 64; i += 8)
         {
-            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], Sha.K256[i]);
-            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], Sha.K256[i + 1]);
-            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], Sha.K256[i + 2]);
-            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], Sha.K256[i + 3]);
-            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], Sha.K256[i + 4]);
-            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], Sha.K256[i + 5]);
-            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], Sha.K256[i + 6]);
-            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], Sha.K256[i + 7]);
+            BitwiseUtils.Round(ref a, ref b, ref c, ref d, ref e, ref f, ref g, ref h, w[i], SHA.K256[i]);
+            BitwiseUtils.Round(ref h, ref a, ref b, ref c, ref d, ref e, ref f, ref g, w[i + 1], SHA.K256[i + 1]);
+            BitwiseUtils.Round(ref g, ref h, ref a, ref b, ref c, ref d, ref e, ref f, w[i + 2], SHA.K256[i + 2]);
+            BitwiseUtils.Round(ref f, ref g, ref h, ref a, ref b, ref c, ref d, ref e, w[i + 3], SHA.K256[i + 3]);
+            BitwiseUtils.Round(ref e, ref f, ref g, ref h, ref a, ref b, ref c, ref d, w[i + 4], SHA.K256[i + 4]);
+            BitwiseUtils.Round(ref d, ref e, ref f, ref g, ref h, ref a, ref b, ref c, w[i + 5], SHA.K256[i + 5]);
+            BitwiseUtils.Round(ref c, ref d, ref e, ref f, ref g, ref h, ref a, ref b, w[i + 6], SHA.K256[i + 6]);
+            BitwiseUtils.Round(ref b, ref c, ref d, ref e, ref f, ref g, ref h, ref a, w[i + 7], SHA.K256[i + 7]);
         }
 
         _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
@@ -628,7 +628,7 @@ public sealed class Sha256 : ISha, IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Releases all resources used by the <see cref="Sha256"/> instance.
+    /// Releases all resources used by the <see cref="SHA256"/> instance.
     /// </summary>
     /// <remarks>
     /// This method clears sensitive data from memory and marks the instance as disposed.

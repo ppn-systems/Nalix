@@ -13,9 +13,9 @@ using System.Linq;
 namespace Notio.Network.Dispatcher.BuiltIn;
 
 /// <summary>
-/// Handles the secure handshake process for establishing encrypted connections using X25519 and ISha.
+/// Handles the secure handshake process for establishing encrypted connections using X25519 and ISHA.
 /// This class manages both the initiation and finalization of secure connections with clients.
-/// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISha.
+/// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
 public sealed class HandshakeController
@@ -23,7 +23,7 @@ public sealed class HandshakeController
     #region Fields
 
     private readonly ILogger? _logger;
-    private readonly ISha _hashAlgorithm;
+    private readonly ISHA _hashAlgorithm;
     private readonly IX25519 _keyExchangeAlgorithm;
 
     #endregion
@@ -36,7 +36,7 @@ public sealed class HandshakeController
     /// <param name="sha">The hashing algorithm implementation to use (e.g., SHA-256).</param>
     /// <param name="x25519">The X25519 implementation for key exchange.</param>
     /// <param name="logger">Optional logger for recording events and errors during the handshake process.</param>
-    public HandshakeController(ISha sha, IX25519 x25519, ILogger? logger)
+    public HandshakeController(ISHA sha, IX25519 x25519, ILogger? logger)
     {
         _logger = logger;
         _hashAlgorithm = sha;

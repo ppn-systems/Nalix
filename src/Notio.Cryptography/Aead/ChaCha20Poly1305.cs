@@ -31,6 +31,8 @@ public static class ChaCha20Poly1305
 
     #endregion
 
+    #region Public Methods
+
     // -------------------------------
     // Public API: Encrypt and Decrypt
     // -------------------------------
@@ -210,6 +212,10 @@ public static class ChaCha20Poly1305
         return true;
     }
 
+    #endregion
+
+    #region Private Methods
+
     // ----------------------------
     // Private API: Utility Methods
     // ----------------------------
@@ -261,4 +267,6 @@ public static class ChaCha20Poly1305
 
         return macData;
     }
+
+    #endregion
 }

@@ -3,7 +3,7 @@ namespace Notio.Cryptography.Hashing;
 /// <summary>
 /// Provides SHA-family cryptographic constants used in hash computations.
 /// </summary>
-public static class Sha
+public static class SHA
 {
     /// <summary>
     /// The SHA-1 round constants (Ka values) used in the message expansion and compression functions.
