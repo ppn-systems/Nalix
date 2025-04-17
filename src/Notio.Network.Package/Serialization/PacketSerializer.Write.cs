@@ -11,7 +11,11 @@ namespace Notio.Network.Package.Serialization;
 
 public static partial class PacketSerializer
 {
+    #region Const
+
     private const int ArrayPoolThreshold = 32768;
+
+    #endregion
 
     #region Public Method Sync
 

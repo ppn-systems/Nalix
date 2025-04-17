@@ -2,6 +2,7 @@ using Notio.Common.Package;
 using Notio.Network.Package.Serialization;
 using Notio.Network.Package.Utilities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Notio.Network.Package.Extensions;
 
@@ -57,7 +58,7 @@ public static class PacketExtensions
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
     /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(this in Packet packet, Span<byte> destination, out int bytesWritten)
+    public static bool TrySerialize(this in Packet packet, Span<byte> destination, [NotNullWhen(true)] out int bytesWritten)
         => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
 
     /// <summary>
@@ -66,6 +67,6 @@ public static class PacketExtensions
     /// <param name="source">The byte span containing packet data.</param>
     /// <param name="packet">Outputs the deserialized packet if successful.</param>
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(this ReadOnlySpan<byte> source, out Packet packet)
+    public static bool TryDeserialize(this ReadOnlySpan<byte> source, [NotNullWhen(true)] out Packet packet)
         => PacketSerializer.TryDeserialize(source, out packet);
 }
