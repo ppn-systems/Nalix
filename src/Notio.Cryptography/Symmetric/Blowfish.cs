@@ -16,6 +16,9 @@ public class Blowfish
     /// </summary>
     public const int N = 16;
 
+    private const int KeyMinBytes = 4; // Minimum key size in bytes
+    private const int KeyMaxBytes = 56; // Maximum key size in bytes
+
     #endregion
 
     #region Fields  
@@ -358,10 +361,10 @@ public class Blowfish
         {
             left ^= P[i];
             right ^= SubstitutionFunction(left);
-            (left, right) = (right, left);
+            (left, right) = (right, left); // Swap halves
         }
 
-        (left, right) = (right, left);
+        (left, right) = (right, left); // Undo final swap
 
         right ^= P[N];
         left ^= P[N + 1];
@@ -379,10 +382,10 @@ public class Blowfish
         {
             left ^= P[i];
             right ^= SubstitutionFunction(left);
-            (left, right) = (right, left);
+            (left, right) = (right, left); // Swap halves
         }
 
-        (left, right) = (right, left);
+        (left, right) = (right, left); // Undo final swap
 
         right ^= P[1];
         left ^= P[0];
@@ -409,11 +412,16 @@ public class Blowfish
     /// </summary>
     /// <param name="key">The encryption key.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InitializeKeySchedule(byte[] key)
+    private void InitializeKeySchedule(ReadOnlySpan<byte> key)
     {
+        // Validate key length
+        if (key.Length < KeyMinBytes || key.Length > KeyMaxBytes)
+            throw new ArgumentException($"Key length must be between {KeyMinBytes} and {KeyMaxBytes} bytes.");
+
         short j = 0;
         uint data = 0;
 
+        // XOR P-array with key material
         for (short i = 0; i < N + 2; ++i)
         {
             for (short k = 0; k < 4; ++k)

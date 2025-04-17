@@ -11,13 +11,20 @@ namespace Notio.Cryptography.Symmetric;
 /// </summary>
 public sealed class Arc4 : IDisposable
 {
+    #region Constants
+
+    private const int PermutationSize = 256;
+    private const int WeakKeyMitigationBytes = 3072;
+
+    #endregion
+
     #region Fields
 
     // Store state as individual fields for better performance
     private byte _i;
-
     private byte _j;
     private readonly byte[] _s = new byte[256];
+
     private bool _disposed;
 
     #endregion
@@ -108,25 +115,26 @@ public sealed class Arc4 : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Initialize(ReadOnlySpan<byte> key)
     {
-        // Initialize the permutation array
-        for (int k = 0; k < 256; k++)
+        // Initialize the permutation array (S)
+        for (int k = 0; k < PermutationSize; k++)
         {
             _s[k] = (byte)k;
         }
 
-        // Key scheduling algorithm (KSA)
+        // Perform Key Scheduling Algorithm (KSA)
         byte j = 0;
-        for (int k = 0; k < 256; k++)
+        for (int k = 0; k < PermutationSize; k++)
         {
             j += (byte)(_s[k] + key[k % key.Length]);
-            (_s[k], _s[j]) = (_s[j], _s[k]);
+            (_s[k], _s[j]) = (_s[j], _s[k]); // Swap values in the permutation array
         }
 
         // Drop the first 3072 bytes to mitigate weak key initial state vulnerabilities
         _i = 0;
         _j = 0;
-        Span<byte> dummy = stackalloc byte[3072];
-        Process(dummy);
+
+        Span<byte> dummy = stackalloc byte[WeakKeyMitigationBytes];
+        this.Process(dummy); // Process the dummy bytes to discard the weak initial state
     }
 
     /// <summary>
@@ -137,17 +145,28 @@ public sealed class Arc4 : IDisposable
     {
         for (int i = 0; i < blocks.Length; i++)
         {
-            // Generate 4 bytes of keystream
             uint keystream = 0;
 
-            for (int b = 0; b < 4; b++)
-            {
-                _i++;
-                _j += _s[_i];
-                (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-                byte k = _s[(byte)(_s[_i] + _s[_j])];
-                keystream = (keystream << 8) | k;
-            }
+            // Unroll the loop to process 4 bytes directly
+            _i++;
+            _j += _s[_i];
+            (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
+            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 24;
+
+            _i++;
+            _j += _s[_i];
+            (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
+            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 16;
+
+            _i++;
+            _j += _s[_i];
+            (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
+            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 8;
+
+            _i++;
+            _j += _s[_i];
+            (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
+            keystream |= _s[(byte)(_s[_i] + _s[_j])];
 
             // XOR the block with the keystream
             blocks[i] ^= keystream;
@@ -165,7 +184,10 @@ public sealed class Arc4 : IDisposable
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-            buffer[k] ^= _s[(byte)(_s[_i] + _s[_j])];
+
+            // Compute keystream byte and XOR it with the buffer
+            byte keystream = _s[(byte)(_s[_i] + _s[_j])];
+            buffer[k] ^= keystream;
         }
     }
 

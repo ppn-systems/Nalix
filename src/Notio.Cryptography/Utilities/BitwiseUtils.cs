@@ -9,8 +9,10 @@ namespace Notio.Cryptography.Utilities;
 /// High-performance bitwise utilities for cryptographic operations.
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
-public static class BitwiseUtils
+public static partial class BitwiseUtils
 {
+    #region Bit Rotations
+
     /// <summary>
     /// Rotate a 32-bit word right by the specified Number of bits using hardware intrinsics when available.
     /// </summary>
@@ -30,6 +32,10 @@ public static class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateLeft(uint value, int bits)
         => BitOperations.RotateLeft(value, bits);
+
+    #endregion
+
+    #region Arithmetic Operations
 
     /// <summary>
     /// Unchecked integer exclusive or (XOR) operation.
@@ -71,6 +77,10 @@ public static class BitwiseUtils
     /// <returns>The result of (v - w) modulo 2^32.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Subtract(uint v, uint w) => unchecked(v - w);
+
+    #endregion
+
+    #region Byte Conversion (Little Endian)
 
     /// <summary>
     /// Convert four bytes of the input buffer into an unsigned 32-bit integer, beginning at the inputOffset.
@@ -172,6 +182,10 @@ public static class BitwiseUtils
         }
     }
 
+    #endregion
+
+    #region SHA-256 Round
+
     /// <summary>
     /// Performs a single round of the SHA-256 hash function with SIMD optimizations where available.
     /// This method updates the internal state variables of the SHA-256 algorithm based on the provided message word (w)
@@ -212,37 +226,5 @@ public static class BitwiseUtils
         a = temp1 + temp2;
     }
 
-    /// <summary>
-    /// Compares two byte spans in a fixed-time manner to prevent timing attacks.
-    /// </summary>
-    /// <param name="left">The first byte span to compare.</param>
-    /// <param name="right">The second byte span to compare.</param>
-    /// <returns>True if the byte spans are equal; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
-    {
-        if (left.Length != right.Length) return false;
-
-        int result = 0;
-
-        for (int i = 0; i < left.Length; i++)
-        {
-            result |= left[i] ^ right[i];
-        }
-
-        return result == 0;
-    }
-
-    /// <summary>
-    /// Increments a counter value stored in a byte array.
-    /// </summary>
-    /// <param name="counter">The counter to increment.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IncrementCounter(Span<byte> counter)
-    {
-        for (int i = 0; i < counter.Length; i++)
-        {
-            if (++counter[i] != 0) break;
-        }
-    }
+    #endregion
 }

@@ -10,6 +10,8 @@ namespace Notio.Cryptography.Security;
 /// </summary>
 public static class RFC2898
 {
+    #region Public Methods
+
     /// <summary>
     /// Derives a cryptographic key from the specified password and salt using PBKDF2 (RFC 2898).
     /// </summary>
@@ -81,4 +83,6 @@ public static class RFC2898
 
         return sb.ToString();
     }
+
+    #endregion
 }
