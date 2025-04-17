@@ -2,6 +2,7 @@ using Notio.Common.Package.Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Dispatcher.Queue;
@@ -63,7 +64,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <param name="packet">The dequeued packet, if available</param>
     /// <returns>True if a packet was retrieved, False if the queue is empty</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryDequeue(out TPacket? packet)
+    public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
         if (_isThreadSafe)
         {

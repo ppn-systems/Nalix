@@ -71,7 +71,8 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
                     SingleWriter = false,
                     AllowSynchronousContinuations = true
                 };
-                _priorityChannels[i] = Channel.CreateBounded<TPacket>(options);
+
+                _priorityChannels[i] = System.Threading.Channels.Channel.CreateBounded<TPacket>(options);
             }
             else
             {
@@ -81,7 +82,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
                     SingleWriter = false,
                     AllowSynchronousContinuations = true
                 };
-                _priorityChannels[i] = Channel.CreateUnbounded<TPacket>(options);
+                _priorityChannels[i] = System.Threading.Channels.Channel.CreateUnbounded<TPacket>(options);
             }
         }
 
@@ -94,6 +95,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
     /// Thêm một packet vào hàng đợi
     /// </summary>
     /// <param name="packet">Packet cần thêm</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>Task hoàn thành khi packet đã được thêm vào</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async ValueTask<bool> EnqueueAsync(TPacket packet, CancellationToken cancellationToken = default)
@@ -195,7 +197,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
             {
                 var reader = _priorityChannels[i].Reader;
 
-                if (reader.TryRead(out TPacket packet))
+                if (reader.TryRead(out TPacket? packet))
                 {
                     // Giảm tổng số packet
                     Interlocked.Decrement(ref _totalCount);
@@ -256,7 +258,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
     /// <param name="packet">Packet được lấy ra nếu có</param>
     /// <returns>True nếu lấy được packet, False nếu hàng đợi trống</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryDequeue(out TPacket packet)
+    public bool TryDequeue(out TPacket? packet)
     {
         packet = default;
 
@@ -265,7 +267,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
         {
             var reader = _priorityChannels[i].Reader;
 
-            if (reader.TryRead(out TPacket tempPacket))
+            if (reader.TryRead(out TPacket? tempPacket))
             {
                 // Giảm tổng số packet
                 Interlocked.Decrement(ref _totalCount);
@@ -324,7 +326,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
     /// Đợi một packet từ hàng đợi với timeout
     /// </summary>
     /// <param name="timeout">Thời gian tối đa chờ đợi</param>
-    /// <param name="packet">Packet được lấy ra nếu có</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>True nếu lấy được packet, False nếu hết thời gian chờ</returns>
     public async Task<bool> WaitForPacketAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
@@ -372,7 +374,7 @@ internal sealed class PacketChannel<TPacket> where TPacket : Common.Package.IPac
             }
 
             // Thử lấy packet
-            if (TryDequeue(out TPacket packet))
+            if (TryDequeue(out TPacket? packet))
             {
                 result.Add(packet);
                 dequeued++;
