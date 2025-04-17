@@ -1,5 +1,5 @@
 using Notio.Common.Package.Enums;
-using Notio.Network.Dispatcher.Queue.Statistics;
+using Notio.Network.Dispatcher.Statistics;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -11,10 +11,10 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <summary>
     /// Get queue statistics
     /// </summary>
-    public PacketQueueStatistics GetStatistics()
+    public PacketStatistics GetStatistics()
     {
         if (!_collectStatistics || _queueTimer == null)
-            return new PacketQueueStatistics();
+            return new PacketStatistics();
 
         Dictionary<PacketPriority, PriorityStatistics> stats = [];
 
@@ -34,11 +34,11 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
         if (_packetsProcessed > 0)
             avgProcessingMs = (float)(_totalProcessingTicks * 1000.0 / Stopwatch.Frequency) / _packetsProcessed;
 
-        return new PacketQueueStatistics
+        return new PacketStatistics
         {
             TotalCount = Count,
             PerPriorityStats = stats,
-            AvgProcessingTimeMs = avgProcessingMs,
+            ArgProcessingTimeMs = avgProcessingMs,
             UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
         };
     }
