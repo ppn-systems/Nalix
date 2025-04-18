@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Notio.Network.Dispatcher.Options;
 
 /// <summary>
-/// Provides configurable options for <see cref="PacketDispatcher{TPacket}"/> behavior and lifecycle.
+/// Provides configurable options for <see cref="PacketDispatch{TPacket}"/> behavior and lifecycle.
 /// </summary>
 /// <typeparam name="TPacket">
 /// The packet type this dispatcher handles. Must implement <see cref="IPacket"/>.

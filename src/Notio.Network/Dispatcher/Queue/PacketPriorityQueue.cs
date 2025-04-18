@@ -11,7 +11,7 @@ namespace Notio.Network.Dispatcher.Queue;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Fields
 
@@ -49,9 +49,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     #region Constructors
 
     /// <summary>
-    /// Initialize a new PacketQueue using options.
+    /// Initialize a new PacketPriorityQueue using options.
     /// </summary>
-    private PacketQueue()
+    private PacketPriorityQueue()
     {
         _options = null!;
         _queueTimer = null;
@@ -76,10 +76,10 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
-    /// Initialize a new PacketQueue using options
+    /// Initialize a new PacketPriorityQueue using options
     /// </summary>
     /// <param name="configure">Configuration options for the packet queue</param>
-    public PacketQueue(Action<PacketQueueOptions>? configure)
+    public PacketPriorityQueue(Action<PacketQueueOptions>? configure)
         : this()
     {
         _options = new PacketQueueOptions();
@@ -98,10 +98,10 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
-    /// Initialize a new PacketQueue using options
+    /// Initialize a new PacketPriorityQueue using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public PacketQueue(PacketQueueOptions options)
+    public PacketPriorityQueue(PacketQueueOptions options)
         : this()
     {
         _options = options;
@@ -119,14 +119,14 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
-    /// Initialize a new PacketQueue
+    /// Initialize a new PacketPriorityQueue
     /// </summary>
     /// <param name="isThreadSafe">Enable to support multiple threads accessing the queue simultaneously</param>
     /// <param name="maxQueueSize">Maximum number of packets in the queue (0 = unlimited)</param>
     /// <param name="packetTimeout">Maximum time a packet is allowed to exist in the queue</param>
     /// <param name="validateOnDequeue">Check packet validity when dequeuing</param>
     /// <param name="collectStatistics">Collect detailed statistics</param>
-    public PacketQueue(
+    public PacketPriorityQueue(
         bool isThreadSafe = false, // Note: Channels are already thread-safe, but kept for API compatibility
         int maxQueueSize = 0,
         TimeSpan? packetTimeout = null,

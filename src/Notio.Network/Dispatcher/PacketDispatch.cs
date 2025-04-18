@@ -5,14 +5,14 @@ namespace Notio.Network.Dispatcher;
 /// This implementation uses reflection to map packet command IDs to controller methods.
 /// </summary>
 /// <remarks>
-/// The <see cref="PacketDispatcher{TPacket}"/> processes incoming packets and invokes corresponding handlers
+/// The <see cref="PacketDispatch{TPacket}"/> processes incoming packets and invokes corresponding handlers
 /// based on the registered command IDs. It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
 /// <param name="options">
 /// A delegate used to configure <see cref="Options.PacketDispatcherOptions{TPacket}"/> before processing packets.
 /// </param>
-public sealed class PacketDispatcher<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
-    : PacketDispatcherBase<TPacket>(options), IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
+public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
+    : PacketDispatchBase<TPacket>(options), IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

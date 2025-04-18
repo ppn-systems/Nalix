@@ -32,7 +32,7 @@ namespace Notio.Network.Dispatcher;
 /// </code>
 /// </example>
 public sealed class PacketDispatchQueue<TPacket>
-    : PacketDispatcherBase<TPacket>, IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
+    : PacketDispatchBase<TPacket>, IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
@@ -40,7 +40,7 @@ public sealed class PacketDispatchQueue<TPacket>
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly Queue.PacketQueue<TPacket> _packetQueue;
+    private readonly Queue.PacketPriorityQueue<TPacket> _packetQueue;
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
         Common.Connection.IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
@@ -94,7 +94,7 @@ public sealed class PacketDispatchQueue<TPacket>
     {
         _isProcessing = false;
 
-        _packetQueue = new Queue.PacketQueue<TPacket>();
+        _packetQueue = new Queue.PacketPriorityQueue<TPacket>();
 
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);

@@ -44,7 +44,7 @@ public sealed partial class PacketDispatcherOptions<TPacket> where TPacket
     public PacketDispatcherOptions<TPacket> WithLogging(ILogger logger)
     {
         _logger = logger;
-        _logger.Info("Logger instance successfully attached to PacketDispatcher. Logging is now active.");
+        _logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
 
         return this;
     }

@@ -3,7 +3,7 @@ using System;
 namespace Notio.Network.Dispatcher.Options;
 
 /// <summary>
-/// Configuration options for PacketQueue
+/// Configuration options for PacketPriorityQueue
 /// </summary>
 public class PacketQueueOptions
 {

@@ -10,7 +10,7 @@ namespace Notio.Network.Dispatcher;
 /// Implementations of this interface are responsible for deserializing and processing
 /// network packets based on their content and the connection from which they originate.
 /// </remarks>
-public interface IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
+public interface IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
