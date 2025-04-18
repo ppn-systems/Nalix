@@ -1,3 +1,5 @@
+using Notio.Common.Connection;
+
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
@@ -41,7 +43,13 @@ public sealed class PacketQueueDispatcher<TPacket>
 
     // Queue for storing packet handling tasks
     private readonly Queue.PacketQueue<TPacket> _packetQueue;
-    private readonly System.Collections.Generic.Dictionary<ulong, Common.Connection.IConnection> _mapping = [];
+    // Reverse mapping: IConnection -> set of all associated packet keys
+    private readonly System.Collections.Generic.Dictionary<
+        Common.Connection.IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
+
+    // Forward mapping: packet key -> connection
+    private readonly System.Collections.Generic.Dictionary<
+        ulong, Common.Connection.IConnection> _packetMap = [];
 
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
@@ -189,13 +197,23 @@ public sealed class PacketQueueDispatcher<TPacket>
     /// <inheritdoc />
     public void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
     {
-        _packetQueue.Enqueue(packet);
+        ulong key = KeyValues(packet);
 
         lock (_lock)
         {
-            _mapping[KeyValues(packet)] = connection;
-        }
+            _packetQueue.Enqueue(packet);
 
+            _packetMap[key] = connection;
+
+            if (!_reverseMap.TryGetValue(connection,
+                out System.Collections.Generic.HashSet<ulong>? set))
+            {
+                set = [];
+                _reverseMap[connection] = set;
+            }
+
+            set.Add(key);
+        }
         _semaphore.Release();
     }
 
@@ -226,7 +244,7 @@ public sealed class PacketQueueDispatcher<TPacket>
 
                 // Dequeue and process packet
                 TPacket packet;
-                Common.Connection.IConnection connection;
+                Common.Connection.IConnection? connection;
 
                 lock (_lock)
                 {
@@ -234,9 +252,11 @@ public sealed class PacketQueueDispatcher<TPacket>
                         continue;
 
                     packet = _packetQueue.Dequeue();
-                    lock (_lock)
+
+                    if (!_packetMap.TryGetValue(KeyValues(packet), out connection))
                     {
-                        connection = _mapping[KeyValues(packet)];
+                        base.Logger?.Warn("[Dispatcher] No connection found for packet.");
+                        continue;
                     }
                 }
 
@@ -255,6 +275,29 @@ public sealed class PacketQueueDispatcher<TPacket>
         {
             _isProcessing = false;
         }
+    }
+
+    private void OnConnectionClose(object? sender, IConnectEventArgs e)
+    {
+        if (sender is not Common.Connection.IConnection connection) return;
+
+        lock (_lock)
+        {
+            if (_reverseMap.TryGetValue(connection,
+                out System.Collections.Generic.HashSet<ulong>? keys))
+            {
+                foreach (ulong key in keys)
+                {
+                    _packetMap.Remove(key);
+                }
+
+                _reverseMap.Remove(connection);
+            }
+
+            connection.OnCloseEvent -= OnConnectionClose;
+        }
+
+        base.Logger?.Info($"[Dispatcher] Auto-removed keys for closed connection {connection.RemoteEndPoint}");
     }
 
     #endregion
