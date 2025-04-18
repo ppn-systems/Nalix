@@ -7,11 +7,11 @@
     <DefineConstants>UNSAFE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>0.5.62</Version>
-    <PackageVersion>0.5.62</PackageVersion>
+    <Version>0.6.01</Version>
+    <PackageVersion>0.6.01</PackageVersion>
 
     <Description>
-      Notio.Cryptography is a high-performance .NET library providing secure and efficient cryptographic utilities. It supports symmetric and asymmetric encryption, authenticated encryption (AEAD), hashing, message authentication codes (MAC), integrity checks, padding schemes, and general security enhancements. Designed for developers requiring robust cryptographic solutions with minimal overhead.
+Notio.Cryptography is a high-performance .NET library providing secure and efficient cryptographic utilities. It supports symmetric and asymmetric encryption, authenticated encryption (AEAD), hashing, message authentication codes (MAC), integrity checks, padding schemes, and general security enhancements. Designed for developers requiring robust cryptographic solutions with minimal overhead.
     </Description>
 
     <PackageReleaseNotes>

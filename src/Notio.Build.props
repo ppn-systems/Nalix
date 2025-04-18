@@ -3,11 +3,11 @@
   <PropertyGroup>
     <License>Apache</License>
     <Platforms>AnyCPU</Platforms>
-    <Authors>PhucNguyen Dev</Authors>
+    <Authors>PhucNguyen</Authors>
     <LangVersion>13.0</LangVersion>
-    <ProductName>Notio</ProductName>
+    <ProductName>Notio® .NET</ProductName>
     <Deterministic>true</Deterministic>
-    <Copyright>Copyright © 2024-2025 PhucNguyen Dev</Copyright>
+    <Copyright>© Notio Corporation. All rights reserved.</Copyright>
     <TargetFramework>net9.0</TargetFramework>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/phcnguyen/Notio</RepositoryUrl>
