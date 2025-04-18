@@ -126,17 +126,10 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <param name="validateOnDequeue">Check packet validity when dequeuing</param>
     /// <param name="collectStatistics">Collect detailed statistics</param>
     public PacketPriorityQueue(
-        int maxQueueSize = 0,
-        TimeSpan? packetTimeout = null,
-        bool validateOnDequeue = true,
-        bool collectStatistics = false)
-        : this(new PacketQueueOptions
-        {
-            MaxQueueSize = maxQueueSize,
-            PacketTimeout = packetTimeout ?? TimeSpan.FromSeconds(30),
-            ValidateOnDequeue = validateOnDequeue,
-            CollectStatistics = collectStatistics
-        })
+        int maxQueueSize = 0, TimeSpan? packetTimeout = null,
+        bool validateOnDequeue = true, bool collectStatistics = false)
+        : this(new PacketQueueOptions(
+            maxQueueSize, packetTimeout, validateOnDequeue, collectStatistics))
     {
     }
 
