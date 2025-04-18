@@ -1,5 +1,3 @@
-using Notio.Common.Connection;
-
 namespace Notio.Network.Dispatcher;
 
 /// <summary>
@@ -25,7 +23,7 @@ namespace Notio.Network.Dispatcher;
 /// <example>
 /// Example usage:
 /// <code>
-/// var dispatcher = new PacketQueueDispatcher`Packet`(opts => {
+/// var dispatcher = new PacketDispatchQueue`Packet`(opts => {
 ///     opts.WithHandler(...);
 /// });
 /// dispatcher.Start();
@@ -33,7 +31,7 @@ namespace Notio.Network.Dispatcher;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
-public sealed class PacketQueueDispatcher<TPacket>
+public sealed class PacketDispatchQueue<TPacket>
     : PacketDispatcherBase<TPacket>, IPacketDispatcher<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
@@ -87,11 +85,11 @@ public sealed class PacketQueueDispatcher<TPacket>
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketQueueDispatcher{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatchQueue{TPacket}"/> class
     /// with custom configuration options.
     /// </summary>
     /// <param name="options">A delegate used to configure dispatcher options</param>
-    public PacketQueueDispatcher(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
+    public PacketDispatchQueue(System.Action<Options.PacketDispatcherOptions<TPacket>> options)
         : base(options)
     {
         _isProcessing = false;
@@ -209,7 +207,12 @@ public sealed class PacketQueueDispatcher<TPacket>
                 out System.Collections.Generic.HashSet<ulong>? set))
             {
                 set = [];
+
+                // Create reverse mapping entry
                 _reverseMap[connection] = set;
+
+                // Register event only once
+                connection.OnCloseEvent += OnConnectionClosed;
             }
 
             set.Add(key);
@@ -277,7 +280,7 @@ public sealed class PacketQueueDispatcher<TPacket>
         }
     }
 
-    private void OnConnectionClose(object? sender, IConnectEventArgs e)
+    private void OnConnectionClosed(object? sender, Common.Connection.IConnectEventArgs e)
     {
         if (sender is not Common.Connection.IConnection connection) return;
 
@@ -294,7 +297,7 @@ public sealed class PacketQueueDispatcher<TPacket>
                 _reverseMap.Remove(connection);
             }
 
-            connection.OnCloseEvent -= OnConnectionClose;
+            connection.OnCloseEvent -= OnConnectionClosed;
         }
 
         base.Logger?.Info($"[Dispatcher] Auto-removed keys for closed connection {connection.RemoteEndPoint}");
