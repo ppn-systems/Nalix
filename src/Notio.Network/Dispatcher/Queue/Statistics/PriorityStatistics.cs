@@ -1,4 +1,4 @@
-namespace Notio.Network.Dispatcher.Statistics;
+namespace Notio.Network.Dispatcher.Queue.Statistics;
 
 /// <summary>
 /// Represents statistical information about the state and usage of a priority packet queue.

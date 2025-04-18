@@ -4,10 +4,11 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
+using Notio.Network.Dispatcher.Core.Dto;
+using Notio.Network.Dispatcher.Core.Packets;
 using Notio.Network.Dispatcher.Dto;
-using Notio.Network.Dispatcher.Packets;
 
-namespace Notio.Network.Dispatcher.BuiltIn;
+namespace Notio.Network.Dispatcher.Core.BuiltIn;
 
 /// <summary>
 /// A controller for managing keep-alive packets in a network dispatcher.

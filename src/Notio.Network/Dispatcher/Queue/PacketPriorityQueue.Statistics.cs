@@ -1,5 +1,5 @@
 using Notio.Common.Package.Enums;
-using Notio.Network.Dispatcher.Statistics;
+using Notio.Network.Dispatcher.Queue.Statistics;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;

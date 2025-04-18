@@ -1,7 +1,7 @@
 using Notio.Common.Package.Enums;
 using System.Collections.Generic;
 
-namespace Notio.Network.Dispatcher.Statistics;
+namespace Notio.Network.Dispatcher.Queue.Statistics;
 
 /// <summary>
 /// Provides detailed statistics and performance metrics for a priority-based packet queue.

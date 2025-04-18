@@ -1,7 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Package.Enums;
 
-namespace Notio.Network.Dispatcher.Packets;
+namespace Notio.Network.Dispatcher.Core.Packets;
 
 /// <summary>
 /// Provides extension methods for packet operations.

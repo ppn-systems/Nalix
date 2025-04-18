@@ -5,7 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Notio.Network.Dispatcher.Packets;
+namespace Notio.Network.Dispatcher.Core.Packets;
 
 internal static class PacketCodeHelper
 {

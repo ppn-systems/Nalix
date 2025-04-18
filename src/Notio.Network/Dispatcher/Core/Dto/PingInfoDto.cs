@@ -1,4 +1,4 @@
-namespace Notio.Network.Dispatcher.Dto;
+namespace Notio.Network.Dispatcher.Core.Dto;
 
 /// <summary>
 /// Represents diagnostic information about a connection's uptime and last ping latency.

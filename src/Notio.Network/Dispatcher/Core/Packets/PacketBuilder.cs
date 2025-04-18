@@ -9,7 +9,7 @@ using System.Buffers.Binary;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Notio.Network.Dispatcher.Packets;
+namespace Notio.Network.Dispatcher.Core.Packets;
 
 /// <summary>
 /// Provides methods for building network packets.

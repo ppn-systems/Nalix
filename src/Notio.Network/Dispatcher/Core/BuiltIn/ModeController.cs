@@ -6,10 +6,10 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Dispatcher.Packets;
+using Notio.Network.Dispatcher.Core.Packets;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Dispatcher.BuiltIn;
+namespace Notio.Network.Dispatcher.Core.BuiltIn;
 
 /// <summary>
 /// Handles connection mode settings for compression and encryption.

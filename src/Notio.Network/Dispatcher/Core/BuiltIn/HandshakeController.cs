@@ -7,10 +7,10 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Dispatcher.Packets;
+using Notio.Network.Dispatcher.Core.Packets;
 using System.Linq;
 
-namespace Notio.Network.Dispatcher.BuiltIn;
+namespace Notio.Network.Dispatcher.Core.BuiltIn;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISHA.
@@ -93,7 +93,7 @@ public sealed class HandshakeController
         connection.Metadata[Meta.LastHandshakeTime] = System.DateTime.UtcNow;
 
         // Derive the shared secret key using the server's private key and the client's public key.
-        connection.EncryptionKey = this.DeriveSharedKey(@private, packet.Payload.ToArray());
+        connection.EncryptionKey = DeriveSharedKey(@private, packet.Payload.ToArray());
 
         // Elevate the client's access level after successful handshake initiation.
         connection.Level = PermissionLevel.User;
@@ -144,7 +144,7 @@ public sealed class HandshakeController
         }
 
         // Derive the shared secret using the private key and the client's public key.
-        byte[] derivedKey = this.DeriveSharedKey(@private, packet.Payload.ToArray());
+        byte[] derivedKey = DeriveSharedKey(@private, packet.Payload.ToArray());
 
         connection.Metadata.Remove(Meta.PrivateKey);
 

@@ -1,4 +1,4 @@
-namespace Notio.Network.Dispatcher;
+namespace Notio.Network.Dispatcher.Core;
 
 /// <summary>
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.
@@ -39,7 +39,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     protected PacketDispatchBase(Options.PacketDispatcherOptions<TPacket> options)
-        => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
+        => Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchBase{TPacket}"/> class
@@ -49,7 +49,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     /// An optional delegate to configure the <see cref="Options.PacketDispatcherOptions{TPacket}"/> instance.
     /// </param>
     protected PacketDispatchBase(System.Action<Options.PacketDispatcherOptions<TPacket>>? configure = null)
-        : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
+        : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(Options);
 
     #endregion
 
@@ -109,12 +109,12 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
         TPacket packet,
         Common.Connection.IConnection connection)
     {
-        if (this.Options.TryResolveHandler(packet.Id,
+        if (Options.TryResolveHandler(packet.Id,
             out System.Func<TPacket,
             Common.Connection.IConnection,
             System.Threading.Tasks.Task>? handler))
         {
-            this.Logger?.Debug($"[Dispatcher] Processing packet Id: {packet.Id} from {connection.RemoteEndPoint}...");
+            Logger?.Debug($"[Dispatcher] Processing packet Id: {packet.Id} from {connection.RemoteEndPoint}...");
 
             try
             {
@@ -124,7 +124,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
             }
             catch (System.Exception ex)
             {
-                this.Logger?.Error(
+                Logger?.Error(
                     $"[Dispatcher] Exception occurred while handling packet Id: " +
                     $"{packet.Id} from {connection.RemoteEndPoint}. " +
                     $"Error: {ex.GetType().Name} - {ex.Message}", ex);
@@ -133,7 +133,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
             return;
         }
 
-        this.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
+        Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
     }
 
     #endregion
