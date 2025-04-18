@@ -113,10 +113,7 @@ internal static class LoggingLevelFormatter
     /// <returns>True if the log level is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValidLogLevel(LogLevel logLevel)
-    {
-        // Use unsigned comparison to handle both negative values and values larger than MaxLogLevels
-        return (uint)logLevel < MaxLogLevels;
-    }
+        => (uint)logLevel < MaxLogLevels;
 
     /// <summary>
     /// Directly copies the log level text into a destination buffer.

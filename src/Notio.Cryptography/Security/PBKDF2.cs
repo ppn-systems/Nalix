@@ -102,22 +102,6 @@ public sealed class Pbkdf2 : IDisposable
     }
 
     /// <summary>
-    /// Compares two byte spans in constant time to prevent timing attacks.
-    /// </summary>
-    /// <param name="a">The first byte span to compare.</param>
-    /// <param name="b">The second byte span to compare.</param>
-    /// <returns><c>true</c> if the spans are equal; otherwise, <c>false</c>.</returns>
-    public static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-    {
-        if (a.Length != b.Length) return false;
-
-        int result = 0;
-        for (int i = 0; i < a.Length; i++) result |= a[i] ^ b[i];
-
-        return result == 0;
-    }
-
-    /// <summary>
     /// Releases all resources used by the <see cref="Pbkdf2"/> instance and clears sensitive data.
     /// </summary>
     public void Dispose()

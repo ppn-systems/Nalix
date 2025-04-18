@@ -110,7 +110,7 @@ public sealed class Poly1305 : IDisposable
             throw new ArgumentException(
                 $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
 
-        using var poly = new Poly1305(key);
+        using Poly1305 poly = new(key);
         poly.ComputeTag(message, destination);
     }
 

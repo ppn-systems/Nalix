@@ -83,7 +83,7 @@ public sealed class Hmac : IDisposable
         ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
         HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
-        using var hmac = new Hmac(key, algorithm);
+        using Hmac hmac = new(key, algorithm);
         return hmac.ComputeHash(data);
     }
 
@@ -148,7 +148,7 @@ public sealed class Hmac : IDisposable
     public static bool Verify(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
                              ReadOnlySpan<byte> expectedHmac, HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
-        using var hmac = new Hmac(key, algorithm);
+        using Hmac hmac = new(key, algorithm);
         return hmac.VerifyHash(data, expectedHmac);
     }
 

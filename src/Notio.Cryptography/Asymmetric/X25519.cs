@@ -67,10 +67,10 @@ public sealed class X25519 : IX25519
         // Allocate and fill private key
         privateKey = new byte[FieldElementSize];
         RandGenerator.Fill(privateKey);
-        ClampScalar(privateKey);
+        X25519.ClampScalar(privateKey);
 
         // Compute public key from private key
-        publicKey = ScalarMult(privateKey, BasePoint);
+        publicKey = X25519.ScalarMult(privateKey, BasePoint);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public sealed class X25519 : IX25519
     /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
     public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
     {
-        GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
+        X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
         return (privateKey, publicKey);
     }
 
@@ -103,10 +103,10 @@ public sealed class X25519 : IX25519
         // Create a copy of the private key to clamp it without modifying the original
         Span<byte> clampedPrivateKey = stackalloc byte[FieldElementSize];
         privateKey.CopyTo(clampedPrivateKey);
-        ClampScalar(clampedPrivateKey);
+        X25519.ClampScalar(clampedPrivateKey);
 
         // Compute the shared secret
-        return ScalarMult(clampedPrivateKey, peerPublicKey);
+        return X25519.ScalarMult(clampedPrivateKey, peerPublicKey);
     }
 
     #endregion

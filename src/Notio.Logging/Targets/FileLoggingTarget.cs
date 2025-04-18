@@ -43,7 +43,7 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
     /// </summary>
     public FileLoggingTarget()
-        : this(new LoggingFormatter(), new FileLoggerOptions())
+        : this(new LoggingFormatter(false), new FileLoggerOptions())
     {
     }
 
@@ -52,7 +52,7 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="options">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
     public FileLoggingTarget(FileLoggerOptions options)
-        : this(new LoggingFormatter(), options)
+        : this(new LoggingFormatter(false), options)
     {
     }
 
@@ -61,7 +61,7 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="configureOptions">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
     public FileLoggingTarget(Action<FileLoggerOptions> configureOptions)
-        : this(new LoggingFormatter(), ConfigureOptions(configureOptions))
+        : this(new LoggingFormatter(false), ConfigureOptions(configureOptions))
     {
     }
 

@@ -29,6 +29,8 @@ internal static class LoggingBuilder
 
     #endregion
 
+    #region Public Methods
+
     /// <summary>
     /// Builds a formatted log entry with optimal performance.
     /// </summary>
@@ -41,20 +43,14 @@ internal static class LoggingBuilder
     /// <param name="colors">Whether to include ANSI color codes in the output.</param>
     /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void BuildLog(
-        StringBuilder builder,
-        in DateTime timeStamp,
-        LogLevel logLevel,
-        in EventId eventId,
-        string message,
-        Exception? exception,
-        bool colors = false,
-        string? customTimestampFormat = null)
+    public static void BuildLog(
+        StringBuilder builder, in DateTime timeStamp, LogLevel logLevel,
+        in EventId eventId, string message, Exception? exception,
+        bool colors = false, string? customTimestampFormat = null)
     {
         // Estimate buffer size to minimize reallocations
         int initialLength = builder.Length;
         int estimatedLength = CalculateEstimatedLength(message, eventId, exception, colors);
-
 
         // Ensure the builder has enough capacity
         EnsureCapacity(builder, estimatedLength + initialLength + 9);
@@ -80,13 +76,9 @@ internal static class LoggingBuilder
     /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
     /// <returns>A formatted log message.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string CreateLogMessage(
-        in DateTime timeStamp,
-        LogLevel logLevel,
-        in EventId eventId,
-        string message,
-        Exception? exception,
-        bool colors = false,
+    public static string CreateLogMessage(
+        in DateTime timeStamp, LogLevel logLevel, in EventId eventId,
+        string message, Exception? exception, bool colors = false,
         string? customTimestampFormat = null)
     {
         // Determine appropriate buffer size based on message
@@ -106,6 +98,8 @@ internal static class LoggingBuilder
             StringBuilderPool.Return(builder);
         }
     }
+
+    #endregion
 
     #region Utility Methods
 
@@ -248,6 +242,7 @@ internal static class LoggingBuilder
     /// <summary>
     /// Formats exception details with a structured approach for better readability.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void FormatExceptionDetails(StringBuilder builder, Exception exception, int level = 0)
     {
         // Indent based on level for inner exceptions

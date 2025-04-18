@@ -39,6 +39,7 @@ internal static class ColorAnsi
     {
         // Initialize color cache
         _levelColorCache[(int)LogLevel.None] = Cyan;
+        _levelColorCache[(int)LogLevel.Meta] = Pink;
         _levelColorCache[(int)LogLevel.Trace] = Orange;
         _levelColorCache[(int)LogLevel.Debug] = LightCyan;
         _levelColorCache[(int)LogLevel.Information] = LightGreen;

@@ -1,4 +1,5 @@
 using Notio.Common.Cryptography.Hashing;
+using Notio.Cryptography.Utilities;
 using Notio.Randomization;
 using System;
 
@@ -39,7 +40,7 @@ public static class PasswordSecurity
     public static void HashPassword(string password, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeySize, HashAlgorithm.Sha256);
+        using Pbkdf2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
         hash = pbkdf2.DeriveKey(password);
     }
 
@@ -52,8 +53,8 @@ public static class PasswordSecurity
     /// <returns><c>true</c> if the password is valid; otherwise, <c>false</c>.</returns>
     public static bool VerifyPassword(string password, byte[] salt, byte[] hash)
     {
-        using var pbkdf2 = new Pbkdf2(salt, Iterations, KeySize, HashAlgorithm.Sha256);
-        return Pbkdf2.ConstantTimeEquals(pbkdf2.DeriveKey(password), hash);
+        using Pbkdf2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
+        return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(password), hash);
     }
 
     /// <summary>

@@ -47,8 +47,7 @@ public class LoggingFormatter(bool colors = false) : ILoggerFormatter
     {
         StringBuilder logBuilder = new();
 
-        LoggingBuilder.BuildLog(logBuilder, timeStamp,
-            logLevel, eventId, message, exception, _colors);
+        LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
 
         return logBuilder.ToString();
     }

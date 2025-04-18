@@ -10,7 +10,7 @@ namespace Notio.Logging.Internal;
 internal static class StringBuilderPool
 {
     // Use array pool for efficient reuse
-    private static readonly ArrayPool<StringBuilder> s_pool = ArrayPool<StringBuilder>.Create(20, 50);
+    private static readonly ArrayPool<StringBuilder> _spool = ArrayPool<StringBuilder>.Create(20, 50);
 
     /// <summary>
     /// Rents a StringBuilder from the pool with the specified capacity.
@@ -18,7 +18,7 @@ internal static class StringBuilderPool
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static StringBuilder Rent(int capacity = 256)
     {
-        StringBuilder builder = s_pool.Rent(1)[0];
+        StringBuilder builder = _spool.Rent(1)[0];
         if (builder == null)
         {
             builder = new StringBuilder(capacity);
@@ -45,6 +45,6 @@ internal static class StringBuilderPool
         builder.Clear();
 
         // Return to pool
-        s_pool.Return([builder], clearArray: false);
+        _spool.Return([builder], clearArray: false);
     }
 }
