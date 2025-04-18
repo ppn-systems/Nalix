@@ -30,5 +30,5 @@ public class PacketQueueOptions
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
-    public TimeSpan PacketTimeout { get; set; } = TimeSpan.FromSeconds(30);
+    public TimeSpan PacketTimeout { get; set; } = TimeSpan.FromSeconds(30L);
 }
