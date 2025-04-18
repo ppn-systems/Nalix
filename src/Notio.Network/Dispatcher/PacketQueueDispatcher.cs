@@ -193,7 +193,7 @@ public sealed class PacketQueueDispatcher<TPacket>
 
         lock (_lock)
         {
-            _mapping[CombineValues(packet.Number, packet.Id, packet.Timestamp)] = connection;
+            _mapping[KeyValues(packet)] = connection;
         }
 
         _semaphore.Release();
@@ -208,6 +208,9 @@ public sealed class PacketQueueDispatcher<TPacket>
     /// </summary>
     private static ulong CombineValues(byte b, ushort s, ulong ul)
         => unchecked(((ulong)b << 48) | ((ulong)s << 32) | ul);
+
+    private static ulong KeyValues(in TPacket packet)
+        => CombineValues(packet.Number, packet.Id, packet.Timestamp);
 
     /// <summary>
     /// Continuously processes packets from the queue
@@ -233,7 +236,7 @@ public sealed class PacketQueueDispatcher<TPacket>
                     packet = _packetQueue.Dequeue();
                     lock (_lock)
                     {
-                        connection = _mapping[CombineValues(packet.Number, packet.Id, packet.Timestamp)];
+                        connection = _mapping[KeyValues(packet)];
                     }
                 }
 

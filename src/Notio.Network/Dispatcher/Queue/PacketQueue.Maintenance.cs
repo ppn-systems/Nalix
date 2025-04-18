@@ -60,17 +60,16 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            var tempQueue = new Queue<TPacket>();
+            Queue<TPacket> tempQueue = new();
 
             while (_priorityChannels[i].Reader.TryRead(out var packet))
             {
-                if (packet.IsExpired(_packetTimeout))
+                if (packet.IsExpired(_options.PacketTimeout))
                 {
                     packet.Dispose();
                     removedCount++;
 
-                    if (_collectStatistics)
-                        _expiredCounts[i]++;
+                    if (_options.CollectStatistics) _expiredCounts[i]++;
                 }
                 else
                 {

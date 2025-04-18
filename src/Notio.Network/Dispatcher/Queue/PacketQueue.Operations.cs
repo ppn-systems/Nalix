@@ -25,7 +25,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
         int priorityIndex = (int)packet.Priority;
 
-        if (_maxQueueSize > 0 && _totalCount >= _maxQueueSize)
+        if (_options.MaxQueueSize > 0 && _totalCount >= _options.MaxQueueSize)
             return false;
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
@@ -33,7 +33,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             Interlocked.Increment(ref _totalCount);
             Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
-            if (_collectStatistics)
+            if (_options.CollectStatistics)
                 Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
 
             return true;
@@ -64,7 +64,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
-        long startTicks = _collectStatistics ? Stopwatch.GetTimestamp() : 0;
+        long startTicks = _options.CollectStatistics ? Stopwatch.GetTimestamp() : 0;
 
         // Iterate from highest to lowest priority
         for (int i = _priorityCount - 1; i >= 0; i--)
@@ -74,12 +74,13 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
                 Interlocked.Decrement(ref _priorityCounts[i]);
                 Interlocked.Decrement(ref _totalCount);
 
-                bool isExpired = _packetTimeout != TimeSpan.Zero && tempPacket.IsExpired(_packetTimeout);
-                bool isValid = !_validateOnDequeue || tempPacket.IsValid();
+                bool isExpired = _options.PacketTimeout != TimeSpan.Zero
+                    && tempPacket.IsExpired(_options.PacketTimeout);
+                bool isValid = !_options.ValidateOnDequeue || tempPacket.IsValid();
 
                 if (isExpired)
                 {
-                    if (_collectStatistics)
+                    if (_options.CollectStatistics)
                         Interlocked.Increment(ref _expiredCounts[i]);
 
                     tempPacket.Dispose();
@@ -88,14 +89,14 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
 
                 if (!isValid)
                 {
-                    if (_collectStatistics)
+                    if (_options.CollectStatistics)
                         Interlocked.Increment(ref _invalidCounts[i]);
 
                     tempPacket.Dispose();
                     continue;
                 }
 
-                if (_collectStatistics)
+                if (_options.CollectStatistics)
                 {
                     Interlocked.Increment(ref _dequeuedCounts[i]);
                     UpdatePerformanceStats(startTicks);

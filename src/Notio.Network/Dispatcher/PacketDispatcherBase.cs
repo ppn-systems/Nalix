@@ -11,7 +11,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
 {
-    #region Prop
+    #region Properties
+
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
@@ -21,6 +22,10 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
     /// Gets the configuration options for this dispatcher instance.
     /// </summary>
     protected readonly Options.PacketDispatcherOptions<TPacket> Options;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}"/> class
@@ -45,6 +50,10 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
     /// </param>
     protected PacketDispatcherBase(System.Action<Options.PacketDispatcherOptions<TPacket>>? configure = null)
         : this(new Options.PacketDispatcherOptions<TPacket>()) => configure?.Invoke(this.Options);
+
+    #endregion
+
+    #region Ptotected Methods
 
     /// <summary>
     /// Executes the registered packet handler asynchronously using the provided packet and connection context.
@@ -126,4 +135,6 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : Common.Packa
 
         this.Logger?.Warn($"[Dispatcher] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
     }
+
+    #endregion
 }

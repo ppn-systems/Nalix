@@ -16,9 +16,8 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     #region Fields
 
     // Use channels instead of queues for better thread-safety and performance
+    private readonly PacketQueueOptions _options;
     private readonly Channel<TPacket>[] _priorityChannels;
-    private readonly int[] _priorityCounts; // Count per priority level
-    private int _totalCount;
 
     // Statistics variables
     private readonly int[] _enqueuedCounts;
@@ -27,13 +26,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     private readonly int[] _invalidCounts;
 
     // Cache priority count to avoid repeated enum lookups
+    private readonly int[] _priorityCounts;
     private readonly int _priorityCount;
-
-    // Settings and configuration
-    private readonly int _maxQueueSize;
-    private readonly TimeSpan _packetTimeout;
-    private readonly bool _validateOnDequeue;
-    private readonly bool _collectStatistics;
+    private int _totalCount;
 
     // Performance measurements
     private readonly Stopwatch? _queueTimer;
@@ -54,14 +49,19 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     #region Constructors
 
     /// <summary>
-    /// Initialize a new PacketQueue using options
+    /// Initialize a new PacketQueue using options.
     /// </summary>
-    /// <param name="options">Configuration options for the packet queue</param>
-    public PacketQueue(PacketQueueOptions options)
+    private PacketQueue()
     {
+        _options = null!;
+        _queueTimer = null;
+        _expiredCounts = [];
+        _invalidCounts = [];
+        _enqueuedCounts = [];
+        _dequeuedCounts = [];
+        _priorityCounts = new int[_priorityCount]; // Add this missing array
         _priorityCount = Enum.GetValues<PacketPriority>().Length;
         _priorityChannels = new Channel<TPacket>[_priorityCount];
-        _priorityCounts = new int[_priorityCount]; // Add this missing array
 
         // Create channels for each priority level
         for (int i = 0; i < _priorityCount; i++)
@@ -73,13 +73,19 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
                     SingleWriter = false
                 });
         }
+    }
 
-        _maxQueueSize = options.MaxQueueSize;
-        _packetTimeout = options.PacketTimeout;
-        _validateOnDequeue = options.ValidateOnDequeue;
-        _collectStatistics = options.CollectStatistics;
+    /// <summary>
+    /// Initialize a new PacketQueue using options
+    /// </summary>
+    /// <param name="configure">Configuration options for the packet queue</param>
+    public PacketQueue(Action<PacketQueueOptions>? configure)
+        : this()
+    {
+        _options = new PacketQueueOptions();
+        configure?.Invoke(_options);
 
-        if (_collectStatistics)
+        if (_options.CollectStatistics)
         {
             _expiredCounts = new int[_priorityCount];
             _invalidCounts = new int[_priorityCount];
@@ -89,14 +95,26 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             _queueTimer = new Stopwatch();
             _queueTimer.Start();
         }
-        else
-        {
-            _expiredCounts = Array.Empty<int>();
-            _invalidCounts = Array.Empty<int>();
-            _enqueuedCounts = Array.Empty<int>();
-            _dequeuedCounts = Array.Empty<int>();
+    }
 
-            _queueTimer = null;
+    /// <summary>
+    /// Initialize a new PacketQueue using options
+    /// </summary>
+    /// <param name="options">Configuration options for the packet queue</param>
+    public PacketQueue(PacketQueueOptions options)
+        : this()
+    {
+        _options = options;
+
+        if (options.CollectStatistics)
+        {
+            _expiredCounts = new int[_priorityCount];
+            _invalidCounts = new int[_priorityCount];
+            _enqueuedCounts = new int[_priorityCount];
+            _dequeuedCounts = new int[_priorityCount];
+
+            _queueTimer = new Stopwatch();
+            _queueTimer.Start();
         }
     }
 
