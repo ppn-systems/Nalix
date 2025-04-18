@@ -265,7 +265,7 @@ public class Blowfish
     /// <param name="data">The byte array to encrypt.</param>
     /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void EncryptInPlace(byte[] data, int length) => EncryptBlock(data, 0, length);
+    public void EncryptInPlace(byte[] data, int length) => this.EncryptBlock(data, 0, length);
 
     /// <summary>
     /// Encrypts a specific block of data in place.
@@ -283,7 +283,7 @@ public class Blowfish
         {
             uint left = BitConverter.ToUInt32(data, i);
             uint right = BitConverter.ToUInt32(data, i + 4);
-            EncryptBlock(ref left, ref right);
+            this.EncryptBlock(ref left, ref right);
 
             Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
             Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
@@ -298,7 +298,7 @@ public class Blowfish
     public string EncryptToBase64(string plainText)
     {
         byte[] data = Encoding.Unicode.GetBytes(plainText);
-        EncryptInPlace(data, data.Length);
+        this.EncryptInPlace(data, data.Length);
         return Convert.ToBase64String(data);
     }
 
@@ -308,7 +308,7 @@ public class Blowfish
     /// <param name="data">The byte array to decrypt.</param>
     /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
-    public void DecryptInPlace(byte[] data, int length) => DecryptBlock(data, 0, length);
+    public void DecryptInPlace(byte[] data, int length) => this.DecryptBlock(data, 0, length);
 
     /// <summary>
     /// Decrypts a specific block of data in place.
@@ -326,7 +326,7 @@ public class Blowfish
         {
             uint left = BitConverter.ToUInt32(data, i);
             uint right = BitConverter.ToUInt32(data, i + 4);
-            DecryptBlock(ref left, ref right);
+            this.DecryptBlock(ref left, ref right);
 
             Buffer.BlockCopy(BitConverter.GetBytes(left), 0, data, i, 4);
             Buffer.BlockCopy(BitConverter.GetBytes(right), 0, data, i + 4, 4);
@@ -341,7 +341,7 @@ public class Blowfish
     public string DecryptFromBase64(string cipherText)
     {
         byte[] data = Convert.FromBase64String(cipherText);
-        DecryptInPlace(data, data.Length);
+        this.DecryptInPlace(data, data.Length);
         return Encoding.Unicode.GetString(data);
     }
 
@@ -360,7 +360,7 @@ public class Blowfish
         for (int i = 0; i < N; ++i)
         {
             left ^= P[i];
-            right ^= SubstitutionFunction(left);
+            right ^= this.SubstitutionFunction(left);
             (left, right) = (right, left); // Swap halves
         }
 
@@ -381,7 +381,7 @@ public class Blowfish
         for (int i = N + 1; i > 1; --i)
         {
             left ^= P[i];
-            right ^= SubstitutionFunction(left);
+            right ^= this.SubstitutionFunction(left);
             (left, right) = (right, left); // Swap halves
         }
 

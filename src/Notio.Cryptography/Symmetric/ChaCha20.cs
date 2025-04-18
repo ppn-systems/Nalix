@@ -132,7 +132,7 @@ public sealed class ChaCha20 : IDisposable
             simdMode = DetectSimdMode();
         }
 
-        WorkBytes(output, input, numBytes, simdMode);
+        this.WorkBytes(output, input, numBytes, simdMode);
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public sealed class ChaCha20 : IDisposable
             simdMode = DetectSimdMode();
         }
 
-        WorkStreams(output, input, simdMode, howManyBytesToProcessAtTime);
+        this.WorkStreams(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -186,7 +186,7 @@ public sealed class ChaCha20 : IDisposable
             simdMode = DetectSimdMode();
         }
 
-        WorkBytes(output, input, input.Length, simdMode);
+        this.WorkBytes(output, input, input.Length, simdMode);
     }
 
     /// <summary>
@@ -212,7 +212,7 @@ public sealed class ChaCha20 : IDisposable
         }
 
         byte[] returnArray = new byte[numBytes];
-        WorkBytes(returnArray, input, numBytes, simdMode);
+        this.WorkBytes(returnArray, input, numBytes, simdMode);
         return returnArray;
     }
 
@@ -233,7 +233,7 @@ public sealed class ChaCha20 : IDisposable
         }
 
         byte[] returnArray = new byte[input.Length];
-        WorkBytes(returnArray, input, input.Length, simdMode);
+        this.WorkBytes(returnArray, input, input.Length, simdMode);
         return returnArray;
     }
 
@@ -256,7 +256,7 @@ public sealed class ChaCha20 : IDisposable
         byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(input);
         byte[] returnArray = new byte[utf8Bytes.Length];
 
-        WorkBytes(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
+        this.WorkBytes(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
         return returnArray;
     }
 

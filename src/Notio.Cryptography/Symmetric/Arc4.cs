@@ -71,13 +71,13 @@ public sealed class Arc4 : IDisposable
 
         if (blockCount > 0)
         {
-            ProcessBlocks(MemoryMarshal.Cast<byte, uint>(buffer[..(blockCount * 4)]));
+            this.ProcessBlocks(MemoryMarshal.Cast<byte, uint>(buffer[..(blockCount * 4)]));
         }
 
         // Process any remaining bytes
         if (remainder > 0)
         {
-            ProcessBytes(buffer[(blockCount * 4)..]);
+            this.ProcessBytes(buffer[(blockCount * 4)..]);
         }
     }
 

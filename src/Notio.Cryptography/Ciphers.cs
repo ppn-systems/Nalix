@@ -4,6 +4,7 @@ using Notio.Cryptography.Aead;
 using Notio.Cryptography.Symmetric;
 using Notio.Randomization;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Notio.Cryptography;
 
@@ -336,6 +337,56 @@ public static class Ciphers
         {
             throw new CryptoException(
                 "Decryption failed. An unexpected error occurred during the decryption process.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to encrypt the specified data using the provided key and encryption mode.
+    /// </summary>
+    /// <param name="data">The input data to encrypt.</param>
+    /// <param name="key">The encryption key.</param>
+    /// <param name="memory">
+    /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
+    /// </param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionMode.XTEA"/>.</param>
+    /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
+    public static bool TryEncrypt(Memory<byte> data, byte[] key,
+        [NotNullWhen(true)] out Memory<byte> memory, EncryptionMode mode = EncryptionMode.XTEA)
+    {
+        try
+        {
+            memory = Encrypt(data, key, mode);
+            return true;
+        }
+        catch
+        {
+            memory = default;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Attempts to decrypt the specified data using the provided key and encryption mode.
+    /// </summary>
+    /// <param name="data">The input data to encrypt.</param>
+    /// <param name="key">The encryption key.</param>
+    /// <param name="memory">
+    /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
+    /// </param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionMode.XTEA"/>.</param>
+    /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
+    public static bool TryDecrypt(Memory<byte> data, byte[] key,
+        [NotNullWhen(true)] out Memory<byte> memory, EncryptionMode mode = EncryptionMode.XTEA)
+    {
+        try
+        {
+            memory = Decrypt(data, key, mode);
+            return true;
+        }
+        catch
+        {
+            memory = default;
+            return false;
         }
     }
 }
