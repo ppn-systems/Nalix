@@ -1,5 +1,3 @@
-using Notio.Common.Cryptography;
-
 namespace Notio.Network.Package.Extensions;
 
 /// <summary>
@@ -15,7 +13,8 @@ public static class PacketEncryption
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">The encryption algorithm to use (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
-    public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+    public static Packet EncryptPayload(this Packet packet, byte[] key,
+        Common.Cryptography.EncryptionMode algorithm = Common.Cryptography.EncryptionMode.XTEA)
         => Utilities.PacketEncryption.EncryptPayload(packet, key, algorithm);
 
     /// <summary>
@@ -26,6 +25,7 @@ public static class PacketEncryption
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">The encryption algorithm that was used (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
-    public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+    public static Packet DecryptPayload(this Packet packet, byte[] key,
+        Common.Cryptography.EncryptionMode algorithm = Common.Cryptography.EncryptionMode.XTEA)
         => Utilities.PacketEncryption.DecryptPayload(packet, key, algorithm);
 }
