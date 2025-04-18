@@ -6,7 +6,7 @@ using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Time;             // Clock
 using Nalix.Shared.Messaging.Controls;  // Control
 
-namespace Nalix.SDK.Remote.Extensions;
+namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
 /// Provides client-side helpers for CONTROL frames, including:
@@ -124,10 +124,7 @@ public static class ControlExtensions
             }
         }
 
-        void OnDisc(System.Exception ex)
-        {
-            _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
-        }
+        void OnDisc(System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
 
         client.PacketReceived += OnPkt;
         client.Disconnected += OnDisc;

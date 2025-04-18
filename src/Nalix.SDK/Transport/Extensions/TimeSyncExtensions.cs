@@ -9,7 +9,7 @@ using Nalix.Framework.Time;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Messaging.Controls;            // Control
 
-namespace Nalix.SDK.Remote.Extensions;
+namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
 /// Client-side time synchronization for ReliableClient (event-driven).

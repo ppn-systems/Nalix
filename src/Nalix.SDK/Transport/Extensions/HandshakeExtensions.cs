@@ -10,7 +10,7 @@ using Nalix.Shared.Messaging.Controls;            // Handshake
 using Nalix.Shared.Security.Asymmetric;
 using Nalix.Shared.Security.Hashing;
 
-namespace Nalix.SDK.Remote.Extensions;
+namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
 /// Client-side cryptographic handshake for ReliableClient (event-driven).
@@ -90,10 +90,7 @@ public static class HandshakeExtensions
         // Abort on disconnect
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnDisconnected(System.Exception ex)
-        {
-            _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
-        }
+        void OnDisconnected(System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
 
         using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
 
