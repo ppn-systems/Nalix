@@ -22,7 +22,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     private readonly PacketQueueOptions _options;
     private readonly Channel<TPacket>[] _priorityChannels;
 
-    // Statistics variables
+    // Snapshot variables
     private readonly int[] _expiredCounts;
     private readonly int[] _invalidCounts;
     private readonly int[] _enqueuedCounts;

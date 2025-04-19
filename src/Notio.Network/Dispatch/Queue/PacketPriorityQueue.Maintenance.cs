@@ -1,139 +1,82 @@
 using Notio.Common.Package.Enums;
-using System;
+using Notio.Network.Snapshot;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatch.Queue;
 
-/// <summary>
-/// Priority-based packet queue with support for expiration, statistics, and background cleanup.
-/// </summary>
 public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Public Methods
 
     /// <summary>
-    /// Removes all packets from the specified priority queue.
+    /// Get queue statistics
     /// </summary>
-    /// <param name="priority">The priority level to purge.</param>
-    /// <returns>The number of packets removed.</returns>
-    public int PurgePriorityQueue(PacketPriority priority)
+    public PacketSnapshot GetStatistics()
     {
-        int index = (int)priority;
-        int removed = PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
+        if (!_options.CollectStatistics || _queueTimer == null)
+            return new PacketSnapshot();
 
-        if (removed > 0)
+        Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];
+
+        this.CollectStatisticsInternal(stats);
+
+        float avgProcessingMs = 0;
+        if (_packetsProcessed > 0)
+            avgProcessingMs = (float)(_totalProcessingTicks * 1000.0 / Stopwatch.Frequency) / _packetsProcessed;
+
+        return new PacketSnapshot
         {
-            Interlocked.Add(ref _totalCount, -removed);
-            Interlocked.Exchange(ref _priorityCounts[index], 0);
-            if (_options.CollectStatistics)
-                ClearStatistics(index);
-        }
-
-        return removed;
+            TotalPendingPackets = Count,
+            PriorityLevel = stats,
+            AvgProcessingTimeMs = avgProcessingMs,
+            UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
+        };
     }
-
-    /// <summary>
-    /// Removes all packets from all priority queues.
-    /// </summary>
-    public void PurgeAllQueues() => ClearInternal();
-
-    /// <summary>
-    /// Asynchronously removes expired packets from all priority queues.
-    /// </summary>
-    /// <returns>The total number of expired packets removed.</returns>
-    public Task<int> PruneExpiredAsync() => PruneExpiredInternalAsync();
-
-    /// <summary>
-    /// Starts a background task to periodically remove expired packets.
-    /// </summary>
-    /// <param name="interval">Time interval between cleanup checks.</param>
-    /// <param name="cancellationToken">Token to stop the background task.</param>
-    /// <returns>The background task instance.</returns>
-    public Task StartExpirationMonitorAsync(TimeSpan interval, CancellationToken cancellationToken = default)
-        => Task.Run(async () =>
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    await Task.Delay(interval, cancellationToken);
-                    await PruneExpiredAsync();
-                }
-                catch (OperationCanceledException) { break; }
-                catch { /* Optional: Logging */ }
-            }
-        }, cancellationToken);
 
     #endregion
 
     #region Private Methods
 
     /// <summary>
-    /// Internal implementation for removing expired packets.
+    /// Clears all collected statistics for a specific priority level.
     /// </summary>
-    private async Task<int> PruneExpiredInternalAsync()
+    private void ClearStatistics(int index)
     {
-        int totalExpired = 0;
+        _expiredCounts[index] = 0;
+        _invalidCounts[index] = 0;
+        _enqueuedCounts[index] = 0;
+        _dequeuedCounts[index] = 0;
+    }
 
+    private void CollectStatisticsInternal(Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
+    {
         for (int i = 0; i < _priorityCount; i++)
         {
-            var reader = _priorityChannels[i].Reader;
-            var writer = _priorityChannels[i].Writer;
-            Queue<TPacket> temp = new();
-
-            while (reader.TryRead(out TPacket? packet))
+            stats[(PacketPriority)i] = new PriorityQueueSnapshot
             {
-                if (packet.IsExpired(_options.PacketTimeout))
-                {
-                    packet.Dispose();
-                    totalExpired++;
-                    if (_options.CollectStatistics) _expiredCounts[i]++;
-                }
-                else
-                {
-                    temp.Enqueue(packet);
-                }
-            }
-
-            while (temp.TryDequeue(out TPacket? p)) await writer.WriteAsync(p);
+                PendingPackets = Volatile.Read(ref _priorityCounts[i]),
+                TotalEnqueued = _enqueuedCounts[i],
+                TotalDequeued = _dequeuedCounts[i],
+                TotalExpiredPackets = _expiredCounts[i],
+                TotalRejectedPackets = _invalidCounts[i]
+            };
         }
-
-        if (totalExpired > 0)
-            Interlocked.Add(ref _totalCount, -totalExpired);
-
-        return totalExpired;
     }
 
     /// <summary>
-    /// Removes all packets from all queues and resets the total count.
+    /// Update performance statistics
     /// </summary>
-    private void ClearInternal()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UpdatePerformanceStats(long startTicks)
     {
-        int totalCleared = 0;
+        long endTicks = Stopwatch.GetTimestamp();
+        long elapsed = endTicks - startTicks;
 
-        for (int i = 0; i < _priorityCount; i++)
-            totalCleared += PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
-
-        if (totalCleared > 0)
-            Interlocked.Exchange(ref _totalCount, 0);
-    }
-
-    /// <summary>
-    /// Drains all packets from a reader and disposes them.
-    /// </summary>
-    private static int DrainAndDisposePackets(ChannelReader<TPacket> reader)
-    {
-        int count = 0;
-        while (reader.TryRead(out TPacket? packet))
-        {
-            packet.Dispose();
-            count++;
-        }
-
-        return count;
+        _totalProcessingTicks += elapsed;
+        _packetsProcessed++;
     }
 
     #endregion

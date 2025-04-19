@@ -23,6 +23,7 @@ public abstract partial class Protocol
     {
         System.ArgumentNullException.ThrowIfNull(args);
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.Threading.Interlocked.Increment(ref _totalMessages);
 
         try
         {
