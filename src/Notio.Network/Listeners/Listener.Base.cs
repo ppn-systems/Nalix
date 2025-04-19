@@ -37,9 +37,12 @@ public abstract partial class Listener : IListener, IDisposable
     private readonly Socket _listenerSocket;
     private readonly SemaphoreSlim _listenerLock;
 
-    private bool _isDisposed;
+
     private Thread? _listenerThread;
     private CancellationTokenSource? _cts;
+
+    private volatile bool _isDisposed;
+    private volatile bool _isListening = false;
 
     #endregion
 
@@ -48,7 +51,7 @@ public abstract partial class Listener : IListener, IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _listenerThread != null && _listenerThread.IsAlive;
+    public bool IsListening => _isListening && _listenerThread?.IsAlive == true;
 
     #endregion
 

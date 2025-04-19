@@ -34,6 +34,7 @@ public abstract partial class Listener
             _listenerThread.Join(TimeSpan.FromSeconds(5));
         }
 
+        _isListening = false;
         _logger.Info("Listener stopped.");
     }
 
@@ -45,8 +46,9 @@ public abstract partial class Listener
     public void BeginListening(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
-        if (this.IsListening) return;
+        if (_isListening) return;
 
+        _isListening = true;
         _logger.Debug("Starting listener");
 
         // Create a linked token source to combine external cancellation with internal cancellation
@@ -110,10 +112,10 @@ public abstract partial class Listener
                     }
 
                     // Optionally wait for worker threads to complete
-                    foreach (var thread in acceptThreads)
+                    foreach (Thread thread in acceptThreads)
                     {
-                        if (thread.IsAlive)
-                            thread.Join(1000); // Wait max 1 second for each thread
+                        // Wait max 1 second for each thread
+                        if (thread.IsAlive) thread.Join(1000);
                     }
                 }
                 catch (OperationCanceledException)
@@ -132,12 +134,7 @@ public abstract partial class Listener
                 }
                 finally
                 {
-                    try
-                    {
-                        _listenerSocket.Close();
-                    }
-                    catch { }
-
+                    try { _listenerSocket?.Close(); } catch { }
                     _listenerLock.Release();
                 }
             }
@@ -151,8 +148,10 @@ public abstract partial class Listener
             Name = $"{_protocol}Listener-{_port}"
         };
 
-        Interlocked.Exchange(ref _listenerThread, newThread)?.Join();
+        Thread? oldThread = Interlocked.Exchange(ref _listenerThread, newThread);
+
         newThread.Start();
+        oldThread?.Join(TimeSpan.FromSeconds(2));
     }
 
     /// <summary>
@@ -163,8 +162,9 @@ public abstract partial class Listener
     public async Task BeginListeningAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, this);
-        if (this.IsListening) return;
+        if (_isListening) return;
 
+        _isListening = true;
         _logger.Debug("Starting listener");
         const int maxParallelAccepts = 5;
 
