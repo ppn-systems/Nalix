@@ -333,6 +333,7 @@ public abstract class Listener : IListener, IDisposable
     /// <summary>
     /// Disposes the resources used by the listener.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -343,6 +344,7 @@ public abstract class Listener : IListener, IDisposable
     /// Disposes the resources used by the listener.
     /// </summary>
     /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(bool disposing)
     {
         if (_isDisposed) return;
@@ -371,6 +373,7 @@ public abstract class Listener : IListener, IDisposable
     /// <summary>
     /// Accepts connections in a loop until cancellation is requested
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)

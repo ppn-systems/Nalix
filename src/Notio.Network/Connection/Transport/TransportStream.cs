@@ -3,6 +3,7 @@ using Notio.Common.Logging;
 using Notio.Shared.Time;
 using System;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Connection.Transport;
 
@@ -112,6 +113,7 @@ internal class TransportStream : IDisposable
     /// </summary>
     /// <param name="data">The data to send as a Span.</param>
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Send(ReadOnlySpan<byte> data)
     {
         try
@@ -138,6 +140,7 @@ internal class TransportStream : IDisposable
     /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task<bool> SendAsync(
         ReadOnlyMemory<byte> data,
         System.Threading.CancellationToken cancellationToken)
@@ -162,6 +165,7 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Gets a copy of incoming packets.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<byte> GetIncomingPackets()
     {
         if (_cache.Incoming.TryGetValue(out ReadOnlyMemory<byte> data))
@@ -174,12 +178,14 @@ internal class TransportStream : IDisposable
     /// Registers a callback to be invoked when a packet is cached.
     /// </summary>
     /// <param name="handler">The callback method to register.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetPacketCached(Action handler) => _cache.PacketCached += handler;
 
     /// <summary>
     /// Unregisters a previously registered callback from the packet cached event.
     /// </summary>
     /// <param name="handler">The callback method to remove.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemovePacketCached(Action handler) => _cache.PacketCached -= handler;
 
     /// <summary>
@@ -277,6 +283,7 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Disposes the resources used by the <see cref="TransportStream"/> instance.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -287,6 +294,7 @@ internal class TransportStream : IDisposable
     /// Disposes the managed and unmanaged resources.
     /// </summary>
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Dispose(bool disposing)
     {
         if (_disposed) return;
@@ -303,6 +311,7 @@ internal class TransportStream : IDisposable
         _logger?.Debug("TransportStream disposed");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
         => $"TransportStream (Remote = {_stream.Socket?.RemoteEndPoint}, " +
            $"Disposed = {_disposed}, UpTime = {UpTime}ms, LastPing = {LastPingTime}ms)" +
