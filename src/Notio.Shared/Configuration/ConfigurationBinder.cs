@@ -5,6 +5,7 @@ using Notio.Shared.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -25,6 +26,10 @@ public abstract class ConfigurationBinder
 
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
     private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
+    private static readonly string[] _suffixesToTrim =
+    [
+        "Configuration", "Settings", "Options", "Configs", "Config"
+    ];
 
     private readonly ILogger? _logger;
 
@@ -196,12 +201,24 @@ public abstract class ConfigurationBinder
         {
             string section = t.Name;
 
-            // Normalize the section name by removing "Config" suffix
-            if (section.EndsWith("Config", StringComparison.OrdinalIgnoreCase))
-                section = section[..^6];
+            foreach (string suffix in _suffixesToTrim.OrderByDescending(s => s.Length))
+            {
+                if (section.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    section = section[..^suffix.Length];
+                    break;
+                }
+            }
 
-            return section;
+            return Capitalize(section);
         });
+
+    /// <summary>
+    /// Capitalizes the first letter of a string.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string Capitalize(string input)
+        => string.IsNullOrEmpty(input) ? input : char.ToUpperInvariant(input[0]) + input[1..];
 
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.

@@ -1,6 +1,7 @@
 using Notio.Common.Connection;
 using Notio.Common.Logging;
 using Notio.Common.Package;
+using Notio.Network.Configurations;
 using Notio.Network.Security.Guard;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -79,7 +80,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Configuration options for PacketPriorityQueue
     /// </summary>
-    public PacketQueueOptions QueueOptions { get; set; } = new PacketQueueOptions();
+    public QueueConfig QueueOptions { get; set; } = new QueueConfig();
 
     #endregion
 

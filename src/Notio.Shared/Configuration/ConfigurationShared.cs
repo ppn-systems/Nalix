@@ -56,13 +56,13 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private ConfigurationStore()
     {
         // Determine the configuration file path
-        ConfigFilePath = Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini");
+        this.ConfigFilePath = Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new Lazy<ConfiguredIniFile>(() =>
         {
             // Ensure the directory exists before trying to access the file
-            EnsureConfigDirectoryExists();
+            this.EnsureConfigDirectoryExists();
             return new ConfiguredIniFile(ConfigFilePath);
         }, LazyThreadSafetyMode.ExecutionAndPublication);
     }

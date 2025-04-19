@@ -96,17 +96,10 @@ public sealed class PacketDispatchQueue<TPacket>
     {
         _isProcessing = false;
 
-        _dispatchQueue = new Queue.PacketPriorityQueue<TPacket>
-            (
-                Options.QueueOptions.MaxQueueSize,
-                Options.QueueOptions.PacketTimeout,
-                Options.QueueOptions.ValidateOnDequeue,
-                Options.QueueOptions.CollectStatistics
-            );
-
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
+        _dispatchQueue = new Queue.PacketPriorityQueue<TPacket>(Options.QueueOptions);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");

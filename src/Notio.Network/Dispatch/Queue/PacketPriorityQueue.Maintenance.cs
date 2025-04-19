@@ -16,7 +16,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// </summary>
     public PacketSnapshot GetStatistics()
     {
-        if (!_options.CollectStatistics || _queueTimer == null)
+        if (!_options.EnableMetrics || _queueTimer == null)
             return new PacketSnapshot();
 
         Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];

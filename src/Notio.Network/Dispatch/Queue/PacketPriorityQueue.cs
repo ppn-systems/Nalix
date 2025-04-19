@@ -1,5 +1,5 @@
 using Notio.Common.Package.Enums;
-using Notio.Network.Dispatch.Options;
+using Notio.Network.Configurations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +19,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     #region Fields
 
     // Use channels instead of queues for better thread-safety and performance
-    private readonly PacketQueueOptions _options;
+    private readonly QueueConfig _options;
     private readonly Channel<TPacket>[] _priorityChannels;
 
     // Snapshot variables
@@ -81,35 +81,12 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Initialize a new PacketPriorityQueue using options
     /// </summary>
-    /// <param name="configure">Configuration options for the packet queue</param>
-    public PacketPriorityQueue(Action<PacketQueueOptions>? configure)
-        : this()
-    {
-        _options = new PacketQueueOptions();
-        configure?.Invoke(_options);
-
-        if (_options.CollectStatistics)
-        {
-            _expiredCounts = new int[_priorityCount];
-            _invalidCounts = new int[_priorityCount];
-            _enqueuedCounts = new int[_priorityCount];
-            _dequeuedCounts = new int[_priorityCount];
-
-            _queueTimer = new Stopwatch();
-            _queueTimer.Start();
-        }
-    }
-
-    /// <summary>
-    /// Initialize a new PacketPriorityQueue using options
-    /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public PacketPriorityQueue(PacketQueueOptions options)
-        : this()
+    public PacketPriorityQueue(QueueConfig options) : this()
     {
         _options = options;
 
-        if (options.CollectStatistics)
+        if (options.EnableMetrics)
         {
             _expiredCounts = new int[_priorityCount];
             _invalidCounts = new int[_priorityCount];
@@ -119,21 +96,6 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
             _queueTimer = new Stopwatch();
             _queueTimer.Start();
         }
-    }
-
-    /// <summary>
-    /// Initialize a new PacketPriorityQueue
-    /// </summary>
-    /// <param name="maxQueueSize">Maximum number of packets in the queue (0 = unlimited)</param>
-    /// <param name="packetTimeout">Maximum time a packet is allowed to exist in the queue</param>
-    /// <param name="validateOnDequeue">Check packet validity when dequeuing</param>
-    /// <param name="collectStatistics">Collect detailed statistics</param>
-    public PacketPriorityQueue(
-        int maxQueueSize = 0, TimeSpan? packetTimeout = null,
-        bool validateOnDequeue = true, bool collectStatistics = false)
-        : this(new PacketQueueOptions(
-            maxQueueSize, packetTimeout, validateOnDequeue, collectStatistics))
-    {
     }
 
     #endregion
@@ -153,7 +115,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
         int priorityIndex = (int)packet.Priority;
 
-        if (_options.MaxQueueSize > 0 && _totalCount >= _options.MaxQueueSize)
+        if (_options.MaxCapacity > 0 && _totalCount >= _options.MaxCapacity)
             return false;
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
@@ -161,7 +123,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
             Interlocked.Increment(ref _totalCount);
             Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
-            if (_options.CollectStatistics)
+            if (_options.EnableMetrics)
                 Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
 
             return true;
@@ -192,7 +154,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
-        long startTicks = _options.CollectStatistics ? Stopwatch.GetTimestamp() : 0;
+        long startTicks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
 
         // Iterate from highest to lowest priority
         for (int i = _priorityCount - 1; i >= 0; i--)
@@ -202,13 +164,13 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 Interlocked.Decrement(ref _priorityCounts[i]);
                 Interlocked.Decrement(ref _totalCount);
 
-                bool isExpired = _options.PacketTimeout != TimeSpan.Zero
-                    && tempPacket.IsExpired(_options.PacketTimeout);
-                bool isValid = !_options.ValidateOnDequeue || tempPacket.IsValid();
+                bool isExpired = _options.Timeout != TimeSpan.Zero
+                    && tempPacket.IsExpired(_options.Timeout);
+                bool isValid = !_options.EnableValidation || tempPacket.IsValid();
 
                 if (isExpired)
                 {
-                    if (_options.CollectStatistics)
+                    if (_options.EnableMetrics)
                         Interlocked.Increment(ref _expiredCounts[i]);
 
                     tempPacket.Dispose();
@@ -217,14 +179,14 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
                 if (!isValid)
                 {
-                    if (_options.CollectStatistics)
+                    if (_options.EnableMetrics)
                         Interlocked.Increment(ref _invalidCounts[i]);
 
                     tempPacket.Dispose();
                     continue;
                 }
 
-                if (_options.CollectStatistics)
+                if (_options.EnableMetrics)
                 {
                     Interlocked.Increment(ref _dequeuedCounts[i]);
                     UpdatePerformanceStats(startTicks);

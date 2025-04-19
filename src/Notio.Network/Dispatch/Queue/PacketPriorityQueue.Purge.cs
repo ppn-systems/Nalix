@@ -28,7 +28,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         {
             Interlocked.Add(ref _totalCount, -removed);
             Interlocked.Exchange(ref _priorityCounts[index], 0);
-            if (_options.CollectStatistics)
+            if (_options.EnableMetrics)
                 ClearStatistics(index);
         }
 
@@ -86,11 +86,11 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
             while (reader.TryRead(out TPacket? packet))
             {
-                if (packet.IsExpired(_options.PacketTimeout))
+                if (packet.IsExpired(_options.Timeout))
                 {
                     packet.Dispose();
                     totalExpired++;
-                    if (_options.CollectStatistics) _expiredCounts[i]++;
+                    if (_options.EnableMetrics) _expiredCounts[i]++;
                 }
                 else
                 {
