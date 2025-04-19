@@ -98,10 +98,10 @@ public sealed class PacketDispatchQueue<TPacket>
 
         _dispatchQueue = new Queue.PacketPriorityQueue<TPacket>
             (
-                Options.MaxQueueCapacity,
-                Options.PacketTimeout,
-                Options.ValidateOnDequeue,
-                Options.StatisticsCollection
+                Options.QueueOptions.MaxQueueSize,
+                Options.QueueOptions.PacketTimeout,
+                Options.QueueOptions.ValidateOnDequeue,
+                Options.QueueOptions.CollectStatistics
             );
 
         _lock = new System.Threading.Lock();
