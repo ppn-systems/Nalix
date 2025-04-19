@@ -1,8 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;             // Clock
 using Nalix.Shared.Messaging.Controls;  // Control
 
@@ -116,30 +118,32 @@ public static class ControlExtensions
 
         System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
-        void OnPkt(IPacket p)
+        void OnMessageReceived(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (p is TPkt pp && predicate(pp))
             {
                 _ = tcs.TrySetResult(pp);
             }
         }
 
-        void OnDisc(System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
+        void OnDisconnected(System.Object _, System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
 
-        client.PacketReceived += OnPkt;
-        client.Disconnected += OnDisc;
+        client.OnDisconnected += OnDisconnected;
+        client.OnMessageReceived += OnMessageReceived;
 
-        using var lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using System.Threading.CancellationTokenSource lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
         lcts.CancelAfter(timeoutMs);
-        await using var reg = lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
+        await using System.Threading.CancellationTokenRegistration reg = lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
 
-        return await AwaitCoreAsync(client, OnPkt, OnDisc, tcs.Task, ct);
+        return await AwaitCoreAsync(client, OnMessageReceived, OnDisconnected, tcs.Task, ct);
 
         [System.Diagnostics.DebuggerStepThrough]
         static async System.Threading.Tasks.Task<TPkt> AwaitCoreAsync(
             IReliableClient c,
-            System.Action<IPacket> pktHandler,
-            System.Action<System.Exception> discHandler,
+            System.EventHandler<IBufferLease> pktHandler,
+            System.EventHandler<System.Exception> discHandler,
             System.Threading.Tasks.Task<TPkt> task,
             System.Threading.CancellationToken ct)
         {
@@ -159,8 +163,8 @@ public static class ControlExtensions
             }
             finally
             {
-                c.PacketReceived -= pktHandler;
-                c.Disconnected -= discHandler;
+                c.OnDisconnected -= discHandler;
+                c.OnMessageReceived -= pktHandler;
             }
         }
     }

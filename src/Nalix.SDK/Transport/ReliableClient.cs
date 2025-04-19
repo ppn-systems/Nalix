@@ -48,7 +48,7 @@ public sealed class ReliableClient : System.IDisposable
 
     // Endpoint info stored for reconnect
     private System.String _host;
-    private System.Int32 _port;
+    private System.UInt16 _port;
 
     // State
     private volatile System.Boolean _disposed;
@@ -70,16 +70,19 @@ public sealed class ReliableClient : System.IDisposable
     /// Occurs when the client has successfully connected to the remote endpoint.
     /// </summary>
     public event System.EventHandler OnConnected;
+
     /// <summary>
     /// Occurs when the client is disconnected. The <see cref="System.EventHandler{T}"/> argument
     /// contains the exception that caused the disconnect, or <c>null</c> if it was requested.
     /// </summary>
     public event System.EventHandler<System.Exception> OnDisconnected;
+
     /// <summary>
     /// Synchronous message-received event. Subscribers receive an <see cref="IBufferLease"/>
     /// and are responsible for disposing the lease when done.
     /// </summary>
     public event System.EventHandler<IBufferLease> OnMessageReceived;
+
     /// <summary>
     /// Asynchronous message-received callback. If set, the provided delegate will be invoked
     /// to handle received messages. The delegate is responsible for disposing the <see cref="IBufferLease"/>.
@@ -89,10 +92,12 @@ public sealed class ReliableClient : System.IDisposable
     /// Occurs when bytes are written to the socket. The event argument is the number of bytes sent.
     /// </summary>
     public event System.EventHandler<System.Int64> OnBytesSent;
+
     /// <summary>
     /// Occurs when bytes are received from the socket. The event argument is the number of bytes (header+payload) received for that frame.
     /// </summary>
     public event System.EventHandler<System.Int64> OnBytesReceived;
+
     /// <summary>
     /// Occurs when an internal error happens. Subscribers can use this for logging or diagnostics.
     /// </summary>
@@ -158,6 +163,16 @@ public sealed class ReliableClient : System.IDisposable
                 MaxPacketSize = PacketConstants.PacketSizeLimit
             };
         }
+
+        if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>() == null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[SDK.{nameof(ReliableClient)}] no IPacketCatalog instance found; this is a fatal configuration error. The process will terminate.");
+
+            // Fail fast with a clear message so operator/collector can see cause.
+            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] missing required service: IPacketCatalog. Terminating process.");
+        }
+
     }
 
     #endregion Constructor
@@ -170,7 +185,7 @@ public sealed class ReliableClient : System.IDisposable
     /// </summary>
     /// <param name="host">The hostname or IP address to connect to.</param>
     /// <param name="port">The destination port.</param>
-    /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the connect attempt.</param>
+    /// <param name="ct">A <see cref="System.Threading.CancellationToken"/> to cancel the connect attempt.</param>
     /// <returns>A task that completes when connected.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="host"/> is null or whitespace.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown when the client has been disposed.</exception>
@@ -180,7 +195,7 @@ public sealed class ReliableClient : System.IDisposable
     /// If <see cref="TransportOptions.ConnectTimeoutMillis"/> is set, the connect attempt will be cancelled
     /// after that timeout.
     /// </remarks>
-    public async System.Threading.Tasks.Task ConnectAsync(System.String host, System.Int32 port, System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
         if (System.String.IsNullOrWhiteSpace(host))
         {
@@ -189,8 +204,8 @@ public sealed class ReliableClient : System.IDisposable
 
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
 
-        _host = host;
-        _port = port;
+        _host = host ?? _options.Address;
+        _port = port ?? _options.Port;
 
         if (IsConnected)
         {
@@ -206,7 +221,7 @@ public sealed class ReliableClient : System.IDisposable
             }
         }
 
-        System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
         if (_options.ConnectTimeoutMillis > 0)
         {
             connectCts.CancelAfter(_options.ConnectTimeoutMillis);
@@ -216,7 +231,8 @@ public sealed class ReliableClient : System.IDisposable
 
         try
         {
-            System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(host, cancellationToken).ConfigureAwait(false);
+            System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(host, ct)
+                                                               .ConfigureAwait(false);
 
             foreach (System.Net.IPAddress addr in addrs)
             {
@@ -232,7 +248,8 @@ public sealed class ReliableClient : System.IDisposable
                     s.SendBufferSize = _options.BufferSize;
                     s.ReceiveBufferSize = _options.BufferSize;
 
-                    await s.ConnectAsync(new System.Net.IPEndPoint(addr, port), connectCts.Token).ConfigureAwait(false);
+                    await s.ConnectAsync(new System.Net.IPEndPoint(addr, (System.Int32)port), connectCts.Token)
+                           .ConfigureAwait(false);
 
                     // assign socket and start loops
                     lock (_sync)
@@ -249,12 +266,10 @@ public sealed class ReliableClient : System.IDisposable
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Info($"[SDK.{nameof(ReliableClient)}] connected remote={addr}:{port}");
-                    OnConnected?.Invoke(this, System.EventArgs.Empty);
 
-                    // start background loops using TaskManager when possible
+                    OnConnected?.Invoke(this, System.EventArgs.Empty);
                     System.Threading.CancellationToken loopToken = _loopCts.Token;
 
-                    // Start rate sampler as a recurring TaskManager job (1s interval).
                     if (true)
                     {
                         try
@@ -413,33 +428,33 @@ public sealed class ReliableClient : System.IDisposable
     /// Sends a framed payload (header + payload) asynchronously.
     /// </summary>
     /// <param name="payload">Payload bytes to send (payload only, header is added by the protocol).</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the send operation.</param>
+    /// <param name="ct">Cancellation token to cancel the send operation.</param>
     /// <returns>Task that resolves to <c>true</c> if the send succeeded, otherwise <c>false</c>.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the client has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the client is not connected.</exception>
-    public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken cancellationToken = default)
+    public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
         return _sender is null
             ? throw new System.InvalidOperationException("Client not connected.")
-            : _sender.SendAsync(payload, cancellationToken);
+            : _sender.SendAsync(payload, ct);
     }
 
     /// <summary>
     /// Helper to send an <see cref="IPacket"/> asynchronously (serializes then sends).
     /// </summary>
     /// <param name="packet">The packet to serialize and send.</param>
-    /// <param name="cancellationToken">Cancellation token to cancel the send operation.</param>
+    /// <param name="ct">Cancellation token to cancel the send operation.</param>
     /// <returns>Task that resolves to <c>true</c> if the send succeeded, otherwise <c>false</c>.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the client has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the client is not connected.</exception>
-    public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default)
+    public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
         return packet is null
             ? throw new System.ArgumentNullException(nameof(packet))
-            : _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, cancellationToken);
+            : _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
     }
 
     /// <summary>

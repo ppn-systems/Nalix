@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Diagnostics;
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
