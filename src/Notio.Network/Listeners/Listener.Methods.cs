@@ -172,8 +172,7 @@ public abstract partial class Listener
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = _cts.Token;
 
-        await _listenerLock.WaitAsync(linkedToken)
-                           .ConfigureAwait(false);
+        await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
 
         try
         {
