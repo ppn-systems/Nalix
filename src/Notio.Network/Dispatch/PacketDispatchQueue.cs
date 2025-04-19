@@ -203,13 +203,11 @@ public sealed class PacketDispatchQueue<TPacket>
     /// <inheritdoc />
     public void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
     {
-        ulong key = KeyValues(packet);
-
         lock (_lock)
         {
             _dispatchQueue.Enqueue(packet);
 
-            _packetMap[key] = connection;
+            _packetMap[packet.Hash] = connection;
 
             if (!_reverseMap.TryGetValue(connection,
                 out System.Collections.Generic.HashSet<ulong>? set))
@@ -223,7 +221,7 @@ public sealed class PacketDispatchQueue<TPacket>
                 connection.OnCloseEvent += OnConnectionClosed;
             }
 
-            set.Add(key);
+            set.Add(packet.Hash);
         }
         _semaphore.Release();
     }
@@ -231,15 +229,6 @@ public sealed class PacketDispatchQueue<TPacket>
     #endregion
 
     #region Private Methods
-
-    /// <summary>
-    /// Combines a byte, short, and ulong into a single ulong value
-    /// </summary>
-    private static ulong CombineValues(byte b, ushort s, ulong ul)
-        => unchecked(((ulong)b << 48) | ((ulong)s << 32) | ul);
-
-    private static ulong KeyValues(in TPacket packet)
-        => CombineValues(packet.Number, packet.Id, packet.Timestamp);
 
     /// <summary>
     /// Continuously processes packets from the queue
@@ -264,7 +253,7 @@ public sealed class PacketDispatchQueue<TPacket>
 
                     packet = _dispatchQueue.Dequeue();
 
-                    if (!_packetMap.TryGetValue(KeyValues(packet), out connection))
+                    if (!_packetMap.TryGetValue(packet.Hash, out connection))
                     {
                         base.Logger?.Warn("[Dispatch] No connection found for packet.");
                         continue;

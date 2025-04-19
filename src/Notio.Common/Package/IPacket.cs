@@ -1,5 +1,3 @@
-using Notio.Common.Package.Enums;
-
 namespace Notio.Common.Package;
 
 /// <summary>
@@ -37,22 +35,22 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the packet code.
     /// </summary>
-    PacketCode Code { get; }
+    Enums.PacketCode Code { get; }
 
     /// <summary>
     /// Gets the packet type.
     /// </summary>
-    PacketType Type { get; }
+    Enums.PacketType Type { get; }
 
     /// <summary>
     /// Gets or sets the packet flags.
     /// </summary>
-    PacketFlags Flags { get; }
+    Enums.PacketFlags Flags { get; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    PacketPriority Priority { get; }
+    Enums.PacketPriority Priority { get; }
 
     /// <summary>
     /// Gets the payload of the packet.
@@ -61,15 +59,38 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
 
     #endregion
 
+    #region Properties
+
     /// <summary>
     /// Gets a value indicating whether the packet is encrypted.
     /// </summary>
-    bool IsEncrypted => (Flags & PacketFlags.Encrypted) != 0;
+    bool IsEncrypted => (Flags & Enums.PacketFlags.Encrypted) != 0;
 
     /// <summary>
     /// Gets a value indicating whether the packet is compressed.
     /// </summary>
-    bool IsCompression => (Flags & PacketFlags.Compressed) != 0;
+    bool IsCompression => (Flags & Enums.PacketFlags.Compressed) != 0;
+
+    /// <summary>
+    /// Computes a unique hash value for the packet using its key metadata.
+    /// </summary>
+    /// <returns>
+    /// A 64-bit unsigned integer representing the packet's hash, composed of:
+    /// <list type="bullet">
+    /// <item><description><c>Number</c> (8 bits)</description></item>
+    /// <item><description><c>Id</c> (16 bits)</description></item>
+    /// <item><description><c>Type</c> (8 bits)</description></item>
+    /// <item><description><c>Code</c> (8 bits)</description></item>
+    /// <item><description><c>Flags</c> (8 bits)</description></item>
+    /// <item><description>Lowest 40 bits of <c>Timestamp</c></description></item>
+    /// </list>
+    /// This hash can be used as a fast lookup key for caching or deduplication.
+    /// </returns>
+    public ulong Hash { get; }
+
+    #endregion
+
+    #region Packet Methods
 
     /// <summary>
     /// Verifies if the packet's checksum is valid.
@@ -109,4 +130,6 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// A string that describes the packet's key attributes.
     /// </returns>
     string ToString();
+
+    #endregion
 }

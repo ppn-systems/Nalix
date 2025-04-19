@@ -41,6 +41,12 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
 
     #endregion
 
+    #region Fields
+
+    private readonly ulong _hash;
+
+    #endregion
+
     #region Properties
 
     /// <summary>
@@ -62,6 +68,11 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// Gets the timestamp when the packet was created in microseconds since system startup.
     /// </summary>
     public ulong Timestamp { get; }
+
+    /// <summary>
+    /// Gets the packet Hash.
+    /// </summary>
+    public ulong Hash => _hash;
 
     /// <summary>
     /// Gets the packet code, which is used to identify the packet type.
@@ -312,6 +323,9 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
 
         // Compute checksum only if needed
         Checksum = computeChecksum ? Crc32.Compute(Payload.Span) : checksum;
+
+        _hash = unchecked(((ulong)Number << 56) | ((ulong)Id << 40) | ((ulong)Type << 32) |
+            ((ulong)Code << 24) | ((ulong)Flags << 16) | (Timestamp & 0xFFFFFFFFFF));
     }
 
     #endregion
@@ -354,8 +368,8 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// <returns>
     /// A byte array containing the serialized representation of the packet.
     /// </returns>
-    public Memory<byte> Serialize()
-        => PacketSerializer.Serialize(this);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Memory<byte> Serialize() => PacketSerializer.Serialize(this);
 
     /// <summary>
     /// Serializes the packet into the provided buffer.
@@ -366,8 +380,8 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// <exception cref="PackageException">
     /// Thrown if the buffer is too small to contain the serialized packet.
     /// </exception>
-    public void Serialize(Span<byte> buffer)
-        => PacketSerializer.WritePacketUnsafe(buffer, this);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Serialize(Span<byte> buffer) => PacketSerializer.WritePacketUnsafe(buffer, this);
 
     /// <summary>
     /// Deserializes a <see cref="Packet"/> from the given byte buffer using fast deserialization logic.
@@ -378,6 +392,7 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// <returns>
     /// A <see cref="Packet"/> instance reconstructed from the given buffer.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Packet IPacketDeserializer<Packet>.Deserialize(ReadOnlySpan<byte> buffer)
         => PacketSerializer.ReadPacketFast(buffer);
 
@@ -588,6 +603,7 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// <returns>
     /// A formatted string containing detailed packet information.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToDetailedString()
     {
         StringBuilder sb = new();
@@ -627,6 +643,7 @@ public readonly struct Packet : IDisposable, IEquatable<Packet>,
     /// Gets a string representation of this packet for debugging purposes.
     /// </summary>
     /// <returns>A string that represents this packet.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
         => $"Packet Number={Number}, Type={Type}, Number={Id}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
