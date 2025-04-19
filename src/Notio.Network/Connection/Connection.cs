@@ -3,7 +3,6 @@ using Notio.Common.Connection;
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
 using Notio.Common.Logging;
-using Notio.Common.Package;
 using Notio.Common.Security;
 using Notio.Identifiers;
 using Notio.Network.Connection.Transport;
@@ -11,14 +10,13 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Network.Connection;
 
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.
 /// </summary>
-public sealed class Connection : IConnection
+public sealed partial class Connection : IConnection
 {
     #region Fields
 
@@ -163,79 +161,6 @@ public sealed class Connection : IConnection
 
     #endregion
 
-    #region Methods
-
-    /// <inheritdoc />
-    public void BeginReceive(CancellationToken cancellationToken = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Connection));
-
-        using CancellationTokenSource linkedCts = CancellationTokenSource
-            .CreateLinkedTokenSource(cancellationToken, _ctokens.Token);
-
-        _cstream.BeginReceive(linkedCts.Token);
-    }
-
-    /// <inheritdoc />
-    public bool Send(IPacket packet) => Send(packet.Serialize().Span);
-
-    /// <inheritdoc />
-    public bool Send(ReadOnlySpan<byte> message)
-    {
-        bool success = _cstream.Send(message);
-        if (success)
-            _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-        else
-            _logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
-        return success;
-    }
-
-    /// <inheritdoc />
-    public async Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-        => await SendAsync(packet.Serialize(), cancellationToken);
-
-    /// <inheritdoc />
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
-    {
-        if (await _cstream.SendAsync(message, cancellationToken))
-        {
-            _onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this));
-            return true;
-        }
-
-        _logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
-        return false;
-    }
-
-    /// <inheritdoc />
-    public void Close(bool force = false)
-    {
-        try
-        {
-            if (!force && _socket.Connected && (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0))
-            {
-                return;
-            }
-
-            if (_disposed)
-                return;
-
-            State = ConnectionState.Disconnected;
-
-            _ctokens.Cancel();
-            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
-        }
-    }
-
-    /// <inheritdoc />
-    public void Disconnect(string? reason = null) => Close(force: true);
-
-    #endregion
-
     #region Dispose Pattern
 
     /// <inheritdoc />
@@ -251,7 +176,7 @@ public sealed class Connection : IConnection
 
         try
         {
-            Disconnect();
+            this.Disconnect();
         }
         catch (Exception ex)
         {
