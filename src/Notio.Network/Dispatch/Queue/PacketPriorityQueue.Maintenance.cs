@@ -7,31 +7,52 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatch.Queue;
 
+/// <summary>
+/// Priority-based packet queue with support for expiration, statistics, and background cleanup.
+/// </summary>
 public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Public Methods
 
-    public int Clear(PacketPriority priority)
+    /// <summary>
+    /// Removes all packets from the specified priority queue.
+    /// </summary>
+    /// <param name="priority">The priority level to purge.</param>
+    /// <returns>The number of packets removed.</returns>
+    public int PurgePriorityQueue(PacketPriority priority)
     {
         int index = (int)priority;
-        int cleared = DisposeRemainingPackets(_priorityChannels[index].Reader);
+        int removed = PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
 
-        if (cleared > 0)
+        if (removed > 0)
         {
-            Interlocked.Add(ref _totalCount, -cleared);
+            Interlocked.Add(ref _totalCount, -removed);
             Interlocked.Exchange(ref _priorityCounts[index], 0);
             if (_options.CollectStatistics)
-                ResetStatistics(index);
+                ClearStatistics(index);
         }
 
-        return cleared;
+        return removed;
     }
 
-    public Task<int> RemoveExpiredPacketsAsync() => RemoveExpiredPacketsInternalAsync();
+    /// <summary>
+    /// Removes all packets from all priority queues.
+    /// </summary>
+    public void PurgeAllQueues() => ClearInternal();
 
-    public void Clear() => ClearInternal();
+    /// <summary>
+    /// Asynchronously removes expired packets from all priority queues.
+    /// </summary>
+    /// <returns>The total number of expired packets removed.</returns>
+    public Task<int> PruneExpiredAsync() => PruneExpiredInternalAsync();
 
-    public Task StartExpirationCheckerAsync(TimeSpan interval, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Starts a background task to periodically remove expired packets.
+    /// </summary>
+    /// <param name="interval">Time interval between cleanup checks.</param>
+    /// <param name="cancellationToken">Token to stop the background task.</param>
+    /// <returns>The background task instance.</returns>
+    public Task StartExpirationMonitorAsync(TimeSpan interval, CancellationToken cancellationToken = default)
         => Task.Run(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -39,7 +60,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 try
                 {
                     await Task.Delay(interval, cancellationToken);
-                    await RemoveExpiredPacketsAsync();
+                    await PruneExpiredAsync();
                 }
                 catch (OperationCanceledException) { break; }
                 catch { /* Optional: Logging */ }
@@ -50,7 +71,10 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
     #region Private Methods
 
-    private async Task<int> RemoveExpiredPacketsInternalAsync()
+    /// <summary>
+    /// Internal implementation for removing expired packets.
+    /// </summary>
+    private async Task<int> PruneExpiredInternalAsync()
     {
         int totalExpired = 0;
 
@@ -58,9 +82,9 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         {
             var reader = _priorityChannels[i].Reader;
             var writer = _priorityChannels[i].Writer;
-            var temp = new Queue<TPacket>();
+            Queue<TPacket> temp = new();
 
-            while (reader.TryRead(out var packet))
+            while (reader.TryRead(out TPacket? packet))
             {
                 if (packet.IsExpired(_options.PacketTimeout))
                 {
@@ -74,8 +98,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 }
             }
 
-            while (temp.TryDequeue(out var p))
-                await writer.WriteAsync(p);
+            while (temp.TryDequeue(out TPacket? p)) await writer.WriteAsync(p);
         }
 
         if (totalExpired > 0)
@@ -84,34 +107,33 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         return totalExpired;
     }
 
+    /// <summary>
+    /// Removes all packets from all queues and resets the total count.
+    /// </summary>
     private void ClearInternal()
     {
         int totalCleared = 0;
 
         for (int i = 0; i < _priorityCount; i++)
-            totalCleared += DisposeRemainingPackets(_priorityChannels[i].Reader);
+            totalCleared += PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
 
         if (totalCleared > 0)
             Interlocked.Exchange(ref _totalCount, 0);
     }
 
-    private int DisposeRemainingPackets(ChannelReader<TPacket> reader)
+    /// <summary>
+    /// Drains all packets from a reader and disposes them.
+    /// </summary>
+    private static int DrainAndDisposePackets(ChannelReader<TPacket> reader)
     {
         int count = 0;
-        while (reader.TryRead(out var packet))
+        while (reader.TryRead(out TPacket? packet))
         {
             packet.Dispose();
             count++;
         }
-        return count;
-    }
 
-    private void ResetStatistics(int index)
-    {
-        _expiredCounts[index] = 0;
-        _invalidCounts[index] = 0;
-        _enqueuedCounts[index] = 0;
-        _dequeuedCounts[index] = 0;
+        return count;
     }
 
     #endregion

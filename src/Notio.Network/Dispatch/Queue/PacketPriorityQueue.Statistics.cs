@@ -40,6 +40,17 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
     #region Private Methods
 
+    /// <summary>
+    /// Clears all collected statistics for a specific priority level.
+    /// </summary>
+    private void ClearStatistics(int index)
+    {
+        _expiredCounts[index] = 0;
+        _invalidCounts[index] = 0;
+        _enqueuedCounts[index] = 0;
+        _dequeuedCounts[index] = 0;
+    }
+
     private void CollectStatisticsInternal(Dictionary<PacketPriority, PriorityStatistics> stats)
     {
         for (int i = 0; i < _priorityCount; i++)
