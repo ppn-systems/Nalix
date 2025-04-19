@@ -1,0 +1,126 @@
+using Notio.Common.Caching;
+using Notio.Common.Logging;
+using Notio.Network.Configurations;
+using Notio.Network.Protocols;
+using Notio.Shared.Configuration;
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
+namespace Notio.Network.Listeners;
+
+/// <summary>
+/// An abstract base class for network listeners.
+/// This class manages the process of accepting incoming network connections
+/// and handling the associated protocol processing.
+/// </summary>
+public abstract partial class Listener : IListener, IDisposable
+{
+    #region Fields
+
+    private static readonly TcpConfig Config;
+
+    private readonly int _port;
+    private readonly ILogger _logger;
+    private readonly IProtocol _protocol;
+    private readonly IBufferPool _buffer;
+    private readonly TcpListener _tcpListener;
+    private readonly SemaphoreSlim _listenerLock;
+
+    private bool _isDisposed;
+    private Thread? _listenerThread;
+    private CancellationTokenSource? _cts;
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the current state of the listener.
+    /// </summary>
+    public bool IsListening => _listenerThread != null && _listenerThread.IsAlive;
+
+    #endregion
+
+    #region Constructors
+
+    static Listener() => Config = ConfigurationStore.Instance.Get<TcpConfig>();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
+    /// and the specified protocol, buffer pool, and logger.
+    /// </summary>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="protocol">The protocol to handle the connections.</param>
+    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
+    /// <param name="logger">The logger to log events and errors.</param>
+    protected Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    {
+        ArgumentNullException.ThrowIfNull(logger, nameof(logger));
+        ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
+        ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
+
+        _port = port;
+        _logger = logger;
+        _protocol = protocol;
+        _buffer = bufferPool;
+        _listenerLock = new SemaphoreSlim(1, 1);
+        _tcpListener = new TcpListener(IPAddress.Any, port);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
+    /// and the specified protocol, buffer pool, and logger.
+    /// </summary>
+    /// <param name="protocol">The protocol to handle the connections.</param>
+    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
+    /// <param name="logger">The logger to log events and errors.</param>
+    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+        : this(Config.Port, protocol, bufferPool, logger)
+    {
+    }
+
+    #endregion
+
+    #region IDispose
+
+    /// <summary>
+    /// Disposes the resources used by the listener.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes the resources used by the listener.
+    /// </summary>
+    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_isDisposed) return;
+
+        if (disposing)
+        {
+            _logger.Info("Disposing on {0}", _port);
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+
+            Interlocked.Exchange(ref _listenerThread, null)?.Join();
+
+            _tcpListener.Stop();
+            _listenerLock.Dispose();
+        }
+
+        _isDisposed = true;
+        _logger.Debug("Listener disposed");
+    }
+
+    #endregion
+}
