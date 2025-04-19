@@ -24,8 +24,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket
     {
         _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
 
-        IsMetricsEnabled = true;
-        MetricsCallback = metricsCallback;
+        _isMetricsEnabled = true;
+        _metricsCallback = metricsCallback;
 
         return this;
     }
@@ -67,7 +67,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket
     public PacketDispatchOptions<TPacket> WithErrorHandling(System.Action<System.Exception, ushort> errorHandler)
     {
         _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
-        ErrorHandler = errorHandler;
+        _errorHandler = errorHandler;
 
         return this;
     }

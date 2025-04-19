@@ -21,7 +21,7 @@ namespace Notio.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket>
     where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
 {
-    #region Const
+    #region Constants
 
     private const DynamicallyAccessedMemberTypes RequiredMembers =
         DynamicallyAccessedMemberTypes.PublicMethods |
@@ -40,15 +40,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <remarks>
     /// This is invoked after each packet is processed, passing the handler name and time taken (ms).
     /// </remarks>
-    private bool IsMetricsEnabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
-    /// </summary>
-    /// <remarks>
-    /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
-    /// </remarks>
-    private System.Action<System.Exception, ushort>? ErrorHandler;
+    private bool _isMetricsEnabled;
 
     /// <summary>
     /// Callback function to collect execution time metrics for packet processing.
@@ -56,12 +48,24 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <remarks>
     /// The callback receives the packet handler name and execution time in milliseconds.
     /// </remarks>
-    private System.Action<string, long>? MetricsCallback { get; set; }
+    private System.Action<string, long>? _metricsCallback;
+
+    /// <summary>
+    /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
+    /// </summary>
+    /// <remarks>
+    /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
+    /// </remarks>
+    private System.Action<System.Exception, ushort>? _errorHandler;
 
     /// <summary>
     /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
     /// </summary>
-    private readonly Dictionary<ushort, System.Func<TPacket, IConnection, Task>> PacketHandlers = [];
+    private readonly Dictionary<ushort, System.Func<TPacket, IConnection, Task>> _handlers = [];
+
+    #endregion
+
+    #region Properties
 
     /// <summary>
     /// The logger instance used for logging.
@@ -70,6 +74,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// If not configured, logging may be disabled.
     /// </remarks>
     public ILogger? Logger => _logger;
+
+    /// <summary>
+    /// Configuration options for PacketPriorityQueue
+    /// </summary>
+    public PacketQueueOptions QueueOptions { get; set; } = new PacketQueueOptions();
 
     #endregion
 

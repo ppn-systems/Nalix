@@ -137,7 +137,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             ushort id = method.GetCustomAttribute<PacketIdAttribute>()!.Id;
 
-            if (PacketHandlers.ContainsKey(id))
+            if (_handlers.ContainsKey(id))
             {
                 _logger?.Error("PacketId '{0}' already registered in another controller. Conflict in controller '{1}'.",
                                 id, controllerName);
@@ -145,7 +145,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 throw new System.InvalidOperationException($"PacketId '{id}' already registered.");
             }
 
-            PacketHandlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
+            _handlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
             registeredIds.Add(id);
         }
 
@@ -186,7 +186,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </example>
     public bool TryResolveHandler(ushort id, [NotNullWhen(true)] out System.Func<TPacket, IConnection, Task>? handler)
     {
-        if (PacketHandlers.TryGetValue(id, out handler))
+        if (_handlers.TryGetValue(id, out handler))
             return true;
 
         Logger?.Warn("No handler found for packet [ID={0}]", id);
@@ -199,7 +199,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         return async (packet, connection) =>
         {
-            Stopwatch? stopwatch = IsMetricsEnabled ? Stopwatch.StartNew() : null;
+            Stopwatch? stopwatch = _isMetricsEnabled ? Stopwatch.StartNew() : null;
 
             if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
             {
@@ -282,7 +282,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                     connection.RemoteEndPoint,        // Connection details for traceability
                     ex.Message                        // Exception message itself
                 );
-                ErrorHandler?.Invoke(ex, attributes.PacketId.Id);
+                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
                 connection.SendCode(PacketCode.ServerError);
             }
             catch (System.Exception ex)
@@ -295,7 +295,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                     ex.Message,
                     connection.RemoteEndPoint
                 );
-                ErrorHandler?.Invoke(ex, attributes.PacketId.Id);
+                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
                 connection.SendCode(PacketCode.ServerError);
             }
             finally
@@ -303,7 +303,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 if (stopwatch is not null)
                 {
                     stopwatch.Stop();
-                    MetricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
+                    _metricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
                 }
             }
         };
