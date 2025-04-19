@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Randomization.Core;
 
@@ -15,15 +14,15 @@ namespace Nalix.Framework.Randomization;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public static class RANDOM
+public static class SecureRandom
 {
-    private static System.String DebuggerDisplay => "RANDOM(primary=OS)";
+    private static System.String DebuggerDisplay => "SecureRandom(primary=OS)";
 
     private static readonly System.Action<System.Span<System.Byte>> _f;
 
-    static RANDOM()
+    static SecureRandom()
     {
-        System.Action<System.Span<System.Byte>> f = OsRandom.Fill;
+        System.Action<System.Span<System.Byte>> f = OsCsprng.Fill;
         System.Span<System.Byte> probe = stackalloc System.Byte[16];
 
         try
@@ -33,12 +32,12 @@ public static class RANDOM
         }
         catch
         {
-            FastRandom.Attach();
-            _f = FastRandom.Fill;
+            XoshiroFallback.Attach();
+            _f = XoshiroFallback.Fill;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[RANDOM] init using {(_f == OsRandom.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+                                .Info($"[SecureRandom] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
 
     #region APIs
