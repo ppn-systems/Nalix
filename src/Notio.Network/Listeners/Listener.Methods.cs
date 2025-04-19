@@ -1,5 +1,6 @@
 using Notio.Common.Exceptions;
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,10 +18,14 @@ public abstract partial class Listener
 
         _cts?.Cancel();
 
-        if (_listenerSocket?.Server != null)
+        try
         {
-            _logger.Info("Stopping on {0}", _port);
-            _listenerSocket.Stop();
+            // Close the socket listener to deactivate the accept
+            _listenerSocket.Close();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Error closing listener socket: {0}", ex.Message);
         }
 
         // Wait for the listener thread to complete with a timeout
@@ -39,8 +44,7 @@ public abstract partial class Listener
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     public void BeginListening(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed || _listenerSocket.Server == null, this);
-
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
         if (this.IsListening) return;
 
         _logger.Debug("Starting listener");
@@ -59,7 +63,10 @@ public abstract partial class Listener
 
                 try
                 {
-                    _listenerSocket.Start();
+                    // Bind and Listen
+                    _listenerSocket.Bind(new IPEndPoint(IPAddress.Any, _port));
+                    _listenerSocket.Listen(Listener.SocketBacklog);
+
                     _logger.Info("{0} online on {1}", _protocol, _port);
 
                     // Create worker threads for accepting connections
@@ -125,7 +132,12 @@ public abstract partial class Listener
                 }
                 finally
                 {
-                    _listenerSocket.Stop();
+                    try
+                    {
+                        _listenerSocket.Close();
+                    }
+                    catch { }
+
                     _listenerLock.Release();
                 }
             }
@@ -150,8 +162,7 @@ public abstract partial class Listener
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     public async Task BeginListeningAsync(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed || _listenerSocket.Server == null, this);
-
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
         if (this.IsListening) return;
 
         _logger.Debug("Starting listener");
@@ -166,7 +177,10 @@ public abstract partial class Listener
 
         try
         {
-            _listenerSocket.Start();
+            // Bind and Listen
+            _listenerSocket.Bind(new IPEndPoint(IPAddress.Any, _port));
+            _listenerSocket.Listen(Listener.SocketBacklog);
+
             _logger.Info("{0} online on {1}", _protocol, _port);
 
             // Create multiple accept tasks in parallel for higher throughput
@@ -191,7 +205,12 @@ public abstract partial class Listener
         }
         finally
         {
-            _listenerSocket.Stop();
+            try
+            {
+                _listenerSocket.Close();
+            }
+            catch { }
+
             _listenerLock.Release();
         }
     }

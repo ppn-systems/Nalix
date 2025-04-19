@@ -143,10 +143,16 @@ public abstract partial class Listener : IListener, IDisposable
             _cts?.Cancel();
             _cts?.Dispose();
 
-            Interlocked.Exchange(ref _listenerThread, null)?.Join();
+            Interlocked.Exchange(ref _listenerThread, null)?.Join(1000);
+
+            try
+            {
+                _listenerSocket.Close();
+                _listenerSocket.Dispose();
+            }
+            catch { }
 
             _listenerLock.Dispose();
-            _listenerSocket.Dispose();
         }
 
         _isDisposed = true;
