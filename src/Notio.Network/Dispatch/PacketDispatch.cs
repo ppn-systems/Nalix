@@ -37,7 +37,8 @@ public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatch
         if (packet == null)
         {
             base.Logger?.Error(
-                $"[Dispatch] Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
+                "[{0}] Null ReadOnlyMemory<byte> received from {1}. Packet dropped.",
+                nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
             return;
         }
 
@@ -54,7 +55,8 @@ public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatch
         if (packet.IsEmpty)
         {
             base.Logger?.Error(
-                $"[Dispatch] Empty ReadOnlySpan<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
+                "[{0}] Empty ReadOnlySpan<byte> received from {1}. Packet dropped.",
+                nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
             return;
         }
 
