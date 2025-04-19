@@ -56,36 +56,34 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
     private async Task<int> RemoveExpiredPacketsInternalAsync()
     {
-        int removedCount = 0;
+        int count = 0;
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            Queue<TPacket> tempQueue = new();
+            Queue<TPacket> temp = new();
 
-            while (_priorityChannels[i].Reader.TryRead(out var packet))
+            while (_priorityChannels[i].Reader.TryRead(out TPacket? packet))
             {
                 if (packet.IsExpired(_options.PacketTimeout))
                 {
                     packet.Dispose();
-                    removedCount++;
+                    count++;
 
                     if (_options.CollectStatistics) _expiredCounts[i]++;
                 }
                 else
                 {
-                    tempQueue.Enqueue(packet);
+                    temp.Enqueue(packet);
                 }
             }
 
             // Re-insert non-expired packets
-            while (tempQueue.Count > 0)
-            {
-                await _priorityChannels[i].Writer.WriteAsync(tempQueue.Dequeue());
-            }
+            while (temp.Count > 0)
+                await _priorityChannels[i].Writer.WriteAsync(temp.Dequeue());
         }
 
-        Interlocked.Add(ref _totalCount, -removedCount);
-        return removedCount;
+        Interlocked.Add(ref _totalCount, -count);
+        return count;
     }
 
     private void ClearInternal()
