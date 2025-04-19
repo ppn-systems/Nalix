@@ -15,8 +15,9 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatch.Options;
 
-public sealed partial class PacketDispatchOptions<TPacket>
-    where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketCompressor<TPacket>,
+    IPacketEncryptor<TPacket>
 {
     /// <summary>
     /// Registers default handlers for the packet dispatcher, including controllers for session management,

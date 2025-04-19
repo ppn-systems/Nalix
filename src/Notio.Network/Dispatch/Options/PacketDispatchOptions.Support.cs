@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace Notio.Network.Dispatch.Options;
 
-public sealed partial class PacketDispatchOptions<TPacket>
-    where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketCompressor<TPacket>,
+    IPacketEncryptor<TPacket>
 {
     private static T EnsureNotNull<T>(T value, string paramName) where T : class
         => value ?? throw new ArgumentNullException(paramName);

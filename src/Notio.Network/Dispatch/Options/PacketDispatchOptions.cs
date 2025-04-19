@@ -18,8 +18,9 @@ namespace Notio.Network.Dispatch.Options;
 /// Use this class to register packet handlers, enable compression/encryption, configure logging,
 /// and define custom error-handling or metrics tracking logic.
 /// </remarks>
-public sealed partial class PacketDispatchOptions<TPacket>
-    where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketEncryptor<TPacket>
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketCompressor<TPacket>,
+    IPacketEncryptor<TPacket>
 {
     #region Constants
 

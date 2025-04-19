@@ -9,7 +9,7 @@ namespace Notio.Network.Protocols;
 /// Represents an abstract base class for network protocols.
 /// This class defines the common logic for handling connections and processing messages.
 /// </summary>
-public abstract class Protocol : IProtocol, IDisposable
+public abstract partial class Protocol : IProtocol, IDisposable
 {
     #region Fields
 
@@ -106,51 +106,6 @@ public abstract class Protocol : IProtocol, IDisposable
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
     public abstract void ProcessMessage(object sender, IConnectEventArgs args);
-    #endregion
-
-    #region Protected Methods
-
-    /// <summary>
-    /// Validates the incoming connection before accepting it.
-    /// Override this method to implement custom validation logic.
-    /// </summary>
-    /// <param name="connection">The connection to validate.</param>
-    /// <returns>True if the connection is valid, false otherwise.</returns>
-    protected virtual bool ValidateConnection(IConnection connection)
-    {
-        // Standard implementation accepts all connections
-        return true;
-    }
-
-    /// <summary>
-    /// Called when an error occurs during connection handling.
-    /// Override to implement custom error handling.
-    /// </summary>
-    /// <param name="connection">The connection where the error occurred.</param>
-    /// <param name="exception">The exception that was thrown.</param>
-    protected virtual void OnConnectionError(IConnection connection, Exception exception)
-    {
-        // Standard implementation does nothing
-    }
-
-    /// <summary>
-    /// Allows subclasses to execute custom logic after a message has been processed.
-    /// This method is called automatically by <see cref="PostProcessMessage"/>.
-    /// </summary>
-    /// <param name="args">Event arguments containing connection and processing details.</param>
-    protected virtual void OnPostProcess(IConnectEventArgs args)
-    {
-        // Standard implementation does nothing
-    }
-
-    /// <summary>
-    /// Override this method to clean up any resources when the protocol is disposed.
-    /// </summary>
-    protected virtual void OnDisposing()
-    {
-        // Standard implementation does nothing
-    }
-
     #endregion
 
     #region Disposal Methods
