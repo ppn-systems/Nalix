@@ -55,23 +55,17 @@ public abstract partial class Listener
             try
             {
                 // Accept client socket synchronously with polling to support cancellation
-                if (!_tcpListener.Pending())
+                if (!_listenerSocket.Pending())
                 {
                     Thread.Sleep(50); // Small delay to prevent CPU spinning
                     continue;
                 }
 
-                Socket socket = _tcpListener.AcceptSocket();
-                ConfigureHighPerformanceSocket(socket);
-
                 // Create and process connection similar to async version
-                Connection.Connection connection = new(socket, _buffer, _logger);
-                connection.OnCloseEvent += OnConnectionClose;
-                connection.OnProcessEvent += _protocol.ProcessMessage!;
-                connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
+                IConnection connection = this.CreateConnection(cancellationToken);
 
                 // Process the connection
-                ProcessConnection(connection);
+                this.ProcessConnection(connection);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted ||
                                              ex.SocketErrorCode == SocketError.ConnectionAborted)
@@ -103,7 +97,8 @@ public abstract partial class Listener
         {
             try
             {
-                IConnection connection = await CreateConnectionAsync(cancellationToken)
+                IConnection connection = await this
+                    .CreateConnectionAsync(cancellationToken)
                     .ConfigureAwait(false);
 
                 this.ProcessConnection(connection);
@@ -127,9 +122,30 @@ public abstract partial class Listener
     /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
     /// <returns>A task representing the connection creation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private IConnection CreateConnection(CancellationToken cancellationToken)
+    {
+        Socket socket = _listenerSocket.AcceptSocket();
+
+        ConfigureHighPerformanceSocket(socket);
+
+        IConnection connection = new Connection.Connection(socket, _buffer, _logger);
+
+        // Use weak event pattern to avoid memory leaks
+        connection.OnCloseEvent += OnConnectionClose;
+        connection.OnProcessEvent += _protocol.ProcessMessage!;
+        connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
+        return connection;
+    }
+
+    /// <summary>
+    /// Creates a new connection from an incoming socket.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
+    /// <returns>A task representing the connection creation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
-        Socket socket = await _tcpListener.AcceptSocketAsync(cancellationToken)
+        Socket socket = await _listenerSocket.AcceptSocketAsync(cancellationToken)
             .ConfigureAwait(false);
 
         ConfigureHighPerformanceSocket(socket);

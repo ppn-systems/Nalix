@@ -17,10 +17,10 @@ public abstract partial class Listener
 
         _cts?.Cancel();
 
-        if (_tcpListener?.Server != null)
+        if (_listenerSocket?.Server != null)
         {
             _logger.Info("Stopping on {0}", _port);
-            _tcpListener.Stop();
+            _listenerSocket.Stop();
         }
 
         // Wait for the listener thread to complete with a timeout
@@ -39,7 +39,7 @@ public abstract partial class Listener
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     public void BeginListening(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed || _tcpListener.Server == null, this);
+        ObjectDisposedException.ThrowIf(_isDisposed || _listenerSocket.Server == null, this);
 
         if (this.IsListening) return;
 
@@ -59,7 +59,7 @@ public abstract partial class Listener
 
                 try
                 {
-                    _tcpListener.Start();
+                    _listenerSocket.Start();
                     _logger.Info("{0} online on {1}", _protocol, _port);
 
                     // Create worker threads for accepting connections
@@ -125,7 +125,7 @@ public abstract partial class Listener
                 }
                 finally
                 {
-                    _tcpListener.Stop();
+                    _listenerSocket.Stop();
                     _listenerLock.Release();
                 }
             }
@@ -150,7 +150,7 @@ public abstract partial class Listener
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     public async Task BeginListeningAsync(CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed || _tcpListener.Server == null, this);
+        ObjectDisposedException.ThrowIf(_isDisposed || _listenerSocket.Server == null, this);
 
         if (this.IsListening) return;
 
@@ -166,7 +166,7 @@ public abstract partial class Listener
 
         try
         {
-            _tcpListener.Start();
+            _listenerSocket.Start();
             _logger.Info("{0} online on {1}", _protocol, _port);
 
             // Create multiple accept tasks in parallel for higher throughput
@@ -191,7 +191,7 @@ public abstract partial class Listener
         }
         finally
         {
-            _tcpListener.Stop();
+            _listenerSocket.Stop();
             _listenerLock.Release();
         }
     }

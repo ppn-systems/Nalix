@@ -1,5 +1,5 @@
-using Notio.Network.Configurations;
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -8,25 +8,6 @@ namespace Notio.Network.Listeners;
 
 public abstract partial class Listener
 {
-    /// <summary>
-    /// Creates the byte array for configuring Keep-Alive on Windows.
-    /// </summary>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] KeepAliveConfig()
-    {
-        int on = 1;              // Turning on Keep-Alive
-        int time = 10_000;       // 10 seconds without data, send Keep-Alive
-        int interval = 5_000;    // SendPacket every 5 seconds if there is no response
-
-        byte[] keepAlive = new byte[12];
-        BitConverter.GetBytes(on).CopyTo(keepAlive, 0);
-        BitConverter.GetBytes(time).CopyTo(keepAlive, 4);
-        BitConverter.GetBytes(interval).CopyTo(keepAlive, 8);
-
-        return keepAlive;
-    }
-
     /// <summary>
     /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.
     /// </summary>
@@ -40,7 +21,12 @@ public abstract partial class Listener
         socket.NoDelay = Config.NoDelay;
         socket.SendBufferSize = Config.BufferSize;
         socket.ReceiveBufferSize = Config.BufferSize;
-        socket.LingerState = new LingerOption(true, TcpConfig.False);
+
+        // When you want to disconnect immediately without making sure the data has been sent.
+        // socket.LingerState = new LingerOption(true, TcpConfig.False);
+
+        // if using async or non-blocking I/O.
+        socket.Blocking = false;
 
         if (Config.KeepAlive)
         {
@@ -49,18 +35,23 @@ public abstract partial class Listener
 
             if (Config.IsWindows)
             {
-                // Windows specific settings
-                socket.IOControl(IOControlCode.KeepAliveValues, KeepAliveConfig(), null);
-            }
-        }
+                // 1. Turning on Keep-Alive
+                // 2. 3 seconds without data, send Keep-Alive 
+                // 3. Send every 1 second if there is no response
 
-        if (!Config.IsWindows)
-        {
-            // Linux, MacOS, etc.
-            socket.SetSocketOption(
-                SocketOptionLevel.Socket,
-                SocketOptionName.ReuseAddress, Config.ReuseAddress ?
-                TcpConfig.True : TcpConfig.False);
+                const int on = 1;
+                const int time = 3_000;
+                const int interval = 1_000;
+
+                Span<byte> keepAlive = stackalloc byte[12];
+
+                BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
+                BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
+                BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
+
+                // Windows specific settings
+                socket.IOControl(IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
+            }
         }
     }
 }

@@ -4,7 +4,6 @@ using Notio.Network.Configurations;
 using Notio.Network.Protocols;
 using Notio.Shared.Configuration;
 using System;
-using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -18,6 +17,15 @@ namespace Notio.Network.Listeners;
 /// </summary>
 public abstract partial class Listener : IListener, IDisposable
 {
+    #region Constants
+
+    private const int SocketBacklog = 100;
+    private const int MaxSimultaneousAccepts = 32;
+    private const int AcceptDelay = 10; // Milliseconds
+    private const int MinWorkerThreads = 4;
+
+    #endregion
+
     #region Fields
 
     private static readonly TcpConfig Config;
@@ -26,7 +34,7 @@ public abstract partial class Listener : IListener, IDisposable
     private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
-    private readonly TcpListener _tcpListener;
+    private readonly Socket _listenerSocket;
     private readonly SemaphoreSlim _listenerLock;
 
     private bool _isDisposed;
@@ -67,7 +75,30 @@ public abstract partial class Listener : IListener, IDisposable
         _protocol = protocol;
         _buffer = bufferPool;
         _listenerLock = new SemaphoreSlim(1, 1);
-        _tcpListener = new TcpListener(IPAddress.Any, port);
+
+        // Create the optimal socket listener.
+        _listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+        {
+            ExclusiveAddressUse = !Config.ReuseAddress,
+            LingerState = new LingerOption(true, TcpConfig.False) // No need for LingerState if not close soon
+        };
+
+        // Increase the queue size on the socket listener.
+        _listenerSocket.SetSocketOption(
+            SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, Config.BufferSize);
+
+        _listenerSocket.SetSocketOption(
+            SocketOptionLevel.Socket, SocketOptionName.ReuseAddress,
+            Config.ReuseAddress ? TcpConfig.True : TcpConfig.False);
+
+        // Optimized for Socket.IOControlCode on Windows
+        if (Config.IsWindows)
+        {
+            int parallelismLevel = Environment.ProcessorCount * MinWorkerThreads;
+            // Thread pool optimization for IOCP
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelismLevel), completionPortThreads);
+        }
     }
 
     /// <summary>
@@ -114,8 +145,8 @@ public abstract partial class Listener : IListener, IDisposable
 
             Interlocked.Exchange(ref _listenerThread, null)?.Join();
 
-            _tcpListener.Stop();
             _listenerLock.Dispose();
+            _listenerSocket.Dispose();
         }
 
         _isDisposed = true;
