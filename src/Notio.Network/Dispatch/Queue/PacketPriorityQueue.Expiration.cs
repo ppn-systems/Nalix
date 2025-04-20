@@ -1,6 +1,7 @@
 using Notio.Common.Package.Enums;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -13,6 +14,14 @@ namespace Notio.Network.Dispatch.Queue;
 public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Public Methods
+
+    /// <summary>
+    /// Removes all packets from all priority queues.
+    /// </summary>
+    /// <remarks>
+    /// This method will clear all packets across all priority queues. It also resets the total packet count to zero.
+    /// </remarks>
+    public void FlushAll() => ClearInternal();
 
     /// <summary>
     /// Removes all packets from the specified priority queue.
@@ -33,22 +42,20 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         {
             Interlocked.Add(ref _totalCount, -removed);
             Interlocked.Exchange(ref _priorityCounts[index], 0);
-            if (_options.EnableMetrics)
-                ClearStatistics(index);
+            if (_options.EnableMetrics) this.ClearStatistics(index);
         }
 
         return removed;
     }
 
     /// <summary>
-    /// Removes all packets from all priority queues.
-    /// </summary>
-    public void FlushAll() => ClearInternal();
-
-    /// <summary>
     /// Asynchronously removes expired packets from all priority queues.
     /// </summary>
-    /// <returns>The total number of expired packets removed.</returns>
+    /// <returns>The total number of expired packets that were removed from the queues.</returns>
+    /// <remarks>
+    /// This method checks each packet in the queue and removes those that have expired based on the configured timeout.
+    /// It will asynchronously process the removal of expired packets from all queues.
+    /// </remarks>
     public Task<int> SweepExpiredAsync() => PruneExpiredInternalAsync();
 
     /// <summary>
@@ -56,7 +63,11 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// </summary>
     /// <param name="interval">Time interval between cleanup checks.</param>
     /// <param name="cancellationToken">Token to stop the background task.</param>
-    /// <returns>The background task instance.</returns>
+    /// <returns>The background task instance that is running the cleanup operation.</returns>
+    /// <remarks>
+    /// This method runs a background task that periodically checks for expired packets and removes them.
+    /// The task will run until the cancellation token is triggered.
+    /// </remarks>
     public Task RunExpirationCleanerAsync(TimeSpan interval, CancellationToken cancellationToken = default)
         => Task.Run(async () =>
         {
@@ -79,6 +90,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Internal implementation for removing expired packets.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task<int> PruneExpiredInternalAsync()
     {
         int totalExpired = 0;
@@ -115,6 +127,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Removes all packets from all queues and resets the total count.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ClearInternal()
     {
         int totalCleared = 0;
@@ -129,6 +142,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Drains all packets from a reader and disposes them.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int DrainAndDisposePackets(ChannelReader<TPacket> reader)
     {
         int count = 0;

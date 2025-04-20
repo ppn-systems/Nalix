@@ -21,7 +21,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
     // Snapshot variables
     private readonly int[] _expiredCounts;
-    private readonly int[] _invalidCounts;
+    private readonly int[] _rejectedCounts;
     private readonly int[] _enqueuedCounts;
     private readonly int[] _dequeuedCounts;
 
@@ -57,7 +57,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         _queueTimer = null;
 
         _expiredCounts = [];
-        _invalidCounts = [];
+        _rejectedCounts = [];
         _enqueuedCounts = [];
         _dequeuedCounts = [];
 
@@ -88,7 +88,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         if (options.EnableMetrics)
         {
             _expiredCounts = new int[_priorityCount];
-            _invalidCounts = new int[_priorityCount];
+            _rejectedCounts = new int[_priorityCount];
             _enqueuedCounts = new int[_priorityCount];
             _dequeuedCounts = new int[_priorityCount];
 

@@ -1,3 +1,4 @@
+using Notio.Common.Package.Enums;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -34,4 +35,13 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
 
         return false;
     }
+
+    /// <summary>
+    /// Peeks the first packet from the specified priority queue without removing it.
+    /// </summary>
+    /// <param name="priority">The priority level of the queue to peek from.</param>
+    /// <returns>The first packet in the queue, or null if the queue is empty.</returns>
+    public TPacket? PeekFirst(PacketPriority priority)
+        => _priorityChannels[(int)priority].Reader
+                .TryPeek(out TPacket? packet) ? packet : default;
 }

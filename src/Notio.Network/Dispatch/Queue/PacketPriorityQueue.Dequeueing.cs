@@ -24,6 +24,73 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     }
 
     /// <summary>
+    /// Dequeues multiple packets from the queue until a specified condition is met.
+    /// </summary>
+    /// <param name="maxCount">The maximum number of packets to retrieve.</param>
+    /// <param name="shouldStop">A predicate to stop dequeuing when it returns true.</param>
+    /// <returns>A list of dequeued packets.</returns>
+    public List<TPacket> DequeueWhile(int maxCount, Func<TPacket, bool> shouldStop)
+    {
+        List<TPacket> result = [];
+        int dequeuedCount = 0;
+
+        while (dequeuedCount < maxCount && TryDequeue(out var packet))
+        {
+            if (shouldStop(packet)) break;
+            result.Add(packet);
+            dequeuedCount++;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Try to dequeue a valid packet, and returns the expired/invalid packet if any.
+    /// </summary>
+    /// <param name="packet">The dequeued packet if valid, null if none are dequeued.</param>
+    /// <param name="invalidPacket">A packet that was invalid or expired, null if no such packet exists.</param>
+    /// <returns>True if a valid packet was dequeued, false if no valid packet was found.</returns>
+    public bool TryDequeueWithInvalid(
+        [NotNullWhen(true)] out TPacket? packet,
+        [NotNullWhen(false)] out TPacket? invalidPacket)
+    {
+        long startTicks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
+
+        packet = default;
+        invalidPacket = default; // Initialize invalidPacket to default (null)
+
+        for (int i = _priorityCount - 1; i >= 0; i--)
+        {
+            while (_priorityChannels[i].Reader.TryRead(out TPacket? tempPacket))
+            {
+                Interlocked.Decrement(ref _priorityCounts[i]);
+                Interlocked.Decrement(ref _totalCount);
+
+                bool isExpired = _options.Timeout != TimeSpan.Zero && tempPacket.IsExpired(_options.Timeout);
+                bool isValid = !_options.EnableValidation || tempPacket.IsValid();
+
+                if (isExpired || !isValid)
+                {
+                    invalidPacket = tempPacket; // Return the invalid or expired packet for inspection
+                    tempPacket.Dispose();
+                    continue;
+                }
+
+                if (_options.EnableMetrics)
+                {
+                    Interlocked.Increment(ref _dequeuedCounts[i]);
+                    UpdatePerformanceStats(startTicks);
+                }
+
+                packet = tempPacket;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Get a packet from the queue in priority order
     /// </summary>
     /// <param name="packet">The dequeued packet, if available</param>
@@ -41,27 +108,27 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 Interlocked.Decrement(ref _priorityCounts[i]);
                 Interlocked.Decrement(ref _totalCount);
 
-                bool isExpired = _options.Timeout != TimeSpan.Zero
-                    && tempPacket.IsExpired(_options.Timeout);
-                bool isValid = !_options.EnableValidation || tempPacket.IsValid();
+                //bool isExpired = _options.Timeout != TimeSpan.Zero
+                //    && tempPacket.IsExpired(_options.Timeout);
+                //bool isValid = !_options.EnableValidation || tempPacket.IsValid();
 
-                if (isExpired)
-                {
-                    if (_options.EnableMetrics)
-                        Interlocked.Increment(ref _expiredCounts[i]);
+                //if (isExpired)
+                //{
+                //    if (_options.EnableMetrics)
+                //        Interlocked.Increment(ref _expiredCounts[i]);
 
-                    tempPacket.Dispose();
-                    continue;
-                }
+                //    tempPacket.Dispose();
+                //    continue;
+                //}
 
-                if (!isValid)
-                {
-                    if (_options.EnableMetrics)
-                        Interlocked.Increment(ref _invalidCounts[i]);
+                //if (!isValid)
+                //{
+                //    if (_options.EnableMetrics)
+                //        Interlocked.Increment(ref _rejectedCounts[i]);
 
-                    tempPacket.Dispose();
-                    continue;
-                }
+                //    tempPacket.Dispose();
+                //    continue;
+                //}
 
                 if (_options.EnableMetrics)
                 {

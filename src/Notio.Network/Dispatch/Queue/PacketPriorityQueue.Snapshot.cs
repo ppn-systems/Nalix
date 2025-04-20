@@ -89,14 +89,16 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Clears all collected statistics for a specific priority level.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ClearStatistics(int index)
     {
         _expiredCounts[index] = 0;
-        _invalidCounts[index] = 0;
+        _rejectedCounts[index] = 0;
         _enqueuedCounts[index] = 0;
         _dequeuedCounts[index] = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CollectStatisticsInternal(Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
     {
         for (int i = 0; i < _priorityCount; i++)
@@ -107,7 +109,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 TotalEnqueued = _enqueuedCounts[i],
                 TotalDequeued = _dequeuedCounts[i],
                 TotalExpiredPackets = _expiredCounts[i],
-                TotalRejectedPackets = _invalidCounts[i]
+                TotalRejectedPackets = _rejectedCounts[i]
             };
         }
     }
