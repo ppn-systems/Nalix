@@ -9,11 +9,59 @@ namespace Notio.Network.Dispatch.Queue;
 
 public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
 {
-    #region Public Methods
+    /// <summary>
+    /// Gets a value indicating whether the queue is currently empty across all priorities.
+    /// </summary>
+    /// <remarks>
+    /// This checks the total count of enqueued packets and returns <c>true</c> if zero.
+    /// </remarks>
+    public bool IsEmpty => TotalPendingCount == 0;
 
     /// <summary>
-    /// Get queue statistics
+    /// Gets the total number of packets currently enqueued across all priority levels.
     /// </summary>
+    /// <remarks>
+    /// This value is updated atomically and reflects real-time state.
+    /// </remarks>
+    public int TotalPendingCount => Volatile.Read(ref _totalCount);
+
+    /// <summary>
+    /// Returns a snapshot of the number of pending packets per priority level.
+    /// </summary>
+    /// <returns>
+    /// A dictionary containing each <see cref="PacketPriority"/> and its corresponding packet count.
+    /// </returns>
+    /// <remarks>
+    /// This method is thread-safe and reflects the queue state at the time of the call.
+    /// </remarks>
+    public Dictionary<PacketPriority, int> Snapshot()
+    {
+        Dictionary<PacketPriority, int> result = [];
+
+        for (int i = 0; i < _priorityCount; i++)
+        {
+            result[(PacketPriority)i] = Volatile.Read(ref _priorityCounts[i]);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Retrieves the current queue statistics, including total pending packets, 
+    /// packet counts by priority level, average processing time, and uptime.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="PacketSnapshot"/> object containing the current queue statistics:
+    /// - TotalPendingPackets: Total number of packets currently in the queue.
+    /// - PriorityLevel: A dictionary containing the count of packets for each priority level.
+    /// - AvgProcessingTimeMs: The average time (in milliseconds) taken to process a packet.
+    /// - UptimeSeconds: The total uptime of the queue in seconds.
+    /// </returns>
+    /// <remarks>
+    /// This method provides an overview of the current state of the queue, including how many
+    /// packets are pending and the overall processing performance. If metrics collection is disabled
+    /// or if the queue timer is unavailable, an empty snapshot will be returned.
+    /// </remarks>
     public PacketSnapshot GetStatistics()
     {
         if (!_options.EnableMetrics || _queueTimer == null)
@@ -35,8 +83,6 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
             UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
         };
     }
-
-    #endregion
 
     #region Private Methods
 

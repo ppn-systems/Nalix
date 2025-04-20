@@ -17,9 +17,14 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Removes all packets from the specified priority queue.
     /// </summary>
-    /// <param name="priority">The priority level to purge.</param>
-    /// <returns>The number of packets removed.</returns>
-    public int PurgePriorityQueue(PacketPriority priority)
+    /// <param name="priority">The priority level of the queue to purge.</param>
+    /// <returns>The number of packets removed from the specified priority queue.</returns>
+    /// <remarks>
+    /// This method will drain and dispose all packets from the queue associated with the provided priority level.
+    /// It also updates the total count of packets and resets the priority count for that level.
+    /// If metrics are enabled, it will clear the associated statistics for the priority level.
+    /// </remarks>
+    public int FlushPriority(PacketPriority priority)
     {
         int index = (int)priority;
         int removed = PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
@@ -38,13 +43,13 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <summary>
     /// Removes all packets from all priority queues.
     /// </summary>
-    public void PurgeAllQueues() => ClearInternal();
+    public void FlushAll() => ClearInternal();
 
     /// <summary>
     /// Asynchronously removes expired packets from all priority queues.
     /// </summary>
     /// <returns>The total number of expired packets removed.</returns>
-    public Task<int> PruneExpiredAsync() => PruneExpiredInternalAsync();
+    public Task<int> SweepExpiredAsync() => PruneExpiredInternalAsync();
 
     /// <summary>
     /// Starts a background task to periodically remove expired packets.
@@ -52,7 +57,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     /// <param name="interval">Time interval between cleanup checks.</param>
     /// <param name="cancellationToken">Token to stop the background task.</param>
     /// <returns>The background task instance.</returns>
-    public Task StartExpirationMonitorAsync(TimeSpan interval, CancellationToken cancellationToken = default)
+    public Task RunExpirationCleanerAsync(TimeSpan interval, CancellationToken cancellationToken = default)
         => Task.Run(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -60,7 +65,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
                 try
                 {
                     await Task.Delay(interval, cancellationToken);
-                    await PruneExpiredAsync();
+                    await SweepExpiredAsync();
                 }
                 catch (OperationCanceledException) { break; }
                 catch { /* Optional: Logging */ }
