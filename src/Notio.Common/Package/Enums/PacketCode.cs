@@ -36,6 +36,10 @@ public enum PacketCode : ushort
     [PacketCodeMessage("You do not have sufficient permission.")]
     PermissionDenied = 1003,
 
+    /// <summary>Client has not authenticated.</summary>
+    [PacketCodeMessage("You must authenticate before proceeding.")]
+    AuthenticationFailure = 1004,
+
 
     // ===== Command Errors =====
     /// <summary>The command does not exist.</summary>
@@ -53,6 +57,14 @@ public enum PacketCode : ushort
     /// <summary>There is a conflict with the current state (e.g. duplicate).</summary>
     [PacketCodeMessage("The request conflicts with existing data.")]
     Conflict = 2004,
+
+    /// <summary>The provided data is invalid or malformed.</summary>
+    [PacketCodeMessage("The provided data is invalid.")]
+    InvalidData = 2005,
+
+    /// <summary>Required information is missing from the request.</summary>
+    [PacketCodeMessage("Missing required information.")]
+    MissingInformation = 2006,
 
 
     // ===== Payload / Format Errors =====
@@ -101,4 +113,44 @@ public enum PacketCode : ushort
     /// <summary>The server is temporarily unable to handle the request.</summary>
     [PacketCodeMessage("The service is currently unavailable.")]
     ServiceUnavailable = 5002,
+
+    /// <summary>Concurrent modification detected.</summary>
+    [PacketCodeMessage("Conflict detected due to concurrent modification.")]
+    ConcurrencyError = 5003,
+
+
+    // ===== Connection Errors =====
+    /// <summary>The connection to the server was lost.</summary>
+    [PacketCodeMessage("Unable to connect to the server. Please try again later.")]
+    ConnectionFailure = 6001,
+
+    /// <summary>Connection was refused by the server.</summary>
+    [PacketCodeMessage("The connection was refused by the server.")]
+    ConnectionRefused = 6002,
+
+
+    // ===== Session Errors =====
+    /// <summary>The session is invalid or expired.</summary>
+    [PacketCodeMessage("Session expired or invalid. Please log in again.")]
+    SessionError = 7001,
+
+
+    // ===== Encryption and Compression Errors =====
+    /// <summary>Encryption is required but not provided.</summary>
+    [PacketCodeMessage("Failed to decrypt the packet.")]
+    DecryptionFailure = 8001,
+
+    /// <summary>Compression is required but not provided.</summary>
+    [PacketCodeMessage("Failed to compress/decompress the packet.")]
+    CompressionFailure = 8002,
+
+
+    // ===== Resource Errors =====
+    /// <summary>Packet integrity check failed.</summary>
+    [PacketCodeMessage("Data tampering detected.")]
+    DataTampering = 9001,
+
+    /// <summary>The requested resource was not found.</summary>
+    [PacketCodeMessage("The requested resource was not found.")]
+    NotFound = 9002,
 }

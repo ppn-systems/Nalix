@@ -1,7 +1,6 @@
 using Notio.Common.Connection;
 using Notio.Common.Package;
 using System;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,31 +56,4 @@ public sealed partial class Connection : IConnection
         _logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
         return false;
     }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Close(bool force = false)
-    {
-        try
-        {
-            if (!force && _socket.Connected &&
-               (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0)) return;
-
-
-            if (_disposed) return;
-
-            this.State = ConnectionState.Disconnected;
-
-            _ctokens.Cancel();
-            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
-        }
-        catch (Exception ex)
-        {
-            _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
-        }
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Disconnect(string? reason = null) => Close(force: true);
 }

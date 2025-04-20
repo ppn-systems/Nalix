@@ -9,6 +9,7 @@ using Notio.Network.Connection.Transport;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Notio.Network.Connection;
@@ -157,6 +158,37 @@ public sealed partial class Connection : IConnection
         add => _onPostProcessEvent += value;
         remove => _onPostProcessEvent -= value;
     }
+
+    #endregion
+
+    #region Methods
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Close(bool force = false)
+    {
+        try
+        {
+            if (!force && _socket.Connected &&
+               (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0)) return;
+
+
+            if (_disposed) return;
+
+            this.State = ConnectionState.Disconnected;
+
+            _ctokens.Cancel();
+            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Disconnect(string? reason = null) => Close(force: true);
 
     #endregion
 
