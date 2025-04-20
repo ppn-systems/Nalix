@@ -3,7 +3,7 @@ namespace Notio.Common.Cryptography;
 /// <summary>
 /// Specifies the encryption modes available for symmetric encryption.
 /// </summary>
-public enum EncryptionMode : byte
+public enum EncryptionType : byte
 {
     /// <summary>
     /// ChaCha20 encryption with Poly1305 for authenticated encryption.

@@ -218,7 +218,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             }
 
             // Handle Compression (e.g., apply compression to packet)
-            try { packet = TPacket.Decompress(packet, connection.ComMode); }
+            try { packet = TPacket.Decompress(packet, connection.Compression); }
             catch (System.Exception ex)
             {
                 _logger?.Error("Failed to decompress packet: {0}", ex.Message);
@@ -239,7 +239,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             else
             {
                 // Handle Encryption (e.g., apply encryption to packet)
-                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.EncMode);
+                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Encryption);
             }
 
             try

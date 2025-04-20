@@ -24,7 +24,7 @@ public static class PacketGuard
     [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Encrypt(
-        Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+        Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
     {
         PacketOps.CheckEncryption(packet, key, isEncryption: true);
 
@@ -54,7 +54,7 @@ public static class PacketGuard
     [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Decrypt(
-        Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
+        Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
     {
         PacketOps.CheckEncryption(packet, key, isEncryption: false);
 

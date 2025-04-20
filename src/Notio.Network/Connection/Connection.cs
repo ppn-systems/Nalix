@@ -127,10 +127,10 @@ public sealed partial class Connection : IConnection
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
 
     /// <inheritdoc />
-    public EncryptionMode EncMode { get; set; } = EncryptionMode.XTEA;
+    public EncryptionType Encryption { get; set; } = EncryptionType.XTEA;
 
     /// <inheritdoc />
-    public CompressionType ComMode { get; set; } = CompressionType.Brotli;
+    public CompressionType Compression { get; set; } = CompressionType.Brotli;
 
     /// <inheritdoc />
     public AuthenticationState State { get; set; } = AuthenticationState.Connected;

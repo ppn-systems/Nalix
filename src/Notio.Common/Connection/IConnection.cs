@@ -48,16 +48,6 @@ public partial interface IConnection : System.IDisposable
     byte[] EncryptionKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the encryption mode used.
-    /// </summary>
-    EncryptionMode EncMode { get; set; }
-
-    /// <summary>
-    /// Gets or sets the compression mode used.
-    /// </summary>
-    CompressionType ComMode { get; set; }
-
-    /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>
     PermissionLevel Level { get; set; }
@@ -66,6 +56,16 @@ public partial interface IConnection : System.IDisposable
     /// Gets the current state of the connection.
     /// </summary>
     AuthenticationState State { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encryption mode used.
+    /// </summary>
+    EncryptionType Encryption { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compression mode used.
+    /// </summary>
+    CompressionType Compression { get; set; }
 
     /// <summary>
     /// A dictionary for storing connection-specific metadata.

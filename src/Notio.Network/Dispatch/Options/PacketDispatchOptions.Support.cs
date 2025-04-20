@@ -36,8 +36,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
     {
-        packet = TPacket.Compress(packet, connection.ComMode);
-        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.EncMode);
+        packet = TPacket.Compress(packet, connection.Compression);
+        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
 
         await connection.SendAsync(packet);
     }

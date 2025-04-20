@@ -43,8 +43,8 @@ public sealed class SessionController
     {
         ConnectionStatusDto status = new()
         {
-            ComMode = connection.ComMode,
-            EncMode = connection.EncMode
+            ComMode = connection.Compression,
+            EncMode = connection.Encryption
         };
 
         return PacketBuilder.Json(PacketCode.Success, status, NotioJsonContext.Default.ConnectionStatusDto);

@@ -11,7 +11,7 @@ public class ConnectionStatusDto
     /// <summary>
     /// Gets the encryption mode used for the connection.
     /// </summary>
-    public EncryptionMode EncMode { get; init; }
+    public EncryptionType EncMode { get; init; }
 
     /// <summary>
     /// Gets the compression mode used for the connection.

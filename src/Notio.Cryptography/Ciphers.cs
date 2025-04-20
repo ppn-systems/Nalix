@@ -24,7 +24,7 @@ public static class Ciphers
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Encrypt(
         Memory<byte> data, byte[] key,
-        EncryptionMode algorithm = EncryptionMode.XTEA)
+        EncryptionType algorithm = EncryptionType.XTEA)
     {
         if (key == null)
             throw new ArgumentNullException(
@@ -38,7 +38,7 @@ public static class Ciphers
         {
             switch (algorithm)
             {
-                case EncryptionMode.ChaCha20Poly1305:
+                case EncryptionType.ChaCha20Poly1305:
                     {
                         Span<byte> nonce = RandGenerator.CreateNonce();
 
@@ -53,7 +53,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionMode.Salsa20:
+                case EncryptionType.Salsa20:
                     {
                         Span<byte> nonce = RandGenerator.CreateNonce();
                         ulong counter = 0; // Typically starts at 0
@@ -68,7 +68,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionMode.Speck:
+                case EncryptionType.Speck:
                     {
                         // Prepare output buffer
                         byte[] output = new byte[data.Length];
@@ -92,7 +92,7 @@ public static class Ciphers
                         return output;
                     }
 
-                case EncryptionMode.SpeckCBC:
+                case EncryptionType.SpeckCBC:
                     {
                         // Prepare output buffer
                         byte[] output = new byte[data.Length];
@@ -116,7 +116,7 @@ public static class Ciphers
                         return output;
                     }
 
-                case EncryptionMode.TwofishECB:
+                case EncryptionType.TwofishECB:
                     {
                         if (data.Length % 16 != 0)
                             throw new ArgumentException(
@@ -126,7 +126,7 @@ public static class Ciphers
                         return encrypted;
                     }
 
-                case EncryptionMode.TwofishCBC:
+                case EncryptionType.TwofishCBC:
                     {
                         Span<byte> iv = RandGenerator.CreateNonce(16);
                         if (data.Length % 16 != 0)
@@ -142,7 +142,7 @@ public static class Ciphers
                         return result;
                     }
 
-                case EncryptionMode.XTEA:
+                case EncryptionType.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] encryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -182,7 +182,7 @@ public static class Ciphers
     /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Decrypt(
         Memory<byte> data, byte[] key,
-        EncryptionMode algorithm = EncryptionMode.XTEA)
+        EncryptionType algorithm = EncryptionType.XTEA)
     {
         if (key == null)
             throw new ArgumentNullException(nameof(key),
@@ -196,7 +196,7 @@ public static class Ciphers
         {
             switch (algorithm)
             {
-                case EncryptionMode.ChaCha20Poly1305:
+                case EncryptionType.ChaCha20Poly1305:
                     {
                         ReadOnlySpan<byte> input = data.Span;
                         if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
@@ -216,7 +216,7 @@ public static class Ciphers
                         return plaintext;
                     }
 
-                case EncryptionMode.Salsa20:
+                case EncryptionType.Salsa20:
                     {
                         ReadOnlySpan<byte> input = data.Span;
                         if (input.Length < 8) // Min size = 8 (nonce)
@@ -234,7 +234,7 @@ public static class Ciphers
                         return plaintext;
                     }
 
-                case EncryptionMode.Speck:
+                case EncryptionType.Speck:
                     {
                         // Prepare output buffer
                         byte[] output = new byte[data.Length];
@@ -258,7 +258,7 @@ public static class Ciphers
                         return output;
                     }
 
-                case EncryptionMode.SpeckCBC:
+                case EncryptionType.SpeckCBC:
                     {
                         // Prepare output buffer
                         byte[] output = new byte[data.Length];
@@ -282,7 +282,7 @@ public static class Ciphers
                         return output;
                     }
 
-                case EncryptionMode.TwofishECB:
+                case EncryptionType.TwofishECB:
                     {
                         if (data.Length % 16 != 0)
                             throw new ArgumentException(
@@ -292,7 +292,7 @@ public static class Ciphers
                         return decrypted;
                     }
 
-                case EncryptionMode.TwofishCBC:
+                case EncryptionType.TwofishCBC:
                     {
                         if (data.Length < 16 || (data.Length - 16) % 16 != 0)
                             throw new ArgumentException("Invalid data length for Twofish CBC.", nameof(data));
@@ -304,7 +304,7 @@ public static class Ciphers
                         return decrypted;
                     }
 
-                case EncryptionMode.XTEA:
+                case EncryptionType.XTEA:
                     {
                         int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
                         byte[] decryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
@@ -348,10 +348,10 @@ public static class Ciphers
     /// <param name="memory">
     /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
     /// </param>
-    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionMode.XTEA"/>.</param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryEncrypt(Memory<byte> data, byte[] key,
-        [NotNullWhen(true)] out Memory<byte> memory, EncryptionMode mode = EncryptionMode.XTEA)
+        [NotNullWhen(true)] out Memory<byte> memory, EncryptionType mode = EncryptionType.XTEA)
     {
         try
         {
@@ -373,10 +373,10 @@ public static class Ciphers
     /// <param name="memory">
     /// When this method returns, contains the encrypted data if encryption succeeded; otherwise, the default value.
     /// </param>
-    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionMode.XTEA"/>.</param>
+    /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryDecrypt(Memory<byte> data, byte[] key,
-        [NotNullWhen(true)] out Memory<byte> memory, EncryptionMode mode = EncryptionMode.XTEA)
+        [NotNullWhen(true)] out Memory<byte> memory, EncryptionType mode = EncryptionType.XTEA)
     {
         try
         {

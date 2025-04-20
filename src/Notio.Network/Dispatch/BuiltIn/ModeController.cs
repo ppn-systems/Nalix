@@ -54,7 +54,7 @@ public sealed class ModeController(ILogger? logger)
     [PacketId((ushort)ProtocolPacket.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public System.Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
-        => SetMode<EncryptionMode>(packet, connection);
+        => SetMode<EncryptionType>(packet, connection);
 
     #region Private Methods
 
@@ -86,9 +86,9 @@ public sealed class ModeController(ILogger? logger)
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
         if (typeof(TEnum) == typeof(CompressionType))
-            connection.ComMode = Unsafe.As<TEnum, CompressionType>(ref enumValue);
-        else if (typeof(TEnum) == typeof(EncryptionMode))
-            connection.EncMode = Unsafe.As<TEnum, EncryptionMode>(ref enumValue);
+            connection.Compression = Unsafe.As<TEnum, CompressionType>(ref enumValue);
+        else if (typeof(TEnum) == typeof(EncryptionType))
+            connection.Encryption = Unsafe.As<TEnum, EncryptionType>(ref enumValue);
 
         _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
         return PacketBuilder.String(PacketCode.Success);
