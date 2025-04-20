@@ -23,11 +23,11 @@ namespace Nalix.Common.Packets.Models;
 /// </param>
 /// <param name="Encrypt">
 /// A delegate that encrypts the given <see cref="IPacket"/> using the 
-/// specified <see cref="CipherType"/> and encryption key.
+/// specified <see cref="CipherSuiteType"/> and encryption key.
 /// </param>
 /// <param name="Decrypt">
 /// A delegate that decrypts the given <see cref="IPacket"/> using the 
-/// specified <see cref="CipherType"/> and decryption key.
+/// specified <see cref="CipherSuiteType"/> and decryption key.
 /// </param>
 [System.Diagnostics.DebuggerDisplay("PacketTransformer [C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}]")]
 public readonly record struct PacketTransformer(
@@ -39,11 +39,11 @@ public readonly record struct PacketTransformer(
     /*----------------------------------------------------------------------------------*/
     [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    System.Func<IPacket, System.Byte[], CipherType, IPacket> Encrypt,
+    System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket> Encrypt,
     /*----------------------------------------------------------------------------------*/
     [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    System.Func<IPacket, System.Byte[], CipherType, IPacket> Decrypt
+    System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket> Decrypt
     /*----------------------------------------------------------------------------------*/)
 {
     /// <summary>
