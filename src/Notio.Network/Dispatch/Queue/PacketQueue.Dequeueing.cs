@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Notio.Network.Dispatch.Queue;
 
-public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Dequeues a packet from the queue according to priority order.

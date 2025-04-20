@@ -11,7 +11,7 @@ namespace Notio.Network.Dispatch.Queue;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Fields
 
@@ -49,9 +49,9 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     #region Constructors
 
     /// <summary>
-    /// Initialize a new PacketPriorityQueue using options.
+    /// Initialize a new PacketQueue using options.
     /// </summary>
-    private PacketPriorityQueue()
+    private PacketQueue()
     {
         _options = null!;
         _queueTimer = null;
@@ -78,10 +78,10 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     }
 
     /// <summary>
-    /// Initialize a new PacketPriorityQueue using options
+    /// Initialize a new PacketQueue using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public PacketPriorityQueue(QueueConfig options) : this()
+    public PacketQueue(QueueConfig options) : this()
     {
         _options = options;
 

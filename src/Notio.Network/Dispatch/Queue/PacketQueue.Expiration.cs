@@ -11,7 +11,7 @@ namespace Notio.Network.Dispatch.Queue;
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.
 /// </summary>
-public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Public Methods
 
@@ -36,7 +36,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
     public int FlushPriority(PacketPriority priority)
     {
         int index = (int)priority;
-        int removed = PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
+        int removed = PacketQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
 
         if (removed > 0)
         {
@@ -133,7 +133,7 @@ public sealed partial class PacketPriorityQueue<TPacket> where TPacket : Common.
         int totalCleared = 0;
 
         for (int i = 0; i < _priorityCount; i++)
-            totalCleared += PacketPriorityQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
+            totalCleared += PacketQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
 
         if (totalCleared > 0)
             Interlocked.Exchange(ref _totalCount, 0);

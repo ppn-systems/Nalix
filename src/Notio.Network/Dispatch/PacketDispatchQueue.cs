@@ -42,7 +42,7 @@ public sealed class PacketDispatchQueue<TPacket>
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly Queue.PacketPriorityQueue<TPacket> _dispatchQueue;
+    private readonly Queue.PacketQueue<TPacket> _dispatchQueue;
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
         Common.Connection.IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
@@ -99,7 +99,7 @@ public sealed class PacketDispatchQueue<TPacket>
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
-        _dispatchQueue = new Queue.PacketPriorityQueue<TPacket>(Options.QueueOptions);
+        _dispatchQueue = new Queue.PacketQueue<TPacket>(Options.QueueOptions);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");

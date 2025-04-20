@@ -1,7 +1,7 @@
 namespace Notio.Network.Configurations;
 
 /// <summary>
-/// Configuration options for PacketPriorityQueue
+/// Configuration options for PacketQueue
 /// </summary>
 public sealed class QueueConfig : Shared.Configuration.ConfigurationBinder
 {
