@@ -7,12 +7,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities;
+namespace Notio.Network.Package.Engine;
 
 /// <summary>
 /// Provides helper methods for compressing and decompressing packet payloads.
 /// </summary>
-public static class PacketCompression
+public static class PacketCompact
 {
     /// <summary>
     /// Compresses the payload of the given packet using the specified compression type.
@@ -24,7 +24,7 @@ public static class PacketCompression
     /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(in Packet packet,
+    public static Packet Compress(in Packet packet,
         Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForCompression(packet);
@@ -57,7 +57,7 @@ public static class PacketCompression
     /// or if an error occurs during decompression.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(in Packet packet,
+    public static Packet Decompress(in Packet packet,
         Common.Security.CompressionMode compressionType = Common.Security.CompressionMode.GZip)
     {
         ValidatePacketForDecompression(packet);

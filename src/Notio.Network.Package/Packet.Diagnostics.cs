@@ -1,8 +1,6 @@
-using System.Diagnostics;
-
 namespace Notio.Network.Package;
 
-[DebuggerDisplay("Packet {Id}: Id={Id}, Type={Type}, Number={Number}, Length={Length}")]
+[System.Diagnostics.DebuggerDisplay("Packet {Id}: Id={Id}, Type={Type}, Number={Number}, Length={Length}")]
 public readonly partial struct Packet
 {
     /// <summary>

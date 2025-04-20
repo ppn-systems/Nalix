@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Engine.Serialization;
 
 public static partial class PacketSerializer
 {

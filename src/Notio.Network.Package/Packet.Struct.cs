@@ -1,14 +1,7 @@
-using Notio.Common.Constants;
 using Notio.Common.Package;
 using Notio.Common.Package.Enums;
-using Notio.Common.Package.Metadata;
 using Notio.Defaults;
 using Notio.Utilities;
-using System;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Notio.Network.Package;
 
@@ -16,87 +9,10 @@ namespace Notio.Network.Package;
 /// Represents an immutable network packet with metadata and payload.
 /// This high-performance struct is optimized for efficient serialization and transmission.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
-public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
-    IPacket,
-    IPacketEncryptor<Packet>,
-    IPacketCompressor<Packet>,
-    IPacketDeserializer<Packet>
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Sequential)]
+public readonly partial struct Packet : IPacket, System.IDisposable
 {
-    #region Constants
-
-    // Cache the max packet size locally to avoid field access costs
-    private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
-    private const int MaxHeapAllocSize = DefaultConstants.HeapAllocThreshold;
-    private const int MaxStackAllocSize = DefaultConstants.StackAllocThreshold;
-
-    #endregion
-
-    #region Fields
-
-    private readonly ulong _hash;
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    /// Gets the total length of the packet including header and payload.
-    /// </summary>
-    public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
-
-    /// <summary>
-    /// Gets the Number associated with the packet, which specifies an operation type.
-    /// </summary>
-    public ushort Id { get; }
-
-    /// <summary>
-    /// Gets the CRC32 checksum of the packet payload for integrity validation.
-    /// </summary>
-    public uint Checksum { get; }
-
-    /// <summary>
-    /// Gets the timestamp when the packet was created in microseconds since system startup.
-    /// </summary>
-    public ulong Timestamp { get; }
-
-    /// <summary>
-    /// Gets the packet Hash.
-    /// </summary>
-    public ulong Hash => _hash;
-
-    /// <summary>
-    /// Gets the packet code, which is used to identify the packet type.
-    /// </summary>
-    public PacketCode Code { get; }
-
-    /// <summary>
-    /// Gets the packet type, which specifies the kind of packet.
-    /// </summary>
-    public PacketType Type { get; }
-
-    /// <summary>
-    /// Gets the flags associated with the packet, used for additional control information.
-    /// </summary>
-    public PacketFlags Flags { get; }
-
-    /// <summary>
-    /// Gets the priority level of the packet, which affects how the packet is processed.
-    /// </summary>
-    public PacketPriority Priority { get; }
-
-    /// <summary>
-    /// Gets the packet identifier, which is a unique identifier for this packet instance.
-    /// </summary>
-    public byte Number { get; }
-
-    /// <summary>
-    /// Gets the payload data being transmitted in this packet.
-    /// </summary>
-    public Memory<byte> Payload { get; }
-
-    #endregion
-
     #region Constructors
 
     /// <summary>
@@ -105,9 +21,10 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="id">The packet Number.</param>
     /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, byte[] payload)
-    : this(id, code, new Memory<byte>(payload))
+        : this(id, code, new System.Memory<byte>(payload))
     {
     }
 
@@ -117,9 +34,10 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="id">The packet Number.</param>
     /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, Span<byte> payload)
-    : this(id, code, new Memory<byte>(payload.ToArray()))
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(ushort id, PacketCode code, System.Span<byte> payload)
+        : this(id, code, new System.Memory<byte>(payload.ToArray()))
     {
     }
 
@@ -129,8 +47,9 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="id">The packet Number.</param>
     /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, Memory<byte> payload)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(ushort id, PacketCode code, System.Memory<byte> payload)
         : this(id, code, PacketType.None, PacketFlags.None, PacketPriority.None, payload)
     {
     }
@@ -143,7 +62,8 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority, string s)
         : this(id, code, PacketType.String, flags, priority, DefaultConstants.DefaultEncoding.GetBytes(s))
     {
@@ -158,11 +78,16 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="priority">The priority level of the packet.</param>
     /// <param name="obj">The payload of the packet.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON serialization.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, PacketFlags flags,
-        PacketPriority priority, object obj, JsonTypeInfo<object> jsonTypeInfo)
-        : this(id, code, PacketType.Object,
-               flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(
+        ushort id,
+        PacketCode code,
+        PacketFlags flags,
+        PacketPriority priority,
+        object obj,
+        System.Text.Json.Serialization.Metadata.JsonTypeInfo<object> jsonTypeInfo)
+        : this(id, code, PacketType.Object, flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
     {
     }
 
@@ -175,8 +100,15 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
     /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, ushort code, byte type, byte flags, byte priority, Memory<byte> payload)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(
+        ushort id,
+        ushort code,
+        byte type,
+        byte flags,
+        byte priority,
+        System.Memory<byte> payload)
         : this(id, (PacketCode)code, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
@@ -190,8 +122,15 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
     /// <param name="payload">The packet payload (data).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, PacketType type, PacketFlags flags, PacketPriority priority, Memory<byte> payload)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(
+        ushort id,
+        PacketCode code,
+        PacketType type,
+        PacketFlags flags,
+        PacketPriority priority,
+        System.Memory<byte> payload)
         : this(id, 0, MicrosecondClock.GetTimestamp(), code, type, flags, priority, 0, payload, true)
     {
     }
@@ -203,15 +142,17 @@ public readonly partial struct Packet : IDisposable, IEquatable<Packet>,
     /// <summary>
     /// Releases any resources used by this packet, returning rented arrays to the pool.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         // Only return large arrays to the pool
         if (Payload.Length > MaxHeapAllocSize &&
-            MemoryMarshal.TryGetArray<byte>(Payload, out var segment) &&
+            System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>
+            (Payload, out System.ArraySegment<byte> segment) &&
             segment.Array is { } array)
         {
-            ArrayPool<byte>.Shared.Return(array, clearArray: true);
+            System.Buffers.ArrayPool<byte>.Shared.Return(array, clearArray: true);
         }
     }
 

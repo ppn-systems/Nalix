@@ -1,6 +1,10 @@
+using Notio.Common.Exceptions;
+using Notio.Common.Package;
+using Notio.Network.Package.Engine.Serialization;
+
 namespace Notio.Network.Package;
 
-public readonly partial struct Packet
+public readonly partial struct Packet : IPacketDeserializer<Packet>
 {
     /// <summary>
     /// Serializes the packet into a new byte array.
@@ -10,7 +14,7 @@ public readonly partial struct Packet
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Memory<byte> Serialize() => Serialization.PacketSerializer.Serialize(this);
+    public System.Memory<byte> Serialize() => PacketSerializer.Serialize(this);
 
     /// <summary>
     /// Serializes the packet into the provided buffer.
@@ -18,13 +22,13 @@ public readonly partial struct Packet
     /// <param name="buffer">
     /// A span of bytes to write the serialized packet into. The buffer must be large enough to hold the entire packet.
     /// </param>
-    /// <exception cref="Common.Exceptions.PackageException">
+    /// <exception cref="PackageException">
     /// Thrown if the buffer is too small to contain the serialized packet.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(System.Span<byte> buffer)
-        => Serialization.PacketSerializer.WritePacketUnsafe(buffer, this);
+        => PacketSerializer.WritePacketUnsafe(buffer, this);
 
     /// <summary>
     /// Deserializes a <see cref="Packet"/> from the given byte buffer using fast deserialization logic.
@@ -37,6 +41,6 @@ public readonly partial struct Packet
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    static Packet Common.Package.IPacketDeserializer<Packet>.Deserialize(System.ReadOnlySpan<byte> buffer)
-        => Serialization.PacketSerializer.ReadPacketFast(buffer);
+    static Packet IPacketDeserializer<Packet>.Deserialize(System.ReadOnlySpan<byte> buffer)
+        => PacketSerializer.ReadPacketFast(buffer);
 }

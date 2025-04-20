@@ -3,25 +3,40 @@ using Notio.Common.Exceptions;
 using Notio.Common.Package;
 using Notio.Common.Package.Enums;
 using Notio.Common.Package.Metadata;
-using Notio.Integrity;
-using System;
-using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities;
+namespace Notio.Network.Package.Engine;
 
 /// <summary>
-/// Provides methods to validate and verify the validity of a IPacket.
+/// Provides utility methods for working with packets.
 /// </summary>
-[SkipLocalsInit]
-public static class PacketVerifier
+[System.Runtime.CompilerServices.SkipLocalsInit]
+public static class PacketOps
 {
+    /// <summary>
+    /// Creates an independent copy of a <see cref="IPacket"/>.
+    /// </summary>
+    /// <param name="packet">The <see cref="IPacket"/> instance to be cloned.</param>
+    /// <returns>A new <see cref="IPacket"/> that is a copy of the original.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static IPacket Clone(IPacket packet)
+    {
+        // Copy payload with safety check
+        byte[] payloadCopy = new byte[packet.Payload.Length];
+        packet.Payload.Span.CopyTo(payloadCopy);
+
+        return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
+                          packet.Type, packet.Flags, packet.Priority, packet.Number, payloadCopy);
+    }
+
     /// <summary>
     /// Checks if the IPacket is valid based on its payload size and header size.
     /// </summary>
     /// <param name="packet">The IPacket instance to be validated.</param>
     /// <returns>True if the IPacket is valid, otherwise false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidPacket(IPacket packet)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool IsValidSize(IPacket packet)
         => packet.Payload.Length <= PacketConstants.PacketSizeLimit &&
            packet.Payload.Length + PacketSize.Header <= PacketConstants.PacketSizeLimit;
 
@@ -30,12 +45,15 @@ public static class PacketVerifier
     /// </summary>
     /// <param name="packet">The byte array representing the packet to verify.</param>
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsValidChecksum(byte[] packet)
-        => BitConverter.ToUInt32(packet, PacketOffset.Checksum)
-        == Crc32.Compute(packet[PacketOffset.Payload..]);
+        => System.BitConverter.ToUInt32(packet, PacketOffset.Checksum)
+        == Integrity.Crc32.Compute(packet[PacketOffset.Payload..]);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void CheckEncryptionConditions(IPacket packet, byte[] key, bool isEncryption)
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static void CheckEncryption(IPacket packet, byte[] key, bool isEncryption)
     {
         if (key.Length % 4 != 0)
             throw new PackageException(

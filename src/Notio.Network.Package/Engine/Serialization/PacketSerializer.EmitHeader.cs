@@ -3,7 +3,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Engine.Serialization;
 
 public static partial class PacketSerializer
 {

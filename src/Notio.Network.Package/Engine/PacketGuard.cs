@@ -3,15 +3,13 @@ using Notio.Common.Exceptions;
 using Notio.Common.Package.Enums;
 using Notio.Cryptography;
 using Notio.Extensions.Primitives;
-using System;
-using System.Runtime.CompilerServices;
 
-namespace Notio.Network.Package.Utilities;
+namespace Notio.Network.Package.Engine;
 
 /// <summary>
 /// Provides helper methods for encrypting and decrypting packet payloads.
 /// </summary>
-public static class PacketEncryption
+public static class PacketGuard
 {
     /// <summary>
     /// Encrypts the payload of the given packet using the specified algorithm.
@@ -23,20 +21,21 @@ public static class PacketEncryption
     /// <exception cref="PackageException">
     /// Thrown if encryption conditions are not met or if an error occurs during encryption.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet EncryptPayload(
+    [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Packet Encrypt(
         Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
-        PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: true);
+        PacketOps.CheckEncryption(packet, key, isEncryption: true);
 
         try
         {
-            Memory<byte> encryptedPayload = Ciphers.Encrypt(packet.Payload, key, algorithm);
+            System.Memory<byte> encryptedPayload = Ciphers.Encrypt(packet.Payload, key, algorithm);
 
             return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
                 packet.Flags.AddFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, encryptedPayload);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             throw new PackageException("Failed to encrypt the packet payload.", ex);
         }
@@ -52,20 +51,21 @@ public static class PacketEncryption
     /// <exception cref="PackageException">
     /// Thrown if decryption conditions are not met or if an error occurs during decryption.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Packet DecryptPayload(
+    [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Packet Decrypt(
         Packet packet, byte[] key, EncryptionMode algorithm = EncryptionMode.XTEA)
     {
-        PacketVerifier.CheckEncryptionConditions(packet, key, isEncryption: false);
+        PacketOps.CheckEncryption(packet, key, isEncryption: false);
 
         try
         {
-            Memory<byte> decryptedPayload = Ciphers.Decrypt(packet.Payload, key, algorithm);
+            System.Memory<byte> decryptedPayload = Ciphers.Decrypt(packet.Payload, key, algorithm);
 
             return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
                 packet.Flags.RemoveFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, decryptedPayload);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             throw new PackageException("Failed to decrypt the packet payload.", ex);
         }

@@ -15,7 +15,7 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
     public static Packet EncryptPayload(this Packet packet, byte[] key,
         Common.Cryptography.EncryptionMode algorithm = Common.Cryptography.EncryptionMode.XTEA)
-        => Utilities.PacketEncryption.EncryptPayload(packet, key, algorithm);
+        => Engine.PacketGuard.Encrypt(packet, key, algorithm);
 
     /// <summary>
     /// Decrypts the Payload in the IPacket using the specified algorithm.
@@ -27,5 +27,5 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
     public static Packet DecryptPayload(this Packet packet, byte[] key,
         Common.Cryptography.EncryptionMode algorithm = Common.Cryptography.EncryptionMode.XTEA)
-        => Utilities.PacketEncryption.DecryptPayload(packet, key, algorithm);
+        => Engine.PacketGuard.Decrypt(packet, key, algorithm);
 }

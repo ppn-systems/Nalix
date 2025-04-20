@@ -1,6 +1,6 @@
 namespace Notio.Network.Package;
 
-public readonly partial struct Packet
+public readonly partial struct Packet : System.IEquatable<Packet>
 {
     /// <summary>
     /// Returns a hash code for this packet.

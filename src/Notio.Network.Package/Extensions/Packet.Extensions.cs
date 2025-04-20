@@ -1,6 +1,6 @@
 using Notio.Common.Package;
+using Notio.Network.Package.Engine;
 using Notio.Network.Package.Serialization;
-using Notio.Network.Package.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -17,7 +17,7 @@ public static class PacketExtensions
     /// <param name="packet">The byte array representing the packet.</param>
     /// <returns>Returns true if the checksum is valid; otherwise, false.</returns>
     public static bool IsValidChecksum(this byte[] packet)
-        => PacketVerifier.IsValidChecksum(packet);
+        => PacketOps.IsValidChecksum(packet);
 
     /// <summary>
     /// Serializes a <see cref="IPacket"/> into a byte array.

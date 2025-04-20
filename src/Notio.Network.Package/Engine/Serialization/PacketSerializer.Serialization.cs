@@ -4,7 +4,7 @@ using Notio.Common.Package.Metadata;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Engine.Serialization;
 
 public static partial class PacketSerializer
 {

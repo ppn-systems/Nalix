@@ -2,7 +2,7 @@ using Notio.Common.Package.Metadata;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Network.Package.Serialization;
+namespace Notio.Network.Package.Engine.Serialization;
 
 /// <summary>
 /// Provides high-performance methods for serializing and deserializing network packets.
