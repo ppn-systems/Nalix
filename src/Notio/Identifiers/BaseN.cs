@@ -45,11 +45,11 @@ public static class BaseN
     /// <param name="machineId">The machine identifier to support distributed environments.</param>
     /// <returns>A 32-bit unique identifier.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the <paramref name="type"/> exceeds its limit.</exception>
-    public static uint GenerateId(IdType type, ushort machineId)
+    public static uint GenerateId(IdentifierType type, ushort machineId)
     {
         // Validate type
-        if ((int)type >= (int)IdType.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
+        if ((int)type >= (int)IdentifierType.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(type), "IdentifierType exceeds the allowed limit.");
 
         // Get a cryptographically strong random value
         uint randomValue = GenerateSecureRandomUInt();

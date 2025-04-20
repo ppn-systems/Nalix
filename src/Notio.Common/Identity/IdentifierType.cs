@@ -3,7 +3,7 @@ namespace Notio.Common.Identity;
 /// <summary>
 /// Number type to serve different purposes in the system.
 /// </summary>
-public enum IdType : byte
+public enum IdentifierType : byte
 {
     #region Core System
 

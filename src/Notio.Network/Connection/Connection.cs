@@ -51,7 +51,7 @@ public sealed partial class Connection : IConnection
     public Connection(Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _lock = new Lock();
-        _id = Base36Id.NewId(IdType.Session);
+        _id = Base36Id.NewId(IdentifierType.Session);
         _ctokens = new CancellationTokenSource();
 
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));

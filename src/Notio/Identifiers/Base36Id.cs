@@ -52,9 +52,9 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     public uint Value => _value;
 
     /// <summary>
-    /// Gets the IdType encoded within this Base36Id.
+    /// Gets the IdentifierType encoded within this Base36Id.
     /// </summary>
-    public IdType Type => (IdType)(_value >> 24);
+    public IdentifierType Type => (IdentifierType)(_value >> 24);
 
     /// <summary>
     /// Gets the machine Number component encoded within this Base36Id.
@@ -75,7 +75,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// <returns>A new <see cref="Base36Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base36Id NewId(IdType type = IdType.Unknown, ushort machineId = 0)
+    public static Base36Id NewId(IdentifierType type = IdentifierType.Unknown, ushort machineId = 0)
         => new(BaseN.GenerateId(type, machineId));
 
     /// <summary>
@@ -171,10 +171,10 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// <param name="randomValue">A custom random value (if not provided, a secure random value will be generated).</param>
     /// <returns>A new Base36Id with the specified components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base36Id FromComponents(IdType type, ushort machineId, uint? randomValue = null)
+    public static Base36Id FromComponents(IdentifierType type, ushort machineId, uint? randomValue = null)
     {
-        if ((int)type >= (int)IdType.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(type), "IdType exceeds the allowed limit.");
+        if ((int)type >= (int)IdentifierType.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(type), "IdentifierType exceeds the allowed limit.");
 
         uint random = randomValue ?? BaseN.GenerateSecureRandomUInt();
 

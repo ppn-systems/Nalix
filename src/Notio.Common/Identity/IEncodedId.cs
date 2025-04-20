@@ -13,9 +13,9 @@ public interface IEncodedId
     uint Value { get; }
 
     /// <summary>
-    /// Gets the IdType encoded within this identifier.
+    /// Gets the IdentifierType encoded within this identifier.
     /// </summary>
-    IdType Type { get; }
+    IdentifierType Type { get; }
 
     /// <summary>
     /// Gets the machine Number component encoded within this identifier.
