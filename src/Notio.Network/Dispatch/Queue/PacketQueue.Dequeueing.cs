@@ -87,7 +87,9 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             }
         }
 
+#pragma warning disable CS8762 // Parameter must have a non-null value when exiting in some condition.
         return false;
+#pragma warning restore CS8762 // Parameter must have a non-null value when exiting in some condition.
     }
 
     /// <summary>
