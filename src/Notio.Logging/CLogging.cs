@@ -10,7 +10,7 @@ namespace Notio.Logging;
 /// <summary>
 /// A singleton class that provides logging functionality for the application.
 /// </summary>
-public sealed class CLogging : LoggingEngine, ILogger
+public sealed partial class CLogging : LoggingEngine, ILogger
 {
     #region Properties
 
@@ -177,25 +177,6 @@ public sealed class CLogging : LoggingEngine, ILogger
     /// <inheritdoc />
     public void Fatal(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
-
-    #endregion
-
-    #region Private Methods
-
-    // Sanitize log message to prevent log forging
-    // Removes potentially dangerous characters (e.g., newlines or control characters)
-    private static string SanitizeLogMessage(string? message)
-        => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
-
-    /// <summary>
-    /// Writes a log entry with the specified level, event Number, message, and optional exception.
-    /// </summary>
-    /// <param name="level">The log level (e.g., Info, Warning, Error, etc.).</param>
-    /// <param name="eventId">The event Number to associate with the log entry.</param>
-    /// <param name="message">The log message.</param>
-    /// <param name="exception">Optional exception associated with the log entry.</param>
-    private void WriteLog(LogLevel level, EventId eventId, string message, Exception? exception = null)
-       => base.CreateLogEntry(level, eventId, message, exception);
 
     #endregion
 }
