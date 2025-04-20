@@ -1,4 +1,4 @@
-namespace Notio.Logging.Core.Formatters;
+namespace Notio.Logging.Engine.Formatters;
 
 /// <summary>
 /// Contains constant values used for logging.

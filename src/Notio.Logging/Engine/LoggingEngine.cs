@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Notio.Logging.Core;
+namespace Notio.Logging.Engine;
 
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.

@@ -2,7 +2,7 @@ using Notio.Common.Logging;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Notio.Logging.Core.Formatters;
+namespace Notio.Logging.Engine.Formatters;
 
 /// <summary>
 /// Provides high-performance formatting of logging levels with zero allocations.

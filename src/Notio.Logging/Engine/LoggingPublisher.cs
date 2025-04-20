@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Notio.Logging.Core;
+namespace Notio.Logging.Engine;
 
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
