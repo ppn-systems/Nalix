@@ -46,7 +46,7 @@ public static class TimeSyncExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> TimeSyncAsync(
-        this IReliableClient client,
+        this IClient client,
         System.UInt16 opCode = 2,
         System.Int32 timeoutMs = 2_000,
         System.Double maxAllowedDriftMs = 1_000.0,
