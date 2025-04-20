@@ -9,6 +9,8 @@ namespace Notio.Network.Dispatch.Queue;
 
 public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
+    #region Properties
+
     /// <summary>
     /// Gets a value indicating whether the queue is currently empty across all priorities.
     /// </summary>
@@ -25,6 +27,30 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// </remarks>
     public int TotalPendingCount => Volatile.Read(ref _totalCount);
 
+    #endregion
+
+    #region Public Methods
+
+    /// <summary>
+    /// Retrieves the current number of packets in the queue.
+    /// Optionally, you can filter the count by a specific priority level.
+    /// </summary>
+    /// <param name="priority">
+    /// The priority level of the queue to filter by. If <c>null</c>, the count for all priorities is returned.
+    /// </param>
+    /// <returns>
+    /// The total number of packets in the queue if no priority is specified,
+    /// or the number of packets in the queue with the specified priority.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetQueueLength(PacketPriority? priority = null)
+    {
+        if (priority.HasValue)
+            return _priorityCounts[(int)priority.Value];
+
+        return _totalCount;
+    }
+
     /// <summary>
     /// Returns a snapshot of the number of pending packets per priority level.
     /// </summary>
@@ -34,6 +60,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// <remarks>
     /// This method is thread-safe and reflects the queue state at the time of the call.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<PacketPriority, int> Snapshot()
     {
         Dictionary<PacketPriority, int> result = [];
@@ -62,6 +89,7 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     /// packets are pending and the overall processing performance. If metrics collection is disabled
     /// or if the queue timer is unavailable, an empty snapshot will be returned.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketSnapshot GetStatistics()
     {
         if (!_options.EnableMetrics || _queueTimer == null)
@@ -83,6 +111,8 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
             UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
         };
     }
+
+    #endregion
 
     #region Private Methods
 

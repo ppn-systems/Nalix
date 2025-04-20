@@ -3,142 +3,122 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Notio.Network.Dispatch.Queue;
 
 public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
-    /// Dequeues a packet from the queue according to priority order.
+    /// Retrieves and removes the next available packet from the queue, following priority order.
     /// </summary>
-    /// <returns>The dequeued packet.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the queue is empty.</exception>
+    /// <returns>The next valid packet in the queue.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the queue is empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TPacket Dequeue()
     {
-        if (TryDequeue(out TPacket? packet))
-            return packet;
-
+        if (this.TryDequeue(out TPacket? packet)) return packet;
         throw new InvalidOperationException("Cannot dequeue from an empty queue.");
     }
 
     /// <summary>
-    /// Dequeues multiple packets from the queue until a specified condition is met.
+    /// Retrieves and removes packets from the queue until the maximum count is reached 
+    /// or the specified stopping condition returns <c>true</c>.
     /// </summary>
-    /// <param name="maxCount">The maximum number of packets to retrieve.</param>
-    /// <param name="shouldStop">A predicate to stop dequeuing when it returns true.</param>
-    /// <returns>A list of dequeued packets.</returns>
-    public List<TPacket> DequeueWhile(int maxCount, Func<TPacket, bool> shouldStop)
+    /// <param name="predicate">
+    /// A predicate that determines whether dequeuing should stop. If it returns <c>true</c>,
+    /// the method stops dequeuing.
+    /// </param>
+    /// <returns>A list of packets dequeued before the stop condition was met.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public List<TPacket> Dequeue(Func<TPacket, bool> predicate)
     {
         List<TPacket> result = [];
-        int dequeuedCount = 0;
 
-        while (dequeuedCount < maxCount && TryDequeue(out var packet))
+        while (this.TryDequeue(out TPacket? packet))
         {
-            if (shouldStop(packet)) break;
+            if (predicate(packet))
+                break;
+
             result.Add(packet);
-            dequeuedCount++;
         }
 
         return result;
     }
 
     /// <summary>
-    /// Try to dequeue a valid packet, and returns the expired/invalid packet if any.
+    /// Retrieves and removes packets from the queue until the maximum count is reached 
+    /// or the specified stopping condition returns <c>true</c>.
     /// </summary>
-    /// <param name="packet">The dequeued packet if valid, null if none are dequeued.</param>
-    /// <param name="invalidPacket">A packet that was invalid or expired, null if no such packet exists.</param>
-    /// <returns>True if a valid packet was dequeued, false if no valid packet was found.</returns>
-    public bool TryDequeueWithInvalid(
-        [NotNullWhen(true)] out TPacket? packet,
-        [NotNullWhen(false)] out TPacket? invalidPacket)
+    /// <param name="limit">The maximum number of packets to dequeue.</param>
+    /// <param name="predicate">
+    /// A predicate that determines whether dequeuing should stop. If it returns <c>true</c>,
+    /// the method stops dequeuing.
+    /// </param>
+    /// <returns>A list of packets dequeued before the stop condition was met.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public List<TPacket> Dequeue(int limit, Func<TPacket, bool> predicate)
     {
-        long startTicks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
+        List<TPacket> result = [];
+        int count = 0;
 
-        packet = default;
-        invalidPacket = default; // Initialize invalidPacket to default (null)
-
-        for (int i = _priorityCount - 1; i >= 0; i--)
+        while (count < limit && this.TryDequeue(out TPacket? packet))
         {
-            while (_priorityChannels[i].Reader.TryRead(out TPacket? tempPacket))
-            {
-                Interlocked.Decrement(ref _priorityCounts[i]);
-                Interlocked.Decrement(ref _totalCount);
+            if (predicate(packet))
+                break;
 
-                bool isExpired = _options.Timeout != TimeSpan.Zero && tempPacket.IsExpired(_options.Timeout);
-                bool isValid = !_options.EnableValidation || tempPacket.IsValid();
-
-                if (isExpired || !isValid)
-                {
-                    invalidPacket = tempPacket; // Return the invalid or expired packet for inspection
-                    tempPacket.Dispose();
-                    continue;
-                }
-
-                if (_options.EnableMetrics)
-                {
-                    Interlocked.Increment(ref _dequeuedCounts[i]);
-                    UpdatePerformanceStats(startTicks);
-                }
-
-                packet = tempPacket;
-                return true;
-            }
+            result.Add(packet);
+            count++;
         }
 
-#pragma warning disable CS8762 // Parameter must have a non-null value when exiting in some condition.
-        return false;
-#pragma warning restore CS8762 // Parameter must have a non-null value when exiting in some condition.
+        return result;
     }
 
     /// <summary>
-    /// Get a packet from the queue in priority order
+    /// Dequeues up to <paramref name="limit"/> packets in priority order.
     /// </summary>
-    /// <param name="packet">The dequeued packet, if available</param>
-    /// <returns>True if a packet was retrieved, False if the queue is empty</returns>
+    /// <param name="limit">The maximum number of packets to dequeue. Defaults to 100.</param>
+    /// <returns>A list of dequeued packets. May contain fewer than <paramref name="limit"/> packets if the queue runs out.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public List<TPacket> DequeueBatch(int limit = 100)
+    {
+        List<TPacket> result = new(Math.Min(limit, _totalCount));
+
+        for (int i = 0; i < limit; i++)
+        {
+            if (!this.TryDequeue(out TPacket? packet))
+                break;
+
+            result.Add(packet);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to retrieve and remove a packet from the queue in priority order.
+    /// </summary>
+    /// <param name="packet">The dequeued packet, if available; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if a packet was successfully dequeued; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
-        long startTicks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
+        long ticks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
 
         // Iterate from highest to lowest priority
         for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            while (_priorityChannels[i].Reader.TryRead(out var tempPacket))
+            while (_priorityChannels[i].Reader.TryRead(out TPacket? temp))
             {
-                Interlocked.Decrement(ref _priorityCounts[i]);
-                Interlocked.Decrement(ref _totalCount);
-
-                //bool isExpired = _options.Timeout != TimeSpan.Zero
-                //    && tempPacket.IsExpired(_options.Timeout);
-                //bool isValid = !_options.EnableValidation || tempPacket.IsValid();
-
-                //if (isExpired)
-                //{
-                //    if (_options.EnableMetrics)
-                //        Interlocked.Increment(ref _expiredCounts[i]);
-
-                //    tempPacket.Dispose();
-                //    continue;
-                //}
-
-                //if (!isValid)
-                //{
-                //    if (_options.EnableMetrics)
-                //        Interlocked.Increment(ref _rejectedCounts[i]);
-
-                //    tempPacket.Dispose();
-                //    continue;
-                //}
+                System.Threading.Interlocked.Decrement(ref _priorityCounts[i]);
+                System.Threading.Interlocked.Decrement(ref _totalCount);
 
                 if (_options.EnableMetrics)
                 {
-                    Interlocked.Increment(ref _dequeuedCounts[i]);
-                    UpdatePerformanceStats(startTicks);
+                    System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
+                    this.UpdatePerformanceStats(ticks);
                 }
 
-                packet = tempPacket;
+                packet = temp;
                 return true;
             }
         }
@@ -148,20 +128,91 @@ public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.
     }
 
     /// <summary>
-    /// Try to get multiple packets at once
+    /// Attempts to dequeue a valid packet from the queue. If the dequeued packet is expired or invalid,
+    /// it is returned via <paramref name="rejected"/> instead.
     /// </summary>
-    /// <param name="maxCount">Maximum number of packets to retrieve</param>
-    /// <returns>List of valid packets</returns>
-    public List<TPacket> DequeueBatch(int maxCount = 100)
+    /// <param name="packet">The valid dequeued packet, if available; otherwise, <c>null</c>.</param>
+    /// <param name="rejected">The expired or invalid packet, if any; otherwise, <c>null</c>.</param>
+    /// <returns>
+    /// <c>true</c> if a valid packet was dequeued; otherwise, <c>false</c> if the packet was invalid or expired.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryDequeue(
+        [NotNullWhen(true)] out TPacket? packet,
+        [NotNullWhen(false)] out TPacket? rejected)
     {
-        List<TPacket> result = new(Math.Min(maxCount, _totalCount));
+        long startTicks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
 
-        for (int i = 0; i < maxCount; i++)
+        packet = default;
+        rejected = default; // Initialize rejected to default (null)
+
+        for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            if (!TryDequeue(out var packet)) break;
-            result.Add(packet);
+            while (_priorityChannels[i].Reader.TryRead(out TPacket? temp))
+            {
+                System.Threading.Interlocked.Decrement(ref _priorityCounts[i]);
+                System.Threading.Interlocked.Decrement(ref _totalCount);
+
+                bool isValid = !_options.EnableValidation || temp.IsValid();
+                bool isExpired = _options.Timeout != TimeSpan.Zero && temp.IsExpired(_options.Timeout);
+
+                if (!isValid)
+                {
+                    if (_options.EnableMetrics)
+                        System.Threading.Interlocked.Increment(ref _rejectedCounts[i]);
+
+                    rejected = temp; // Assign the invalid packet
+                    temp.Dispose();
+                    return false; // Exit with the invalid packet
+                }
+
+                if (isExpired)
+                {
+                    if (_options.EnableMetrics)
+                        System.Threading.Interlocked.Increment(ref _expiredCounts[i]);
+
+                    rejected = temp; // Assign the expired packet
+                    temp.Dispose();
+                    return false; // Exit with the expired packet
+                }
+
+                if (_options.EnableMetrics)
+                {
+                    System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
+                    this.UpdatePerformanceStats(startTicks);
+                }
+
+                packet = temp;
+                return true;
+            }
         }
 
-        return result;
+        rejected = default!;
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to peek at the next available packet in the queue without removing it.
+    /// Scans from highest to lowest priority.
+    /// </summary>
+    /// <param name="packet">The next packet if available; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if a packet was found; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryPeek([NotNullWhen(true)] out TPacket? packet)
+    {
+        // Iterate from highest to lowest priority
+        for (int i = _priorityCount - 1; i >= 0; i--)
+        {
+            var reader = _priorityChannels[i].Reader;
+
+            if (reader.TryPeek(out TPacket? temp))
+            {
+                packet = temp;
+                return true;
+            }
+        }
+
+        packet = default;
+        return false;
     }
 }
