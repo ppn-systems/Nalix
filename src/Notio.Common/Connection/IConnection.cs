@@ -1,18 +1,14 @@
+using Notio.Common.Compression;
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
-using Notio.Common.Package;
 using Notio.Common.Security;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Notio.Common.Connection;
 
 /// <summary>
 /// Represents an interface for managing a network connection.
 /// </summary>
-public interface IConnection : IDisposable
+public partial interface IConnection : System.IDisposable
 {
     /// <summary>
     /// Gets the unique identifier for the connection.
@@ -34,7 +30,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the incoming packet of data.
     /// </summary>
-    ReadOnlyMemory<byte> IncomingPacket { get; }
+    System.ReadOnlyMemory<byte> IncomingPacket { get; }
 
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.
@@ -44,7 +40,7 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the timestamp indicating when the connection was established.
     /// </summary>
-    DateTimeOffset Timestamp { get; }
+    System.DateTimeOffset Timestamp { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.
@@ -54,12 +50,12 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    public EncryptionMode EncMode { get; set; }
+    EncryptionMode EncMode { get; set; }
 
     /// <summary>
     /// Gets or sets the compression mode used.
     /// </summary>
-    public CompressionMode ComMode { get; set; }
+    CompressionType ComMode { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.
@@ -69,39 +65,28 @@ public interface IConnection : IDisposable
     /// <summary>
     /// Gets the current state of the connection.
     /// </summary>
-    ConnectionState State { get; set; }
+    AuthenticationState State { get; set; }
 
     /// <summary>
     /// A dictionary for storing connection-specific metadata.
     /// This allows dynamically attaching and retrieving additional information related to the connection.
     /// </summary>
-    Dictionary<string, object> Metadata { get; }
+    System.Collections.Generic.Dictionary<string, object> Metadata { get; }
 
     /// <summary>
     /// Occurs when the connection is closed.
     /// </summary>
-    event EventHandler<IConnectEventArgs> OnCloseEvent;
+    event System.EventHandler<IConnectEventArgs> OnCloseEvent;
 
     /// <summary>
     /// Occurs when data is received and processed.
     /// </summary>
-    event EventHandler<IConnectEventArgs> OnProcessEvent;
+    event System.EventHandler<IConnectEventArgs> OnProcessEvent;
 
     /// <summary>
     /// Occurs after data has been successfully processed.
     /// </summary>
-    event EventHandler<IConnectEventArgs> OnPostProcessEvent;
-
-    /// <summary>
-    /// Starts receiving data from the connection.
-    /// </summary>
-    /// <param name="cancellationToken">
-    /// A token to cancel the receiving operation.
-    /// </param>
-    /// <remarks>
-    /// Call this method to initiate listening for incoming data on the connection.
-    /// </remarks>
-    void BeginReceive(CancellationToken cancellationToken = default);
+    event System.EventHandler<IConnectEventArgs> OnPostProcessEvent;
 
     /// <summary>
     /// Closes the connection and releases all associated resources.
@@ -119,39 +104,4 @@ public interface IConnection : IDisposable
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
     void Disconnect(string reason = null);
-
-    /// <summary>
-    /// Sends a packet synchronously over the connection.
-    /// </summary>
-    /// <param name="packet">The packet to send.</param>
-    /// <returns></returns>
-    bool Send(IPacket packet);
-
-    /// <summary>
-    /// Sends a message synchronously over the connection.
-    /// </summary>
-    /// <param name="message">The message to send.</param>
-    bool Send(ReadOnlySpan<byte> message);
-
-    /// <summary>
-    /// Sends a message asynchronously over the connection.
-    /// </summary>
-    /// <param name="packet">The packet to send.</param>
-    /// <param name="cancellationToken">A token to cancel the sending operation.</param>
-    /// <returns>A task that represents the asynchronous sending operation.</returns>
-    /// <remarks>
-    /// If the connection has been authenticated, the data will be encrypted before sending.
-    /// </remarks>
-    Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Sends a message asynchronously over the connection.
-    /// </summary>
-    /// <param name="message">The data to send.</param>
-    /// <param name="cancellationToken">A token to cancel the sending operation.</param>
-    /// <returns>A task that represents the asynchronous sending operation.</returns>
-    /// <remarks>
-    /// If the connection has been authenticated, the data will be encrypted before sending.
-    /// </remarks>
-    Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
 }

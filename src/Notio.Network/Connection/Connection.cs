@@ -1,4 +1,5 @@
 using Notio.Common.Caching;
+using Notio.Common.Compression;
 using Notio.Common.Connection;
 using Notio.Common.Cryptography;
 using Notio.Common.Identity;
@@ -129,10 +130,10 @@ public sealed partial class Connection : IConnection
     public EncryptionMode EncMode { get; set; } = EncryptionMode.XTEA;
 
     /// <inheritdoc />
-    public CompressionMode ComMode { get; set; } = CompressionMode.Brotli;
+    public CompressionType ComMode { get; set; } = CompressionType.Brotli;
 
     /// <inheritdoc />
-    public ConnectionState State { get; set; } = ConnectionState.Connected;
+    public AuthenticationState State { get; set; } = AuthenticationState.Connected;
 
     #endregion
 
@@ -175,7 +176,7 @@ public sealed partial class Connection : IConnection
 
             if (_disposed) return;
 
-            this.State = ConnectionState.Disconnected;
+            this.State = AuthenticationState.Disconnected;
 
             _ctokens.Cancel();
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));

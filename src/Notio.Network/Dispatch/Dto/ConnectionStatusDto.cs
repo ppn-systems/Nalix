@@ -1,5 +1,5 @@
+using Notio.Common.Compression;
 using Notio.Common.Cryptography;
-using Notio.Common.Security;
 
 namespace Notio.Network.Dispatch.Core.Dto;
 
@@ -16,5 +16,5 @@ public class ConnectionStatusDto
     /// <summary>
     /// Gets the compression mode used for the connection.
     /// </summary>
-    public CompressionMode ComMode { get; init; }
+    public CompressionType ComMode { get; init; }
 }

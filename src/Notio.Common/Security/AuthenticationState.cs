@@ -1,9 +1,9 @@
-namespace Notio.Common.Connection;
+namespace Notio.Common.Security;
 
 /// <summary>
 /// Represents the state of a connection.
 /// </summary>
-public enum ConnectionState : byte
+public enum AuthenticationState : byte
 {
     /// <summary>
     /// No connection state has been established.
@@ -24,14 +24,4 @@ public enum ConnectionState : byte
     /// The connection has been disconnected.
     /// </summary>
     Disconnected = 3,
-
-    /// <summary>
-    /// The connection attempt has failed.
-    /// </summary>
-    Failed = 4,
-
-    /// <summary>
-    /// The connection has timed out.
-    /// </summary>
-    Timeout = 5
 }

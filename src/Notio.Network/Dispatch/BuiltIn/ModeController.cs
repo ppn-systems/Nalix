@@ -1,3 +1,4 @@
+using Notio.Common.Compression;
 using Notio.Common.Connection;
 using Notio.Common.Constants;
 using Notio.Common.Cryptography;
@@ -37,7 +38,7 @@ public sealed class ModeController(ILogger? logger)
     [PacketId((ushort)ProtocolPacket.SetCompressionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     public System.Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
-        => SetMode<CompressionMode>(packet, connection);
+        => SetMode<CompressionType>(packet, connection);
 
     /// <summary>
     /// Handles a request to set the encryption mode for the current connection.
@@ -84,8 +85,8 @@ public sealed class ModeController(ILogger? logger)
         }
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
-        if (typeof(TEnum) == typeof(CompressionMode))
-            connection.ComMode = Unsafe.As<TEnum, CompressionMode>(ref enumValue);
+        if (typeof(TEnum) == typeof(CompressionType))
+            connection.ComMode = Unsafe.As<TEnum, CompressionType>(ref enumValue);
         else if (typeof(TEnum) == typeof(EncryptionMode))
             connection.EncMode = Unsafe.As<TEnum, EncryptionMode>(ref enumValue);
 

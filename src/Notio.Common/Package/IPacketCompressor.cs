@@ -1,4 +1,4 @@
-using Notio.Common.Security;
+using Notio.Common.Compression;
 
 namespace Notio.Common.Package;
 
@@ -22,7 +22,7 @@ public interface IPacketCompressor<T> where T : IPacket
     /// <returns>
     /// A span of bytes containing the compressed packet data.
     /// </returns>
-    static abstract T Compress(T packet, CompressionMode type);
+    static abstract T Compress(T packet, CompressionType type);
 
     /// <summary>
     /// Decompresses a packet of type <typeparamref name="T"/> from the given buffer.
@@ -36,5 +36,5 @@ public interface IPacketCompressor<T> where T : IPacket
     /// <returns>
     /// An instance of <typeparamref name="T"/> that was decompressed from the buffer.
     /// </returns>
-    static abstract T Decompress(T packet, CompressionMode type);
+    static abstract T Decompress(T packet, CompressionType type);
 }

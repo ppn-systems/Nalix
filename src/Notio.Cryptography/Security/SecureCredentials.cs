@@ -6,9 +6,9 @@ using System;
 namespace Notio.Cryptography.Security;
 
 /// <summary>
-/// Provides secure password hashing and verification using PBKDF2.
+/// Provides secure secret hashing and verification using PBKDF2.
 /// </summary>
-public static class PasswordSecurity
+public static class SecureCredentials
 {
     #region Constants
 
@@ -32,40 +32,40 @@ public static class PasswordSecurity
     #region Public Methods
 
     /// <summary>
-    /// Hashes a password using PBKDF2 and returns the salt and hash.
+    /// Hashes a secret using PBKDF2 and returns the salt and hash.
     /// </summary>
-    /// <param name="password">The plaintext password to hash.</param>
+    /// <param name="secret">The plaintext secret to hash.</param>
     /// <param name="salt">The generated salt.</param>
     /// <param name="hash">The derived hash.</param>
-    public static void HashPassword(string password, out byte[] salt, out byte[] hash)
+    public static void HashPassword(string secret, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
-        using Pbkdf2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
-        hash = pbkdf2.DeriveKey(password);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
+        hash = pbkdf2.DeriveKey(secret);
     }
 
     /// <summary>
-    /// Verifies whether the provided password matches the stored hash.
+    /// Verifies whether the provided secret matches the stored hash.
     /// </summary>
-    /// <param name="password">The password to verify.</param>
+    /// <param name="secret">The secret to verify.</param>
     /// <param name="salt">The salt used for hashing.</param>
     /// <param name="hash">The stored hash to compare against.</param>
-    /// <returns><c>true</c> if the password is valid; otherwise, <c>false</c>.</returns>
-    public static bool VerifyPassword(string password, byte[] salt, byte[] hash)
+    /// <returns><c>true</c> if the secret is valid; otherwise, <c>false</c>.</returns>
+    public static bool VerifyPassword(string secret, byte[] salt, byte[] hash)
     {
-        using Pbkdf2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
-        return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(password), hash);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
+        return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(secret), hash);
     }
 
     /// <summary>
-    /// Hashes a password and returns a Base64-encoded string with version, salt, and hash.
+    /// Hashes a secret and returns a Base64-encoded string with version, salt, and hash.
     /// Format: [version (1 byte)] + [salt] + [hash].
     /// </summary>
-    /// <param name="password">The plaintext password.</param>
+    /// <param name="secret">The plaintext secret.</param>
     /// <returns>A Base64-encoded string containing version, salt, and hash.</returns>
-    public static string HashPasswordToBase64(string password)
+    public static string HashPasswordToBase64(string secret)
     {
-        HashPassword(password, out byte[] salt, out byte[] hash);
+        HashPassword(secret, out byte[] salt, out byte[] hash);
         byte[] combined = new byte[1 + salt.Length + hash.Length];
         byte version = 1;
         combined[0] = version;
@@ -75,18 +75,18 @@ public static class PasswordSecurity
     }
 
     /// <summary>
-    /// Verifies a password against a Base64-encoded hash with version information.
+    /// Verifies a secret against a Base64-encoded hash with version information.
     /// </summary>
-    /// <param name="password">The password to verify.</param>
-    /// <param name="encodedHash">The Base64-encoded string containing version, salt, and hash.</param>
-    /// <returns><c>true</c> if the password matches; otherwise, <c>false</c>.</returns>
-    public static bool VerifyPasswordFromBase64(string password, string encodedHash)
+    /// <param name="secret">The secret to verify.</param>
+    /// <param name="encodedCredentials">The Base64-encoded string containing version, salt, and hash.</param>
+    /// <returns><c>true</c> if the secret matches; otherwise, <c>false</c>.</returns>
+    public static bool VerifyPasswordFromBase64(string secret, string encodedCredentials)
     {
-        if (string.IsNullOrEmpty(encodedHash)) return false;
+        if (string.IsNullOrEmpty(encodedCredentials)) return false;
 
         try
         {
-            byte[] combined = Convert.FromBase64String(encodedHash);
+            byte[] combined = Convert.FromBase64String(encodedCredentials);
             if (combined.Length < 1 + SaltSize + KeySize) return false;
 
             byte version = combined[0];
@@ -95,7 +95,7 @@ public static class PasswordSecurity
             Array.Copy(combined, 1, salt, 0, SaltSize);
             Array.Copy(combined, 1 + SaltSize, storedHash, 0, KeySize);
 
-            return version == 1 && VerifyPassword(password, salt, storedHash);
+            return version == 1 && VerifyPassword(secret, salt, storedHash);
         }
         catch (FormatException)
         {

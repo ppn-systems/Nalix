@@ -37,7 +37,7 @@ public static class RFC2898
         if (keyLength <= 0)
             throw new ArgumentOutOfRangeException(nameof(keyLength), "Key length must be greater than 0.");
 
-        using var pbkdf2 = new Pbkdf2(salt, iterations, keyLength, hashType);
+        using var pbkdf2 = new PBKDF2(salt, iterations, keyLength, hashType);
         return pbkdf2.DeriveKey(password);
     }
 

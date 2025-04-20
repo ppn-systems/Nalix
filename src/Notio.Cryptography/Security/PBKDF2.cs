@@ -11,7 +11,7 @@ namespace Notio.Cryptography.Security;
 /// High-performance implementation of the PBKDF2 (Password-Based Key Derivation Function 2) algorithm.
 /// Supports HMAC-SHA1 and HMAC-SHA256 for key derivation.
 /// </summary>
-public sealed class Pbkdf2 : IDisposable
+public sealed class PBKDF2 : IDisposable
 {
     #region Fields
 
@@ -26,7 +26,7 @@ public sealed class Pbkdf2 : IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Pbkdf2"/> class.
+    /// Initializes a new instance of the <see cref="PBKDF2"/> class.
     /// </summary>
     /// <param name="salt">The salt value to use in the key derivation process. Must not be null or empty.</param>
     /// <param name="iterations">The Number of iterations to perform. Must be greater than 0.</param>
@@ -34,7 +34,7 @@ public sealed class Pbkdf2 : IDisposable
     /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Defaults to SHA1.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
-    public Pbkdf2(
+    public PBKDF2(
         byte[] salt, int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
@@ -66,7 +66,7 @@ public sealed class Pbkdf2 : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public byte[] DeriveKey(string password)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Pbkdf2));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
         if (string.IsNullOrEmpty(password)) throw new ArgumentException("Password cannot be empty.", nameof(password));
 
         ReadOnlySpan<byte> passwordBytes = Encoding.UTF8.GetBytes(password);
@@ -89,7 +89,7 @@ public sealed class Pbkdf2 : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public byte[] DeriveKey(ReadOnlySpan<byte> passwordBytes)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Pbkdf2));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
         if (passwordBytes.IsEmpty) throw new ArgumentException("Password bytes cannot be empty.", nameof(passwordBytes));
 
         return _hashType switch
@@ -102,7 +102,7 @@ public sealed class Pbkdf2 : IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="Pbkdf2"/> instance and clears sensitive data.
+    /// Releases all resources used by the <see cref="PBKDF2"/> instance and clears sensitive data.
     /// </summary>
     public void Dispose()
     {

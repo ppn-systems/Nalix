@@ -1,12 +1,10 @@
-using Notio.Cryptography.Symmetric;
-
-namespace Notio.Cryptography.Security;
+namespace Notio.Cryptography.Symmetric;
 
 /// <summary>
 /// Provides encryption and decryption functionality for the network protocol.
 /// Uses the Blowfish cipher for secure communication.
 /// </summary>
-public sealed class Codec
+public sealed class BlowfishCodec
 {
     #region Fields
 
@@ -154,28 +152,28 @@ public sealed class Codec
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Codec"/> class with default S-box and key.
+    /// Initializes a new instance of the <see cref="BlowfishCodec"/> class with default S-box and key.
     /// </summary>
-    public Codec() => _blowfish = new Blowfish(SBox, Key);
+    public BlowfishCodec() => _blowfish = new Blowfish(SBox, Key);
 
     /// <summary>
-    /// Initializes the <see cref="Codec"/> with a custom S-box and the default key.
+    /// Initializes the <see cref="BlowfishCodec"/> with a custom S-box and the default key.
     /// </summary>
     /// <param name="box">The S-box values for Blowfish.</param>
-    public Codec(uint[] box) => _blowfish = new Blowfish(box, Key);
+    public BlowfishCodec(uint[] box) => _blowfish = new Blowfish(box, Key);
 
     /// <summary>
-    /// Initializes the <see cref="Codec"/> with the default S-box and a custom key.
+    /// Initializes the <see cref="BlowfishCodec"/> with the default S-box and a custom key.
     /// </summary>
     /// <param name="key">The encryption key.</param>
-    public Codec(byte[] key) => _blowfish = new Blowfish(SBox, key);
+    public BlowfishCodec(byte[] key) => _blowfish = new Blowfish(SBox, key);
 
     /// <summary>
-    /// Initializes the <see cref="Codec"/> with a custom S-box and a custom key.
+    /// Initializes the <see cref="BlowfishCodec"/> with a custom S-box and a custom key.
     /// </summary>
     /// <param name="box">The S-box values for Blowfish.</param>
     /// <param name="key">The encryption key.</param>
-    public Codec(uint[] box, byte[] key) => _blowfish = new Blowfish(box, key);
+    public BlowfishCodec(uint[] box, byte[] key) => _blowfish = new Blowfish(box, key);
 
     #endregion
 
