@@ -11,7 +11,7 @@ namespace Nalix.SDK.Transport.Dispatch;
 /// - Supports Register&lt;T&gt;, RegisterOnce&lt;T&gt; with predicate.
 /// - Dispatch(IPacket) calls matching handlers synchronously on the caller thread.
 /// </summary>
-public sealed class ReliableDispatcher : IReliableDispatcher, System.IDisposable
+public sealed class PacketDispatcher : IPacketDispatcher
 {
     #region Fields
 
@@ -139,7 +139,7 @@ public sealed class ReliableDispatcher : IReliableDispatcher, System.IDisposable
 
         if (System.Threading.Volatile.Read(ref _disposed) == 1)
         {
-            throw new System.ObjectDisposedException(nameof(ReliableDispatcher));
+            throw new System.ObjectDisposedException(nameof(PacketDispatcher));
         }
 
         System.Type t = typeof(TPacket);
@@ -159,7 +159,7 @@ public sealed class ReliableDispatcher : IReliableDispatcher, System.IDisposable
     {
         System.ArgumentNullException.ThrowIfNull(handler);
         System.ArgumentNullException.ThrowIfNull(predicate);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableDispatcher));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(PacketDispatcher));
 
         System.Type t = typeof(TPacket);
         _ = _map.AddOrUpdate(t,
