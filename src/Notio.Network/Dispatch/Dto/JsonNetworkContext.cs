@@ -6,5 +6,5 @@ namespace Notio.Network.Dispatch.Dto;
 /// Provides a JSON serialization context for types in the Notio network dispatcher.
 /// </summary>
 [JsonSerializable(typeof(PingInfoDto))]
-[JsonSerializable(typeof(ConnectionStatusDto))]
-public partial class NotioJsonContext : JsonSerializerContext { }
+[JsonSerializable(typeof(ConnInfoDto))]
+public partial class JsonNetworkContext : JsonSerializerContext { }

@@ -7,14 +7,14 @@ using System.Reflection;
 
 namespace Notio.Network.Dispatch.Core.Packets;
 
-internal static class PacketCodeHelper
+internal static class PacketMessageStore
 {
     // Thread-safe cache for storing the messages
     private static readonly ConcurrentDictionary<PacketCode, string> MessageCache = new();
     private static readonly ConcurrentDictionary<PacketCode, byte[]> MessageCacheBytes = new();
 
     // Static constructor to initialize the cache
-    static PacketCodeHelper()
+    static PacketMessageStore()
     {
         foreach (PacketCode code in Enum.GetValues<PacketCode>())
         {

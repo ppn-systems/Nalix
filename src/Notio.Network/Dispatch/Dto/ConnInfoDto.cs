@@ -6,7 +6,7 @@ namespace Notio.Network.Dispatch.Dto;
 /// <summary>
 /// Represents the status of a network connection, including compression and encryption details.
 /// </summary>
-public class ConnectionStatusDto
+public class ConnInfoDto
 {
     /// <summary>
     /// Gets the encryption mode used for the connection.

@@ -14,7 +14,7 @@ namespace Notio.Network.Dispatch.Core.Packets;
 /// <summary>
 /// Provides methods for building network packets.
 /// </summary>
-internal static class PacketBuilder
+internal static class PacketAssembler
 {
     /// <summary>
     /// Builds a complete binary packet with header and payload.
@@ -40,7 +40,7 @@ internal static class PacketBuilder
     /// <param name="code">Packet code.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> String(PacketCode code)
-        => Assemble(code, PacketType.String, PacketCodeHelper.GetMessageBytes(code));
+        => Assemble(code, PacketType.String, PacketMessageStore.GetMessageBytes(code));
 
     internal static Memory<byte> Json<T>(PacketCode code, T payload, JsonTypeInfo<T> context)
     {

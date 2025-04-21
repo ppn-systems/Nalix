@@ -40,12 +40,12 @@ public sealed class SessionController
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     public static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
     {
-        ConnectionStatusDto status = new()
+        ConnInfoDto status = new()
         {
             Compression = connection.Compression,
             Encryption = connection.Encryption
         };
 
-        return PacketBuilder.Json(PacketCode.Success, status, NotioJsonContext.Default.ConnectionStatusDto);
+        return PacketAssembler.Json(PacketCode.Success, status, JsonNetworkContext.Default.ConnectionStatusDto);
     }
 }

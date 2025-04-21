@@ -65,14 +65,14 @@ public sealed class ModeController(ILogger? logger)
         {
             _logger?.Debug("Invalid packet type [{0}] for SetMode<{1}> from {2}",
                 packet.Type, typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketBuilder.String(PacketCode.PacketType);
+            return PacketAssembler.String(PacketCode.PacketType);
         }
 
         if (packet.Payload.Length < 1)
         {
             _logger?.Debug("Missing payload byte in SetMode<{0}> from {1}",
                 typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketBuilder.String(PacketCode.InvalidPayload);
+            return PacketAssembler.String(PacketCode.InvalidPayload);
         }
 
         byte value = packet.Payload.Span[0];
@@ -81,7 +81,7 @@ public sealed class ModeController(ILogger? logger)
         {
             _logger?.Debug("Invalid enum value [{0}] in SetMode<{1}> from {2}",
                 value, typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketBuilder.String(PacketCode.InvalidPayload);
+            return PacketAssembler.String(PacketCode.InvalidPayload);
         }
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
@@ -91,7 +91,7 @@ public sealed class ModeController(ILogger? logger)
             connection.Encryption = Unsafe.As<TEnum, EncryptionType>(ref enumValue);
 
         _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
-        return PacketBuilder.String(PacketCode.Success);
+        return PacketAssembler.String(PacketCode.Success);
     }
 
     #endregion

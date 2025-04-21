@@ -6,7 +6,7 @@ namespace Notio.Network.Dispatch.Core.Packets;
 /// <summary>
 /// Provides extension methods for packet operations.
 /// </summary>
-internal static class PacketExtensions
+internal static class SendExt
 {
     /// <summary>
     /// Sends a string packet to the client.
@@ -16,7 +16,7 @@ internal static class PacketExtensions
     /// <param name="message"></param>
     /// <returns></returns>
     internal static bool SendString(this IConnection connection, PacketCode code, string message)
-      => connection.SendAsync(PacketBuilder.String(code, message)).Result;
+      => connection.SendAsync(PacketAssembler.String(code, message)).Result;
 
     /// <summary>
     /// Sends a string packet to the client.
@@ -25,5 +25,5 @@ internal static class PacketExtensions
     /// <param name="code"></param>
     /// <returns></returns>
     internal static bool SendCode(this IConnection connection, PacketCode code)
-      => connection.SendAsync(PacketBuilder.String(code)).Result;
+      => connection.SendAsync(PacketAssembler.String(code)).Result;
 }
