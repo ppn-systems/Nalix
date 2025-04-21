@@ -14,7 +14,7 @@ namespace Nalix.Logging;
 /// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
 /// </summary>
 /// <remarks>
-/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogixSingleton"/>.
+/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogixHost"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
 /// </remarks>
 public class NLogix : LogEngine, ILogger

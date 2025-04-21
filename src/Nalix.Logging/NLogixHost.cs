@@ -6,13 +6,13 @@ namespace Nalix.Logging;
 
 /// <summary>
 /// Provides a globally accessible, lazily initialized singleton instance of the <see cref="NLogix"/> logger.
-/// 
+///
 /// This class ensures that the logger is initialized only once during the application lifetime,
 /// with default logging targets configured for both console and file output.
-/// 
+///
 /// Use <see cref="Instance"/> to retrieve the shared logger instance throughout the application.
 /// </summary>
-public sealed class NLogixSingleton
+public sealed class NLogixHost
 {
     #region Singleton Instance
 
@@ -34,5 +34,5 @@ public sealed class NLogixSingleton
     /// </summary>
     public static NLogix Instance => _instance.Value;
 
-    #endregion
+    #endregion Singleton Instance
 }

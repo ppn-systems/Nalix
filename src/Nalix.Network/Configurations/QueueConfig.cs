@@ -13,14 +13,14 @@ public sealed class QueueConfig : ConfigurationBinder
     public int MaxCapacity { get; set; }
 
     /// <summary>
-    /// Check packet validity when dequeuing
-    /// </summary>
-    public bool EnableValidation { get; set; }
-
-    /// <summary>
     /// Collect detailed statistics
     /// </summary>
     public bool EnableMetrics { get; set; }
+
+    /// <summary>
+    /// Check packet validity when dequeuing
+    /// </summary>
+    public bool EnableValidation { get; set; }
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
