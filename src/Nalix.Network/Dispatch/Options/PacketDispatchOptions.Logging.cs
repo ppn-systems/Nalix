@@ -54,7 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Configures a custom error handler to manage exceptions during packet processing.
     /// </summary>
     /// <param name="errorHandler">
-    /// An action that takes an exception and the packet ID, which allows custom handling of errors 
+    /// An action that takes an exception and the packet ID, which allows custom handling of errors
     /// that occur while processing packets.
     /// </param>
     /// <returns>

@@ -57,7 +57,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// </summary>
     System.Memory<byte> Payload { get; }
 
-    #endregion
+    #endregion Metadata
 
     #region Properties
 
@@ -88,7 +88,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// </returns>
     public ulong Hash { get; }
 
-    #endregion
+    #endregion Properties
 
     #region Packet Methods
 
@@ -131,5 +131,5 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// </returns>
     string ToString();
 
-    #endregion
+    #endregion Packet Methods
 }

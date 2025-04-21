@@ -24,11 +24,12 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
 
     // Caches statistics
     private long _additions;
+
     private long _removals;
     private long _trimOperations;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -72,7 +73,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     public bool IsFull => Count >= Capacity;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -91,7 +92,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
         _currentSize = 0;
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -362,7 +363,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -378,5 +379,5 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

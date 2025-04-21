@@ -7,7 +7,7 @@ public abstract partial class Protocol
     private ulong _totalErrors;
     private ulong _totalMessages;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -21,14 +21,14 @@ public abstract partial class Protocol
     /// </summary>
     public ulong TotalMessages => System.Threading.Interlocked.Read(ref _totalMessages);
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Captures a diagnostic snapshot of the current protocol state,
     /// including connection acceptance status and message statistics.
     /// </summary>
     /// <returns>
-    /// A <see cref="Snapshot.ProtocolSnapshot"/> containing metrics like 
+    /// A <see cref="Snapshot.ProtocolSnapshot"/> containing metrics like
     /// total messages processed and total errors encountered.
     /// </returns>
     public virtual Snapshot.ProtocolSnapshot Snapshot() => new()

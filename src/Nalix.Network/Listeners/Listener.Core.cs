@@ -24,7 +24,7 @@ public abstract partial class Listener : IListener, IDisposable
     private const int AcceptDelay = 10; // Milliseconds
     private const int MinWorkerThreads = 4;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -37,14 +37,13 @@ public abstract partial class Listener : IListener, IDisposable
     private readonly Socket _listenerSocket;
     private readonly SemaphoreSlim _listenerLock;
 
-
     private Thread? _listenerThread;
     private CancellationTokenSource? _cts;
 
     private volatile bool _isDisposed;
     private volatile bool _isListening = false;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -53,7 +52,7 @@ public abstract partial class Listener : IListener, IDisposable
     /// </summary>
     public bool IsListening => _isListening && _listenerThread?.IsAlive == true;
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -116,7 +115,7 @@ public abstract partial class Listener : IListener, IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region IDispose
 
@@ -162,5 +161,5 @@ public abstract partial class Listener : IListener, IDisposable
         _logger.Debug("Listener disposed");
     }
 
-    #endregion
+    #endregion IDispose
 }

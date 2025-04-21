@@ -41,7 +41,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// </summary>
     public static readonly BigInteger G = 2;
 
-    #endregion
+    #endregion Properties
 
     #region Fields
 
@@ -56,7 +56,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     private BigInteger _serverPublicValue;
     private BigInteger _serverPrivateValue;
 
-    #endregion
+    #endregion Fields
 
     #region Public Methods
 
@@ -157,7 +157,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
         return serverProofBytes;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -236,5 +236,5 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

@@ -24,7 +24,7 @@ public readonly struct RequestLimitSettings
     /// </summary>
     public int TimeWindowMs { get; }
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -54,7 +54,7 @@ public readonly struct RequestLimitSettings
         TimeWindowMs = windowMilliseconds;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Methods
 
@@ -64,5 +64,5 @@ public readonly struct RequestLimitSettings
     public override string ToString() =>
         $"Requests: {Requests}, Lockout: {LockoutDurationSec}s, Window: {TimeWindowMs}ms";
 
-    #endregion
+    #endregion Methods
 }

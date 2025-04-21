@@ -26,7 +26,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
     private readonly ISHA _hashAlgorithm;
     private readonly IX25519 _keyExchangeAlgorithm;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -45,7 +45,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         _hashAlgorithm.Initialize(); // Initialize the hashing algorithm.
     }
 
-    #endregion
+    #endregion Constructors
 
     /// <summary>
     /// Initiates a secure connection by performing a handshake with the client.
@@ -199,5 +199,5 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         public const string LastHandshakeTime = "LastHandshakeTime";
     }
 
-    #endregion
+    #endregion Private Methods
 }

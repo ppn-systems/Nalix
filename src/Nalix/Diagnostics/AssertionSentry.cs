@@ -8,7 +8,7 @@ using System.Threading;
 namespace Nalix.Diagnostics;
 
 /// <summary>
-/// Enhanced debug assertion utility with expanded functionality, performance optimizations, 
+/// Enhanced debug assertion utility with expanded functionality, performance optimizations,
 /// and comprehensive logging capabilities.
 /// </summary>
 public static class AssertionSentry
@@ -67,7 +67,7 @@ public static class AssertionSentry
         }
     }
 
-    #endregion
+    #endregion Configuration Properties
 
     #region Fields
 
@@ -87,7 +87,7 @@ public static class AssertionSentry
     [ThreadStatic]
     private static System.Text.StringBuilder _messageBuilder;
 
-    #endregion
+    #endregion Fields
 
     #region Assert Methods
 
@@ -332,7 +332,7 @@ public static class AssertionSentry
             exception => new InvalidOperationException(exception));
     }
 
-    #endregion
+    #endregion Assert Methods
 
     #region Extended Assert Methods
 
@@ -483,7 +483,7 @@ public static class AssertionSentry
         AssertType(value, typeof(T), paramName, callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Extended Assert Methods
 
     #region Conditional Compilation Method Variants
 
@@ -515,7 +515,7 @@ public static class AssertionSentry
         }
     }
 
-    #endregion
+    #endregion Conditional Compilation Method Variants
 
     #region Helper Methods
 
@@ -667,5 +667,5 @@ public static class AssertionSentry
         }
     }
 
-    #endregion
+    #endregion Helper Methods
 }

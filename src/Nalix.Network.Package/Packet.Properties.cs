@@ -11,16 +11,17 @@ public readonly partial struct Packet
 
     // Cache the max packet size locally to avoid field access costs
     private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
+
     private const int MaxHeapAllocSize = DefaultConstants.HeapAllocThreshold;
     private const int MaxStackAllocSize = DefaultConstants.StackAllocThreshold;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
     private readonly ulong _hash;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -79,5 +80,5 @@ public readonly partial struct Packet
     /// </summary>
     public System.Memory<byte> Payload { get; }
 
-    #endregion
+    #endregion Properties
 }

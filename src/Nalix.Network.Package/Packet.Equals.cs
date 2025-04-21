@@ -42,7 +42,6 @@ public readonly partial struct Packet : System.IEquatable<Packet>
             {
                 // For larger payloads, use beginning, middle and end samples
 
-
                 // Beginning (up to 64 bytes)
                 int bytesToSample = System.Math.Min(64, span.Length);
                 for (int i = 0; i < bytesToSample; i += sizeof(int))

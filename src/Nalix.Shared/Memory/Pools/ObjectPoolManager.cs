@@ -26,10 +26,11 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
 
     // Statistics tracking
     internal long _totalGetOperations;
+
     internal long _totalReturnOperations;
     internal DateTime _startTime = DateTime.UtcNow;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -62,7 +63,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     public TimeSpan Uptime => DateTime.UtcNow - _startTime;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -71,7 +72,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
         // Private constructor for singleton pattern
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -357,5 +358,5 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
 
-    #endregion
+    #endregion Public Methods
 }

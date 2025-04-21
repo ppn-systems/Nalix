@@ -6,7 +6,7 @@ public abstract partial class Protocol
 
     private int _accepting;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -19,7 +19,7 @@ public abstract partial class Protocol
         protected set => System.Threading.Interlocked.Exchange(ref _accepting, value ? 1 : 0);
     }
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Called when an error occurs during connection handling.

@@ -24,18 +24,20 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         public long AccessCount { get; set; }
     }
 
-    #endregion
+    #endregion Nested Types
 
     #region Fields
 
     // Core data structures
     private readonly int _capacity;
+
     private readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.NoRecursion);
     private readonly LinkedList<CacheItem> _usageOrder = new();
     private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap;
 
     // Caches statistics
     private long _hits;
+
     private long _misses;
     private long _evictions;
     private long _additions;
@@ -43,7 +45,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
     private bool _isDisposed;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -139,7 +141,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         }
     }
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -158,7 +160,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         _cacheMap = new Dictionary<TKey, LinkedListNode<CacheItem>>(capacity, comparer);
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -452,7 +454,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         };
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -468,5 +470,5 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

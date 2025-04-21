@@ -1,9 +1,9 @@
+using Nalix.Extensions.Primitives;
 using Nalix.Network.Web.Enums;
+using Nalix.Network.Web.WebSockets.Internal.Enums;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Nalix.Network.Web.WebSockets.Internal.Enums;
-using Nalix.Extensions.Primitives;
 
 namespace Nalix.Network.Web.WebSockets.Internal;
 

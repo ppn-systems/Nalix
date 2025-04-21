@@ -9,7 +9,7 @@ namespace Nalix.Logging;
 /// <summary>
 /// Provides a high-performance, extensible logging engine for applications,
 /// combining structured logging and customizable output targets.
-/// 
+///
 /// This class is the core of the Nalix logging system, and implements <see cref="ILogger"/> for unified logging.
 /// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
 /// </summary>
@@ -31,7 +31,7 @@ public class NLogix : LogEngine, ILogger
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Meta Methods
 
@@ -47,7 +47,7 @@ public class NLogix : LogEngine, ILogger
     public void Meta(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Meta, eventId ?? EventId.Empty, message);
 
-    #endregion
+    #endregion Meta Methods
 
     #region Trace Methods
 
@@ -63,7 +63,7 @@ public class NLogix : LogEngine, ILogger
     public void Trace(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
-    #endregion
+    #endregion Trace Methods
 
     #region Debug Methods
 
@@ -84,7 +84,7 @@ public class NLogix : LogEngine, ILogger
         where TClass : class
         => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
 
-    #endregion
+    #endregion Debug Methods
 
     #region Info Methods
 
@@ -100,7 +100,7 @@ public class NLogix : LogEngine, ILogger
     public void Info(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Information, eventId ?? EventId.Empty, message);
 
-    #endregion
+    #endregion Info Methods
 
     #region Warn Methods
 
@@ -116,7 +116,7 @@ public class NLogix : LogEngine, ILogger
     public void Warn(string message, EventId? eventId = null)
         => WriteLog(LogLevel.Warning, eventId ?? EventId.Empty, message);
 
-    #endregion
+    #endregion Warn Methods
 
     #region Error Methods
 
@@ -148,7 +148,7 @@ public class NLogix : LogEngine, ILogger
     public void Error(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message, exception);
 
-    #endregion
+    #endregion Error Methods
 
     #region Fatal Methods
 
@@ -172,7 +172,7 @@ public class NLogix : LogEngine, ILogger
     public void Fatal(string message, Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
-    #endregion
+    #endregion Fatal Methods
 
     #region Private Methods
 
@@ -191,5 +191,5 @@ public class NLogix : LogEngine, ILogger
     private void WriteLog(LogLevel level, EventId eventId, string message, System.Exception? exception = null)
        => base.CreateLogEntry(level, eventId, message, exception);
 
-    #endregion
+    #endregion Private Methods
 }

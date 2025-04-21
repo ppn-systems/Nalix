@@ -31,7 +31,7 @@ internal class PropertyMetadata
     /// </summary>
     public TypeCode TypeCode { get; init; }
 
-    #endregion
+    #endregion Properties
 
     #region Public Methods
 
@@ -56,5 +56,5 @@ internal class PropertyMetadata
         }
     }
 
-    #endregion
+    #endregion Public Methods
 }

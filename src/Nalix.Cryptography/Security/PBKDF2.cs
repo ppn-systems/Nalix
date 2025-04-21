@@ -21,7 +21,7 @@ public sealed class PBKDF2 : IDisposable
     private readonly HashAlgorithm _hashType;
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -53,7 +53,7 @@ public sealed class PBKDF2 : IDisposable
         _hashType = hashType;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -111,7 +111,7 @@ public sealed class PBKDF2 : IDisposable
         _disposed = true;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -359,5 +359,5 @@ public sealed class PBKDF2 : IDisposable
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

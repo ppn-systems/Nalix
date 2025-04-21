@@ -60,11 +60,10 @@ public static class ISO7816
         // Fill remaining bytes with zeros
         for (int i = data.Length + 1; i < paddedData.Length; i++) paddedData[i] = 0x00;
 
-
         return paddedData;
     }
 
-    #endregion
+    #endregion Pad Methods
 
     #region Unpad Methods
 
@@ -119,7 +118,7 @@ public static class ISO7816
         return unpaddedData;
     }
 
-    #endregion
+    #endregion Unpad Methods
 
     #region Private Methods
 
@@ -146,5 +145,5 @@ public static class ISO7816
         return -1;
     }
 
-    #endregion
+    #endregion Private Methods
 }

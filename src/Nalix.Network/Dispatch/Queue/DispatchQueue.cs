@@ -17,25 +17,29 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
 
     // Use channels instead of queues for better thread-safety and performance
     private readonly QueueConfig _options;
+
     private readonly Channel<TPacket>[] _priorityChannels;
 
     // Snapshot variables
     private readonly int[] _expiredCounts;
+
     private readonly int[] _rejectedCounts;
     private readonly int[] _enqueuedCounts;
     private readonly int[] _dequeuedCounts;
 
     // Cache priority count to avoid repeated enum lookups
     private readonly int[] _priorityCounts;
+
     private readonly int _priorityCount;
     private int _totalCount;
 
     // Performance measurements
-    private readonly Stopwatch? _queueTimer;
-    private long _totalProcessingTicks;
     private long _packetsProcessed;
 
-    #endregion
+    private long _totalProcessingTicks;
+    private readonly Stopwatch? _queueTimer;
+
+    #endregion Fields
 
     #region Properties
 
@@ -44,7 +48,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     /// </summary>
     public int Count => Volatile.Read(ref _totalCount);
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -97,5 +101,5 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
         }
     }
 
-    #endregion
+    #endregion Constructors
 }

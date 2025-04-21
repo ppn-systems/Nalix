@@ -6,7 +6,7 @@ namespace Nalix.Network.Dispatch;
 /// </summary>
 /// <typeparam name="TPacket">
 /// The packet type implementing <see cref="Common.Package.IPacket"/>,
-/// <see cref="Common.Package.IPacketEncryptor{TPacket}"/>, 
+/// <see cref="Common.Package.IPacketEncryptor{TPacket}"/>,
 /// <see cref="Common.Package.IPacketCompressor{TPacket}"/>,
 /// <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
@@ -41,6 +41,7 @@ public sealed class PacketDispatchQueue<TPacket>
 
     // Queue for storing packet handling tasks
     private readonly Queue.DispatchQueue<TPacket> _dispatchQueue;
+
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
         Common.Connection.IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
@@ -51,13 +52,15 @@ public sealed class PacketDispatchQueue<TPacket>
 
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
+
     private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Processing state
     private bool _isProcessing;
+
     private readonly System.Threading.CancellationTokenSource _ctokens = new();
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -80,7 +83,7 @@ public sealed class PacketDispatchQueue<TPacket>
         }
     }
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -103,7 +106,7 @@ public sealed class PacketDispatchQueue<TPacket>
         base.Logger?.Debug("[Dispatch] Initialized with custom options");
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -217,7 +220,7 @@ public sealed class PacketDispatchQueue<TPacket>
         _semaphore.Release();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -291,7 +294,7 @@ public sealed class PacketDispatchQueue<TPacket>
         base.Logger?.Info($"[Dispatch] Auto-removed keys for closed connection {connection.RemoteEndPoint}");
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -305,5 +308,5 @@ public sealed class PacketDispatchQueue<TPacket>
         _semaphore.Dispose();
     }
 
-    #endregion
+    #endregion IDisposable
 }

@@ -7,11 +7,11 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Cryptography.Symmetric;
 
 /// <summary>
-/// Provides high-performance methods for encrypting and decrypting data using the XTEA 
+/// Provides high-performance methods for encrypting and decrypting data using the XTEA
 /// (eXtended Tiny Encryption Algorithm) with enhanced security features.
 /// </summary>
 /// <remarks>
-/// XTEA is a block cipher designed to correct weaknesses in TEA. It uses a 128-bit key and 
+/// XTEA is a block cipher designed to correct weaknesses in TEA. It uses a 128-bit key and
 /// operates on 64-bit blocks. This implementation includes additional security features
 /// like initialization vector support and secure padding modes.
 /// </remarks>
@@ -44,7 +44,7 @@ public static class Xtea
     /// </summary>
     private const uint Delta = 0x9E3779B9;
 
-    #endregion
+    #endregion Constants
 
     #region Encryption/Decryption Core
 
@@ -104,7 +104,7 @@ public static class Xtea
         return (v0, v1);
     }
 
-    #endregion
+    #endregion Encryption/Decryption Core
 
     #region Enhanced API Methods
 
@@ -359,7 +359,6 @@ public static class Xtea
                 }
             }
 
-
             // Handle PKCS#7 padding
             int paddingLength = workingBuffer[dataLength - 1];
             if (paddingLength < 1 || paddingLength > BlockSizeInBytes)
@@ -454,5 +453,5 @@ public static class Xtea
         return Decrypt(data, keyWords, iv, rounds);
     }
 
-    #endregion
+    #endregion Enhanced API Methods
 }

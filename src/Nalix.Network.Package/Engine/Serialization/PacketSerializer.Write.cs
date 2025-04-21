@@ -15,7 +15,7 @@ public static partial class PacketSerializer
 
     private const int ArrayPoolThreshold = 32768;
 
-    #endregion
+    #endregion Const
 
     #region Public Method Sync
 
@@ -87,7 +87,7 @@ public static partial class PacketSerializer
         return totalSize;
     }
 
-    #endregion
+    #endregion Public Method Sync
 
     #region Public Method Async
 
@@ -167,5 +167,5 @@ public static partial class PacketSerializer
         }
     }
 
-    #endregion
+    #endregion Public Method Async
 }

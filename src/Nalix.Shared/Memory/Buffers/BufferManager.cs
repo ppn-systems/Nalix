@@ -20,7 +20,7 @@ public sealed class BufferManager : IDisposable
 
     private int[] _sortedKeys = [];
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -34,7 +34,7 @@ public sealed class BufferManager : IDisposable
     /// </summary>
     public event Action<BufferPoolShared>? EventShrink;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -47,7 +47,7 @@ public sealed class BufferManager : IDisposable
         public int ReturnCounter;
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -117,7 +117,7 @@ public sealed class BufferManager : IDisposable
             EventShrink?.Invoke(pool);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -223,7 +223,7 @@ public sealed class BufferManager : IDisposable
         return left < keys.Length ? keys[left] : 0;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -255,5 +255,5 @@ public sealed class BufferManager : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

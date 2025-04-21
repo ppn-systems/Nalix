@@ -30,7 +30,7 @@ public static class PKCS7
         return paddedData;
     }
 
-    #endregion
+    #endregion Pad Methods
 
     #region Unpad Methods
 
@@ -55,7 +55,7 @@ public static class PKCS7
         return data[..^paddingSize].ToArray();
     }
 
-    #endregion
+    #endregion Unpad Methods
 
     #region Private Methods
 
@@ -69,5 +69,5 @@ public static class PKCS7
     private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize) =>
         paddingSize > 0 && paddingSize <= data.Length && !(data[^paddingSize..].IndexOfAnyExcept((byte)paddingSize) >= 0);
 
-    #endregion
+    #endregion Private Methods
 }

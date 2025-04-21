@@ -83,7 +83,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
             }
         }, cancellationToken);
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -155,5 +155,5 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
         return count;
     }
 
-    #endregion
+    #endregion Private Methods
 }

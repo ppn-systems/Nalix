@@ -1,10 +1,10 @@
+using Nalix.Extensions;
 using Nalix.Network.Web.Enums;
+using Nalix.Network.Web.WebSockets.Internal.Enums;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Nalix.Network.Web.WebSockets.Internal.Enums;
-using Nalix.Extensions;
 
 namespace Nalix.Network.Web.WebSockets.Internal;
 

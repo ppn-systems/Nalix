@@ -11,6 +11,7 @@ internal static class PacketCodeMap
 {
     // Thread-safe cache for storing the messages
     private static readonly ConcurrentDictionary<PacketCode, string> MessageCache = new();
+
     private static readonly ConcurrentDictionary<PacketCode, byte[]> MessageCacheBytes = new();
 
     // Static constructor to initialize the cache

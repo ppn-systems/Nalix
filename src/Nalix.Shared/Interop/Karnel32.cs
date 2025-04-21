@@ -17,7 +17,7 @@ public static partial class Karnel32
     private const int MAX_TITLE_LENGTH = 256;
     private const uint ATTACH_PARENT_PROCESS = 0xFFFFFFFF;
 
-    #endregion
+    #endregion 🔴 Constants
 
     #region 🟢 Public API
 
@@ -41,7 +41,7 @@ public static partial class Karnel32
         return isDebugged != 0;
     }
 
-    #endregion
+    #endregion 🔍 Debugger Detection
 
     #region 🎛 Console Management
 
@@ -93,7 +93,7 @@ public static partial class Karnel32
     public static bool CanShowConsole()
         => GetConsoleWindow() != IntPtr.Zero || AttachConsole(ATTACH_PARENT_PROCESS);
 
-    #endregion
+    #endregion 🎛 Console Management
 
     #region 🏷 Console Window Properties
 
@@ -137,7 +137,7 @@ public static partial class Karnel32
             SetConsoleWindowInfo(hConsole, true, ref rect);
     }
 
-    #endregion
+    #endregion 🏷 Console Window Properties
 
     #region ⌨ Console Input/Output
 
@@ -155,9 +155,9 @@ public static partial class Karnel32
         WriteConsole(hConsole, message, (uint)message.Length, out _, IntPtr.Zero);
     }
 
-    #endregion
+    #endregion ⌨ Console Input/Output
 
-    #endregion
+    #endregion 🟢 Public API
 
     #region 🔴 Private API
 
@@ -219,7 +219,7 @@ public static partial class Karnel32
         out uint lpNumberOfCharsWritten,
         IntPtr lpReserved);
 
-    #endregion
+    #endregion 🔗 WinAPI Imports
 
     #region 🔗 Ntdll Imports
 
@@ -231,7 +231,7 @@ public static partial class Karnel32
         int processInformationLength,
         out int returnLength);
 
-    #endregion
+    #endregion 🔗 Ntdll Imports
 
     #region 📏 Structs & Constants
 
@@ -251,7 +251,7 @@ public static partial class Karnel32
         public short Y = y;
     }
 
-    #endregion
+    #endregion 📏 Structs & Constants
 
-    #endregion
+    #endregion 🔴 Private API
 }

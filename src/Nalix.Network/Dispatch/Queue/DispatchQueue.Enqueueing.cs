@@ -12,7 +12,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     /// </summary>
     /// <param name="packet">The packet to enqueue.</param>
     /// <returns>
-    /// <c>true</c> if the packet was added successfully; 
+    /// <c>true</c> if the packet was added successfully;
     /// <c>false</c> if the packet is <c>null</c> or the queue has reached its maximum capacity.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

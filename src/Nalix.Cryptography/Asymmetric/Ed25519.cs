@@ -24,7 +24,7 @@ public sealed class Ed25519
     /// </summary>
     public const int SignatureSize = 64;
 
-    #endregion
+    #endregion Constants
 
     #region API Methods
 
@@ -128,7 +128,7 @@ public sealed class Ed25519
         return PointEquals(sB, rplusH);
     }
 
-    #endregion
+    #endregion API Methods
 
     #region Core
 
@@ -324,5 +324,5 @@ public sealed class Ed25519
     // Optimized SHA-512 with buffer reuse (thread-local instance)
     private static readonly ThreadLocal<SHA256> Sha256 = new();
 
-    #endregion
+    #endregion Core
 }

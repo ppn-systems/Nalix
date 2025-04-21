@@ -37,7 +37,7 @@ public sealed partial class Connection : IConnection
     private byte[] _encryptionKey;
     private string? _remoteEndPoint;
 
-    #endregion
+    #endregion Fields
 
     #region Constructor
 
@@ -73,7 +73,7 @@ public sealed partial class Connection : IConnection
             nameof(Connection), _socket.RemoteEndPoint?.ToString());
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Properties
 
@@ -135,7 +135,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public AuthState State { get; set; } = AuthState.Connected;
 
-    #endregion
+    #endregion Properties
 
     #region Events
 
@@ -160,7 +160,7 @@ public sealed partial class Connection : IConnection
         remove => _onPostProcessEvent -= value;
     }
 
-    #endregion
+    #endregion Events
 
     #region Methods
 
@@ -172,7 +172,6 @@ public sealed partial class Connection : IConnection
         {
             if (!force && _socket.Connected &&
                (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0)) return;
-
 
             if (_disposed) return;
 
@@ -191,7 +190,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Disconnect(string? reason = null) => Close(force: true);
 
-    #endregion
+    #endregion Methods
 
     #region Dispose Pattern
 
@@ -221,5 +220,5 @@ public sealed partial class Connection : IConnection
         }
     }
 
-    #endregion
+    #endregion Dispose Pattern
 }

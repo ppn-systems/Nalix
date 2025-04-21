@@ -20,14 +20,15 @@ public partial class PoFile
 
     private Func<int, int> _pluralRule = n => n == 1 ? 0 : 1; // Standard rule (English)
 
-    #endregion
+    #endregion Fields
 
     #region Constructor
 
     /// <summary>
     /// Initializes an empty PO file.
     /// </summary>
-    public PoFile() { }
+    public PoFile()
+    { }
 
     /// <summary>
     /// Initializes a <see cref="PoFile"/> by loading the specified PO file.
@@ -36,7 +37,7 @@ public partial class PoFile
     /// <exception cref="FileNotFoundException">Thrown if the specified file does not exist.</exception>
     public PoFile(string path) => LoadFromFile(path);
 
-    #endregion
+    #endregion Constructor
 
     #region Public API
 
@@ -197,7 +198,7 @@ public partial class PoFile
     public string? GetMetadata(string key)
         => _metadata.TryGetValue(key, out var value) ? value : null;
 
-    #endregion
+    #endregion Public API
 
     #region Private API
 
@@ -273,5 +274,5 @@ public partial class PoFile
     [GeneratedRegex("\"(.*?)\"")]
     private static partial Regex ExtractQuotedText();
 
-    #endregion
+    #endregion Private API
 }

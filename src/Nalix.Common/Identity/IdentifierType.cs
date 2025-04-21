@@ -32,7 +32,7 @@ public enum IdentifierType : byte
     /// </summary>
     Packet = 4,
 
-    #endregion
+    #endregion Core System
 
     #region User & Security
 
@@ -56,7 +56,7 @@ public enum IdentifierType : byte
     /// </summary>
     Permission = 13,
 
-    #endregion
+    #endregion User & Security
 
     #region Communication & Messaging
 
@@ -80,7 +80,7 @@ public enum IdentifierType : byte
     /// </summary>
     Sms = 23,
 
-    #endregion
+    #endregion Communication & Messaging
 
     #region Business & Transactions
 
@@ -109,7 +109,7 @@ public enum IdentifierType : byte
     /// </summary>
     SupportTicket = 34,
 
-    #endregion
+    #endregion Business & Transactions
 
     #region External Integration
 
@@ -128,7 +128,7 @@ public enum IdentifierType : byte
     /// </summary>
     Webhook = 42,
 
-    #endregion
+    #endregion External Integration
 
     /// <summary>
     /// The maximum valid value for Number types.

@@ -26,7 +26,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     public const int DefaultMaxSize = 1024;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -35,6 +35,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
     // Statistics tracking
     private long _totalCreated;
+
     private long _totalReturned;
     private long _totalRented;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
@@ -42,7 +43,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     // Configuration
     private readonly int _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -97,7 +98,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -108,7 +109,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -453,5 +454,5 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
 
-    #endregion
+    #endregion Public Methods
 }

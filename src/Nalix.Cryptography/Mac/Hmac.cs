@@ -10,8 +10,8 @@ namespace Nalix.Cryptography.Mac;
 /// Provides implementations of Hash-based Message Authentication Codes (HMAC).
 /// </summary>
 /// <remarks>
-/// HMAC is a specific type of message authentication code (MAC) involving a cryptographic 
-/// hash function and a secret cryptographic key. It provides a way to verify both the data 
+/// HMAC is a specific type of message authentication code (MAC) involving a cryptographic
+/// hash function and a secret cryptographic key. It provides a way to verify both the data
 /// integrity and the authentication of a message.
 /// </remarks>
 public sealed class Hmac : IDisposable
@@ -26,7 +26,7 @@ public sealed class Hmac : IDisposable
     private const byte OuterPadValue = 0x5C;
     private const byte InnerPadValue = 0x36;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -37,7 +37,7 @@ public sealed class Hmac : IDisposable
 
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -68,7 +68,7 @@ public sealed class Hmac : IDisposable
         _disposed = false;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -152,7 +152,7 @@ public sealed class Hmac : IDisposable
         return hmac.VerifyHash(data, expectedHmac);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -247,7 +247,7 @@ public sealed class Hmac : IDisposable
         }
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -268,5 +268,5 @@ public sealed class Hmac : IDisposable
         _disposed = true;
     }
 
-    #endregion
+    #endregion IDisposable
 }

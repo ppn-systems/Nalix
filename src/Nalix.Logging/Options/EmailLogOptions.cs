@@ -16,13 +16,13 @@ public sealed class EmailLogOptions
     private string _password = null!;
     private string _smtpServer = null!;
 
-    #endregion
+    #endregion Fields
 
     /// <summary>
     /// Gets or sets the SMTP server address.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public required string SmtpServer
+    public string SmtpServer
     {
         get => _smtpServer;
         set => _smtpServer = string.IsNullOrWhiteSpace(value)
@@ -34,7 +34,7 @@ public sealed class EmailLogOptions
     /// Gets or sets the SMTP server port.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is not between 1 and 65535.</exception>
-    public required int Port
+    public int Port
     {
         get => _port;
         set => _port = value is < 1 or > 65535
@@ -46,7 +46,7 @@ public sealed class EmailLogOptions
     /// Gets or sets the sender's email address.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public required string From
+    public string From
     {
         get => _from;
         set => _from = string.IsNullOrWhiteSpace(value)
@@ -58,7 +58,7 @@ public sealed class EmailLogOptions
     /// Gets or sets the recipient's email address.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public required string To
+    public string To
     {
         get => _to;
         set => _to = string.IsNullOrWhiteSpace(value)
@@ -70,7 +70,7 @@ public sealed class EmailLogOptions
     /// Gets or sets the password for authentication with the SMTP server.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public required string Password
+    public string Password
     {
         get => _password;
         set => _password = string.IsNullOrWhiteSpace(value)

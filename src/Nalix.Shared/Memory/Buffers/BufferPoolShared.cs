@@ -26,7 +26,7 @@ public sealed class BufferPoolShared : IDisposable
     private int _misses;
     private bool _isOptimizing;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -40,7 +40,7 @@ public sealed class BufferPoolShared : IDisposable
     /// </summary>
     public int FreeBuffers => _freeBuffers.Count;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -57,7 +57,7 @@ public sealed class BufferPoolShared : IDisposable
         this.PreallocateBuffers(initialCapacity);
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -205,7 +205,7 @@ public sealed class BufferPoolShared : IDisposable
         return ref _poolInfo;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -226,7 +226,7 @@ public sealed class BufferPoolShared : IDisposable
         this.Dispose(false);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Private Methods
 
@@ -289,5 +289,5 @@ public sealed class BufferPoolShared : IDisposable
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

@@ -20,7 +20,7 @@ public abstract class LogEngine : IDisposable
 
     private int _isDisposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -56,7 +56,7 @@ public abstract class LogEngine : IDisposable
         _minLevel = _logOptions.MinLevel;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Logging Methods
 
@@ -136,7 +136,7 @@ public abstract class LogEngine : IDisposable
         }
     }
 
-    #endregion
+    #endregion Logging Methods
 
     #region Disposable
 
@@ -149,12 +149,12 @@ public abstract class LogEngine : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion Disposable
 
     #region Private Methods
 
     private static string FormatMessage(string format, object[]? args)
         => args == null || args.Length == 0 ? format : string.Format(format, args);
 
-    #endregion
+    #endregion Private Methods
 }

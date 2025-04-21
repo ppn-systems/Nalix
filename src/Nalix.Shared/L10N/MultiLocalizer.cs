@@ -8,7 +8,7 @@ namespace Nalix.Shared.L10N;
 /// Manages multiple language-specific localizers for string translation.
 /// </summary>
 /// <remarks>
-/// This class allows loading multiple localization files (PO files) 
+/// This class allows loading multiple localization files (PO files)
 /// for different languages and retrieving translations based on the specified language.
 /// </remarks>
 public sealed class MultiLocalizer
@@ -18,7 +18,7 @@ public sealed class MultiLocalizer
     private Localizer _defaultLocalizer = new();
     private readonly Dictionary<string, Localizer> _localizers = [];
 
-    #endregion
+    #endregion Fields
 
     #region Public Methods
 
@@ -188,5 +188,5 @@ public sealed class MultiLocalizer
             return _defaultLocalizer;
     }
 
-    #endregion
+    #endregion Public Methods
 }

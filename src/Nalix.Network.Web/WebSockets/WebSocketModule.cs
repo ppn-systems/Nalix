@@ -63,7 +63,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     private PeriodicTask? _connectionWatchdog;
 
     /// <inheritdoc />
-    public sealed override bool IsFinalHandler => true;
+    public override sealed bool IsFinalHandler => true;
 
     /// <summary>
     /// <para>Gets or sets the maximum size of a received message.
@@ -146,7 +146,7 @@ public abstract class WebSocketModule(string urlPath, bool enableConnectionWatch
     }
 
     /// <inheritdoc />
-    protected sealed override async Task OnRequestAsync(IHttpContext context)
+    protected override sealed async Task OnRequestAsync(IHttpContext context)
     {
         // The WebSocket endpoint must match exactly, giving a RequestedPath of "/".
         // In all other cases the path is longer, so there's no need to compare strings here.

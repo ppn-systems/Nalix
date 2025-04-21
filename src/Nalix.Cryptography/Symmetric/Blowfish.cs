@@ -19,9 +19,9 @@ public class Blowfish
     private const int KeyMinBytes = 4; // Minimum key size in bytes
     private const int KeyMaxBytes = 56; // Maximum key size in bytes
 
-    #endregion
+    #endregion Constants
 
-    #region Fields  
+    #region Fields
 
     private readonly uint[] P;
     private readonly uint[,] S;
@@ -217,7 +217,7 @@ public class Blowfish
         }
     };
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -255,7 +255,7 @@ public class Blowfish
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -345,7 +345,7 @@ public class Blowfish
         return Encoding.Unicode.GetString(data);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -433,5 +433,5 @@ public class Blowfish
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

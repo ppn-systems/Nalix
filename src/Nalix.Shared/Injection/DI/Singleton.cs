@@ -17,6 +17,7 @@ public static class Singleton
 
     // Using ConcurrentDictionaries for thread-safe operations
     private static readonly ConcurrentDictionary<Type, Type> TypeMapping = new();
+
     private static readonly ConcurrentDictionary<Type, Lazy<object>> Services = new();
     private static readonly ConcurrentDictionary<Type, Func<object>> Factories = new();
     private static readonly ConditionalWeakTable<Type, object> ResolutionCache = [];
@@ -25,7 +26,7 @@ public static class Singleton
     // Track whether we're in the dispose process
     private static int _isDisposing;
 
-    #endregion
+    #endregion Fields
 
     #region Public Methods
 
@@ -274,7 +275,7 @@ public static class Singleton
         Factories.Clear();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -296,7 +297,7 @@ public static class Singleton
         return result;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region Disposal
 
@@ -341,5 +342,5 @@ public static class Singleton
         Interlocked.Exchange(ref _isDisposing, 0);
     }
 
-    #endregion
+    #endregion Disposal
 }

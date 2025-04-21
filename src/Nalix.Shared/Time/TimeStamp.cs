@@ -12,7 +12,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
 
     private readonly long _timestamp;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -22,7 +22,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// <param name="timestamp">The raw timestamp value.</param>
     internal TimeStamp(long timestamp) => _timestamp = timestamp;
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -84,7 +84,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// </summary>
     public static TimeStamp Now => new(Stopwatch.GetTimestamp());
 
-    #endregion
+    #endregion Public Methods
 
     #region Operators
 
@@ -130,7 +130,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// </summary>
     public static bool operator >=(TimeStamp left, TimeStamp right) => left._timestamp >= right._timestamp;
 
-    #endregion
+    #endregion Operators
 
     /// <summary>
     /// Returns a string representation of this timestamp.

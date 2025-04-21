@@ -13,10 +13,11 @@ internal static class LoggingLevelFormatter
 
     // Constants for optimized memory layout
     private const int MaxLogLevels = 8;
+
     private const int LogLevelLength = 4;
     private const int LogLevelPaddedLength = 5; // 4 chars + null terminator
 
-    #endregion
+    #endregion Constants
 
     // Character buffer is organized as fixed-length segments with null terminators
     // This enables fast slicing without calculating offsets each time

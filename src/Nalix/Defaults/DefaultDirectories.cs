@@ -176,7 +176,7 @@ public static class DefaultDirectories
         return path;
     });
 
-    #endregion
+    #endregion Private Fields
 
     #region Public Properties
 
@@ -236,7 +236,7 @@ public static class DefaultDirectories
     /// </summary>
     public static bool IsContainer => IsContainerLazy.Value;
 
-    #endregion
+    #endregion Public Properties
 
     #region Constructors
 
@@ -258,7 +258,7 @@ public static class DefaultDirectories
         _ = BackupsPath;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -589,7 +589,7 @@ public static class DefaultDirectories
         return dayPath;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -654,5 +654,5 @@ public static class DefaultDirectories
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

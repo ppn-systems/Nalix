@@ -10,7 +10,7 @@ using Nalix.Network.Dispatch.BuiltIn.Internal;
 namespace Nalix.Network.Dispatch.BuiltIn;
 
 /// <summary>
-/// Provides handlers for managing connection-level configuration commands, 
+/// Provides handlers for managing connection-level configuration commands,
 /// such as setting compression and encryption modes during the handshake phase.
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>

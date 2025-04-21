@@ -13,10 +13,11 @@ public sealed class FileLogOptions
 
     // Default values
     private const int DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
+
     private const int DefaultMaxQueueSize = 4096;
     private const bool DefaultAppendToFile = true;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -29,7 +30,7 @@ public sealed class FileLogOptions
     private int _maxQueueSize = DefaultMaxQueueSize;
     private string _logFileName = $"log_{Environment.MachineName}_.log";
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -141,7 +142,7 @@ public sealed class FileLogOptions
     /// </remarks>
     public bool BlockWhenQueueFull { get; set; } = false;
 
-    #endregion
+    #endregion Properties
 
     #region Methods
 
@@ -150,5 +151,5 @@ public sealed class FileLogOptions
     /// </summary>
     public string GetFullLogFilePath() => Path.Combine(LogDirectory, LogFileName);
 
-    #endregion
+    #endregion Methods
 }

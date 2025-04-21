@@ -16,7 +16,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     private readonly ConsoleLogOptions? _options;
     private readonly ILoggerFormatter _loggerFormatter;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -48,7 +48,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
         _options = options;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -68,5 +68,5 @@ public sealed class ConsoleLogTarget : ILoggerTarget
         }
     }
 
-    #endregion
+    #endregion Public Methods
 }

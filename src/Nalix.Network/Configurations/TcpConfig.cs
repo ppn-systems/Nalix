@@ -13,7 +13,7 @@ public sealed class TcpConfig : ConfigurationBinder
 
     private int _port = 5000;
 
-    #endregion
+    #endregion Fields
 
     #region Constants
 
@@ -27,7 +27,7 @@ public sealed class TcpConfig : ConfigurationBinder
     /// </summary>
     public const int False = 0;
 
-    #endregion
+    #endregion Constants
 
     #region Properties
 
@@ -86,5 +86,5 @@ public sealed class TcpConfig : ConfigurationBinder
     [ConfiguredIgnore]
     public bool IsWindows { get; set; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-    #endregion
+    #endregion Properties
 }

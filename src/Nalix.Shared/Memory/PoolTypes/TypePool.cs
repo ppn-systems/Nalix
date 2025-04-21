@@ -19,7 +19,7 @@ internal class TypePool(int maxCapacity)
     private readonly ConcurrentStack<IPoolable> _objects = new();
     private int _maxCapacity = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -33,7 +33,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     public int MaxCapacity => _maxCapacity;
 
-    #endregion
+    #endregion Properties
 
     #region Public Methods
 
@@ -143,5 +143,5 @@ internal class TypePool(int maxCapacity)
     /// <returns>An array containing the objects in this pool.</returns>
     public IPoolable[] ToArray() => [.. _objects];
 
-    #endregion
+    #endregion Public Methods
 }

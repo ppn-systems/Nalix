@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Nalix.IO;
 
 /// <summary>
-/// Represents a custom console writer that integrates with a <see cref="ConsoleContext"/> 
+/// Represents a custom console writer that integrates with a <see cref="ConsoleContext"/>
 /// for managing output with cursors and prefixes.
 /// </summary>
 /// <remarks>
@@ -46,7 +46,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         set => TextWriter.NewLine = value;
     }
 
-    #endregion
+    #endregion Properties
 
     #region Passthrough
 
@@ -84,9 +84,9 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
     /// <inheritdoc />
     public override Task FlushAsync() => TextWriter.FlushAsync();
 
-    #endregion
+    #endregion Flush
 
-    #endregion
+    #endregion Passthrough
 
     #region Write
 
@@ -100,7 +100,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         Context.WritePrefix(TextWriter.Write);
     }
 
-    #endregion
+    #endregion Write
 
     #region Write Buffer/Format
 
@@ -152,7 +152,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         Context.WritePrefix(TextWriter.Write);
     }
 
-    #endregion
+    #endregion Write Buffer/Format
 
     #region Write(value)
 
@@ -252,7 +252,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         Context.WritePrefix(TextWriter.Write);
     }
 
-    #endregion
+    #endregion Write(value)
 
     #region WriteAsync
 
@@ -295,7 +295,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         await Context.WritePrefixAsync(TextWriter.WriteAsync);
     }
 
-    #endregion
+    #endregion WriteAsync
 
     #region WriteLine Buffer/Format
 
@@ -347,7 +347,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         Context.WritePrefix(TextWriter.Write);
     }
 
-    #endregion
+    #endregion WriteLine Buffer/Format
 
     #region WriteLine(value)
 
@@ -439,7 +439,7 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         Context.WritePrefix(TextWriter.Write);
     }
 
-    #endregion
+    #endregion WriteLine(value)
 
     #region WriteLineAsync
 
@@ -495,5 +495,5 @@ public partial class ConsoleWriter(ConsoleContext context, TextWriter textWriter
         await Context.WritePrefixAsync(TextWriter.WriteAsync);
     }
 
-    #endregion
+    #endregion WriteLineAsync
 }

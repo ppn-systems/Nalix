@@ -8,7 +8,7 @@ using System.Threading;
 namespace Nalix.Randomization;
 
 /// <summary>
-/// High-performance cryptographically strong random Number generator 
+/// High-performance cryptographically strong random Number generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 public static class RandGenerator
@@ -36,7 +36,7 @@ public static class RandGenerator
         InitializeState();
     }
 
-    #endregion
+    #endregion Fields and Static Constructor
 
     #region Public Methods
 
@@ -401,7 +401,7 @@ public static class RandGenerator
         }
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Implementation
 
@@ -610,5 +610,5 @@ public static class RandGenerator
         return result;
     }
 
-    #endregion
+    #endregion Private Implementation
 }

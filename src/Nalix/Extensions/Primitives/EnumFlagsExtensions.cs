@@ -54,7 +54,7 @@ public static class EnumFlagsExtensions
         => Convert.ToUInt64(flags) == 0;
 
     /// <summary>
-    /// Determines whether the enumeration value matches the specified required flags 
+    /// Determines whether the enumeration value matches the specified required flags
     /// and does not contain any of the excluded flags.
     /// </summary>
     /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="FlagsAttribute"/>.</typeparam>
@@ -62,7 +62,7 @@ public static class EnumFlagsExtensions
     /// <param name="requiredFlags">The flags that must be present.</param>
     /// <param name="excludedFlags">The flags that must not be present.</param>
     /// <returns>
-    /// <see langword="true"/> if the enumeration value contains all required flags 
+    /// <see langword="true"/> if the enumeration value contains all required flags
     /// and does not contain any excluded flags; otherwise, <see langword="false"/>.
     /// </returns>
     public static bool Matches<TEnum>(this TEnum flags, TEnum requiredFlags, TEnum excludedFlags)

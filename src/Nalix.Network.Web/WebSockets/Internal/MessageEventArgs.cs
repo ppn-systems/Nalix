@@ -1,6 +1,6 @@
+using Nalix.Extensions.Primitives;
 using Nalix.Network.Web.Enums;
 using System;
-using Nalix.Extensions.Primitives;
 
 namespace Nalix.Network.Web.WebSockets.Internal;
 

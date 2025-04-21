@@ -16,18 +16,19 @@ public sealed class Arc4 : IDisposable
     private const int PermutationSize = 256;
     private const int WeakKeyMitigationBytes = 3072;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
     // Store state as individual fields for better performance
     private byte _i;
+
     private byte _j;
     private readonly byte[] _s = new byte[256];
 
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -52,7 +53,7 @@ public sealed class Arc4 : IDisposable
         this.Initialize(key);
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public API
 
@@ -105,7 +106,7 @@ public sealed class Arc4 : IDisposable
         }
     }
 
-    #endregion
+    #endregion Public API
 
     #region Private API
 
@@ -191,5 +192,5 @@ public sealed class Arc4 : IDisposable
         }
     }
 
-    #endregion
+    #endregion Private API
 }

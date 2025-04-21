@@ -38,7 +38,7 @@ public sealed class RequestLimiter : IDisposable
     private bool _disposed;
     private int _cleanupRunning;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -89,7 +89,7 @@ public sealed class RequestLimiter : IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -128,7 +128,7 @@ public sealed class RequestLimiter : IDisposable
         return allowed;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -174,7 +174,7 @@ public sealed class RequestLimiter : IDisposable
         return config;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -189,5 +189,5 @@ public sealed class RequestLimiter : IDisposable
         _logger?.Debug("RequestLimiter disposed");
     }
 
-    #endregion
+    #endregion IDisposable
 }

@@ -27,7 +27,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     /// </remarks>
     public int TotalPendingCount => Volatile.Read(ref _totalCount);
 
-    #endregion
+    #endregion Properties
 
     #region Public Methods
 
@@ -74,7 +74,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     }
 
     /// <summary>
-    /// Retrieves the current queue statistics, including total pending packets, 
+    /// Retrieves the current queue statistics, including total pending packets,
     /// packet counts by priority level, average processing time, and uptime.
     /// </summary>
     /// <returns>
@@ -112,7 +112,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
         };
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -157,5 +157,5 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
         _packetsProcessed++;
     }
 
-    #endregion
+    #endregion Private Methods
 }

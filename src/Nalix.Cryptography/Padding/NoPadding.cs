@@ -57,7 +57,7 @@ public static class NoPadding
         return result;
     }
 
-    #endregion
+    #endregion Pad Methods
 
     #region Unpad Methods
 
@@ -104,5 +104,5 @@ public static class NoPadding
         return result;
     }
 
-    #endregion
+    #endregion Unpad Methods
 }

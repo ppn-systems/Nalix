@@ -20,7 +20,7 @@ public static class Speck
     private const int Rounds = 27; // Number of rounds for Speck64/128
     private const int KeySizeBytes = 16; // Key size in bytes (128-bit key)
 
-    #endregion
+    #endregion Constants
 
     #region Public API
 
@@ -411,7 +411,7 @@ public static class Speck
         }
     }
 
-    #endregion
+    #endregion Public API
 
     #region Private API
 
@@ -463,7 +463,7 @@ public static class Speck
 
         // Initialize key parts
         uint k0 = BitwiseUtils.U8To32Little(key, 0);  // l[0]
-        uint k1 = BitwiseUtils.U8To32Little(key, 4);  // l[1] 
+        uint k1 = BitwiseUtils.U8To32Little(key, 4);  // l[1]
         uint k2 = BitwiseUtils.U8To32Little(key, 8);  // l[2]
         uint k3 = BitwiseUtils.U8To32Little(key, 12); // k
 
@@ -523,5 +523,5 @@ public static class Speck
         return x;
     }
 
-    #endregion
+    #endregion Private API
 }

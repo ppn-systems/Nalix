@@ -42,7 +42,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     static Base36Id()
         => CharToValue = BaseN.CreateCharLookupTable(DefaultEncodings.Base36Alphabet);
 
-    #endregion
+    #endregion Fields and Static Constructor
 
     #region Properties
 
@@ -61,7 +61,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// </summary>
     public ushort MachineId => (ushort)(_value & 0xFFFF);
 
-    #endregion
+    #endregion Properties
 
     #region Methods
 
@@ -217,7 +217,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
         return true;
     }
 
-    #endregion
+    #endregion Static Methods
 
     #region Instance Methods
 
@@ -299,7 +299,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
         return true;
     }
 
-    #endregion
+    #endregion Instance Methods
 
     #region Equality and Comparison
 
@@ -337,7 +337,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsEmpty() => _value == 0;
 
-    #endregion
+    #endregion Equality and Comparison
 
     #region Operators
 
@@ -383,7 +383,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// <param name="value">The uint value to convert.</param>
     public static explicit operator Base36Id(uint value) => new(value);
 
-    #endregion
+    #endregion Operators
 
-    #endregion
+    #endregion Methods
 }

@@ -21,7 +21,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     /// <summary>
     /// Registers default handlers for the packet dispatcher, including controllers for session management,
-    /// keep-alive functionality, and mode handling. This method sets up the standard set of handlers 
+    /// keep-alive functionality, and mode handling. This method sets up the standard set of handlers
     /// used by the dispatcher using their respective controller types.
     /// </summary>
     /// <returns>
@@ -41,7 +41,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// and scanning its methods decorated with <see cref="PacketIdAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
-    /// The type of the controller to register. 
+    /// The type of the controller to register.
     /// This type must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
@@ -74,11 +74,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
-    /// using a provided factory function, then scanning its methods decorated 
+    /// using a provided factory function, then scanning its methods decorated
     /// with <see cref="PacketIdAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
-    /// The type of the controller to register. This type does not require 
+    /// The type of the controller to register. This type does not require
     /// a parameterless constructor.
     /// </typeparam>
     /// <param name="factory">
@@ -161,11 +161,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     /// <param name="id">The unique identifier of the packet command.</param>
     /// <param name="handler">
-    /// When this method returns, contains the handler function associated with the command Number, 
+    /// When this method returns, contains the handler function associated with the command Number,
     /// or <see langword="null"/> if no handler was found.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a handler for the given <paramref name="id"/> was found; 
+    /// <see langword="true"/> if a handler for the given <paramref name="id"/> was found;
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>

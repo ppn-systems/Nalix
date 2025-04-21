@@ -23,7 +23,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     private int _count;
     private volatile bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -68,7 +68,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -103,7 +103,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
         Interlocked.Exchange(ref _count, 0);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -119,7 +119,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
         return options;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -139,5 +139,5 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
         _disposed = true;
     }
 
-    #endregion
+    #endregion IDisposable
 }

@@ -72,7 +72,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Meta Methods
 
     #region Debug Methods
 
@@ -140,7 +140,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Debug Methods
 
     #region Trace Methods
 
@@ -210,7 +210,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Trace Methods
 
     #region Warning Methods
 
@@ -280,7 +280,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Warning Methods
 
     #region Fatal Methods
 
@@ -350,7 +350,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Fatal Methods
 
     #region Info Methods
 
@@ -420,7 +420,7 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Info Methods
 
     #region Error Methods
 
@@ -490,5 +490,5 @@ public static partial class NLogixFx
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Error Methods
 }

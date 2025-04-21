@@ -5,4 +5,5 @@ namespace Nalix.Common.Connection.Contracts;
 /// </summary>
 [System.Text.Json.Serialization.JsonSerializable(typeof(PingInfoDto))]
 [System.Text.Json.Serialization.JsonSerializable(typeof(ConnInfoDto))]
-public partial class NetJsonCxt : System.Text.Json.Serialization.JsonSerializerContext { }
+public partial class NetJsonCxt : System.Text.Json.Serialization.JsonSerializerContext
+{ }

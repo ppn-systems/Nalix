@@ -8,7 +8,8 @@ public abstract class BaseException : System.Exception
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseException"/> class.
     /// </summary>
-    protected BaseException() { }
+    protected BaseException()
+    { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseException"/> class.
@@ -18,7 +19,7 @@ public abstract class BaseException : System.Exception
         : base(message) { }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BaseException"/> class with a specified 
+    /// Initializes a new instance of the <see cref="BaseException"/> class with a specified
     /// error message and a reference to the inner exception that is the cause of this exception.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>

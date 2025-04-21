@@ -22,7 +22,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     private readonly FileLoggerProvider _loggerPrv;
     private readonly ILoggerFormatter _loggerFormatter;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -67,7 +67,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -78,7 +78,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     public void Publish(LogEntry logMessage)
         => _loggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -93,7 +93,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Private Methods
 
@@ -109,5 +109,5 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
         return options;
     }
 
-    #endregion
+    #endregion Private Methods
 }

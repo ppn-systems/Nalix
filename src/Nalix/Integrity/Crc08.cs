@@ -217,5 +217,4 @@ public static class Crc08
 
         return crc;
     }
-
 }

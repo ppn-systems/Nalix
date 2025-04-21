@@ -21,6 +21,7 @@ public abstract partial class ConfigurationBinder
 
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
     private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
+
     private static readonly string[] _suffixesToTrim =
     [
         "Configuration", "Settings", "Options", "Configs", "Config"
@@ -31,7 +32,7 @@ public abstract partial class ConfigurationBinder
     private int _isInitialized; // Flag to track initialization status
     private DateTime _lastInitializationTime; // Track the last initialization time
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -45,7 +46,7 @@ public abstract partial class ConfigurationBinder
     /// </summary>
     public DateTime LastInitializationTime => _lastInitializationTime;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -64,7 +65,7 @@ public abstract partial class ConfigurationBinder
     /// <param name="logger">The logger to log events and errors.</param>
     public ConfigurationBinder(ILogger logger) => _logger = logger;
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -94,7 +95,7 @@ public abstract partial class ConfigurationBinder
         return clone;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -144,5 +145,5 @@ public abstract partial class ConfigurationBinder
         _lastInitializationTime = DateTime.UtcNow;
     }
 
-    #endregion
+    #endregion Private Methods
 }

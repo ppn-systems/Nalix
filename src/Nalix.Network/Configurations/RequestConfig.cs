@@ -22,6 +22,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
 
     // Pre-defined configurations to avoid memory allocations
     private static readonly RequestLimitSettings LowSettings = new(50, 600, 30_000);
+
     private static readonly RequestLimitSettings MediumSettings = new(100, 300, 60_000);
     private static readonly RequestLimitSettings HighSettings = new(500, 150, 120_000);
     private static readonly RequestLimitSettings UnlimitedSettings = new(1000, 60, 300_000);
@@ -34,7 +35,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
         { RequestLimitType.Unlimited, UnlimitedSettings }
     };
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -66,7 +67,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Properties
 
@@ -103,7 +104,7 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     [ConfiguredIgnore]
     public System.TimeSpan LockoutDuration => System.TimeSpan.FromSeconds(LockoutDurationSeconds);
 
-    #endregion
+    #endregion Properties
 
     #region Private Methods
 
@@ -116,5 +117,5 @@ public sealed class RequestConfig(RequestLimitSettings settings) : Configuration
     private static RequestLimitSettings GetSettingsForLimit(RequestLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 
-    #endregion
+    #endregion Private Methods
 }

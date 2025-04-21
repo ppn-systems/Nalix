@@ -74,7 +74,7 @@ public static class ISO10126
         return paddedData;
     }
 
-    #endregion
+    #endregion Pad Methods
 
     #region Unpad Methods
 
@@ -133,5 +133,5 @@ public static class ISO10126
         return unpaddedData;
     }
 
-    #endregion
+    #endregion Unpad Methods
 }

@@ -1,4 +1,3 @@
-using Nalix.Common.Exceptions;
 using Nalix.Logging.Exceptions;
 using Nalix.Logging.Options;
 using System;
@@ -26,8 +25,8 @@ internal sealed class FileLoggerProvider : IDisposable
 
     // Stats for monitoring
     private long _totalEntriesWritten;
-    private long _entriesDroppedCount;
 
+    private long _entriesDroppedCount;
 
     /// <summary>
     /// Gets the configuration options used by this logger provider.

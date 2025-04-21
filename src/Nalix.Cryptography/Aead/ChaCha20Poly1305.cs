@@ -29,7 +29,7 @@ public static class ChaCha20Poly1305
     /// </summary>
     private const int NonceSize = 12;
 
-    #endregion
+    #endregion Constants
 
     #region Public Methods
 
@@ -212,7 +212,7 @@ public static class ChaCha20Poly1305
         return true;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -268,5 +268,5 @@ public static class ChaCha20Poly1305
         return macData;
     }
 
-    #endregion
+    #endregion Private Methods
 }

@@ -8,7 +8,7 @@ namespace Nalix.Shared.L10N;
 /// This class allows loading and retrieving translated messages.
 /// </summary>
 /// <remarks>
-/// The <see cref="Localizer"/> class supports translation lookup 
+/// The <see cref="Localizer"/> class supports translation lookup
 /// for singular, plural, and contextual messages using the PO file format.
 /// </remarks>
 public sealed class Localizer
@@ -17,12 +17,12 @@ public sealed class Localizer
 
     private readonly PoFile _catalog;
 
-    #endregion
+    #endregion Fields
 
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Localizer"/> class 
+    /// Initializes a new instance of the <see cref="Localizer"/> class
     /// with an empty catalog, allowing messages to be loaded later.
     /// </summary>
     /// <example>
@@ -35,7 +35,7 @@ public sealed class Localizer
     public Localizer() => _catalog = new PoFile();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Localizer"/> class 
+    /// Initializes a new instance of the <see cref="Localizer"/> class
     /// and loads a PO file from the specified path.
     /// </summary>
     /// <param name="path">The file path to the PO file.</param>
@@ -52,7 +52,7 @@ public sealed class Localizer
     /// </example>
     public Localizer(string path) => _catalog = new PoFile(path);
 
-    #endregion
+    #endregion Constructor
 
     #region Public API
 
@@ -114,7 +114,7 @@ public sealed class Localizer
     /// <param name="idPlural">The plural message Number.</param>
     /// <param name="n">The quantity to determine singular or plural form.</param>
     /// <returns>
-    /// The translated string in singular or plural form if available; 
+    /// The translated string in singular or plural form if available;
     /// otherwise, the original Number or plural form.
     /// </returns>
     /// <example>
@@ -126,7 +126,7 @@ public sealed class Localizer
         => _catalog.GetPluralString(id, idPlural, n);
 
     /// <summary>
-    /// Retrieves the singular or plural localized string based on a count 
+    /// Retrieves the singular or plural localized string based on a count
     /// within a specific context. If no translation is found, the original
     /// Number or plural form is returned.
     /// </summary>
@@ -135,7 +135,7 @@ public sealed class Localizer
     /// <param name="idPlural">The plural message Number.</param>
     /// <param name="n">The quantity to determine singular or plural form.</param>
     /// <returns>
-    /// The translated string in singular or plural form if available; 
+    /// The translated string in singular or plural form if available;
     /// otherwise, the original Number or plural form.
     /// </returns>
     /// <example>
@@ -146,5 +146,5 @@ public sealed class Localizer
     public string GetParticularPlural(string context, string id, string idPlural, int n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);
 
-    #endregion
+    #endregion Public API
 }

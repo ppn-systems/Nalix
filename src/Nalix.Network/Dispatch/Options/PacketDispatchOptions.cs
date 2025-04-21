@@ -29,7 +29,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         DynamicallyAccessedMemberTypes.PublicMethods |
         DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -65,7 +65,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     private readonly Dictionary<ushort, System.Func<TPacket, IConnection, Task>> _handlers = [];
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -82,7 +82,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     public QueueConfig QueueOptions { get; set; } = new QueueConfig();
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -96,5 +96,5 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     {
     }
 
-    #endregion
+    #endregion Constructors
 }

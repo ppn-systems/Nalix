@@ -18,5 +18,4 @@ public abstract partial class Listener
             Address = Snapshot.ListenerSnapshot.GetIpAddress(_listenerSocket),
             ListenerSocketStatus = Snapshot.ListenerSnapshot.GetSocketStatus(_listenerSocket)
         };
-
 }

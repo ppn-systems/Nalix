@@ -17,7 +17,7 @@ public sealed class LogOptions : IDisposable
     // Default values that can be customized
     private LogLevel _minLevel = LogLevel.Trace;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -60,7 +60,7 @@ public sealed class LogOptions : IDisposable
     /// </summary>
     public bool UseUtcTimestamp { get; set; } = true;
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LogOptions"/> class.

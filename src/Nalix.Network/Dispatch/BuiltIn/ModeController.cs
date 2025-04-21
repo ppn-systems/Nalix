@@ -22,7 +22,7 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
 
     private readonly ILogger? _logger = logger;
 
-    #endregion
+    #endregion Fields
 
     /// <summary>
     /// Handles a request to set the compression mode for the current connection.
@@ -94,5 +94,5 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
         return PacketWriter.String(PacketCode.Success);
     }
 
-    #endregion
+    #endregion Private Methods
 }

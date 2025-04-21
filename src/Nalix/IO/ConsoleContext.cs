@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace Nalix.IO;
 
 /// <summary>
-/// Provides a context for managing console input and output, 
-/// including features such as input history, buffered input handling, 
+/// Provides a context for managing console input and output,
+/// including features such as input history, buffered input handling,
 /// and asynchronous cursor management.
 /// </summary>
 public sealed partial class ConsoleContext
@@ -27,7 +27,7 @@ public sealed partial class ConsoleContext
     private int _inputHistoryLength;
     private int _inputHistoryPosition;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -43,7 +43,7 @@ public sealed partial class ConsoleContext
         InputBuffer = new List<char>(80);
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Properties
 
@@ -119,7 +119,7 @@ public sealed partial class ConsoleContext
     /// </summary>
     private List<char> InputBuffer { get; }
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Checks if the console is already waiting on a read operation.
@@ -565,7 +565,7 @@ public sealed partial class ConsoleContext
 
                             break;
 
-                            #endregion
+                            #endregion Default key handling
                     }
 
                     // ReSharper disable once InvertIf

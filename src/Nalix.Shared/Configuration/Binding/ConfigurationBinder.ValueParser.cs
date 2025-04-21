@@ -32,7 +32,6 @@ public partial class ConfigurationBinder
                 $"Value type {property.PropertyType.Name} is not supported for configuration files."),
         };
 
-
     /// <summary>
     /// Handles empty configuration values by writing defaults to the file.
     /// </summary>

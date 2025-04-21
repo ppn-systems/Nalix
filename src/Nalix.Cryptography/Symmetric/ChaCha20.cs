@@ -40,7 +40,7 @@ public sealed class ChaCha20 : IDisposable
     /// </summary>
     private const int MaxBytesPerNonce = 1 << 30;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -60,7 +60,7 @@ public sealed class ChaCha20 : IDisposable
 
     private static readonly byte[] Tau = "expand 16-byte k"u8.ToArray();
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -100,7 +100,7 @@ public sealed class ChaCha20 : IDisposable
         this.IvSetup(nonce.ToArray(), counter);
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Encryption methods
 
@@ -419,7 +419,7 @@ public sealed class ChaCha20 : IDisposable
         return System.Text.Encoding.UTF8.GetString(tempArray);
     }
 
-    #endregion // Decryption methods
+    #endregion Decryption methods
 
     #region Private Methods
 
@@ -693,7 +693,7 @@ public sealed class ChaCha20 : IDisposable
         x[b] = BitwiseUtils.RotateLeft(BitwiseUtils.XOr(x[b], x[c]), 7);
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region Destructor and Disposer
 

@@ -82,7 +82,7 @@ public static class Salsa20
     public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
         ReadOnlySpan<byte> ciphertext, Span<byte> plaintext) => Encrypt(key, nonce, counter, ciphertext, plaintext);
 
-    #endregion
+    #endregion Encryption/Decryption Methods
 
     #region Utility Methods
 
@@ -231,5 +231,5 @@ public static class Salsa20
         a ^= BitwiseUtils.RotateLeft(d + c, 18);
     }
 
-    #endregion
+    #endregion Utility Methods
 }

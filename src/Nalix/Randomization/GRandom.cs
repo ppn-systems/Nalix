@@ -25,7 +25,7 @@ public sealed class GRandom(int seed)
     /// </summary>
     public const double InvRandMax = 1.0 / RandMax;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -38,7 +38,8 @@ public sealed class GRandom(int seed)
     /// Random Number generator instance.
     /// </summary>
     private readonly Rand _rand = new((uint)seed);
-    #endregion
+
+    #endregion Fields
 
     #region Constructors
 
@@ -49,7 +50,7 @@ public sealed class GRandom(int seed)
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -285,5 +286,5 @@ public sealed class GRandom(int seed)
     /// <returns>A string representation of the RNG.</returns>
     public override string ToString() => $"GRandom(seed={_seed}): {_rand}";
 
-    #endregion
+    #endregion Public Methods
 }

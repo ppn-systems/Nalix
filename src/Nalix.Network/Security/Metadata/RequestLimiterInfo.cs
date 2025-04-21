@@ -11,7 +11,7 @@ internal readonly struct RequestLimiterInfo
 
     private readonly Queue<long> _requests;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -20,7 +20,7 @@ internal readonly struct RequestLimiterInfo
     public int RequestCount => _requests.Count;
     public IReadOnlyCollection<long> Requests => _requests;
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -32,7 +32,7 @@ internal readonly struct RequestLimiterInfo
         LastRequestTicks = firstRequest;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -56,7 +56,7 @@ internal readonly struct RequestLimiterInfo
             _requests.Dequeue();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -67,5 +67,5 @@ internal readonly struct RequestLimiterInfo
         LastRequestTicks = lastRequestTicks;
     }
 
-    #endregion
+    #endregion Private Methods
 }

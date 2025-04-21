@@ -36,7 +36,7 @@ public sealed class InstanceManager : IDisposable
     // Thread safety for disposal
     private int _isDisposed;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -77,7 +77,7 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     public int CachedInstanceCount => _instanceCache.Count;
 
-    #endregion
+    #endregion Properties
 
     #region Public Methods
 
@@ -266,7 +266,7 @@ public sealed class InstanceManager : IDisposable
         _activatorCache.Clear();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -294,7 +294,7 @@ public sealed class InstanceManager : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Private Methods
 
@@ -392,5 +392,5 @@ public sealed class InstanceManager : IDisposable
         };
     }
 
-    #endregion
+    #endregion Private Methods
 }

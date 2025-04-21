@@ -22,15 +22,17 @@ public sealed class SHA1 : ISHA, IDisposable
 
     // Hash state instance field
     private readonly uint[] _state = new uint[5];
+
     private bool _disposed;
 
     // Fields for incremental hashing
     private readonly byte[] _buffer = new byte[64]; // Buffer for incomplete blocks
+
     private int _bufferIndex = 0;                  // Current position in buffer
     private ulong _totalBytesProcessed = 0;        // Total bytes processed
     private bool _finalized = false;               // Flag indicating hash has been finalized
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -43,7 +45,7 @@ public sealed class SHA1 : ISHA, IDisposable
         this.Initialize();
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -268,7 +270,7 @@ public sealed class SHA1 : ISHA, IDisposable
         return sha1.FinalizeHash();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -461,7 +463,7 @@ public sealed class SHA1 : ISHA, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint MAJ(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable Implementation
 
@@ -483,7 +485,7 @@ public sealed class SHA1 : ISHA, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable Implementation
 
     #region Overrides
 
@@ -492,5 +494,5 @@ public sealed class SHA1 : ISHA, IDisposable
     /// </summary>
     public override string ToString() => "SHA-1";
 
-    #endregion
+    #endregion Overrides
 }

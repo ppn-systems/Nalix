@@ -11,6 +11,7 @@ public static class SelfCheck
 {
     // Constants to improve readability and performance
     private const char Colon = ':';
+
     private const char Space = ' ';
     private const char OpenBracket = '[';
     private const char CloseBracket = ']';
@@ -19,6 +20,7 @@ public static class SelfCheck
 
     // Pre-allocate default strings to reduce allocations
     private const string DefaultFile = "UnknownFile";
+
     private const string DefaultMethod = "UnknownMethod";
 
     /// <summary>

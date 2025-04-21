@@ -29,7 +29,6 @@ internal static class HexExtensions
             string.Join(separator, sb.ToString().Chunk(2).Select(c => new string(c)));
     }
 
-
     /// <summary>
     /// Converts a string to a byte array using the specified encoding or as a hex string.
     /// </summary>

@@ -28,7 +28,7 @@ public sealed class SHA224 : ISHA, IDisposable
     private bool _disposed;                          // Whether instance has been disposed
     private byte[] _finalHash;                       // Final hash value (28 bytes for SHA-224)
 
-    #endregion
+    #endregion Fields
 
     #region Constructor
 
@@ -40,7 +40,7 @@ public sealed class SHA224 : ISHA, IDisposable
         Initialize();
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -204,7 +204,7 @@ public sealed class SHA224 : ISHA, IDisposable
         return sha224.FinalizeHash();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region SHA-224/256 Functions
 
@@ -296,7 +296,7 @@ public sealed class SHA224 : ISHA, IDisposable
         BitwiseUtils.RotateRight(x, 17) ^
         BitwiseUtils.RotateRight(x, 19) ^ (x >> 10);
 
-    #endregion
+    #endregion SHA-224/256 Functions
 
     #region IDisposable
 
@@ -322,7 +322,7 @@ public sealed class SHA224 : ISHA, IDisposable
         _disposed = true;
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Overrides
 
@@ -331,5 +331,5 @@ public sealed class SHA224 : ISHA, IDisposable
     /// </summary>
     public override string ToString() => "SHA-224";
 
-    #endregion
+    #endregion Overrides
 }

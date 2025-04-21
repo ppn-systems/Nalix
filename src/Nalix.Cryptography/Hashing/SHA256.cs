@@ -30,7 +30,7 @@ public sealed class SHA256 : ISHA, IDisposable
     private bool _finalized;
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -39,7 +39,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// </summary>
     public SHA256() => Initialize();
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -275,7 +275,7 @@ public sealed class SHA256 : ISHA, IDisposable
         return finalBlock;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -623,7 +623,7 @@ public sealed class SHA256 : ISHA, IDisposable
         _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -649,7 +649,7 @@ public sealed class SHA256 : ISHA, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Overrides
 
@@ -658,5 +658,5 @@ public sealed class SHA256 : ISHA, IDisposable
     /// </summary>
     public override string ToString() => "SHA-256";
 
-    #endregion
+    #endregion Overrides
 }

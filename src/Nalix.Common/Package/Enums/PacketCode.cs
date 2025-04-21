@@ -14,14 +14,12 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Operation completed successfully.")]
     Success = 0,
 
-
     // ===== General Errors =====
     /// <summary>
     /// Indicates an unknown error occurred.
     /// </summary>
     [PacketCodeMessage("An unknown error occurred.")]
     UnknownError = 1,
-
 
     // ===== Authorization Errors =====
     /// <summary>Client is not authenticated.</summary>
@@ -39,7 +37,6 @@ public enum PacketCode : ushort
     /// <summary>Client has not authenticated.</summary>
     [PacketCodeMessage("You must authenticate before proceeding.")]
     AuthenticationFailure = 1004,
-
 
     // ===== Command Errors =====
     /// <summary>The command does not exist.</summary>
@@ -66,7 +63,6 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Missing required information.")]
     MissingInformation = 2006,
 
-
     // ===== Payload / Format Errors =====
     /// <summary>Payload structure is invalid or unreadable.</summary>
     [PacketCodeMessage("The payload format is invalid.")]
@@ -79,7 +75,6 @@ public enum PacketCode : ushort
     /// <summary>Checksum failed for the received packet.</summary>
     [PacketCodeMessage("Packet checksum does not match.")]
     ChecksumMismatch = 3003,
-
 
     // ===== Timeout / Expired =====
     /// <summary>The client or server took too long to respond.</summary>
@@ -98,12 +93,10 @@ public enum PacketCode : ushort
     [PacketCodeMessage("The packet type is invalid.")]
     PacketType = 4004,
 
-
     // ===== Rate limit =====
     /// <summary>The client has sent too many requests in a short time.</summary>
     [PacketCodeMessage("You are being rate-limited. Please try again later.")]
     RateLimited = 4501,
-
 
     // ===== Server Errors =====
     /// <summary>An unexpected server error occurred.</summary>
@@ -118,7 +111,6 @@ public enum PacketCode : ushort
     [PacketCodeMessage("Conflict detected due to concurrent modification.")]
     ConcurrencyError = 5003,
 
-
     // ===== Connection Errors =====
     /// <summary>The connection to the server was lost.</summary>
     [PacketCodeMessage("Unable to connect to the server. Please try again later.")]
@@ -128,12 +120,10 @@ public enum PacketCode : ushort
     [PacketCodeMessage("The connection was refused by the server.")]
     ConnectionRefused = 6002,
 
-
     // ===== Session Errors =====
     /// <summary>The session is invalid or expired.</summary>
     [PacketCodeMessage("Session expired or invalid. Please log in again.")]
     SessionError = 7001,
-
 
     // ===== Encryption and Compression Errors =====
     /// <summary>Encryption is required but not provided.</summary>
@@ -143,7 +133,6 @@ public enum PacketCode : ushort
     /// <summary>Compression is required but not provided.</summary>
     [PacketCodeMessage("Failed to compress/decompress the packet.")]
     CompressionFailure = 8002,
-
 
     // ===== Resource Errors =====
     /// <summary>Packet integrity check failed.</summary>

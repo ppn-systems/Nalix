@@ -23,7 +23,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     /// </summary>
     protected readonly Options.PacketDispatchOptions<TPacket> Options;
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -51,7 +51,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     protected PacketDispatchBase(System.Action<Options.PacketDispatchOptions<TPacket>>? configure = null)
         : this(new Options.PacketDispatchOptions<TPacket>()) => configure?.Invoke(Options);
 
-    #endregion
+    #endregion Constructors
 
     #region Ptotected Methods
 
@@ -97,7 +97,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     /// </returns>
     /// <remarks>
     /// This method attempts to resolve a packet handler using the packet's <c>Id</c> via <c>Options.TryResolveHandler</c>.
-    /// If a handler is found, it is invoked asynchronously with the provided <paramref name="packet"/> and 
+    /// If a handler is found, it is invoked asynchronously with the provided <paramref name="packet"/> and
     /// <paramref name="connection"/>. Any exceptions thrown by the handler are caught and logged as errors.
     /// If no handler is found, a warning is logged instead.
     /// </remarks>
@@ -136,5 +136,5 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
         Logger?.Warn($"[Dispatch] No handler found for packet Id: {packet.Id} from {connection.RemoteEndPoint}.");
     }
 
-    #endregion
+    #endregion Ptotected Methods
 }

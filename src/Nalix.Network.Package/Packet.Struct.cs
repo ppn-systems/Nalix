@@ -135,7 +135,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region IDisposable
 
@@ -156,5 +156,5 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         }
     }
 
-    #endregion
+    #endregion IDisposable
 }

@@ -23,10 +23,11 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 
     // Configuration constants
     private const int DefaultMaxPoolSize = 1024;
+
     private const int DefaultInitialCapacity = 16;
     private const int MaxInitialCapacity = 8192;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -35,6 +36,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 
     // Statistics tracking
     private long _rented;
+
     private long _returned;
     private long _created;
     private long _trimmed;
@@ -43,7 +45,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     private readonly int _maxPoolSize = maxPoolSize > 0 ? maxPoolSize : DefaultMaxPoolSize;
     private readonly int _initialCapacity = ValidateCapacity(initialCapacity);
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -92,7 +94,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -104,7 +106,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     {
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -269,7 +271,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         _uptime.Restart();
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -285,5 +287,5 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         return capacity;
     }
 
-    #endregion
+    #endregion Private Methods
 }

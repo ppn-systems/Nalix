@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace Nalix.Network.Security.Guard;
 
 /// <summary>
-/// A high-performance connection limiter that restricts simultaneous connections from IP addresses 
+/// A high-performance connection limiter that restricts simultaneous connections from IP addresses
 /// to prevent abuse and resource exhaustion.
 /// </summary>
 public sealed class ConnectionLimiter : IDisposable
@@ -22,9 +22,10 @@ public sealed class ConnectionLimiter : IDisposable
 
     // Constants for optimization
     private const int MaxCleanupKeys = 1000;
+
     private const int EstimatedCollectionCapacity = 256;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -38,11 +39,12 @@ public sealed class ConnectionLimiter : IDisposable
 
     // Cache frequently accessed configuration values
     private readonly int _maxConnectionsPerIp;
+
     private readonly TimeSpan _inactivityThreshold;
 
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -98,7 +100,7 @@ public sealed class ConnectionLimiter : IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -265,7 +267,7 @@ public sealed class ConnectionLimiter : IDisposable
         _logger?.Info("Counters reset");
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -338,7 +340,7 @@ public sealed class ConnectionLimiter : IDisposable
         return config;
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -365,5 +367,5 @@ public sealed class ConnectionLimiter : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

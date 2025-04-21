@@ -23,7 +23,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     private readonly EmailLogOptions _options;
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -80,7 +80,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -117,7 +117,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     public void Publish(LogEntry entry)
         => PublishAsync(entry).GetAwaiter().GetResult();
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -135,7 +135,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Private Methods
 
@@ -194,5 +194,5 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
         </body>
         </html>";
 
-    #endregion
+    #endregion Private Methods
 }

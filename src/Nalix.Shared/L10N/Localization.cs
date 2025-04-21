@@ -2,11 +2,11 @@ namespace Nalix.Shared.L10N;
 
 /// <summary>
 /// Provides localization support for applications using Portable Object (PO) files.
-/// This class offers a global access point for translations based on the server's 
+/// This class offers a global access point for translations based on the server's
 /// default language.
 /// </summary>
 /// <remarks>
-/// The <see cref="Localization"/> class allows retrieving translations for singular 
+/// The <see cref="Localization"/> class allows retrieving translations for singular
 /// and plural forms, with or without contextual information.
 /// </remarks>
 public static class Localization
@@ -15,7 +15,7 @@ public static class Localization
 
     private static Localizer Localizer = new();
 
-    #endregion
+    #endregion Fields
 
     #region Public API
 
@@ -97,5 +97,5 @@ public static class Localization
     public static string GetParticularPlural(string context, string id, string idPlural, int n)
         => Localizer.GetParticularPlural(context, id, idPlural, n);
 
-    #endregion
+    #endregion Public API
 }

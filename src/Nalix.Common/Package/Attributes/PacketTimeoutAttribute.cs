@@ -2,7 +2,7 @@ namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// An attribute that specifies the timeout duration for a packet operation.
-/// This attribute can be applied to methods to define the maximum allowable time 
+/// This attribute can be applied to methods to define the maximum allowable time
 /// (in milliseconds) for processing a packet before considering it a timeout.
 /// </summary>
 /// <remarks>

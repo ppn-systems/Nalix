@@ -22,5 +22,5 @@ public sealed class TransportCacheConfig : ConfigurationBinder
     /// </summary>
     public int Incoming { get; set; } = 40;
 
-    #endregion
+    #endregion Properties
 }

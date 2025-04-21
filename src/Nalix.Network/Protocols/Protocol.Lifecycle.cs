@@ -7,7 +7,7 @@ public abstract partial class Protocol
     private bool _isDisposed;
     private int _keepConnectionOpen;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -22,7 +22,7 @@ public abstract partial class Protocol
         protected set => System.Threading.Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
     }
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Disposes resources used by this Protocol.
@@ -36,7 +36,8 @@ public abstract partial class Protocol
     /// <summary>
     /// Override this method to clean up any resources when the protocol is disposed.
     /// </summary>
-    protected virtual void OnDisposing() { }
+    protected virtual void OnDisposing()
+    { }
 
     /// <summary>
     /// Disposes resources used by this Protocol.

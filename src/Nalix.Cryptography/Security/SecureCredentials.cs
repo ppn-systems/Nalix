@@ -27,7 +27,7 @@ public static class SecureCredentials
     /// </summary>
     public const int Iterations = 100_000;
 
-    #endregion
+    #endregion Constants
 
     #region Public Methods
 
@@ -103,5 +103,5 @@ public static class SecureCredentials
         }
     }
 
-    #endregion
+    #endregion Public Methods
 }

@@ -33,7 +33,7 @@ public static partial class BitwiseUtils
     public static uint RotateLeft(uint value, int bits)
         => BitOperations.RotateLeft(value, bits);
 
-    #endregion
+    #endregion Bit Rotations
 
     #region Arithmetic Operations
 
@@ -78,7 +78,7 @@ public static partial class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Subtract(uint v, uint w) => unchecked(v - w);
 
-    #endregion
+    #endregion Arithmetic Operations
 
     #region Byte Conversion (Little Endian)
 
@@ -131,7 +131,7 @@ public static partial class BitwiseUtils
     }
 
     /// <summary>
-    /// Serialize the input integer into the output buffer. The input integer will be split into 4 bytes 
+    /// Serialize the input integer into the output buffer. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output buffer, starting at the outputOffset.
     /// Uses optimized hardware intrinsics when available.
     /// </summary>
@@ -157,7 +157,7 @@ public static partial class BitwiseUtils
     }
 
     /// <summary>
-    /// Serialize the input integer into the output span. The input integer will be split into 4 bytes 
+    /// Serialize the input integer into the output span. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output span, starting at the offset.
     /// Uses optimized hardware intrinsics when available.
     /// </summary>
@@ -182,7 +182,7 @@ public static partial class BitwiseUtils
         }
     }
 
-    #endregion
+    #endregion Byte Conversion (Little Endian)
 
     #region SHA-256 Round
 
@@ -226,5 +226,5 @@ public static partial class BitwiseUtils
         a = temp1 + temp2;
     }
 
-    #endregion
+    #endregion SHA-256 Round
 }

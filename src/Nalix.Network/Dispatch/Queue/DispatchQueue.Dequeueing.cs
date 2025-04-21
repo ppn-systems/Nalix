@@ -21,7 +21,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     }
 
     /// <summary>
-    /// Retrieves and removes packets from the queue until the maximum count is reached 
+    /// Retrieves and removes packets from the queue until the maximum count is reached
     /// or the specified stopping condition returns <c>true</c>.
     /// </summary>
     /// <param name="predicate">
@@ -46,7 +46,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     }
 
     /// <summary>
-    /// Retrieves and removes packets from the queue until the maximum count is reached 
+    /// Retrieves and removes packets from the queue until the maximum count is reached
     /// or the specified stopping condition returns <c>true</c>.
     /// </summary>
     /// <param name="limit">The maximum number of packets to dequeue.</param>

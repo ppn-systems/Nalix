@@ -12,7 +12,7 @@ public enum PacketType : byte
     /// </summary>
     None = 0x00,
 
-    #endregion
+    #endregion General Types
 
     #region Primitive Types
 
@@ -51,7 +51,7 @@ public enum PacketType : byte
     /// </summary>
     List = 0x07,
 
-    #endregion
+    #endregion Primitive Types
 
     #region Structured Data Types
 
@@ -90,7 +90,7 @@ public enum PacketType : byte
     /// </summary>
     Protobuf = 0x10,
 
-    #endregion
+    #endregion Structured Data Types
 
     #region Media Types
 
@@ -134,7 +134,7 @@ public enum PacketType : byte
     /// </summary>
     Model3D = 0x1B,
 
-    #endregion
+    #endregion Media Types
 
     #region Encoded or Compressed Data Types
 
@@ -148,7 +148,7 @@ public enum PacketType : byte
     /// </summary>
     Compressed = 0x1F,
 
-    #endregion
+    #endregion Encoded or Compressed Data Types
 
     #region Miscellaneous Types
 
@@ -177,5 +177,5 @@ public enum PacketType : byte
     /// </summary>
     Object = 0x2C,
 
-    #endregion
+    #endregion Miscellaneous Types
 }

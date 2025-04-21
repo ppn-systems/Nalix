@@ -15,7 +15,7 @@ namespace Nalix.Cryptography.Mac;
 /// It's used in various cryptographic protocols including ChaCha20-Poly1305 cipher suite in TLS.
 /// </para>
 /// <para>
-/// This implementation follows RFC 8439 and provides both heap allocation optimized and 
+/// This implementation follows RFC 8439 and provides both heap allocation optimized and
 /// constant-time operations for enhanced security.
 /// </para>
 /// </remarks>
@@ -33,7 +33,7 @@ public sealed class Poly1305 : IDisposable
     /// </summary>
     public const int TagSize = 16;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -57,7 +57,7 @@ public sealed class Poly1305 : IDisposable
     /// </summary>
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -88,7 +88,7 @@ public sealed class Poly1305 : IDisposable
         }
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -213,7 +213,7 @@ public sealed class Poly1305 : IDisposable
         FinalizeTag(accumulator, destination);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -436,7 +436,7 @@ public sealed class Poly1305 : IDisposable
         }
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -466,5 +466,5 @@ public sealed class Poly1305 : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

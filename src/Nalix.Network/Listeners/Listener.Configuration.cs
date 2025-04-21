@@ -36,7 +36,7 @@ public abstract partial class Listener
             if (Config.IsWindows)
             {
                 // 1. Turning on Keep-Alive
-                // 2. 3 seconds without data, send Keep-Alive 
+                // 2. 3 seconds without data, send Keep-Alive
                 // 3. Send every 1 second if there is no response
 
                 const int on = 1;

@@ -16,18 +16,20 @@ internal static class LoggingBuilder
 
     // Use buffer sizes that are powers of 2 for optimization
     private const int SmallMessageBufferSize = 256;
+
     private const int MediumMessageBufferSize = 512;
     private const int LargeMessageBufferSize = 1024;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
     // Preallocated arrays for common separators to avoid string allocations
     private static ReadOnlySpan<char> DashWithSpaces => [' ', '-', ' '];
+
     private static int LogCounter = 0;
 
-    #endregion
+    #endregion Fields
 
     #region Public Methods
 
@@ -99,7 +101,7 @@ internal static class LoggingBuilder
         }
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Utility Methods
 
@@ -354,5 +356,5 @@ internal static class LoggingBuilder
         }
     }
 
-    #endregion
+    #endregion Utility Methods
 }

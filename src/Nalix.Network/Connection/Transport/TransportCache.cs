@@ -16,7 +16,7 @@ internal sealed class TransportCache : System.IDisposable
     private static TransportCacheConfig Config => ConfigurationStore.Instance.Get<TransportCacheConfig>();
     private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -45,7 +45,7 @@ internal sealed class TransportCache : System.IDisposable
     /// </summary>
     public readonly FifoCache<System.ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Adds a sent packet to the outgoing cache.

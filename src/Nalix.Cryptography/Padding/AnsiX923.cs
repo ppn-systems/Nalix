@@ -69,7 +69,7 @@ public static class AnsiX923
         return paddedData;
     }
 
-    #endregion
+    #endregion Pad Methods
 
     #region Unpad Methods
 
@@ -132,7 +132,7 @@ public static class AnsiX923
         return unpaddedData;
     }
 
-    #endregion
+    #endregion Unpad Methods
 
     #region Internal Methods
 
@@ -148,12 +148,12 @@ public static class AnsiX923
         bool isValid = true;
 
         // Check that all padding bytes (except the last one) are zeros
-        // Constant-time comparison to avoid timing attacks 
+        // Constant-time comparison to avoid timing attacks
         for (int i = data.Length - paddingSize; i < data.Length - 1; i++)
             isValid &= (data[i] == 0x00);
 
         return isValid;
     }
 
-    #endregion
+    #endregion Internal Methods
 }

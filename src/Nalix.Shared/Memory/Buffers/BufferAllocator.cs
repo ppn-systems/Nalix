@@ -20,7 +20,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     private const int MinimumIncrease = 4;
     private const int MaxBufferIncreaseLimit = 1024;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -40,7 +40,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     private int _trimCycleCount;
     private Timer? _trimTimer;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -54,7 +54,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// </summary>
     public int MinBufferSize => _minBufferSize;
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -86,7 +86,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
             _trimTimer = new Timer(TrimExcessBuffers, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5));
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public Methods
 
@@ -207,7 +207,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
                                                 : _bufferAllocations.Last().Allocation;
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -389,7 +389,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         }
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region IDisposable
 
@@ -411,5 +411,5 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion IDisposable
 }

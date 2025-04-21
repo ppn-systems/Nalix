@@ -21,6 +21,7 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
 
     // Pre-defined connection limits to avoid repetitive calculations
     private static readonly ConnectionLimitSettings LowSettings = new(20, 30_000, 120_000);
+
     private static readonly ConnectionLimitSettings MediumSettings = new(100, 60_000, 300_000);
     private static readonly ConnectionLimitSettings HighSettings = new(500, 120_000, 600_000);
     private static readonly ConnectionLimitSettings UnlimitedSettings = new(10_000, 300_000, 1_800_000);
@@ -33,7 +34,7 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
         { ConnectionLimitType.Unlimited, UnlimitedSettings }
     };
 
-    #endregion
+    #endregion Predefined Connection Limit Settings
 
     #region Constructors
 
@@ -54,7 +55,7 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     {
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Properties
 
@@ -89,7 +90,7 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     [ConfiguredIgnore]
     public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(InactivityThresholdMs);
 
-    #endregion
+    #endregion Properties
 
     #region Private Methods
 
@@ -100,5 +101,5 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     private static ConnectionLimitSettings GetConnectionSettings(ConnectionLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 
-    #endregion
+    #endregion Private Methods
 }

@@ -128,7 +128,6 @@ public abstract partial class Listener
         {
             try
             {
-
                 IConnection connection = await this
                     .CreateConnectionAsync(cancellationToken)
                     .ConfigureAwait(false);

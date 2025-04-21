@@ -17,7 +17,7 @@ public static class Twofish
     // Block size in bytes (128 bits)
     private const int BlockSize = 16;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -108,7 +108,7 @@ public static class Twofish
         0x16, 0x25, 0x86, 0x56, 0x55, 0x09, 0xBE, 0x91
     ];
 
-    #endregion
+    #endregion Fields
 
     #region Public Class
 
@@ -340,7 +340,7 @@ public static class Twofish
         }
     }
 
-    #endregion
+    #endregion Public Class
 
     #region Core Implementation
 
@@ -620,5 +620,5 @@ public static class Twofish
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte Q01(byte x) => Q1[x];
 
-    #endregion
+    #endregion Core Implementation
 }

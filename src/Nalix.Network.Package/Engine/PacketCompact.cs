@@ -166,5 +166,5 @@ public static class PacketCompact
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

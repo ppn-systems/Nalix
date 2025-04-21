@@ -18,7 +18,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     private readonly ObjectPool _pool;
     private readonly ObjectPoolManager _manager;
 
-    #endregion
+    #endregion Fields
 
     #region Constructor
 
@@ -33,7 +33,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
         _manager = manager;
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -124,5 +124,5 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <param name="maxCapacity">The maximum capacity.</param>
     public void SetMaxCapacity(int maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
 
-    #endregion
+    #endregion Public Methods
 }

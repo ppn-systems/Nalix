@@ -4,7 +4,7 @@ namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// Specifies the minimum authority level required to execute a command.
-/// This attribute is typically used to secure packet commands by ensuring 
+/// This attribute is typically used to secure packet commands by ensuring
 /// that only users with the required authority level can execute the command.
 /// </summary>
 

@@ -25,7 +25,7 @@ public static partial class NLogixFx
     /// </summary>
     public static readonly ILogDistributor Publisher;
 
-    #endregion
+    #endregion Properties
 
     #region Constructors
 
@@ -50,7 +50,7 @@ public static partial class NLogixFx
         Publisher.AddTarget(new ConsoleLogTarget());
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Log Methods
 
@@ -152,5 +152,5 @@ public static partial class NLogixFx
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
 
-    #endregion
+    #endregion Log Methods
 }

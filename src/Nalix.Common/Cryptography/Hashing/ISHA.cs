@@ -4,7 +4,7 @@ namespace Nalix.Common.Cryptography.Hashing;
 /// Defines a common interface for SHA-based cryptographic hash functions.
 /// </summary>
 /// <remarks>
-/// Implementations of this interface provide incremental hashing, allowing data 
+/// Implementations of this interface provide incremental hashing, allowing data
 /// to be processed in chunks rather than all at once.
 /// </remarks>
 public interface ISHA

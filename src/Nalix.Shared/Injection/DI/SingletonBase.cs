@@ -20,9 +20,10 @@ public abstract class SingletonBase<T> : IDisposable
 
     // Use volatile for thread-safety without locks
     private volatile bool _isDisposed;
+
     private int _disposeSignaled;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -42,7 +43,7 @@ public abstract class SingletonBase<T> : IDisposable
     /// </remarks>
     public static bool IsCreated => Instances.IsValueCreated;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -52,7 +53,7 @@ public abstract class SingletonBase<T> : IDisposable
     protected SingletonBase()
     { }
 
-    #endregion
+    #endregion Constructor
 
     #region IDisposable
 
@@ -96,7 +97,7 @@ public abstract class SingletonBase<T> : IDisposable
         Dispose(false);
     }
 
-    #endregion
+    #endregion IDisposable
 
     #region Private Methods
 
@@ -150,5 +151,5 @@ public abstract class SingletonBase<T> : IDisposable
         // that will be checked in Instance getter in a test environment
     }
 
-    #endregion
+    #endregion Private Methods
 }

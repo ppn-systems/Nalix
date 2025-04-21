@@ -28,7 +28,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private int _isReloading;
     private bool _directoryChecked;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -47,7 +47,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     public DateTime LastReloadTime { get; private set; } = DateTime.UtcNow;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -68,7 +68,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -206,7 +206,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Protected Methods
 
@@ -239,7 +239,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         base.Dispose(disposing);
     }
 
-    #endregion
+    #endregion Protected Methods
 
     #region Private Methods
 
@@ -268,5 +268,5 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

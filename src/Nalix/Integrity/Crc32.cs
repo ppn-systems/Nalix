@@ -123,7 +123,6 @@ public static class Crc32
         return crc;
     }
 
-
     /// <summary>
     /// Scalar implementation of CRC32 calculation.
     /// </summary>

@@ -1,8 +1,8 @@
+using Nalix.Extensions;
 using Nalix.Network.Web.Enums;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Extensions;
 
 namespace Nalix.Network.Web;
 

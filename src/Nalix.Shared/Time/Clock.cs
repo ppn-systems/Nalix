@@ -26,11 +26,13 @@ public static class Clock
 
     // BaseValue36 values for high-precision time calculation
     private static readonly DateTime UtcBase = DateTime.UtcNow;
+
     private static readonly Stopwatch UtcStopwatch = Stopwatch.StartNew();
     private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
 
     // Time synchronization variables
     private static long _timeOffset = 0; // In ticks, adjusted from external time sources
+
     private static double _driftCorrection = 1.0; // Multiplier to correct for system clock drift
     private static bool _isSynchronized = false;
     private static DateTime _lastSyncTime = DateTime.MinValue;
@@ -40,9 +42,10 @@ public static class Clock
 
     // Frequency information for high-resolution timing
     private static readonly double _tickFrequency = 1.0 / Stopwatch.Frequency;
+
     private static readonly bool _isHighResolution = Stopwatch.IsHighResolution;
 
-    #endregion
+    #endregion Constants and Fields
 
     #region Properties
 
@@ -76,7 +79,7 @@ public static class Clock
     /// </summary>
     public static double CurrentOffsetMs => TimeSpan.FromTicks(_timeOffset).TotalMilliseconds;
 
-    #endregion
+    #endregion Properties
 
     #region Basic Time Functions
 
@@ -150,7 +153,7 @@ public static class Clock
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime GetRawUtcNow() => DateTime.UtcNow;
 
-    #endregion
+    #endregion Basic Time Functions
 
     #region Conversion Methods
 
@@ -261,7 +264,7 @@ public static class Clock
         return (ulong)(utcDateTime - DateTime.UnixEpoch).TotalMilliseconds;
     }
 
-    #endregion
+    #endregion Conversion Methods
 
     #region Comparison Methods
 
@@ -311,7 +314,7 @@ public static class Clock
         return value;
     }
 
-    #endregion
+    #endregion Comparison Methods
 
     #region Time Synchronization Methods
 
@@ -387,7 +390,7 @@ public static class Clock
         return (driftedTime - systemTime).TotalMilliseconds;
     }
 
-    #endregion
+    #endregion Time Synchronization Methods
 
     #region Performance Measurement
 
@@ -447,7 +450,7 @@ public static class Clock
         return (result, GetElapsedMilliseconds());
     }
 
-    #endregion
+    #endregion Performance Measurement
 
     #region Time-based Operations
 
@@ -542,7 +545,7 @@ public static class Clock
         return elapsed.TotalMilliseconds / totalDuration.TotalMilliseconds;
     }
 
-    #endregion
+    #endregion Time-based Operations
 
     #region Time Formatting
 
@@ -660,5 +663,5 @@ public static class Clock
         return $"{Math.Floor(diff.TotalDays / 365)} years ago";
     }
 
-    #endregion
+    #endregion Time Formatting
 }

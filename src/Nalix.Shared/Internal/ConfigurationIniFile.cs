@@ -17,6 +17,7 @@ internal sealed class ConfiguredIniFile
 
     // Constants for better readability and performance
     private const char SectionStart = '[';
+
     private const char SectionEnd = ']';
     private const char KeyValueSeparator = '=';
     private const char CommentChar = ';';
@@ -24,7 +25,7 @@ internal sealed class ConfiguredIniFile
     // Standard buffer sizes
     private const int DefaultBufferSize = 4096;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -39,9 +40,10 @@ internal sealed class ConfiguredIniFile
 
     // Track if the file has been modified
     private bool _isDirty;
+
     private DateTime _lastFileReadTime;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -50,7 +52,7 @@ internal sealed class ConfiguredIniFile
     /// </summary>
     public bool ExistsFile => File.Exists(_path);
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -72,7 +74,7 @@ internal sealed class ConfiguredIniFile
         }
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public API
 
@@ -617,7 +619,7 @@ internal sealed class ConfiguredIniFile
         }
     }
 
-    #endregion
+    #endregion Public API
 
     #region Private Methods
 
@@ -817,5 +819,5 @@ internal sealed class ConfiguredIniFile
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }

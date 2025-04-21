@@ -44,7 +44,7 @@ public class ModuleGroup(string baseRoute, bool isFinalHandler) : WebModuleBase(
     }
 
     /// <inheritdoc />
-    public sealed override bool IsFinalHandler { get; } = isFinalHandler;
+    public override sealed bool IsFinalHandler { get; } = isFinalHandler;
 
     /// <inheritdoc />
     public IComponentCollection<IWebModule> Modules => _modules;

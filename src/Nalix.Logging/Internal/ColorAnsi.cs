@@ -9,6 +9,7 @@ internal static class ColorAnsi
 {
     // Basic colors
     public const string Reset = "\u001b[0m";       // Reset all styling
+
     public const string Black = "\u001b[30m";      // Black text
     public const string Red = "\u001b[31m";        // Red text
     public const string Green = "\u001b[32m";      // Green text
@@ -20,6 +21,7 @@ internal static class ColorAnsi
 
     // Extended colors
     public const string LightGray = "\u001b[38;5;246m";   // Light gray text
+
     public const string DarkGray = "\u001b[38;5;240m";    // Dark gray text
     public const string Orange = "\u001b[38;5;208m";      // Orange text
     public const string Pink = "\u001b[38;5;205m";        // Pink text

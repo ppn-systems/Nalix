@@ -42,7 +42,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     static Base32Id()
         => CharToValue = BaseN.CreateCharLookupTable(DefaultEncodings.Base32Alphabet);
 
-    #endregion
+    #endregion Fields and Static Constructor
 
     #region Properties
 
@@ -61,7 +61,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     /// </summary>
     public ushort MachineId => (ushort)(_value & 0xFFFF);
 
-    #endregion
+    #endregion Properties
 
     #region Methods
 
@@ -217,7 +217,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
         return true;
     }
 
-    #endregion
+    #endregion Static Methods
 
     #region Instance Methods
 
@@ -353,7 +353,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsEmpty() => _value == 0;
 
-    #endregion
+    #endregion Instance Methods
 
     #region Operators
 
@@ -399,7 +399,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     /// <param name="value">The uint value to convert.</param>
     public static explicit operator Base32Id(uint value) => new(value);
 
-    #endregion
+    #endregion Operators
 
-    #endregion
+    #endregion Methods
 }

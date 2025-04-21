@@ -17,7 +17,7 @@ internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> p
     private readonly int _length = length;
     private readonly ArrayPool<T> _pool = pool;
 
-    #endregion
+    #endregion Fields
 
     #region IDisposable
 
@@ -38,5 +38,5 @@ internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> p
         _pool.Return(array);
     }
 
-    #endregion
+    #endregion IDisposable
 }

@@ -27,10 +27,11 @@ public sealed class LogDistributor : ILogDistributor
 
     // Statistics for monitoring
     private long _entriesPublished;
+
     private long _targetsProcessed;
     private long _publishErrorCount;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -49,7 +50,7 @@ public sealed class LogDistributor : ILogDistributor
     /// </summary>
     public long PublishErrorCount => Interlocked.Read(ref _publishErrorCount);
 
-    #endregion
+    #endregion Properties
 
     #region Public Methods
 
@@ -235,5 +236,5 @@ public sealed class LogDistributor : ILogDistributor
            $"- Errors: {PublishErrorCount:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
 
-    #endregion
+    #endregion Public Methods
 }

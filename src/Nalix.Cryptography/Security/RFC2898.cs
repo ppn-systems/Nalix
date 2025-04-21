@@ -84,5 +84,5 @@ public static class RFC2898
         return sb.ToString();
     }
 
-    #endregion
+    #endregion Public Methods
 }

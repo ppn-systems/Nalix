@@ -12,7 +12,7 @@ public sealed class BlowfishCodec
 
     private readonly Blowfish _blowfish;
 
-    private readonly static uint[] SBox =
+    private static readonly uint[] SBox =
     [
         0x687F3584, 0x52A0E286, 0xB79C5305, 0xAA500737, 0x3E07841C, 0x7FDEAE5C, 0x8E7D44EC, 0x5716F2B8,
         0xB03ADA37, 0xF0500C0D, 0xF01C1F04, 0x0200B3FF, 0xAE0CF51A, 0x3CB574B2, 0x25837A58, 0xDC0921BD,
@@ -147,9 +147,9 @@ public sealed class BlowfishCodec
         0x63EF8CE2, 0x9A86EE22,
     ];
 
-    private readonly static byte[] Key = "Codec6666"u8.ToArray();
+    private static readonly byte[] Key = "Codec6666"u8.ToArray();
 
-    #endregion
+    #endregion Fields
 
     #region Constructors
 
@@ -177,7 +177,7 @@ public sealed class BlowfishCodec
     /// <param name="key">The encryption key.</param>
     public BlowfishCodec(uint[] box, byte[] key) => _blowfish = new Blowfish(box, key);
 
-    #endregion
+    #endregion Constructors
 
     #region Decrypt/Encrypt Methods
 
@@ -213,5 +213,5 @@ public sealed class BlowfishCodec
     public void Encrypt(byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
-    #endregion
+    #endregion Decrypt/Encrypt Methods
 }

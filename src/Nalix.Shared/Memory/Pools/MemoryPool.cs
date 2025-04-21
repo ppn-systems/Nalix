@@ -15,11 +15,12 @@ public readonly struct MemoryPool<T> : IDisposable
 
     // Private fields
     private readonly T[] _array;
+
     private readonly int _length;
     private readonly ArrayPool<T> _pool;
     private readonly object _disposeTracker;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -53,7 +54,7 @@ public readonly struct MemoryPool<T> : IDisposable
     /// </summary>
     public int Capacity => _array.Length;
 
-    #endregion
+    #endregion Properties
 
     #region Constructor
 
@@ -77,7 +78,7 @@ public readonly struct MemoryPool<T> : IDisposable
         _disposeTracker = new DisposableTracker<T>(array, length, pool);
     }
 
-    #endregion
+    #endregion Constructor
 
     #region Public Methods
 
@@ -156,7 +157,7 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <returns>A new array containing copies of the elements.</returns>
     public T[] ToArray() => ReadOnlySpan.ToArray();
 
-    #endregion
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -174,5 +175,5 @@ public readonly struct MemoryPool<T> : IDisposable
         }
     }
 
-    #endregion
+    #endregion IDisposable
 }

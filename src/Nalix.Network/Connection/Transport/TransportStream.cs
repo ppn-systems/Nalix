@@ -22,7 +22,7 @@ internal class TransportStream : IDisposable
     private byte[] _buffer;
     private bool _disposed;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -41,7 +41,7 @@ internal class TransportStream : IDisposable
     /// </summary>
     public long LastPingTime => _cache.LastPingTime;
 
-    #endregion
+    #endregion Properties
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportStream"/> class.

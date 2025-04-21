@@ -24,7 +24,7 @@ public sealed class X25519 : IX25519
     /// </summary>
     public const int FieldElementSize = 32;
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
@@ -37,7 +37,7 @@ public sealed class X25519 : IX25519
     // BaseValue36 point u = 9 (encoded as 32-byte little-endian)
     private static readonly byte[] BasePoint = CreateBasePoint();
 
-    #endregion
+    #endregion Fields
 
     #region Public Methods
 
@@ -109,7 +109,7 @@ public sealed class X25519 : IX25519
         return X25519.ScalarMult(clampedPrivateKey, peerPublicKey);
     }
 
-    #endregion
+    #endregion Public Methods
 
     #region Private Methods
 
@@ -286,5 +286,5 @@ public sealed class X25519 : IX25519
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }
