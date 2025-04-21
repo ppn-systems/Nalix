@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Logging;
 
 /// <summary>
@@ -10,12 +8,12 @@ namespace Nalix.Common.Logging;
 /// <param name="message">The content of the log message.</param>
 /// <param name="exception">The accompanying exception (if any).</param>
 public readonly struct LogEntry(
-    LogLevel level, EventId eventId, string message, Exception exception = null)
+    LogLevel level, EventId eventId, string message, System.Exception exception = null)
 {
     /// <summary>
     /// The timestamp of the log entry.
     /// </summary>
-    public readonly DateTime TimeStamp = DateTime.UtcNow;
+    public readonly System.DateTime TimeStamp = System.DateTime.UtcNow;
 
     /// <summary>
     /// The content of the log message.
@@ -35,5 +33,5 @@ public readonly struct LogEntry(
     /// <summary>
     /// The accompanying exception, if any.
     /// </summary>
-    public readonly Exception Exception = exception;
+    public readonly System.Exception Exception = exception;
 }

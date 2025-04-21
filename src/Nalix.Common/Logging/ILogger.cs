@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Logging;
 
 /// <summary>
@@ -134,7 +132,7 @@ public interface ILogger
     /// Logs an exception as an error.
     /// </summary>
     /// <param name="exception">The exception to log.</param>
-    void Error(Exception exception);
+    void Error(System.Exception exception);
 
     /// <summary>
     /// Logs an error message with format and arguments.
@@ -148,14 +146,14 @@ public interface ILogger
     /// </summary>
     /// <param name="exception">The exception to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Error(Exception exception, EventId? eventId = null);
+    void Error(System.Exception exception, EventId? eventId = null);
 
     /// <summary>
     /// Logs an error with custom message and exception details.
     /// </summary>
     /// <param name="message">The error message to log.</param>
     /// <param name="exception">The associated exception.</param>
-    void Error(string message, Exception exception);
+    void Error(string message, System.Exception exception);
 
     /// <summary>
     /// Logs an error with message, exception, and optional event identifier.
@@ -163,7 +161,7 @@ public interface ILogger
     /// <param name="message">The error message to log.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Error(string message, Exception exception, EventId? eventId = null);
+    void Error(string message, System.Exception exception, EventId? eventId = null);
 
     /// <summary>
     /// Logs a critical error that may cause application failure.
@@ -183,7 +181,7 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
     /// <param name="exception">The associated exception.</param>
-    void Fatal(string message, Exception exception);
+    void Fatal(string message, System.Exception exception);
 
     /// <summary>
     /// Logs a critical error with optional event identifier.
@@ -198,5 +196,5 @@ public interface ILogger
     /// <param name="message">The critical error message to log.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Fatal(string message, Exception exception, EventId? eventId = null);
+    void Fatal(string message, System.Exception exception, EventId? eventId = null);
 }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Nalix.Common.Repositories;
 
 /// <summary>
@@ -18,7 +16,7 @@ public interface IRepositoryBase<T> where T : class
     /// Updates multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to update.</param>
-    void UpdateRange(IEnumerable<T> entities);
+    void UpdateRange(System.Collections.Generic.IEnumerable<T> entities);
 
     /// <summary>
     /// Deletes an entity asynchronously.
@@ -30,7 +28,7 @@ public interface IRepositoryBase<T> where T : class
     /// Deletes multiple entities asynchronously.
     /// </summary>
     /// <param name="entities">The list of entities to delete.</param>
-    void DeleteRange(IEnumerable<T> entities);
+    void DeleteRange(System.Collections.Generic.IEnumerable<T> entities);
 
     /// <summary>
     /// Detaches the specified entity from the database context, stopping it from being tracked.

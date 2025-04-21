@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Cryptography.Hashing;
 
 /// <summary>
@@ -28,7 +26,7 @@ public interface ISHA
     /// <remarks>
     /// This is a convenience method that initializes, updates, and finalizes the hash in one call.
     /// </remarks>
-    byte[] ComputeHash(ReadOnlySpan<byte> data);
+    byte[] ComputeHash(System.ReadOnlySpan<byte> data);
 
     /// <summary>
     /// Processes more data into the hash computation.
@@ -37,7 +35,7 @@ public interface ISHA
     /// <remarks>
     /// This method can be called multiple times with different chunks of data.
     /// </remarks>
-    void Update(ReadOnlySpan<byte> data);
+    void Update(System.ReadOnlySpan<byte> data);
 
     /// <summary>
     /// Finalizes the hash computation and returns the result.

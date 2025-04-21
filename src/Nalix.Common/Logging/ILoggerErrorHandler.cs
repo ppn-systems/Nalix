@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Logging;
 
 /// <summary>
@@ -12,5 +10,5 @@ public interface ILoggerErrorHandler
     /// </summary>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry that was being processed.</param>
-    void HandleError(Exception exception, LogEntry entry);
+    void HandleError(System.Exception exception, LogEntry entry);
 }

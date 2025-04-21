@@ -133,7 +133,7 @@ public sealed partial class Connection : IConnection
     public CompressionType Compression { get; set; } = CompressionType.Brotli;
 
     /// <inheritdoc />
-    public AuthenticationState State { get; set; } = AuthenticationState.Connected;
+    public AuthState State { get; set; } = AuthState.Connected;
 
     #endregion
 
@@ -176,7 +176,7 @@ public sealed partial class Connection : IConnection
 
             if (_disposed) return;
 
-            this.State = AuthenticationState.Disconnected;
+            this.State = AuthState.Disconnected;
 
             _ctokens.Cancel();
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));

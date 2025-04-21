@@ -3,7 +3,7 @@ namespace Nalix.Common.Security;
 /// <summary>
 /// Represents the state of a connection.
 /// </summary>
-public enum AuthenticationState : byte
+public enum AuthState : byte
 {
     /// <summary>
     /// No connection state has been established.

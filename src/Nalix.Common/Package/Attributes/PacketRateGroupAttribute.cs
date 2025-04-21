@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
@@ -20,8 +18,8 @@ namespace Nalix.Common.Package.Attributes;
 /// Initializes a new instance of the <see cref="PacketRateGroupAttribute"/> class with a group name.
 /// </remarks>
 /// <param name="groupName">The shared group name to associate with the rate limiter.</param>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-public sealed class PacketRateGroupAttribute(string groupName) : Attribute
+[System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Class, AllowMultiple = false)]
+public sealed class PacketRateGroupAttribute(string groupName) : System.Attribute
 {
     /// <summary>
     /// Gets the name of the rate limit group.

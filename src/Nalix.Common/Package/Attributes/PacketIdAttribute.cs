@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
@@ -12,8 +10,8 @@ namespace Nalix.Common.Package.Attributes;
 /// Initializes a new instance of the <see cref="PacketIdAttribute"/> method.
 /// </remarks>
 /// <param name="id">The unique identifier for the packet associated with the method.</param>
-[AttributeUsage(AttributeTargets.Method)]
-public class PacketIdAttribute(ushort id) : Attribute
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public class PacketIdAttribute(ushort id) : System.Attribute
 {
     /// <summary>
     /// Gets the packet identifier associated with the method.

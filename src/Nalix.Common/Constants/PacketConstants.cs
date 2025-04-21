@@ -1,5 +1,3 @@
-using System.Buffers;
-
 namespace Nalix.Common.Constants;
 
 /// <summary>
@@ -21,5 +19,5 @@ public static class PacketConstants
     /// <summary>
     /// Shared byte array pool for efficient memory usage.
     /// </summary>
-    public static readonly ArrayPool<byte> SharedBytePool = ArrayPool<byte>.Shared;
+    public static readonly System.Buffers.ArrayPool<byte> SharedBytePool = System.Buffers.ArrayPool<byte>.Shared;
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
@@ -13,8 +11,8 @@ namespace Nalix.Common.Package.Attributes;
 /// Initializes a new instance of the <see cref="PacketEncryptionAttribute"/> class.
 /// </remarks>
 /// <param name="isEncrypted">Indicates if the method should be encrypted (default is true).</param>
-[AttributeUsage(AttributeTargets.Method)]
-public class PacketEncryptionAttribute(bool isEncrypted = true) : Attribute
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public class PacketEncryptionAttribute(bool isEncrypted = true) : System.Attribute
 {
     /// <summary>
     /// Gets the encryption status of the method.

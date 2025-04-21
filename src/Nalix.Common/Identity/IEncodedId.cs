@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Identity;
 
 /// <summary>
@@ -47,5 +45,5 @@ public interface IEncodedId
     /// <param name="destination">The destination span.</param>
     /// <param name="bytesWritten">The Number of bytes written.</param>
     /// <returns>True if successful; false if the destination is too small.</returns>
-    bool TryWriteBytes(Span<byte> destination, out int bytesWritten);
+    bool TryWriteBytes(System.Span<byte> destination, out int bytesWritten);
 }

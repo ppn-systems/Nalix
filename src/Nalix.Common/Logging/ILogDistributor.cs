@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Logging;
 
 /// <summary>
@@ -9,7 +7,7 @@ namespace Nalix.Common.Logging;
 /// A logging publisher is responsible for managing the collection of log targets (e.g., file, console).
 /// It provides functionality to add, remove, and publish log entries to different targets.
 /// </remarks>
-public interface ILogDistributor : IDisposable
+public interface ILogDistributor : System.IDisposable
 {
     /// <summary>
     /// Adds a log handler (target) to the publisher, which will be used for publishing log entries.

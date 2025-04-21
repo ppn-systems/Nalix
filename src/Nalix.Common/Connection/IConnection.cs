@@ -55,7 +55,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the current state of the connection.
     /// </summary>
-    AuthenticationState State { get; set; }
+    AuthState State { get; set; }
 
     /// <summary>
     /// Gets or sets the encryption mode used.

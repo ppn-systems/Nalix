@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
@@ -21,8 +19,8 @@ namespace Nalix.Common.Package.Attributes;
 /// }
 /// </code>
 /// </example>
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class PacketRateLimitAttribute : Attribute
+[System.AttributeUsage(System.AttributeTargets.Method)]
+public sealed class PacketRateLimitAttribute : System.Attribute
 {
     /// <summary>
     /// Gets or sets the maximum number of allowed requests during the time window.
@@ -52,8 +50,5 @@ public sealed class PacketRateLimitAttribute : Attribute
     /// with a specific maximum request count.
     /// </summary>
     /// <param name="maxRequests">The maximum number of allowed requests per time window.</param>
-    public PacketRateLimitAttribute(int maxRequests)
-    {
-        MaxRequests = maxRequests;
-    }
+    public PacketRateLimitAttribute(int maxRequests) => MaxRequests = maxRequests;
 }

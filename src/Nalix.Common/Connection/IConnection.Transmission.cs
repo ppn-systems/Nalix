@@ -1,7 +1,4 @@
 using Nalix.Common.Package;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Common.Connection;
 
@@ -16,7 +13,7 @@ public partial interface IConnection
     /// <remarks>
     /// Call this method to initiate listening for incoming data on the connection.
     /// </remarks>
-    void BeginReceive(CancellationToken cancellationToken = default);
+    void BeginReceive(System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a packet synchronously over the connection.
@@ -29,7 +26,7 @@ public partial interface IConnection
     /// Sends a message synchronously over the connection.
     /// </summary>
     /// <param name="message">The message to send.</param>
-    bool Send(ReadOnlySpan<byte> message);
+    bool Send(System.ReadOnlySpan<byte> message);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
@@ -40,7 +37,9 @@ public partial interface IConnection
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task<bool> SendAsync(
+        IPacket packet,
+        System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a message asynchronously over the connection.
@@ -51,5 +50,7 @@ public partial interface IConnection
     /// <remarks>
     /// If the connection has been authenticated, the data will be encrypted before sending.
     /// </remarks>
-    Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task<bool> SendAsync(
+        System.ReadOnlyMemory<byte> message,
+        System.Threading.CancellationToken cancellationToken = default);
 }

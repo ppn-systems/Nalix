@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Common.Cryptography.Asymmetric;
 
 /// <summary>
@@ -19,5 +17,5 @@ public interface IX25519
     /// <param name="privateKey">Your 32-byte private key.</param>
     /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
     /// <returns>The shared secret as a 32-byte array.</returns>
-    byte[] Compute(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey);
+    byte[] Compute(System.ReadOnlySpan<byte> privateKey, System.ReadOnlySpan<byte> peerPublicKey);
 }

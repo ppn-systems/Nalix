@@ -1,6 +1,3 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
-
 namespace Nalix.Common.Logging;
 
 /// <summary>
@@ -11,7 +8,7 @@ namespace Nalix.Common.Logging;
 /// </remarks>
 /// <param name="id">The numeric identifier for this event.</param>
 /// <param name="name">The name of this event.</param>
-public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
+public readonly struct EventId(int id, string name = null) : System.IEquatable<EventId>
 {
     /// <summary>
     /// Represents an empty or uninitialized <see cref="EventId"/> with an Number of 0.
@@ -62,7 +59,8 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     public bool Equals(EventId other) => Id == other.Id;
 
     /// <inheritdoc />
-    public override bool Equals([NotNullWhen(true)] object obj)
+    public override bool Equals(
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] object obj)
     {
         if (obj is null)
         {
