@@ -12,7 +12,7 @@ namespace Notio.Logging.Engine;
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
 /// </summary>
-public sealed class LoggingPublisher : ILoggerPublisher
+public sealed class LogDistributor : ILogDistributor
 {
     #region Fields
 
@@ -66,7 +66,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
             throw new ArgumentNullException(nameof(entry));
 
         // Quick check for disposed state
-        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         // Increment the published entries counter
         Interlocked.Increment(ref _entriesPublished);
@@ -119,7 +119,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
             throw new ArgumentNullException(nameof(entry));
 
         // Quick check for disposed state
-        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         // For simplicity and performance, use Task.Run only when there are multiple targets
         // Otherwise just do it synchronously to avoid task allocation overhead
@@ -136,13 +136,13 @@ public sealed class LoggingPublisher : ILoggerPublisher
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="target">The logging target to add.</param>
-    /// <returns>The current instance of <see cref="ILoggerPublisher"/>, allowing method chaining.</returns>
+    /// <returns>The current instance of <see cref="ILogDistributor"/>, allowing method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public ILoggerPublisher AddTarget(ILoggerTarget target)
+    public ILogDistributor AddTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         _targets.TryAdd(target, DummyValue);
         return this;
@@ -158,7 +158,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
     public bool RemoveTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
-        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LoggingPublisher));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         return _targets.TryRemove(target, out _);
     }
@@ -218,7 +218,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
         catch (Exception ex)
         {
             // Log final disposal errors to debug output
-            Debug.WriteLine($"Error during LoggingPublisher disposal: {ex.Message}");
+            Debug.WriteLine($"Error during LogDistributor disposal: {ex.Message}");
         }
     }
 
@@ -227,7 +227,7 @@ public sealed class LoggingPublisher : ILoggerPublisher
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
     public override string ToString()
-        => $"[LoggingPublisher Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
+        => $"[LogDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
            $"- User: {Environment.UserName}" + Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + Environment.NewLine +
            $"- Entries Published: {EntriesPublished:N0}" + Environment.NewLine +

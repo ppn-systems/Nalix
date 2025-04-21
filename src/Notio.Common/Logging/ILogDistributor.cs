@@ -9,14 +9,14 @@ namespace Notio.Common.Logging;
 /// A logging publisher is responsible for managing the collection of log targets (e.g., file, console).
 /// It provides functionality to add, remove, and publish log entries to different targets.
 /// </remarks>
-public interface ILoggerPublisher : IDisposable
+public interface ILogDistributor : IDisposable
 {
     /// <summary>
     /// Adds a log handler (target) to the publisher, which will be used for publishing log entries.
     /// </summary>
     /// <param name="loggerHandler">The log target to be added.</param>
-    /// <returns>The current <see cref="ILoggerPublisher"/> instance, allowing for method chaining.</returns>
-    ILoggerPublisher AddTarget(ILoggerTarget loggerHandler);
+    /// <returns>The current <see cref="ILogDistributor"/> instance, allowing for method chaining.</returns>
+    ILogDistributor AddTarget(ILoggerTarget loggerHandler);
 
     /// <summary>
     /// Removes a log handler (target) from the publisher.

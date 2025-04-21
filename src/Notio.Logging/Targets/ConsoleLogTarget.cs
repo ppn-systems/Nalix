@@ -6,14 +6,14 @@ using System;
 namespace Notio.Logging.Targets;
 
 /// <summary>
-/// The ConsoleLoggingTarget class provides the ability to output log messages to the console,
+/// The ConsoleLogTarget class provides the ability to output log messages to the console,
 /// with colors corresponding to the log severity levels.
 /// </summary>
-public sealed class ConsoleLoggingTarget : ILoggerTarget
+public sealed class ConsoleLogTarget : ILoggerTarget
 {
     #region Fields
 
-    private readonly ConsoleLoggingOptions? _options;
+    private readonly ConsoleLogOptions? _options;
     private readonly ILoggerFormatter _loggerFormatter;
 
     #endregion
@@ -21,10 +21,10 @@ public sealed class ConsoleLoggingTarget : ILoggerTarget
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class with a default log formatter.
+    /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class with a default log formatter.
     /// </summary>
     /// <param name="loggerFormatter">The object responsible for formatting the log message.</param>
-    public ConsoleLoggingTarget(ILoggerFormatter loggerFormatter)
+    public ConsoleLogTarget(ILoggerFormatter loggerFormatter)
     {
         ArgumentNullException.ThrowIfNull(loggerFormatter);
 
@@ -32,17 +32,17 @@ public sealed class ConsoleLoggingTarget : ILoggerTarget
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class with a default log formatter.
+    /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class with a default log formatter.
     /// </summary>
-    public ConsoleLoggingTarget() : this(new LoggingFormatter(true))
+    public ConsoleLogTarget() : this(new LoggingFormatter(true))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleLoggingTarget"/> class.
+    /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class.
     /// </summary>
     /// <param name="options">The console logging options.</param>
-    public ConsoleLoggingTarget(ConsoleLoggingOptions options)
+    public ConsoleLogTarget(ConsoleLogOptions options)
         : this(new LoggingFormatter(options.EnableColors))
     {
         _options = options;

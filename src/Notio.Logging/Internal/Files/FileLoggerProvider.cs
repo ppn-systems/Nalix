@@ -32,7 +32,7 @@ internal sealed class FileLoggerProvider : IDisposable
     /// <summary>
     /// Gets the configuration options used by this logger provider.
     /// </summary>
-    public FileLoggerOptions Options { get; }
+    public FileLogOptions Options { get; }
 
     /// <summary>
     /// Gets a value indicating whether the log file will be appended to (true) or overwritten (false).
@@ -81,7 +81,7 @@ internal sealed class FileLoggerProvider : IDisposable
     /// Initializes a new instance of <see cref="FileLoggerProvider"/> with the specified configuration options.
     /// </summary>
     /// <param name="options">The configuration options.</param>
-    public FileLoggerProvider(FileLoggerOptions options)
+    public FileLoggerProvider(FileLogOptions options)
     {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _maxQueueSize = options.MaxQueueSize;

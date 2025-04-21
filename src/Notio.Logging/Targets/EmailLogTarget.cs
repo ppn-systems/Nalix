@@ -15,12 +15,12 @@ namespace Notio.Logging.Targets;
 /// This target sends logs to a specified email address using an SMTP server.
 /// It only logs messages that meet the minimum logging level.
 /// </remarks>
-public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
+public sealed class EmailLogTarget : ILoggerTarget, IDisposable
 {
     #region Fields
 
     private readonly SmtpClient _smtpClient;
-    private readonly EmailLoggingOptions _options;
+    private readonly EmailLogOptions _options;
 
     private bool _disposed;
 
@@ -29,11 +29,11 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EmailLoggingTarget"/> class using the provided configuration options.
+    /// Initializes a new instance of the <see cref="EmailLogTarget"/> class using the provided configuration options.
     /// </summary>
     /// <param name="configure">The configuration options for email logging.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="configure"/> is null.</exception>
-    public EmailLoggingTarget(EmailLoggingOptions configure)
+    public EmailLogTarget(EmailLogOptions configure)
     {
         _options = configure ?? throw new ArgumentNullException(nameof(configure));
 
@@ -46,7 +46,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EmailLoggingTarget"/> class.
+    /// Initializes a new instance of the <see cref="EmailLogTarget"/> class.
     /// </summary>
     /// <param name="smtpServer">SMTP server address.</param>
     /// <param name="port">SMTP server port.</param>
@@ -58,7 +58,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     /// <param name="timeout">Timeout in milliseconds for SMTP operations.</param>
     /// <exception cref="ArgumentNullException">Thrown if any required parameter is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if port is out of the valid range (1-65535).</exception>
-    public EmailLoggingTarget(
+    public EmailLogTarget(
         string smtpServer,
         int port,
         string from,
@@ -67,7 +67,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
         LogLevel minimumLevel = LogLevel.Error,
         bool enableSsl = true,
         int timeout = 30000)
-        : this(new EmailLoggingOptions
+        : this(new EmailLogOptions
         {
             SmtpServer = smtpServer,
             Port = port,
@@ -94,7 +94,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     /// <exception cref="InternalErrorException">Thrown if email sending fails.</exception>
     public async Task PublishAsync(LogEntry entry)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLoggingTarget));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLogTarget));
 
         if (entry.LogLevel < _options.MinimumLevel)
             return;
@@ -123,7 +123,7 @@ public sealed class EmailLoggingTarget : ILoggerTarget, IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Disposes of resources used by the <see cref="EmailLoggingTarget"/>.
+    /// Disposes of resources used by the <see cref="EmailLogTarget"/>.
     /// </summary>
     public void Dispose()
     {

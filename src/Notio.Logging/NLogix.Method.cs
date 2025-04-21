@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Logging;
 
-public sealed partial class CLogging
+public sealed partial class NLogix
 {
     #region Meta Methods
 

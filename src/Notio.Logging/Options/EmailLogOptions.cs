@@ -6,7 +6,7 @@ namespace Notio.Logging.Options;
 /// <summary>
 /// Represents the configuration options for logging via email.
 /// </summary>
-public sealed class EmailLoggingOptions
+public sealed class EmailLogOptions
 {
     #region Fields
 

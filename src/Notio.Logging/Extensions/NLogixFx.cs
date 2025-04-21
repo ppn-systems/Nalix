@@ -11,7 +11,7 @@ namespace Notio.Logging.Extensions;
 /// <summary>
 /// Provides a centralized logging interface for the Notio framework.
 /// </summary>
-public static partial class DLogging
+public static partial class NLogixFx
 {
     #region Properties
 
@@ -23,22 +23,22 @@ public static partial class DLogging
     /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.
     /// </summary>
-    public static readonly ILoggerPublisher Publisher;
+    public static readonly ILogDistributor Publisher;
 
     #endregion
 
     #region Constructors
 
     /// <summary>
-    /// Initializes static members of the <see cref="DLogging"/> class.
+    /// Initializes static members of the <see cref="NLogixFx"/> class.
     /// Configures the logging system with default targets and settings.
     /// </summary>
-    static DLogging()
+    static NLogixFx()
     {
         MinimumLevel = LogLevel.Trace;
-        Publisher = new LoggingPublisher();
+        Publisher = new LogDistributor();
 
-        FileLoggerOptions fileLoggerOpts = new()
+        FileLogOptions fileLoggerOpts = new()
         {
             FormatLogFileName = (fname) =>
             {
@@ -47,7 +47,7 @@ public static partial class DLogging
             }
         };
 
-        Publisher.AddTarget(new ConsoleLoggingTarget());
+        Publisher.AddTarget(new ConsoleLogTarget());
     }
 
     #endregion

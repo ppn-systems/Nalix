@@ -2,7 +2,7 @@ using Notio.Common.Logging;
 
 namespace Notio.Logging;
 
-public sealed partial class CLogging
+public sealed partial class NLogix
 {
     // Sanitize log message to prevent log forging
     // Removes potentially dangerous characters (e.g., newlines or control characters)

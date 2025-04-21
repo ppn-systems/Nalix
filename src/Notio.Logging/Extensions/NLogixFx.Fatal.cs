@@ -4,18 +4,18 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Logging.Extensions;
 
-public static partial class DLogging
+public static partial class NLogixFx
 {
     /// <summary>
-    /// Logs a debug message to the console.
+    /// Logs a warning message to the console.
     /// </summary>
-    /// <param name="message">The message.</param>
+    /// <param name="message">The text.</param>
     /// <param name="source">The source.</param>
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
-    public static void Debug(
+    public static void Fatal(
         this string message,
         string? source = null,
         object? extendedData = null,
@@ -23,11 +23,13 @@ public static partial class DLogging
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        CreateLogEntry(LogLevel.Debug, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        CreateLogEntry(
+            LogLevel.Critical, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
-    /// Logs a debug message to the console.
+    /// Logs a warning message to the console.
     /// </summary>
     /// <param name="message">The message.</param>
     /// <param name="source">The source.</param>
@@ -35,7 +37,7 @@ public static partial class DLogging
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
-    public static void Debug(
+    public static void Fatal(
         this string message,
         Type source,
         object? extendedData = null,
@@ -44,20 +46,20 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LogLevel.Debug, message, source?.FullName, extendedData,
+            LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 
     /// <summary>
-    /// Logs a debug message to the console.
+    /// Logs a warning message to the console.
     /// </summary>
-    /// <param name="extendedData">The exception.</param>
+    /// <param name="extendedData">The extended data.</param>
     /// <param name="source">The source.</param>
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
-    public static void Debug(
+    public static void Fatal(
         this Exception extendedData,
         string source,
         string message,
@@ -66,7 +68,7 @@ public static partial class DLogging
         [CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
-            LogLevel.Debug, message, source, extendedData,
+            LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
 }

@@ -1,9 +1,9 @@
 namespace Notio.Logging.Options;
 
 /// <summary>
-/// Provides configuration options for ConsoleLoggingTarget.
+/// Provides configuration options for ConsoleLogTarget.
 /// </summary>
-public sealed class ConsoleLoggingOptions
+public sealed class ConsoleLogOptions
 {
     /// <summary>
     /// Determines whether log messages should use color.

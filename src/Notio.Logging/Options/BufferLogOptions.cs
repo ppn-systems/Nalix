@@ -3,12 +3,12 @@ namespace Notio.Logging.Options;
 /// <summary>
 /// Defines the options for buffered logging.
 /// </summary>
-public class BufferedLoggingOptions
+public class BufferLogOptions
 {
     /// <summary>
     /// Gets or sets the options for the file logger.
     /// </summary>
-    public FileLoggerOptions FileLoggerOptions { get; set; } = new FileLoggerOptions();
+    public FileLogOptions FileLoggerOptions { get; set; } = new FileLogOptions();
 
     /// <summary>
     /// Gets or sets the maximum number of log entries to store in the buffer before flushing.

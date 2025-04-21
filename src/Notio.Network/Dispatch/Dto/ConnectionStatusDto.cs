@@ -1,7 +1,7 @@
 using Notio.Common.Compression;
 using Notio.Common.Cryptography;
 
-namespace Notio.Network.Dispatch.Core.Dto;
+namespace Notio.Network.Dispatch.Dto;
 
 /// <summary>
 /// Represents the status of a network connection, including compression and encryption details.
@@ -11,10 +11,10 @@ public class ConnectionStatusDto
     /// <summary>
     /// Gets the encryption mode used for the connection.
     /// </summary>
-    public EncryptionType EncMode { get; init; }
+    public EncryptionType Encryption { get; init; }
 
     /// <summary>
     /// Gets the compression mode used for the connection.
     /// </summary>
-    public CompressionType ComMode { get; init; }
+    public CompressionType Compression { get; init; }
 }

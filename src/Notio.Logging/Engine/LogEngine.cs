@@ -10,13 +10,13 @@ namespace Notio.Logging.Engine;
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
-public abstract class LoggingEngine : IDisposable
+public abstract class LogEngine : IDisposable
 {
     #region Fields
 
     private readonly LogLevel _minLevel;
-    private readonly LoggingPublisher _publisher;
-    private readonly LoggingOptions _loggingOptions;
+    private readonly LogOptions _logOptions;
+    private readonly LogDistributor _distributor;
 
     private int _isDisposed;
 
@@ -25,35 +25,35 @@ public abstract class LoggingEngine : IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LoggingEngine"/> class.
+    /// Initializes a new instance of the <see cref="LogEngine"/> class.
     /// </summary>
     /// <param name="configureOptions">
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected LoggingEngine(Action<LoggingOptions>? configureOptions = null)
+    protected LogEngine(Action<LogOptions>? configureOptions = null)
     {
-        _publisher = new LoggingPublisher();
-        _loggingOptions = new LoggingOptions(_publisher);
+        _distributor = new LogDistributor();
+        _logOptions = new LogOptions(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)
         {
-            configureOptions.Invoke(_loggingOptions);
+            configureOptions.Invoke(_logOptions);
         }
         else
         {
             // Apply default configuration
-            _loggingOptions.ConfigureDefaults(cfg =>
+            _logOptions.ConfigureDefaults(cfg =>
             {
-                cfg.AddTarget(new ConsoleLoggingTarget());
-                cfg.AddTarget(new FileLoggingTarget(_loggingOptions.FileOptions));
+                cfg.AddTarget(new ConsoleLogTarget());
+                cfg.AddTarget(new FileLogTarget(_logOptions.FileOptions));
                 return cfg;
             });
         }
 
         // Cache min level for faster checks
-        _minLevel = _loggingOptions.MinLevel;
+        _minLevel = _logOptions.MinLevel;
     }
 
     #endregion
@@ -67,8 +67,8 @@ public abstract class LoggingEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected void Configure(Action<LoggingOptions> configureOptions)
-        => configureOptions?.Invoke(_loggingOptions);
+    protected void Configure(Action<LogOptions> configureOptions)
+        => configureOptions?.Invoke(_logOptions);
 
     /// <summary>
     /// Checks if the log level meets the minimum required level for logging.
@@ -92,7 +92,7 @@ public abstract class LoggingEngine : IDisposable
             return;
 
         // Create and publish the log entry
-        _publisher.Publish(new LogEntry(level, eventId, message, error));
+        _distributor.Publish(new LogEntry(level, eventId, message, error));
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ public abstract class LoggingEngine : IDisposable
 
         if (disposing)
         {
-            _loggingOptions.Dispose();
+            _logOptions.Dispose();
         }
     }
 

@@ -2,7 +2,7 @@ using Notio.Common.Logging;
 
 namespace Notio.Logging.Extensions;
 
-public static partial class DLogging
+public static partial class NLogixFx
 {
     internal static void CreateLogEntry(
         LogLevel level,

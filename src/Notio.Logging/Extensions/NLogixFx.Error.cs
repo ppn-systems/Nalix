@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Logging.Extensions;
 
-public static partial class DLogging
+public static partial class NLogixFx
 {
     /// <summary>
     /// Logs an error message to the console's standard error.

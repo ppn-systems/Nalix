@@ -10,11 +10,11 @@ namespace Notio.Logging.Targets;
 /// A logging target that buffers log messages and periodically writes them to a file.
 /// This approach improves performance by reducing I/O operations when logging frequently.
 /// </summary>
-public sealed class BufferedLoggingTarget : ILoggerTarget, IDisposable
+public sealed class BufferLogTarget : ILoggerTarget, IDisposable
 {
     #region Fields
 
-    private readonly FileLoggingTarget _fileLoggingTarget;
+    private readonly FileLogTarget _fileLoggingTarget;
     private readonly ConcurrentQueue<LogEntry> _queue = new();
     private readonly Timer _flushTimer;
     private readonly int _maxBufferSize;
@@ -28,14 +28,14 @@ public sealed class BufferedLoggingTarget : ILoggerTarget, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BufferedLoggingTarget"/> class with custom file logging target.
+    /// Initializes a new instance of the <see cref="BufferLogTarget"/> class with custom file logging target.
     /// </summary>
-    /// <param name="fileLoggingTarget">An externally created <see cref="FileLoggingTarget"/> to use for writing logs.</param>
+    /// <param name="fileLoggingTarget">An externally created <see cref="FileLogTarget"/> to use for writing logs.</param>
     /// <param name="flushInterval">The time interval between automatic buffer flushes.</param>
     /// <param name="maxBufferSize">The maximum number of log entries before triggering a flush.</param>
     /// <param name="autoFlush">Determines whether to automatically flush when the buffer is full.</param>
-    public BufferedLoggingTarget(
-        FileLoggingTarget fileLoggingTarget, TimeSpan flushInterval,
+    public BufferLogTarget(
+        FileLogTarget fileLoggingTarget, TimeSpan flushInterval,
         int maxBufferSize = 100, bool autoFlush = true)
     {
         ArgumentNullException.ThrowIfNull(fileLoggingTarget);
@@ -50,20 +50,20 @@ public sealed class BufferedLoggingTarget : ILoggerTarget, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BufferedLoggingTarget"/> class using a configured <see cref="BufferedLoggingOptions"/>.
+    /// Initializes a new instance of the <see cref="BufferLogTarget"/> class using a configured <see cref="BufferLogOptions"/>.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BufferedLoggingOptions"/>.</param>
-    public BufferedLoggingTarget(BufferedLoggingOptions options)
-        : this(new FileLoggingTarget(options.FileLoggerOptions),
+    /// <param name="options">The configuration options for the <see cref="BufferLogOptions"/>.</param>
+    public BufferLogTarget(BufferLogOptions options)
+        : this(new FileLogTarget(options.FileLoggerOptions),
                options.FlushInterval, options.MaxBufferSize, true)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BufferedLoggingTarget"/> class using a configured <see cref="BufferedLoggingOptions"/>.
+    /// Initializes a new instance of the <see cref="BufferLogTarget"/> class using a configured <see cref="BufferLogOptions"/>.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BufferedLoggingOptions"/>.</param>
-    public BufferedLoggingTarget(Action<BufferedLoggingOptions> options)
+    /// <param name="options">The configuration options for the <see cref="BufferLogOptions"/>.</param>
+    public BufferLogTarget(Action<BufferLogOptions> options)
         : this(ConfigureOptions(options))
     {
     }
@@ -108,13 +108,13 @@ public sealed class BufferedLoggingTarget : ILoggerTarget, IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Configures the <see cref="BufferedLoggingOptions"/> by invoking the provided action.
+    /// Configures the <see cref="BufferLogOptions"/> by invoking the provided action.
     /// </summary>
     /// <param name="configureOptions">The action used to configure the options.</param>
-    /// <returns>The configured <see cref="BufferedLoggingOptions"/>.</returns>
-    private static BufferedLoggingOptions ConfigureOptions(Action<BufferedLoggingOptions> configureOptions)
+    /// <returns>The configured <see cref="BufferLogOptions"/>.</returns>
+    private static BufferLogOptions ConfigureOptions(Action<BufferLogOptions> configureOptions)
     {
-        BufferedLoggingOptions options = new();
+        BufferLogOptions options = new();
         configureOptions(options);
         return options;
     }
@@ -124,7 +124,7 @@ public sealed class BufferedLoggingTarget : ILoggerTarget, IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Releases resources used by the <see cref="BufferedLoggingTarget"/> instance.
+    /// Releases resources used by the <see cref="BufferLogTarget"/> instance.
     /// Flushes any remaining logs in the buffer before shutting down.
     /// </summary>
     public void Dispose()

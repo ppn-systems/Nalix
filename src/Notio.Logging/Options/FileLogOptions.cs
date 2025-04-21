@@ -7,7 +7,7 @@ namespace Notio.Logging.Options;
 /// <summary>
 /// Configuration options for the file logger.
 /// </summary>
-public sealed class FileLoggerOptions
+public sealed class FileLogOptions
 {
     #region Constants
 

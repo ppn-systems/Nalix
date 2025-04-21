@@ -4,7 +4,6 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Dispatch.Core.Dto;
 using Notio.Network.Dispatch.Core.Packets;
 using Notio.Network.Dispatch.Dto;
 
@@ -43,8 +42,8 @@ public sealed class SessionController
     {
         ConnectionStatusDto status = new()
         {
-            ComMode = connection.Compression,
-            EncMode = connection.Encryption
+            Compression = connection.Compression,
+            Encryption = connection.Encryption
         };
 
         return PacketBuilder.Json(PacketCode.Success, status, NotioJsonContext.Default.ConnectionStatusDto);

@@ -1,4 +1,3 @@
-using Notio.Network.Dispatch.Core.Dto;
 using System.Text.Json.Serialization;
 
 namespace Notio.Network.Dispatch.Dto;

@@ -14,7 +14,7 @@ namespace Notio.Logging.Targets;
 /// The default behavior can be customized by providing a custom <see cref="ILoggerFormatter"/>.
 /// </remarks>
 
-public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
+public sealed class FileLogTarget : ILoggerTarget, IDisposable
 {
     #region Fields
 
@@ -26,11 +26,11 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> class.
+    /// Initializes a new instance of the <see cref="FileLogTarget"/> class.
     /// </summary>
     /// <param name="loggerFormatter">The log message formatter.</param>
     /// <param name="fileLoggerOptions">The file logger options.</param>
-    public FileLoggingTarget(ILoggerFormatter loggerFormatter, FileLoggerOptions fileLoggerOptions)
+    public FileLogTarget(ILoggerFormatter loggerFormatter, FileLogOptions fileLoggerOptions)
     {
         ArgumentNullException.ThrowIfNull(loggerFormatter);
         ArgumentNullException.ThrowIfNull(fileLoggerOptions);
@@ -40,27 +40,27 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
+    /// Initializes a new instance of the <see cref="FileLogTarget"/> with default log message formatting.
     /// </summary>
-    public FileLoggingTarget()
-        : this(new LoggingFormatter(false), new FileLoggerOptions())
+    public FileLogTarget()
+        : this(new LoggingFormatter(false), new FileLogOptions())
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with default log message formatting.
+    /// Initializes a new instance of the <see cref="FileLogTarget"/> with default log message formatting.
     /// </summary>
-    /// <param name="options">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
-    public FileLoggingTarget(FileLoggerOptions options)
+    /// <param name="options">A delegate to configure <see cref="FileLogOptions"/>.</param>
+    public FileLogTarget(FileLogOptions options)
         : this(new LoggingFormatter(false), options)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggingTarget"/> with configurable log message formatting.
+    /// Initializes a new instance of the <see cref="FileLogTarget"/> with configurable log message formatting.
     /// </summary>
-    /// <param name="configureOptions">A delegate to configure <see cref="FileLoggerOptions"/>.</param>
-    public FileLoggingTarget(Action<FileLoggerOptions> configureOptions)
+    /// <param name="configureOptions">A delegate to configure <see cref="FileLogOptions"/>.</param>
+    public FileLogTarget(Action<FileLogOptions> configureOptions)
         : this(new LoggingFormatter(false), ConfigureOptions(configureOptions))
     {
     }
@@ -97,9 +97,9 @@ public sealed class FileLoggingTarget : ILoggerTarget, IDisposable
     /// <summary>
     /// Helper method to apply configuration.
     /// </summary>
-    private static FileLoggerOptions ConfigureOptions(Action<FileLoggerOptions> configureOptions)
+    private static FileLogOptions ConfigureOptions(Action<FileLogOptions> configureOptions)
     {
-        FileLoggerOptions options = new();
+        FileLogOptions options = new();
         configureOptions?.Invoke(options);
         return options;
     }
