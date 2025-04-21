@@ -1,10 +1,10 @@
 # ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico) **Nalix**
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square?logo=github)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
 
-![NuGet Version](https://img.shields.io/nuget/v/Nalix?style=flat-square?logo=nuget)
-![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix?style=flat-square?logo=nuget)
+![NuGet Version](https://img.shields.io/nuget/v/Nalix?style=flat-square&logo=nuget)
+![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix?style=flat-square&logo=nuget)
 
 Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
