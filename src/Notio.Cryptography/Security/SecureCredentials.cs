@@ -6,7 +6,7 @@ using System;
 namespace Notio.Cryptography.Security;
 
 /// <summary>
-/// Provides secure secret hashing and verification using PBKDF2.
+/// Provides secure credential hashing and verification using PBKDF2.
 /// </summary>
 public static class SecureCredentials
 {
@@ -32,40 +32,27 @@ public static class SecureCredentials
     #region Public Methods
 
     /// <summary>
-    /// Hashes a secret using PBKDF2 and returns the salt and hash.
+    /// Generates a hash for a credential using PBKDF2 and returns the salt and hash.
     /// </summary>
-    /// <param name="secret">The plaintext secret to hash.</param>
+    /// <param name="credential">The plaintext credential to hash.</param>
     /// <param name="salt">The generated salt.</param>
     /// <param name="hash">The derived hash.</param>
-    public static void HashPassword(string secret, out byte[] salt, out byte[] hash)
+    public static void GenerateCredentialHash(string credential, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
-        hash = pbkdf2.DeriveKey(secret);
+        hash = pbkdf2.DeriveKey(credential);
     }
 
     /// <summary>
-    /// Verifies whether the provided secret matches the stored hash.
-    /// </summary>
-    /// <param name="secret">The secret to verify.</param>
-    /// <param name="salt">The salt used for hashing.</param>
-    /// <param name="hash">The stored hash to compare against.</param>
-    /// <returns><c>true</c> if the secret is valid; otherwise, <c>false</c>.</returns>
-    public static bool VerifyPassword(string secret, byte[] salt, byte[] hash)
-    {
-        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
-        return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(secret), hash);
-    }
-
-    /// <summary>
-    /// Hashes a secret and returns a Base64-encoded string with version, salt, and hash.
+    /// Generates a Base64-encoded string containing version, salt, and hash for a credential.
     /// Format: [version (1 byte)] + [salt] + [hash].
     /// </summary>
-    /// <param name="secret">The plaintext secret.</param>
+    /// <param name="credential">The plaintext credential.</param>
     /// <returns>A Base64-encoded string containing version, salt, and hash.</returns>
-    public static string HashPasswordToBase64(string secret)
+    public static string GenerateCredentialBase64(string credential)
     {
-        HashPassword(secret, out byte[] salt, out byte[] hash);
+        GenerateCredentialHash(credential, out byte[] salt, out byte[] hash);
         byte[] combined = new byte[1 + salt.Length + hash.Length];
         byte version = 1;
         combined[0] = version;
@@ -75,12 +62,25 @@ public static class SecureCredentials
     }
 
     /// <summary>
-    /// Verifies a secret against a Base64-encoded hash with version information.
+    /// Verifies whether the provided credential matches the stored hash.
     /// </summary>
-    /// <param name="secret">The secret to verify.</param>
+    /// <param name="credential">The credential to verify.</param>
+    /// <param name="salt">The salt used for hashing.</param>
+    /// <param name="hash">The stored hash to compare against.</param>
+    /// <returns><c>true</c> if the credential is valid; otherwise, <c>false</c>.</returns>
+    public static bool VerifyCredentialHash(string credential, byte[] salt, byte[] hash)
+    {
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
+        return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(credential), hash);
+    }
+
+    /// <summary>
+    /// Verifies a credential against a Base64-encoded hash with version information.
+    /// </summary>
+    /// <param name="credential">The credential to verify.</param>
     /// <param name="encodedCredentials">The Base64-encoded string containing version, salt, and hash.</param>
-    /// <returns><c>true</c> if the secret matches; otherwise, <c>false</c>.</returns>
-    public static bool VerifyPasswordFromBase64(string secret, string encodedCredentials)
+    /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
+    public static bool VerifyCredentialFromBase64(string credential, string encodedCredentials)
     {
         if (string.IsNullOrEmpty(encodedCredentials)) return false;
 
@@ -95,7 +95,7 @@ public static class SecureCredentials
             Array.Copy(combined, 1, salt, 0, SaltSize);
             Array.Copy(combined, 1 + SaltSize, storedHash, 0, KeySize);
 
-            return version == 1 && VerifyPassword(secret, salt, storedHash);
+            return version == 1 && VerifyCredentialHash(credential, salt, storedHash);
         }
         catch (FormatException)
         {

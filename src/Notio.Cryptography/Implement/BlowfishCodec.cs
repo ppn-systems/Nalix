@@ -1,4 +1,6 @@
-namespace Notio.Cryptography.Symmetric;
+using Notio.Cryptography.Symmetric;
+
+namespace Notio.Cryptography.Implement;
 
 /// <summary>
 /// Provides encryption and decryption functionality for the network protocol.
