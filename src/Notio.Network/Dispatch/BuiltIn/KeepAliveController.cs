@@ -25,7 +25,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
-        => PacketAssembler.String(PacketCode.Success, "Pong");
+        => PacketWriter.String(PacketCode.Success, "Pong");
 
     /// <summary>
     /// Handles a ping request from the client.
@@ -37,7 +37,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
-        => PacketAssembler.String(PacketCode.Success, "Ping");
+        => PacketWriter.String(PacketCode.Success, "Ping");
 
     /// <summary>
     /// Returns the round-trip time (RTT) of the connection in milliseconds.
@@ -49,7 +49,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
-        => PacketAssembler.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
+        => PacketWriter.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
 
     /// <summary>
     /// Returns the ping information of the connection, including up time and last ping time.
@@ -68,6 +68,6 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
             LastPingTime = connection.LastPingTime,
         };
 
-        return PacketAssembler.Json(PacketCode.Success, pingInfoDto, NetJsonCxt.Default.PingInfoDto);
+        return PacketWriter.Json(PacketCode.Success, pingInfoDto, NetJsonCxt.Default.PingInfoDto);
     }
 }

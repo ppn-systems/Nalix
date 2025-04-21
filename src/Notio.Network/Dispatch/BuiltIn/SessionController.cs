@@ -46,6 +46,6 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
             Encryption = connection.Encryption
         };
 
-        return PacketAssembler.Json(PacketCode.Success, status, NetJsonCxt.Default.ConnInfoDto);
+        return PacketWriter.Json(PacketCode.Success, status, NetJsonCxt.Default.ConnInfoDto);
     }
 }

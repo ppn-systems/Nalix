@@ -67,7 +67,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return PacketAssembler.String(PacketCode.PacketType);
+            return PacketWriter.String(PacketCode.PacketType);
         }
 
         // Validate that the public key length is 32 bytes (X25519 standard).
@@ -76,13 +76,13 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return PacketAssembler.String(PacketCode.InvalidPayload);
+            return PacketWriter.String(PacketCode.InvalidPayload);
         }
 
         if (IsReplayAttempt(connection))
         {
             _logger?.Debug("Detected handshake replay attempt from {0}", connection.RemoteEndPoint);
-            return PacketAssembler.String(PacketCode.RateLimited);
+            return PacketWriter.String(PacketCode.RateLimited);
         }
 
         // Generate an X25519 key pair (private and public keys).
@@ -99,7 +99,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         connection.Level = PermissionLevel.User;
 
         // SendPacket the server's public key back to the client for the next phase of the handshake.
-        return PacketAssembler.Binary(PacketCode.Success, @public);
+        return PacketWriter.Binary(PacketCode.Success, @public);
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return PacketAssembler.String(PacketCode.PacketType);
+            return PacketWriter.String(PacketCode.PacketType);
         }
 
         // CheckLimit if the public key length is correct (32 bytes).
@@ -131,7 +131,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return PacketAssembler.String(PacketCode.InvalidPayload);
+            return PacketWriter.String(PacketCode.InvalidPayload);
         }
 
         // Retrieve the stored private key from connection metadata.
@@ -140,7 +140,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         {
             _logger?.Debug("Missing or invalid private key for {0}", connection.RemoteEndPoint);
 
-            return PacketAssembler.String(PacketCode.UnknownError);
+            return PacketWriter.String(PacketCode.UnknownError);
         }
 
         // Derive the shared secret using the private key and the client's public key.
@@ -152,11 +152,11 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         if (connection.EncryptionKey is null || !connection.EncryptionKey.SequenceEqual(derivedKey))
         {
             _logger?.Debug("Key mismatch during handshake finalization for {0}", connection.RemoteEndPoint);
-            return PacketAssembler.String(PacketCode.Conflict);
+            return PacketWriter.String(PacketCode.Conflict);
         }
 
         _logger?.Debug("Secure connection established for {0}", connection.RemoteEndPoint);
-        return PacketAssembler.String(PacketCode.Success);
+        return PacketWriter.String(PacketCode.Success);
     }
 
     #region Private Methods

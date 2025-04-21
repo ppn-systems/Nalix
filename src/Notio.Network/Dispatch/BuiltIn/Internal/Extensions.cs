@@ -16,7 +16,7 @@ internal static class Extensions
     /// <param name="message"></param>
     /// <returns></returns>
     internal static bool SendString(this IConnection connection, PacketCode code, string message)
-      => connection.SendAsync(PacketAssembler.String(code, message)).Result;
+      => connection.SendAsync(PacketWriter.String(code, message)).Result;
 
     /// <summary>
     /// Sends a string packet to the client.
@@ -25,5 +25,5 @@ internal static class Extensions
     /// <param name="code"></param>
     /// <returns></returns>
     internal static bool SendCode(this IConnection connection, PacketCode code)
-      => connection.SendAsync(PacketAssembler.String(code)).Result;
+      => connection.SendAsync(PacketWriter.String(code)).Result;
 }
