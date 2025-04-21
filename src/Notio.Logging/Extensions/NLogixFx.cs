@@ -52,6 +52,8 @@ public static partial class NLogixFx
 
     #endregion
 
+    #region Log Methods
+
     /// <summary>
     /// Logs the specified message.
     /// </summary>
@@ -149,4 +151,6 @@ public static partial class NLogixFx
             LogLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source,
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
+
+    #endregion
 }
