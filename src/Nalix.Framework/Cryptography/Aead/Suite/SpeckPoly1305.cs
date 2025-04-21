@@ -2,9 +2,9 @@
 
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
-using Nalix.Framework.Cryptography.Symmetric;
+using Nalix.Framework.Cryptography.Symmetric.Suite;
 
-namespace Nalix.Framework.Cryptography.Aead.Suites;
+namespace Nalix.Framework.Cryptography.Aead.Suite;
 
 /// <summary>
 /// Speck-CTR + Poly1305 AEAD (detached, Span-first) for Speck 128/256.

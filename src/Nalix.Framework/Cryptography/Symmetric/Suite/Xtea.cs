@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Cryptography.Symmetric;
+namespace Nalix.Framework.Cryptography.Symmetric.Suite;
 
 /// <summary>
 /// Provides an implementation of the XTEA (eXtended Tiny Encryption Algorithm) block cipher.
