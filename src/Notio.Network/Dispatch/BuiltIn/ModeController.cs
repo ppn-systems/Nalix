@@ -16,7 +16,7 @@ namespace Notio.Network.Dispatch.BuiltIn;
 /// Handles connection mode settings for compression and encryption.
 /// </summary>
 [PacketController]
-public sealed class ModeController(ILogger? logger)
+public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPacket
 {
     #region Fields
 
@@ -34,10 +34,10 @@ public sealed class ModeController(ILogger? logger)
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.SetCompressionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
-    public System.Memory<byte> SetCompressionMode(IPacket packet, IConnection connection)
+    internal System.Memory<byte> SetCompressionMode(TPacket packet, IConnection connection)
         => SetMode<CompressionType>(packet, connection);
 
     /// <summary>
@@ -50,15 +50,15 @@ public sealed class ModeController(ILogger? logger)
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
-    public System.Memory<byte> SetEncryptionMode(IPacket packet, IConnection connection)
+    internal System.Memory<byte> SetEncryptionMode(TPacket packet, IConnection connection)
         => SetMode<EncryptionType>(packet, connection);
 
     #region Private Methods
 
-    private System.Memory<byte> SetMode<TEnum>(IPacket packet, IConnection connection)
+    private System.Memory<byte> SetMode<TEnum>(TPacket packet, IConnection connection)
         where TEnum : struct, System.Enum
     {
         if (packet.Type != PacketType.Binary)

@@ -16,8 +16,8 @@ using System.Threading.Tasks;
 namespace Notio.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
-    IPacketCompressor<TPacket>,
-    IPacketEncryptor<TPacket>
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>
 {
     /// <summary>
     /// Registers default handlers for the packet dispatcher, including controllers for session management,
@@ -27,11 +27,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
     /// </returns>
-    public PacketDispatchOptions<TPacket> WithHandlerDefault()
+    public PacketDispatchOptions<TPacket> BuiltIn()
     {
-        this.WithHandler<SessionController>();
-        this.WithHandler<KeepAliveController>();
-        this.WithHandler(() => new ModeController(_logger));
+        this.WithHandler<SessionController<TPacket>>();
+        this.WithHandler<KeepAliveController<TPacket>>();
+        this.WithHandler(() => new ModeController<TPacket>(_logger));
 
         return this;
     }

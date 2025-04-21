@@ -18,7 +18,7 @@ namespace Notio.Network.Dispatch.BuiltIn;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
-public sealed class HandshakeController
+public sealed class HandshakeController<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -31,7 +31,7 @@ public sealed class HandshakeController
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HandshakeController"/> class with necessary components.
+    /// Initializes a new instance of the <see cref="HandshakeController{TPacket}"/> class with necessary components.
     /// </summary>
     /// <param name="sha">The hashing algorithm implementation to use (e.g., SHA-256).</param>
     /// <param name="x25519">The X25519 implementation for key exchange.</param>
@@ -56,10 +56,10 @@ public sealed class HandshakeController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeController))]
+    [PacketRateGroup(nameof(HandshakeController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    public System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
+    internal System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
         // CheckLimit if the packet type is binary (as expected for X25519 public key).
         if (packet.Type != PacketType.Binary)
@@ -111,10 +111,10 @@ public sealed class HandshakeController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeController))]
+    [PacketRateGroup(nameof(HandshakeController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    public System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
+    internal System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
         if (packet.Type != PacketType.Binary)

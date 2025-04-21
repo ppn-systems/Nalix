@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace Notio.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
-    IPacketCompressor<TPacket>,
-    IPacketEncryptor<TPacket>
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>
 {
     private static T EnsureNotNull<T>(T value, string paramName) where T : class
         => value ?? throw new ArgumentNullException(paramName);
@@ -33,6 +33,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         method.GetCustomAttribute<PacketEncryptionAttribute>()
 
     );
+
+    private void LogHandlerError(Type returnType, Exception ex)
+        => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
 
     private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
     {
@@ -185,7 +188,4 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             return Task.CompletedTask;
         }
     };
-
-    private void LogHandlerError(Type returnType, Exception ex)
-        => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
 }

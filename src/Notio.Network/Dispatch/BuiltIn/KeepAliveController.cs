@@ -13,18 +13,18 @@ namespace Notio.Network.Dispatch.BuiltIn;
 /// A controller for managing keep-alive packets in a network dispatcher.
 /// </summary>
 [PacketController]
-public sealed class KeepAliveController
+public sealed class KeepAliveController<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Handles a ping request from the client.
     /// </summary>
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
-    [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeepAliveController))]
     [PacketId((ushort)ProtocolPacket.Ping)]
+    [PacketPermission(PermissionLevel.Guest)]
+    [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
-    public static System.Memory<byte> Ping(IPacket _, IConnection __)
+    internal static System.Memory<byte> Ping(TPacket _, IConnection __)
         => PacketAssembler.String(PacketCode.Success, "Pong");
 
     /// <summary>
@@ -33,10 +33,10 @@ public sealed class KeepAliveController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeepAliveController))]
     [PacketId((ushort)ProtocolPacket.Pong)]
+    [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
-    public static System.Memory<byte> Pong(IPacket _, IConnection __)
+    internal static System.Memory<byte> Pong(TPacket _, IConnection __)
         => PacketAssembler.String(PacketCode.Success, "Ping");
 
     /// <summary>
@@ -45,10 +45,10 @@ public sealed class KeepAliveController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.PingTime)]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static System.Memory<byte> GetPingTime(IPacket _, IConnection connection)
+    internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
         => PacketAssembler.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
 
     /// <summary>
@@ -57,10 +57,10 @@ public sealed class KeepAliveController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
     [PacketId((ushort)ProtocolPacket.PingInfo)]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static System.Memory<byte> GetPingInfo(IPacket _, IConnection connection)
+    internal static System.Memory<byte> GetPingInfo(TPacket _, IConnection connection)
     {
         PingInfoDto pingInfoDto = new()
         {

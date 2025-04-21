@@ -4,8 +4,8 @@ using Notio.Common.Package;
 namespace Notio.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
-    IPacketCompressor<TPacket>,
-    IPacketEncryptor<TPacket>
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>
 {
     /// <summary>
     /// Enables metrics tracking for packet processing, allowing you to monitor execution times of handlers.

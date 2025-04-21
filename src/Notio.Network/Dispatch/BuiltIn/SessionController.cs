@@ -15,7 +15,7 @@ namespace Notio.Network.Dispatch.BuiltIn;
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>
 [PacketController]
-public sealed class SessionController
+public sealed class SessionController<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Handles a client-initiated disconnect request.
@@ -23,10 +23,10 @@ public sealed class SessionController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.Disconnect)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static void Disconnect(IPacket _, IConnection connection)
+    internal static void Disconnect(IPacket _, IConnection connection)
         => connection.Disconnect("Client disconnect request");
 
     /// <summary>
@@ -35,10 +35,10 @@ public sealed class SessionController
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController))]
+    [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketId((ushort)ProtocolPacket.ConnectionStatus)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
-    public static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
+    internal static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
     {
         ConnInfoDto status = new()
         {
@@ -46,6 +46,6 @@ public sealed class SessionController
             Encryption = connection.Encryption
         };
 
-        return PacketAssembler.Json(PacketCode.Success, status, JsonNetworkContext.Default.ConnectionStatusDto);
+        return PacketAssembler.Json(PacketCode.Success, status, JsonNetworkContext.Default.ConnInfoDto);
     }
 }
