@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Notio.Network.Dispatch.Queue;
 
-public sealed partial class PacketQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.

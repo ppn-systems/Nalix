@@ -3,7 +3,7 @@ using Notio.Shared.Configuration.Binding;
 namespace Notio.Network.Configurations;
 
 /// <summary>
-/// Configuration options for PacketQueue
+/// Configuration options for DispatchQueue
 /// </summary>
 public sealed class QueueConfig : ConfigurationBinder
 {
