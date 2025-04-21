@@ -13,7 +13,7 @@ namespace Notio.Logging.Targets;
 /// </summary>
 /// <remarks>
 /// This target sends logs to a specified email address using an SMTP server.
-/// It only logs messages that meet the minimum logging level.
+/// It only sends log messages that meet or exceed the specified minimum log level.
 /// </remarks>
 public sealed class EmailLogTarget : ILoggerTarget, IDisposable
 {
@@ -21,7 +21,6 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
 
     private readonly SmtpClient _smtpClient;
     private readonly EmailLogOptions _options;
-
     private bool _disposed;
 
     #endregion
@@ -46,7 +45,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EmailLogTarget"/> class.
+    /// Initializes a new instance of the <see cref="EmailLogTarget"/> class with SMTP server details and email log options.
     /// </summary>
     /// <param name="smtpServer">SMTP server address.</param>
     /// <param name="port">SMTP server port.</param>
@@ -124,6 +123,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
 
     /// <summary>
     /// Disposes of resources used by the <see cref="EmailLogTarget"/>.
+    /// This method ensures that any resources are cleaned up when the instance is no longer needed.
     /// </summary>
     public void Dispose()
     {
@@ -171,7 +171,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     /// Gets the color associated with each log level.
     /// </summary>
     /// <param name="level">The log level.</param>
-    /// <returns>A hex color code.</returns>
+    /// <returns>A hex color code associated with the log level.</returns>
     private static string GetLogLevelColor(LogLevel level) => level switch
     {
         LogLevel.Trace => "#6c757d",         // Gray

@@ -7,8 +7,16 @@ using System.Runtime.CompilerServices;
 namespace Notio.Logging;
 
 /// <summary>
-/// A singleton class that provides logging functionality for the application.
+/// Provides a high-performance, extensible logging engine for applications,
+/// combining structured logging and customizable output targets.
+/// 
+/// This class is the core of the Notio logging system, and implements <see cref="ILogger"/> for unified logging.
+/// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
 /// </summary>
+/// <remarks>
+/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogixSingleton"/>.
+/// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
+/// </remarks>
 public class NLogix : LogEngine, ILogger
 {
     #region Constructors
