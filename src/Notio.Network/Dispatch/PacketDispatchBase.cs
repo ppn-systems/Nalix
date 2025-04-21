@@ -1,4 +1,4 @@
-namespace Notio.Network.Dispatch.Core;
+namespace Notio.Network.Dispatch;
 
 /// <summary>
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.

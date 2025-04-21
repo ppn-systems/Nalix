@@ -7,7 +7,7 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Dispatch.Core.Packets;
+using Notio.Network.Dispatch.BuiltIn.Internal;
 using System.Linq;
 
 namespace Notio.Network.Dispatch.BuiltIn;

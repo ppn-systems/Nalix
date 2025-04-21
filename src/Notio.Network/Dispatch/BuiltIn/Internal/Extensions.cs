@@ -1,12 +1,12 @@
 using Notio.Common.Connection;
 using Notio.Common.Package.Enums;
 
-namespace Notio.Network.Dispatch.Core.Packets;
+namespace Notio.Network.Dispatch.BuiltIn.Internal;
 
 /// <summary>
 /// Provides extension methods for packet operations.
 /// </summary>
-internal static class SendExt
+internal static class Extensions
 {
     /// <summary>
     /// Sends a string packet to the client.

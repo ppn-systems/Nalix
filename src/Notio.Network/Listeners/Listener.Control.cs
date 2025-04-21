@@ -51,7 +51,7 @@ public abstract partial class Listener
         _isListening = true;
         _logger.Debug("Starting listener");
 
-        // Create a linked token source to combine external cancellation with internal cancellation
+        // Create a linked token source to combine external cancellation with Internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = _cts.Token;
 
@@ -168,7 +168,7 @@ public abstract partial class Listener
         _logger.Debug("Starting listener");
         const int maxParallelAccepts = 5;
 
-        // Create a linked token source to combine external cancellation with internal cancellation
+        // Create a linked token source to combine external cancellation with Internal cancellation
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = _cts.Token;
 

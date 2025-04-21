@@ -4,7 +4,7 @@ using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Network.Dispatch.BuiltIn;
-using Notio.Network.Dispatch.Core.Packets;
+using Notio.Network.Dispatch.BuiltIn.Internal;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -169,7 +169,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
-    /// This method looks up the provided command Number in the internal dictionary of registered packet handlers.
+    /// This method looks up the provided command Number in the Internal dictionary of registered packet handlers.
     /// If a matching handler is found, it is returned via the <paramref name="handler"/> output parameter.
     /// </remarks>
     /// <example>

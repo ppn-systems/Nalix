@@ -1,7 +1,7 @@
 using Notio.Common.Compression;
 using Notio.Common.Cryptography;
 
-namespace Notio.Network.Dispatch.Dto;
+namespace Notio.Common.Connection.Contracts;
 
 /// <summary>
 /// Represents the status of a network connection, including compression and encryption details.

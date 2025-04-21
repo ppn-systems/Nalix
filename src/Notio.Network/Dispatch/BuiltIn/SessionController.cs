@@ -1,11 +1,11 @@
 using Notio.Common.Connection;
+using Notio.Common.Connection.Contracts;
 using Notio.Common.Constants;
 using Notio.Common.Package;
 using Notio.Common.Package.Attributes;
 using Notio.Common.Package.Enums;
 using Notio.Common.Security;
-using Notio.Network.Dispatch.Core.Packets;
-using Notio.Network.Dispatch.Dto;
+using Notio.Network.Dispatch.BuiltIn.Internal;
 
 namespace Notio.Network.Dispatch.BuiltIn;
 
@@ -46,6 +46,6 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
             Encryption = connection.Encryption
         };
 
-        return PacketAssembler.Json(PacketCode.Success, status, JsonNetworkContext.Default.ConnInfoDto);
+        return PacketAssembler.Json(PacketCode.Success, status, NetJsonCxt.Default.ConnInfoDto);
     }
 }

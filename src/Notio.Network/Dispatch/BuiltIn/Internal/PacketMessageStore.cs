@@ -5,7 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Notio.Network.Dispatch.Core.Packets;
+namespace Notio.Network.Dispatch.BuiltIn.Internal;
 
 internal static class PacketMessageStore
 {
