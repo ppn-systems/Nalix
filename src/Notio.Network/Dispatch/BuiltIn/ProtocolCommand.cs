@@ -4,7 +4,7 @@ namespace Notio.Network.Dispatch.BuiltIn;
 /// Defines the protocol commands used for managing secure connection processes.
 /// These commands are part of the protocol for establishing and finalizing encrypted connections.
 /// </summary>
-public enum ProtocolPacket : ushort
+public enum ProtocolCommand : ushort
 {
     /// <summary>
     /// Number to initiate the handshake by requesting the server's public key.

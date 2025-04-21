@@ -20,7 +20,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     /// </summary>
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
-    [PacketId((ushort)ProtocolPacket.Ping)]
+    [PacketId((ushort)ProtocolCommand.Ping)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
@@ -33,7 +33,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolPacket.Pong)]
+    [PacketId((ushort)ProtocolCommand.Pong)]
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
@@ -45,7 +45,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolPacket.PingTime)]
+    [PacketId((ushort)ProtocolCommand.PingTime)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
@@ -57,7 +57,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolPacket.PingInfo)]
+    [PacketId((ushort)ProtocolCommand.PingInfo)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     internal static System.Memory<byte> GetPingInfo(TPacket _, IConnection connection)

@@ -24,7 +24,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
-    [PacketId((ushort)ProtocolPacket.Disconnect)]
+    [PacketId((ushort)ProtocolCommand.Disconnect)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     internal static void Disconnect(IPacket _, IConnection connection)
         => connection.Disconnect("Client disconnect request");
@@ -36,7 +36,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
-    [PacketId((ushort)ProtocolPacket.ConnectionStatus)]
+    [PacketId((ushort)ProtocolCommand.ConnectionStatus)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     internal static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)
     {
