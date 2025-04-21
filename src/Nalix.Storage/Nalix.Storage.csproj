@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>true</IsTrimmable>
+		<OutputType>Library</OutputType>
+
+    <Version>0.6.01</Version>
+    <PackageVersion>0.6.01</PackageVersion>
+
+    <Description>
+Nalix.Storage is a .NET library for efficient file storage and streaming. It supports multiple storage formats, local storage handling, MIME type detection, and configurable file storage providers. The library provides interfaces for both synchronous and asynchronous file management.
+    </Description>
+
+    <PackageReleaseNotes>
+      - Initial release of Nalix.Storage.
+      - Features include:
+      • Support for multiple file formats and MIME type detection.
+      • Configurable file storage providers for flexibility.
+      • Local storage management for optimized file handling.
+      • Interfaces for synchronous (IFileStorage) and asynchronous (IFileStorageAsync) operations.
+      • Stream provider (IStreamProvider) for efficient file streaming.
+    </PackageReleaseNotes>
+  
+</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+  <Import Project="..\Package.Build.props" />
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+	</ItemGroup>
+
+</Project>

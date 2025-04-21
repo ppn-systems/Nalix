@@ -1,21 +1,21 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Package Properties">
-    <PackageIcon>assets\Notio.png</PackageIcon>
+    <PackageIcon>assets\Nalix.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/phcnguyen/Notio</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/phcnguyen/Nalix</PackageProjectUrl>
 
     <PackageTags>
-      notio, .NET 9, library, TCP, networking, security, performance
+      Nalix, .NET 9, library, TCP, networking, security, performance
     </PackageTags>
 
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\Notio.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\Nalix.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup Label="Package Properties">
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE')" />
     <None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md')" />
-    <None Include="..\..\assets\Notio.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Notio.png')" />
+    <None Include="..\..\assets\Nalix.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Nalix.png')" />
   </ItemGroup>
 </Project>
