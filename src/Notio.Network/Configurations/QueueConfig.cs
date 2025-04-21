@@ -1,9 +1,11 @@
+using Notio.Shared.Configuration.Binding;
+
 namespace Notio.Network.Configurations;
 
 /// <summary>
 /// Configuration options for PacketQueue
 /// </summary>
-public sealed class QueueConfig : Shared.Configuration.ConfigurationBinder
+public sealed class QueueConfig : ConfigurationBinder
 {
     /// <summary>
     /// Maximum number of packets in the queue (0 = unlimited)

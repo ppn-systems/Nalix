@@ -1,4 +1,4 @@
-using Notio.Shared.Configuration;
+using Notio.Shared.Configuration.Binding;
 
 namespace Notio.Network.Configurations;
 

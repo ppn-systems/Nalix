@@ -1,5 +1,5 @@
-using Notio.Shared.Configuration;
 using Notio.Shared.Configuration.Attributes;
+using Notio.Shared.Configuration.Binding;
 using Notio.Storage.Generator;
 using Notio.Storage.Helpers.MimeTypes;
 using Notio.Storage.Models;

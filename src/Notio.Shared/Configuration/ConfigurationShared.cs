@@ -1,4 +1,5 @@
 using Notio.Defaults;
+using Notio.Shared.Configuration.Binding;
 using Notio.Shared.Injection.DI;
 using Notio.Shared.Internal;
 using System;
