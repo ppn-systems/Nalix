@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup Label="Package Properties">
-    <None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE')" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md')" />
-    <None Include="..\..\assets\Nalix.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Nalix.png')" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE') AND '$(Configuration)' != 'Debug'" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md') AND '$(Configuration)' != 'Debug'" />
+    <None Include="..\..\assets\Nalix.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Nalix.png') AND '$(Configuration)' != 'Debug'" />
   </ItemGroup>
 </Project>

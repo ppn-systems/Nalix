@@ -1,4 +1,4 @@
-# ![Icon](https://raw.githubusercontent.com/phcnguyen/Nalix/refs/heads/master/assets/Nalix.ico) **Nalix**
+# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico) **Nalix**
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix)
 

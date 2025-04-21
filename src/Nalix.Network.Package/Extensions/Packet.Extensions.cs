@@ -1,6 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Network.Package.Engine;
-using Nalix.Network.Package.Serialization;
+using Nalix.Network.Package.Engine.Serialization;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
