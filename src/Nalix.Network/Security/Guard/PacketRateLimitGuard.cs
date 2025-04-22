@@ -24,7 +24,7 @@ public sealed class PacketRateLimitGuard
     {
         string key = groupAttr?.GroupName ?? methodId;
         RequestLimiter limiter = _methodRateLimiters.GetOrAdd((endpoint, key), _ =>
-            new RequestLimiter(new RequestConfig
+            new RequestLimiter(new RateLimitConfig
             {
                 MaxAllowedRequests = attr.MaxRequests,
                 TimeWindowInMilliseconds = attr.TimeWindowMs,

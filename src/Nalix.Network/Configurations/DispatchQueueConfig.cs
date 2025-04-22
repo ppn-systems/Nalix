@@ -5,7 +5,7 @@ namespace Nalix.Network.Configurations;
 /// <summary>
 /// Configuration options for DispatchQueue
 /// </summary>
-public sealed class QueueConfig : ConfigurationBinder
+public sealed class DispatchQueueConfig : ConfigurationBinder
 {
     /// <summary>
     /// Maximum number of packets in the queue (0 = unlimited)
@@ -34,13 +34,13 @@ public sealed class QueueConfig : ConfigurationBinder
     public System.TimeSpan Timeout { get; set; }
 
     /// <remarks>
-    /// Initializes a new instance of <see cref="QueueConfig"/>.
+    /// Initializes a new instance of <see cref="DispatchQueueConfig"/>.
     /// </remarks>
     /// <param name="maxCapacity">Maximum number of packets in the queue (0 = unlimited).</param>
     /// <param name="enableValidation">Indicates whether packet validity should be checked when dequeuing.</param>
     /// <param name="enableMetrics">Indicates whether detailed statistics should be collected.</param>
     /// <param name="timeout">Maximum time a packet is allowed to exist in the queue.</param>
-    public QueueConfig(
+    public DispatchQueueConfig(
         int maxCapacity = 0, System.TimeSpan? timeout = null,
         bool enableValidation = true, bool enableMetrics = false)
     {

@@ -16,7 +16,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     #region Fields
 
     // Use channels instead of queues for better thread-safety and performance
-    private readonly QueueConfig _options;
+    private readonly DispatchQueueConfig _options;
 
     private readonly Channel<TPacket>[] _priorityChannels;
 
@@ -85,7 +85,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     /// Initialize a new DispatchQueue using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public DispatchQueue(QueueConfig options) : this()
+    public DispatchQueue(DispatchQueueConfig options) : this()
     {
         _options = options;
 

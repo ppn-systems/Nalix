@@ -12,10 +12,10 @@ namespace Nalix.Network.Configurations;
 /// This configuration helps manage and control the Number of simultaneous connections from each IP.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="ConnectionConfig"/> class with the specified connection limit settings.
+/// Initializes a new instance of the <see cref="ConnLimitConfig"/> class with the specified connection limit settings.
 /// </remarks>
 /// <param name="settings">The connection limit settings to apply.</param>
-public sealed class ConnectionConfig(ConnectionLimitSettings settings) : ConfigurationBinder
+public sealed class ConnLimitConfig(ConnectionLimitSettings settings) : ConfigurationBinder
 {
     #region Predefined Connection Limit Settings
 
@@ -39,18 +39,18 @@ public sealed class ConnectionConfig(ConnectionLimitSettings settings) : Configu
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a specified connection limit.
+    /// Initializes a new instance of the <see cref="ConnLimitConfig"/> class with a specified connection limit.
     /// </summary>
     /// <param name="limit">The predefined connection limit to apply.</param>
-    public ConnectionConfig(ConnectionLimitType limit)
+    public ConnLimitConfig(ConnectionLimitType limit)
         : this(GetConnectionSettings(limit))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionConfig"/> class with a default connection limit of <see cref="ConnectionLimitType.Medium"/> .
+    /// Initializes a new instance of the <see cref="ConnLimitConfig"/> class with a default connection limit of <see cref="ConnectionLimitType.Medium"/> .
     /// </summary>
-    public ConnectionConfig()
+    public ConnLimitConfig()
         : this(ConnectionLimitType.Medium)
     {
     }

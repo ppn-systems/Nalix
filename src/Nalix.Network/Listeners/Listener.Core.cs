@@ -28,7 +28,7 @@ public abstract partial class Listener : IListener, IDisposable
 
     #region Fields
 
-    private static readonly TcpConfig Config;
+    private static readonly SocketConfig Config;
 
     private readonly int _port;
     private readonly ILogger _logger;
@@ -56,7 +56,7 @@ public abstract partial class Listener : IListener, IDisposable
 
     #region Constructors
 
-    static Listener() => Config = ConfigurationStore.Instance.Get<TcpConfig>();
+    static Listener() => Config = ConfigurationStore.Instance.Get<SocketConfig>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
@@ -82,7 +82,7 @@ public abstract partial class Listener : IListener, IDisposable
         _listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
-            LingerState = new LingerOption(true, TcpConfig.False) // No need for LingerState if not close soon
+            LingerState = new LingerOption(true, SocketConfig.False) // No need for LingerState if not close soon
         };
 
         // Increase the queue size on the socket listener.
@@ -91,7 +91,7 @@ public abstract partial class Listener : IListener, IDisposable
 
         _listenerSocket.SetSocketOption(
             SocketOptionLevel.Socket, SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? TcpConfig.True : TcpConfig.False);
+            Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
 
         // Optimized for Socket.IOControlCode on Windows
         if (Config.IsWindows)
