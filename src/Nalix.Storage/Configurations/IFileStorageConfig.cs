@@ -1,6 +1,6 @@
 using Nalix.Storage.Generator;
 
-namespace Nalix.Storage.Models;
+namespace Nalix.Storage.Configurations;
 
 /// <summary>
 /// Defines configuration options for file storage settings.

@@ -1,6 +1,5 @@
 using Nalix.Storage.Generator;
 using Nalix.Storage.Helpers.MimeTypes;
-using Nalix.Storage.Models;
 using System;
 
 namespace Nalix.Storage.Configurations;

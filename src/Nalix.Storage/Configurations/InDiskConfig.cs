@@ -2,7 +2,6 @@ using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 using Nalix.Storage.Generator;
 using Nalix.Storage.Helpers.MimeTypes;
-using Nalix.Storage.Models;
 using System;
 using System.IO;
 

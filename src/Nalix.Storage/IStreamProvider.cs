@@ -1,7 +1,8 @@
+using Nalix.Storage.Models;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Nalix.Storage.Models;
+namespace Nalix.Storage;
 
 /// <summary>
 /// Defines a contract for providing file streams.
