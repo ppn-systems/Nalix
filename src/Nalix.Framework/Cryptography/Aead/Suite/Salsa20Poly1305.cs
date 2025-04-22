@@ -2,6 +2,7 @@
 
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
+using Nalix.Framework.Cryptography.Symmetric.Suite;
 
 namespace Nalix.Framework.Cryptography.Aead.Suite;
 
@@ -89,10 +90,10 @@ public static class Salsa20Poly1305
             //    Obtain raw keystream by "encrypting" zero bytes.
             System.Span<System.Byte> zeros = stackalloc System.Byte[32];
             zeros.Clear();
-            _ = Symmetric.Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey); // fill polyKey
+            _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey); // fill polyKey
 
             // 2) Encrypt payload with counter=1+
-            _ = Symmetric.Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
+            _ = Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
 
             // 3) MAC transcript (AAD || pad16 || CT || pad16 || lenAAD || lenCT)
             using var poly = new Poly1305(polyKey);
@@ -148,7 +149,7 @@ public static class Salsa20Poly1305
             // 1) Poly1305 one-time key (counter=0)
             System.Span<System.Byte> zeros = stackalloc System.Byte[32];
             zeros.Clear();
-            _ = Symmetric.Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey);
+            _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey);
 
             // 2) Compute expected tag over AAD + CT
             using (var poly = new Poly1305(polyKey))
@@ -163,7 +164,7 @@ public static class Salsa20Poly1305
             }
 
             // 4) Decrypt with counter=1+
-            _ = Symmetric.Salsa20.Decrypt(key, nonce, counter: 1UL, ciphertext, dstPlaintext);
+            _ = Salsa20.Decrypt(key, nonce, counter: 1UL, ciphertext, dstPlaintext);
             return true;
         }
         finally

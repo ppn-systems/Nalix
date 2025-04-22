@@ -2,7 +2,7 @@
 
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
-using Nalix.Framework.Cryptography.Symmetric;
+using Nalix.Framework.Cryptography.Symmetric.Suite;
 
 namespace Nalix.Framework.Cryptography.Aead.Suite;
 
