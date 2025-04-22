@@ -25,7 +25,7 @@ public sealed class DispatchQueueConfig : ConfigurationBinder
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
-    internal int TimeoutSeconds { get; set; } = 30;
+    public int TimeoutSeconds { get; set; } = 30;
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
