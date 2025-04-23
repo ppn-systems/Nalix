@@ -8,7 +8,8 @@ namespace Nalix.Network.Package.Engine.Serialization;
 public static partial class PacketSerializer
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void MaterializePayloadFast(ReadOnlySpan<byte> data, int payloadLength, out Memory<byte> payload)
+    private static void MaterializePayloadFast(
+        ReadOnlySpan<byte> data, int payloadLength, out Memory<byte> payload)
     {
         if (payloadLength > 0)
         {
@@ -34,7 +35,8 @@ public static partial class PacketSerializer
     /// Efficiently materializes a payload using unsafe code when appropriate.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void MaterializePayloadFastUnsafe(ReadOnlySpan<byte> data, int payloadSize, out Memory<byte> payload)
+    private static unsafe void MaterializePayloadFastUnsafe(
+        ReadOnlySpan<byte> data, int payloadSize, out Memory<byte> payload)
     {
         // For empty payloads, avoid allocation
         if (payloadSize == 0)

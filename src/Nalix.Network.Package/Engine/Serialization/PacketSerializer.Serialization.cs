@@ -2,7 +2,6 @@ using Nalix.Common.Constants;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Metadata;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Network.Package.Engine.Serialization;
 
@@ -48,7 +47,8 @@ public static partial class PacketSerializer
     /// <param name="destination">The destination span to hold the serialized packet.</param>
     /// <param name="bytesWritten">The Number of bytes written to the destination span.</param>
     /// <returns>Returns true if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(in Packet packet, Span<byte> destination, [NotNullWhen(true)] out int bytesWritten)
+    public static bool TrySerialize(in Packet packet, Span<byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
