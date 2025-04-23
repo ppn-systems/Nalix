@@ -7,7 +7,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.Logging.Engine.Formatters.Internal.Files;
+namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
 /// A high-performance provider for file-based logging with support for file rotation and error handling.

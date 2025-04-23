@@ -1,6 +1,6 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Engine.Formatters;
-using Nalix.Logging.Engine.Formatters.Internal.Files;
+using Nalix.Logging.Formatters.Internal;
 using Nalix.Logging.Options;
 using System;
 

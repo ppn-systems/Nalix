@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Logging.Engine.Formatters.Internal.Files;
+namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
 /// Manages writing logs to a file with support for file rotation and error handling.
