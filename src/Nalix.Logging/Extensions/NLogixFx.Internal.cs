@@ -4,6 +4,8 @@ namespace Nalix.Logging.Extensions;
 
 public static partial class NLogixFx
 {
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void CreateLogEntry(
         LogLevel level,
         string message,
@@ -22,6 +24,8 @@ public static partial class NLogixFx
         Publisher.Publish(new LogEntry(level, EventId.Empty, fullMessage, null));
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static string BuildFullMessage(
         string message,
         string? sourceName,

@@ -2,9 +2,6 @@ using Nalix.Common.Logging;
 using Nalix.Logging.Engine;
 using Nalix.Logging.Options;
 using Nalix.Logging.Targets;
-using System;
-using System.IO;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Logging.Extensions;
 
@@ -42,8 +39,8 @@ public static partial class NLogixFx
         {
             FormatLogFileName = (fname) =>
             {
-                return Path.GetFileNameWithoutExtension(fname) +
-                       "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
+                return System.IO.Path.GetFileNameWithoutExtension(fname) +
+                       "_{0:yyyy}-{0:MM}-{0:dd}" + System.IO.Path.GetExtension(fname);
             }
         };
 
@@ -69,9 +66,9 @@ public static partial class NLogixFx
         string source,
         LogLevel messageType,
         object? extendedData = null,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
             messageType, message, source, extendedData,
@@ -90,12 +87,12 @@ public static partial class NLogixFx
     /// <param name="callerLineNumber">The caller line Number.</param>
     public static void Log(
         this string message,
-        Type source,
+        System.Type source,
         LogLevel messageType,
         object? extendedData = null,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         CreateLogEntry(
             messageType, message, source?.FullName, extendedData,
@@ -112,12 +109,12 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Log(
-        this Exception ex,
+        this System.Exception ex,
         string? source = null,
         string? message = null,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
             return;
@@ -137,12 +134,12 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
     public static void Log(
-        this Exception ex,
-        Type? source = null,
+        this System.Exception ex,
+        System.Type? source = null,
         string? message = null,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
             return;
