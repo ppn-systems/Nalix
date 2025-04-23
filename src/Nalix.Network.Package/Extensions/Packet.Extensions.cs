@@ -1,8 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Serialization;
-using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Network.Package.Extensions;
 
@@ -28,19 +26,19 @@ public static class PacketExtensions
         => PacketSerializer.Serialize(in packet);
 
     /// <summary>
-    /// Deserializes a packet from a <see cref="ReadOnlySpan{T}"/> of bytes.
+    /// Deserializes a packet from a <see cref="System.ReadOnlySpan{T}"/> of bytes.
     /// </summary>
     /// <param name="data">The byte span containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
-    public static IPacket Deserialize(this ReadOnlySpan<byte> data)
+    public static IPacket Deserialize(this System.ReadOnlySpan<byte> data)
         => PacketSerializer.Deserialize(data);
 
     /// <summary>
-    /// Deserializes a packet from a <see cref="ReadOnlyMemory{T}"/> of bytes.
+    /// Deserializes a packet from a <see cref="System.ReadOnlyMemory{T}"/> of bytes.
     /// </summary>
     /// <param name="data">The memory segment containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
-    public static IPacket Deserialize(this ReadOnlyMemory<byte> data)
+    public static IPacket Deserialize(this System.ReadOnlyMemory<byte> data)
         => PacketSerializer.Deserialize(data);
 
     /// <summary>
@@ -58,7 +56,8 @@ public static class PacketExtensions
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
     /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(this in Packet packet, Span<byte> destination, [NotNullWhen(true)] out int bytesWritten)
+    public static bool TrySerialize(this in Packet packet, System.Span<byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
         => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
 
     /// <summary>
@@ -67,6 +66,7 @@ public static class PacketExtensions
     /// <param name="source">The byte span containing packet data.</param>
     /// <param name="packet">Outputs the deserialized packet if successful.</param>
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(this ReadOnlySpan<byte> source, [NotNullWhen(true)] out Packet packet)
+    public static bool TryDeserialize(this System.ReadOnlySpan<byte> source,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Packet packet)
         => PacketSerializer.TryDeserialize(source, out packet);
 }
