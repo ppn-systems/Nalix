@@ -1,7 +1,7 @@
 using Nalix.Common.Constants;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
-using Nalix.Defaults;
+using Nalix.Environment;
 
 namespace Nalix.Network.Package;
 

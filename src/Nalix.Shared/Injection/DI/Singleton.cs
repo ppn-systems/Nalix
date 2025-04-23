@@ -35,7 +35,7 @@ public static class Singleton
     /// </summary>
     /// <typeparam name="TClass">The type of the class to register.</typeparam>
     /// <param name="instance">The instance of the class to register.</param>
-    /// <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Defaults to false.</param>
+    /// <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Environment to false.</param>
     /// <exception cref="ArgumentNullException">Thrown when the instance is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,7 +109,7 @@ public static class Singleton
     /// Resolves or creates an instance of the requested type with optimized caching.
     /// </summary>
     /// <typeparam name="TClass">The type to resolve.</typeparam>
-    /// <param name="createIfNotExists">If true, creates the instance if not already registered. Defaults to true.</param>
+    /// <param name="createIfNotExists">If true, creates the instance if not already registered. Environment to true.</param>
     /// <returns>The resolved or newly created instance of the requested type.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -42,7 +42,7 @@ public static class QValueListExtensions
         // RFC7231, Section 5.3.4, rule #2:
         // If the representation has no content-coding, then it is
         // acceptable by default unless specifically excluded by the
-        // Accept - DefaultEncodings field stating either "identity;q=0" or "*;q=0"
+        // Accept - BaseEncodingConstants field stating either "identity;q=0" or "*;q=0"
         // without a more specific entry for "identity".
         if (!preferCompression && (!@this.TryGetWeight(CompressionMethodNames.None, out int weight) || weight > 0))
         {

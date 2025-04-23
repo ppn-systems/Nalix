@@ -5,13 +5,13 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Defaults;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Class that defines default directories for the application with enhanced functionality
 /// and flexibility for both development and production environments.
 /// </summary>
-public static class DefaultDirectories
+public static class PathDefaults
 {
     #region Private Fields
 
@@ -244,7 +244,7 @@ public static class DefaultDirectories
     /// Static constructor to initialize the default directories.
     /// Ensures that all necessary directories are created.
     /// </summary>
-    static DefaultDirectories()
+    static PathDefaults()
     {
         // Access all properties to ensure directories are created
         _ = LogsPath;

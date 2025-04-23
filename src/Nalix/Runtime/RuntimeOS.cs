@@ -11,7 +11,7 @@ public static class RuntimeOS
 {
     private static readonly Lazy<OSPlatform> OsLazy = new(() =>
     {
-        string windir = Environment.GetEnvironmentVariable("windir");
+        string windir = System.Environment.GetEnvironmentVariable("windir");
         if (!string.IsNullOrEmpty(windir) && windir.Contains('\\') && Directory.Exists(windir))
         {
             return OSPlatform.Windows;

@@ -7,7 +7,7 @@ namespace Nalix.Identifiers;
 
 /// <summary>
 /// Provides utility methods for encoding, decoding, and generating BaseN identifiers.
-/// Supports Base36, Base58, Base64, and other customizable bases.
+/// Supports Base36Value, Base58Value, Base64Value, and other customizable bases.
 /// </summary>
 public static class BaseN
 {
@@ -88,7 +88,7 @@ public static class BaseN
     /// </summary>
     /// <param name="value">The numeric value to encode.</param>
     /// <param name="alphabet">The character set defining the BaseN encoding.</param>
-    /// <param name="baseValue">The numeric base (e.g., 36 for Base36, 58 for Base58).</param>
+    /// <param name="baseValue">The numeric base (e.g., 36 for Base36Value, 58 for Base58Value).</param>
     /// <param name="maxLength">The maximum possible length of the output string.</param>
     /// <returns>A string representation of the encoded Number.</returns>
     public static string EncodeToBaseN(uint value, string alphabet, uint baseValue, int maxLength)

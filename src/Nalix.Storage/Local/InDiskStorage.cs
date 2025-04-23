@@ -1,4 +1,4 @@
-using Nalix.Defaults;
+using Nalix.Environment;
 using Nalix.Storage.Configurations;
 using Nalix.Storage.FileFormats;
 using Nalix.Storage.Generator;
@@ -36,7 +36,7 @@ public class InDiskStorage : IFileStorage
     /// <summary>
     /// Initializes a new instance of <see cref="InDiskStorage"/> with default settings.
     /// </summary>
-    public InDiskStorage() => _storageConfig = new InDiskConfig(DefaultDirectories.StoragePath)
+    public InDiskStorage() => _storageConfig = new InDiskConfig(PathDefaults.StoragePath)
         .UseFileGenerator(new FileGenerator())
         .UseMimeTypeResolver(new MimeTypeResolver());
 

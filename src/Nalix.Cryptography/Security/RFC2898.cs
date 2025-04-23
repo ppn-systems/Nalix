@@ -42,14 +42,14 @@ public static class RFC2898
     }
 
     /// <summary>
-    /// Derives a cryptographic key from the password and salt using PBKDF2 and returns the result as a Base64-encoded string.
+    /// Derives a cryptographic key from the password and salt using PBKDF2 and returns the result as a Base64Value-encoded string.
     /// </summary>
     /// <param name="password">The password used to derive the key.</param>
     /// <param name="salt">The cryptographic salt as a byte array.</param>
     /// <param name="iterations">The number of iterations to apply the hash function.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
-    /// <returns>A Base64-encoded string representing the derived key.</returns>
+    /// <returns>A Base64Value-encoded string representing the derived key.</returns>
     public static string DeriveKeyBase64(
         string password, byte[] salt,
         int iterations, int keyLength,

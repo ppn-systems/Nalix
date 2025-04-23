@@ -1,4 +1,4 @@
-namespace Nalix.Defaults;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Provides predefined JSON serialization settings for different use cases.

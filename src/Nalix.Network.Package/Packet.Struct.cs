@@ -1,6 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
-using Nalix.Defaults;
+using Nalix.Environment;
 using Nalix.Utilities;
 
 namespace Nalix.Network.Package;

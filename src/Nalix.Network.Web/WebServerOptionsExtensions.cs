@@ -81,7 +81,7 @@ public static class WebServerOptionsExtensions
     /// </summary>
     /// <param name="this">The <see cref="WebServerOptions"/> on which this method is called.</param>
     /// <param name="value">The type of HTTP listener.</param>
-    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">DefaultEncodings</see> property
+    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">BaseEncodingConstants</see> property
     /// set to <paramref name="value"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The configuration of <paramref name="this"/> is locked.</exception>
@@ -95,7 +95,7 @@ public static class WebServerOptionsExtensions
     /// Sets the type of HTTP listener to <see cref="HttpListenerMode.Notio"/>.
     /// </summary>
     /// <param name="this">The <see cref="WebServerOptions"/> on which this method is called.</param>
-    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">DefaultEncodings</see> property
+    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">BaseEncodingConstants</see> property
     /// set to <see cref="HttpListenerMode.Notio"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The configuration of <paramref name="this"/> is locked.</exception>
@@ -109,7 +109,7 @@ public static class WebServerOptionsExtensions
     /// Sets the type of HTTP listener to <see cref="HttpListenerMode.Microsoft"/>.
     /// </summary>
     /// <param name="this">The <see cref="WebServerOptions"/> on which this method is called.</param>
-    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">DefaultEncodings</see> property
+    /// <returns><paramref name="this"/> with its <see cref="WebServerOptions.Mode">BaseEncodingConstants</see> property
     /// set to <see cref="HttpListenerMode.Microsoft"/>.</returns>
     /// <exception cref="NullReferenceException"><paramref name="this"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The configuration of <paramref name="this"/> is locked.</exception>

@@ -1,4 +1,4 @@
-using Nalix.Defaults;
+using Nalix.Environment;
 using Nalix.Shared.Configuration.Binding;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Internal;
@@ -57,7 +57,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private ConfigurationStore()
     {
         // Determine the configuration file path
-        this.ConfigFilePath = Path.Combine(DefaultDirectories.ConfigPath, "Configured.ini");
+        this.ConfigFilePath = Path.Combine(PathDefaults.ConfigPath, "Configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new Lazy<ConfiguredIniFile>(() =>

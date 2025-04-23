@@ -580,7 +580,7 @@ public static class AssertionSentry
         // If we didn't throw, we still need to prevent normal execution
         // by exiting the method (this should technically never be reached,
         // as the DoesNotReturn attribute indicates)
-        Environment.FailFast($"Critical assertion failure: {detailedMessage}");
+        System.Environment.FailFast($"Critical assertion failure: {detailedMessage}");
     }
 
     /// <summary>

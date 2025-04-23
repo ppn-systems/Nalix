@@ -96,7 +96,7 @@ public abstract partial class Listener : IListener, IDisposable
         // Optimized for Socket.IOControlCode on Windows
         if (Config.IsWindows)
         {
-            int parallelismLevel = Environment.ProcessorCount * MinWorkerThreads;
+            int parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
             // Thread pool optimization for IOCP
             ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
             ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelismLevel), completionPortThreads);

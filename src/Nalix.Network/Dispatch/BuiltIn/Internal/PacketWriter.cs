@@ -1,6 +1,6 @@
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
-using Nalix.Defaults;
+using Nalix.Environment;
 using Nalix.Integrity;
 using Nalix.Utilities;
 using System;

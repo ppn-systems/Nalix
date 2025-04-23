@@ -1,4 +1,4 @@
-using Nalix.Defaults;
+using Nalix.Environment;
 using System;
 using System.IO;
 using System.Text;
@@ -32,7 +32,7 @@ public static class JsonBuffer
     /// <typeparam name="T">The type of the object to serialize.</typeparam>
     /// <param name="obj">The object to serialize.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON serialization. Must not be <see langword="null"/>.</param>
-    /// <param name="encoding">The encoding used for serialization. Defaults to UTF-8.</param>
+    /// <param name="encoding">The encoding used for serialization. Environment to UTF-8.</param>
     /// <returns>A byte array containing the UTF-8 encoded JSON representation of the object.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="jsonTypeInfo"/> is <see langword="null"/>.</exception>
     public static byte[] SerializeToBytes<T>(
@@ -87,7 +87,7 @@ public static class JsonBuffer
     /// <typeparam name="T">The target type of the deserialization.</typeparam>
     /// <param name="jsonBytes">The UTF-8 encoded JSON byte array to deserialize. Must not be <see langword="null"/>.</param>
     /// <param name="jsonTypeInfo">The metadata used for JSON deserialization. Must not be <see langword="null"/>.</param>
-    /// <param name="encoding">The encoding used for deserialization. Defaults to UTF-8.</param>
+    /// <param name="encoding">The encoding used for deserialization. Environment to UTF-8.</param>
     /// <returns>An instance of <typeparamref name="T"/> if successful; otherwise, <see langword="default"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="jsonBytes"/> or <paramref name="jsonTypeInfo"/> is <see langword="null"/>.</exception>
     public static T DeserializeFromBytes<T>(

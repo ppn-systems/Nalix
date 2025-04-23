@@ -92,7 +92,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
     /// <para>Gets or sets a value indicating whether this module caches the contents of files
     /// and directory listings.</para>
     /// <para>Note that the actual representations of files are stored in <see cref="FileCache"/>;
-    /// thus, for example, if a file is always requested with an <c>Accept-DefaultEncodings</c> of <c>gzip</c>,
+    /// thus, for example, if a file is always requested with an <c>Accept-BaseEncodingConstants</c> of <c>gzip</c>,
     /// only the gzipped contents of the file will be cached.</para>
     /// </summary>
     /// <exception cref="InvalidOperationException">The module's configuration is locked.</exception>
@@ -124,7 +124,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
 
     /// <summary>
     /// <para>Gets or sets the default extension appended to requested URL paths that do not map
-    /// to any file or directory. Defaults to <see langword="null"/>.</para>
+    /// to any file or directory. Environment to <see langword="null"/>.</para>
     /// </summary>
     /// <exception cref="InvalidOperationException">The module's configuration is locked.</exception>
     /// <exception cref="ArgumentException">This property is being set to a non-<see langword="null"/>,

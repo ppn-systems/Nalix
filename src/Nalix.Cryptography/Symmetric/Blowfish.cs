@@ -291,10 +291,10 @@ public class Blowfish
     }
 
     /// <summary>
-    /// Encrypts a string and returns a Base64-encoded result.
+    /// Encrypts a string and returns a Base64Value-encoded result.
     /// </summary>
     /// <param name="plainText">The plaintext string to encrypt.</param>
-    /// <returns>A Base64-encoded encrypted string.</returns>
+    /// <returns>A Base64Value-encoded encrypted string.</returns>
     public string EncryptToBase64(string plainText)
     {
         byte[] data = Encoding.Unicode.GetBytes(plainText);
@@ -334,9 +334,9 @@ public class Blowfish
     }
 
     /// <summary>
-    /// Decrypts a Base64-encoded string.
+    /// Decrypts a Base64Value-encoded string.
     /// </summary>
-    /// <param name="cipherText">The Base64-encoded encrypted string.</param>
+    /// <param name="cipherText">The Base64Value-encoded encrypted string.</param>
     /// <returns>The decrypted plaintext string.</returns>
     public string DecryptFromBase64(string cipherText)
     {

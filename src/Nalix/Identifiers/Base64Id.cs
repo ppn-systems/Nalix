@@ -1,5 +1,5 @@
 using Nalix.Common.Identity;
-using Nalix.Defaults;
+using Nalix.Environment;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Identifiers;
 
 /// <summary>
-/// Represents a high-performance, space-efficient unique identifier that supports both Base64 and hexadecimal representations.
+/// Represents a high-performance, space-efficient unique identifier that supports both Base64Value and hexadecimal representations.
 /// </summary>
 /// <remarks>
 /// This implementation provides fast conversion between numeric and string representations,
@@ -22,7 +22,7 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     #region Fields and Static Constructor
 
     /// <summary>
-    /// Lookup table for converting characters to their Base64 values.
+    /// Lookup table for converting characters to their Base64Value values.
     /// </summary>
     private static readonly byte[] CharToValue;
 
@@ -40,7 +40,7 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     /// Static constructor to initialize the character lookup table.
     /// </summary>
     static Base64Id()
-        => CharToValue = BaseN.CreateCharLookupTable(DefaultEncodings.Base64Alphabet);
+        => CharToValue = BaseN.CreateCharLookupTable(BaseEncodingConstants.Alphabet64);
 
     #endregion Fields and Static Constructor
 
@@ -92,22 +92,22 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == DefaultEncodings.HexLength)
+        if (input.Length == BaseEncodingConstants.HexLength)
         {
             // Try to parse as hex first
             if (BaseN.TryParseHex(input, out uint value))
                 return new Base64Id(value);
         }
 
-        // Otherwise parse as Base64
-        return new Base64Id(BaseN.DecodeFromBaseN(input, CharToValue, DefaultEncodings.Base64));
+        // Otherwise parse as Base64Value
+        return new Base64Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base64Value));
     }
 
     /// <summary>
     /// Parses a string representation into a <see cref="Base64Id"/>, with explicit format specification.
     /// </summary>
     /// <param name="input">The string to parse.</param>
-    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base64.</param>
+    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base64Value.</param>
     /// <returns>The parsed <see cref="Base64Id"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="ArgumentException">Thrown if input is in an invalid format.</exception>
@@ -120,16 +120,16 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
 
         if (isHex)
         {
-            if (input.Length != DefaultEncodings.HexLength)
+            if (input.Length != BaseEncodingConstants.HexLength)
                 throw new ArgumentException(
-                    $"Invalid Hex length. Must be {DefaultEncodings.HexLength} characters.", nameof(input));
+                    $"Invalid Hex length. Must be {BaseEncodingConstants.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
             return new Base64Id(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
-        // Parse as Base64
-        return new Base64Id(BaseN.DecodeFromBaseN(input, CharToValue, DefaultEncodings.Base64));
+        // Parse as Base64Value
+        return new Base64Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base64Value));
     }
 
     /// <summary>
@@ -147,14 +147,14 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == DefaultEncodings.HexLength && BaseN.TryParseHex(input, out uint hexValue))
+        if (input.Length == BaseEncodingConstants.HexLength && BaseN.TryParseHex(input, out uint hexValue))
         {
             result = new Base64Id(hexValue);
             return true;
         }
 
-        // Otherwise try Base64
-        if (BaseN.TryDecodeFromBaseN(input, CharToValue, DefaultEncodings.Base64, out uint value))
+        // Otherwise try Base64Value
+        if (BaseN.TryDecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base64Value, out uint value))
         {
             result = new Base64Id(value);
             return true;
@@ -224,7 +224,7 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     /// <summary>
     /// Converts the Number to a string representation.
     /// </summary>
-    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base64 string.</param>
+    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base64Value string.</param>
     /// <returns>The string representation of the Number.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToString(bool isHex = false)
@@ -236,18 +236,18 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     }
 
     /// <summary>
-    /// Returns the default string representation (Base64).
+    /// Returns the default string representation (Base64Value).
     /// </summary>
     public override string ToString() => ToBase64String();
 
     /// <summary>
-    /// Converts the Number to a Base64 string with minimum padding.
+    /// Converts the Number to a Base64Value string with minimum padding.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ToBase64String()
     {
         // For efficiency, allocate a stack buffer for the maximum possible length
-        // Base64 representation of uint.MaxValue is at most 6 characters
+        // Base64Value representation of uint.MaxValue is at most 6 characters
         Span<char> buffer = stackalloc char[6];
         int position = buffer.Length;
         uint remaining = _value;
@@ -255,9 +255,9 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % DefaultEncodings.Base64;
-            remaining /= DefaultEncodings.Base64;
-            buffer[--position] = DefaultEncodings.Base64Alphabet[(int)digit];
+            uint digit = remaining % BaseEncodingConstants.Base64Value;
+            remaining /= BaseEncodingConstants.Base64Value;
+            buffer[--position] = BaseEncodingConstants.Alphabet64[(int)digit];
         } while (remaining > 0);
 
         // Create a new string from the buffer

@@ -303,12 +303,12 @@ public abstract class WebServerBase<TOptions> : ConfiguredObject, IWebServer, IH
                 long contentLength = context.Response.ContentLength64;
                 context.Close();
                 string sanitizedHttpMethod = context.Request.HttpMethod
-                    .Replace(Environment.NewLine, "")
+                    .Replace(System.Environment.NewLine, "")
                     .Replace("\n", "")
                     .Replace("\r", "");
 
                 string sanitizedUrlPath = context.Request.Url.AbsolutePath
-                    .Replace(Environment.NewLine, "")
+                    .Replace(System.Environment.NewLine, "")
                     .Replace("\n", "")
                     .Replace("\r", "");
 

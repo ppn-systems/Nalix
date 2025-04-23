@@ -76,7 +76,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     /// <summary>
     /// Dequeues up to <paramref name="limit"/> packets in priority order.
     /// </summary>
-    /// <param name="limit">The maximum number of packets to dequeue. Defaults to 100.</param>
+    /// <param name="limit">The maximum number of packets to dequeue. Environment to 100.</param>
     /// <returns>A list of dequeued packets. May contain fewer than <paramref name="limit"/> packets if the queue runs out.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<TPacket> DequeueBatch(int limit = 100)

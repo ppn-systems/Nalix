@@ -45,11 +45,11 @@ public static class SecureCredentials
     }
 
     /// <summary>
-    /// Generates a Base64-encoded string containing version, salt, and hash for a credential.
+    /// Generates a Base64Value-encoded string containing version, salt, and hash for a credential.
     /// Format: [version (1 byte)] + [salt] + [hash].
     /// </summary>
     /// <param name="credential">The plaintext credential.</param>
-    /// <returns>A Base64-encoded string containing version, salt, and hash.</returns>
+    /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>
     public static string GenerateCredentialBase64(string credential)
     {
         GenerateCredentialHash(credential, out byte[] salt, out byte[] hash);
@@ -75,10 +75,10 @@ public static class SecureCredentials
     }
 
     /// <summary>
-    /// Verifies a credential against a Base64-encoded hash with version information.
+    /// Verifies a credential against a Base64Value-encoded hash with version information.
     /// </summary>
     /// <param name="credential">The credential to verify.</param>
-    /// <param name="encodedCredentials">The Base64-encoded string containing version, salt, and hash.</param>
+    /// <param name="encodedCredentials">The Base64Value-encoded string containing version, salt, and hash.</param>
     /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
     public static bool VerifyCredentialFromBase64(string credential, string encodedCredentials)
     {
@@ -99,7 +99,7 @@ public static class SecureCredentials
         }
         catch (FormatException)
         {
-            return false; // Base64 không hợp lệ
+            return false; // Base64Value không hợp lệ
         }
     }
 

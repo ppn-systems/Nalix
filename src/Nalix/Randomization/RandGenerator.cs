@@ -479,8 +479,8 @@ public static class RandGenerator
         // Initialize thread-local state from global state plus thread-specific entropy
         lock (SyncRoot)
         {
-            localState[0] = State[0] ^ (ulong)Environment.CurrentManagedThreadId;
-            localState[1] = State[1] ^ (ulong)Environment.CurrentManagedThreadId;
+            localState[0] = State[0] ^ (ulong)System.Environment.CurrentManagedThreadId;
+            localState[1] = State[1] ^ (ulong)System.Environment.CurrentManagedThreadId;
             localState[2] = State[2] ^ (ulong)DateTime.UtcNow.Ticks;
             localState[3] = State[3] ^ GetCpuCycles();
 
@@ -509,14 +509,14 @@ public static class RandGenerator
         BitConverter.TryWriteBytes(seed.AsSpan(0, 8), timestamp);
 
         // Use Environment.TickCount64 for additional entropy
-        long tickCount = Environment.TickCount64;
+        long tickCount = System.Environment.TickCount64;
         BitConverter.TryWriteBytes(seed.AsSpan(8, 8), tickCount);
 
         // Use process and thread IDs
-        int processId = Environment.ProcessId;
+        int processId = System.Environment.ProcessId;
         BitConverter.TryWriteBytes(seed.AsSpan(16, 4), processId);
 
-        int threadId = Environment.CurrentManagedThreadId;
+        int threadId = System.Environment.CurrentManagedThreadId;
         BitConverter.TryWriteBytes(seed.AsSpan(20, 4), threadId);
 
         // Hardware-specific information like CPU cycles
@@ -571,7 +571,7 @@ public static class RandGenerator
         catch
         {
             // Fall back to Environment.TickCount if Stopwatch fails
-            return (ulong)(Environment.TickCount ^ GC.GetTotalMemory(false));
+            return (ulong)(System.Environment.TickCount ^ GC.GetTotalMemory(false));
         }
     }
 

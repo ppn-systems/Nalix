@@ -31,7 +31,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="salt">The salt value to use in the key derivation process. Must not be null or empty.</param>
     /// <param name="iterations">The Number of iterations to perform. Must be greater than 0.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes. Must be greater than 0.</param>
-    /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Defaults to SHA1.</param>
+    /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Environment to SHA1.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
     public PBKDF2(

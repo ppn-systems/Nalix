@@ -37,7 +37,7 @@ public static class HttpRequestExtensions
 
     /// <summary>
     /// <para>Attempts to proactively negotiate a compression method for a response,
-    /// based on a request's <c>Accept-DefaultEncodings</c> header (or lack of it).</para>
+    /// based on a request's <c>Accept-BaseEncodingConstants</c> header (or lack of it).</para>
     /// </summary>
     /// <param name="this">The <see cref="IHttpRequest"/> on which this method is called.</param>
     /// <param name="preferCompression"><see langword="true"/> if sending compressed data is preferred over
@@ -53,9 +53,9 @@ public static class HttpRequestExtensions
     /// will set appropriate response headers to reflect the results of content negotiation.</para>
     /// <para>If this method returns <see langword="false"/>, the <paramref name="prepareResponse"/> callback
     /// will throw a <see cref="HttpNotAcceptableException"/> to send a <c>406 Not Acceptable</c> response
-    /// with the <c>Vary</c> header set to <c>Accept-DefaultEncodings</c>,
+    /// with the <c>Vary</c> header set to <c>Accept-BaseEncodingConstants</c>,
     /// so that the client may know the reason why the request has been rejected.</para>
-    /// <para>If <paramref name="this"/> has no<c>Accept-DefaultEncodings</c> header, this method
+    /// <para>If <paramref name="this"/> has no<c>Accept-BaseEncodingConstants</c> header, this method
     /// always returns <see langword="true"/> and sets <paramref name="compressionMethod"/>
     /// to <see cref="CompressionMethod.None"/>.</para>
     /// </remarks>

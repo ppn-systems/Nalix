@@ -1,4 +1,4 @@
-namespace Nalix.Defaults;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Represents default values and constants for configurations.

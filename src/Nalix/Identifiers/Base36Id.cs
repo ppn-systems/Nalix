@@ -1,5 +1,5 @@
 using Nalix.Common.Identity;
-using Nalix.Defaults;
+using Nalix.Environment;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Identifiers;
 
 /// <summary>
-/// Represents a high-performance, space-efficient unique identifier that supports both Base36 and hexadecimal representations.
+/// Represents a high-performance, space-efficient unique identifier that supports both Base36Value and hexadecimal representations.
 /// </summary>
 /// <remarks>
 /// This implementation provides fast conversion between numeric and string representations,
@@ -22,7 +22,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     #region Fields and Static Constructor
 
     /// <summary>
-    /// Lookup table for converting characters to their Base36 values.
+    /// Lookup table for converting characters to their Base36Value values.
     /// </summary>
     private static readonly byte[] CharToValue;
 
@@ -40,7 +40,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// Static constructor to initialize the character lookup table.
     /// </summary>
     static Base36Id()
-        => CharToValue = BaseN.CreateCharLookupTable(DefaultEncodings.Base36Alphabet);
+        => CharToValue = BaseN.CreateCharLookupTable(BaseEncodingConstants.Alphabet36);
 
     #endregion Fields and Static Constructor
 
@@ -92,22 +92,22 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == DefaultEncodings.HexLength)
+        if (input.Length == BaseEncodingConstants.HexLength)
         {
             // Try to parse as hex first
             if (BaseN.TryParseHex(input, out uint value))
                 return new Base36Id(value);
         }
 
-        // Otherwise parse as Base36
-        return new Base36Id(BaseN.DecodeFromBaseN(input, CharToValue, DefaultEncodings.Base36));
+        // Otherwise parse as Base36Value
+        return new Base36Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base36Value));
     }
 
     /// <summary>
     /// Parses a string representation into a <see cref="Base36Id"/>, with explicit format specification.
     /// </summary>
     /// <param name="input">The string to parse.</param>
-    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base36.</param>
+    /// <param name="isHex">If true, parse as hexadecimal; otherwise, parse as Base36Value.</param>
     /// <returns>The parsed <see cref="Base36Id"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if input is empty.</exception>
     /// <exception cref="ArgumentException">Thrown if input is in an invalid format.</exception>
@@ -120,16 +120,16 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
 
         if (isHex)
         {
-            if (input.Length != DefaultEncodings.HexLength)
+            if (input.Length != BaseEncodingConstants.HexLength)
                 throw new ArgumentException(
-                    $"Invalid Hex length. Must be {DefaultEncodings.HexLength} characters.", nameof(input));
+                    $"Invalid Hex length. Must be {BaseEncodingConstants.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
             return new Base36Id(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
-        // Parse as Base36
-        return new Base36Id(BaseN.DecodeFromBaseN(input, CharToValue, DefaultEncodings.Base36));
+        // Parse as Base36Value
+        return new Base36Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base36Value));
     }
 
     /// <summary>
@@ -147,14 +147,14 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == DefaultEncodings.HexLength && BaseN.TryParseHex(input, out uint hexValue))
+        if (input.Length == BaseEncodingConstants.HexLength && BaseN.TryParseHex(input, out uint hexValue))
         {
             result = new Base36Id(hexValue);
             return true;
         }
 
-        // Otherwise try Base36
-        if (BaseN.TryDecodeFromBaseN(input, CharToValue, DefaultEncodings.Base36, out uint value))
+        // Otherwise try Base36Value
+        if (BaseN.TryDecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base36Value, out uint value))
         {
             result = new Base36Id(value);
             return true;
@@ -224,7 +224,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// <summary>
     /// Converts the Number to a string representation.
     /// </summary>
-    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base36 string.</param>
+    /// <param name="isHex">If true, returns an 8-digit hexadecimal string; otherwise, returns a Base36Value string.</param>
     /// <returns>The string representation of the Number.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ToString(bool isHex = false)
@@ -236,18 +236,18 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     }
 
     /// <summary>
-    /// Returns the default string representation (Base36).
+    /// Returns the default string representation (Base36Value).
     /// </summary>
     public override string ToString() => ToBase36String();
 
     /// <summary>
-    /// Converts the Number to a Base36 string with minimum padding.
+    /// Converts the Number to a Base36Value string with minimum padding.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ToBase36String()
     {
         // For efficiency, allocate a stack buffer for the maximum possible length
-        // Base36 representation of uint.MaxValue is at most 7 characters
+        // Base36Value representation of uint.MaxValue is at most 7 characters
         Span<char> buffer = stackalloc char[13];
         int position = buffer.Length;
         uint remaining = _value;
@@ -255,9 +255,9 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % DefaultEncodings.Base36;
-            remaining /= DefaultEncodings.Base36;
-            buffer[--position] = DefaultEncodings.Base36Alphabet[(int)digit];
+            uint digit = remaining % BaseEncodingConstants.Base36Value;
+            remaining /= BaseEncodingConstants.Base36Value;
+            buffer[--position] = BaseEncodingConstants.Alphabet36[(int)digit];
         } while (remaining > 0);
 
         // Apply padding to minimum length if necessary

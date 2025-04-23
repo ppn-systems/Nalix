@@ -17,10 +17,10 @@ internal sealed class FileCacheItem
     internal long LastUsedAt;
 
     // Size of a pointer in bytes
-    private static readonly long SizeOfPointer = Environment.Is64BitProcess ? 8 : 4;
+    private static readonly long SizeOfPointer = System.Environment.Is64BitProcess ? 8 : 4;
 
     // Size of a WeakReference<T> in bytes
-    private static readonly long SizeOfWeakReference = Environment.Is64BitProcess ? 16 : 32;
+    private static readonly long SizeOfWeakReference = System.Environment.Is64BitProcess ? 16 : 32;
 
     // Educated guess about the size of an Item in memory (see comments on constructor).
     // 3 * SizeOfPointer + total size of fields, rounded up to a multiple of 16.
@@ -43,7 +43,7 @@ internal sealed class FileCacheItem
     //       (at the time of writing there are no fields here that need padding on 64-bit)
     //     - multiply count by 8 (size of a pointer)
     //     - if the result is not a multiple of 16, round it up to next multiple of 16
-    private static readonly long SizeOfItem = Environment.Is64BitProcess ? 96 : 128;
+    private static readonly long SizeOfItem = System.Environment.Is64BitProcess ? 96 : 128;
 
     private readonly Lock _syncRoot = new();
 

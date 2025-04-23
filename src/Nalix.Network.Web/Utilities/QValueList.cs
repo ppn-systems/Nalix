@@ -16,7 +16,7 @@ public sealed class QValueList
     /// <summary>
     /// <para>A value signifying "anything will do" in request headers.</para>
     /// <para>For example, a request header of
-    /// <c>Accept-DefaultEncodings: *;q=0.8, gzip</c> means "I prefer GZip compression;
+    /// <c>Accept-BaseEncodingConstants: *;q=0.8, gzip</c> means "I prefer GZip compression;
     /// if it is not available, any other compression (including no compression at all)
     /// is OK for me".</para>
     /// </summary>

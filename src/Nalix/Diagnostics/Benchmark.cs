@@ -63,7 +63,7 @@ public static partial class Benchmark
                     .Append($"AVG: {kvp.Value.Average(t => t.TotalMilliseconds),8:0.000} ms. | ")
                     .Append($"MAX: {kvp.Value.Max(t => t.TotalMilliseconds),8:0.000} ms. | ")
                     .Append($"MIN: {kvp.Value.Min(t => t.TotalMilliseconds),8:0.000} ms. | ")
-                    .Append(Environment.NewLine);
+                    .Append(System.Environment.NewLine);
             }
         }
 

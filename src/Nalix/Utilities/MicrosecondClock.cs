@@ -1,4 +1,4 @@
-using Nalix.Defaults;
+using Nalix.Environment;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
