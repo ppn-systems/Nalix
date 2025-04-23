@@ -1,4 +1,4 @@
-namespace Nalix.Logging.Engine.Formatters;
+namespace Nalix.Logging.Formatters;
 
 /// <summary>
 /// Contains constant values used for logging.

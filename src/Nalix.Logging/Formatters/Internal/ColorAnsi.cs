@@ -1,6 +1,6 @@
 using Nalix.Common.Logging;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
 /// Provides ANSI color codes for console output styling in the logging system.

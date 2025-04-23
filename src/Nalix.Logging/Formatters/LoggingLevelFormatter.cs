@@ -2,7 +2,7 @@ using Nalix.Common.Logging;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Logging.Engine.Formatters;
+namespace Nalix.Logging.Formatters;
 
 /// <summary>
 /// Provides high-performance formatting of logging levels with zero allocations.

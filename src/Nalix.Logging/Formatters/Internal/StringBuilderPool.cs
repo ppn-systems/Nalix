@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
 /// Provides pooling for StringBuilder instances to reduce allocations.

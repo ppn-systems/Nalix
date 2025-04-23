@@ -26,7 +26,7 @@ public sealed class LogDistributor : ILogDistributor
     private int _isDisposed;
 
     // Statistics for monitoring
-    private long _entriesPublished;
+    private long _entriesDistributor;
 
     private long _targetsProcessed;
     private long _publishErrorCount;
@@ -38,7 +38,7 @@ public sealed class LogDistributor : ILogDistributor
     /// <summary>
     /// Gets the total Number of log entries that have been published.
     /// </summary>
-    public long EntriesPublished => Interlocked.Read(ref _entriesPublished);
+    public long EntriesDistributor => Interlocked.Read(ref _entriesDistributor);
 
     /// <summary>
     /// Gets the total Number of target publish operations performed.
@@ -70,7 +70,7 @@ public sealed class LogDistributor : ILogDistributor
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         // Increment the published entries counter
-        Interlocked.Increment(ref _entriesPublished);
+        Interlocked.Increment(ref _entriesDistributor);
 
         // Optimize for the common case of a single target
         if (_targets.Count == 1)
@@ -231,7 +231,7 @@ public sealed class LogDistributor : ILogDistributor
         => $"[LogDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
            $"- User: {Environment.UserName}" + Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + Environment.NewLine +
-           $"- Entries Published: {EntriesPublished:N0}" + Environment.NewLine +
+           $"- Entries Published: {EntriesDistributor:N0}" + Environment.NewLine +
            $"- Target Operations: {TargetsProcessed:N0}" + Environment.NewLine +
            $"- Errors: {PublishErrorCount:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;

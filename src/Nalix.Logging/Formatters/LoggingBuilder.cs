@@ -1,11 +1,11 @@
 using Nalix.Common.Logging;
-using Nalix.Logging.Internal;
+using Nalix.Logging.Formatters.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Logging.Engine.Formatters;
+namespace Nalix.Logging.Formatters;
 
 /// <summary>
 /// High-performance log building utilities optimized for minimal allocations.
