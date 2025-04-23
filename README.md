@@ -6,6 +6,8 @@
 ![NuGet Version](https://img.shields.io/nuget/v/Nalix?style=flat-square&logo=nuget)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix?style=flat-square&logo=nuget)
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10470/badge)](https://www.bestpractices.dev/projects/10470)
+
 Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
 ## ✨ Features
