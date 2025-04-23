@@ -3,7 +3,7 @@ using Nalix.Randomization;
 using System;
 using System.Buffers.Binary;
 
-namespace Nalix.Identifiers;
+namespace Nalix.Identifiers.Internal;
 
 /// <summary>
 /// Provides utility methods for encoding, decoding, and generating BaseNEncoding identifiers.
@@ -58,7 +58,7 @@ internal static class BaseNEncoding
         uint timestamp = (uint)(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() & 0xFFFFFFFF);
 
         // Combine the random value and timestamp with bit-shifting for better distribution
-        uint uniqueValue = randomValue ^ ((timestamp << 5) | (timestamp >> 27));
+        uint uniqueValue = randomValue ^ (timestamp << 5 | timestamp >> 27);
 
         // Incorporate type Number in the high 8 bits
         uint typeComponent = (uint)type << 24;
@@ -67,9 +67,9 @@ internal static class BaseNEncoding
         // - High 8 bits: Type Number
         // - Middle 16 bits: Unique value (from random + timestamp mix)
         // - Low 8 bits: Machine Number
-        return (typeComponent) |
-               (uniqueValue & 0x00FFFF00) |
-               ((uint)(machineId & 0xFFFF));
+        return typeComponent |
+               uniqueValue & 0x00FFFF00 |
+               (uint)(machineId & 0xFFFF);
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ internal static class BaseNEncoding
             if (c > 127 || charToValue[c] == byte.MaxValue)
                 return false;
 
-            if (result > (uint.MaxValue / baseValue))
+            if (result > uint.MaxValue / baseValue)
                 return false;
 
             byte digitValue = charToValue[c];

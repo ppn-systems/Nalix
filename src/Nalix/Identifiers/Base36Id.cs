@@ -1,4 +1,5 @@
 using Nalix.Common.Identity;
+using Nalix.Identifiers.Internal;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

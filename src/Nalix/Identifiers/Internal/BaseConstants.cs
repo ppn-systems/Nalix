@@ -1,4 +1,4 @@
-namespace Nalix.Identifiers;
+namespace Nalix.Identifiers.Internal;
 
 /// <summary>
 /// Provides constants for numeric encoding systems like Base36Value, Base58Value, and Hex.
