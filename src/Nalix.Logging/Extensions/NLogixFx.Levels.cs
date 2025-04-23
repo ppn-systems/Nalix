@@ -60,11 +60,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Meta, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Meta Methods
 
@@ -82,15 +80,13 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Debug(
-        this string message,
-        string? source = null,
-        object? extendedData = null,
+        this string message, string? source = null, object? extendedData = null,
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(LogLevel.Debug, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
-    }
+        => CreateLogEntry(
+            LogLevel.Debug, message, source, extendedData,
+            callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
     /// Logs a debug message to the console.
@@ -110,11 +106,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Debug, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a debug message to the console.
@@ -134,11 +128,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Debug Methods
 
@@ -153,6 +145,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this string message,
         string? source = null,
@@ -160,11 +154,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a trace message to the console.
@@ -175,6 +167,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this string message,
         System.Type source,
@@ -182,11 +176,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry
-            (LogLevel.Trace, message, source?.FullName, extendedData,
+        => CreateLogEntry(
+            LogLevel.Trace, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a trace message to the console.
@@ -197,6 +189,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this System.Exception extendedData,
         string source,
@@ -204,11 +198,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Trace Methods
 
@@ -223,6 +215,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this string message,
         string? source = null,
@@ -230,11 +224,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a warning message to the console.
@@ -245,6 +237,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this string message,
         System.Type source,
@@ -252,11 +246,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Warning, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a warning message to the console.
@@ -267,6 +259,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this System.Exception extendedData,
         string source,
@@ -274,11 +268,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Warning Methods
 
@@ -293,6 +285,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this string message,
         string? source = null,
@@ -300,11 +294,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a warning message to the console.
@@ -315,6 +307,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this string message,
         System.Type source,
@@ -322,11 +316,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs a warning message to the console.
@@ -337,6 +329,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this System.Exception extendedData,
         string source,
@@ -344,11 +338,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Fatal Methods
 
@@ -363,6 +355,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this string message,
         string? source = null,
@@ -370,11 +364,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs an info message to the console.
@@ -385,6 +377,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this string message,
         System.Type source,
@@ -392,11 +386,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Information, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs an info message to the console.
@@ -407,6 +399,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this System.Exception extendedData,
         string source,
@@ -414,11 +408,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Info Methods
 
@@ -433,6 +425,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this string message,
         string? source = null,
@@ -440,11 +434,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Error, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs an error message to the console's standard error.
@@ -455,6 +447,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line Number.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this string message,
         System.Type source,
@@ -462,11 +456,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Error, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     /// <summary>
     /// Logs an error message to the console's standard error.
@@ -477,6 +469,8 @@ public static partial class NLogixFx
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line Number. This is automatically populated.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this System.Exception ex,
         string source,
@@ -484,11 +478,9 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
-    {
-        CreateLogEntry(
+        => CreateLogEntry(
             LogLevel.Error, message, source, ex,
             callerMemberName, callerFilePath, callerLineNumber);
-    }
 
     #endregion Error Methods
 }
