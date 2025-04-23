@@ -2,7 +2,6 @@ using Nalix.Common.Logging;
 using Nalix.Logging.Engine.Formatters;
 using Nalix.Logging.Formatters.Internal;
 using Nalix.Logging.Options;
-using System;
 
 namespace Nalix.Logging.Targets;
 
@@ -15,7 +14,7 @@ namespace Nalix.Logging.Targets;
 /// By default, a simple logging formatter is used, but you can configure a custom formatter if needed.
 /// The file logging behavior can also be customized through <see cref="FileLogOptions"/>.
 /// </remarks>
-public sealed class FileLogTarget : ILoggerTarget, IDisposable
+public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
@@ -31,11 +30,11 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="loggerFormatter">The formatter used to format log messages.</param>
     /// <param name="fileLoggerOptions">The options that configure the file logger's behavior.</param>
-    /// <exception cref="ArgumentNullException">Thrown when either <paramref name="loggerFormatter"/> or <paramref name="fileLoggerOptions"/> is <c>null</c>.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown when either <paramref name="loggerFormatter"/> or <paramref name="fileLoggerOptions"/> is <c>null</c>.</exception>
     public FileLogTarget(ILoggerFormatter loggerFormatter, FileLogOptions fileLoggerOptions)
     {
-        ArgumentNullException.ThrowIfNull(loggerFormatter);
-        ArgumentNullException.ThrowIfNull(fileLoggerOptions);
+        System.ArgumentNullException.ThrowIfNull(loggerFormatter);
+        System.ArgumentNullException.ThrowIfNull(fileLoggerOptions);
 
         _loggerFormatter = loggerFormatter;
         _loggerPrv = new FileLoggerProvider(fileLoggerOptions);
@@ -62,7 +61,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     /// Initializes a new instance of the <see cref="FileLogTarget"/> class with configurable formatting and file logger options.
     /// </summary>
     /// <param name="configureOptions">A delegate to configure <see cref="FileLogOptions"/>.</param>
-    public FileLogTarget(Action<FileLogOptions> configureOptions)
+    public FileLogTarget(System.Action<FileLogOptions> configureOptions)
         : this(new LoggingFormatter(false), ConfigureOptions(configureOptions))
     {
     }
@@ -90,7 +89,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     {
         _loggerPrv.FlushQueue();
         _loggerPrv.Dispose();
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
@@ -102,7 +101,7 @@ public sealed class FileLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="configureOptions">A delegate that configures <see cref="FileLogOptions"/>.</param>
     /// <returns>Configured <see cref="FileLogOptions"/> instance.</returns>
-    private static FileLogOptions ConfigureOptions(Action<FileLogOptions> configureOptions)
+    private static FileLogOptions ConfigureOptions(System.Action<FileLogOptions> configureOptions)
     {
         FileLogOptions options = new();
         configureOptions?.Invoke(options);

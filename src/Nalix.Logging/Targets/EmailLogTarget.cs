@@ -1,7 +1,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Logging.Options;
-using System;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -15,7 +14,7 @@ namespace Nalix.Logging.Targets;
 /// This target sends logs to a specified email address using an SMTP server.
 /// It only sends log messages that meet or exceed the specified minimum log level.
 /// </remarks>
-public sealed class EmailLogTarget : ILoggerTarget, IDisposable
+public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
@@ -31,10 +30,11 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     /// Initializes a new instance of the <see cref="EmailLogTarget"/> class using the provided configuration options.
     /// </summary>
     /// <param name="configure">The configuration options for email logging.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="configure"/> is null.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="configure"/> is null.</exception>
     public EmailLogTarget(EmailLogOptions configure)
     {
-        _options = configure ?? throw new ArgumentNullException(nameof(configure));
+        _options = configure
+            ?? throw new System.ArgumentNullException(nameof(configure));
 
         _smtpClient = new SmtpClient(_options.SmtpServer, _options.Port)
         {
@@ -55,17 +55,13 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     /// <param name="minimumLevel">Minimum log level required to send an email.</param>
     /// <param name="enableSsl">Specifies whether SSL should be enabled.</param>
     /// <param name="timeout">Timeout in milliseconds for SMTP operations.</param>
-    /// <exception cref="ArgumentNullException">Thrown if any required parameter is null or empty.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if port is out of the valid range (1-65535).</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if any required parameter is null or empty.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if port is out of the valid range (1-65535).</exception>
     public EmailLogTarget(
-        string smtpServer,
-        int port,
-        string from,
-        string to,
-        string password,
+        string smtpServer, int port,
+        string from, string to, string password,
         LogLevel minimumLevel = LogLevel.Error,
-        bool enableSsl = true,
-        int timeout = 30000)
+        bool enableSsl = true, int timeout = 30000)
         : this(new EmailLogOptions
         {
             SmtpServer = smtpServer,
@@ -89,11 +85,11 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="entry">The log entry to send via email.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance is disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance is disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if email sending fails.</exception>
     public async Task PublishAsync(LogEntry entry)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLogTarget));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLogTarget));
 
         if (entry.LogLevel < _options.MinimumLevel)
             return;
@@ -132,7 +128,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
         _smtpClient?.Dispose();
         _disposed = true;
 
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
@@ -160,7 +156,7 @@ public sealed class EmailLogTarget : ILoggerTarget, IDisposable
 
         return new MailMessage(_options.From, _options.To)
         {
-            Subject = $"[{entry.LogLevel}] - {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+            Subject = $"[{entry.LogLevel}] - {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}",
             Body = htmlBody,
             IsBodyHtml = true,
             Priority = entry.LogLevel == LogLevel.Critical ? MailPriority.High : MailPriority.Normal

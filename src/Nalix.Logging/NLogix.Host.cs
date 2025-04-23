@@ -1,6 +1,5 @@
 using Nalix.Logging.Options;
 using Nalix.Logging.Targets;
-using System;
 
 namespace Nalix.Logging;
 
@@ -20,7 +19,7 @@ public partial class NLogix
         /// The lazy-loaded singleton instance of the <see cref="NLogix"/> logger.
         /// The logger is configured during initialization with default targets.
         /// </summary>
-        private static readonly Lazy<NLogix> _instance = new(() =>
+        private static readonly System.Lazy<NLogix> _instance = new(() =>
             new NLogix(delegate (LogOptions cfg)
             {
                 // Configure default logging outputs
