@@ -87,7 +87,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketPriority priority,
         object obj,
         System.Text.Json.Serialization.Metadata.JsonTypeInfo<object> jsonTypeInfo)
-        : this(id, code, PacketType.Object, flags, priority, JsonBuffer.SerializeToMemory(obj, jsonTypeInfo))
+        : this(id, code, PacketType.Object, flags, priority, JsonCodec.SerializeToMemory(obj, jsonTypeInfo))
     {
     }
 
@@ -131,7 +131,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketFlags flags,
         PacketPriority priority,
         System.Memory<byte> payload)
-        : this(id, 0, MicrosecondClock.GetTimestamp(), code, type, flags, priority, 0, payload, true)
+        : this(id, 0, PreciseTimeClock.GetTimestamp(), code, type, flags, priority, 0, payload, true)
     {
     }
 

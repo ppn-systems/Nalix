@@ -10,7 +10,7 @@ namespace Nalix.Utilities;
 /// <summary>
 /// Provides optimized JSON serialization and deserialization methods, supporting both strings and byte arrays.
 /// </summary>
-public static class JsonBuffer
+public static class JsonCodec
 {
     /// <summary>
     /// Serializes an object to a JSON string using the specified type metadata.

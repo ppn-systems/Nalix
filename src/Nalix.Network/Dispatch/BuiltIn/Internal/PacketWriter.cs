@@ -80,7 +80,7 @@ internal static class PacketWriter
         PacketPriority priority,
         ReadOnlySpan<byte> payload)
     {
-        ulong timestamp = MicrosecondClock.GetTimestamp();
+        ulong timestamp = PreciseTimeClock.GetTimestamp();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
         byte[] packet = ArrayPool<byte>.Shared.Rent(totalLength);
 
