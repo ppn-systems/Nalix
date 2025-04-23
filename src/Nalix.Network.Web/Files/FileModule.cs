@@ -92,7 +92,7 @@ public class FileModule : WebModuleBase, IDisposable, IMimeTypeCustomizer
     /// <para>Gets or sets a value indicating whether this module caches the contents of files
     /// and directory listings.</para>
     /// <para>Note that the actual representations of files are stored in <see cref="FileCache"/>;
-    /// thus, for example, if a file is always requested with an <c>Accept-BaseEncodingConstants</c> of <c>gzip</c>,
+    /// thus, for example, if a file is always requested with an <c>Accept-BaseConstants</c> of <c>gzip</c>,
     /// only the gzipped contents of the file will be cached.</para>
     /// </summary>
     /// <exception cref="InvalidOperationException">The module's configuration is locked.</exception>

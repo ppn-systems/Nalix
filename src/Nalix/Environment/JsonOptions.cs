@@ -3,7 +3,7 @@ namespace Nalix.Environment;
 /// <summary>
 /// Provides predefined JSON serialization settings for different use cases.
 /// </summary>
-public static class DefaultJsonOptions
+public static class JsonOptions
 {
     /// <summary>
     /// Standard JSON settings used across the application.

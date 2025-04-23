@@ -1,5 +1,5 @@
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine.Formatters;
+using Nalix.Logging.Formatters;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Targets;

@@ -6,13 +6,13 @@ using System.Buffers.Binary;
 namespace Nalix.Identifiers;
 
 /// <summary>
-/// Provides utility methods for encoding, decoding, and generating BaseN identifiers.
+/// Provides utility methods for encoding, decoding, and generating BaseNEncoding identifiers.
 /// Supports Base36Value, Base58Value, Base64Value, and other customizable bases.
 /// </summary>
-public static class BaseN
+internal static class BaseNEncoding
 {
     /// <summary>
-    /// Creates a lookup table for fast character-to-value mapping in BaseN encoding.
+    /// Creates a lookup table for fast character-to-value mapping in BaseNEncoding encoding.
     /// </summary>
     /// <param name="alphabet">The character set used for encoding.</param>
     /// <returns>A lookup table mapping characters to their numeric values.</returns>
@@ -84,10 +84,10 @@ public static class BaseN
     }
 
     /// <summary>
-    /// Encodes a 32-bit unsigned integer into a BaseN string representation.
+    /// Encodes a 32-bit unsigned integer into a BaseNEncoding string representation.
     /// </summary>
     /// <param name="value">The numeric value to encode.</param>
-    /// <param name="alphabet">The character set defining the BaseN encoding.</param>
+    /// <param name="alphabet">The character set defining the BaseNEncoding encoding.</param>
     /// <param name="baseValue">The numeric base (e.g., 36 for Base36Value, 58 for Base58Value).</param>
     /// <param name="maxLength">The maximum possible length of the output string.</param>
     /// <returns>A string representation of the encoded Number.</returns>
@@ -108,9 +108,9 @@ public static class BaseN
     }
 
     /// <summary>
-    /// Decodes a BaseN string representation into a 32-bit unsigned integer.
+    /// Decodes a BaseNEncoding string representation into a 32-bit unsigned integer.
     /// </summary>
-    /// <param name="input">The BaseN encoded string.</param>
+    /// <param name="input">The BaseNEncoding encoded string.</param>
     /// <param name="charToValue">A lookup table mapping characters to numeric values.</param>
     /// <param name="baseValue">The numeric base of the encoding.</param>
     /// <returns>The decoded 32-bit unsigned integer.</returns>
@@ -132,9 +132,9 @@ public static class BaseN
     }
 
     /// <summary>
-    /// Tries to decode a BaseN string representation into a 32-bit unsigned integer.
+    /// Tries to decode a BaseNEncoding string representation into a 32-bit unsigned integer.
     /// </summary>
-    /// <param name="input">The BaseN encoded string.</param>
+    /// <param name="input">The BaseNEncoding encoded string.</param>
     /// <param name="charToValue">A lookup table mapping characters to numeric values.</param>
     /// <param name="baseValue">The numeric base of the encoding.</param>
     /// <param name="result">Outputs the decoded 32-bit unsigned integer if successful.</param>

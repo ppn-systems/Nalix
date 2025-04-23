@@ -1,5 +1,4 @@
 using Nalix.Common.Identity;
-using Nalix.Environment;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -40,7 +39,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     /// Static constructor to initialize the character lookup table.
     /// </summary>
     static Base32Id()
-        => CharToValue = BaseN.CreateCharLookupTable(BaseEncodingConstants.Alphabet32);
+        => CharToValue = BaseNEncoding.CreateCharLookupTable(BaseConstants.Alphabet32);
 
     #endregion Fields and Static Constructor
 
@@ -76,7 +75,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Base32Id NewId(IdentifierType type = IdentifierType.Unknown, ushort machineId = 0)
-        => new(BaseN.GenerateId(type, machineId));
+        => new(BaseNEncoding.GenerateId(type, machineId));
 
     /// <summary>
     /// Parses a string representation into a <see cref="Base32Id"/>.
@@ -92,15 +91,15 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == BaseEncodingConstants.HexLength)
+        if (input.Length == BaseConstants.HexLength)
         {
             // Try to parse as hex first
-            if (BaseN.TryParseHex(input, out uint value))
+            if (BaseNEncoding.TryParseHex(input, out uint value))
                 return new Base32Id(value);
         }
 
         // Otherwise parse as Base32Value
-        return new Base32Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base32Value));
+        return new Base32Id(BaseNEncoding.DecodeFromBaseN(input, CharToValue, BaseConstants.Base32Value));
     }
 
     /// <summary>
@@ -120,16 +119,16 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
 
         if (isHex)
         {
-            if (input.Length != BaseEncodingConstants.HexLength)
+            if (input.Length != BaseConstants.HexLength)
                 throw new ArgumentException(
-                    $"Invalid Hex length. Must be {BaseEncodingConstants.HexLength} characters.", nameof(input));
+                    $"Invalid Hex length. Must be {BaseConstants.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
             return new Base32Id(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
         // Parse as Base32Value
-        return new Base32Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base32Value));
+        return new Base32Id(BaseNEncoding.DecodeFromBaseN(input, CharToValue, BaseConstants.Base32Value));
     }
 
     /// <summary>
@@ -147,14 +146,14 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == BaseEncodingConstants.HexLength && BaseN.TryParseHex(input, out uint hexValue))
+        if (input.Length == BaseConstants.HexLength && BaseNEncoding.TryParseHex(input, out uint hexValue))
         {
             result = new Base32Id(hexValue);
             return true;
         }
 
         // Otherwise try Base32Value
-        if (BaseN.TryDecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base32Value, out uint value))
+        if (BaseNEncoding.TryDecodeFromBaseN(input, CharToValue, BaseConstants.Base32Value, out uint value))
         {
             result = new Base32Id(value);
             return true;
@@ -176,7 +175,7 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
         if ((int)type >= (int)IdentifierType.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(type), "IdentifierType exceeds the allowed limit.");
 
-        uint random = randomValue ?? BaseN.GenerateSecureRandomUInt();
+        uint random = randomValue ?? BaseNEncoding.GenerateSecureRandomUInt();
 
         return new Base32Id(
             ((uint)type << 24) |              // Type in high 8 bits
@@ -255,9 +254,9 @@ public readonly struct Base32Id(uint value) : IEncodedId, IEquatable<Base32Id>, 
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % BaseEncodingConstants.Base32Value;
-            remaining /= BaseEncodingConstants.Base32Value;
-            buffer[--position] = BaseEncodingConstants.Alphabet32[(int)digit];
+            uint digit = remaining % BaseConstants.Base32Value;
+            remaining /= BaseConstants.Base32Value;
+            buffer[--position] = BaseConstants.Alphabet32[(int)digit];
         } while (remaining > 0);
 
         // Create a new string from the buffer

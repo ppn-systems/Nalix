@@ -26,9 +26,9 @@ public static class HttpHeaderNames
     public const string AcceptCharset = "Accept-Charset";
 
     /// <summary>
-    /// The <c>Accept-BaseEncodingConstants</c> HTTP header.
+    /// The <c>Accept-BaseConstants</c> HTTP header.
     /// </summary>
-    public const string AcceptEncoding = "Accept-BaseEncodingConstants";
+    public const string AcceptEncoding = "Accept-BaseConstants";
 
     /// <summary>
     /// The <c>Accept-Language</c> HTTP header.
@@ -121,9 +121,9 @@ public static class HttpHeaderNames
     public const string ContentDisposition = "Content-Disposition";
 
     /// <summary>
-    /// The <c>Content-BaseEncodingConstants</c> HTTP header.
+    /// The <c>Content-BaseConstants</c> HTTP header.
     /// </summary>
-    public const string ContentEncoding = "Content-BaseEncodingConstants";
+    public const string ContentEncoding = "Content-BaseConstants";
 
     /// <summary>
     /// The <c>Content-Language</c> HTTP header.
@@ -367,9 +367,9 @@ public static class HttpHeaderNames
     public const string Trailer = "Trailer";
 
     /// <summary>
-    /// The <c>Transfer-BaseEncodingConstants</c> HTTP header.
+    /// The <c>Transfer-BaseConstants</c> HTTP header.
     /// </summary>
-    public const string TransferEncoding = "Transfer-BaseEncodingConstants";
+    public const string TransferEncoding = "Transfer-BaseConstants";
 
     /// <summary>
     /// The <c>Upgrade</c> HTTP header.

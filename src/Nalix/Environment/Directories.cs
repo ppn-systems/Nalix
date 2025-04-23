@@ -11,7 +11,7 @@ namespace Nalix.Environment;
 /// Class that defines default directories for the application with enhanced functionality
 /// and flexibility for both development and production environments.
 /// </summary>
-public static class PathDefaults
+public static class Directories
 {
     #region Private Fields
 
@@ -244,7 +244,7 @@ public static class PathDefaults
     /// Static constructor to initialize the default directories.
     /// Ensures that all necessary directories are created.
     /// </summary>
-    static PathDefaults()
+    static Directories()
     {
         // Access all properties to ensure directories are created
         _ = LogsPath;

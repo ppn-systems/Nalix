@@ -3,7 +3,7 @@ namespace Nalix.Environment;
 /// <summary>
 /// Represents default values and constants for configurations.
 /// </summary>
-public static class DefaultConstants
+public static class Constants
 {
     /// <summary>
     /// The amount of memory to use in kibibytes (KiB).

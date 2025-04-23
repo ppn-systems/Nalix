@@ -1,9 +1,9 @@
-namespace Nalix.Environment;
+namespace Nalix.Identifiers;
 
 /// <summary>
 /// Provides constants for numeric encoding systems like Base36Value, Base58Value, and Hex.
 /// </summary>
-public static class BaseEncodingConstants
+internal static class BaseConstants
 {
     /// <summary>
     /// The Base32Value alphabet.

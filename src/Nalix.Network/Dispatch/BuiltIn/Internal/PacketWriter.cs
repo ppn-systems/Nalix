@@ -32,7 +32,7 @@ internal static class PacketWriter
     /// <param name="payload">String payload.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> String(PacketCode code, string payload)
-        => Assemble(code, PacketType.String, DefaultConstants.DefaultEncoding.GetBytes(payload));
+        => Assemble(code, PacketType.String, Constants.DefaultEncoding.GetBytes(payload));
 
     /// <summary>
     /// Builds a complete string packet with header and payload from the message associated with the PacketCode.

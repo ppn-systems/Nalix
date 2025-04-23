@@ -1,5 +1,4 @@
 using Nalix.Common.Identity;
-using Nalix.Environment;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -40,7 +39,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     /// Static constructor to initialize the character lookup table.
     /// </summary>
     static Base58Id()
-        => CharToValue = BaseN.CreateCharLookupTable(BaseEncodingConstants.Alphabet58);
+        => CharToValue = BaseNEncoding.CreateCharLookupTable(BaseConstants.Alphabet58);
 
     #endregion Fields and Static Constructor
 
@@ -76,7 +75,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Base58Id NewId(IdentifierType type = IdentifierType.Unknown, ushort machineId = 0)
-        => new(BaseN.GenerateId(type, machineId));
+        => new(BaseNEncoding.GenerateId(type, machineId));
 
     /// <summary>
     /// Parses a string representation into a <see cref="Base58Id"/>.
@@ -92,15 +91,15 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
             throw new ArgumentNullException(nameof(input));
 
         // Check if it's likely a hex string (exactly 8 characters)
-        if (input.Length == BaseEncodingConstants.HexLength)
+        if (input.Length == BaseConstants.HexLength)
         {
             // Try to parse as hex first
-            if (BaseN.TryParseHex(input, out uint value))
+            if (BaseNEncoding.TryParseHex(input, out uint value))
                 return new Base58Id(value);
         }
 
         // Otherwise parse as Base58Value
-        return new Base58Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base58Value));
+        return new Base58Id(BaseNEncoding.DecodeFromBaseN(input, CharToValue, BaseConstants.Base58Value));
     }
 
     /// <summary>
@@ -120,16 +119,16 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
 
         if (isHex)
         {
-            if (input.Length != BaseEncodingConstants.HexLength)
+            if (input.Length != BaseConstants.HexLength)
                 throw new ArgumentException(
-                    $"Invalid Hex length. Must be {BaseEncodingConstants.HexLength} characters.", nameof(input));
+                    $"Invalid Hex length. Must be {BaseConstants.HexLength} characters.", nameof(input));
 
             // Parse as hex (uint.Parse validates hex digits)
             return new Base58Id(uint.Parse(input, System.Globalization.NumberStyles.HexNumber));
         }
 
         // Parse as Base58Value
-        return new Base58Id(BaseN.DecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base58Value));
+        return new Base58Id(BaseNEncoding.DecodeFromBaseN(input, CharToValue, BaseConstants.Base58Value));
     }
 
     /// <summary>
@@ -147,14 +146,14 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
             return false;
 
         // Try to parse as hex first if it's the right length
-        if (input.Length == BaseEncodingConstants.HexLength && BaseN.TryParseHex(input, out uint hexValue))
+        if (input.Length == BaseConstants.HexLength && BaseNEncoding.TryParseHex(input, out uint hexValue))
         {
             result = new Base58Id(hexValue);
             return true;
         }
 
         // Otherwise try Base58Value
-        if (BaseN.TryDecodeFromBaseN(input, CharToValue, BaseEncodingConstants.Base58Value, out uint value))
+        if (BaseNEncoding.TryDecodeFromBaseN(input, CharToValue, BaseConstants.Base58Value, out uint value))
         {
             result = new Base58Id(value);
             return true;
@@ -176,7 +175,7 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
         if ((int)type >= (int)IdentifierType.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(type), "IdentifierType exceeds the allowed limit.");
 
-        uint random = randomValue ?? BaseN.GenerateSecureRandomUInt();
+        uint random = randomValue ?? BaseNEncoding.GenerateSecureRandomUInt();
 
         return new Base58Id(
             ((uint)type << 24) |              // Type in high 8 bits
@@ -255,9 +254,9 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
         // Generate digits from right to left
         do
         {
-            uint digit = remaining % BaseEncodingConstants.Base58Value;
-            remaining /= BaseEncodingConstants.Base58Value;
-            buffer[--position] = BaseEncodingConstants.Alphabet58[(int)digit];
+            uint digit = remaining % BaseConstants.Base58Value;
+            remaining /= BaseConstants.Base58Value;
+            buffer[--position] = BaseConstants.Alphabet58[(int)digit];
         } while (remaining > 0);
 
         // Create a new string from the buffer

@@ -1,7 +1,7 @@
 namespace Nalix.Network.Web.Utilities;
 
 /// <summary>
-/// Exposes constants for possible values of the <c>Content-BaseEncodingConstants</c> HTTP header.
+/// Exposes constants for possible values of the <c>Content-BaseConstants</c> HTTP header.
 /// </summary>
 /// <see cref="Enums.CompressionMethod"/>
 public static class CompressionMethodNames

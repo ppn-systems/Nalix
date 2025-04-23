@@ -36,7 +36,7 @@ public class InDiskStorage : IFileStorage
     /// <summary>
     /// Initializes a new instance of <see cref="InDiskStorage"/> with default settings.
     /// </summary>
-    public InDiskStorage() => _storageConfig = new InDiskConfig(PathDefaults.StoragePath)
+    public InDiskStorage() => _storageConfig = new InDiskConfig(Directories.StoragePath)
         .UseFileGenerator(new FileGenerator())
         .UseMimeTypeResolver(new MimeTypeResolver());
 

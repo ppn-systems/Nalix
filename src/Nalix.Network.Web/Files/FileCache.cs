@@ -71,7 +71,7 @@ public sealed partial class FileCache
     /// <summary>
     /// <para>Gets or sets the maximum size of a single cached file in kilobytes (1 kilobyte = 1024 bytes).</para>
     /// <para>A single file's contents may be present in a cache more than once, if the file
-    /// is requested with different <c>Accept-BaseEncodingConstants</c> request headers. This property acts as a threshold
+    /// is requested with different <c>Accept-BaseConstants</c> request headers. This property acts as a threshold
     /// for the uncompressed size of a file.</para>
     /// <para>The default value for this property is stored in the <see cref="DefaultMaxFileSizeKb"/> constant field.</para>
     /// <para>Setting this property to a value lower than 0 has the same effect as setting it to 0, in fact
