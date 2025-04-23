@@ -22,10 +22,6 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Send(IPacket packet) => Send(packet.Serialize().Span);
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Send(ReadOnlySpan<byte> message)
     {
         if (_cstream.Send(message))
@@ -37,6 +33,10 @@ public sealed partial class Connection : IConnection
         _logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
         return false;
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Send(IPacket packet) => Send(packet.Serialize().Span);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
