@@ -1,7 +1,6 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Engine.Formatters;
 using Nalix.Logging.Options;
-using System;
 
 namespace Nalix.Logging.Targets;
 
@@ -26,7 +25,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// <param name="loggerFormatter">The object responsible for formatting the log message.</param>
     public ConsoleLogTarget(ILoggerFormatter loggerFormatter)
     {
-        ArgumentNullException.ThrowIfNull(loggerFormatter);
+        System.ArgumentNullException.ThrowIfNull(loggerFormatter);
 
         _loggerFormatter = loggerFormatter;
     }
@@ -60,11 +59,11 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     {
         if (_options?.UseStandardError == true)
         {
-            Console.Error.WriteLine(_loggerFormatter.FormatLog(logMessage));
+            System.Console.Error.WriteLine(_loggerFormatter.FormatLog(logMessage));
         }
         else
         {
-            Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
+            System.Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
         }
     }
 
