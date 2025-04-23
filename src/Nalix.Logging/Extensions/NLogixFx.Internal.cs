@@ -6,14 +6,8 @@ public static partial class NLogixFx
 {
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void CreateLogEntry(
-        LogLevel level,
-        string message,
-        string? sourceName,
-        object? extendedData,
-        string callerMemberName,
-        string callerFilePath,
-        int callerLineNumber)
+    internal static void CreateLogEntry(LogLevel level, string message, string? sourceName,
+        object? extendedData, string callerMemberName, string callerFilePath, int callerLineNumber)
     {
         if (!(level > MinimumLevel)) return;
 
@@ -27,12 +21,8 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static string BuildFullMessage(
-        string message,
-        string? sourceName,
-        object? extendedData,
-        string callerMemberName,
-        string callerFilePath,
-        int callerLineNumber)
+        string message, string? sourceName, object? extendedData,
+        string callerMemberName, string callerFilePath, int callerLineNumber)
     {
         string extendedDataString = extendedData != null ? $"ExtendedData: {extendedData}" : "";
 
