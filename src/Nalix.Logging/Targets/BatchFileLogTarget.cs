@@ -50,20 +50,20 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BufferLogOptions"/>.
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BatchFileLogOptions"/>.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BufferLogOptions"/>.</param>
-    public BatchFileLogTarget(BufferLogOptions options)
+    /// <param name="options">The configuration options for the <see cref="BatchFileLogOptions"/>.</param>
+    public BatchFileLogTarget(BatchFileLogOptions options)
         : this(new FileLogTarget(options.FileLoggerOptions),
                options.FlushInterval, options.MaxBufferSize, true)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BufferLogOptions"/>.
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BatchFileLogOptions"/>.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BufferLogOptions"/>.</param>
-    public BatchFileLogTarget(Action<BufferLogOptions> options)
+    /// <param name="options">The configuration options for the <see cref="BatchFileLogOptions"/>.</param>
+    public BatchFileLogTarget(Action<BatchFileLogOptions> options)
         : this(ConfigureOptions(options))
     {
     }
@@ -108,13 +108,13 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Configures the <see cref="BufferLogOptions"/> by invoking the provided action.
+    /// Configures the <see cref="BatchFileLogOptions"/> by invoking the provided action.
     /// </summary>
     /// <param name="configureOptions">The action used to configure the options.</param>
-    /// <returns>The configured <see cref="BufferLogOptions"/>.</returns>
-    private static BufferLogOptions ConfigureOptions(Action<BufferLogOptions> configureOptions)
+    /// <returns>The configured <see cref="BatchFileLogOptions"/>.</returns>
+    private static BatchFileLogOptions ConfigureOptions(Action<BatchFileLogOptions> configureOptions)
     {
-        BufferLogOptions options = new();
+        BatchFileLogOptions options = new();
         configureOptions(options);
         return options;
     }
