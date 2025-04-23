@@ -1,6 +1,5 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
-using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(Connection));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(Connection));
 
         using CancellationTokenSource linkedCts = CancellationTokenSource
             .CreateLinkedTokenSource(cancellationToken, _ctokens.Token);
@@ -22,7 +21,7 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Send(ReadOnlySpan<byte> message)
+    public bool Send(System.ReadOnlySpan<byte> message)
     {
         if (_cstream.Send(message))
         {
@@ -45,7 +44,7 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    public async Task<bool> SendAsync(System.ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         if (await _cstream.SendAsync(message, cancellationToken))
         {

@@ -7,7 +7,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.Logging.Internal.Files;
+namespace Nalix.Logging.Engine.Formatters.Internal.Files;
 
 /// <summary>
 /// A high-performance provider for file-based logging with support for file rotation and error handling.
@@ -162,9 +162,9 @@ internal sealed class FileLoggerProvider : IDisposable
                     }
                 }
                 catch (Exception ex) when (ex is TaskCanceledException ||
-                                          (ex is AggregateException aex &&
+                                          ex is AggregateException aex &&
                                            aex.InnerExceptions.Count == 1 &&
-                                           aex.InnerExceptions[0] is TaskCanceledException))
+                                           aex.InnerExceptions[0] is TaskCanceledException)
                 {
                     // Expected exception when task is canceled
                 }
@@ -257,7 +257,7 @@ internal sealed class FileLoggerProvider : IDisposable
                     {
                         // Check if we should flush based on time interval
                         var now = DateTime.UtcNow;
-                        shouldFlush = (now - lastFlushTime) >= flushInterval || _entryQueue.Count == 0;
+                        shouldFlush = now - lastFlushTime >= flushInterval || _entryQueue.Count == 0;
 
                         if (shouldFlush)
                         {

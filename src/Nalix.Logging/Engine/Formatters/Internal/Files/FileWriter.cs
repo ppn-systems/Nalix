@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Logging.Internal.Files;
+namespace Nalix.Logging.Engine.Formatters.Internal.Files;
 
 /// <summary>
 /// Manages writing logs to a file with support for file rotation and error handling.
@@ -108,7 +108,7 @@ internal sealed class FileWriter : IDisposable
 
         // Ensure file name uniqueness by adding counter if file exists
         int uniqueCounter = 0;
-        while (System.IO.File.Exists(fullPath))
+        while (File.Exists(fullPath))
         {
             uniqueCounter++;
             string uniqueName = $"{fileNameWithoutExt}_{DateTime.Now:yyyy-MM-dd}_{_fileCounter}_{uniqueCounter}{extension}";
@@ -151,7 +151,7 @@ internal sealed class FileWriter : IDisposable
         try
         {
             // Check if file exists and get its size
-            bool fileExists = System.IO.File.Exists(logFilePath);
+            bool fileExists = File.Exists(logFilePath);
             _currentFileSize = fileExists ? new FileInfo(logFilePath).Length : 0;
 
             // If file exists, is non-empty, and exceeds size limit, create a new one instead
