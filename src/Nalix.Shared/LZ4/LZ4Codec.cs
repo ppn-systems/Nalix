@@ -4,14 +4,24 @@ using System.Runtime.InteropServices;
 
 namespace Nalix.Shared.LZ4;
 
-internal unsafe class LZ4Codec
+/// <summary>
+/// Provides functionality for compressing and decompressing data using the Nalix compression algorithm.
+/// The API is static and struct-based to minimize allocations and provide high performance.
+/// </summary>
+public unsafe class LZ4Codec
 {
     /// <summary>
-    /// Compresses the input data into the output buffer.
+    /// Compresses the provided input data into the specified output buffer.
+    /// The compression is done using the Nalix algorithm with zero-allocation and high efficiency.
     /// </summary>
-    /// <param name="input">The data to compress.</param>
-    /// <param name="output">The buffer to write compressed data into. Must have enough capacity.</param>
-    /// <returns>The total number of bytes written to the output buffer (including the header), or -1 if the output buffer is too small or an error occurs.</returns>
+    /// <param name="input">The input data to compress. This must be a ReadOnlySpan of bytes.</param>
+    /// <param name="output">The buffer into which the compressed data will be written. The buffer must have sufficient capacity to hold the compressed data, including the header.</param>
+    /// <returns>The total number of bytes written to the output buffer, including the header.
+    /// Returns -1 if the output buffer is too small or an error occurs during compression.</returns>
+    /// <remarks>
+    /// If the input data is empty, only the header will be written to the output buffer.
+    /// If compression fails (e.g., the output buffer is too small), -1 is returned.
+    /// </remarks>
     public static int Compress(System.ReadOnlySpan<byte> input, System.Span<byte> output)
     {
         if (input.IsEmpty)
@@ -49,11 +59,17 @@ internal unsafe class LZ4Codec
     }
 
     /// <summary>
-    /// Decompresses the input data into the output buffer.
+    /// Decompresses the provided compressed data into the specified output buffer.
+    /// The input data must include a valid header that specifies the original length and compressed length.
     /// </summary>
-    /// <param name="input">The compressed data (including the header).</param>
-    /// <param name="output">The buffer to write decompressed data into. Must have the exact size specified in the header's OriginalLength.</param>
-    /// <returns>The number of bytes written to the output buffer (original length), or -1 if decompression fails (e.g., corrupted data, incorrect output buffer size).</returns>
+    /// <param name="input">The compressed data, including the header, that needs to be decompressed.</param>
+    /// <param name="output">The buffer into which the decompressed data will be written. The buffer must have the exact size specified in the header's original length.</param>
+    /// <returns>The number of bytes written to the output buffer, which should be the original length as specified in the header.
+    /// Returns -1 if decompression fails (e.g., corrupted data or incorrect output buffer size).</returns>
+    /// <remarks>
+    /// The method performs bounds checks to ensure the integrity of the decompressed data.
+    /// It will return -1 if the decompressed data does not match the expected size or if the input is corrupted.
+    /// </remarks>
     public static int Decompress(System.ReadOnlySpan<byte> input, System.Span<byte> output)
     {
         if (input.Length < Header.Size) return -1; // Input too small to contain header
