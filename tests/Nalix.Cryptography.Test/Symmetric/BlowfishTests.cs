@@ -1,9 +1,9 @@
-using Notio.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric;
 using System;
 using System.Text;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Symmetric;
+namespace Nalix.Cryptography.Test.Symmetric;
 
 public class BlowfishTests
 {

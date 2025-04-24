@@ -1,9 +1,9 @@
-using Notio.Cryptography.Asymmetric;
+using Nalix.Cryptography.Asymmetric;
 using System;
 using System.Linq;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Asymmetric;
+namespace Nalix.Cryptography.Test.Asymmetric;
 
 /// <summary>
 /// Test suite for the X25519 elliptic curve Diffie-Hellman implementation.

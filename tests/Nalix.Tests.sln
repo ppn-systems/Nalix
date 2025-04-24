@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Cryptography.Test", "Nalix.Cryptography.Test\Nalix.Cryptography.Test.csproj", "{59276987-FA6E-4635-BCEA-DB358BEE41EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging.Tests", "Nalix.Logging.Tests\Nalix.Logging.Tests.csproj", "{B6E01DE4-B191-5277-E79F-426A6D552839}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Shared.Tests", "Nalix.Shared.Tests\Nalix.Shared.Tests.csproj", "{287268AF-2EE2-4224-996A-95B05C14DEB8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59276987-FA6E-4635-BCEA-DB358BEE41EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6E01DE4-B191-5277-E79F-426A6D552839}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6E01DE4-B191-5277-E79F-426A6D552839}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6E01DE4-B191-5277-E79F-426A6D552839}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6E01DE4-B191-5277-E79F-426A6D552839}.Release|Any CPU.Build.0 = Release|Any CPU
+		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8CA0CB73-5EE1-4ED3-BA3D-550941158F2B}
+	EndGlobalSection
+EndGlobal

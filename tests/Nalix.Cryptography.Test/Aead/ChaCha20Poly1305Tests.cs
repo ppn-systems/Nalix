@@ -1,8 +1,8 @@
-using Notio.Cryptography.Aead;
+using Nalix.Cryptography.Aead;
 using System;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Aead;
+namespace Nalix.Cryptography.Test.Aead;
 
 public class ChaCha20Poly1305Tests
 {

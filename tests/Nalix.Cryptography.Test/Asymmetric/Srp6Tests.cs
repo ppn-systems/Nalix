@@ -1,13 +1,13 @@
-using Notio.Common.Exceptions;
-using Notio.Cryptography.Asymmetric;
-using Notio.Randomization;
+using Nalix.Common.Exceptions;
+using Nalix.Cryptography.Asymmetric;
+using Nalix.Randomization;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Asymmetric;
+namespace Nalix.Cryptography.Test.Asymmetric;
 
 /// <summary>
 /// Test suite for SRP-6 secure remote password authentication protocol implementation.

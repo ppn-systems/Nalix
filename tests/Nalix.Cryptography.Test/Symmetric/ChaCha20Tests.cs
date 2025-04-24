@@ -1,11 +1,11 @@
-using Notio.Cryptography.Enums;
-using Notio.Cryptography.Symmetric;
+using Nalix.Cryptography.Enums;
+using Nalix.Cryptography.Symmetric;
 using System;
 using System.IO;
 using System.Text;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Symmetric;
+namespace Nalix.Cryptography.Test.Symmetric;
 
 public class ChaCha20Tests
 {

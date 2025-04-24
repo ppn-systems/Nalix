@@ -1,8 +1,8 @@
-using Notio.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric;
 using System;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Symmetric;
+namespace Nalix.Cryptography.Test.Symmetric;
 
 public class XteaTests
 {
@@ -96,7 +96,7 @@ public class XteaTests
         ciphertext[^1] = 0xFF;
 
         // Act & Assert
-        Assert.Throws<Notio.Common.Exceptions.CryptoException>(() => Xtea.Decrypt(ciphertext, key));
+        Assert.Throws<Nalix.Common.Exceptions.CryptoException>(() => Xtea.Decrypt(ciphertext, key));
     }
 
     [Fact]

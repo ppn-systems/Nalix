@@ -1,4 +1,4 @@
-﻿namespace Notio.Logging.Tests
+namespace Nalix.Logging.Tests
 {
     public class Class1
     {

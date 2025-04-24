@@ -1,8 +1,8 @@
-using Notio.Cryptography.Hashing;
+using Nalix.Cryptography.Hashing;
 using System;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Hashing;
+namespace Nalix.Cryptography.Test.Hashing;
 
 public class SHA224Tests
 {

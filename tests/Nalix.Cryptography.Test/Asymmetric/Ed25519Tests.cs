@@ -1,9 +1,9 @@
-using Notio.Cryptography.Asymmetric;
+using Nalix.Cryptography.Asymmetric;
 using System;
 using System.Security.Cryptography;
 using Xunit;
 
-namespace Notio.Cryptography.Test.Asymmetric;
+namespace Nalix.Cryptography.Test.Asymmetric;
 
 /// <summary>
 /// Test suite for the Ed25519 signature and verification algorithm implementation.
