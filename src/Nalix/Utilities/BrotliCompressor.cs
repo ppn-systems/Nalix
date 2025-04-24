@@ -2,14 +2,13 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Utilities;
 
 /// <summary>
 /// Provides methods for compressing and decompressing payloads using Brotli compression.
 /// </summary>
-[SkipLocalsInit]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class BrotliCompressor
 {
     private const int BufferSize = 8192; // 8KB buffer for streaming
@@ -20,7 +19,8 @@ public static class BrotliCompressor
     /// <param name="data">The data to compress.</param>
     /// <returns>The compressed data as a byte array.</returns>
     /// <exception cref="InvalidOperationException">Thrown when compression fails.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte[] Compress(ReadOnlyMemory<byte> data)
     {
         if (data.IsEmpty) return [];
@@ -45,7 +45,8 @@ public static class BrotliCompressor
     /// <param name="compressedData">The compressed data to decompress.</param>
     /// <returns>The decompressed data as a byte array.</returns>
     /// <exception cref="InvalidOperationException">Thrown when decompression fails or data is invalid.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl
+        System.Runtime.CompilerServices.(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decompress(ReadOnlyMemory<byte> compressedData)
     {
         if (compressedData.IsEmpty) return [];

@@ -1,5 +1,4 @@
 using Nalix.Common.Exceptions;
-using System.Runtime.CompilerServices;
 
 namespace Nalix;
 
@@ -32,12 +31,12 @@ public static class SelfCheck
     /// <param name="filePath">The source file path where the failure occurred (automatically populated).</param>
     /// <param name="lineNumber">The line Number where the failure occurred (automatically populated).</param>
     /// <returns>A new <see cref="InternalErrorException"/> with detailed context information.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static InternalErrorException Failure(
-        string message,
-        [CallerMemberName] string callerMethod = "",
-        [CallerFilePath] string filePath = "",
-        [CallerLineNumber] int lineNumber = 0)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static InternalErrorException Failure(string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMethod = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         // Ensure we have valid values for caller information
         callerMethod = string.IsNullOrEmpty(callerMethod) ? DefaultMethod : callerMethod;
@@ -118,12 +117,12 @@ public static class SelfCheck
     /// <param name="filePath">The source file path (automatically populated).</param>
     /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the condition is false.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Validate(
-        bool condition, string message,
-        [CallerMemberName] string callerMethod = "",
-        [CallerFilePath] string filePath = "",
-        [CallerLineNumber] int lineNumber = 0)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void Validate(bool condition, string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMethod = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         if (!condition)
             throw Failure(message, callerMethod, filePath, lineNumber);
@@ -138,12 +137,12 @@ public static class SelfCheck
     /// <param name="filePath">The source file path (automatically populated).</param>
     /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the value is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void NotNull(
-        object value, string paramName,
-        [CallerMemberName] string callerMethod = "",
-        [CallerFilePath] string filePath = "",
-        [CallerLineNumber] int lineNumber = 0)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void NotNull(object value, string paramName,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMethod = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         if (value == null)
             throw Failure($"Parameter '{paramName}' cannot be null", callerMethod, filePath, lineNumber);
@@ -158,12 +157,12 @@ public static class SelfCheck
     /// <param name="filePath">The source file path (automatically populated).</param>
     /// <param name="lineNumber">The line Number (automatically populated).</param>
     /// <exception cref="InternalErrorException">Thrown if the string is null or empty.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void NotNullOrEmpty(
-        string value, string paramName,
-        [CallerMemberName] string callerMethod = "",
-        [CallerFilePath] string filePath = "",
-        [CallerLineNumber] int lineNumber = 0)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void NotNullOrEmpty(string value, string paramName,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMethod = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         if (string.IsNullOrEmpty(value))
             throw Failure($"Parameter '{paramName}' cannot be null or empty", callerMethod, filePath, lineNumber);
