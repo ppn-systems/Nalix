@@ -7,7 +7,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// </summary>
     /// <returns>A hash code value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
         // Initial hash with key fields
@@ -85,7 +85,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <param name="other">The packet to compare with.</param>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool Equals(Common.Package.IPacket? other)
     {
         if (other is null)
