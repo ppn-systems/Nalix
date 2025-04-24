@@ -7,6 +7,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Internal.Net;
 using Nalix.Network.Timing;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -64,12 +65,12 @@ public abstract partial class UdpListenerBase : IListener
                 _ = receiveTask.ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
-                   name: $"udp.proc.{_port}",
-                   group: $"net/udp/{_port}",
+                   name: NetworkTaskNames.UdpProcessWorker(_port),             // "udp.proc.{port}"
+                   group: NetworkTaskNames.UdpGroup(_port),                    // "net/udp/{port}"
                    work: async (_, ct) => await ReceiveDatagramsAsync(ct),
                    options: new WorkerOptions
                    {
-                       Tag = "udp",
+                       Tag = nameof(NetworkTaskNames.Segments.Udp),
                        CancellationToken = _cancellationToken
                    });
             }
