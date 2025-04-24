@@ -23,10 +23,10 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// <para>
 /// <strong>Envelope structure:</strong>
 /// <list type="bullet">
-/// <item><description><c>header</c>: fixed <see cref="CryptoFormat.HeaderSize"/> bytes (contains magic, algorithm id, flags, nonce length, sequence).</description></item>
+/// <item><description><c>header</c>: fixed <see cref="EnvelopeFormat.HeaderSize"/> bytes (contains magic, algorithm id, flags, nonce length, sequence).</description></item>
 /// <item><description><c>nonce</c>: suite-specific length (e.g., 12 for ChaCha20, 8 for Salsa20, 16 for Speck, 8 for XTEA).</description></item>
 /// <item><description><c>ciphertext</c>: same length as plaintext.</description></item>
-/// <item><description><c>tag</c>: authentication tag of <see cref="CryptoFormat.TagSize"/> bytes (detached).</description></item>
+/// <item><description><c>tag</c>: authentication tag of <see cref="EnvelopeFormat.TagSize"/> bytes (detached).</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -99,13 +99,13 @@ public static class AeadEngine
         System.UInt32 seqVal = seq ?? GenerateRandomSeq();
 
         // Build header
-        System.Span<System.Byte> header = stackalloc System.Byte[CryptoFormat.HeaderSize];
-        CryptoHeader headerStruct = new(
-            CryptoFormat.CurrentVersion, algorithm,
+        System.Span<System.Byte> header = stackalloc System.Byte[EnvelopeFormat.HeaderSize];
+        EnvelopeHeader headerStruct = new(
+            EnvelopeFormat.CurrentVersion, algorithm,
             flags: 0, (System.Byte)nonceLen, seqVal
         );
 
-        CryptoHeader.WriteTo(header, headerStruct);
+        EnvelopeHeader.WriteTo(header, headerStruct);
 
         // Build combined AAD = header || nonce || userAAD
         System.Int32 combinedAadLen = header.Length + nonce.Length + aad.Length;
@@ -119,7 +119,7 @@ public static class AeadEngine
 
             // Allocate ciphertext & tag
             var ct = new System.Byte[plaintext.Length];
-            var tag = new System.Byte[CryptoFormat.TagSize];
+            var tag = new System.Byte[EnvelopeFormat.TagSize];
 
             // Dispatch
             switch (algorithm)
@@ -178,9 +178,9 @@ public static class AeadEngine
             }
 
             // Compose envelope
-            System.Int32 total = CryptoFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
+            System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
             var outBuf = new System.Byte[total];
-            CryptoFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
+            EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
             return outBuf;
         }
         finally
@@ -214,7 +214,7 @@ public static class AeadEngine
     {
         plaintext = null;
 
-        if (!CryptoFormat.TryParseEnvelope(envelope, out var env))
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
         {
             return false;
         }

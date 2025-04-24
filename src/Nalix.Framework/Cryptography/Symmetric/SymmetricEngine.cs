@@ -138,9 +138,9 @@ public static class SymmetricEngine
         Encrypt(algorithm, key, nonceBuf, counter, plaintext, ct);
 
         // Compose envelope: header || nonce || ciphertext
-        System.Int32 total = CryptoFormat.HeaderSize + nonceLen + ct.Length;
+        System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length;
         System.Byte[] outBuf = new System.Byte[total];
-        CryptoFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
+        EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
 
         // Clear sensitive
         System.Array.Clear(ct, 0, ct.Length);
@@ -159,7 +159,7 @@ public static class SymmetricEngine
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? plaintext)
     {
         plaintext = null;
-        if (!CryptoFormat.TryParseEnvelope(envelope, out var env))
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
         {
             return false;
         }
