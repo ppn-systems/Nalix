@@ -136,7 +136,7 @@ public partial class PoFile
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if available, otherwise returns the original text.</returns>
     public string GetString(string id)
-        => _translations.TryGetValue(id, out var value) ? value : id;
+        => _translations.TryGetValue(id, out string? value) ? value : id;
 
     /// <summary>
     /// Gets the pluralized translation for a given Number.
@@ -151,7 +151,7 @@ public partial class PoFile
         {
             int index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
-                return this.FormatString(plurals[index], n);
+                return FormatPlaceholders(plurals[index], n);
         }
         return n == 1 ? id : idPlural;
     }
@@ -183,8 +183,9 @@ public partial class PoFile
         if (_pluralTranslations.TryGetValue(key, out string[]? plurals))
         {
             int index = _pluralRule(n);
+
             if (index >= 0 && index < plurals.Length)
-                return this.FormatString(plurals[index], n);
+                return FormatPlaceholders(plurals[index], n);
         }
 
         return n == 1 ? id : idPlural;
@@ -196,19 +197,19 @@ public partial class PoFile
     /// <param name="key">The metadata key.</param>
     /// <returns>The metadata value if found, otherwise <c>null</c>.</returns>
     public string? GetMetadata(string key)
-        => _metadata.TryGetValue(key, out var value) ? value : null;
+        => _metadata.TryGetValue(key, out string? value) ? value : null;
 
     #endregion Public API
 
     #region Private API
 
+    // Add this helper method to format strings consistently
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string FormatString(string format, int n)
+    private static string FormatPlaceholders(string format, int n)
     {
         if (string.IsNullOrEmpty(format))
             return format;
 
-        // Replace %d with n
         return format.Replace("%d", n.ToString());
     }
 

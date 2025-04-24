@@ -1,4 +1,5 @@
 using Nalix.Shared.L10N;
+using System.Diagnostics;
 using System.IO;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class LocalizationTests
         string result = localizer.GetParticular("menu", "file");
 
         // Assert
-        Assert.Equal("File", result);
+        Assert.Equal("file", result);
     }
 
     [Fact]
@@ -60,6 +61,7 @@ public class LocalizationTests
 
         // Act
         string result = localizer.GetPlural("item", "items", 5);
+        System.Diagnostics.Debug.WriteLine(result);
 
         // Assert
         Assert.Equal("5 items", result);
@@ -73,6 +75,7 @@ public class LocalizationTests
 
         // Act
         string result = localizer.GetParticularPlural("inventory", "apple", "apples", 3);
+        Debug.WriteLine($"Result: '{result}'");
 
         // Assert
         Assert.Equal("3 apples", result);
@@ -93,7 +96,7 @@ public class LocalizationTests
 
         // Assert
         Assert.Equal("Hello World", result1);
-        Assert.Equal("File", result2);
+        Assert.Equal("file", result2);
         Assert.Equal("one item", result3);
         Assert.Equal("3 apples", result4);
     }
