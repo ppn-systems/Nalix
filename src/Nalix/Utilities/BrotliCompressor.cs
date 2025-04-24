@@ -46,7 +46,7 @@ public static class BrotliCompressor
     /// <returns>The decompressed data as a byte array.</returns>
     /// <exception cref="InvalidOperationException">Thrown when decompression fails or data is invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl
-        System.Runtime.CompilerServices.(MethodImplOptions.AggressiveInlining)]
+        (System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte[] Decompress(ReadOnlyMemory<byte> compressedData)
     {
         if (compressedData.IsEmpty) return [];

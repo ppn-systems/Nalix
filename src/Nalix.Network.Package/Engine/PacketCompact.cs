@@ -104,11 +104,13 @@ public static class PacketCompact
 
     private static Packet CreateCompressedPacket(Packet packet, System.Memory<byte> compressedData) =>
         new(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-            packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed), packet.Priority, packet.Number, compressedData);
+            packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
+            packet.Priority, packet.Number, compressedData, true);
 
     private static Packet CreateDecompressedPacket(Packet packet, System.Memory<byte> decompressedData) =>
         new(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-            packet.Type, packet.Flags.RemoveFlag(PacketFlags.Compressed), packet.Priority, packet.Number, decompressedData);
+            packet.Type, packet.Flags.RemoveFlag(PacketFlags.Compressed),
+            packet.Priority, packet.Number, decompressedData, true);
 
     // Helper methods for GZip compression and decompression using pointers
     private static unsafe System.Memory<byte> CompressGZip(System.ReadOnlyMemory<byte> data)

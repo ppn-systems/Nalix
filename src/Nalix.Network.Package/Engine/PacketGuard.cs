@@ -32,8 +32,10 @@ public static class PacketGuard
         {
             System.Memory<byte> encryptedPayload = Ciphers.Encrypt(packet.Payload, key, algorithm);
 
-            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
-                packet.Flags.AddFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, encryptedPayload);
+            return new Packet(
+                packet.Id, packet.Checksum, packet.Timestamp,
+                packet.Code, packet.Type, packet.Flags.AddFlag(PacketFlags.Encrypted),
+                packet.Priority, packet.Number, encryptedPayload, true);
         }
         catch (System.Exception ex)
         {
@@ -62,8 +64,10 @@ public static class PacketGuard
         {
             System.Memory<byte> decryptedPayload = Ciphers.Decrypt(packet.Payload, key, algorithm);
 
-            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code, packet.Type,
-                packet.Flags.RemoveFlag(PacketFlags.Encrypted), packet.Priority, packet.Number, decryptedPayload);
+            return new Packet(
+                packet.Id, packet.Checksum, packet.Timestamp,
+                packet.Code, packet.Type, packet.Flags.RemoveFlag(PacketFlags.Encrypted),
+                packet.Priority, packet.Number, decryptedPayload, true);
         }
         catch (System.Exception ex)
         {
