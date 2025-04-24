@@ -1,0 +1,68 @@
+using System;
+using System.Runtime.CompilerServices;
+
+namespace Nalix.Shared.LZ4.Internal;
+
+/// <summary>
+/// Helper methods for working with Spans.
+/// </summary>
+internal static unsafe class SpanKit
+{
+    /// <summary>
+    /// Ensures the requested slice is within the span bounds.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CheckSliceBounds(int length, int start, int count)
+    {
+        // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
+        if ((uint)start > (uint)length || (uint)count > (uint)(length - start)) ThrowOutOfRange();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)] // Keep exception throwing logic separate
+    private static void ThrowOutOfRange() => throw new ArgumentOutOfRangeException("start or count");
+
+    /// <summary>
+    /// Writes a variable-length integer (little-endian). Used for lengths greater than 15.
+    /// Writes bytes until the value is less than 255.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int WriteVarInt(byte* dest, int value)
+    {
+        int bytesWritten = 0;
+        uint uValue = (uint)value;
+
+        while (uValue >= 255)
+        {
+            *dest++ = 255;
+            uValue -= 255;
+            bytesWritten++;
+        }
+
+        *dest = (byte)uValue;
+        return bytesWritten + 1;
+    }
+
+    /// <summary>
+    /// Reads a variable-length integer (little-endian).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
+    {
+        value = 0;
+        int bytesRead = 0;
+        byte currentByte;
+
+        while (src < srcEnd)
+        {
+            currentByte = *src;
+            src++;
+            value += currentByte;
+            bytesRead++;
+
+            if (currentByte < 255) return bytesRead;
+        }
+
+        value = -1; // Error: reached end without termination
+        return bytesRead;
+    }
+}
