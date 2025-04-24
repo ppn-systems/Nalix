@@ -147,11 +147,11 @@ public partial class PoFile
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
     public string GetPluralString(string id, string idPlural, int n)
     {
-        if (_pluralTranslations.TryGetValue(id, out var plurals))
+        if (_pluralTranslations.TryGetValue(id, out string[]? plurals))
         {
             int index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
-                return plurals[index];
+                return this.FormatString(plurals[index], n);
         }
         return n == 1 ? id : idPlural;
     }
@@ -165,7 +165,7 @@ public partial class PoFile
     public string GetParticularString(string context, string id)
     {
         string key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
-        return _translations.TryGetValue(key, out var value) ? value : id;
+        return _translations.TryGetValue(key, out string? value) ? value : id;
     }
 
     /// <summary>
@@ -180,11 +180,11 @@ public partial class PoFile
     {
         string key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
 
-        if (_pluralTranslations.TryGetValue(key, out var plurals))
+        if (_pluralTranslations.TryGetValue(key, out string[]? plurals))
         {
             int index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
-                return plurals[index];
+                return this.FormatString(plurals[index], n);
         }
 
         return n == 1 ? id : idPlural;
@@ -201,6 +201,16 @@ public partial class PoFile
     #endregion Public API
 
     #region Private API
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string FormatString(string format, int n)
+    {
+        if (string.IsNullOrEmpty(format))
+            return format;
+
+        // Replace %d with n
+        return format.Replace("%d", n.ToString());
+    }
 
     /// <summary>
     /// Extracts quoted value from a line.

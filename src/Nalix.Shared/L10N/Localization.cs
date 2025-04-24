@@ -26,7 +26,7 @@ public static class Localization
     /// <remarks>
     /// This method is intended for internal use and should not be called directly.
     /// </remarks>
-    internal static void SetLocalizer(Localizer localizer)
+    public static void SetLocalizer(Localizer localizer)
         => Localizer = localizer;
 
     /// <summary>
