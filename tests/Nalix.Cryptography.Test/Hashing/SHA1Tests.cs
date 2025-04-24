@@ -17,7 +17,7 @@ public class SHA1Tests
             0x52, 0x7f, 0x70, 0x37
         ];
 
-        using Sha1 sha1 = new();
+        using SHA1 sha1 = new();
 
         // Act
         byte[] actualHash = sha1.ComputeHash(input);
@@ -38,7 +38,7 @@ public class SHA1Tests
         ];
 
         // Act
-        byte[] actualHash = Sha1.HashData(input);
+        byte[] actualHash = SHA1.HashData(input);
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -55,7 +55,7 @@ public class SHA1Tests
             0xaf, 0xd8, 0x07, 0x09
         ];
 
-        using Sha1 sha1 = new();
+        using SHA1 sha1 = new();
 
         // Act
         byte[] actualHash = sha1.ComputeHash(input);
@@ -78,7 +78,7 @@ public class SHA1Tests
             0xe3, 0x6c, 0x9d, 0xa7
         ]; // This is the correct SHA224 hash for "Hello, World!"
 
-        using var sha224 = new Sha224(); // Ensure you're using the correct `SHA224` implementation
+        using var sha224 = new SHA224(); // Ensure you're using the correct `SHA224` implementation
 
         // Act
         sha224.Update(part1);
@@ -94,7 +94,7 @@ public class SHA1Tests
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        using Sha1 sha1 = new();
+        using SHA1 sha1 = new();
 
         // Act
         sha1.Update(input);
@@ -109,7 +109,7 @@ public class SHA1Tests
     public void Dispose_ShouldClearSensitiveData()
     {
         // Arrange
-        Sha1 sha1 = new();
+        SHA1 sha1 = new();
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
 
         // Act
@@ -124,7 +124,7 @@ public class SHA1Tests
     public void ComputeHash_DisposedInstance_ShouldThrowException()
     {
         // Arrange
-        Sha1 sha1 = new();
+        SHA1 sha1 = new();
         sha1.Dispose();
 
         // Act & Assert

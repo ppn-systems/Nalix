@@ -11,6 +11,7 @@ namespace Nalix.Cryptography.Test.Asymmetric;
 public class Ed25519Tests
 {
     #region Test Vectors
+
     // RFC 8032 test vectors for Ed25519
     private static readonly byte[] TestPrivateKey1 = [
         0x9d, 0x61, 0xb1, 0x9d, 0xef, 0xfd, 0x5a, 0x60,
@@ -51,9 +52,11 @@ public class Ed25519Tests
         0x38, 0x7b, 0x2e, 0xae, 0xb4, 0x30, 0x2a, 0xee,
         0xb0, 0x0d, 0x29, 0x16, 0x12, 0xbb, 0x0c, 0x00
     ];
-    #endregion
+
+    #endregion Test Vectors
 
     #region Sign Method Tests
+
     [Fact]
     public void Sign_ValidParameters_ReturnsCorrectSignature()
     {
@@ -124,7 +127,7 @@ public class Ed25519Tests
     public void Sign_NullPrivateKey_ThrowsArgumentException()
     {
         // Act & Assert
-        var ex = Assert.Throws<ArgumentException>(() => Ed25519.Sign(TestMessage1, null!));
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => Ed25519.Sign(TestMessage2, null));
         Assert.Contains("Private key", ex.Message);
     }
 
@@ -142,14 +145,16 @@ public class Ed25519Tests
         Assert.Contains("Private key must be 32 bytes", ex1.Message);
         Assert.Contains("Private key must be 32 bytes", ex2.Message);
     }
-    #endregion
+
+    #endregion Sign Method Tests
 
     #region Verify Method Tests
+
     [Fact]
     public void Verify_ValidSignature_ReturnsTrue()
     {
         // Act
-        bool result = Ed25519.Verify(TestSignature1, TestMessage1, TestPublicKey1);
+        bool result = Ed25519.Verify(TestSignature2, TestMessage2, TestPublicKey1);
 
         // Assert
         Assert.True(result, "Valid signature should verify successfully");
@@ -260,9 +265,11 @@ public class Ed25519Tests
         Assert.Contains("Public key must be 32 bytes", ex1.Message);
         Assert.Contains("Public key must be 32 bytes", ex2.Message);
     }
-    #endregion
+
+    #endregion Verify Method Tests
 
     #region Integration Tests
+
     [Fact]
     public void SignAndVerify_RandomMessages_WorksCorrectly()
     {
@@ -287,12 +294,13 @@ public class Ed25519Tests
             byte[] signature = Ed25519.Sign(message, privateKey);
             _ = Ed25519.Verify(signature, message, publicKey);
 
+            Assert.Equal(64, signature.Length);
+
             // In real tests you would derive the proper public key and verify
             // But since we're testing against the implementation itself, we check consistency
             var signatureFromSameMessage = Ed25519.Sign(message, privateKey);
 
             // Assert
-            Assert.Equal(64, signature.Length);
             Assert.Equal(signatureFromSameMessage, signature); // Deterministic signatures
         }
     }
@@ -321,5 +329,6 @@ public class Ed25519Tests
         Assert.True(duration.TotalMilliseconds / iterations < 50,
             $"Each signing operation took {duration.TotalMilliseconds / iterations} ms on average, which exceeds the threshold");
     }
-    #endregion
+
+    #endregion Integration Tests
 }

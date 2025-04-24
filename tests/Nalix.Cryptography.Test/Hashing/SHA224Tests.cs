@@ -18,7 +18,7 @@ public class SHA224Tests
             0x98, 0xa2, 0x1b, 0x63
         ];
 
-        using Sha224 sha224 = new();
+        using SHA224 sha224 = new();
 
         // Act
         byte[] actualHash = sha224.ComputeHash(input);
@@ -40,7 +40,7 @@ public class SHA224Tests
         ];
 
         // Act
-        byte[] actualHash = Sha224.HashData(input);
+        byte[] actualHash = SHA224.HashData(input);
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -58,7 +58,7 @@ public class SHA224Tests
             0xc5, 0xb3, 0xe4, 0x2f
         ];
 
-        using Sha224 sha224 = new();
+        using SHA224 sha224 = new();
 
         // Act
         byte[] actualHash = sha224.ComputeHash(input);
@@ -72,7 +72,7 @@ public class SHA224Tests
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        using Sha224 sha224 = new();
+        using SHA224 sha224 = new();
 
         // Act
         sha224.Update(input);
@@ -96,7 +96,7 @@ public class SHA224Tests
             0x98, 0xa2, 0x1b, 0x63
         ];
 
-        using Sha224 sha224 = new();
+        using SHA224 sha224 = new();
 
         // Act
         sha224.Update(part1);
@@ -111,7 +111,7 @@ public class SHA224Tests
     public void Dispose_ShouldClearSensitiveData()
     {
         // Arrange
-        Sha224 sha224 = new();
+        SHA224 sha224 = new();
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
 
         // Act
@@ -126,7 +126,7 @@ public class SHA224Tests
     public void ComputeHash_DisposedInstance_ShouldThrowException()
     {
         // Arrange
-        Sha224 sha224 = new();
+        SHA224 sha224 = new();
         sha224.Dispose();
 
         // Act & Assert

@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Notio.Shared">
+    <Reference Include="Nalix.Shared">
       <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Shared.dll</HintPath>
     </Reference>
   </ItemGroup>

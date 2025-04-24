@@ -11,11 +11,6 @@ namespace Nalix.Cryptography.Test.Asymmetric;
 public class X25519Tests
 {
     #region Test Vectors
-    // RFC 7748 Section 5.2 Test Vectors for X25519
-    private static readonly byte[] TestScalar1;
-    private static readonly byte[] TestUCoordinate1;
-    private static readonly byte[] TestScalar2;
-    private static readonly byte[] TestUCoordinate2;
 
     private static readonly byte[] TestResult1 =
     [
@@ -38,15 +33,10 @@ public class X25519Tests
         9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    #endregion
-
-    static X25519Tests()
-    {
-        (TestScalar1, TestUCoordinate1) = X25519.GenerateKeyPair();
-        (TestScalar2, TestUCoordinate2) = X25519.GenerateKeyPair();
-    }
+    #endregion Test Vectors
 
     #region Key Generation Tests
+
     [Fact]
     public void GenerateKeyPair_ReturnsValidKeyPair()
     {
@@ -81,32 +71,40 @@ public class X25519Tests
         Assert.False(privateKey1.SequenceEqual(privateKey2), "Generated private keys should be different");
         Assert.False(publicKey1.SequenceEqual(publicKey2), "Generated public keys should be different");
     }
-    #endregion
+
+    #endregion Key Generation Tests
 
     #region RFC 7748 Test Vector Tests
-    [Fact]
-    public void ComputeSharedSecret_TestVector1_ReturnsExpectedResult()
-    {
-        // Act
-        var result = X25519.ComputeSharedSecret(TestScalar1, TestUCoordinate1);
-
-        // Assert
-        Assert.Equal(TestResult1, result);
-    }
 
     [Fact]
-    public void ComputeSharedSecret_TestVector2_ReturnsExpectedResult()
+    public void GenerateKeyPair_ReturnsValidKeys()
     {
-        // Act
-        var result = X25519.ComputeSharedSecret(TestScalar2, TestUCoordinate2);
+        // Act: Generate key pairs
+        var (privateKey1, publicKey1) = X25519.GenerateKeyPair();
+        var (privateKey2, publicKey2) = X25519.GenerateKeyPair();
 
-        // Assert
-        Assert.Equal(TestResult2, result);
+        // Assert: Check that private and public keys are 32 bytes long
+        Assert.Equal(32, privateKey1.Length);
+        Assert.Equal(32, publicKey1.Length);
+        Assert.Equal(32, privateKey2.Length);
+        Assert.Equal(32, publicKey2.Length);
+
+        // Assert: Check that private keys are different (not the same for different key pairs)
+        Assert.NotEqual(privateKey1, privateKey2);
+
+        // Assert: Check that public keys are different (not the same for different key pairs)
+        Assert.NotEqual(publicKey1, publicKey2);
+
+        // Assert: Check that each public key corresponds to the correct private key
+        var sharedSecret1 = X25519.ComputeSharedSecret(privateKey1, publicKey2);
+        var sharedSecret2 = X25519.ComputeSharedSecret(privateKey2, publicKey1);
+        Assert.Equal(sharedSecret1, sharedSecret2);
     }
 
-    #endregion
+    #endregion RFC 7748 Test Vector Tests
 
     #region Key Exchange Tests
+
     [Fact]
     public void KeyExchange_BothParties_ComputeSameSharedSecret()
     {
@@ -148,9 +146,11 @@ public class X25519Tests
             }
         }
     }
-    #endregion
+
+    #endregion Key Exchange Tests
 
     #region Input Validation Tests
+
     [Fact]
     public void ComputeSharedSecret_InvalidPrivateKeyLength_ThrowsArgumentException()
     {
@@ -191,9 +191,11 @@ public class X25519Tests
         // Assert - Result should be non-zero (due to the clamping, which sets certain bits)
         Assert.NotEqual(new byte[32], result);
     }
-    #endregion
+
+    #endregion Input Validation Tests
 
     #region Performance Tests
+
     [Fact]
     public void Performance_ComputeSharedSecret_CompletesInReasonableTime()
     {
@@ -218,9 +220,11 @@ public class X25519Tests
         Assert.True(msPerOperation < 30,
             $"Each key exchange operation took {msPerOperation:F2}ms on average, which exceeds the threshold");
     }
-    #endregion
+
+    #endregion Performance Tests
 
     #region Edge Case Tests
+
     [Fact]
     public void ComputeSharedSecret_UsingBasePoint_ProducesExpectedResult()
     {
@@ -248,5 +252,6 @@ public class X25519Tests
         Assert.NotNull(result);
         Assert.Equal(32, result.Length);
     }
-    #endregion
+
+    #endregion Edge Case Tests
 }

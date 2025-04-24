@@ -19,7 +19,7 @@ public class SHA256Tests
             0x77, 0xfd, 0x7f, 0x6e, 0x8e, 0x6f, 0xe5, 0xc1
         ];
 
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
 
         // Act
         byte[] actualHash = sha256.ComputeHash(input);
@@ -42,7 +42,7 @@ public class SHA256Tests
         ];
 
         // Act
-        byte[] actualHash = Sha256.HashData(input);
+        byte[] actualHash = SHA256.HashData(input);
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -61,7 +61,7 @@ public class SHA256Tests
             0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55
         ];
 
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
 
         // Act
         byte[] actualHash = sha256.ComputeHash(input);
@@ -75,7 +75,7 @@ public class SHA256Tests
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
 
         // Act
         sha256.Update(input);
@@ -100,7 +100,7 @@ public class SHA256Tests
             0x77, 0xfd, 0x7f, 0x6e, 0x8e, 0x6f, 0xe5, 0xc1
         ];
 
-        using Sha256 sha256 = new();
+        using SHA256 sha256 = new();
 
         // Act
         sha256.Update(part1);
@@ -115,7 +115,7 @@ public class SHA256Tests
     public void Dispose_ShouldClearSensitiveData()
     {
         // Arrange
-        Sha256 sha256 = new();
+        SHA256 sha256 = new();
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
 
         // Act
@@ -130,7 +130,7 @@ public class SHA256Tests
     public void ComputeHash_DisposedInstance_ShouldThrowException()
     {
         // Arrange
-        Sha256 sha256 = new();
+        SHA256 sha256 = new();
         sha256.Dispose();
 
         // Act & Assert
