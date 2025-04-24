@@ -1,5 +1,4 @@
 using Nalix.Shared.LZ4.Internal;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.LZ4.Encoders;
@@ -20,7 +19,7 @@ internal static unsafe class RawWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(ref byte* destPtr, ReadOnlySpan<byte> literals)
+    public static void Write(ref byte* destPtr, System.ReadOnlySpan<byte> literals)
     {
         if (!literals.IsEmpty)
         {

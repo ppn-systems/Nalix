@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -19,7 +18,7 @@ internal static unsafe class MemOps
     /// Reads an unaligned value from a span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
+    public static T ReadUnaligned<T>(System.ReadOnlySpan<byte> source) where T : unmanaged
     {
         fixed (byte* pSource = &MemoryMarshal.GetReference(source))
         {
@@ -37,7 +36,7 @@ internal static unsafe class MemOps
     /// Writes an unaligned value to a span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void WriteUnaligned<T>(Span<byte> destination, T value) where T : unmanaged
+    public static void WriteUnaligned<T>(System.Span<byte> destination, T value) where T : unmanaged
     {
         fixed (byte* pDest = &MemoryMarshal.GetReference(destination))
         {
@@ -72,7 +71,7 @@ internal static unsafe class MemOps
     /// Copies memory from source span to destination pointer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Copy(ReadOnlySpan<byte> source, byte* destination)
+    public static void Copy(System.ReadOnlySpan<byte> source, byte* destination)
     {
         if (source.IsEmpty) return;
         fixed (byte* pSource = &MemoryMarshal.GetReference(source))
@@ -85,7 +84,7 @@ internal static unsafe class MemOps
     /// Copies memory from source pointer to destination span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Copy(byte* source, Span<byte> destination)
+    public static void Copy(byte* source, System.Span<byte> destination)
     {
         if (destination.IsEmpty) return;
         fixed (byte* pDest = &MemoryMarshal.GetReference(destination))

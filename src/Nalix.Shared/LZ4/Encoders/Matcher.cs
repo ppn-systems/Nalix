@@ -1,5 +1,4 @@
 using Nalix.Shared.LZ4.Internal;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.LZ4.Encoders;
@@ -83,7 +82,7 @@ internal static unsafe class Matcher
         );
 
         int offset = (int)(currentInputPtr - matchCandidatePtr);
-        Debug.Assert(offset > 0 && offset <= Constants.MaxOffset);
+        System.Diagnostics.Debug.Assert(offset > 0 && offset <= Constants.MaxOffset);
 
         return new Match(offset, matchLength);
     }

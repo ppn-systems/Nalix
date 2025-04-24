@@ -1,5 +1,4 @@
 using Nalix.Shared.LZ4.Internal;
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -12,8 +11,8 @@ internal static unsafe class FastPath
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int EncodeBlock(
-        ReadOnlySpan<byte> input,
-        Span<byte> output,
+        System.ReadOnlySpan<byte> input,
+        System.Span<byte> output,
         int* hashTable) // Pointer to stackalloc'd or pooled hash table
     {
         fixed (byte* inputBase = &MemoryMarshal.GetReference(input))
@@ -36,7 +35,7 @@ internal static unsafe class FastPath
             while (inputPtr < matchFindInputLimit)
             {
                 int currentInputOffset = (int)(inputPtr - inputBase);
-                byte* windowStartPtr = inputBase + Math.Max(0, currentInputOffset - Constants.MaxOffset);
+                byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - Constants.MaxOffset);
 
                 Matcher.Match match = Matcher.FindLongestMatch(
                     hashTable,
@@ -66,8 +65,10 @@ internal static unsafe class FastPath
                 if (outputPtr + requiredSpace > outputEnd) return -1; // Output buffer too small
 
                 // --- Write Token ---
-                byte literalToken = (byte)Math.Min(literalLength, Constants.TokenLiteralMask);
-                byte matchToken = (byte)Math.Min(matchLength - Constants.MinMatchLength, Constants.TokenMatchMask); // Match len stored relative to MinMatchLength
+                byte literalToken = (byte)System.Math.Min(literalLength, Constants.TokenLiteralMask);
+
+                // Match len stored relative to MinMatchLength
+                byte matchToken = (byte)System.Math.Min(matchLength - Constants.MinMatchLength, Constants.TokenMatchMask);
                 byte token = (byte)((literalToken << 4) | matchToken);
                 *outputPtr++ = token;
 
@@ -105,7 +106,7 @@ internal static unsafe class FastPath
 
                 if (outputPtr + requiredSpace > outputEnd) return -1; // Output buffer too small
 
-                byte literalToken = (byte)Math.Min(lastLiteralLength, Constants.TokenLiteralMask);
+                byte literalToken = (byte)System.Math.Min(lastLiteralLength, Constants.TokenLiteralMask);
                 byte token = (byte)(literalToken << 4); // Match part is 0
                 *outputPtr++ = token;
 
