@@ -14,18 +14,26 @@
 		<InformationalVersion>6.5.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
-Nalix.Logging is a flexible and high-performance logging library for .NET. It provides core logging infrastructure, customizable formatters, multiple logging targets, and internal utilities for efficient log processing. Designed for developers who need structured and extensible logging capabilities in high-performance applications.
+Nalix.Logging is a high-performance, asynchronous logging subsystem designed
+for large-scale and low-latency applications in the Nalix ecosystem.
+
+It features a modular engine with pluggable sinks (console, file, email, channel),
+batched file writing, and fully configurable logging options.
+Built with a zero-lock, channel-based pipeline, it ensures efficient,
+non-blocking log processing under heavy concurrent workloads.
 		</Description>
 
 		<PackageReleaseNotes>
-			- Initial release of Nalix.Logging.
-			- Features include:
-			• Core logging system for structured and efficient logging.
-			• Customizable formatters for flexible log output.
-			• Multiple logging targets for different output destinations.
-			• Internal utilities to optimize log processing.
-			• Extension support for seamless integration into existing .NET applications.
+			- Introduced LogEngine with asynchronous channel-based batching pipeline.
+			- Added multiple sinks: ConsoleLogTarget, FileLogTarget, EmailLogTarget, and ChannelFileLogTarget.
+			- Implemented BatchFileLogTarget for high-throughput file I/O with low contention.
+			- Added flexible options (FileLogOptions, BatchFileLogOptions, EmailLogOptions) for configuration tuning.
+			- Integrated LogFormatter and LogDistributor for extensible message routing.
+			- Added NLogix facade for simplified static logging entry points and extensions.
+			- Improved async handling, internal exception safety, and batching performance.
+			- General cleanup, documentation updates, and unit test enhancements.
 		</PackageReleaseNotes>
+
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
