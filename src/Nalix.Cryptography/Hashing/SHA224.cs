@@ -213,20 +213,26 @@ public sealed class SHA224 : ISHA, IDisposable
     /// </summary>
     /// <param name="block">The 64-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlock(ReadOnlySpan<byte> block)
+    private unsafe void ProcessBlock(ReadOnlySpan<byte> block)
     {
         if (block.Length != 64)
             throw new ArgumentException("Block size must be 64 bytes", nameof(block));
 
-        // Prepare message schedule (W)
-        for (int t = 0; t < 16; t++)
+        fixed (byte* ptr = block)
+        fixed (uint* w = _w)
         {
-            _w[t] = BinaryPrimitives.ReadUInt32BigEndian(block[(t * 4)..]);
-        }
+            // Load first 16 words (big-endian)
+            for (int t = 0; t < 16; t++)
+            {
+                uint value = Unsafe.ReadUnaligned<uint>(ptr + (t * 4));
+                w[t] = BinaryPrimitives.ReverseEndianness(value);
+            }
 
-        for (int t = 16; t < 64; t++)
-        {
-            _w[t] = Sigma1(_w[t - 2]) + _w[t - 7] + Sigma0(_w[t - 15]) + _w[t - 16];
+            // Expand W[16..63]
+            for (int t = 16; t < 64; t++)
+            {
+                w[t] = BitwiseUtils.Sigma1(w[t - 2]) + w[t - 7] + BitwiseUtils.Sigma0(w[t - 15]) + w[t - 16];
+            }
         }
 
         // Initialize working variables
@@ -239,11 +245,11 @@ public sealed class SHA224 : ISHA, IDisposable
         uint g = _state[6];
         uint h = _state[7];
 
-        // Main loop
+        // Main compression loop
         for (int t = 0; t < 64; t++)
         {
-            uint t1 = h + BigSigma1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K224[t] + _w[t];
-            uint t2 = BigSigma0(a) + BitwiseUtils.Majority(a, b, c);
+            uint t1 = h + BitwiseUtils.SigmaUpper1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K224[t] + _w[t];
+            uint t2 = BitwiseUtils.SigmaUpper0(a) + BitwiseUtils.Majority(a, b, c);
 
             h = g;
             g = f;
@@ -255,7 +261,7 @@ public sealed class SHA224 : ISHA, IDisposable
             a = t1 + t2;
         }
 
-        // Update state
+        // Update hash state
         _state[0] += a;
         _state[1] += b;
         _state[2] += c;
@@ -265,28 +271,6 @@ public sealed class SHA224 : ISHA, IDisposable
         _state[6] += g;
         _state[7] += h;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint BigSigma0(uint x) =>
-        BitwiseUtils.RotateRight(x, 2) ^
-        BitwiseUtils.RotateRight(x, 13) ^
-        BitwiseUtils.RotateRight(x, 22);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint BigSigma1(uint x) =>
-        BitwiseUtils.RotateRight(x, 6) ^
-        BitwiseUtils.RotateRight(x, 11) ^
-        BitwiseUtils.RotateRight(x, 25);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Sigma0(uint x) =>
-        BitwiseUtils.RotateRight(x, 7) ^
-        BitwiseUtils.RotateRight(x, 18) ^ (x >> 3);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Sigma1(uint x) =>
-        BitwiseUtils.RotateRight(x, 17) ^
-        BitwiseUtils.RotateRight(x, 19) ^ (x >> 10);
 
     #endregion SHA-224/256 Functions
 

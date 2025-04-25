@@ -59,6 +59,30 @@ public static partial class BitwiseUtils
         RotateRight(x, 6) ^ RotateRight(x, 11) ^ RotateRight(x, 25);
 
     /// <summary>
+    /// Computes the σ₀ (Small Sigma 0) function used in SHA-256 message schedule expansion.
+    /// This function performs: ROTR⁷(x) ⊕ ROTR¹⁸(x) ⊕ SHR³(x).
+    ///
+    /// σ₀(x) = ROTR⁷(x) ⊕ ROTR¹⁸(x) ⊕ (x >>> 3)
+    /// </summary>
+    /// <param name="x">The input 32-bit word.</param>
+    /// <returns>The result of σ₀(x).</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static uint Sigma0(uint x) => RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3);
+
+    /// <summary>
+    /// Computes the σ₁ (Small Sigma 1) function used in SHA-256 message schedule expansion.
+    /// This function performs: ROTR¹⁷(x) ⊕ ROTR¹⁹(x) ⊕ SHR¹⁰(x).
+    ///
+    /// σ₁(x) = ROTR¹⁷(x) ⊕ ROTR¹⁹(x) ⊕ (x >>> 10)
+    /// </summary>
+    /// <param name="x">The input 32-bit word.</param>
+    /// <returns>The result of σ₁(x).</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static uint Sigma1(uint x) => RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
+
+    /// <summary>
     /// Compares two byte spans in a fixed-time manner to prevent timing attacks.
     /// </summary>
     /// <param name="left">The first byte span to compare.</param>

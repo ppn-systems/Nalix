@@ -308,68 +308,52 @@ public sealed class SHA256 : ISHA, IDisposable
 
         uint* w = stackalloc uint[64];
 
-        // Save initial state
+        fixed (byte* ptr = block)
+        {
+            // Load W[0..15] from block (big-endian)
+            for (int i = 0; i < 16; i++)
+            {
+                uint raw = Unsafe.ReadUnaligned<uint>(ptr + (i * 4));
+                w[i] = BinaryPrimitives.ReverseEndianness(raw);
+            }
+
+            // Expand W[16..63]
+            for (int i = 16; i < 64; i++)
+            {
+                w[i] = w[i - 16] + BitwiseUtils.Sigma0(w[i - 15]) + w[i - 7] + BitwiseUtils.Sigma1(w[i - 2]);
+            }
+        }
+
+        // Initialize working variables
         uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
         uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
-        // Load message words (big-endian)
-        for (int i = 0; i < 16; i++)
-            w[i] = BinaryPrimitives.ReadUInt32BigEndian(block[(i * 4)..]);
-
-        // Message schedule expansion
-        for (int i = 16; i < 64; i++)
-        {
-            uint s0 = BitwiseUtils.RotateRight(w[i - 15], 7) ^
-                     BitwiseUtils.RotateRight(w[i - 15], 18) ^
-                     (w[i - 15] >> 3);
-            uint s1 = BitwiseUtils.RotateRight(w[i - 2], 17) ^
-                     BitwiseUtils.RotateRight(w[i - 2], 19) ^
-                     (w[i - 2] >> 10);
-            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
-        }
-
-        // Save original state for update
-        uint origA = a, origB = b, origC = c, origD = d;
-        uint origE = e, origF = f, origG = g, origH = h;
-
-        // Main compression function
+        // Compression loop
         for (int i = 0; i < 64; i++)
         {
-            uint S1 = Sigma1(e);
-            uint ch = BitwiseUtils.Choose(e, f, g);
-            uint temp1 = h + S1 + ch + SHA.K256[i] + w[i];
-            uint S0 = Sigma0(a);
-            uint maj = BitwiseUtils.Majority(a, b, c);
-            uint temp2 = S0 + maj;
+            uint t1 = h + BitwiseUtils.SigmaUpper1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K256[i] + w[i];
+            uint t2 = BitwiseUtils.SigmaUpper0(a) + BitwiseUtils.Majority(a, b, c);
 
             h = g;
             g = f;
             f = e;
-            e = d + temp1;
+            e = d + t1;
             d = c;
             c = b;
             b = a;
-            a = temp1 + temp2;
+            a = t1 + t2;
         }
 
-        // Correct state update
-        _state[0] = origA + a;
-        _state[1] = origB + b;
-        _state[2] = origC + c;
-        _state[3] = origD + d;
-        _state[4] = origE + e;
-        _state[5] = origF + f;
-        _state[6] = origG + g;
-        _state[7] = origH + h;
+        // Update hash state
+        _state[0] += a;
+        _state[1] += b;
+        _state[2] += c;
+        _state[3] += d;
+        _state[4] += e;
+        _state[5] += f;
+        _state[6] += g;
+        _state[7] += h;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Sigma1(uint e)
-        => BitwiseUtils.RotateRight(e, 6) ^ BitwiseUtils.RotateRight(e, 11) ^ BitwiseUtils.RotateRight(e, 25);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Sigma0(uint a)
-        => BitwiseUtils.RotateRight(a, 2) ^ BitwiseUtils.RotateRight(a, 13) ^ BitwiseUtils.RotateRight(a, 22);
 
     #endregion Private Methods
 
