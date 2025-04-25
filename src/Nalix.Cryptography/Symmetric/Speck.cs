@@ -32,12 +32,10 @@ public static class Speck
     /// <returns>The encrypted ciphertext (8 bytes).</returns>
     public static byte[] Encrypt(byte[] plaintext, byte[] key)
     {
-        if (plaintext is not { Length: 8 })
-            throw new ArgumentException(
-                "Plaintext must be exactly 8 bytes for Speck64/128",
-                nameof(plaintext));
+        if (plaintext.Length % 8 != 0)
+            throw new ArgumentException("Plaintext must be exactly 8 bytes for Speck64/128", nameof(plaintext));
 
-        if (key is not { Length: 16 })
+        if (key.Length != 16)
             throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
 
         // Extract two 32-bit blocks from plaintext
@@ -67,7 +65,7 @@ public static class Speck
     /// <exception cref="ArgumentException"></exception>
     public static void Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, Span<byte> ciphertext)
     {
-        if (plaintext.Length != 8)
+        if (plaintext.Length % 8 != 0)
             throw new ArgumentException("Plaintext must be exactly 8 bytes for Speck64/128.", nameof(plaintext));
 
         if (key.Length != 16)
@@ -91,12 +89,10 @@ public static class Speck
     /// <returns>The decrypted plaintext (8 bytes).</returns>
     public static byte[] Decrypt(byte[] ciphertext, byte[] key)
     {
-        if (ciphertext is not { Length: 8 })
-            throw new ArgumentException(
-                "Ciphertext must be exactly 8 bytes for Speck64/128",
-                nameof(ciphertext));
+        if (ciphertext.Length % 8 != 0)
+            throw new ArgumentException("Ciphertext must be exactly 8 bytes for Speck64/128", nameof(ciphertext));
 
-        if (key is not { Length: 16 })
+        if (key.Length != 16)
             throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
 
         // Extract two 32-bit blocks from ciphertext
@@ -126,7 +122,7 @@ public static class Speck
     /// <exception cref="ArgumentException"></exception>
     public static void Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, Span<byte> plaintext)
     {
-        if (ciphertext.Length != 8)
+        if (plaintext.Length % 8 != 0)
             throw new ArgumentException("Ciphertext must be exactly 8 bytes for Speck64/128.", nameof(ciphertext));
 
         if (key.Length != 16)
@@ -164,13 +160,10 @@ public static class Speck
             ArgumentNullException.ThrowIfNull(plaintext);
 
             if (plaintext.Length % 8 != 0)
-                throw new ArgumentException(
-                    "Plaintext length must be a multiple of 8 bytes for CBC mode",
-                    nameof(plaintext));
+                throw new ArgumentException("Plaintext length must be a multiple of 8 bytes for CBC mode", nameof(plaintext));
 
-            if (key is not { Length: 16 })
-                throw new ArgumentException(
-                    "Key must be exactly 16 bytes for Speck64/128", nameof(key));
+            if (key.Length != 16)
+                throw new ArgumentException("Key must be exactly 16 bytes for Speck64/128", nameof(key));
 
             // Generate IV if not provided
             if (iv == null)
@@ -238,9 +231,7 @@ public static class Speck
             Span<byte> ciphertext, ReadOnlySpan<byte> iv = default)
         {
             if (plaintext.Length % 8 != 0)
-                throw new ArgumentException(
-                    "Plaintext length must be a multiple of 8 bytes for CBC mode",
-                    nameof(plaintext));
+                throw new ArgumentException("Plaintext length must be a multiple of 8 bytes for CBC mode", nameof(plaintext));
 
             if (key.Length != 16)
                 throw new ArgumentException(

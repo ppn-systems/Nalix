@@ -203,7 +203,8 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(
+                nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -363,7 +364,8 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The Number of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes),
+                "The Number of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)

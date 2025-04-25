@@ -17,10 +17,9 @@ public class SpeckTests
 
         // Act
         byte[] ciphertext = Speck.Encrypt(plaintext, key);
-        byte[] decryptedPlaintext = Speck.Decrypt(ciphertext, key);
 
         // Assert
-        Assert.Equal(plaintext, decryptedPlaintext);
+        Assert.Equal(plaintext, Speck.Decrypt(ciphertext, key));
     }
 
     [Fact]
@@ -133,7 +132,7 @@ public class SpeckTests
         new Random().NextBytes(plaintext);
 
         byte[] ciphertext = Speck.CBC.Encrypt(plaintext, key);
-        byte[] invalidCiphertext = new byte[ciphertext.Length];
+        byte[] invalidCiphertext = new byte[ciphertext.Length - 1];
         Array.Copy(ciphertext, 1, invalidCiphertext, 0, ciphertext.Length - 1); // Corrupt IV
 
         // Act & Assert

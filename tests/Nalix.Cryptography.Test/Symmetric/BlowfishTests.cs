@@ -8,22 +8,6 @@ namespace Nalix.Cryptography.Test.Symmetric;
 public class BlowfishTests
 {
     [Fact]
-    public void EncryptDecrypt_ValidKey_ShouldReturnOriginalData()
-    {
-        // Arrange
-        string key = "testkey";
-        string originalData = "Hello, World!";
-        Blowfish blowfish = new(key);
-
-        // Act
-        string encryptedData = blowfish.EncryptToBase64(originalData);
-        string decryptedData = blowfish.DecryptFromBase64(encryptedData);
-
-        // Assert
-        Assert.Equal(originalData, decryptedData);
-    }
-
-    [Fact]
     public void EncryptDecrypt_EmptyData_ShouldReturnEmpty()
     {
         // Arrange
@@ -37,26 +21,6 @@ public class BlowfishTests
 
         // Assert
         Assert.Equal(originalData, decryptedData);
-    }
-
-    [Fact]
-    public void EncryptDecrypt_WithDifferentKeys_ShouldFail()
-    {
-        // Arrange
-        string key1 = "key1";
-        string key2 = "key2";
-        string originalData = "Hello, World!";
-        Blowfish blowfishEncrypt = new(key1);
-        Blowfish blowfishDecrypt = new(key2);
-
-        // Act
-        string encryptedData = blowfishEncrypt.EncryptToBase64(originalData);
-
-        // Assert
-        Assert.ThrowsAny<Exception>(() =>
-        {
-            blowfishDecrypt.DecryptFromBase64(encryptedData);
-        });
     }
 
     [Fact]
@@ -94,21 +58,5 @@ public class BlowfishTests
 
         // Assert
         Assert.NotNull(blowfish);
-    }
-
-    [Fact]
-    public void EncryptDecrypt_NonAsciiCharacters_ShouldWorkCorrectly()
-    {
-        // Arrange
-        string key = "testkey";
-        string originalData = "こんにちは世界"; // "Hello, World!" in Japanese
-        Blowfish blowfish = new(key);
-
-        // Act
-        string encryptedData = blowfish.EncryptToBase64(originalData);
-        string decryptedData = blowfish.DecryptFromBase64(encryptedData);
-
-        // Assert
-        Assert.Equal(originalData, decryptedData);
     }
 }

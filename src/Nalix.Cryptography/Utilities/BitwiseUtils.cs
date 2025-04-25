@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,6 +10,7 @@ namespace Nalix.Cryptography.Utilities;
 /// High-performance bitwise utilities for cryptographic operations.
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
+[SkipLocalsInit]
 public static partial class BitwiseUtils
 {
     #region Bit Rotations
@@ -92,17 +94,21 @@ public static partial class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint U8To32Little(byte[] p, int inputOffset)
     {
+        Debug.Assert(p.Length >= inputOffset + 4);
+
         if (BitConverter.IsLittleEndian)
         {
             // Use unsafe direct memory access for maximum performance
-            ref byte pRef = ref p[inputOffset];
+            ref byte pRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(p), inputOffset);
             return Unsafe.ReadUnaligned<uint>(ref pRef);
         }
         else
         {
             // Fallback path for big-endian architectures
-            return (uint)(p[inputOffset]) | ((uint)(p[inputOffset + 1]) << 8) |
-                   ((uint)(p[inputOffset + 2]) << 16) | ((uint)(p[inputOffset + 3]) << 24);
+            return (uint)(p[inputOffset]) |
+                   ((uint)(p[inputOffset + 1]) << 8) |
+                   ((uint)(p[inputOffset + 2]) << 16) |
+                   ((uint)(p[inputOffset + 3]) << 24);
         }
     }
 
@@ -116,17 +122,21 @@ public static partial class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint U8To32Little(ReadOnlySpan<byte> data, int offset)
     {
+        Debug.Assert(data.Length >= offset + 4);
+
         if (BitConverter.IsLittleEndian)
         {
             // Use unsafe direct memory access for maximum performance
-            ref byte dataRef = ref MemoryMarshal.GetReference(data[offset..]);
+            ref byte dataRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(data), offset);
             return Unsafe.ReadUnaligned<uint>(ref dataRef);
         }
         else
         {
             // Fallback path for big-endian architectures
-            return (uint)(data[offset]) | ((uint)(data[offset + 1]) << 8) |
-                   ((uint)(data[offset + 2]) << 16) | ((uint)(data[offset + 3]) << 24);
+            return (uint)(data[offset]) |
+                   ((uint)(data[offset + 1]) << 8) |
+                   ((uint)(data[offset + 2]) << 16) |
+                   ((uint)(data[offset + 3]) << 24);
         }
     }
 
@@ -141,10 +151,12 @@ public static partial class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ToBytes(byte[] output, uint input, int outputOffset)
     {
+        Debug.Assert(output.Length >= outputOffset + 4);
+
         if (BitConverter.IsLittleEndian)
         {
             // Use unsafe direct memory access for maximum performance
-            ref byte outputRef = ref output[outputOffset];
+            ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(output), outputOffset);
             Unsafe.WriteUnaligned(ref outputRef, input);
         }
         else
@@ -167,10 +179,12 @@ public static partial class BitwiseUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ToBytes(Span<byte> output, uint input, int offset)
     {
+        Debug.Assert(output.Length >= offset + 4);
+
         if (BitConverter.IsLittleEndian)
         {
             // Use unsafe direct memory access for maximum performance
-            ref byte outputRef = ref MemoryMarshal.GetReference(output[offset..]);
+            ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(output), offset);
             Unsafe.WriteUnaligned(ref outputRef, input);
         }
         else
@@ -181,6 +195,13 @@ public static partial class BitwiseUtils
             output[offset + 3] = (byte)(input >> 24);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint ReadUInt32BigEndian(ReadOnlySpan<byte> data, int offset) =>
+        ((uint)data[offset]) |
+        ((uint)data[offset + 1] << 8) |
+        ((uint)data[offset + 2] << 16) |
+        ((uint)data[offset + 3] << 24);
 
     #endregion Byte Conversion (Little Endian)
 }

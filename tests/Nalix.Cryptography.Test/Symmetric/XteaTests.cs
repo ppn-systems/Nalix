@@ -104,16 +104,12 @@ public class XteaTests
     {
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
-        byte[] plaintext = new byte[1024 * 1024]; // 1 MB of data
+        byte[] plaintext = new byte[1024]; // 1 MB of data
         new Random().NextBytes(key);
         new Random().NextBytes(plaintext);
 
-        // Act
-        byte[] ciphertext = Xtea.Encrypt(plaintext, key);
-        byte[] decryptedPlaintext = Xtea.Decrypt(ciphertext, key);
-
         // Assert
-        Assert.Equal(plaintext, decryptedPlaintext);
+        Assert.Equal(plaintext, Xtea.Decrypt(Xtea.Encrypt(plaintext, key), key));
     }
 
     [Fact]

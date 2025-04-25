@@ -21,13 +21,13 @@ public static class PKCS7
         if (blockSize <= 0 || blockSize > byte.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
 
-        int paddingSize = blockSize - data.Length % blockSize;
-        byte[] paddedData = new byte[data.Length + paddingSize];
-        data.CopyTo(paddedData);
+        int size = blockSize - data.Length % blockSize;
+        byte[] dataP = new byte[data.Length + size];
+        data.CopyTo(dataP);
 
-        paddedData.AsSpan(data.Length).Fill((byte)paddingSize);
+        dataP.AsSpan(data.Length).Fill((byte)size);
 
-        return paddedData;
+        return dataP;
     }
 
     #endregion Pad Methods
@@ -47,12 +47,12 @@ public static class PKCS7
         if (blockSize <= 0 || blockSize > byte.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
 
-        int paddingSize = data[^1];
+        int size = data[^1];
 
-        if (paddingSize <= 0 || paddingSize > blockSize || !IsValidPadding(data, paddingSize))
+        if (size <= 0 || size > blockSize || !IsValidPadding(data, size))
             throw new InvalidOperationException("Invalid padding.");
 
-        return data[..^paddingSize].ToArray();
+        return data[..^size].ToArray();
     }
 
     #endregion Unpad Methods

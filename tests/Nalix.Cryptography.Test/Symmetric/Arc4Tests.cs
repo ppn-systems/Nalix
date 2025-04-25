@@ -38,8 +38,8 @@ public class Arc4Tests
     public void Encrypt_WithDifferentKeys_ShouldProduceDifferentCiphertext()
     {
         // Arrange
-        byte[] key1 = System.Text.Encoding.UTF8.GetBytes("key1");
-        byte[] key2 = System.Text.Encoding.UTF8.GetBytes("key2");
+        byte[] key1 = System.Text.Encoding.UTF8.GetBytes("key1234");
+        byte[] key2 = System.Text.Encoding.UTF8.GetBytes("key2345");
         byte[] originalData = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
         byte[] encryptedData1 = new byte[originalData.Length];
         byte[] encryptedData2 = new byte[originalData.Length];
