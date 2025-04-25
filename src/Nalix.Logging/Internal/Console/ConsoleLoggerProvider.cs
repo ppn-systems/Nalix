@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Framework.Configuration;
 using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Options;
 
@@ -40,13 +41,16 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     #region Constructors
 
-    public ConsoleLoggerProvider(ConsoleLogOptions options)
+    public ConsoleLoggerProvider(ConsoleLogOptions? options = null)
     {
-        _formatter = new LogFormatter(_enableColors);
-        _batchSize = System.Math.Max(1, options.BatchSize);
+        options ??= ConfigurationManager.Instance.Get<ConsoleLogOptions>();
+
         _enableColors = options.EnableColors;
         _adaptiveFlush = options.AdaptiveFlush;
+        _batchSize = System.Math.Max(1, options.BatchSize);
         _batchDelay = options.BatchDelay > System.TimeSpan.Zero ? options.BatchDelay : System.TimeSpan.FromMilliseconds(100);
+
+        _formatter = new LogFormatter(_enableColors);
 
         var channelOptions = options.MaxQueueSize > 0
             ? new System.Threading.Channels.BoundedChannelOptions(options.MaxQueueSize)
