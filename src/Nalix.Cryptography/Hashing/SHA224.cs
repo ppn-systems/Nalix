@@ -242,8 +242,8 @@ public sealed class SHA224 : ISHA, IDisposable
         // Main loop
         for (int t = 0; t < 64; t++)
         {
-            uint t1 = h + BigSigma1(e) + Ch(e, f, g) + SHA.K224[t] + _w[t];
-            uint t2 = BigSigma0(a) + Maj(a, b, c);
+            uint t1 = h + BigSigma1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K224[t] + _w[t];
+            uint t2 = BigSigma0(a) + BitwiseUtils.Majority(a, b, c);
 
             h = g;
             g = f;
@@ -265,14 +265,6 @@ public sealed class SHA224 : ISHA, IDisposable
         _state[6] += g;
         _state[7] += h;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Ch(uint x, uint y, uint z)
-        => (x & y) ^ (~x & z);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint Maj(uint x, uint y, uint z)
-        => (x & y) ^ (x & z) ^ (y & z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint BigSigma0(uint x) =>

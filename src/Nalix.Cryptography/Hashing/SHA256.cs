@@ -213,10 +213,6 @@ public sealed class SHA256 : ISHA, IDisposable
         _finalHash = hash;
         _finalized = true;
 
-        // Debug final output
-        Console.WriteLine("Final hash computed:");
-        Console.WriteLine(BitConverter.ToString(hash));
-
         return hash;
     }
 
@@ -339,15 +335,11 @@ public sealed class SHA256 : ISHA, IDisposable
         // Main compression function
         for (int i = 0; i < 64; i++)
         {
-            uint S1 = BitwiseUtils.RotateRight(e, 6) ^
-                     BitwiseUtils.RotateRight(e, 11) ^
-                     BitwiseUtils.RotateRight(e, 25);
-            uint ch = (e & f) ^ ((~e) & g);
+            uint S1 = Sigma1(e);
+            uint ch = BitwiseUtils.Choose(e, f, g);
             uint temp1 = h + S1 + ch + SHA.K256[i] + w[i];
-            uint S0 = BitwiseUtils.RotateRight(a, 2) ^
-                     BitwiseUtils.RotateRight(a, 13) ^
-                     BitwiseUtils.RotateRight(a, 22);
-            uint maj = (a & b) ^ (a & c) ^ (b & c);
+            uint S0 = Sigma0(a);
+            uint maj = BitwiseUtils.Majority(a, b, c);
             uint temp2 = S0 + maj;
 
             h = g;
@@ -370,6 +362,14 @@ public sealed class SHA256 : ISHA, IDisposable
         _state[6] = origG + g;
         _state[7] = origH + h;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Sigma1(uint e)
+        => BitwiseUtils.RotateRight(e, 6) ^ BitwiseUtils.RotateRight(e, 11) ^ BitwiseUtils.RotateRight(e, 25);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Sigma0(uint a)
+        => BitwiseUtils.RotateRight(a, 2) ^ BitwiseUtils.RotateRight(a, 13) ^ BitwiseUtils.RotateRight(a, 22);
 
     #endregion Private Methods
 
