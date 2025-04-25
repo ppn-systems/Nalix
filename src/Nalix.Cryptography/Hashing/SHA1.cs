@@ -22,7 +22,7 @@ public sealed class SHA1 : ISHA, IDisposable
     // Hash state instance field
     private readonly uint[] _state = new uint[5];
 
-    private bool _disposed;
+    private bool _disposed = false;
 
     // Fields for incremental hashing
     private readonly byte[] _buffer = new byte[64]; // Buffer for incomplete blocks
@@ -38,15 +38,26 @@ public sealed class SHA1 : ISHA, IDisposable
     /// <summary>
     /// Initializes a new instance of the SHA-1 hash algorithm.
     /// </summary>
-    public SHA1()
-    {
-        _disposed = false;
-        this.Initialize();
-    }
+    public SHA1() => this.Initialize();
 
     #endregion Constructors
 
     #region Public Methods
+
+    /// <summary>
+    /// Computes the SHA-1 hash of the given data in a single call.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 160-bit hash as a byte array.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
+    /// </remarks>
+    public static byte[] HashData(ReadOnlySpan<byte> data)
+    {
+        using SHA1 sha1 = new();
+        sha1.Update(data);
+        return sha1.FinalizeHash();
+    }
 
     /// <summary>
     /// Resets the hash state to initial values.
@@ -250,21 +261,6 @@ public sealed class SHA1 : ISHA, IDisposable
         }
 
         return result.ToArray();
-    }
-
-    /// <summary>
-    /// Computes the SHA-1 hash of the given data in a single call.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>The computed 160-bit hash as a byte array.</returns>
-    /// <remarks>
-    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
-    /// </remarks>
-    public static byte[] HashData(ReadOnlySpan<byte> data)
-    {
-        using SHA1 sha1 = new();
-        sha1.Update(data);
-        return sha1.FinalizeHash();
     }
 
     #endregion Public Methods

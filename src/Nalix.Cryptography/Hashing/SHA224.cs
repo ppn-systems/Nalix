@@ -35,14 +35,23 @@ public sealed class SHA224 : ISHA, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="SHA224"/> class.
     /// </summary>
-    public SHA224()
-    {
-        Initialize();
-    }
+    public SHA224() => Initialize();
 
     #endregion Constructor
 
     #region Public Methods
+
+    /// <summary>
+    /// Computes the SHA-224 hash of the given data in a single call.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 224-bit hash as a byte array.</returns>
+    public static byte[] HashData(ReadOnlySpan<byte> data)
+    {
+        using SHA224 sha224 = new();
+        sha224.Update(data);
+        return sha224.FinalizeHash();
+    }
 
     /// <summary>
     /// Resets the hash state to its initial values.
@@ -192,18 +201,6 @@ public sealed class SHA224 : ISHA, IDisposable
         return FinalizeHash();
     }
 
-    /// <summary>
-    /// Computes the SHA-224 hash of the given data in a single call.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>The computed 224-bit hash as a byte array.</returns>
-    public static byte[] HashData(ReadOnlySpan<byte> data)
-    {
-        using SHA224 sha224 = new();
-        sha224.Update(data);
-        return sha224.FinalizeHash();
-    }
-
     #endregion Public Methods
 
     #region SHA-224/256 Functions
@@ -236,14 +233,8 @@ public sealed class SHA224 : ISHA, IDisposable
         }
 
         // Initialize working variables
-        uint a = _state[0];
-        uint b = _state[1];
-        uint c = _state[2];
-        uint d = _state[3];
-        uint e = _state[4];
-        uint f = _state[5];
-        uint g = _state[6];
-        uint h = _state[7];
+        uint a = _state[0]; uint b = _state[1]; uint c = _state[2]; uint d = _state[3];
+        uint e = _state[4]; uint f = _state[5]; uint g = _state[6]; uint h = _state[7];
 
         // Main compression loop
         for (int t = 0; t < 64; t++)
@@ -262,14 +253,8 @@ public sealed class SHA224 : ISHA, IDisposable
         }
 
         // Update hash state
-        _state[0] += a;
-        _state[1] += b;
-        _state[2] += c;
-        _state[3] += d;
-        _state[4] += e;
-        _state[5] += f;
-        _state[6] += g;
-        _state[7] += h;
+        _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
+        _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
 
     #endregion SHA-224/256 Functions

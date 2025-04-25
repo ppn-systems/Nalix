@@ -41,6 +41,21 @@ public sealed class SHA256 : ISHA, IDisposable
     #region Public Methods
 
     /// <summary>
+    /// Computes the SHA-256 hash of the given data in a single call.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>The computed 256-bit hash as a byte array.</returns>
+    /// <remarks>
+    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
+    /// </remarks>
+    public static byte[] HashData(ReadOnlySpan<byte> data)
+    {
+        using SHA256 sha256 = new();
+        sha256.Update(data);
+        return sha256.FinalizeHash();
+    }
+
+    /// <summary>
     /// Resets the hash state to its initial values.
     /// </summary>
     /// <remarks>
@@ -61,30 +76,6 @@ public sealed class SHA256 : ISHA, IDisposable
             Array.Clear(_finalHash, 0, _finalHash.Length);
             _finalHash = null;
         }
-    }
-
-    /// <summary>
-    /// Computes the SHA-256 hash of the given data in a single call.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>The computed 256-bit hash as a byte array.</returns>
-    /// <remarks>
-    /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
-    /// </remarks>
-    public static byte[] HashData(ReadOnlySpan<byte> data)
-    {
-        using SHA256 sha256 = new();
-
-        sha256.Initialize();
-        sha256.Update(data);
-
-        // Get the final hash and store it locally
-        byte[] finalHash = sha256.FinalizeHash();
-
-        // Create a new array to ensure we're not affected by disposal
-        byte[] result = (byte[])finalHash.Clone();
-
-        return result;
     }
 
     /// <summary>
@@ -345,14 +336,8 @@ public sealed class SHA256 : ISHA, IDisposable
         }
 
         // Update hash state
-        _state[0] += a;
-        _state[1] += b;
-        _state[2] += c;
-        _state[3] += d;
-        _state[4] += e;
-        _state[5] += f;
-        _state[6] += g;
-        _state[7] += h;
+        _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
+        _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
     }
 
     #endregion Private Methods
