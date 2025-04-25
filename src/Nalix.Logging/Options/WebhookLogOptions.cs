@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation.  All rights reserved.
 
+using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Logging.Options;
 
@@ -9,7 +11,7 @@ namespace Nalix.Logging.Options;
 /// Configuration options for the Discord webhook logger.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("WebhookUrl={_webhookUrl,nq}, BatchSize={BatchSize}")]
-public sealed class WebhookLogOptions
+public sealed class WebhookLogOptions : ConfigurationLoader
 {
     #region Constants
 
@@ -44,6 +46,7 @@ public sealed class WebhookLogOptions
     /// Format: https://discord.com/api/webhooks/{webhook. id}/{webhook.token}
     /// </remarks>
     /// <exception cref="System.ArgumentException">Thrown when value is null, empty, or not a valid URL.</exception>
+    [ConfiguredIgnore]
     public System.Collections.Generic.List<System.String> WebhookUrls
     {
         get => _webhookUrls;
@@ -85,7 +88,7 @@ public sealed class WebhookLogOptions
     /// <remarks>
     /// If not set, Discord will use the webhook's default username.
     /// </remarks>
-    public System.String? Username { get; set; } = "Nalix Logger";
+    public System.String Username { get; set; } = "NLogx";
 
     /// <summary>
     /// Gets or sets the avatar URL displayed for log messages in Discord.
@@ -93,7 +96,7 @@ public sealed class WebhookLogOptions
     /// <remarks>
     /// If not set, Discord will use the webhook's default avatar.
     /// </remarks>
-    public System.String? AvatarUrl { get; set; }
+    public System.String AvatarUrl { get; set; } = System.String.Empty;
 
     /// <summary>
     /// Gets or sets the maximum number of log entries to batch before sending to Discord.
@@ -221,6 +224,7 @@ public sealed class WebhookLogOptions
     /// This handler will be called when all retry attempts have failed.
     /// Use this to implement fallback logging or alerting mechanisms.
     /// </remarks>
+    [ConfiguredIgnore]
     public System.Action<System.Exception, System.String>? OnWebhookError { get; set; }
 
     #endregion Properties
