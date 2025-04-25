@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsTrimmable>true</IsTrimmable>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>    
+  </PropertyGroup>
+
+  <Import Project="..\Nalix.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+    <ProjectReference Include="..\Nalix.Cryptography\Nalix.Cryptography.csproj" />
+  </ItemGroup>
+
+</Project>

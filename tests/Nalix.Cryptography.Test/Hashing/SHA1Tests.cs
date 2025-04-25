@@ -60,6 +60,9 @@ public class SHA1Tests
         // Act
         byte[] actualHash = sha1.ComputeHash(input);
 
+        // Debug output
+        Console.WriteLine(BitConverter.ToString(actualHash));
+
         // Assert
         Assert.Equal(expectedHash, actualHash);
     }

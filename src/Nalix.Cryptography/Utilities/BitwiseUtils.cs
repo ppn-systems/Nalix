@@ -183,48 +183,4 @@ public static partial class BitwiseUtils
     }
 
     #endregion Byte Conversion (Little Endian)
-
-    #region SHA-256 Round
-
-    /// <summary>
-    /// Performs a single round of the SHA-256 hash function with SIMD optimizations where available.
-    /// This method updates the internal state variables of the SHA-256 algorithm based on the provided message word (w)
-    /// and constant (k), performing the necessary bitwise operations and transformations.
-    /// </summary>
-    /// <param name="a">The first internal state variable (a) of the SHA-256 algorithm.</param>
-    /// <param name="b">The second internal state variable (b) of the SHA-256 algorithm.</param>
-    /// <param name="c">The third internal state variable (c) of the SHA-256 algorithm.</param>
-    /// <param name="d">The fourth internal state variable (d) of the SHA-256 algorithm.</param>
-    /// <param name="e">The fifth internal state variable (e) of the SHA-256 algorithm.</param>
-    /// <param name="f">The sixth internal state variable (f) of the SHA-256 algorithm.</param>
-    /// <param name="g">The seventh internal state variable (G) of the SHA-256 algorithm.</param>
-    /// <param name="h">The eighth internal state variable (H) of the SHA-256 algorithm.</param>
-    /// <param name="w">The message word (w) used in the current round of the SHA-256 algorithm.</param>
-    /// <param name="k">The constant value (k) used in the current round of the SHA-256 algorithm.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Round(
-        ref uint a, ref uint b, ref uint c, ref uint d,
-        ref uint e, ref uint f, ref uint g, ref uint h,
-        uint w, uint k)
-    {
-        // Traditional implementation with hardware acceleration through BitOperations
-        uint s1 = RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
-        uint ch = (e & f) ^ (~e & g);
-        uint temp1 = h + s1 + ch + k + w;
-
-        uint s0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
-        uint maj = (a & b) ^ (a & c) ^ (b & c);
-        uint temp2 = s0 + maj;
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + temp1;
-        d = c;
-        c = b;
-        b = a;
-        a = temp1 + temp2;
-    }
-
-    #endregion SHA-256 Round
 }

@@ -4,7 +4,6 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace Nalix.Cryptography.Hashing;
 
@@ -216,16 +215,15 @@ public sealed class SHA1 : ISHA, IDisposable
         // Process all complete blocks
         int fullBlocks = data.Length / 64;
         for (int i = 0; i < fullBlocks; i++)
-        {
-            ProcessBlock(data.Slice(i * 64, 64), h);
-        }
+            this.ProcessBlock(data.Slice(i * 64, 64), h);
 
         // Handle the final block with padding
         int remainingBytes = data.Length % 64;
         Span<byte> finalBlock = stackalloc byte[128]; // Max 2 blocks needed
 
         // Copy remaining data to the final block
-        data[^remainingBytes..].CopyTo(finalBlock);
+        if (remainingBytes > 0)
+            data[^remainingBytes..].CopyTo(finalBlock);
 
         // Add the '1' bit
         finalBlock[remainingBytes] = 0x80;
@@ -241,15 +239,14 @@ public sealed class SHA1 : ISHA, IDisposable
 
         // Process the final block(s)
         for (int i = 0; i < blockCount; i++)
-        {
-            ProcessBlock(finalBlock.Slice(i * 64, 64), h);
-        }
+            this.ProcessBlock(finalBlock.Slice(i * 64, 64), h);
 
         // Convert the hash to bytes in big-endian format
         Span<byte> result = stackalloc byte[20];
         for (int i = 0; i < 5; i++)
         {
             BinaryPrimitives.WriteUInt32BigEndian(result[(i * 4)..], h[i]);
+            _state[i] = h[i];
         }
 
         return result.ToArray();
@@ -274,22 +271,9 @@ public sealed class SHA1 : ISHA, IDisposable
 
     #region Private Methods
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
-    {
-        // Use hardware acceleration if available
-        if (Ssse3.IsSupported)
-        {
-            ProcessBlockSsse3(block, h);
-            return;
-        }
-
-        ProcessBlockScalar(block, h);
-    }
-
     // Rest of the implementation remains the same...
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessBlockScalar(ReadOnlySpan<byte> block, Span<uint> h)
+    private unsafe void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
     {
         Span<uint> w = stackalloc uint[80];
 
@@ -356,112 +340,6 @@ public sealed class SHA1 : ISHA, IDisposable
         h[3] += d;
         h[4] += e;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessBlockSsse3(ReadOnlySpan<byte> block, Span<uint> h)
-    {
-        // Stack allocation for the message schedule array
-        Span<uint> w = stackalloc uint[80];
-
-        fixed (byte* pBlock = block)
-        {
-            // Shuffle mask for big-endian to little-endian conversion
-            var shuffleMask = Vector128.Create(
-                3, 2, 1, 0,
-                7, 6, 5, 4,
-                11, 10, 9, 8,
-                15, 14, 13, 12
-            ).AsByte();
-
-            // Load and byte-swap 16 words using SIMD
-            for (int i = 0; i < 16; i += 4)
-            {
-                var chunk = Ssse3.Shuffle(Sse2.LoadVector128(pBlock + i * 4), shuffleMask).AsUInt32();
-                w[i] = chunk[0];
-                w[i + 1] = chunk[1];
-                w[i + 2] = chunk[2];
-                w[i + 3] = chunk[3];
-            }
-        }
-
-        // Message schedule expansion with unrolling for better performance
-        for (int i = 16; i < 80; i += 4)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                w[i + j] = BitwiseUtils.RotateLeft(
-                    w[(i + j) - 3] ^ w[(i + j) - 8] ^ w[(i + j) - 14] ^ w[(i + j) - 16], 1);
-            }
-        }
-
-        // Initialize working variables
-        uint a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
-
-        // Process rounds with loop unrolling
-        for (int j = 0; j < 20; j += 5)
-        {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, CH(b, c, d), SHA.K1[0], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, CH(a, b, c), SHA.K1[0], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, CH(e, a, b), SHA.K1[0], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, CH(d, e, a), SHA.K1[0], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, CH(c, d, e), SHA.K1[0], w[j + 4]);
-        }
-
-        for (int j = 20; j < 40; j += 5)
-        {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), SHA.K1[1], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), SHA.K1[1], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), SHA.K1[1], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), SHA.K1[1], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), SHA.K1[1], w[j + 4]);
-        }
-
-        for (int j = 40; j < 60; j += 5)
-        {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, MAJ(b, c, d), SHA.K1[2], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, MAJ(a, b, c), SHA.K1[2], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, MAJ(e, a, b), SHA.K1[2], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, MAJ(d, e, a), SHA.K1[2], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, MAJ(c, d, e), SHA.K1[2], w[j + 4]);
-        }
-
-        for (int j = 60; j < 80; j += 5)
-        {
-            ProcessRound(ref a, ref b, ref c, ref d, ref e, PARITY(b, c, d), SHA.K1[3], w[j]);
-            ProcessRound(ref e, ref a, ref b, ref c, ref d, PARITY(a, b, c), SHA.K1[3], w[j + 1]);
-            ProcessRound(ref d, ref e, ref a, ref b, ref c, PARITY(e, a, b), SHA.K1[3], w[j + 2]);
-            ProcessRound(ref c, ref d, ref e, ref a, ref b, PARITY(d, e, a), SHA.K1[3], w[j + 3]);
-            ProcessRound(ref b, ref c, ref d, ref e, ref a, PARITY(c, d, e), SHA.K1[3], w[j + 4]);
-        }
-
-        // Update hash state
-        h[0] += a;
-        h[1] += b;
-        h[2] += c;
-        h[3] += d;
-        h[4] += e;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessRound(
-        ref uint a, ref uint b, ref uint c, ref uint d, ref uint e, uint f, uint k, uint w)
-    {
-        uint temp = BitwiseUtils.RotateLeft(a, 5) + f + e + k + w;
-        e = d;
-        d = c;
-        c = BitwiseUtils.RotateLeft(b, 30);
-        b = a;
-        a = temp;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint CH(uint x, uint y, uint z) => (x & y) ^ ((~x) & z);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint PARITY(uint x, uint y, uint z) => x ^ y ^ z;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint MAJ(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);
 
     #endregion Private Methods
 
