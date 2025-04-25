@@ -35,7 +35,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         {
             TokenBucketLimiter.LimitDecision d = PolicyRateLimiter.Check(
                 context.Packet.OpCode, rl,
-                IPAddressKey.FromIpAddress(ipEndPoint.Address).ToString());
+                NetAddressKey.FromIpAddress(ipEndPoint.Address).ToString());
 
             if (!d.Allowed)
             {
