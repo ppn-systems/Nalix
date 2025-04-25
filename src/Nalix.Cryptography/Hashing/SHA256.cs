@@ -52,7 +52,7 @@ public sealed class SHA256 : ISHA, IDisposable
     {
         using SHA256 sha256 = new();
         sha256.Update(data);
-        return sha256.FinalizeHash();
+        return (byte[])sha256.FinalizeHash().Clone();
     }
 
     /// <summary>
@@ -93,12 +93,7 @@ public sealed class SHA256 : ISHA, IDisposable
 
         // Process the data
         Update(data);
-
-        // Get and verify the hash
-        byte[] hash = FinalizeHash();
-
-        // Create a defensive copy
-        return (byte[])hash.Clone();
+        return (byte[])FinalizeHash().Clone();
     }
 
     /// <summary>
@@ -168,12 +163,13 @@ public sealed class SHA256 : ISHA, IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
+        DebugState("Before FinalizeHash");
+
         if (_finalized && _finalHash != null)
         {
             // Debug output for cached hash
-            Console.WriteLine("Returning cached hash:");
-            Console.WriteLine(BitConverter.ToString(_finalHash));
-            return (byte[])_finalHash.Clone();
+            DebugState("Returning Cached Hash");
+            return _finalHash;
         }
 
         // Compute padding
@@ -204,7 +200,8 @@ public sealed class SHA256 : ISHA, IDisposable
         _finalHash = hash;
         _finalized = true;
 
-        return hash;
+        DebugState("After Hash Computation");
+        return _finalHash;
     }
 
     /// <summary>
@@ -290,6 +287,24 @@ public sealed class SHA256 : ISHA, IDisposable
     #endregion Public Methods
 
     #region Private Methods
+
+    private void DebugState(string location)
+    {
+        Console.WriteLine($"[DEBUG] {location}:");
+        Console.WriteLine($"_disposed: {_disposed}");
+        Console.WriteLine($"_finalized: {_finalized}");
+        Console.WriteLine($"_bufferLength: {_bufferLength}");
+        Console.WriteLine($"_byteCount: {_byteCount}");
+        if (_finalHash != null)
+        {
+            Console.WriteLine($"_finalHash: {BitConverter.ToString(_finalHash)}");
+        }
+        else
+        {
+            Console.WriteLine("_finalHash: null");
+        }
+        Console.WriteLine("------------------------");
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlock(ReadOnlySpan<byte> block)

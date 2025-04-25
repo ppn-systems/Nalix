@@ -11,7 +11,7 @@ internal class Program
         string input = "abc";
 
         System.Console.WriteLine($"HASH: {BitConverter.ToString(
-            System.Security.Cryptography.SHA256.HashData(Encoding.ASCII.GetBytes(input)))}");
-        System.Console.WriteLine($"HASH: {BitConverter.ToString(SHA256.HashData(Encoding.ASCII.GetBytes(input)))}");
+            System.Security.Cryptography.SHA1.HashData(Encoding.ASCII.GetBytes(input)))}");
+        System.Console.WriteLine($"HASH: {BitConverter.ToString(SHA1.HashData(Encoding.ASCII.GetBytes(input)))}");
     }
 }
