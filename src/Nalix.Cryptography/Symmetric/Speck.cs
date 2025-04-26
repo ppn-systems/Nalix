@@ -414,9 +414,10 @@ public static class Speck
     {
         for (int i = 0; i < subkeys.Length; i++)
         {
+            Console.WriteLine($"Before Round {i}: x = 0x{x:X8}, y = 0x{y:X8}, subkey = 0x{subkeys[i]:X8}");
             x = Round(x, y, subkeys[i]);
-            // Swap x and y for next round
-            (x, y) = (y, x);
+            (x, y) = (y, x); // Swap
+            Console.WriteLine($"After Round {i}: x = 0x{x:X8}, y = 0x{y:X8}");
         }
 
         return (x, y);
@@ -450,25 +451,28 @@ public static class Speck
         {
             throw new ArgumentException($"Invalid key length. Expected {KeySizeBytes} bytes, got {key.Length}.");
         }
+
         uint[] subkeys = new uint[Rounds];
 
         // Initialize key parts
-        uint k0 = BitwiseUtils.U8To32Little(key, 0);  // l[0]
-        uint k1 = BitwiseUtils.U8To32Little(key, 4);  // l[1]
-        uint k2 = BitwiseUtils.U8To32Little(key, 8);  // l[2]
-        uint k3 = BitwiseUtils.U8To32Little(key, 12); // k
+        uint l0 = BitwiseUtils.U8To32Little(key, 0);
+        uint l1 = BitwiseUtils.U8To32Little(key, 4);
+        uint l2 = BitwiseUtils.U8To32Little(key, 8);
+        uint k = BitwiseUtils.U8To32Little(key, 12);
 
-        // First subkey is k3
-        subkeys[0] = k3;
+        // First subkey is k
+        subkeys[0] = k;
 
         // Generate remaining subkeys
         for (int i = 0; i < Rounds - 1; i++)
         {
-            k3 = Round(k0, k3, (uint)i);
-            subkeys[i + 1] = k3;
+            uint temp = l0;
+            l0 = BitwiseUtils.RotateRight(l1, (int)ALPHA) + k ^ (uint)i;
+            k = BitwiseUtils.RotateLeft(k, (int)BETA) ^ l0;
+            l1 = l2;
+            l2 = temp;
 
-            // Rotate key parts
-            (k0, k1, k2) = (k1, k2, k0);
+            subkeys[i + 1] = k;
         }
 
         return subkeys;

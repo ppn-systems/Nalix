@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -82,126 +81,73 @@ public static partial class BitwiseUtils
 
     #endregion Arithmetic Operations
 
-    #region Byte Conversion (Little Endian)
+    #region Byte Conversion
 
     /// <summary>
     /// Convert four bytes of the input buffer into an unsigned 32-bit integer, beginning at the inputOffset.
-    /// Uses optimized hardware intrinsics when available.
     /// </summary>
     /// <param name="p">The source byte array.</param>
     /// <param name="inputOffset">The offset within the array to read from.</param>
     /// <returns>An unsigned 32-bit integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint U8To32Little(byte[] p, int inputOffset)
+    public static unsafe uint U8To32Little(byte[] p, int inputOffset)
     {
-        Debug.Assert(p.Length >= inputOffset + 4);
+        if (p == null || p.Length < inputOffset + 4)
+            throw new ArgumentOutOfRangeException(nameof(p), "Input array is too small.");
 
-        if (BitConverter.IsLittleEndian)
-        {
-            // Use unsafe direct memory access for maximum performance
-            ref byte pRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(p), inputOffset);
-            return Unsafe.ReadUnaligned<uint>(ref pRef);
-        }
-        else
-        {
-            // Fallback path for big-endian architectures
-            return (uint)(p[inputOffset]) |
-                   ((uint)(p[inputOffset + 1]) << 8) |
-                   ((uint)(p[inputOffset + 2]) << 16) |
-                   ((uint)(p[inputOffset + 3]) << 24);
-        }
+        fixed (byte* ptr = &p[inputOffset])
+            return Unsafe.ReadUnaligned<uint>(ptr);
     }
 
     /// <summary>
     /// Convert four bytes of the input span into an unsigned 32-bit integer, beginning at the offset.
-    /// Uses optimized hardware intrinsics when available.
     /// </summary>
     /// <param name="data">The source span.</param>
     /// <param name="offset">The offset within the span to read from.</param>
     /// <returns>An unsigned 32-bit integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint U8To32Little(ReadOnlySpan<byte> data, int offset)
+    public static unsafe uint U8To32Little(ReadOnlySpan<byte> data, int offset)
     {
-        Debug.Assert(data.Length >= offset + 4);
+        if (data.Length < offset + 4)
+            throw new ArgumentOutOfRangeException(nameof(data), "Input span is too small.");
 
-        if (BitConverter.IsLittleEndian)
-        {
-            // Use unsafe direct memory access for maximum performance
-            ref byte dataRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(data), offset);
-            return Unsafe.ReadUnaligned<uint>(ref dataRef);
-        }
-        else
-        {
-            // Fallback path for big-endian architectures
-            return (uint)(data[offset]) |
-                   ((uint)(data[offset + 1]) << 8) |
-                   ((uint)(data[offset + 2]) << 16) |
-                   ((uint)(data[offset + 3]) << 24);
-        }
+        fixed (byte* ptr = &MemoryMarshal.GetReference(data))
+            return Unsafe.ReadUnaligned<uint>(ptr + offset);
     }
 
     /// <summary>
     /// Serialize the input integer into the output buffer. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output buffer, starting at the outputOffset.
-    /// Uses optimized hardware intrinsics when available.
     /// </summary>
     /// <param name="output">The destination buffer.</param>
     /// <param name="input">The input value to be serialized.</param>
     /// <param name="outputOffset">The offset within the buffer to write to.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ToBytes(byte[] output, uint input, int outputOffset)
+    public static unsafe void ToBytes(byte[] output, uint input, int outputOffset)
     {
-        Debug.Assert(output.Length >= outputOffset + 4);
+        if (output == null || output.Length < outputOffset + 4)
+            throw new ArgumentOutOfRangeException(nameof(output), "Output array is too small.");
 
-        if (BitConverter.IsLittleEndian)
-        {
-            // Use unsafe direct memory access for maximum performance
-            ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(output), outputOffset);
-            Unsafe.WriteUnaligned(ref outputRef, input);
-        }
-        else
-        {
-            output[outputOffset] = (byte)input;
-            output[outputOffset + 1] = (byte)(input >> 8);
-            output[outputOffset + 2] = (byte)(input >> 16);
-            output[outputOffset + 3] = (byte)(input >> 24);
-        }
+        fixed (byte* ptr = &output[outputOffset])
+            Unsafe.WriteUnaligned(ptr, input);
     }
 
     /// <summary>
     /// Serialize the input integer into the output span. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output span, starting at the offset.
-    /// Uses optimized hardware intrinsics when available.
     /// </summary>
     /// <param name="output">The destination span.</param>
     /// <param name="input">The input value to be serialized.</param>
     /// <param name="offset">The offset within the span to write to.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ToBytes(Span<byte> output, uint input, int offset)
+    public static unsafe void ToBytes(Span<byte> output, uint input, int offset)
     {
-        Debug.Assert(output.Length >= offset + 4);
+        if (output.Length < offset + 4)
+            throw new ArgumentOutOfRangeException(nameof(output), "Output span is too small.");
 
-        if (BitConverter.IsLittleEndian)
-        {
-            // Use unsafe direct memory access for maximum performance
-            ref byte outputRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(output), offset);
-            Unsafe.WriteUnaligned(ref outputRef, input);
-        }
-        else
-        {
-            output[offset] = (byte)input;
-            output[offset + 1] = (byte)(input >> 8);
-            output[offset + 2] = (byte)(input >> 16);
-            output[offset + 3] = (byte)(input >> 24);
-        }
+        fixed (byte* ptr = &MemoryMarshal.GetReference(output))
+            Unsafe.WriteUnaligned(ptr + offset, input);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ReadUInt32BigEndian(ReadOnlySpan<byte> data, int offset) =>
-        ((uint)data[offset]) |
-        ((uint)data[offset + 1] << 8) |
-        ((uint)data[offset + 2] << 16) |
-        ((uint)data[offset + 3] << 24);
-
-    #endregion Byte Conversion (Little Endian)
+    #endregion Byte Conversion
 }

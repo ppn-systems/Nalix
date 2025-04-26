@@ -1,4 +1,6 @@
 using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Utilities;
+using Nalix.Randomization;
 using System;
 using Xunit;
 
@@ -7,19 +9,32 @@ namespace Nalix.Cryptography.Test.Symmetric;
 public class SpeckTests
 {
     [Fact]
+    public void Test_U8To32Little_And_ToBytes()
+    {
+        byte[] data = [0x01, 0x02, 0x03, 0x04];
+        uint value = BitwiseUtils.U8To32Little(data, 0);
+        Assert.Equal((uint)0x04030201, value); // Little-endian
+
+        byte[] output = new byte[4];
+        BitwiseUtils.ToBytes(output, value, 0);
+        Assert.Equal(data, output);
+    }
+
+    [Fact]
     public void EncryptDecrypt_ValidKeyAndPlaintext_ShouldReturnOriginalPlaintext()
     {
         // Arrange
         byte[] key = new byte[16];
         byte[] plaintext = new byte[8];
-        new Random().NextBytes(key);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(plaintext);
 
         // Act
         byte[] ciphertext = Speck.Encrypt(plaintext, key);
+        byte[] decrypted = Speck.Decrypt(ciphertext, key);
 
         // Assert
-        Assert.Equal(plaintext, Speck.Decrypt(ciphertext, key));
+        Assert.Equal(plaintext, decrypted);
     }
 
     [Fact]
@@ -28,8 +43,8 @@ public class SpeckTests
         // Arrange
         byte[] invalidKey = new byte[15]; // Not 16 bytes
         byte[] plaintext = new byte[8];
-        new Random().NextBytes(invalidKey);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(invalidKey);
+        RandGenerator.Fill(plaintext);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Speck.Encrypt(plaintext, invalidKey));
@@ -41,8 +56,8 @@ public class SpeckTests
         // Arrange
         byte[] key = new byte[16];
         byte[] invalidPlaintext = new byte[7]; // Not 8 bytes
-        new Random().NextBytes(key);
-        new Random().NextBytes(invalidPlaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(invalidPlaintext);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Speck.Encrypt(invalidPlaintext, key));
@@ -53,9 +68,9 @@ public class SpeckTests
     {
         // Arrange
         byte[] key = new byte[16];
-        byte[] plaintext = new byte[16]; // Two blocks (16 bytes)
-        new Random().NextBytes(key);
-        new Random().NextBytes(plaintext);
+        byte[] plaintext = new byte[8];
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(plaintext);
 
         // Act
         byte[] ciphertext = Speck.CBC.Encrypt(plaintext, key);
@@ -71,8 +86,8 @@ public class SpeckTests
         // Arrange
         byte[] key = new byte[16];
         byte[] plaintext = new byte[16]; // Two blocks
-        new Random().NextBytes(key);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(plaintext);
 
         // Act
         byte[] ciphertext1 = Speck.CBC.Encrypt(plaintext, key);
@@ -89,8 +104,8 @@ public class SpeckTests
         // Arrange
         byte[] invalidKey = new byte[15]; // Not 16 bytes
         byte[] plaintext = new byte[16]; // Two blocks
-        new Random().NextBytes(invalidKey);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(invalidKey);
+        RandGenerator.Fill(plaintext);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Speck.CBC.Encrypt(plaintext, invalidKey));
@@ -102,8 +117,8 @@ public class SpeckTests
         // Arrange
         byte[] key = new byte[16];
         byte[] invalidPlaintext = new byte[15]; // Not a multiple of 8 bytes
-        new Random().NextBytes(key);
-        new Random().NextBytes(invalidPlaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(invalidPlaintext);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Speck.CBC.Encrypt(invalidPlaintext, key));
@@ -115,8 +130,8 @@ public class SpeckTests
         // Arrange
         byte[] key = new byte[16];
         byte[] invalidCiphertext = new byte[15]; // Not a multiple of 8 or less than 9 bytes
-        new Random().NextBytes(key);
-        new Random().NextBytes(invalidCiphertext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(invalidCiphertext);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Speck.CBC.Decrypt(invalidCiphertext, key));
@@ -128,8 +143,8 @@ public class SpeckTests
         // Arrange
         byte[] key = new byte[16];
         byte[] plaintext = new byte[16];
-        new Random().NextBytes(key);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(plaintext);
 
         byte[] ciphertext = Speck.CBC.Encrypt(plaintext, key);
         byte[] invalidCiphertext = new byte[ciphertext.Length - 1];
@@ -144,7 +159,7 @@ public class SpeckTests
     {
         // Arrange
         byte[] key = new byte[16];
-        new Random().NextBytes(key);
+        RandGenerator.Fill(key);
 
         // Act
         var methodInfo = typeof(Speck)

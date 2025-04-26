@@ -1,4 +1,5 @@
 using Nalix.Cryptography.Symmetric;
+using Nalix.Randomization;
 using System;
 using Xunit;
 
@@ -12,7 +13,7 @@ public class XteaTests
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Hello, XTEA!");
-        new Random().NextBytes(key);
+        RandGenerator.Fill(key);
 
         // Act
         byte[] ciphertext = Xtea.Encrypt(plaintext, key);
@@ -29,8 +30,8 @@ public class XteaTests
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] iv = new byte[Xtea.BlockSizeInBytes];
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Hello, CBC Mode!");
-        new Random().NextBytes(key);
-        new Random().NextBytes(iv);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(iv);
 
         // Act
         byte[] ciphertext = Xtea.Encrypt(plaintext, key, iv);
@@ -46,7 +47,7 @@ public class XteaTests
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Non-multiple of block size");
-        new Random().NextBytes(key);
+        RandGenerator.Fill(key);
 
         // Act
         byte[] ciphertext = Xtea.Encrypt(plaintext, key);
@@ -62,7 +63,7 @@ public class XteaTests
         // Arrange
         byte[] invalidKey = new byte[Xtea.KeySizeInBytes - 1]; // Key is too short
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Invalid key test");
-        new Random().NextBytes(invalidKey);
+        RandGenerator.Fill(invalidKey);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Xtea.Encrypt(plaintext, invalidKey));
@@ -75,8 +76,8 @@ public class XteaTests
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] invalidIV = new byte[Xtea.BlockSizeInBytes - 1]; // IV is too short
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Invalid IV test");
-        new Random().NextBytes(key);
-        new Random().NextBytes(invalidIV);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(invalidIV);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Xtea.Encrypt(plaintext, key, invalidIV));
@@ -88,7 +89,7 @@ public class XteaTests
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Invalid padding test");
-        new Random().NextBytes(key);
+        RandGenerator.Fill(key);
 
         byte[] ciphertext = Xtea.Encrypt(plaintext, key);
 
@@ -105,8 +106,8 @@ public class XteaTests
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] plaintext = new byte[1024]; // 1 MB of data
-        new Random().NextBytes(key);
-        new Random().NextBytes(plaintext);
+        RandGenerator.Fill(key);
+        RandGenerator.Fill(plaintext);
 
         // Assert
         Assert.Equal(plaintext, Xtea.Decrypt(Xtea.Encrypt(plaintext, key), key));
@@ -118,7 +119,7 @@ public class XteaTests
         // Arrange
         byte[] key = new byte[Xtea.KeySizeInBytes];
         byte[] plaintext = [];
-        new Random().NextBytes(key);
+        RandGenerator.Fill(key);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => Xtea.Encrypt(plaintext, key));

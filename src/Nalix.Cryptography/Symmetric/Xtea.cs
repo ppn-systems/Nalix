@@ -1,4 +1,4 @@
-using Nalix.Common.Exceptions;
+using Nalix.Cryptography.Padding;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -134,30 +134,13 @@ public static class Xtea
         if (key.Length != KeySizeInWords)
             throw new ArgumentException($"Key must be exactly {KeySizeInWords} words ({KeySizeInBytes} bytes)", nameof(key));
 
-        // Calculate the padded length
-        int length = data.Length;
-        int paddingBytes = BlockSizeInBytes - (length % BlockSizeInBytes);
-        int paddedLength = length + paddingBytes;
+        byte[] paddedData = PKCS7.Pad(data, BlockSizeInBytes);
 
-        if (output.Length < paddedLength)
-            throw new ArgumentException($"Output buffer must be at least {paddedLength} bytes", nameof(output));
-
-        // Create a working buffer for the data with padding
-        byte[] rentedArray = null;
-
-        Span<byte> workingBuffer = paddedLength <= 512
-            ? stackalloc byte[paddedLength]
-            : (rentedArray = ArrayPool<byte>.Shared.Rent(paddedLength)).AsSpan(0, paddedLength);
+        if (output.Length < paddedData.Length)
+            throw new ArgumentException($"Output buffer must be at least {paddedData.Length} bytes", nameof(output));
 
         try
         {
-            // Copy the data and apply PKCS#7 padding
-            data.CopyTo(workingBuffer);
-            for (int i = length; i < paddedLength; i++)
-            {
-                workingBuffer[i] = (byte)paddingBytes;
-            }
-
             // Process in CBC mode if IV is provided, otherwise ECB
             bool useCbc = !iv.IsEmpty;
             Span<byte> previousCipherBlock = stackalloc byte[BlockSizeInBytes];
@@ -171,17 +154,20 @@ public static class Xtea
             }
 
             // Process each block
-            for (int offset = 0; offset < paddedLength; offset += BlockSizeInBytes)
+            for (int offset = 0; offset < paddedData.Length; offset += BlockSizeInBytes)
             {
-                Span<byte> blockBytes = workingBuffer.Slice(offset, BlockSizeInBytes);
+                Span<byte> blockBytes = output.Slice(offset, BlockSizeInBytes);
+                Span<byte> inputBlock = paddedData.AsSpan(offset, BlockSizeInBytes);
 
                 if (useCbc)
                 {
                     // XOR with the previous cipher block (IV for the first block)
                     for (int i = 0; i < BlockSizeInBytes; i++)
                     {
-                        blockBytes[i] ^= previousCipherBlock[i];
+                        blockBytes[i] = (byte)(inputBlock[i] ^ previousCipherBlock[i]);
                     }
+
+                    inputBlock = blockBytes;
                 }
 
                 // Extract the block as two 32-bit words
@@ -208,10 +194,7 @@ public static class Xtea
         finally
         {
             // Return any rented array
-            if (rentedArray != null)
-            {
-                ArrayPool<byte>.Shared.Return(rentedArray, clearArray: true);
-            }
+            Array.Clear(paddedData, 0, paddedData.Length);
         }
     }
 
@@ -301,12 +284,7 @@ public static class Xtea
             throw new ArgumentException("Output buffer is too small", nameof(output));
 
         // Create a working buffer for the decrypted data
-        int dataLength = data.Length;
-        byte[] rentedArray = null;
-
-        Span<byte> workingBuffer = dataLength <= 512
-            ? stackalloc byte[dataLength]
-            : (rentedArray = ArrayPool<byte>.Shared.Rent(dataLength)).AsSpan(0, dataLength);
+        byte[] decryptedData = new byte[data.Length];
 
         try
         {
@@ -325,10 +303,10 @@ public static class Xtea
             // Process each block
             Span<byte> currentCipherBlock = useCbc ? stackalloc byte[BlockSizeInBytes] : [];
 
-            for (int offset = 0; offset < dataLength; offset += BlockSizeInBytes)
+            for (int offset = 0; offset < data.Length; offset += BlockSizeInBytes)
             {
                 ReadOnlySpan<byte> cipherBlock = data.Slice(offset, BlockSizeInBytes);
-                Span<byte> plainBlock = workingBuffer.Slice(offset, BlockSizeInBytes);
+                Span<byte> plainBlock = decryptedData.AsSpan(offset, BlockSizeInBytes);
 
                 // Extract the block as two 32-bit words
                 uint v0 = BinaryPrimitives.ReadUInt32LittleEndian(cipherBlock[..4]);
@@ -359,33 +337,15 @@ public static class Xtea
                 }
             }
 
-            // Handle PKCS#7 padding
-            int paddingLength = workingBuffer[dataLength - 1];
-            if (paddingLength < 1 || paddingLength > BlockSizeInBytes)
-                throw new CryptoException("Invalid padding");
-
-            // Verify that all padding bytes have the correct value
-            for (int i = dataLength - paddingLength; i < dataLength; i++)
-            {
-                if (workingBuffer[i] != paddingLength)
-                    throw new CryptoException("Invalid padding");
-            }
-
-            // Calculate the original data length
-            int originalDataLength = dataLength - paddingLength;
-
-            // Copy the decrypted data to the output buffer
-            workingBuffer[..originalDataLength].CopyTo(output);
-
-            return originalDataLength;
+            // Remove PKCS7 padding
+            byte[] unpaddedData = PKCS7.Unpad(decryptedData, BlockSizeInBytes);
+            unpaddedData.CopyTo(output);
+            return unpaddedData.Length;
         }
         finally
         {
-            // Return any rented array
-            if (rentedArray != null)
-            {
-                ArrayPool<byte>.Shared.Return(rentedArray, clearArray: true);
-            }
+            // Clear sensitive data
+            Array.Clear(decryptedData, 0, decryptedData.Length);
         }
     }
 
