@@ -1,10 +1,8 @@
-using Nalix.Common.Compression;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
 using Nalix.Extensions.Primitives;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.LZ4.Internal;
-using System;
 
 namespace Nalix.Network.Package.Engine;
 
@@ -17,28 +15,28 @@ public static class PacketCompact
     /// Compresses the payload of the given packet using the specified compression type.
     /// </summary>
     /// <param name="packet">The packet whose payload needs to be compressed.</param>
-    /// <param name="compressionType">The compression type to use.</param>
     /// <returns>A new <see cref="Packet"/> instance with the compressed payload.</returns>
     /// <exception cref="PackageException">
     /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet Compress(in Packet packet,
-        CompressionType compressionType = CompressionType.LZ4)
+    public static Packet Compress(in Packet packet)
     {
-        ValidatePacketForCompression(packet);
+        if (packet.Payload.IsEmpty)
+            throw new PackageException("Cannot compress an empty payload.");
+
+        if (packet.Flags.HasFlag(PacketFlags.Encrypted))
+            throw new PackageException("Payload is encrypted and cannot be compressed.");
 
         try
         {
-            System.Memory<byte> compressedData = compressionType switch
-            {
-                CompressionType.LZ4 => CompressLZ4(packet.Payload.Span),
-                _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
-            };
-            return CreateCompressedPacket(packet, compressedData);
+            return new Packet(
+                packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
+                packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
+                packet.Priority, packet.Number, CompressLZ4(packet.Payload.Span), true);
         }
-        catch (System.Exception ex) when (ex is System.IO.IOException or System.ObjectDisposedException)
+        catch (System.Exception ex)
         {
             throw new PackageException("Error occurred during payload compression.", ex);
         }
@@ -48,7 +46,6 @@ public static class PacketCompact
     /// Decompresses the payload of the given packet using the specified compression type.
     /// </summary>
     /// <param name="packet">The packet whose payload needs to be decompressed.</param>
-    /// <param name="compressionType">The compression type used for the payload.</param>
     /// <returns>A new <see cref="Packet"/> instance with the decompressed payload.</returns>
     /// <exception cref="PackageException">
     /// Thrown if the packet is not marked as compressed, if the payload is empty or null,
@@ -56,25 +53,22 @@ public static class PacketCompact
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet Decompress(in Packet packet,
-        CompressionType compressionType = CompressionType.LZ4)
+    public static Packet Decompress(in Packet packet)
     {
-        ValidatePacketForDecompression(packet);
+        if (packet.Payload.IsEmpty)
+            throw new PackageException("Cannot decompress an empty payload.");
+
+        if (!packet.Flags.HasFlag(PacketFlags.Compressed))
+            throw new PackageException("Payload is not marked as compressed.");
 
         try
         {
-            System.Memory<byte> decompressedData = compressionType switch
-            {
-                CompressionType.LZ4 => (packet.Payload),
-                _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
-            };
-            return CreateDecompressedPacket(packet, CompressLZ4(packet.Payload.Span));
+            return new Packet(
+                packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
+                packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
+                packet.Priority, packet.Number, DecompressLZ4(packet.Payload.Span), true);
         }
-        catch (System.IO.InvalidDataException ex)
-        {
-            throw new PackageException("Invalid compressed data.", ex);
-        }
-        catch (System.Exception ex) when (ex is System.IO.IOException or System.ObjectDisposedException)
+        catch (System.Exception ex)
         {
             throw new PackageException("Error occurred during payload decompression.", ex);
         }
@@ -82,7 +76,7 @@ public static class PacketCompact
 
     #region Private Methods
 
-    private static Memory<byte> CompressLZ4(ReadOnlySpan<byte> input)
+    private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
         int maxCompressedSize = Header.Size + input.Length + (input.Length / 255) + 16;
@@ -93,10 +87,10 @@ public static class PacketCompact
         if (compressedLength < 0)
             throw new PackageException("Compression failed due to insufficient buffer size.");
 
-        return buffer.AsMemory(0, compressedLength);
+        return System.MemoryExtensions.AsMemory(buffer, 0, compressedLength);
     }
 
-    private static Memory<byte> DecompressLZ4(ReadOnlySpan<byte> input)
+    private static System.Memory<byte> DecompressLZ4(System.ReadOnlySpan<byte> input)
     {
         if (input.Length < Header.Size)
             throw new PackageException("Compressed payload too small to contain a valid header.");
@@ -113,36 +107,8 @@ public static class PacketCompact
         if (decompressedLength < 0)
             throw new PackageException("Decompression failed due to invalid data.");
 
-        return buffer.AsMemory(0, decompressedLength);
+        return System.MemoryExtensions.AsMemory(buffer, 0, decompressedLength);
     }
-
-    private static void ValidatePacketForCompression(Packet packet)
-    {
-        if (packet.Payload.IsEmpty)
-            throw new PackageException("Cannot compress an empty payload.");
-
-        if (packet.Flags.HasFlag(PacketFlags.Encrypted))
-            throw new PackageException("Payload is encrypted and cannot be compressed.");
-    }
-
-    private static void ValidatePacketForDecompression(Packet packet)
-    {
-        if (packet.Payload.IsEmpty)
-            throw new PackageException("Cannot decompress an empty payload.");
-
-        if (!packet.Flags.HasFlag(PacketFlags.Compressed))
-            throw new PackageException("Payload is not marked as compressed.");
-    }
-
-    private static Packet CreateCompressedPacket(Packet packet, System.Memory<byte> compressedData) =>
-        new(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-            packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
-            packet.Priority, packet.Number, compressedData, true);
-
-    private static Packet CreateDecompressedPacket(Packet packet, System.Memory<byte> decompressedData) =>
-        new(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-            packet.Type, packet.Flags.RemoveFlag(PacketFlags.Compressed),
-            packet.Priority, packet.Number, decompressedData, true);
 
     #endregion Private Methods
 }
