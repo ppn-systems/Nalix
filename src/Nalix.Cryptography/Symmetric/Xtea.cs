@@ -1,417 +1,279 @@
-using Nalix.Cryptography.Padding;
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Symmetric;
 
 /// <summary>
-/// Provides high-performance methods for encrypting and decrypting data using the XTEA
-/// (eXtended Tiny Encryption Algorithm) with enhanced security features.
+/// Provides an implementation of XTEA (eXtended Tiny Encryption Algorithm) cipher
+/// using unsafe code for performance.
 /// </summary>
 /// <remarks>
-/// XTEA is a block cipher designed to correct weaknesses in TEA. It uses a 128-bit key and
-/// operates on 64-bit blocks. This implementation includes additional security features
-/// like initialization vector support and secure padding modes.
+/// XTEA is a block cipher with 64-bit blocks and 128-bit keys.
+/// This implementation uses direct memory manipulation for enhanced performance.
 /// </remarks>
-public static class Xtea
+public static unsafe class Xtea
 {
     #region Constants
 
     /// <summary>
-    /// The Number of rounds in the XTEA algorithm.
+    /// Key size in bytes (128 bits)
     /// </summary>
-    public const int DefaultNumRounds = 32;
+    public const int KeySize = 16;
 
     /// <summary>
-    /// The block size in bytes (XTEA operates on 64-bit blocks).
+    /// Block size in bytes (64 bits)
     /// </summary>
-    public const int BlockSizeInBytes = 8;
+    public const int BlockSize = 8;
 
     /// <summary>
-    /// The key size in bytes (XTEA uses a 128-bit key).
+    /// Default number of rounds in XTEA algorithm
     /// </summary>
-    public const int KeySizeInBytes = 16;
+    public const int DefaultRounds = 32;
 
     /// <summary>
-    /// The key size in 32-bit words (XTEA uses four 32-bit words for the key).
-    /// </summary>
-    public const int KeySizeInWords = 4;
-
-    /// <summary>
-    /// The XTEA delta constant (derived from the golden ratio).
+    /// XTEA delta constant
     /// </summary>
     private const uint Delta = 0x9E3779B9;
 
     #endregion Constants
 
-    #region Encryption/Decryption Core
+    #region Core Encryption/Decryption Methods
 
     /// <summary>
-    /// Encrypts a single 64-bit block using the XTEA algorithm.
+    /// Encrypts a single 64-bit block of data using XTEA algorithm
     /// </summary>
-    /// <param name="v0">The first 32 bits of the block.</param>
-    /// <param name="v1">The second 32 bits of the block.</param>
-    /// <param name="key">The 128-bit key as four 32-bit unsigned integers.</param>
-    /// <param name="rounds">The Number of rounds (default is 32).</param>
-    /// <returns>The encrypted 64-bit block as two 32-bit values.</returns>
+    /// <param name="v0">First 32-bit word</param>
+    /// <param name="v1">Second 32-bit word</param>
+    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (uint v0, uint v1) EncryptBlock(
-        uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
+    private static void EncryptBlock(ref uint v0, ref uint v1, uint* key, int rounds = DefaultRounds)
     {
-        if (key.Length != 4)
-            throw new ArgumentException("Key must contain exactly 4 unsigned 32-bit integers.", nameof(key));
-
         uint sum = 0;
 
-        // Perform encryption rounds
         for (int i = 0; i < rounds; i++)
         {
-            v0 = unchecked(v0 + (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]));
-            sum = unchecked(sum + Delta);
-            v1 = unchecked(v1 + (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]));
+            v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+            sum += Delta;
+            v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
         }
-
-        return (v0, v1);
     }
 
     /// <summary>
-    /// Decrypts a single 64-bit block using the XTEA algorithm.
+    /// Decrypts a single 64-bit block of data using XTEA algorithm
     /// </summary>
-    /// <param name="v0">The first 32 bits of the encrypted block.</param>
-    /// <param name="v1">The second 32 bits of the encrypted block.</param>
-    /// <param name="key">The 128-bit key as four 32-bit unsigned integers.</param>
-    /// <param name="rounds">The Number of rounds (default is 32).</param>
-    /// <returns>The decrypted 64-bit block as two 32-bit values.</returns>
+    /// <param name="v0">First 32-bit word</param>
+    /// <param name="v1">Second 32-bit word</param>
+    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (uint v0, uint v1) DecryptBlock(
-        uint v0, uint v1, ReadOnlySpan<uint> key, int rounds = DefaultNumRounds)
+    private static void DecryptBlock(ref uint v0, ref uint v1, uint* key, int rounds = DefaultRounds)
     {
-        if (key.Length != 4)
-            throw new ArgumentException("Key must contain exactly 4 unsigned 32-bit integers.", nameof(key));
+        uint sum = (uint)rounds * Delta;
 
-        uint sum = unchecked((uint)rounds * Delta);
-
-        // Perform decryption rounds
         for (int i = 0; i < rounds; i++)
         {
-            v1 = unchecked(v1 - (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(int)((sum >> 11) & 3)]));
-            sum = unchecked(sum - Delta);
-            v0 = unchecked(v0 - (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[(int)(sum & 3)]));
+            v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
+            sum -= Delta;
+            v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
         }
-
-        return (v0, v1);
     }
 
-    #endregion Encryption/Decryption Core
+    #endregion Core Encryption/Decryption Methods
 
-    #region Enhanced API Methods
+    #region Public API Methods
 
     /// <summary>
-    /// Encrypts the specified data using the XTEA algorithm with PKCS#7 padding.
+    /// Encrypts data using XTEA algorithm
     /// </summary>
-    /// <param name="data">The data to encrypt.</param>
-    /// <param name="key">The encryption key (must be exactly 16 bytes / 4 words).</param>
-    /// <param name="output">The buffer to store the encrypted data (must be large enough to hold the result).</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when the data is empty, the key is not exactly 4 words,
-    /// or the output buffer is too small.
-    /// </exception>
-    public static void Encrypt(
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<uint> key,
-        Span<byte> output,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
+    /// <param name="plaintext">Data to encrypt (must be multiple of 8 bytes)</param>
+    /// <param name="key">128-bit key (16 bytes)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <returns>Encrypted data</returns>
+    public static byte[] Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
-        // Validate parameters
-        if (data.IsEmpty)
-            throw new ArgumentException("Data cannot be empty", nameof(data));
+        ValidateInputs(plaintext, key);
 
-        if (key.Length != KeySizeInWords)
-            throw new ArgumentException($"Key must be exactly {KeySizeInWords} words ({KeySizeInBytes} bytes)", nameof(key));
-
-        byte[] paddedData = PKCS7.Pad(data, BlockSizeInBytes);
-
-        if (output.Length < paddedData.Length)
-            throw new ArgumentException($"Output buffer must be at least {paddedData.Length} bytes", nameof(output));
-
-        try
+        byte[] ciphertext = new byte[plaintext.Length];
+        fixed (byte* keyPtr = key)
+        fixed (byte* plaintextPtr = plaintext)
+        fixed (byte* ciphertextPtr = ciphertext)
         {
-            // Process in CBC mode if IV is provided, otherwise ECB
-            bool useCbc = !iv.IsEmpty;
-            Span<byte> previousCipherBlock = stackalloc byte[BlockSizeInBytes];
+            uint* keyWords = (uint*)keyPtr;
 
-            if (useCbc)
+            // Process each 8-byte block
+            for (int i = 0; i < plaintext.Length; i += BlockSize)
             {
-                if (iv.Length < BlockSizeInBytes)
-                    throw new ArgumentException($"IV must be at least {BlockSizeInBytes} bytes", nameof(iv));
+                // Get pointers to current block
+                uint* inputBlock = (uint*)(plaintextPtr + i);
+                uint* outputBlock = (uint*)(ciphertextPtr + i);
 
-                iv[..BlockSizeInBytes].CopyTo(previousCipherBlock);
-            }
-
-            // Process each block
-            for (int offset = 0; offset < paddedData.Length; offset += BlockSizeInBytes)
-            {
-                Span<byte> blockBytes = output.Slice(offset, BlockSizeInBytes);
-                Span<byte> inputBlock = paddedData.AsSpan(offset, BlockSizeInBytes);
-
-                if (useCbc)
-                {
-                    // XOR with the previous cipher block (IV for the first block)
-                    for (int i = 0; i < BlockSizeInBytes; i++)
-                    {
-                        blockBytes[i] = (byte)(inputBlock[i] ^ previousCipherBlock[i]);
-                    }
-
-                    inputBlock = blockBytes;
-                }
-
-                // Extract the block as two 32-bit words
-                uint v0 = BinaryPrimitives.ReadUInt32LittleEndian(blockBytes[..4]);
-                uint v1 = BinaryPrimitives.ReadUInt32LittleEndian(blockBytes.Slice(4, 4));
+                // Copy input values
+                uint v0 = inputBlock[0];
+                uint v1 = inputBlock[1];
 
                 // Encrypt the block
-                (v0, v1) = EncryptBlock(v0, v1, key, rounds);
+                EncryptBlock(ref v0, ref v1, keyWords, rounds);
 
-                // Write the encrypted block back
-                BinaryPrimitives.WriteUInt32LittleEndian(blockBytes[..4], v0);
-                BinaryPrimitives.WriteUInt32LittleEndian(blockBytes.Slice(4, 4), v1);
-
-                if (useCbc)
-                {
-                    // Save this cipher block for the next iteration
-                    blockBytes.CopyTo(previousCipherBlock);
-                }
-
-                // Copy to the output
-                blockBytes.CopyTo(output.Slice(offset, BlockSizeInBytes));
+                // Store results
+                outputBlock[0] = v0;
+                outputBlock[1] = v1;
             }
         }
-        finally
-        {
-            // Return any rented array
-            Array.Clear(paddedData, 0, paddedData.Length);
-        }
+
+        return ciphertext;
     }
 
     /// <summary>
-    /// Encrypts the specified data using the XTEA algorithm with PKCS#7 padding.
+    /// Decrypts data using XTEA algorithm
     /// </summary>
-    /// <param name="data">The data to encrypt.</param>
-    /// <param name="key">The encryption key (must be exactly 16 bytes / 4 words).</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <returns>The encrypted data.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when the data is empty or the key is not exactly 4 words.
-    /// </exception>
-    public static byte[] Encrypt(
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<uint> key,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
+    /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
+    /// <param name="key">128-bit key (16 bytes)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <returns>Decrypted data</returns>
+    public static byte[] Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
-        // Calculate the padded length
-        int length = data.Length;
-        int paddingBytes = BlockSizeInBytes - (length % BlockSizeInBytes);
-        int paddedLength = length + paddingBytes;
+        ValidateInputs(ciphertext, key);
 
-        // Allocate output buffer
-        byte[] output = new byte[paddedLength];
-        Encrypt(data, key, output, iv, rounds);
-        return output;
-    }
-
-    /// <summary>
-    /// Encrypts the specified data using the XTEA algorithm with PKCS#7 padding.
-    /// </summary>
-    /// <param name="data">The data to encrypt.</param>
-    /// <param name="key">The encryption key (must be exactly 16 bytes).</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <returns>The encrypted data.</returns>
-    public static byte[] Encrypt(
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<byte> key,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
-    {
-        if (key.Length != KeySizeInBytes)
-            throw new ArgumentException($"Key must be exactly {KeySizeInBytes} bytes", nameof(key));
-
-        // Convert the key bytes to words
-        Span<uint> keyWords = stackalloc uint[KeySizeInWords];
-        for (int i = 0; i < KeySizeInWords; i++)
+        byte[] plaintext = new byte[ciphertext.Length];
+        fixed (byte* keyPtr = key)
+        fixed (byte* ciphertextPtr = ciphertext)
+        fixed (byte* plaintextPtr = plaintext)
         {
-            keyWords[i] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(i * 4, 4));
-        }
+            uint* keyWords = (uint*)keyPtr;
 
-        return Encrypt(data, keyWords, iv, rounds);
-    }
-
-    /// <summary>
-    /// Decrypts the specified data using the XTEA algorithm, handling PKCS#7 padding.
-    /// </summary>
-    /// <param name="data">The data to decrypt (must be a multiple of 8 bytes).</param>
-    /// <param name="key">The decryption key (must be exactly 16 bytes / 4 words).</param>
-    /// <param name="output">The buffer to store the decrypted data.</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <returns>The Number of bytes written to the output buffer after removing padding.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when the key is not exactly 4 words, the data length is not a multiple of 8,
-    /// the output buffer is too small, or if the padding is invalid.
-    /// </exception>
-    public static int Decrypt(
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<uint> key,
-        Span<byte> output,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
-    {
-        // Validate parameters
-        if (data.Length % BlockSizeInBytes != 0)
-            throw new ArgumentException($"Data length must be a multiple of {BlockSizeInBytes} bytes", nameof(data));
-
-        if (key.Length != KeySizeInWords)
-            throw new ArgumentException($"Key must be exactly {KeySizeInWords} words ({KeySizeInBytes} bytes)", nameof(key));
-
-        if (output.Length < data.Length)
-            throw new ArgumentException("Output buffer is too small", nameof(output));
-
-        // Create a working buffer for the decrypted data
-        byte[] decryptedData = new byte[data.Length];
-
-        try
-        {
-            // Process in CBC mode if IV is provided, otherwise ECB
-            bool useCbc = !iv.IsEmpty;
-            Span<byte> previousCipherBlock = stackalloc byte[BlockSizeInBytes];
-
-            if (useCbc)
+            // Process each 8-byte block
+            for (int i = 0; i < ciphertext.Length; i += BlockSize)
             {
-                if (iv.Length < BlockSizeInBytes)
-                    throw new ArgumentException($"IV must be at least {BlockSizeInBytes} bytes", nameof(iv));
+                // Get pointers to current block
+                uint* inputBlock = (uint*)(ciphertextPtr + i);
+                uint* outputBlock = (uint*)(plaintextPtr + i);
 
-                iv[..BlockSizeInBytes].CopyTo(previousCipherBlock);
-            }
-
-            // Process each block
-            Span<byte> currentCipherBlock = useCbc ? stackalloc byte[BlockSizeInBytes] : [];
-
-            for (int offset = 0; offset < data.Length; offset += BlockSizeInBytes)
-            {
-                ReadOnlySpan<byte> cipherBlock = data.Slice(offset, BlockSizeInBytes);
-                Span<byte> plainBlock = decryptedData.AsSpan(offset, BlockSizeInBytes);
-
-                // Extract the block as two 32-bit words
-                uint v0 = BinaryPrimitives.ReadUInt32LittleEndian(cipherBlock[..4]);
-                uint v1 = BinaryPrimitives.ReadUInt32LittleEndian(cipherBlock.Slice(4, 4));
-
-                if (useCbc)
-                {
-                    cipherBlock.CopyTo(currentCipherBlock);
-                }
+                // Copy input values
+                uint v0 = inputBlock[0];
+                uint v1 = inputBlock[1];
 
                 // Decrypt the block
-                (v0, v1) = DecryptBlock(v0, v1, key, rounds);
+                DecryptBlock(ref v0, ref v1, keyWords, rounds);
 
-                // Write the decrypted block
-                BinaryPrimitives.WriteUInt32LittleEndian(plainBlock[..4], v0);
-                BinaryPrimitives.WriteUInt32LittleEndian(plainBlock.Slice(4, 4), v1);
-
-                if (useCbc)
-                {
-                    // XOR với previousCipherBlock
-                    for (int i = 0; i < BlockSizeInBytes; i++)
-                    {
-                        plainBlock[i] ^= previousCipherBlock[i];
-                    }
-
-                    // Cập nhật previousCipherBlock
-                    currentCipherBlock.CopyTo(previousCipherBlock);
-                }
+                // Store results
+                outputBlock[0] = v0;
+                outputBlock[1] = v1;
             }
+        }
 
-            // Remove PKCS7 padding
-            byte[] unpaddedData = PKCS7.Unpad(decryptedData, BlockSizeInBytes);
-            unpaddedData.CopyTo(output);
-            return unpaddedData.Length;
-        }
-        finally
-        {
-            // Clear sensitive data
-            Array.Clear(decryptedData, 0, decryptedData.Length);
-        }
+        return plaintext;
     }
 
     /// <summary>
-    /// Decrypts the specified data using the XTEA algorithm, handling PKCS#7 padding.
+    /// Encrypts data using XTEA algorithm and writes the result to a buffer
     /// </summary>
-    /// <param name="data">The data to decrypt (must be a multiple of 8 bytes).</param>
-    /// <param name="key">The decryption key (must be exactly 16 bytes / 4 words).</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <returns>The decrypted data with padding removed.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when the key is not exactly 4 words, the data length is not a multiple of 8,
-    /// or if the padding is invalid.
-    /// </exception>
-    public static byte[] Decrypt(
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<uint> key,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
-    {
-        // Create output buffer with maximum possible size
-        byte[] outputBuffer = new byte[data.Length];
-
-        // Decrypt and get the actual length
-        int actualLength = Decrypt(data, key, outputBuffer, iv, rounds);
-
-        // Return a correctly sized array
-        if (actualLength == outputBuffer.Length)
-            return outputBuffer;
-
-        byte[] result = new byte[actualLength];
-        Buffer.BlockCopy(outputBuffer, 0, result, 0, actualLength);
-
-        // Clear the original buffer for security
-        Array.Clear(outputBuffer, 0, outputBuffer.Length);
-
-        return result;
-    }
-
-    /// <summary>
-    /// Decrypts the specified data using the XTEA algorithm, handling PKCS#7 padding.
-    /// </summary>
-    /// <param name="data">The data to decrypt (must be a multiple of 8 bytes).</param>
-    /// <param name="key">The decryption key (must be exactly 16 bytes).</param>
-    /// <param name="iv">Optional initialization vector for CBC mode. If null, ECB mode is used.</param>
-    /// <param name="rounds">The Number of rounds to use (default is 32).</param>
-    /// <returns>The decrypted data with padding removed.</returns>
-    public static byte[] Decrypt(
-        ReadOnlySpan<byte> data,
+    /// <param name="plaintext">Data to encrypt (must be multiple of 8 bytes)</param>
+    /// <param name="key">128-bit key (16 bytes)</param>
+    /// <param name="output">Output buffer (must be at least as large as plaintext)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <returns>Number of bytes written</returns>
+    public static int Encrypt(
+        ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> key,
-        ReadOnlySpan<byte> iv = default,
-        int rounds = DefaultNumRounds)
+        Span<byte> output, int rounds = DefaultRounds)
     {
-        if (key.Length != KeySizeInBytes)
-            throw new ArgumentException($"Key must be exactly {KeySizeInBytes} bytes", nameof(key));
+        ValidateInputs(plaintext, key);
 
-        // Convert the key bytes to words
-        Span<uint> keyWords = stackalloc uint[KeySizeInWords];
-        for (int i = 0; i < KeySizeInWords; i++)
+        if (output.Length < plaintext.Length)
+            throw new ArgumentException("Output buffer too small", nameof(output));
+
+        fixed (byte* keyPtr = key)
+        fixed (byte* plaintextPtr = plaintext)
+        fixed (byte* outputPtr = output)
         {
-            keyWords[i] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(i * 4, 4));
+            uint* keyWords = (uint*)keyPtr;
+
+            // Process each 8-byte block
+            for (int i = 0; i < plaintext.Length; i += BlockSize)
+            {
+                // Get pointers to current block
+                uint* inputBlock = (uint*)(plaintextPtr + i);
+                uint* outputBlock = (uint*)(outputPtr + i);
+
+                // Copy input values
+                uint v0 = inputBlock[0];
+                uint v1 = inputBlock[1];
+
+                // Encrypt the block
+                EncryptBlock(ref v0, ref v1, keyWords, rounds);
+
+                // Store results
+                outputBlock[0] = v0;
+                outputBlock[1] = v1;
+            }
         }
 
-        return Decrypt(data, keyWords, iv, rounds);
+        return plaintext.Length;
     }
 
-    #endregion Enhanced API Methods
+    /// <summary>
+    /// Decrypts data using XTEA algorithm and writes the result to a buffer
+    /// </summary>
+    /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
+    /// <param name="key">128-bit key (16 bytes)</param>
+    /// <param name="output">Output buffer (must be at least as large as ciphertext)</param>
+    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <returns>Number of bytes written</returns>
+    public static int Decrypt(
+        ReadOnlySpan<byte> ciphertext,
+        ReadOnlySpan<byte> key,
+        Span<byte> output, int rounds = DefaultRounds)
+    {
+        ValidateInputs(ciphertext, key);
+
+        if (output.Length < ciphertext.Length)
+            throw new ArgumentException("Output buffer too small", nameof(output));
+
+        fixed (byte* keyPtr = key)
+        fixed (byte* ciphertextPtr = ciphertext)
+        fixed (byte* outputPtr = output)
+        {
+            uint* keyWords = (uint*)keyPtr;
+
+            // Process each 8-byte block
+            for (int i = 0; i < ciphertext.Length; i += BlockSize)
+            {
+                // Get pointers to current block
+                uint* inputBlock = (uint*)(ciphertextPtr + i);
+                uint* outputBlock = (uint*)(outputPtr + i);
+
+                // Copy input values
+                uint v0 = inputBlock[0];
+                uint v1 = inputBlock[1];
+
+                // Decrypt the block
+                DecryptBlock(ref v0, ref v1, keyWords, rounds);
+
+                // Store results
+                outputBlock[0] = v0;
+                outputBlock[1] = v1;
+            }
+        }
+
+        return ciphertext.Length;
+    }
+
+    #endregion Public API Methods
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Validates input parameters
+    /// </summary>
+    private static void ValidateInputs(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
+    {
+        if (data.Length % BlockSize != 0)
+            throw new ArgumentException($"Data length must be a multiple of {BlockSize} bytes", nameof(data));
+
+        if (key.Length != KeySize)
+            throw new ArgumentException($"Key must be exactly {KeySize} bytes", nameof(key));
+    }
+
+    #endregion Helper Methods
 }

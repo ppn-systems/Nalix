@@ -120,7 +120,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Encrypt(data.Span, RandGenerator.ConvertKey(key), encryptedXtea.AsSpan()[..bufferSize]);
+                            Xtea.Encrypt(data.Span, key, encryptedXtea.AsSpan()[..bufferSize]);
                             return encryptedXtea.AsMemory(0, bufferSize);
                         }
                         finally
@@ -253,8 +253,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Decrypt(data.Span, RandGenerator.ConvertKey(key),
-                                decryptedXtea.AsSpan()[..bufferSize]);
+                            Xtea.Decrypt(data.Span, key, decryptedXtea.AsSpan()[..bufferSize]);
 
                             return decryptedXtea.AsMemory(0, bufferSize);
                         }

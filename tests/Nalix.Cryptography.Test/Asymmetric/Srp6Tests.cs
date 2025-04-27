@@ -16,6 +16,7 @@ public class Srp6Tests
 {
     // Common test values
     private const string TestUsername = "testuser";
+
     private const string TestPassword = "password123";
 
     #region Helper Methods
@@ -101,11 +102,12 @@ public class Srp6Tests
         tempServer.CalculateSecret(clientPublicValue);
         tempServer.CalculateSessionKey();
 
-        // Since we can't easily replicate the exact proof calculation, we'll just create a unique value 
+        // Since we can't easily replicate the exact proof calculation, we'll just create a unique value
         // for each test run that we can verify against
         return new BigInteger(sessionKey.Concat(clientPublicValue).ToArray(), true).ToByteArray(true);
     }
-    #endregion
+
+    #endregion Helper Methods
 
     #region Verifier Generation Tests
 
@@ -193,7 +195,8 @@ public class Srp6Tests
         Assert.NotNull(verifier);
         Assert.NotEmpty(verifier);
     }
-    #endregion
+
+    #endregion Verifier Generation Tests
 
     #region Server Credentials Tests
 
@@ -231,7 +234,8 @@ public class Srp6Tests
         // Assert
         Assert.NotEqual(credentials1, credentials2);
     }
-    #endregion
+
+    #endregion Server Credentials Tests
 
     #region Calculate Secret Tests
 
@@ -267,7 +271,8 @@ public class Srp6Tests
         // Act & Assert
         Assert.Throws<CryptoException>(() => server.CalculateSecret(zeroPublicValue));
     }
-    #endregion
+
+    #endregion Calculate Secret Tests
 
     #region Session Key Tests
 
@@ -330,7 +335,8 @@ public class Srp6Tests
         // Assert - Session keys will be different because GenerateServerCredentials generates random values
         Assert.NotEqual(sessionKey1, sessionKey2);
     }
-    #endregion
+
+    #endregion Session Key Tests
 
     #region Client Evidence Verification Tests
 
@@ -396,7 +402,8 @@ public class Srp6Tests
         // Assert
         Assert.False(result);
     }
-    #endregion
+
+    #endregion Client Evidence Verification Tests
 
     #region Server Evidence Message Tests
 
@@ -455,7 +462,7 @@ public class Srp6Tests
         // We expect verification to fail since server credentials are different
         Assert.False(verified2);
 
-        // We can't test same inputs producing same evidence because 
+        // We can't test same inputs producing same evidence because
         // GenerateServerCredentials creates random values each time
     }
 
@@ -480,7 +487,8 @@ public class Srp6Tests
         // Assert
         Assert.NotEqual(evidence1, evidence2);
     }
-    #endregion
+
+    #endregion Server Evidence Message Tests
 
     #region Integration Tests
 
@@ -644,7 +652,8 @@ public class Srp6Tests
         byte[] serverEvidence2 = server2.CalculateServerEvidenceMessage();
         Assert.NotEqual(serverEvidence1, serverEvidence2);
     }
-    #endregion
+
+    #endregion Integration Tests
 
     #region Error Case Tests
 
@@ -677,5 +686,6 @@ public class Srp6Tests
         Assert.Throws<ArgumentNullException>(() => Srp6.GenerateVerifier(new byte[32], null, TestPassword));
         Assert.Throws<ArgumentNullException>(() => Srp6.GenerateVerifier(new byte[32], TestUsername, null));
     }
-    #endregion
+
+    #endregion Error Case Tests
 }

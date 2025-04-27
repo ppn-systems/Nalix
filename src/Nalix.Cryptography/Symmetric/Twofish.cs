@@ -575,10 +575,10 @@ public static class Twofish
         y3 ^= (byte)z3;
 
         // Final MDS matrix multiply
-        return (uint)MDS[0][y0] ^
-              ((uint)MDS[1][y1] << 8) ^
-              ((uint)MDS[2][y2] << 16) ^
-              ((uint)MDS[3][y3] << 24);
+        return (uint)MDS[0][y0 % MDS[0].Length] ^
+               ((uint)MDS[1][y1 % MDS[1].Length] << 8) ^
+               ((uint)MDS[2][y2 % MDS[2].Length] << 16) ^
+               ((uint)MDS[3][y3 % MDS[3].Length] << 24);
     }
 
     /// <summary>
