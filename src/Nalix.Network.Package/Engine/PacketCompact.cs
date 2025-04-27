@@ -2,7 +2,9 @@ using Nalix.Common.Compression;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
 using Nalix.Extensions.Primitives;
-using Nalix.Utilities;
+using Nalix.Shared.LZ4;
+using Nalix.Shared.LZ4.Internal;
+using System;
 
 namespace Nalix.Network.Package.Engine;
 
@@ -23,7 +25,7 @@ public static class PacketCompact
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Compress(in Packet packet,
-        CompressionType compressionType = CompressionType.GZip)
+        CompressionType compressionType = CompressionType.LZ4)
     {
         ValidatePacketForCompression(packet);
 
@@ -31,9 +33,7 @@ public static class PacketCompact
         {
             System.Memory<byte> compressedData = compressionType switch
             {
-                CompressionType.GZip => CompressGZip(packet.Payload),
-                CompressionType.Brotli => BrotliCompressor.Compress(packet.Payload),
-                CompressionType.Deflate => CompressDeflate(packet.Payload),
+                CompressionType.LZ4 => CompressLZ4(packet.Payload.Span),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
             return CreateCompressedPacket(packet, compressedData);
@@ -57,7 +57,7 @@ public static class PacketCompact
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Decompress(in Packet packet,
-        CompressionType compressionType = CompressionType.GZip)
+        CompressionType compressionType = CompressionType.LZ4)
     {
         ValidatePacketForDecompression(packet);
 
@@ -65,12 +65,10 @@ public static class PacketCompact
         {
             System.Memory<byte> decompressedData = compressionType switch
             {
-                CompressionType.GZip => DecompressGZip(packet.Payload),
-                CompressionType.Brotli => BrotliCompressor.Decompress(packet.Payload),
-                CompressionType.Deflate => DecompressDeflate(packet.Payload),
+                CompressionType.LZ4 => (packet.Payload),
                 _ => throw new PackageException($"Unsupported compression type: {compressionType}"),
             };
-            return CreateDecompressedPacket(packet, decompressedData);
+            return CreateDecompressedPacket(packet, CompressLZ4(packet.Payload.Span));
         }
         catch (System.IO.InvalidDataException ex)
         {
@@ -83,6 +81,40 @@ public static class PacketCompact
     }
 
     #region Private Methods
+
+    private static Memory<byte> CompressLZ4(ReadOnlySpan<byte> input)
+    {
+        // Estimate worst case size: input.Length + header + worst-case expansion
+        int maxCompressedSize = Header.Size + input.Length + (input.Length / 255) + 16;
+        byte[] buffer = new byte[maxCompressedSize];
+
+        int compressedLength = LZ4Codec.Encode(input, buffer);
+
+        if (compressedLength < 0)
+            throw new PackageException("Compression failed due to insufficient buffer size.");
+
+        return buffer.AsMemory(0, compressedLength);
+    }
+
+    private static Memory<byte> DecompressLZ4(ReadOnlySpan<byte> input)
+    {
+        if (input.Length < Header.Size)
+            throw new PackageException("Compressed payload too small to contain a valid header.");
+
+        Header header = MemOps.ReadUnaligned<Header>(input);
+
+        if (header.OriginalLength < 0 || header.CompressedLength != input.Length)
+            throw new PackageException("Invalid compressed data header.");
+
+        byte[] buffer = new byte[header.OriginalLength];
+
+        int decompressedLength = LZ4Codec.Decode(input, buffer);
+
+        if (decompressedLength < 0)
+            throw new PackageException("Decompression failed due to invalid data.");
+
+        return buffer.AsMemory(0, decompressedLength);
+    }
 
     private static void ValidatePacketForCompression(Packet packet)
     {
@@ -111,68 +143,6 @@ public static class PacketCompact
         new(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
             packet.Type, packet.Flags.RemoveFlag(PacketFlags.Compressed),
             packet.Priority, packet.Number, decompressedData, true);
-
-    // Helper methods for GZip compression and decompression using pointers
-    private static unsafe System.Memory<byte> CompressGZip(System.ReadOnlyMemory<byte> data)
-    {
-        fixed (byte* dataPtr = data.Span)
-        {
-            using System.IO.MemoryStream memoryStream = new();
-            using System.IO.Compression.GZipStream gzipStream = new(
-                memoryStream, System.IO.Compression.CompressionMode.Compress);
-
-            System.ReadOnlySpan<byte> span = new(dataPtr, data.Length);
-            gzipStream.Write(span);
-            gzipStream.Close();
-            return new System.Memory<byte>(memoryStream.ToArray());
-        }
-    }
-
-    private static unsafe System.Memory<byte> DecompressGZip(System.ReadOnlyMemory<byte> data)
-    {
-        fixed (byte* dataPtr = data.Span)
-        {
-            using System.IO.MemoryStream memoryStream = new(data.ToArray());
-            using System.IO.Compression.GZipStream gzipStream = new(
-                memoryStream, System.IO.Compression.CompressionMode.Decompress);
-            using System.IO.MemoryStream outputStream = new();
-
-            System.ReadOnlySpan<byte> span = new(dataPtr, data.Length);
-            gzipStream.CopyTo(outputStream);
-            return new System.Memory<byte>(outputStream.ToArray());
-        }
-    }
-
-    // Helper methods for Deflate compression and decompression using pointers
-    private static unsafe System.Memory<byte> CompressDeflate(System.ReadOnlyMemory<byte> data)
-    {
-        fixed (byte* dataPtr = data.Span)
-        {
-            using System.IO.MemoryStream memoryStream = new();
-            using System.IO.Compression.DeflateStream deflateStream = new(
-                memoryStream, System.IO.Compression.CompressionMode.Compress);
-
-            System.ReadOnlySpan<byte> span = new(dataPtr, data.Length);
-            deflateStream.Write(span);
-            deflateStream.Close();
-            return new System.Memory<byte>(memoryStream.ToArray());
-        }
-    }
-
-    private static unsafe System.Memory<byte> DecompressDeflate(System.ReadOnlyMemory<byte> data)
-    {
-        fixed (byte* dataPtr = data.Span)
-        {
-            using System.IO.MemoryStream memoryStream = new(data.ToArray());
-            using System.IO.Compression.DeflateStream deflateStream = new(
-                memoryStream, System.IO.Compression.CompressionMode.Decompress);
-            using System.IO.MemoryStream outputStream = new();
-
-            System.ReadOnlySpan<byte> span = new(dataPtr, data.Length);
-            deflateStream.CopyTo(outputStream);
-            return new System.Memory<byte>(outputStream.ToArray());
-        }
-    }
 
     #endregion Private Methods
 }

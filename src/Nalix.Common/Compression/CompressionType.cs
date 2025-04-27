@@ -6,13 +6,7 @@ namespace Nalix.Common.Compression;
 public enum CompressionType : byte
 {
     /// <summary>
-    /// Represents GZip compression.
+    ///  LZ4.
     /// </summary>
-    GZip,
-
-    /// <summary>Brotli compression.</summary>
-    Brotli,
-
-    /// <summary>Deflate compression.</summary>
-    Deflate
+    LZ4
 }
