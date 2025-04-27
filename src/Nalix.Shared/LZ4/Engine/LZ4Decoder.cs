@@ -50,8 +50,8 @@ internal readonly struct LZ4Decoder
                 byte token = *inputPtr++;
 
                 // --- Decode and Copy Literals ---
-                int literalLength = (token >> 4) & Constants.TokenLiteralMask;
-                if (literalLength == Constants.TokenLiteralMask)
+                int literalLength = (token >> 4) & LZ4Constants.TokenLiteralMask;
+                if (literalLength == LZ4Constants.TokenLiteralMask)
                 {
                     int lenRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (extraLength < 0) return -1; // Read error
@@ -76,8 +76,8 @@ internal readonly struct LZ4Decoder
                 if (offset == 0 || offset > (outputPtr - outputBase)) return -1; // Invalid offset
 
                 // --- Decode Match Length ---
-                int matchLength = token & Constants.TokenMatchMask;
-                if (matchLength == Constants.TokenMatchMask)
+                int matchLength = token & LZ4Constants.TokenMatchMask;
+                if (matchLength == LZ4Constants.TokenMatchMask)
                 {
                     int lenRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (extraLength < 0) return -1; // Read error
@@ -86,7 +86,7 @@ internal readonly struct LZ4Decoder
                 }
 
                 // Length is stored relative to min match length
-                matchLength += Constants.MinMatchLength;
+                matchLength += LZ4Constants.MinMatchLength;
 
                 // --- Copy Match ---
                 byte* matchSourcePtr = outputPtr - offset;
@@ -148,8 +148,8 @@ internal readonly struct LZ4Decoder
                 byte token = *inputPtr++;
 
                 // --- Decode and Copy Literals ---
-                int literalLength = (token >> 4) & Constants.TokenLiteralMask;
-                if (literalLength == Constants.TokenLiteralMask)
+                int literalLength = (token >> 4) & LZ4Constants.TokenLiteralMask;
+                if (literalLength == LZ4Constants.TokenLiteralMask)
                 {
                     int lenRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (extraLength < 0) return false;
@@ -179,14 +179,14 @@ internal readonly struct LZ4Decoder
                     return false;
 
                 // --- Decode Match Length ---
-                int matchLength = token & Constants.TokenMatchMask;
-                if (matchLength == Constants.TokenMatchMask)
+                int matchLength = token & LZ4Constants.TokenMatchMask;
+                if (matchLength == LZ4Constants.TokenMatchMask)
                 {
                     int lenRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (extraLength < 0) return false;
                     matchLength += extraLength;
                 }
-                matchLength += Constants.MinMatchLength;
+                matchLength += LZ4Constants.MinMatchLength;
 
                 // --- Copy Match ---
                 byte* matchSourcePtr = outputPtr - offset;

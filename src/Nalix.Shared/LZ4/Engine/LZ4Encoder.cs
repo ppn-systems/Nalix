@@ -46,7 +46,7 @@ internal readonly struct LZ4Encoder
         // Slice output buffer to exclude header space initially
         System.Span<byte> compressedDataOutput = output[Header.Size..];
 
-        int compressedDataLength = FastPath.EncodeBlock(input, compressedDataOutput, hashTable);
+        int compressedDataLength = LZ4Compressor.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Compression failed (likely output buffer too small)
         if (compressedDataLength < 0) return -1;
@@ -85,7 +85,7 @@ internal readonly struct LZ4Encoder
 
         System.Span<byte> compressedDataOutput = output[Header.Size..];
 
-        int compressedDataLength = FastPath.EncodeBlock(input, compressedDataOutput, hashTable);
+        int compressedDataLength = LZ4Compressor.EncodeBlock(input, compressedDataOutput, hashTable);
         if (compressedDataLength < 0)
             return false;
 

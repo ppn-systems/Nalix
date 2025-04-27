@@ -20,7 +20,7 @@ public sealed class ConnectionLimiter : IDisposable
 {
     #region Constants
 
-    // Constants for optimization
+    // LZ4Constants for optimization
     private const int MaxCleanupKeys = 1000;
 
     private const int EstimatedCollectionCapacity = 256;

@@ -1,6 +1,3 @@
-using System;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
@@ -11,21 +8,20 @@ internal static unsafe class SpanKit
     /// <summary>
     /// Ensures the requested slice is within the span bounds.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void CheckSliceBounds(int length, int start, int count)
     {
         // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
         if ((uint)start > (uint)length || (uint)count > (uint)(length - start)) ThrowOutOfRange();
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)] // Keep exception throwing logic separate
-    private static void ThrowOutOfRange() => throw new ArgumentOutOfRangeException("start or count");
-
     /// <summary>
     /// Writes a variable-length integer (little-endian). Used for lengths greater than 15.
     /// Writes bytes until the value is less than 255.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int WriteVarInt(byte* dest, int value)
     {
         int bytesWritten = 0;
@@ -45,7 +41,8 @@ internal static unsafe class SpanKit
     /// <summary>
     /// Reads a variable-length integer (little-endian).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {
         value = 0;
@@ -65,4 +62,8 @@ internal static unsafe class SpanKit
         value = -1; // Error: reached end without termination
         return bytesRead;
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)] // Keep exception throwing logic separate
+    private static void ThrowOutOfRange() => throw new System.ArgumentOutOfRangeException("start or count");
 }

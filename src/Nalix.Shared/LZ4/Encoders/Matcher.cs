@@ -23,7 +23,7 @@ internal static unsafe class Matcher
         public readonly int Offset = offset;
         public readonly int Length = length;
 
-        public bool Found => Length >= Constants.MinMatchLength;
+        public bool Found => Length >= LZ4Constants.MinMatchLength;
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ internal static unsafe class Matcher
         byte* searchStartPtr,    // The earliest position in the input to search (start of window)
         int currentInputOffset)  // Offset of currentInputPtr from inputBase
     {
-        if (currentInputPtr + Constants.MinMatchLength > inputLimit) // Need at least 4 bytes to match
+        if (currentInputPtr + LZ4Constants.MinMatchLength > inputLimit) // Need at least 4 bytes to match
             return default; // No match possible
 
         uint currentSequence = MemOps.ReadUnaligned<uint>(currentInputPtr);
@@ -67,14 +67,14 @@ internal static unsafe class Matcher
         }
 
         // Calculate match length
-        int matchLength = Constants.MinMatchLength + MemOps.CountEqualBytes(
-            matchCandidatePtr + Constants.MinMatchLength,
-            currentInputPtr + Constants.MinMatchLength,
-            (int)(inputLimit - (currentInputPtr + Constants.MinMatchLength)) // Max length check
+        int matchLength = LZ4Constants.MinMatchLength + MemOps.CountEqualBytes(
+            matchCandidatePtr + LZ4Constants.MinMatchLength,
+            currentInputPtr + LZ4Constants.MinMatchLength,
+            (int)(inputLimit - (currentInputPtr + LZ4Constants.MinMatchLength)) // Max length check
         );
 
         int offset = (int)(currentInputPtr - matchCandidatePtr);
-        System.Diagnostics.Debug.Assert(offset > 0 && offset <= Constants.MaxOffset);
+        System.Diagnostics.Debug.Assert(offset > 0 && offset <= LZ4Constants.MaxOffset);
 
         return new Match(offset, matchLength);
     }

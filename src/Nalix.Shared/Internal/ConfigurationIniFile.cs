@@ -15,7 +15,7 @@ internal sealed class ConfiguredIniFile
 {
     #region Constants
 
-    // Constants for better readability and performance
+    // LZ4Constants for better readability and performance
     private const char SectionStart = '[';
 
     private const char SectionEnd = ']';

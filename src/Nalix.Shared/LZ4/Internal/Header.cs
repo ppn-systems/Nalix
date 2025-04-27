@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
@@ -13,7 +11,8 @@ namespace Nalix.Shared.LZ4.Internal;
 /// </remarks>
 /// <param name="originalLength">The length of the original data before compression.</param>
 /// <param name="compressedLength">The total length of the compressed data, including the header.</param>
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 public readonly struct Header(int originalLength, int compressedLength)
 {
     /// <summary>

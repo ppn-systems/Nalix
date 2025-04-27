@@ -3,7 +3,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// <summary>
 /// Shared constants.
 /// </summary>
-internal static class Constants
+internal static class LZ4Constants
 {
     public const int MinMatchLength = 4;
     public const int MaxOffset = 65535; // Limited by ushort offset storage
