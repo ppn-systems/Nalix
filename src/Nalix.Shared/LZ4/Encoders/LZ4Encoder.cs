@@ -15,7 +15,7 @@ public static unsafe class LZ4Encoder
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int GetMaxLength(int input) => input + (input / 250) + 8;
+    public static int GetMaxLength(int input) => input + (input / 250) + 10;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

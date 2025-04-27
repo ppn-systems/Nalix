@@ -1,4 +1,5 @@
 using Nalix.Shared.LZ4;
+using Nalix.Shared.LZ4.Encoders;
 using System;
 using System.Diagnostics;
 
@@ -12,7 +13,7 @@ internal class Program
         {
             // Test data - 10 KB for testing
             byte[] test = new byte[23_02];  // 10 KB of data for testing
-            int size = LZ4Pack.GetMaxLength(test.Length);
+            int size = LZ4Encoder.GetMaxLength(test.Length);
             // Prepare buffers for compression and decompression
             // Increase size to ensure enough space for compression and decompression
             byte[] compressed = new byte[size];  // Increased space for compression

@@ -26,6 +26,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     public Packet(ushort id, PacketCode code, byte[] payload)
         : this(id, code, new System.Memory<byte>(payload))
     {
+        // Check if the payload is null or empty and throw an exception if it is
+        if (payload == null || payload.Length == 0)
+        {
+            throw new System.ArgumentNullException(nameof(payload), "Payload cannot be null or empty.");
+        }
     }
 
     /// <summary>

@@ -80,7 +80,9 @@ public static class PacketCompact
     private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
-        byte[] buffer = new byte[LZ4Encoder.GetMaxLength(input.Length)];
+        int size = Header.Size + LZ4Encoder.GetMaxLength(input.Length);
+        byte[] buffer = new byte[size];
+
         int lenght = LZ4Codec.Encode(input, buffer);
 
         if (lenght < 0)
