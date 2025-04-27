@@ -18,16 +18,10 @@ internal static unsafe class Matcher
     /// <summary>
     /// Represents a found match.
     /// </summary>
-    internal readonly struct Match
+    internal readonly struct Match(int offset, int length)
     {
-        public readonly int Offset;
-        public readonly int Length;
-
-        public Match(int offset, int length)
-        {
-            Offset = offset;
-            Length = length;
-        }
+        public readonly int Offset = offset;
+        public readonly int Length = length;
 
         public bool Found => Length >= Constants.MinMatchLength;
     }
@@ -35,12 +29,10 @@ internal static unsafe class Matcher
     /// <summary>
     /// Calculates a hash for 4 bytes.
     /// </summary>
+    // Simple Hash (LZ4 uses a multiplication method)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint CalculateHash(uint sequence)
-    {
-        // Simple Hash (LZ4 uses a multiplication method)
-        return (sequence * 2654435761u) >> HashShift;
-    }
+        => (sequence * 2654435761u) >> HashShift;
 
     /// <summary>
     /// Finds the longest match within the sliding window.

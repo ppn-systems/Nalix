@@ -106,12 +106,4 @@ internal readonly struct LZ4Decoder
             return header.OriginalLength;
         }
     }
-
-    public static bool TryDecode(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output, out int bytesWritten)
-    {
-        bytesWritten = Decode(input, output);
-        return bytesWritten >= 0;
-    }
 }

@@ -79,13 +79,20 @@ public static unsafe class MemOps
         // Higher performance methods exist but require care.
         if (length <= 0) return;
 
-        // Simple, safe byte-by-byte copy handles required LZ overlap
+        // Use CopyBlockUnaligned for non-overlapping cases
+        if (length > sizeof(ulong) &&
+           (source < destination ||
+            source >= destination + length))
+        {
+            Unsafe.CopyBlockUnaligned(destination, source, (uint)length);  // Fast non-overlapping copy
+            return;
+        }
+
+        // For overlapping memory regions, fallback to a byte-by-byte copy
         for (int i = 0; i < length; ++i)
         {
             destination[i] = source[i];
         }
-        // Alternatively, for non-overlapping or simple cases, use CopyBlock:
-        // Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
     }
 
     /// <summary>

@@ -57,12 +57,4 @@ internal readonly struct LZ4Encoder
 
         return totalCompressedLength;
     }
-
-    public static bool TryEncode(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output, out int bytesWritten)
-    {
-        bytesWritten = Encode(input, output);
-        return bytesWritten >= 0;
-    }
 }

@@ -1,3 +1,6 @@
+using Nalix.Integrity;
+using Nalix.Utilities;
+
 namespace Nalix.Network.Package;
 
 public readonly partial struct Packet
@@ -8,7 +11,7 @@ public readonly partial struct Packet
     /// <returns>True if the checksum is valid; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool IsValid() => Integrity.Crc32.Compute(Payload.Span) == this.Checksum;
+    public bool IsValid() => Crc32.Compute(Payload.Span) == this.Checksum;
 
     /// <summary>
     /// Determines if the packet has expired based on the provided timeout.
@@ -20,7 +23,7 @@ public readonly partial struct Packet
     public bool IsExpired(System.TimeSpan timeout)
     {
         // Use direct math operations for better performance
-        ulong currentTime = Nalix.Utilities.PreciseTimeClock.GetTimestamp();
+        ulong currentTime = PreciseTimeClock.GetTimestamp();
         ulong timeoutMicroseconds = (ulong)(timeout.TotalMilliseconds * 1000);
 
         // Handle potential overflow (rare but possible)
