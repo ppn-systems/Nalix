@@ -1,5 +1,4 @@
 using Nalix.Common.Constants;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Metadata;
 using System;
 
@@ -15,9 +14,6 @@ public static partial class PacketSerializer
     public static byte[] Serialize(in Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
-
-        if (packet.Payload.Length > ushort.MaxValue)
-            throw new PackageException("Payload is too large.");
 
         if (totalSize <= PacketConstants.StackAllocLimit)
         {

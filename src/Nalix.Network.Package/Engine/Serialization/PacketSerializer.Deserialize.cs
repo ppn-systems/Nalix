@@ -1,4 +1,3 @@
-using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Metadata;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -13,34 +12,21 @@ public static partial class PacketSerializer
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlySpan<byte> data)
-    {
-        if (data.Length < PacketSize.Header)
-            throw new PackageException("Invalid data length: smaller than header size.");
-
-        ushort length = MemoryMarshal.Read<ushort>(data);
-
-        if (length < PacketSize.Header || length > data.Length)
-            throw new PackageException($"Invalid packet length: {length}.");
-
-        return ReadPacketFast(data[..length]);
-    }
+    public static Packet Deserialize(ReadOnlySpan<byte> data) => ReadPacketFast(data);
 
     /// <summary>
     /// Deserializes the specified ReadOnlyMemory to a packet.
     /// </summary>
     /// <param name="data">The ReadOnlyMemory to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlyMemory<byte> data)
-        => Deserialize(data.Span);
+    public static Packet Deserialize(ReadOnlyMemory<byte> data) => Deserialize(data.Span);
 
     /// <summary>
     /// Deserializes the specified byte array to a packet.
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(byte[] data)
-        => Deserialize((ReadOnlySpan<byte>)data);
+    public static Packet Deserialize(byte[] data) => Deserialize((ReadOnlySpan<byte>)data);
 
     /// <summary>
     /// Attempts to deserialize the specified source span to a packet.

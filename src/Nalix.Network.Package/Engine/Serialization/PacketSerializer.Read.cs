@@ -30,9 +30,6 @@ public static partial class PacketSerializer
             // Read packet length and validate
             ushort length = MemoryMarshal.Read<ushort>(data[PacketSize.Length..]);
 
-            if (length < PacketSize.Header)
-                throw new PackageException($"Invalid packet length: {length}. Must be at least {PacketSize.Header}.");
-
             if (length > data.Length)
                 throw new PackageException($"Packet length ({length}) exceeds available data ({data.Length}).");
 
