@@ -50,7 +50,7 @@ public class Binary512 : FrameBase, IPoolable, IPacketDeserializer<Binary512>, I
     {
         Data = [];
         Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.BINARY512;
@@ -163,7 +163,7 @@ public class Binary512 : FrameBase, IPoolable, IPacketDeserializer<Binary512>, I
     {
         this.Data = [];
         this.Flags = PacketFlags.None;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 
