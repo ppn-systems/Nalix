@@ -16,7 +16,7 @@ public static unsafe class FastPath
     /// <param name="input">The size of the data to be compressed.</param>
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetMaxCompressedLength(int input)
+    public static int GetMaxLength(int input)
         => input + (input / 250) + 8;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

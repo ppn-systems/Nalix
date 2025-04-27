@@ -2,6 +2,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
 using Nalix.Extensions.Primitives;
 using Nalix.Shared.LZ4;
+using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
 
 namespace Nalix.Network.Package.Engine;
@@ -79,15 +80,14 @@ public static class PacketCompact
     private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
-        int maxCompressedSize = Header.Size + input.Length + (input.Length / 255) + 16;
-        byte[] buffer = new byte[maxCompressedSize];
+        byte[] buffer = new byte[FastPath.GetMaxLength(input.Length)];
 
-        int compressedLength = LZ4Codec.Encode(input, buffer);
+        int lenght = LZ4Codec.Encode(input, buffer);
 
-        if (compressedLength < 0)
+        if (lenght < 0)
             throw new PackageException("Compression failed due to insufficient buffer size.");
 
-        return System.MemoryExtensions.AsMemory(buffer, 0, compressedLength);
+        return System.MemoryExtensions.AsMemory(buffer, 0, lenght);
     }
 
     private static System.Memory<byte> DecompressLZ4(System.ReadOnlySpan<byte> input)

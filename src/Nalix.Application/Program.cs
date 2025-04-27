@@ -12,21 +12,21 @@ internal class Program
         try
         {
             // Test data - 10 KB for testing
-            byte[] testData = new byte[23_02];  // 10 KB of data for testing
-            int size = FastPath.GetMaxCompressedLength(testData.Length);
+            byte[] test = new byte[23_02];  // 10 KB of data for testing
+            int size = FastPath.GetMaxLength(test.Length);
             // Prepare buffers for compression and decompression
             // Increase size to ensure enough space for compression and decompression
-            byte[] compressedData = new byte[size];  // Increased space for compression
+            byte[] compressed = new byte[size];  // Increased space for compression
             Console.WriteLine($"Buffer size for compression: {size} bytes");
 
             // Measure compression performance
             Console.WriteLine("Starting compression test...");
             Stopwatch stopwatch = Stopwatch.StartNew();
-            int compressedSize = LZ4Codec.Encode(testData, compressedData);
+            int compressedSize = LZ4Codec.Encode(test, compressed);
 
             stopwatch.Stop();
 
-            Array.Resize(ref compressedData, compressedSize);
+            Array.Resize(ref compressed, compressedSize);
 
             if (compressedSize == -1)
             {
@@ -37,12 +37,12 @@ internal class Program
             Console.WriteLine($"Compression time: {stopwatch.ElapsedMilliseconds} ms");
             Console.WriteLine($"Compressed size: {compressedSize} bytes");
 
-            byte[] decompressedData = new byte[testData.Length];  // Make the decompressed buffer bigger
+            byte[] decompressed = new byte[test.Length];  // Make the decompressed buffer bigger
 
             // Measure decompression performance
             Console.WriteLine("Starting decompression test...");
             stopwatch.Restart();
-            int decompressedSize = LZ4Codec.Decode(compressedData, decompressedData);
+            int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
             stopwatch.Stop();
 
             if (decompressedSize == -1)
@@ -55,7 +55,7 @@ internal class Program
             Console.WriteLine($"Decompressed size: {decompressedSize} bytes");
 
             // Validate the decompressed data matches the original
-            bool isValid = ValidateDecompression(testData, decompressedData);
+            bool isValid = ValidateDecompression(test, decompressed);
             Console.WriteLine($"Decompression validation: {(isValid ? "Passed" : "Failed")}");
         }
         catch (Exception ex)
