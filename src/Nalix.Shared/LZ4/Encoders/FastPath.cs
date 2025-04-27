@@ -7,10 +7,20 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// <summary>
 /// Implements the main greedy compression path (LZ4 style).
 /// </summary>
-internal static unsafe class FastPath
+public static unsafe class FastPath
 {
+    /// <summary>
+    /// Calculates the maximum compressed length for a given input size.
+    /// This is an estimate based on the input size and compression algorithm overheads.
+    /// </summary>
+    /// <param name="input">The size of the data to be compressed.</param>
+    /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int EncodeBlock(
+    public static int GetMaxCompressedLength(int input)
+        => input + (input / 250) + 8;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int EncodeBlock(
         System.ReadOnlySpan<byte> input,
         System.Span<byte> output,
         int* hashTable) // Pointer to stackalloc'd or pooled hash table

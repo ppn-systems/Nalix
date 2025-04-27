@@ -16,7 +16,7 @@ public class LZ4CodecTests
         var output = new byte[Header.Size];
 
         // Act
-        int result = LZ4Codec.Compress(input, output);
+        int result = LZ4Codec.Encode(input, output);
 
         // Assert
         Assert.Equal(Header.Size, result);
@@ -30,7 +30,7 @@ public class LZ4CodecTests
         var output = new byte[Header.Size - 1]; // Too small for header
 
         // Act
-        int result = LZ4Codec.Compress(input, output);
+        int result = LZ4Codec.Encode(input, output);
 
         // Assert
         Assert.Equal(-1, result);
@@ -46,7 +46,7 @@ public class LZ4CodecTests
         var output = Array.Empty<byte>();
 
         // Act
-        int result = LZ4Codec.Decompress(input, output);
+        int result = LZ4Codec.Decode(input, output);
 
         // Assert
         Assert.Equal(0, result);
@@ -60,7 +60,7 @@ public class LZ4CodecTests
         var output = new byte[10];
 
         // Act
-        int result = LZ4Codec.Decompress(input, output);
+        int result = LZ4Codec.Decode(input, output);
 
         // Assert
         Assert.Equal(-1, result);
@@ -76,9 +76,9 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[original.Length];
 
         // Act
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize); // Resize to actual compressed size
-        int decompressedSize = LZ4Codec.Decompress(compressed, decompressed);
+        int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.True(compressedSize > 0);
@@ -95,9 +95,9 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[original.Length];
 
         // Act
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize);
-        int decompressedSize = LZ4Codec.Decompress(compressed, decompressed);
+        int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.True(compressedSize > 0);
@@ -130,9 +130,9 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[original.Length];
 
         // Act
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize);
-        int decompressedSize = LZ4Codec.Decompress(compressed, decompressed);
+        int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.True(compressedSize > 0);
@@ -149,7 +149,7 @@ public class LZ4CodecTests
         byte[] compressed = new byte[10];
 
         // Act
-        int result = LZ4Codec.Compress(original, compressed);
+        int result = LZ4Codec.Encode(original, compressed);
 
         // Assert
         Assert.Equal(-1, result);
@@ -163,14 +163,14 @@ public class LZ4CodecTests
         byte[] original = Encoding.UTF8.GetBytes(text);
         byte[] compressed = new byte[1024];
 
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize);
 
         // Create output buffer with wrong size (too big)
         byte[] decompressed = new byte[original.Length + 10];
 
         // Act
-        int result = LZ4Codec.Decompress(compressed, decompressed);
+        int result = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.Equal(-1, result);
@@ -184,7 +184,7 @@ public class LZ4CodecTests
         byte[] original = Encoding.UTF8.GetBytes(text);
         byte[] compressed = new byte[1024];
 
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize);
 
         // Corrupt the header by changing the original length
@@ -194,7 +194,7 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[original.Length];
 
         // Act
-        int result = LZ4Codec.Decompress(compressed, decompressed);
+        int result = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.Equal(-1, result);
@@ -212,9 +212,9 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[original.Length];
 
         // Act
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
         Array.Resize(ref compressed, compressedSize);
-        int decompressedSize = LZ4Codec.Decompress(compressed, decompressed);
+        int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.True(compressedSize > 0);
@@ -239,19 +239,19 @@ public class LZ4CodecTests
         byte[] decompressed = new byte[size];
 
         // Act
-        int compressedSize = LZ4Codec.Compress(original, compressed);
+        int compressedSize = LZ4Codec.Encode(original, compressed);
 
         // If compression failed due to buffer size, try with larger buffer
         if (compressedSize == -1)
         {
             compressed = new byte[size * 2];
-            compressedSize = LZ4Codec.Compress(original, compressed);
+            compressedSize = LZ4Codec.Encode(original, compressed);
         }
 
         Assert.True(compressedSize > 0);
         Array.Resize(ref compressed, compressedSize);
 
-        int decompressedSize = LZ4Codec.Decompress(compressed, decompressed);
+        int decompressedSize = LZ4Codec.Decode(compressed, decompressed);
 
         // Assert
         Assert.Equal(original.Length, decompressedSize);

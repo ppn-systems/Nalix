@@ -1,5 +1,6 @@
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Shared.LZ4.Engine;
 
@@ -34,7 +35,8 @@ internal readonly struct LZ4Encoder
         }
 
         // Ensure output is large enough for at least the header
-        if (output.Length < Header.Size) return -1;
+        if (output.Length < FastPath.GetMaxCompressedLength(input.Length))
+            return -1;
 
         int* hashTable = stackalloc int[Matcher.HashTableSize]; // ~256KB for 64k entries
 
@@ -56,5 +58,43 @@ internal readonly struct LZ4Encoder
         MemOps.WriteUnaligned(output, finalHeader); // Write to the beginning of the original output span
 
         return totalCompressedLength;
+    }
+
+    public static unsafe bool Encode(
+        System.ReadOnlySpan<byte> input,
+        [NotNullWhen(true)] System.Span<byte> output, out int bytesWritten)
+    {
+        bytesWritten = 0;
+
+        if (input.IsEmpty)
+        {
+            if (output.Length < Header.Size)
+                return false;
+
+            Header header = new(0, Header.Size);
+            MemOps.WriteUnaligned(output, header);
+            bytesWritten = Header.Size;
+            return true;
+        }
+
+        if (output.Length < Header.Size + FastPath.GetMaxCompressedLength(input.Length))
+            return false;
+
+        int* hashTable = stackalloc int[Matcher.HashTableSize];
+        new System.Span<byte>(hashTable, Matcher.MaxStackallocHashTableSize).Clear();
+
+        System.Span<byte> compressedDataOutput = output[Header.Size..];
+
+        int compressedDataLength = FastPath.EncodeBlock(input, compressedDataOutput, hashTable);
+        if (compressedDataLength < 0)
+            return false;
+
+        int totalCompressedLength = Header.Size + compressedDataLength;
+
+        Header finalHeader = new(input.Length, totalCompressedLength);
+        MemOps.WriteUnaligned(output, finalHeader);
+
+        bytesWritten = totalCompressedLength;
+        return true;
     }
 }

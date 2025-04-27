@@ -4,7 +4,6 @@ using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
 using Nalix.Randomization;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Cryptography;
 
@@ -291,8 +290,10 @@ public static class Ciphers
     /// </param>
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
-    public static bool TryEncrypt(Memory<byte> data, byte[] key,
-        [NotNullWhen(true)] out Memory<byte> memory, EncryptionType mode = EncryptionType.XTEA)
+    public static bool TryEncrypt(
+        Memory<byte> data, byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
+        EncryptionType mode = EncryptionType.XTEA)
     {
         try
         {
@@ -316,8 +317,10 @@ public static class Ciphers
     /// </param>
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
-    public static bool TryDecrypt(Memory<byte> data, byte[] key,
-        [NotNullWhen(true)] out Memory<byte> memory, EncryptionType mode = EncryptionType.XTEA)
+    public static bool TryDecrypt(
+        Memory<byte> data, byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
+        EncryptionType mode = EncryptionType.XTEA)
     {
         try
         {
