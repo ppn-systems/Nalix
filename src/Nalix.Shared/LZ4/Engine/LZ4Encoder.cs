@@ -35,7 +35,7 @@ internal readonly struct LZ4Encoder
         }
 
         // Ensure output is large enough for at least the header
-        if (output.Length < FastPath.GetMaxCompressedLength(input.Length))
+        if (output.Length < Header.Size)
             return -1;
 
         int* hashTable = stackalloc int[Matcher.HashTableSize]; // ~256KB for 64k entries
@@ -77,7 +77,7 @@ internal readonly struct LZ4Encoder
             return true;
         }
 
-        if (output.Length < Header.Size + FastPath.GetMaxCompressedLength(input.Length))
+        if (output.Length < Header.Size)
             return false;
 
         int* hashTable = stackalloc int[Matcher.HashTableSize];

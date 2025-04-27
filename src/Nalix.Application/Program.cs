@@ -12,7 +12,7 @@ internal class Program
         try
         {
             // Test data - 10 KB for testing
-            byte[] testData = new byte[23_5000002];  // 10 KB of data for testing
+            byte[] testData = new byte[23_02];  // 10 KB of data for testing
             int size = FastPath.GetMaxCompressedLength(testData.Length);
             // Prepare buffers for compression and decompression
             // Increase size to ensure enough space for compression and decompression
