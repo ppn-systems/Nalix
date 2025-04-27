@@ -6,7 +6,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// Provides methods to write literal bytes directly to a destination.
 /// This class is designed for high-performance memory operations with minimal overhead.
 /// </summary>
-internal static unsafe class RawWriter
+internal static unsafe class MemoryWriter
 {
     /// <summary>
     /// Writes a sequence of literal bytes from a memory pointer to the destination.

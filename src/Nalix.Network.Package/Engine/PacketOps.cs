@@ -19,14 +19,23 @@ public static class PacketOps
     /// <returns>A new <see cref="IPacket"/> that is a copy of the original.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static IPacket Clone(IPacket packet)
+    public static unsafe IPacket Clone(in IPacket packet)
     {
-        // Copy payload with safety check
-        byte[] payloadCopy = new byte[packet.Payload.Length];
-        packet.Payload.Span.CopyTo(payloadCopy);
+        int length = packet.Payload.Length;
+        byte[] copy = new byte[length];
+
+        if (length == 0)
+            return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
+                              packet.Type, packet.Flags, packet.Priority, packet.Number, copy);
+
+        fixed (byte* srcPtr = packet.Payload.Span)
+        fixed (byte* dstPtr = copy)
+        {
+            System.Buffer.MemoryCopy(srcPtr, dstPtr, length, length);
+        }
 
         return new Packet(packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-                          packet.Type, packet.Flags, packet.Priority, packet.Number, payloadCopy);
+                          packet.Type, packet.Flags, packet.Priority, packet.Number, copy);
     }
 
     /// <summary>
@@ -36,7 +45,7 @@ public static class PacketOps
     /// <returns>True if the IPacket is valid, otherwise false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidSize(IPacket packet)
+    public static bool IsValidSize(in IPacket packet)
         => packet.Payload.Length <= PacketConstants.PacketSizeLimit &&
            packet.Payload.Length + PacketSize.Header <= PacketConstants.PacketSizeLimit;
 
@@ -53,7 +62,7 @@ public static class PacketOps
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void CheckEncryption(IPacket packet, byte[] key, bool isEncryption)
+    internal static void CheckEncryption(in IPacket packet, byte[] key, bool isEncryption)
     {
         if (key.Length % 4 != 0)
             throw new PackageException(

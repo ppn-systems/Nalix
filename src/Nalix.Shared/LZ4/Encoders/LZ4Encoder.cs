@@ -5,7 +5,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// <summary>
 /// Implements the main greedy compression path (LZ4 style).
 /// </summary>
-public static unsafe class LZ4Compressor
+public static unsafe class LZ4Encoder
 {
     /// <summary>
     /// Calculates the maximum compressed length for a given input size.
@@ -95,7 +95,7 @@ public static unsafe class LZ4Compressor
                 }
 
                 // Write Literals
-                RawWriter.Write(ref outputPtr, literalStartPtr, literalLength);
+                MemoryWriter.Write(ref outputPtr, literalStartPtr, literalLength);
 
                 // Write Offset (Match distance)
                 MemOps.WriteUnaligned<ushort>(outputPtr, (ushort)offset);
@@ -136,7 +136,7 @@ public static unsafe class LZ4Compressor
                 }
 
                 // Write the literals
-                RawWriter.Write(ref outputPtr, literalStartPtr, lastLiteralLength);
+                MemoryWriter.Write(ref outputPtr, literalStartPtr, lastLiteralLength);
             }
 
             return (int)(outputPtr - outputBase); // Return length of compressed data (excluding header)

@@ -2,6 +2,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
 using Nalix.Extensions.Primitives;
 using Nalix.Shared.LZ4;
+using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
 
 namespace Nalix.Network.Package.Engine;
@@ -79,8 +80,7 @@ public static class PacketCompact
     private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
-        byte[] buffer = new byte[LZ4Compressor.GetMaxLength(input.Length)];
-
+        byte[] buffer = new byte[LZ4Encoder.GetMaxLength(input.Length)];
         int lenght = LZ4Codec.Encode(input, buffer);
 
         if (lenght < 0)
@@ -94,19 +94,10 @@ public static class PacketCompact
         if (input.Length < Header.Size)
             throw new PackageException("Compressed payload too small to contain a valid header.");
 
-        Header header = MemOps.ReadUnaligned<Header>(input);
+        if (!LZ4Codec.Decode(input, out byte[]? buffer, out int written))
+            throw new PackageException("Failed to decompress payload.");
 
-        if (header.OriginalLength < 0 || header.CompressedLength != input.Length)
-            throw new PackageException("Invalid compressed data header.");
-
-        byte[] buffer = new byte[header.OriginalLength];
-
-        int decompressedLength = LZ4Codec.Decode(input, buffer);
-
-        if (decompressedLength < 0)
-            throw new PackageException("Decompression failed due to invalid data.");
-
-        return System.MemoryExtensions.AsMemory(buffer, 0, decompressedLength);
+        return System.MemoryExtensions.AsMemory(buffer, 0, written);
     }
 
     #endregion Private Methods

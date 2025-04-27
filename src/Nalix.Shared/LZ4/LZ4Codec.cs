@@ -51,4 +51,17 @@ public class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int Decode(byte[] input, byte[] output)
         => LZ4Decoder.Decode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
+
+    /// <summary>
+    /// Decompresses the compressed input into a newly allocated byte array.
+    /// </summary>
+    /// <param name="input">The compressed input data, including header information.</param>
+    /// <param name="output">The output byte array containing the decompressed data, or null if decompression fails.</param>
+    /// <param name="bytesWritten">The number of bytes actually written to the output array.</param>
+    /// <returns>True if decompression succeeds; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool Decode(System.ReadOnlySpan<byte> input,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? output, out int bytesWritten)
+        => LZ4Decoder.Decode(input, out output, out bytesWritten);
 }

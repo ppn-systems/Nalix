@@ -74,13 +74,11 @@ public readonly partial struct Packet
 
         // Initialize fields
         Id = id;
-        Timestamp = timestamp;
-
         Code = code;
         Type = type;
         Flags = flags;
         Priority = priority;
-
+        Timestamp = timestamp;
         Number = number == 0 ? (byte)(timestamp % byte.MaxValue) : number;
 
         // Create a secure copy of the payload to prevent external modification
