@@ -1,5 +1,4 @@
 using Nalix.Common.Caching;
-using Nalix.Common.Compression;
 using Nalix.Common.Connection;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Identity;
@@ -128,9 +127,6 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public EncryptionType Encryption { get; set; } = EncryptionType.XTEA;
-
-    /// <inheritdoc />
-    public CompressionType Compression { get; set; } = CompressionType.Brotli;
 
     /// <inheritdoc />
     public AuthState State { get; set; } = AuthState.Connected;

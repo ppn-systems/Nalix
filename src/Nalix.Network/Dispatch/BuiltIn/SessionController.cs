@@ -42,7 +42,6 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
     {
         ConnInfoDto status = new()
         {
-            Compression = connection.Compression,
             Encryption = connection.Encryption
         };
 

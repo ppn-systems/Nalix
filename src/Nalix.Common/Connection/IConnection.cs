@@ -1,4 +1,3 @@
-using Nalix.Common.Compression;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
@@ -61,11 +60,6 @@ public partial interface IConnection : System.IDisposable
     /// Gets or sets the encryption mode used.
     /// </summary>
     EncryptionType Encryption { get; set; }
-
-    /// <summary>
-    /// Gets or sets the compression mode used.
-    /// </summary>
-    CompressionType Compression { get; set; }
 
     /// <summary>
     /// A dictionary for storing connection-specific metadata.

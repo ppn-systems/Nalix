@@ -1,4 +1,3 @@
-using Nalix.Common.Compression;
 using Nalix.Common.Cryptography;
 
 namespace Nalix.Common.Connection.Contracts;
@@ -12,9 +11,4 @@ public class ConnInfoDto
     /// Gets the encryption mode used for the connection.
     /// </summary>
     public EncryptionType Encryption { get; init; }
-
-    /// <summary>
-    /// Gets the compression mode used for the connection.
-    /// </summary>
-    public CompressionType Compression { get; init; }
 }

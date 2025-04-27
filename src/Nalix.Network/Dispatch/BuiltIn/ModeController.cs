@@ -1,4 +1,3 @@
-using Nalix.Common.Compression;
 using Nalix.Common.Connection;
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography;
@@ -23,22 +22,6 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
     private readonly ILogger? _logger = logger;
 
     #endregion Fields
-
-    /// <summary>
-    /// Handles a request to set the compression mode for the current connection.
-    /// The mode is expected as the first byte of the packet's binary payload.
-    /// </summary>
-    /// <param name="packet">The incoming packet containing the compression mode.</param>
-    /// <param name="connection">The active client connection.</param>
-    /// <returns>A response packet indicating success or failure.</returns>
-    [PacketEncryption(false)]
-    [PacketTimeout(Timeouts.Short)]
-    [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.SetCompressionMode)]
-    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
-    internal System.Memory<byte> SetCompressionMode(TPacket packet, IConnection connection)
-        => SetMode<CompressionType>(packet, connection);
 
     /// <summary>
     /// Handles a request to set the encryption mode for the current connection.
@@ -85,9 +68,7 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
         }
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
-        if (typeof(TEnum) == typeof(CompressionType))
-            connection.Compression = Unsafe.As<TEnum, CompressionType>(ref enumValue);
-        else if (typeof(TEnum) == typeof(EncryptionType))
+        if (typeof(TEnum) == typeof(EncryptionType))
             connection.Encryption = Unsafe.As<TEnum, EncryptionType>(ref enumValue);
 
         _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
