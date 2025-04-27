@@ -1,5 +1,4 @@
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -22,7 +21,7 @@ public static partial class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateRight(uint value, int bits)
-        => BitOperations.RotateRight(value, bits);
+        => (value >> bits) | (value << (32 - bits));
 
     /// <summary>
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
@@ -32,7 +31,7 @@ public static partial class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint RotateLeft(uint value, int bits)
-        => BitOperations.RotateLeft(value, bits);
+        => (value << bits) | (value >> (32 - bits));
 
     #endregion Bit Rotations
 

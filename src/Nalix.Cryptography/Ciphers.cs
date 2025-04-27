@@ -70,47 +70,18 @@ public static class Ciphers
 
                 case EncryptionType.Speck:
                     {
-                        // Prepare output buffer
                         byte[] output = new byte[data.Length];
-                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int blockSize = 8;
                         int fullBlocks = data.Length / blockSize;
 
-                        // Process data in 8-byte blocks
+                        Span<byte> outputSpan = output.AsSpan();
+
                         for (int i = 0; i < fullBlocks; i++)
                         {
-                            // Get the current 8-byte block
                             ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
-                            Span<byte> ciphertext = new byte[blockSize];
+                            Span<byte> destination = outputSpan.Slice(i * blockSize, blockSize);
 
-                            // Encrypt the block
-                            Speck.Encrypt(block, key, ciphertext);
-
-                            // Copy encrypted block to the output
-                            ciphertext.CopyTo(output.AsSpan(i * blockSize));
-                        }
-
-                        return output;
-                    }
-
-                case EncryptionType.SpeckCBC:
-                    {
-                        // Prepare output buffer
-                        byte[] output = new byte[data.Length];
-                        int blockSize = 8; // Speck operates on 8-byte blocks
-                        int fullBlocks = data.Length / blockSize;
-
-                        // Process data in 8-byte blocks
-                        for (int i = 0; i < fullBlocks; i++)
-                        {
-                            // Get the current 8-byte block
-                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
-                            Span<byte> ciphertext = new byte[blockSize];
-
-                            // Encrypt the block
-                            Speck.CBC.Encrypt(block, key, ciphertext);
-
-                            // Copy encrypted block to the output
-                            ciphertext.CopyTo(output.AsSpan(i * blockSize));
+                            Speck.Encrypt(block, key, destination);
                         }
 
                         return output;
@@ -236,47 +207,18 @@ public static class Ciphers
 
                 case EncryptionType.Speck:
                     {
-                        // Prepare output buffer
                         byte[] output = new byte[data.Length];
-                        int blockSize = 8; // Speck operates on 8-byte blocks
+                        int blockSize = 8;
                         int fullBlocks = data.Length / blockSize;
 
-                        // Process data in 8-byte blocks
+                        Span<byte> outputSpan = output.AsSpan();
+
                         for (int i = 0; i < fullBlocks; i++)
                         {
-                            // Get the current 8-byte block
                             ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
-                            Span<byte> plaintext = new byte[blockSize];
+                            Span<byte> destination = outputSpan.Slice(i * blockSize, blockSize);
 
-                            // Decrypt the block
-                            Speck.Decrypt(block, key, plaintext);
-
-                            // Copy decrypted block to the output
-                            plaintext.CopyTo(output.AsSpan(i * blockSize));
-                        }
-
-                        return output;
-                    }
-
-                case EncryptionType.SpeckCBC:
-                    {
-                        // Prepare output buffer
-                        byte[] output = new byte[data.Length];
-                        int blockSize = 8; // Speck operates on 8-byte blocks
-                        int fullBlocks = data.Length / blockSize;
-
-                        // Process data in 8-byte blocks
-                        for (int i = 0; i < fullBlocks; i++)
-                        {
-                            // Get the current 8-byte block
-                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
-                            Span<byte> plaintext = new byte[blockSize];
-
-                            // Decrypt the block
-                            Speck.CBC.Decrypt(block, key, plaintext);
-
-                            // Copy decrypted block to the output
-                            plaintext.CopyTo(output.AsSpan(i * blockSize));
+                            Speck.Decrypt(block, key, destination);
                         }
 
                         return output;

@@ -8,6 +8,21 @@ namespace Nalix.Cryptography.Test.Symmetric;
 public class XteaTests
 {
     [Fact]
+    public void Encrypt_DecryptWithSameKey_ReturnsOriginalData()
+    {
+        // Arrange
+        byte[] data = new byte[] { 1, 2, 3, 4, 5 };
+        uint[] key = new uint[] { 1, 2, 3, 4 };
+
+        // Act
+        byte[] encrypted = Xtea.Encrypt(data, key);
+        byte[] decrypted = Xtea.Decrypt(encrypted, key);
+
+        // Assert
+        Assert.Equal(data, decrypted);
+    }
+
+    [Fact]
     public void EncryptDecrypt_ValidKeyAndPlaintext_ShouldReturnOriginalPlaintext()
     {
         // Arrange
@@ -97,7 +112,7 @@ public class XteaTests
         ciphertext[^1] = 0xFF;
 
         // Act & Assert
-        Assert.Throws<Nalix.Common.Exceptions.CryptoException>(() => Xtea.Decrypt(ciphertext, key));
+        Assert.Throws<Common.Exceptions.CryptoException>(() => Xtea.Decrypt(ciphertext, key));
     }
 
     [Fact]
