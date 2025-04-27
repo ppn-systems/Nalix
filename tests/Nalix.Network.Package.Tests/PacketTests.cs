@@ -66,14 +66,14 @@ public class PacketTests
         // Arrange
         ushort id = 1;
         var code = PacketCode.Success; // Replace with appropriate enum value
-        byte[] payload = new byte[] { 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4 };
+        byte[] payload = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
         var packet = new Packet(id, code, payload);
 
         // Act
         var serialized = packet.Serialize();
-        Debug.WriteLine($"Serialized Length: {packet.Payload.Length}");
+        Debug.WriteLine($"Serialized Length: {serialized.Length}");
         var deserializedPacket = PacketSerializer.Deserialize(serialized.Span);
-        Debug.WriteLine($"Deserialize Length: {deserializedPacket.Payload.Length}");
+        Debug.WriteLine($"Deserialize Length: {deserializedPacket.Length}");
 
         // Assert
         Assert.Equal(packet.Id, deserializedPacket.Id);

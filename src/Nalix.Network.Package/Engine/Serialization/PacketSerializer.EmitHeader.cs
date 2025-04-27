@@ -42,16 +42,4 @@ public static partial class PacketSerializer
         buffer[PacketOffset.Flags] = (byte)packet.Flags;
         buffer[PacketOffset.Priority] = (byte)packet.Priority;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void EmitHeaderUnsafe(
-        Span<byte> buffer, int totalSize,
-        ushort id, ulong timestamp,
-        uint checksum, ushort code, in Packet packet)
-    {
-        fixed (byte* pBuffer = buffer)
-        {
-            EmitHeaderUnsafe(pBuffer, totalSize, id, timestamp, checksum, code, packet);
-        }
-    }
 }
