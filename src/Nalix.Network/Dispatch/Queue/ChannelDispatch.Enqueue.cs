@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Nalix.Network.Dispatch.Queue;
 
-public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {
     /// <summary>
     /// Adds a packet to the appropriate priority queue.

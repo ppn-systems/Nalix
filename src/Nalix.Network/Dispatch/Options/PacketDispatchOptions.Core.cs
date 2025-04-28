@@ -78,7 +78,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     public ILogger? Logger => _logger;
 
     /// <summary>
-    /// Configuration options for DispatchQueue
+    /// Configuration options for ChannelDispatch
     /// </summary>
     public DispatchQueueConfig QueueOptions { get; set; } = new DispatchQueueConfig();
 

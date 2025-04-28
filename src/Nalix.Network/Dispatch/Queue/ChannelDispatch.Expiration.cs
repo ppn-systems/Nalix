@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch.Queue;
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.
 /// </summary>
-public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Public Methods
 
@@ -36,7 +36,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     public int FlushPriority(PacketPriority priority)
     {
         int index = (int)priority;
-        int removed = DispatchQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
+        int removed = ChannelDispatch<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
 
         if (removed > 0)
         {
@@ -133,7 +133,7 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
         int totalCleared = 0;
 
         for (int i = 0; i < _priorityCount; i++)
-            totalCleared += DispatchQueue<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
+            totalCleared += ChannelDispatch<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
 
         if (totalCleared > 0)
             Interlocked.Exchange(ref _totalCount, 0);

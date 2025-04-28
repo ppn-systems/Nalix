@@ -6,7 +6,7 @@ namespace Nalix.Network.Dispatch;
 /// <typeparam name="TPacket">
 /// The packet type that implements both <see cref="Common.Package.IPacket"/> and <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
-public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package.IPacket,
+public abstract class PacketDispatchCore<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
@@ -28,7 +28,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchBase{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
     /// using the provided <paramref name="options"/>.
     /// </summary>
     /// <param name="options">
@@ -38,17 +38,17 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
     /// Thrown if <paramref name="options"/> is <c>null</c>.
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    protected PacketDispatchBase(Options.PacketDispatchOptions<TPacket> options)
+    protected PacketDispatchCore(Options.PacketDispatchOptions<TPacket> options)
         => Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchBase{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
     /// with optional configuration logic.
     /// </summary>
     /// <param name="configure">
     /// An optional delegate to configure the <see cref="Options.PacketDispatchOptions{TPacket}"/> instance.
     /// </param>
-    protected PacketDispatchBase(System.Action<Options.PacketDispatchOptions<TPacket>>? configure = null)
+    protected PacketDispatchCore(System.Action<Options.PacketDispatchOptions<TPacket>>? configure = null)
         : this(new Options.PacketDispatchOptions<TPacket>()) => configure?.Invoke(Options);
 
     #endregion Constructors
@@ -118,7 +118,7 @@ public abstract class PacketDispatchBase<TPacket> where TPacket : Common.Package
 
             try
             {
-                await PacketDispatchBase<TPacket>
+                await PacketDispatchCore<TPacket>
                     .ExecuteHandler(handler, packet, connection)
                     .ConfigureAwait(false);
             }

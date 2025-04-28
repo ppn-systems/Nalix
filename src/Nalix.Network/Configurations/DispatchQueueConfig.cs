@@ -3,7 +3,7 @@ using Nalix.Shared.Configuration.Binding;
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Configuration options for DispatchQueue
+/// Configuration options for ChannelDispatch
 /// </summary>
 public sealed class DispatchQueueConfig : ConfigurationBinder
 {

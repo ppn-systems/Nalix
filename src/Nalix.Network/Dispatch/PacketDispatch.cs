@@ -12,7 +12,7 @@ namespace Nalix.Network.Dispatch;
 /// A delegate used to configure <see cref="Options.PacketDispatchOptions{TPacket}"/> before processing packets.
 /// </param>
 public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatchOptions<TPacket>> options)
-    : PacketDispatchBase<TPacket>(options), IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
+    : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

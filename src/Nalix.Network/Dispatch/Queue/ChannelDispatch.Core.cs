@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch.Queue;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {
     #region Fields
 
@@ -53,9 +53,9 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     #region Constructors
 
     /// <summary>
-    /// Initialize a new DispatchQueue using options.
+    /// Initialize a new ChannelDispatch using options.
     /// </summary>
-    private DispatchQueue()
+    private ChannelDispatch()
     {
         _options = null!;
         _queueTimer = null;
@@ -82,10 +82,10 @@ public sealed partial class DispatchQueue<TPacket> where TPacket : Common.Packag
     }
 
     /// <summary>
-    /// Initialize a new DispatchQueue using options
+    /// Initialize a new ChannelDispatch using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public DispatchQueue(DispatchQueueConfig options) : this()
+    public ChannelDispatch(DispatchQueueConfig options) : this()
     {
         _options = options;
 
