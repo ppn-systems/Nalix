@@ -6,11 +6,6 @@ using Nalix.Common.Logging;
 using Nalix.Common.Security;
 using Nalix.Identifiers;
 using Nalix.Network.Connection.Transport;
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Network.Connection;
 
@@ -21,16 +16,16 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly Lock _lock;
     private readonly Base36Id _id;
-    private readonly Socket _socket;
     private readonly ILogger? _logger;
     private readonly TransportStream _cstream;
-    private readonly CancellationTokenSource _ctokens;
+    private readonly System.Threading.Lock _lock;
+    private readonly System.Net.Sockets.Socket _socket;
+    private readonly System.Threading.CancellationTokenSource _ctokens;
 
-    private EventHandler<IConnectEventArgs>? _onCloseEvent;
-    private EventHandler<IConnectEventArgs>? _onProcessEvent;
-    private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+    private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
+    private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
+    private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
     private bool _disposed;
     private byte[] _encryptionKey;
@@ -46,14 +41,14 @@ public sealed partial class Connection : IConnection
     /// <param name="socket">The socket used for the connection.</param>
     /// <param name="bufferAllocator">The buffer pool used for data allocation.</param>
     /// <param name="logger">The logger used for logging connection events. If null, no logging will occur.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
-    public Connection(Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
+    public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
-        _lock = new Lock();
+        _lock = new System.Threading.Lock();
         _id = Base36Id.NewId(IdentifierType.Session);
-        _ctokens = new CancellationTokenSource();
+        _ctokens = new System.Threading.CancellationTokenSource();
 
-        _socket = socket ?? throw new ArgumentNullException(nameof(socket));
+        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
         _logger = logger;
         _cstream = new TransportStream(socket, bufferAllocator, _logger)
         {
@@ -86,7 +81,7 @@ public sealed partial class Connection : IConnection
     public long LastPingTime => _cstream.LastPingTime;
 
     /// <inheritdoc/>
-    public Dictionary<string, object> Metadata { get; } = [];
+    public System.Collections.Generic.Dictionary<string, object> Metadata { get; } = [];
 
     /// <inheritdoc />
     public byte[] EncryptionKey
@@ -95,7 +90,7 @@ public sealed partial class Connection : IConnection
         set
         {
             if (value is null || value.Length != 32)
-                throw new ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
+                throw new System.ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
 
             lock (_lock)
             {
@@ -117,10 +112,10 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public ReadOnlyMemory<byte> IncomingPacket => _cstream.GetIncomingPackets();
+    public System.ReadOnlyMemory<byte> IncomingPacket => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
+    public System.DateTimeOffset Timestamp { get; } = System.DateTimeOffset.UtcNow;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
@@ -136,21 +131,21 @@ public sealed partial class Connection : IConnection
     #region Events
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnCloseEvent
+    public event System.EventHandler<IConnectEventArgs>? OnCloseEvent
     {
         add => _onCloseEvent += value;
         remove => _onCloseEvent -= value;
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnProcessEvent
+    public event System.EventHandler<IConnectEventArgs>? OnProcessEvent
     {
         add => _onProcessEvent += value;
         remove => _onProcessEvent -= value;
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnPostProcessEvent
+    public event System.EventHandler<IConnectEventArgs>? OnPostProcessEvent
     {
         add => _onPostProcessEvent += value;
         remove => _onPostProcessEvent -= value;
@@ -161,13 +156,15 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Close(bool force = false)
     {
         try
         {
             if (!force && _socket.Connected &&
-               (!_socket.Poll(1000, SelectMode.SelectRead) || _socket.Available > 0)) return;
+               (!_socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) || _socket.Available > 0))
+                return;
 
             if (_disposed) return;
 
@@ -176,14 +173,15 @@ public sealed partial class Connection : IConnection
             _ctokens.Cancel();
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
         }
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Disconnect(string? reason = null) => Close(force: true);
 
     #endregion Methods
@@ -191,6 +189,8 @@ public sealed partial class Connection : IConnection
     #region Dispose Pattern
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         lock (_lock)
@@ -205,7 +205,7 @@ public sealed partial class Connection : IConnection
         {
             this.Disconnect();
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
         }
@@ -214,6 +214,8 @@ public sealed partial class Connection : IConnection
             _ctokens.Dispose();
             _cstream.Dispose();
         }
+
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion Dispose Pattern

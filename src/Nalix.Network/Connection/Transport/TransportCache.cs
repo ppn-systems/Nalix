@@ -2,7 +2,6 @@ using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
 using Nalix.Shared.Time;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Connection.Transport;
 
@@ -52,7 +51,8 @@ internal sealed class TransportCache : System.IDisposable
     /// A composite key is generated from the first and last 4 bytes of the packet.
     /// </summary>
     /// <param name="data">The packet data to cache.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushOutgoing(System.ReadOnlyMemory<byte> data)
     {
         System.Span<byte> key = stackalloc byte[8];
@@ -66,7 +66,8 @@ internal sealed class TransportCache : System.IDisposable
     /// Adds a received packet to the incoming cache and triggers the <see cref="PacketCached"/> event.
     /// </summary>
     /// <param name="data">The received packet data.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(System.ReadOnlyMemory<byte> data)
     {
         Incoming.Add(data);
@@ -77,7 +78,8 @@ internal sealed class TransportCache : System.IDisposable
     /// Releases all resources used by this <see cref="TransportCache"/> instance.
     /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Incoming.Clear();

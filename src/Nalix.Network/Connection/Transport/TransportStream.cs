@@ -1,23 +1,20 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Shared.Time;
-using System;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Connection.Transport;
 
 /// <summary>
 /// Manages the network stream and handles sending/receiving data with caching and logging.
 /// </summary>
-internal class TransportStream : IDisposable
+internal class TransportStream : System.IDisposable
 {
     #region Fields
 
     private readonly ILogger? _logger;
     private readonly IBufferPool _pool;
-    private readonly NetworkStream _stream;
     private readonly TransportCache _cache;
+    private readonly System.Net.Sockets.NetworkStream _stream;
 
     private byte[] _buffer;
     private bool _disposed;
@@ -29,7 +26,7 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Event triggered when the connection is disconnected.
     /// </summary>
-    public Action? Disconnected;
+    public System.Action? Disconnected;
 
     /// <summary>
     /// Gets the last ping time in milliseconds.
@@ -49,13 +46,13 @@ internal class TransportStream : IDisposable
     /// <param name="socket">The socket.</param>
     /// <param name="bufferPool">The buffer pool.</param>
     /// <param name="logger">The logger (optional).</param>
-    public TransportStream(Socket socket, IBufferPool bufferPool, ILogger? logger = null)
+    public TransportStream(System.Net.Sockets.Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
         _logger = logger;
         _pool = bufferPool;
         _buffer = _pool.Rent();
         _cache = new TransportCache();
-        _stream = new NetworkStream(socket);
+        _stream = new System.Net.Sockets.NetworkStream(socket);
 
         _logger?.Debug("TransportStream created");
     }
@@ -84,25 +81,26 @@ internal class TransportStream : IDisposable
                            await self.OnReceiveCompleted(task, cancellationToken);
                        }
                        catch (System.IO.IOException ex)
-                       when (ex.InnerException is SocketException se &&
-                             se.SocketErrorCode == SocketError.ConnectionReset)
+                       when (ex.InnerException is System.Net.Sockets.SocketException se &&
+                             se.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
                        {
                            self._logger?.Debug("[{0}] Connection closed by remote", nameof(TransportStream));
                            self.Disconnected?.Invoke();
                        }
-                       catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+                       catch (System.Net.Sockets.SocketException ex) when
+                             (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
                        {
                            self._logger?.Debug("[{0}] Socket reset", nameof(TransportStream));
                            self.Disconnected?.Invoke();
                        }
-                       catch (Exception ex)
+                       catch (System.Exception ex)
                        {
                            self._logger?.Error("[{0}] BeginReceive error: {1}",
                                                nameof(TransportStream), ex.Message);
                        }
                    }, this, cancellationToken);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
         }
@@ -113,8 +111,9 @@ internal class TransportStream : IDisposable
     /// </summary>
     /// <param name="data">The data to send as a Span.</param>
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Send(ReadOnlySpan<byte> data)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public bool Send(System.ReadOnlySpan<byte> data)
     {
         try
         {
@@ -127,7 +126,7 @@ internal class TransportStream : IDisposable
             _cache.PushOutgoing(data.ToArray());
             return true;
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("[{0}] Send error: {1}", nameof(TransportStream), ex);
             return false;
@@ -140,9 +139,10 @@ internal class TransportStream : IDisposable
     /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task<bool> SendAsync(
-        ReadOnlyMemory<byte> data,
+        System.ReadOnlyMemory<byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
         try
@@ -155,7 +155,7 @@ internal class TransportStream : IDisposable
             _cache.PushOutgoing(data);
             return true;
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
             return false;
@@ -165,28 +165,31 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Gets a copy of incoming packets.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlyMemory<byte> GetIncomingPackets()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.ReadOnlyMemory<byte> GetIncomingPackets()
     {
-        if (_cache.Incoming.TryGetValue(out ReadOnlyMemory<byte> data))
+        if (_cache.Incoming.TryGetValue(out System.ReadOnlyMemory<byte> data))
             return data;
 
-        return ReadOnlyMemory<byte>.Empty; // Avoid null
+        return System.ReadOnlyMemory<byte>.Empty; // Avoid null
     }
 
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached.
     /// </summary>
     /// <param name="handler">The callback method to register.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetPacketCached(Action handler) => _cache.PacketCached += handler;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void SetPacketCached(System.Action handler) => _cache.PacketCached += handler;
 
     /// <summary>
     /// Unregisters a previously registered callback from the packet cached event.
     /// </summary>
     /// <param name="handler">The callback method to remove.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RemovePacketCached(Action handler) => _cache.PacketCached -= handler;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void RemovePacketCached(System.Action handler) => _cache.PacketCached -= handler;
 
     /// <summary>
     /// Handles the completion of data reception.
@@ -212,7 +215,7 @@ internal class TransportStream : IDisposable
 
             if (totalBytesRead < 2) return;
 
-            ushort size = BitConverter.ToUInt16(_buffer, 0);
+            ushort size = System.BitConverter.ToUInt16(_buffer, 0);
             _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > _pool.MaxBufferSize)
@@ -233,7 +236,8 @@ internal class TransportStream : IDisposable
             while (totalBytesRead < size)
             {
                 int bytesRead = await _stream.ReadAsync(
-                    _buffer.AsMemory(totalBytesRead, size - totalBytesRead), cancellationToken);
+                    System.MemoryExtensions.AsMemory(_buffer, totalBytesRead, size - totalBytesRead),
+                    cancellationToken);
 
                 if (bytesRead == 0)
                 {
@@ -251,7 +255,7 @@ internal class TransportStream : IDisposable
                 _logger?.Debug("[{0}] Packet received", nameof(TransportStream));
 
                 _cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
-                _cache.PushIncoming(_buffer.AsMemory(0, totalBytesRead));
+                _cache.PushIncoming(System.MemoryExtensions.AsMemory(_buffer, 0, totalBytesRead));
             }
             else
             {
@@ -259,18 +263,19 @@ internal class TransportStream : IDisposable
             }
         }
         catch (System.IO.IOException ex)
-        when (ex.InnerException is SocketException se &&
-              se.SocketErrorCode == SocketError.ConnectionReset)
+        when (ex.InnerException is System.Net.Sockets.SocketException se &&
+              se.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
         {
             _logger?.Debug("[{0}] Connection closed by remote", nameof(TransportStream));
             Disconnected?.Invoke();
         }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+        catch (System.Net.Sockets.SocketException ex) when
+              (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
         {
             _logger?.Debug("[{0}] Socket reset", nameof(TransportStream));
             Disconnected?.Invoke();
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error(ex);
         }
@@ -283,18 +288,20 @@ internal class TransportStream : IDisposable
     /// <summary>
     /// Disposes the resources used by the <see cref="TransportStream"/> instance.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Disposes the managed and unmanaged resources.
     /// </summary>
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Dispose(bool disposing)
     {
         if (_disposed) return;
@@ -311,7 +318,8 @@ internal class TransportStream : IDisposable
         _logger?.Debug("TransportStream disposed");
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override string ToString()
         => $"TransportStream (Remote = {_stream.Socket?.RemoteEndPoint}, " +
            $"Disposed = {_disposed}, UpTime = {UpTime}ms, LastPing = {LastPingTime}ms)" +
