@@ -133,8 +133,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the objects are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj) =>
-        obj is Packet packet && Equals(packet);
+    public override bool Equals(object? obj) => obj is Packet packet && Equals(packet);
 
     /// <summary>
     /// Determines whether two packets are equal.

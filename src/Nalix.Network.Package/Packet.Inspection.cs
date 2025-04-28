@@ -27,9 +27,7 @@ public readonly partial struct Packet
         ulong timeoutMicroseconds = (ulong)(timeout.TotalMilliseconds * 1000);
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < Timestamp)
-            return false;
-
+        if (currentTime < Timestamp) return false;
         return (currentTime - Timestamp) > timeoutMicroseconds;
     }
 }
