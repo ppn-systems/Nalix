@@ -3,7 +3,7 @@ namespace Nalix.Logging.Options;
 /// <summary>
 /// Defines the options for buffered logging.
 /// </summary>
-public class BatchFileLogOptions
+public sealed class BatchFileLogOptions
 {
     /// <summary>
     /// Gets or sets the options for the file logger.

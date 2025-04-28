@@ -2,7 +2,7 @@ using Nalix.Common.Logging;
 
 namespace Nalix.Logging;
 
-public partial class NLogix
+public sealed partial class NLogix
 {
     #region Meta Methods
 

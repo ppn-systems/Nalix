@@ -3,7 +3,7 @@ using Nalix.Logging.Targets;
 
 namespace Nalix.Logging;
 
-public partial class NLogix
+public sealed partial class NLogix
 {
     /// <summary>
     /// Provides a globally accessible, lazily initialized singleton instance of the <see cref="NLogix"/> logger.

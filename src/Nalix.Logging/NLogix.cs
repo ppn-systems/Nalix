@@ -15,7 +15,7 @@ namespace Nalix.Logging;
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogix.Host"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
 /// </remarks>
-public partial class NLogix : LogEngine, ILogger
+public sealed partial class NLogix : LogEngine, ILogger
 {
     #region Constructors
 
