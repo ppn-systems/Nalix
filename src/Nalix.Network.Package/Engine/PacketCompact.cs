@@ -12,12 +12,17 @@ namespace Nalix.Network.Package.Engine;
 public static class PacketCompact
 {
     /// <summary>
-    /// Compresses the payload of the given packet using the specified compression type.
+    /// Compresses the payload of the given packet if it exceeds a minimum size threshold.
+    /// If compression is not beneficial (i.e., the compressed payload is larger),
+    /// or if the payload is too small, the original packet is returned unchanged.
     /// </summary>
     /// <param name="packet">The packet whose payload needs to be compressed.</param>
-    /// <returns>A new <see cref="Packet"/> instance with the compressed payload.</returns>
+    /// <returns>
+    /// A new <see cref="Packet"/> instance with the compressed payload,
+    /// or the original packet if compression is not applicable.
+    /// </returns>
     /// <exception cref="PackageException">
-    /// Thrown if the packet is not eligible for compression, or if an error occurs during compression.
+    /// Thrown if the packet is empty, encrypted, or if an error occurs during compression.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -29,11 +34,15 @@ public static class PacketCompact
         if ((packet.Flags & PacketFlags.Encrypted) != 0)
             throw new PackageException("Payload is encrypted and cannot be compressed.");
 
+        if (packet.Payload.Length < 512)
+            return packet;
+
         try
         {
             System.Memory<byte> bytes = CompressLZ4(packet.Payload.Span);
 
-            if (bytes.Length >= packet.Payload.Length) return packet;
+            if (bytes.Length >= packet.Payload.Length)
+                return packet;
 
             return new Packet(
                 packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
@@ -63,7 +72,7 @@ public static class PacketCompact
             throw new PackageException("Cannot decompress an empty payload.");
 
         if (!((packet.Flags & PacketFlags.Compressed) != 0))
-            throw new PackageException("Payload is not marked as compressed.");
+            return packet;
 
         try
         {
