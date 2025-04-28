@@ -6,6 +6,7 @@ using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Network.Dispatch.BuiltIn.Internal;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.BuiltIn;
 
@@ -24,6 +25,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
         => PacketWriter.String(PacketCode.Success, "Pong");
 
@@ -36,6 +38,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketId((ushort)ProtocolCommand.Pong)]
     [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
         => PacketWriter.String(PacketCode.Success, "Ping");
 
@@ -48,6 +51,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketId((ushort)ProtocolCommand.PingTime)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
         => PacketWriter.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
 
@@ -60,6 +64,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketId((ushort)ProtocolCommand.PingInfo)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingInfo(TPacket _, IConnection connection)
     {
         PingInfoDto pingInfoDto = new()

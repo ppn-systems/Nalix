@@ -36,11 +36,13 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketId((ushort)ProtocolCommand.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> SetEncryptionMode(TPacket packet, IConnection connection)
         => SetMode<EncryptionType>(packet, connection);
 
     #region Private Methods
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private System.Memory<byte> SetMode<TEnum>(TPacket packet, IConnection connection)
         where TEnum : struct, System.Enum
     {

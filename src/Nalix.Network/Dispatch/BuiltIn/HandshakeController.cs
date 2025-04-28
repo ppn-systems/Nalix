@@ -9,6 +9,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Network.Dispatch.BuiltIn.Internal;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.BuiltIn;
 
@@ -59,6 +60,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(HandshakeController<TPacket>))]
     [PacketId((ushort)ProtocolCommand.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
         // CheckLimit if the packet type is binary (as expected for X25519 public key).
@@ -114,6 +116,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(HandshakeController<TPacket>))]
     [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
