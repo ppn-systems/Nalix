@@ -20,6 +20,7 @@ namespace Nalix.Network.Dispatch.Options;
 /// and define custom error-handling or metrics tracking logic.
 /// </remarks>
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
@@ -35,7 +36,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     private ILogger? _logger;
     private readonly PacketRateLimitGuard _rateLimiter;
-    private System.Func<ushort, ushort, byte, byte, byte, TPacket>? _packetFactory; // Delegate for creating packets
 
     /// <summary>
     /// Gets or sets the callback used to report the execution time of packet handlers.
@@ -82,15 +82,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Configuration options for ChannelDispatch
     /// </summary>
     public DispatchQueueConfig QueueOptions { get; set; } = new DispatchQueueConfig();
-
-    /// <summary>
-    /// Gets or sets the factory function for creating new instances of packets.
-    /// </summary>
-    public System.Func<ushort, ushort, byte, byte, byte, TPacket> PacketFactory
-    {
-        get => _packetFactory ?? throw new System.InvalidOperationException("PacketFactory has not been set.");
-        set => _packetFactory = value ?? throw new System.ArgumentNullException(nameof(value));
-    }
 
     #endregion Properties
 

@@ -7,6 +7,7 @@ namespace Nalix.Network.Dispatch;
 /// The packet type that implements both <see cref="Common.Package.IPacket"/> and <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
 public abstract class PacketDispatchCore<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketFactory<TPacket>,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

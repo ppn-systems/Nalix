@@ -147,7 +147,7 @@ public abstract class SingletonBase<T> : IDisposable
             disposable.Dispose();
         }
 
-        // We can't actually reset the Lazy<T> instance, but we can set a flag
+        // We can't actually reset the Lazy<TPacket> instance, but we can set a flag
         // that will be checked in Instance getter in a test environment
     }
 

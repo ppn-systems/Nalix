@@ -3,15 +3,15 @@ using Nalix.Common.Cryptography;
 namespace Nalix.Common.Package;
 
 /// <summary>
-/// Provides a contract for encrypting and decrypting a packet of type <typeparamref name="T"/>.
+/// Provides a contract for encrypting and decrypting a packet of type <typeparamref name="TPacket"/>.
 /// </summary>
-/// <typeparam name="T">
+/// <typeparam name="TPacket">
 /// The packet type that implements <see cref="IPacket"/> and supports static encryption and decryption.
 /// </typeparam>
-public interface IPacketEncryptor<T> where T : IPacket
+public interface IPacketEncryptor<TPacket> where TPacket : IPacket
 {
     /// <summary>
-    /// Encrypts a packet of type <typeparamref name="T"/> using a specific encryption algorithm.
+    /// Encrypts a packet of type <typeparamref name="TPacket"/> using a specific encryption algorithm.
     /// </summary>
     /// <param name="packet">
     /// The packet to be encrypted.
@@ -23,12 +23,12 @@ public interface IPacketEncryptor<T> where T : IPacket
     /// The encryption algorithm to use for the packet's payload.
     /// </param>
     /// <returns>
-    /// A new instance of <typeparamref name="T"/> that contains the encrypted packet data.
+    /// A new instance of <typeparamref name="TPacket"/> that contains the encrypted packet data.
     /// </returns>
-    static abstract T Encrypt(T packet, byte[] key, EncryptionType algorithm);
+    static abstract TPacket Encrypt(TPacket packet, byte[] key, EncryptionType algorithm);
 
     /// <summary>
-    /// Decrypts a packet of type <typeparamref name="T"/> using a specific encryption algorithm.
+    /// Decrypts a packet of type <typeparamref name="TPacket"/> using a specific encryption algorithm.
     /// </summary>
     /// <param name="packet">
     /// The packet to be decrypted.
@@ -40,7 +40,7 @@ public interface IPacketEncryptor<T> where T : IPacket
     /// The encryption algorithm used to decrypt the packet's payload.
     /// </param>
     /// <returns>
-    /// A new instance of <typeparamref name="T"/> that contains the decrypted packet data.
+    /// A new instance of <typeparamref name="TPacket"/> that contains the decrypted packet data.
     /// </returns>
-    static abstract T Decrypt(T packet, byte[] key, EncryptionType algorithm);
+    static abstract TPacket Decrypt(TPacket packet, byte[] key, EncryptionType algorithm);
 }

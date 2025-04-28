@@ -4,8 +4,6 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Dispatch.BuiltIn;
-using Nalix.Network.Dispatch.BuiltIn.Internal;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -17,6 +15,7 @@ using System.Threading.Tasks;
 namespace Nalix.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
@@ -28,32 +27,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
     /// </returns>
-    public PacketDispatchOptions<TPacket> BuiltIn()
+    public PacketDispatchOptions<TPacket> BuiltInHandlers()
     {
         this.WithHandler<SessionController<TPacket>>();
         this.WithHandler<KeepAliveController<TPacket>>();
         this.WithHandler(() => new ModeController<TPacket>(_logger));
 
-        return this;
-    }
-
-    /// <summary>
-    /// Configures the packet factory function that will be used to create instances of packets.
-    /// </summary>
-    /// <param name="packetFactory">
-    /// The factory function responsible for creating instances of packets.
-    /// It must not be <c>null</c>.
-    /// </param>
-    /// <returns>
-    /// The current instance of <see cref="PacketDispatchOptions{TPacket}"/> to allow fluent chaining.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if the <paramref name="packetFactory"/> is <c>null</c>.
-    /// </exception>
-    public PacketDispatchOptions<TPacket> WithPacketFactory(
-        Func<ushort, ushort, byte, byte, byte, TPacket> packetFactory)
-    {
-        _packetFactory = packetFactory;
         return this;
     }
 
@@ -228,15 +207,16 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
+                connection.Send(TPacket.Create(0, PacketCode.RateLimited));
 
-                connection.SendCode(PacketCode.RateLimited);
                 return;
             }
 
             if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
-                connection.SendCode(PacketCode.PermissionDenied);
+                connection.Send(TPacket.Create(0, PacketCode.PermissionDenied));
+
                 return;
             }
 
@@ -245,7 +225,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             catch (System.Exception ex)
             {
                 _logger?.Error("Failed to decompress packet: {0}", ex.Message);
-                connection.SendCode(PacketCode.ServerError);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+
                 return;
             }
 
@@ -256,7 +237,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Warn(message);
-                connection.SendCode(PacketCode.PacketEncryption);
+                connection.Send(TPacket.Create(0, PacketCode.PacketEncryption));
+
                 return;
             }
             else
@@ -282,7 +264,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         _logger?.Error("Packet '{0}' timed out after {1}ms.",
                             attributes.PacketId.Id,
                             attributes.Timeout.TimeoutMilliseconds);
-                        connection.SendCode(PacketCode.RequestTimeout);
+                        connection.Send(TPacket.Create(0, PacketCode.RequestTimeout));
 
                         return;
                     }
@@ -307,7 +289,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     ex.Message                        // Exception message itself
                 );
                 _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.SendCode(PacketCode.ServerError);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
             }
             catch (System.Exception ex)
             {
@@ -320,7 +302,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     connection.RemoteEndPoint
                 );
                 _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.SendCode(PacketCode.ServerError);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
             }
             finally
             {

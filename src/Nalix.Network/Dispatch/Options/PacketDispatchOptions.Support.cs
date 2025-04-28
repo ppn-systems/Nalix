@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace Nalix.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {

@@ -65,9 +65,6 @@ public readonly partial struct Packet
         System.Memory<byte> payload,
         bool computeChecksum = false)
     {
-        if (payload.Length == 0)
-            throw new System.ArgumentNullException(nameof(payload), "Payload cannot be null or empty.");
-
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)
             throw new Common.Exceptions.PackageException(

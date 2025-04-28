@@ -6,7 +6,7 @@ namespace Nalix.Network.Protocols;
 
 /// <summary>
 /// Interface representing a network protocol.
-/// BuiltIn this interface to define how a network protocol handles connections and messages.
+/// BuiltInHandlers this interface to define how a network protocol handles connections and messages.
 /// </summary>
 public interface IProtocol
 {

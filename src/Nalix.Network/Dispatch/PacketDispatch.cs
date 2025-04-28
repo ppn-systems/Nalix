@@ -13,6 +13,7 @@ namespace Nalix.Network.Dispatch;
 /// </param>
 public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatchOptions<TPacket>> options)
     : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketFactory<TPacket>,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

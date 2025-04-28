@@ -19,7 +19,7 @@ internal sealed class FileCacheItem
     // Size of a pointer in bytes
     private static readonly long SizeOfPointer = System.Environment.Is64BitProcess ? 8 : 4;
 
-    // Size of a WeakReference<T> in bytes
+    // Size of a WeakReference<TPacket> in bytes
     private static readonly long SizeOfWeakReference = System.Environment.Is64BitProcess ? 16 : 32;
 
     // Educated guess about the size of an Item in memory (see comments on constructor).

@@ -35,6 +35,7 @@ namespace Nalix.Network.Dispatch;
 /// </example>
 public sealed class PacketDispatchChannel<TPacket>
     : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketFactory<TPacket>,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>

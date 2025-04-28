@@ -11,6 +11,7 @@ namespace Nalix.Network.Dispatch;
 /// network packets based on their content and the connection from which they originate.
 /// </remarks>
 public interface IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
+    Common.Package.IPacketFactory<TPacket>,
     Common.Package.IPacketEncryptor<TPacket>,
     Common.Package.IPacketCompressor<TPacket>,
     Common.Package.IPacketDeserializer<TPacket>
