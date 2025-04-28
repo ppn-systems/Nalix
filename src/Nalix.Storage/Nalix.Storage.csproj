@@ -6,8 +6,8 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.6.63</Version>
-    <PackageVersion>0.6.63</PackageVersion>
+    <Version>0.7.39</Version>
+    <PackageVersion>0.7.39</PackageVersion>
 
     <Description>
 Nalix.Storage is a .NET library for efficient file storage and streaming. It supports multiple storage formats, local storage handling, MIME type detection, and configurable file storage providers. The library provides interfaces for both synchronous and asynchronous file management.
