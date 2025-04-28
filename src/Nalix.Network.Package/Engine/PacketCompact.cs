@@ -1,6 +1,5 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
-using Nalix.Extensions.Primitives;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
@@ -27,15 +26,19 @@ public static class PacketCompact
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
 
-        if (packet.Flags.HasFlag(PacketFlags.Encrypted))
+        if ((packet.Flags & PacketFlags.Encrypted) != 0)
             throw new PackageException("Payload is encrypted and cannot be compressed.");
 
         try
         {
+            System.Memory<byte> bytes = CompressLZ4(packet.Payload.Span);
+
+            if (bytes.Length >= packet.Payload.Length) return packet;
+
             return new Packet(
                 packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-                packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
-                packet.Priority, packet.Number, CompressLZ4(packet.Payload.Span), true);
+                packet.Type, packet.Flags | PacketFlags.Compressed,
+                packet.Priority, packet.Number, bytes, true);
         }
         catch (System.Exception ex)
         {
@@ -59,15 +62,15 @@ public static class PacketCompact
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot decompress an empty payload.");
 
-        if (!packet.Flags.HasFlag(PacketFlags.Compressed))
+        if (!((packet.Flags & PacketFlags.Compressed) != 0))
             throw new PackageException("Payload is not marked as compressed.");
 
         try
         {
             return new Packet(
                 packet.Id, packet.Checksum, packet.Timestamp, packet.Code,
-                packet.Type, packet.Flags.AddFlag(PacketFlags.Compressed),
-                packet.Priority, packet.Number, DecompressLZ4(packet.Payload.Span), true);
+                packet.Type, packet.Flags & ~PacketFlags.Compressed, packet.Priority,
+                packet.Number, DecompressLZ4(packet.Payload.Span), true);
         }
         catch (System.Exception ex)
         {

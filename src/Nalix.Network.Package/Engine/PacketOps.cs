@@ -64,19 +64,22 @@ public static class PacketOps
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void CheckEncryption(in IPacket packet, byte[] key, bool isEncryption)
     {
-        if (key.Length % 4 != 0)
-            throw new PackageException(
-                isEncryption ? "Encryption" : "Decryption" + " key must be a 256-bit (32-byte) array.");
+        if (key.Length != 32)
+            throw new PackageException($"{(isEncryption ? "Encryption" : "Decryption")} key must be a 256-bit (32-byte) array.");
 
         if (packet.Payload.IsEmpty)
             throw new PackageException("Payload is empty and cannot be processed.");
 
-        switch (isEncryption)
-        {
-            case true when packet.Flags.HasFlag(PacketFlags.Encrypted):
-                throw new PackageException("Payload is already encrypted.");
+        bool encrypted = (packet.Flags & PacketFlags.Encrypted) != 0;
 
-            case false when !packet.Flags.HasFlag(PacketFlags.Encrypted):
+        if (isEncryption)
+        {
+            if (encrypted)
+                throw new PackageException("Payload is already encrypted.");
+        }
+        else
+        {
+            if (!encrypted)
                 throw new PackageException("Payload is not encrypted and cannot be decrypted.");
         }
     }

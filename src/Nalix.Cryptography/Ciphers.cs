@@ -155,12 +155,10 @@ public static class Ciphers
         EncryptionType algorithm = EncryptionType.XTEA)
     {
         if (key == null)
-            throw new ArgumentNullException(nameof(key),
-                "Decryption key cannot be null. Please provide a valid key.");
+            throw new ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
 
         if (data.IsEmpty)
-            throw new ArgumentException(
-                "Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
+            throw new ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
 
         try
         {
