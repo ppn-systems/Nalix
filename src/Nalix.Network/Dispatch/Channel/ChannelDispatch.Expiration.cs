@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace Nalix.Network.Dispatch.Queue;
+namespace Nalix.Network.Dispatch.Channel;
 
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.

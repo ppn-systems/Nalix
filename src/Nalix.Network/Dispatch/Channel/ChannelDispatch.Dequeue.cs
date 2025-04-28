@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Queue;
+namespace Nalix.Network.Dispatch.Channel;
 
 public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {
@@ -37,9 +37,10 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         while (this.TryDequeue(out TPacket? packet))
         {
             if (predicate(packet))
+            {
+                result.Add(packet);
                 break;
-
-            result.Add(packet);
+            }
         }
 
         return result;

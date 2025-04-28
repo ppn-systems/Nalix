@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Network.Dispatch.Queue;
+namespace Nalix.Network.Dispatch.Channel;
 
 public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {

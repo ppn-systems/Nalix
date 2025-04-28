@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Channels;
 
-namespace Nalix.Network.Dispatch.Queue;
+namespace Nalix.Network.Dispatch.Channel;
 
 /// <summary>
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
@@ -60,19 +60,21 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         _options = null!;
         _queueTimer = null;
 
-        _expiredCounts = [];
-        _rejectedCounts = [];
-        _enqueuedCounts = [];
-        _dequeuedCounts = [];
-
-        _priorityCounts = new int[_priorityCount]; // Add this missing array
+        // Initialize priority count based on the PacketPriority enum
         _priorityCount = Enum.GetValues<PacketPriority>().Length;
+
+        // Initialize arrays based on priority count
         _priorityChannels = new Channel<TPacket>[_priorityCount];
+        _priorityCounts = new int[_priorityCount];
+        _expiredCounts = new int[_priorityCount];
+        _rejectedCounts = new int[_priorityCount];
+        _enqueuedCounts = new int[_priorityCount];
+        _dequeuedCounts = new int[_priorityCount];
 
         // Create channels for each priority level
         for (int i = 0; i < _priorityCount; i++)
         {
-            _priorityChannels[i] = Channel.CreateUnbounded<TPacket>(
+            _priorityChannels[i] = System.Threading.Channels.Channel.CreateUnbounded<TPacket>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = false,

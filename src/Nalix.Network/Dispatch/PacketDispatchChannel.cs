@@ -1,3 +1,5 @@
+using Nalix.Network.Dispatch.Channel;
+
 namespace Nalix.Network.Dispatch;
 
 /// <summary>
@@ -40,7 +42,7 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Fields
 
     // Queue for storing packet handling tasks
-    private readonly Queue.ChannelDispatch<TPacket> _dispatchQueue;
+    private readonly ChannelDispatch<TPacket> _dispatchQueue;
 
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
@@ -100,7 +102,7 @@ public sealed class PacketDispatchChannel<TPacket>
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
-        _dispatchQueue = new Queue.ChannelDispatch<TPacket>(Options.QueueOptions);
+        _dispatchQueue = new ChannelDispatch<TPacket>(Options.QueueOptions);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");

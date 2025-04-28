@@ -55,7 +55,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, System.Memory<byte> payload)
-        : this(id, code, PacketType.None, PacketFlags.None, PacketPriority.None, payload)
+        : this(id, code, PacketType.None, PacketFlags.None, PacketPriority.Low, payload)
     {
     }
 

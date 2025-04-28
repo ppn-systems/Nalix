@@ -1,9 +1,10 @@
 using Nalix.Common.Package.Enums;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Network.Dispatch.Queue;
+namespace Nalix.Network.Dispatch.Channel;
 
 public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
 {
@@ -101,6 +102,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     public bool TryRequeue(TPacket packet, PacketPriority? priority = null)
     {
         int priorityIndex = (int)(priority ?? packet.Priority);
+
+        if (priorityIndex < 0 || priorityIndex >= _priorityChannels.Length)
+            throw new ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
 
         if (_options.MaxCapacity > 0 && _totalCount >= _options.MaxCapacity)
             return false;

@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging.Tests", "Nali
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Shared.Tests", "Nalix.Shared.Tests\Nalix.Shared.Tests.csproj", "{287268AF-2EE2-4224-996A-95B05C14DEB8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Package.Tests", "Nalix.Network.Package.Tests\Nalix.Network.Package.Tests.csproj", "{F72FCD4B-A9BA-426F-B7A3-50DA3BF2E578}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Tests", "Nalix.Network.Tests\Nalix.Network.Tests.csproj", "{D5480087-95A5-47B9-905D-B9F7FE2B7212}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +29,10 @@ Global
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F72FCD4B-A9BA-426F-B7A3-50DA3BF2E578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F72FCD4B-A9BA-426F-B7A3-50DA3BF2E578}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F72FCD4B-A9BA-426F-B7A3-50DA3BF2E578}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F72FCD4B-A9BA-426F-B7A3-50DA3BF2E578}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

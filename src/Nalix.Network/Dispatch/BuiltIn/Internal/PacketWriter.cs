@@ -56,7 +56,7 @@ internal static class PacketWriter
     /// <param name="payload">Raw payload.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> Assemble(PacketCode code, PacketType type, ReadOnlySpan<byte> payload)
-        => Assemble(code, type, PacketFlags.None, PacketPriority.None, payload);
+        => Assemble(code, type, PacketFlags.None, PacketPriority.Low, payload);
 
     internal static Memory<byte> Assemble(
         PacketCode code, PacketType type, PacketFlags flag, PacketPriority priority, ReadOnlySpan<byte> payload)
