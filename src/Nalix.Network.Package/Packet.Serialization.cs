@@ -42,5 +42,5 @@ public readonly partial struct Packet : IPacketDeserializer<Packet>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static Packet IPacketDeserializer<Packet>.Deserialize(System.ReadOnlySpan<byte> buffer)
-        => PacketSerializer.ReadPacketFast(buffer);
+        => PacketSerializer.ReadPacket(buffer);
 }

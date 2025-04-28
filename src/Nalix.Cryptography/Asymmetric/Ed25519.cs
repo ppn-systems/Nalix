@@ -44,7 +44,7 @@ public sealed class Ed25519
         // Compute the hash of the private key and split into two halves
         var h = ComputeHash(privateKey);
         var a = ClampScalar(h.AsSpan(0, 32));
-        ReadOnlySpan<byte> prefix = h.AsSpan(32, 32);
+        ReadOnlySpan<byte> prefix = new(h, 32, h.Length - 32);
 
         // r = Hashing(prefix || message) mod L, using Span overload
         var r = HashToScalar(prefix, message);

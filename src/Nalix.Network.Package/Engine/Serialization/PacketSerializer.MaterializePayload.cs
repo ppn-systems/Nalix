@@ -8,26 +8,25 @@ namespace Nalix.Network.Package.Engine.Serialization;
 public static partial class PacketSerializer
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void MaterializePayloadFast(
+    private static void MaterializePayload(
         ReadOnlySpan<byte> data, int payloadLength, out Memory<byte> payload)
     {
-        if (payloadLength > 0)
+        if (payloadLength <= 0)
         {
-            if (data is { IsEmpty: false } &&
-                MemoryMarshal.TryGetArray(data[..payloadLength].ToArray(), out ArraySegment<byte> segment))
-            {
-                payload = segment;
-            }
-            else
-            {
-                byte[] payloadArray = new byte[payloadLength];
-                data[..payloadLength].CopyTo(payloadArray);
-                payload = payloadArray;
-            }
+            payload = Memory<byte>.Empty;
+            return;
+        }
+
+        if (data is { IsEmpty: false } &&
+            MemoryMarshal.TryGetArray(data[..payloadLength].ToArray(), out ArraySegment<byte> segment))
+        {
+            payload = segment;
         }
         else
         {
-            payload = Memory<byte>.Empty;
+            byte[] payloadArray = new byte[payloadLength];
+            data[..payloadLength].CopyTo(payloadArray);
+            payload = payloadArray;
         }
     }
 
@@ -35,7 +34,7 @@ public static partial class PacketSerializer
     /// Efficiently materializes a payload using unsafe code when appropriate.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void MaterializePayloadFastUnsafe(
+    private static unsafe void MaterializePayloadUnsafe(
         ReadOnlySpan<byte> data, int payloadSize, out Memory<byte> payload)
     {
         // For empty payloads, avoid allocation
@@ -57,8 +56,8 @@ public static partial class PacketSerializer
                 Buffer.MemoryCopy(source, destination, payloadSize, payloadSize);
             }
 
-            payload = buffer.AsMemory(0, payloadSize);
             // Note: The caller is responsible for returning this buffer to the pool
+            payload = buffer.AsMemory(0, payloadSize);
         }
         else
         {

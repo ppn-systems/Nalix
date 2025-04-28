@@ -18,7 +18,7 @@ public static partial class PacketSerializer
         if (totalSize <= PacketConstants.StackAllocLimit)
         {
             Span<byte> stackBuffer = stackalloc byte[totalSize];
-            WritePacketFast(stackBuffer, in packet);
+            WritePacket(stackBuffer, in packet);
             return stackBuffer.ToArray();
         }
         else
@@ -26,7 +26,7 @@ public static partial class PacketSerializer
             byte[] rentedArray = PacketConstants.SharedBytePool.Rent(totalSize);
             try
             {
-                WritePacketFast(rentedArray.AsSpan(0, totalSize), in packet);
+                WritePacket(rentedArray.AsSpan(0, totalSize), in packet);
                 return rentedArray.AsSpan(0, totalSize).ToArray();
             }
             finally
@@ -56,7 +56,7 @@ public static partial class PacketSerializer
 
         try
         {
-            WritePacketFast(destination[..totalSize], in packet);
+            WritePacket(destination[..totalSize], in packet);
             bytesWritten = totalSize;
             return true;
         }

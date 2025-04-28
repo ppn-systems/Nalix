@@ -27,7 +27,7 @@ public static partial class PacketSerializer
     /// <returns>The Number of bytes written to the buffer.</returns>
     /// <exception cref="PackageException">Thrown if the buffer size is too small for the packet.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int WritePacketFast(Span<byte> buffer, in Packet packet)
+    public static int WritePacket(Span<byte> buffer, in Packet packet)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
@@ -99,7 +99,7 @@ public static partial class PacketSerializer
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A value task representing the asynchronous write operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ValueTask<int> WritePacketFastAsync(
+    public static ValueTask<int> WritePacketAsync(
         Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
     {
         // For small payloads, perform synchronously to avoid task overhead
@@ -107,7 +107,7 @@ public static partial class PacketSerializer
         {
             try
             {
-                return new ValueTask<int>(WritePacketFast(buffer.Span, packet));
+                return new ValueTask<int>(WritePacket(buffer.Span, packet));
             }
             catch (Exception ex) when (ex is not OperationCanceledException && cancellationToken.IsCancellationRequested)
             {
@@ -120,7 +120,7 @@ public static partial class PacketSerializer
         }
 
         // For larger payloads, use Task to prevent blocking
-        return new ValueTask<int>(Task.Run(() => WritePacketFast(buffer.Span, packet), cancellationToken));
+        return new ValueTask<int>(Task.Run(() => WritePacket(buffer.Span, packet), cancellationToken));
     }
 
     /// <summary>
@@ -142,7 +142,7 @@ public static partial class PacketSerializer
 
         try
         {
-            int bytesWritten = WritePacketFast(buffer.AsSpan(0, totalSize), packet);
+            int bytesWritten = WritePacket(buffer.AsSpan(0, totalSize), packet);
 
             await stream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesWritten), cancellationToken);
             await stream.FlushAsync(cancellationToken);

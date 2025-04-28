@@ -12,7 +12,7 @@ public static partial class PacketSerializer
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlySpan<byte> data) => ReadPacketFast(data);
+    public static Packet Deserialize(ReadOnlySpan<byte> data) => ReadPacket(data);
 
     /// <summary>
     /// Deserializes the specified ReadOnlyMemory to a packet.
@@ -26,7 +26,7 @@ public static partial class PacketSerializer
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(byte[] data) => Deserialize((ReadOnlySpan<byte>)data);
+    public static Packet Deserialize(byte[] data) => Deserialize(new ReadOnlySpan<byte>(data));
 
     /// <summary>
     /// Attempts to deserialize the specified source span to a packet.
@@ -47,7 +47,7 @@ public static partial class PacketSerializer
             if (length < PacketSize.Header || length > source.Length)
                 return false;
 
-            packet = ReadPacketFast(source[..length]);
+            packet = ReadPacket(source[..length]);
             return true;
         }
         catch

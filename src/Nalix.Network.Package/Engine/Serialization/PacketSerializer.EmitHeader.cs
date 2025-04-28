@@ -13,12 +13,14 @@ public static partial class PacketSerializer
         ushort id, ulong timestamp,
         uint checksum, ushort code, in Packet packet)
     {
+        // Writing the first part of the header in one block (could optimize by grouping)
         MemoryMarshal.Write(buffer, in totalSize);
         MemoryMarshal.Write(buffer[PacketOffset.Id..], in id);
         MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
         MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
         MemoryMarshal.Write(buffer[PacketOffset.Code..], in code);
 
+        // Writing the packet-specific fields
         buffer[PacketOffset.Number] = packet.Number;
         buffer[PacketOffset.Type] = (byte)packet.Type;
         buffer[PacketOffset.Flags] = (byte)packet.Flags;

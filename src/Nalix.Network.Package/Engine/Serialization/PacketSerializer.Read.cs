@@ -19,7 +19,7 @@ public static partial class PacketSerializer
     /// <returns>The deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Packet ReadPacketFast(ReadOnlySpan<byte> data)
+    public static unsafe Packet ReadPacket(ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException(
@@ -49,7 +49,7 @@ public static partial class PacketSerializer
                 byte priority = pHeader->Priority;
 
                 // Create payload efficiently
-                MaterializePayloadFastUnsafe(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
+                MaterializePayloadUnsafe(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
                 return new Packet(id, checksum, timestamp, code, number, type, flags, priority, payload);
             }
@@ -92,7 +92,7 @@ public static partial class PacketSerializer
             if (payloadSize <= 0)
             {
                 // No payload, just return a packet constructed from the header
-                return ReadPacketFast(headerBuffer.AsSpan(0, PacketSize.Header));
+                return ReadPacket(headerBuffer.AsSpan(0, PacketSize.Header));
             }
 
             // For payloads, optimize based on size
@@ -114,7 +114,7 @@ public static partial class PacketSerializer
                     if (bytesRead < payloadSize)
                         throw new PackageException($"Failed to read the full packet payload. Got {bytesRead} bytes instead of {payloadSize}.");
 
-                    return ReadPacketFast(fullBuffer.AsSpan(0, length));
+                    return ReadPacket(fullBuffer.AsSpan(0, length));
                 }
                 finally
                 {
@@ -139,7 +139,7 @@ public static partial class PacketSerializer
                 if (bytesRead < payloadSize)
                     throw new PackageException($"Failed to read the full packet payload. Got {bytesRead} bytes instead of {payloadSize}.");
 
-                return ReadPacketFast(fullBuffer);
+                return ReadPacket(fullBuffer);
             }
         }
         catch (Exception ex) when (ex is not PackageException and not OperationCanceledException)
