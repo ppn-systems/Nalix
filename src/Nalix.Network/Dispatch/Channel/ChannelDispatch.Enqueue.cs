@@ -47,6 +47,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <param name="packets">The collection of packets to enqueue.</param>
     /// <returns>The total number of packets successfully enqueued.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Enqueue(IEnumerable<TPacket> packets)
     {
         int added = 0;
@@ -64,8 +65,30 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <returns>
     /// The next packet if available, or <c>null</c> if the queue is empty.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TPacket? PeekFirst(PacketPriority priority)
         => _priorityChannels[(int)priority].Reader.TryPeek(out TPacket? packet) ? packet : default;
+
+    /// <summary>
+    /// Attempts to dequeue a packet from the specified priority queue.
+    /// </summary>
+    /// <param name="priority">The priority level of the queue to dequeue from.</param>
+    /// <param name="packet">The dequeued packet, if successful.</param>
+    /// <returns>
+    /// <c>true</c> if a packet was dequeued successfully;
+    /// <c>false</c> if the queue is empty or the operation failed.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryDequeue(PacketPriority priority, out TPacket? packet)
+    {
+        packet = default;
+
+        // Check if priority is valid
+        if (priority < 0 || (int)priority >= _priorityCount)
+            throw new ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
+
+        return _priorityChannels[(int)priority].Reader.TryRead(out packet);
+    }
 
     /// <summary>
     /// Attempts to enqueue a single packet with multiple retry attempts and an incremental backoff delay.
@@ -76,6 +99,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if the packet was eventually enqueued within the allowed retries;
     /// <c>false</c> otherwise.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryEnqueue(TPacket packet, int retries = 3)
     {
         for (int i = 0; i <= retries; i++)
@@ -99,6 +123,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if the packet was successfully re-enqueued;
     /// <c>false</c> if the queue is full.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRequeue(TPacket packet, PacketPriority? priority = null)
     {
         int priorityIndex = (int)(priority ?? packet.Priority);

@@ -21,7 +21,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <remarks>
     /// This method will clear all packets across all priority queues. It also resets the total packet count to zero.
     /// </remarks>
-    public void FlushAll() => ClearInternal();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Flush() => ClearInternal();
 
     /// <summary>
     /// Removes all packets from the specified priority queue.
@@ -33,7 +34,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// It also updates the total count of packets and resets the priority count for that level.
     /// If metrics are enabled, it will clear the associated statistics for the priority level.
     /// </remarks>
-    public int FlushPriority(PacketPriority priority)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Flush(PacketPriority priority)
     {
         int index = (int)priority;
         int removed = ChannelDispatch<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
@@ -56,6 +58,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// This method checks each packet in the queue and removes those that have expired based on the configured timeout.
     /// It will asynchronously process the removal of expired packets from all queues.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Task<int> SweepExpiredAsync() => PruneExpiredInternalAsync();
 
     /// <summary>
@@ -68,6 +71,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// This method runs a background task that periodically checks for expired packets and removes them.
     /// The task will run until the cancellation token is triggered.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Task RunExpirationCleanerAsync(TimeSpan interval, CancellationToken cancellationToken = default)
         => Task.Run(async () =>
         {
