@@ -28,6 +28,7 @@ public sealed partial class Connection : IConnection
     private System.Byte[] _secret;
     private System.Int32 _closeSignaled;
 
+    private readonly ConnectionEventArgs _evtArgs;
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
     private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
     private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
@@ -48,9 +49,10 @@ public sealed partial class Connection : IConnection
         _disposed = false;
         _secret = [];
 
+        _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketChannel(socket);
-        _cstream.Cache.SetCallback(OnProcessEventBridge, this, new ConnectionEventArgs(this));
-        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, new ConnectionEventArgs(this));
+        _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
+        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Identifier.NewId(IdentifierType.Session);
