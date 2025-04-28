@@ -5,6 +5,7 @@ using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Dispatch.BuiltIn;
 using Nalix.Network.Dispatch.BuiltIn.Internal;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -33,6 +34,26 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         this.WithHandler<KeepAliveController<TPacket>>();
         this.WithHandler(() => new ModeController<TPacket>(_logger));
 
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the packet factory function that will be used to create instances of packets.
+    /// </summary>
+    /// <param name="packetFactory">
+    /// The factory function responsible for creating instances of packets.
+    /// It must not be <c>null</c>.
+    /// </param>
+    /// <returns>
+    /// The current instance of <see cref="PacketDispatchOptions{TPacket}"/> to allow fluent chaining.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if the <paramref name="packetFactory"/> is <c>null</c>.
+    /// </exception>
+    public PacketDispatchOptions<TPacket> WithPacketFactory(
+        Func<ushort, ushort, byte, byte, byte, TPacket> packetFactory)
+    {
+        _packetFactory = packetFactory;
         return this;
     }
 
@@ -185,7 +206,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// }
     /// </code>
     /// </example>
-    public bool TryResolveHandler(ushort id,
+    public bool TryResolveHandler(
+        ushort id,
         [NotNullWhen(true)] out System.Func<TPacket, IConnection, Task>? handler)
     {
         if (_handlers.TryGetValue(id, out handler))

@@ -6,7 +6,7 @@ namespace Nalix.Network.Dispatch.BuiltIn.Internal;
 /// <summary>
 /// Provides extension methods for packet operations.
 /// </summary>
-internal static class Extensions
+internal static class PacketExtensions
 {
     /// <summary>
     /// Sends a string packet to the client.

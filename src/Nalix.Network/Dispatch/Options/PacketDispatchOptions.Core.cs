@@ -34,7 +34,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     #region Fields
 
     private ILogger? _logger;
-    private readonly PacketRateLimitGuard _rateLimiter = new();
+    private readonly PacketRateLimitGuard _rateLimiter;
+    private System.Func<ushort, ushort, byte, byte, byte, TPacket>? _packetFactory; // Delegate for creating packets
 
     /// <summary>
     /// Gets or sets the callback used to report the execution time of packet handlers.
@@ -82,6 +83,15 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     public DispatchQueueConfig QueueOptions { get; set; } = new DispatchQueueConfig();
 
+    /// <summary>
+    /// Gets or sets the factory function for creating new instances of packets.
+    /// </summary>
+    public System.Func<ushort, ushort, byte, byte, byte, TPacket> PacketFactory
+    {
+        get => _packetFactory ?? throw new System.InvalidOperationException("PacketFactory has not been set.");
+        set => _packetFactory = value ?? throw new System.ArgumentNullException(nameof(value));
+    }
+
     #endregion Properties
 
     #region Constructors
@@ -92,9 +102,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// This constructor sets up the packet handler map and allows subsequent fluent configuration.
     /// </remarks>
-    public PacketDispatchOptions()
-    {
-    }
+    public PacketDispatchOptions() => _rateLimiter = new PacketRateLimitGuard();
 
     #endregion Constructors
 }
