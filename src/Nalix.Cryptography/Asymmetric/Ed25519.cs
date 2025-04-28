@@ -42,16 +42,16 @@ public sealed class Ed25519
             throw new ArgumentException("Private key must be 32 bytes long.", nameof(privateKey));
 
         // Compute the hash of the private key and split into two halves
-        var h = ComputeHash(privateKey);
-        var a = ClampScalar(h.AsSpan(0, 32));
+        byte[] h = ComputeHash(privateKey);
+        BigInteger a = ClampScalar(h.AsSpan(0, 32));
         ReadOnlySpan<byte> prefix = new(h, 32, h.Length - 32);
 
         // r = Hashing(prefix || message) mod L, using Span overload
-        var r = HashToScalar(prefix, message);
-        var mul = ScalarMul(B, r);
+        BigInteger r = HashToScalar(prefix, message);
+        Point mul = ScalarMul(B, r);
 
         // Compute public key A = ScalarMul(B, a) and encode it
-        var mul2 = ScalarMul(B, a);
+        Point mul2 = ScalarMul(B, a);
         Span<byte> aEncoded = stackalloc byte[PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
@@ -62,7 +62,7 @@ public sealed class Ed25519
         message.CopyTo(data, 64);
 
         // s = (r + Hashing(data) * a) mod L
-        var s = (r + HashToScalar(data.AsSpan())) * a;
+        BigInteger s = (r + HashToScalar(data.AsSpan())) * a;
         s %= L; // Using Mod extension below
 
         // Create signature: R (32 bytes) || s (32 bytes)
@@ -109,9 +109,9 @@ public sealed class Ed25519
             throw new ArgumentException("Public key must be 32 bytes long.", nameof(publicKey));
 
         // Decode R, A, and s from the signature and publicKey
-        var r = DecodePoint(signature.AsSpan(0, 32));
-        var a = DecodePoint(publicKey);
-        var s = DecodeScalar(signature.AsSpan(32, 32));
+        Point r = DecodePoint(signature.AsSpan(0, 32));
+        Point a = DecodePoint(publicKey);
+        BigInteger s = DecodeScalar(signature.AsSpan(32, 32));
 
         // Build data: R (32 bytes) || publicKey (32 bytes) || message
         byte[] data = new byte[64 + message.Length];
@@ -120,10 +120,10 @@ public sealed class Ed25519
         message.CopyTo(data, 64);
 
         // Compute hash and perform verification
-        var h = HashToScalar(data.AsSpan());
-        var sB = ScalarMul(B, s);
-        var hA = ScalarMul(a, h);
-        var rplusH = Edwards(r, hA);
+        BigInteger h = HashToScalar(data.AsSpan());
+        Point sB = ScalarMul(B, s);
+        Point hA = ScalarMul(a, h);
+        Point rplusH = Edwards(r, hA);
 
         return PointEquals(sB, rplusH);
     }
@@ -157,20 +157,20 @@ public sealed class Ed25519
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Point Edwards(Point p, Point q)
     {
-        var a = p.Y.ModAdd(p.X, Q);
-        var b = q.Y.ModAdd(q.X, Q);
-        var c = p.Y.ModSub(p.X, Q);
-        var d = q.Y.ModSub(q.X, Q);
-        var e = a.MultiplyMod(b, Q);
-        var f = c.MultiplyMod(d, Q);
+        BigInteger a = p.Y.ModAdd(p.X, Q);
+        BigInteger b = q.Y.ModAdd(q.X, Q);
+        BigInteger c = p.Y.ModSub(p.X, Q);
+        BigInteger d = q.Y.ModSub(q.X, Q);
+        BigInteger e = a.MultiplyMod(b, Q);
+        BigInteger f = c.MultiplyMod(d, Q);
 
         // Precompute factor for x3 and y3
-        var factor = D.MultiplyMod(e.MultiplyMod(f, Q), Q);
-        var inv1 = Inv(factor.ModAdd(BigInteger.One, Q));
-        var inv2 = Inv(BigInteger.One.ModSub(factor, Q));
+        BigInteger factor = D.MultiplyMod(e.MultiplyMod(f, Q), Q);
+        BigInteger inv1 = Inv(factor.ModAdd(BigInteger.One, Q));
+        BigInteger inv2 = Inv(BigInteger.One.ModSub(factor, Q));
 
-        var x3 = e.ModSub(f, Q).MultiplyMod(inv1, Q);
-        var y3 = e.ModAdd(f, Q).MultiplyMod(inv2, Q);
+        BigInteger x3 = e.ModSub(f, Q).MultiplyMod(inv1, Q);
+        BigInteger y3 = e.ModAdd(f, Q).MultiplyMod(inv2, Q);
         return new Point(x3, y3);
     }
 
@@ -256,12 +256,12 @@ public sealed class Ed25519
     private static Point DecodePoint(ReadOnlySpan<byte> data)
     {
         // Decode y coordinate (32 bytes big-endian)
-        var y = new BigInteger(data, isUnsigned: true, isBigEndian: true);
-        var x = RecoverX(y);
+        BigInteger y = new(data, isUnsigned: true, isBigEndian: true);
+        BigInteger x = RecoverX(y);
         // Use the high bit of the last byte to recover x parity
         bool xParity = (data[^1] & 0x80) != 0;
-        if (x.IsEven != !xParity)
-            x = Q - x;
+        if (x.IsEven != !xParity) x = Q - x;
+
         return new Point(x, y);
     }
 
@@ -269,10 +269,11 @@ public sealed class Ed25519
     private static BigInteger RecoverX(BigInteger y)
     {
         // Recover x using curve equation: x^2 = (y^2 - 1) / (D*y^2 + 1)
-        var numerator = (y * y - BigInteger.One).Mod(Q);
-        var denominator = (D * y * y + BigInteger.One).Mod(Q);
-        var xx = numerator * Inv(denominator) % Q;
-        var x = BigInteger.ModPow(xx, (Q + 3) / 8, Q);
+        BigInteger numerator = (y * y - BigInteger.One).Mod(Q);
+        BigInteger denominator = (D * y * y + BigInteger.One).Mod(Q);
+        BigInteger xx = numerator * Inv(denominator) % Q;
+        BigInteger x = BigInteger.ModPow(xx, (Q + 3) / 8, Q);
+
         return x * x % Q == xx ? x : x * I % Q;
     }
 
