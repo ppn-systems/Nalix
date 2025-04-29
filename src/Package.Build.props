@@ -9,8 +9,8 @@
       Nalix, .NET 9, library, TCP, networking, security, performance
     </PackageTags>
 
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\Nalix.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly Condition="'$(Configuration)' == 'Release'">true</SignAssembly>
+    <AssemblyOriginatorKeyFile Condition="'$(Configuration)' == 'Release'">..\Nalix.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup Label="Package Properties">
