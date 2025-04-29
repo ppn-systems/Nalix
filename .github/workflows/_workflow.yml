@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+  issues: write  # Only necessary if your workflow creates or modifies issues.
+  pull-requests: write  # Only necessary if your workflow modifies pull requests.
+  packages: read  # For accessing and downloading packages, if applicable.
+  actions: read  # For reading actions used in the workflow.
+  security-events: write  # If your workflow interacts with security events.
+
 jobs:
   build-library:
-    uses: ./workflows/_build.yml 
+    uses: ./.github/workflows/_build.yml@master
     with:
       project:  |
         src/Nalix/Nalix.csproj

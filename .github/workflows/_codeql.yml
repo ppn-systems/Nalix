@@ -34,18 +34,21 @@ jobs:
         languages: csharp
         build-mode: manual
 
+    - name: Create signing key file
+      run: echo "${{ secrets.SIGNING_KEY }}" > ./Nalix.snk  # Updated to use a simpler path
+
     - name: Restore & Build src/
       run: |
-        dotnet restore src/
-        dotnet build src/ --configuration Release
+        dotnet restore src/Nalix.sln  # Assuming you have a solution file
+        dotnet build src/Nalix.sln --configuration Release
 
     - name: Restore & Build tests/
       run: |
-        dotnet restore tests/
-        dotnet build tests/ --configuration Release
+        dotnet restore tests/Nalix.Tests.sln  # Assuming you have a solution file for tests
+        dotnet build tests/Nalix.Tests.sln --configuration Release
 
     - name: Run xUnit Tests (Optional but good for CI)
-      run: dotnet test tests/ --configuration Release --no-build --verbosity normal
+      run: dotnet test tests/Nalix.Tests.sln --configuration Release --no-build --verbosity normal
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

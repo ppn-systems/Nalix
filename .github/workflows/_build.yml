@@ -42,24 +42,24 @@ jobs:
             ${{ runner.os }}-nuget
 
       - name: Restore dependencies
-        run: dotnet restore ${{ inputs.project }}
+        run: dotnet restore "$PROJECT"
 
       - name: Restore test dependencies
-        run: dotnet restore ${{ inputs.test }}
+        run: dotnet restore "$TEST"
 
       - name: Build project
-        run: dotnet build ${{ inputs.project }} --configuration Release --no-restore
+        run: dotnet build "$PROJECT" --configuration Release --no-restore
 
       - name: Run Xunit tests
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: dotnet test ${{ inputs.test }} --configuration Release --no-restore --verbosity normal
+          command: dotnet test "$TEST" --configuration Release --no-restore --verbosity normal
 
       - name: Publish build output
         if: ${{ inputs.deploy }}
-        run: dotnet publish ${{ inputs.project }} --configuration Release --no-restore --no-build --output ./publish
+        run: dotnet publish "$PROJECT" --configuration Release --no-restore --no-build --output ./publish
 
       - name: Upload publish artifact
         if: ${{ inputs.deploy }}
