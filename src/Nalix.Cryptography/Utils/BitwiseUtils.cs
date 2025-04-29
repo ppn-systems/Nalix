@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Nalix.Cryptography.Utilities;
+namespace Nalix.Cryptography.Utils;
 
 /// <summary>
 /// High-performance bitwise utilities for cryptographic operations.

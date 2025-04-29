@@ -1,6 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
-using Nalix.Cryptography.Utilities;
+using Nalix.Cryptography.Utils;
 using System;
 using System.Runtime.CompilerServices;
 

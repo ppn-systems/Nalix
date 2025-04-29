@@ -6,7 +6,7 @@ namespace Nalix.Network.Package.Engine.Internal;
 /// Provides memory allocation utilities to optimize memory usage for different packet sizes.
 /// This class determines the appropriate memory allocation strategy (stack, heap, or pool) based on the size of the payload.
 /// </summary>
-public static class MemoryAllocator
+internal static class MemoryAllocator
 {
     /// <summary>
     /// Allocates memory for the given payload based on its size, choosing between stack, heap, or pooled memory.
@@ -15,7 +15,7 @@ public static class MemoryAllocator
     /// <returns>A tuple containing the allocated memory and a flag indicating whether the memory is pooled.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Memory<byte> Allocate(System.Memory<byte> payload)
+    internal static System.Memory<byte> Allocate(System.Memory<byte> payload)
         => Allocate(payload.Span);
 
     [System.Runtime.CompilerServices.MethodImpl(

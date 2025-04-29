@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Enums;
-using Nalix.Cryptography.Utilities;
+using Nalix.Cryptography.Utils;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;

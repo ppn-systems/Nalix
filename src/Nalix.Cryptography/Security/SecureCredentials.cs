@@ -1,5 +1,5 @@
 using Nalix.Common.Cryptography.Hashing;
-using Nalix.Cryptography.Utilities;
+using Nalix.Cryptography.Utils;
 using Nalix.Randomization;
 using System;
 

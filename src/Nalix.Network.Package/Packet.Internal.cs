@@ -20,8 +20,7 @@ public readonly partial struct Packet
         PacketPriority priority,
         byte number,
         System.Memory<byte> payload)
-        : this(id, 0, Clock.UnixTicksNow(),
-              code, type, flags, priority, number, payload, true)
+        : this(id, 0, Clock.UnixTicksNow(), code, type, flags, priority, number, payload, true)
     {
     }
 
