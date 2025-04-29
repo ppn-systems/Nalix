@@ -1,70 +1,68 @@
 name: _Template Build
+
 on:
   workflow_call:
     inputs:
       project:
-        description: 'The *csproj project path passed from the caller workflow'
+        description: 'The path to the main .csproj file'
         required: true
         type: string
       deploy:
-        description: 'enable publish code to enviroment'
+        description: 'Set to true to publish the build output'
         required: true
         type: boolean
         default: false
       test:
-        description: 'The test path passed from the caller workflow'
+        description: 'The path to the test project or .sln'
         required: true
         type: string
+
 jobs:
   build:
-    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macOS-latest ]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3.1.0
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3.0.2
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 9.0
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Cache dependencies
+      - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-nuget  
+            ${{ runner.os }}-nuget
 
-      - name: Install dependencies
-        working-directory: ${{ inputs.project }}
-        run: dotnet restore
+      - name: Restore dependencies
+        run: dotnet restore ${{ inputs.project }}
 
-      - name: Install dependencies for testing
-        working-directory: ${{ inputs.test }}
-        run: dotnet restore
+      - name: Restore test dependencies
+        run: dotnet restore ${{ inputs.test }}
 
-      - name: Build
-        working-directory: ${{ inputs.project }}
-        run: dotnet build --configuration Release --no-restore
+      - name: Build project
+        run: dotnet build ${{ inputs.project }} --configuration Release --no-restore
 
-      - name: Test
+      - name: Run Xunit tests
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 20
+          timeout_minutes: 15
           max_attempts: 3
-          command: dotnet test ${{ inputs.test }} --no-restore --verbosity normal
+          command: dotnet test ${{ inputs.test }} --configuration Release --no-restore --verbosity normal
 
-      - name: Publish
-        working-directory: ${{ inputs.project }}
-        if: ${{ inputs.deploy == true }}
-        run: dotnet publish --configuration Release --no-restore --no-build --output ./publish
-      
-      - name: Upload Artifact
-        if: ${{ inputs.deploy == true }}
+      - name: Publish build output
+        if: ${{ inputs.deploy }}
+        run: dotnet publish ${{ inputs.project }} --configuration Release --no-restore --no-build --output ./publish
+
+      - name: Upload publish artifact
+        if: ${{ inputs.deploy }}
         uses: actions/upload-artifact@v4
         with:
           name: publish

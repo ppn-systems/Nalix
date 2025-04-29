@@ -1,35 +1,24 @@
-name: _Template Workflow
+name: Main Build Pipeline
+
 on:
-  workflow_call:
-    inputs:
-      path:
-        description: 'The path passed from the caller workflow'
-        required: true
-        type: string
-      project:
-        description: 'The project passed from the caller workflow'
-        required: true
-        type: string
-      test:
-        description: 'The test path passed from the caller workflow'
-        required: true
-        type: string
-      deploy:
-        description: 'enable publish code to enviroment'
-        required: true
-        type: boolean
-        default: false
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
 jobs:
-  build:
-    name: Build & Test
-    uses: ./.github/workflows/_build.yml
+  build-library:
+    uses: ./workflows/_build.yml 
     with:
-      project: ./${{ inputs.path }}/${{ inputs.project }}
-      deploy: ${{ inputs.deploy }}
-      test: ${{ inputs.test }}
-  quality:
-    name: CodeQL Analysis
-    needs: [ build ]
-    uses: ./.github/workflows/_codeql.yml
-    with:
-      path: $GITHUB_WORKSPACE/${{ inputs.path }}
+      project:  |
+        src/Nalix/Nalix.csproj
+        src/Nalix.Common/Nalix.Common.csproj
+        src/Nalix.Cryptography/Nalix.Cryptography.csproj
+        src/Nalix.Logging/Nalix.Logging.csproj
+        src/Nalix.Network/Nalix.Network.csproj
+        src/Nalix.Network.Package/Nalix.Network.Package.csproj
+        src/Nalix.Network.Web/Nalix.Network.Web.csproj
+        src/Nalix.Shared/Nalix.Shared.csproj
+        src/Nalix.Storage/Nalix.Storage.csproj
+      test: tests/Nalix.Tests.sln 
+      deploy: false

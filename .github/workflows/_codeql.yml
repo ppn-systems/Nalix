@@ -1,4 +1,4 @@
-name: "CodeQL Advanced"
+name: "CodeQL Analysis"
 
 on:
   push:
@@ -6,38 +6,48 @@ on:
   pull_request:
     branches: [ "master" ]
   schedule:
-    - cron: '44 13 * * 2'
+    - cron: '44 13 * * 2'  # Every Tuesday at 13:44 UTC
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    name: Analyze C#
+    runs-on: ubuntu-latest
+
     permissions:
       security-events: write
       packages: read
       actions: read
       contents: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - language: csharp
-          build-mode: auto
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-    - if: matrix.build-mode == 'manual'
-      name: Build C# project
-      run: dotnet build --configuration Release
+        languages: csharp
+        build-mode: manual
+
+    - name: Restore & Build src/
+      run: |
+        dotnet restore src/
+        dotnet build src/ --configuration Release
+
+    - name: Restore & Build tests/
+      run: |
+        dotnet restore tests/
+        dotnet build tests/ --configuration Release
+
+    - name: Run xUnit Tests (Optional but good for CI)
+      run: dotnet test tests/ --configuration Release --no-build --verbosity normal
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
-        category: "/language:${{matrix.language}}"
+        category: "/language:csharp"
