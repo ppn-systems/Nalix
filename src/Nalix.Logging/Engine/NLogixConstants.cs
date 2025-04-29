@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Logging.Core;
+namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// Contains constant values used for logging.

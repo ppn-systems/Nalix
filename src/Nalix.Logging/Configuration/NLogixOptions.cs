@@ -1,60 +1,72 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
-using Nalix.Logging.Options;
+using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Logging.Core;
+namespace Nalix.Logging.Configuration;
 
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
-public sealed class NLogixOptions : System.IDisposable
+public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
 {
     #region Fields
 
-    private readonly ILogDistributor _publisher;
-    private System.Int32 _disposed;
+    private System.Int32 _disposed = 0;
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>
-    /// Gets the file logger configuration options.
-    /// </summary>
-    public FileLogOptions FileOptions { get; } = new();
-
-    /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    public LogLevel MinLevel { get; set; } = LogLevel.Meta;
+    public LogLevel MinLevel { get; set; }
 
     /// <summary>
-    /// Gets or sets whether to include machine name in log entries.
+    /// Gets or sets the log distributor responsible for publishing log messages to targets.
     /// </summary>
-    public System.Boolean IncludeMachineName { get; set; } = true;
+    [ConfiguredIgnore]
+    private ILogDistributor? Publisher { get; set; }
 
     /// <summary>
-    /// Gets or sets whether to include process ProtocolType in log entries.
+    /// Gets the file logger configuration options.
     /// </summary>
-    public System.Boolean IncludeProcessId { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets whether to include timestamp in log entries.
-    /// </summary>
-    public System.Boolean IncludeTimestamp { get; set; } = true;
+    [ConfiguredIgnore]
+    public FileLogOptions FileOptions { get; }
 
     /// <summary>
     /// Gets or sets the timestamp format for log entries.
     /// </summary>
-    public System.String TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
+    public System.String TimestampFormat { get; set; }
 
     /// <summary>
     /// Gets or sets whether to use UTC time for timestamps.
     /// </summary>
-    public System.Boolean UseUtcTimestamp { get; set; } = true;
+    public System.Boolean UseUtcTimestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to include process ProtocolType in log entries.
+    /// </summary>
+    public System.Boolean IncludeProcessId { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to include timestamp in log entries.
+    /// </summary>
+    public System.Boolean IncludeTimestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to include machine name in log entries.
+    /// </summary>
+    public System.Boolean IncludeMachineName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent log processing tasks per target.
+    /// </summary>
+    public System.Int32 GroupConcurrencyLimit { get; set; }
 
     #endregion Properties
 
@@ -63,13 +75,37 @@ public sealed class NLogixOptions : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixOptions"/> class.
     /// </summary>
-    /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
-    internal NLogixOptions(ILogDistributor publisher)
-        => _publisher = publisher ?? throw new System.ArgumentNullException(nameof(publisher));
+    public NLogixOptions()
+    {
+        Publisher = null;
+        MinLevel = LogLevel.Meta;
+        FileOptions = new FileLogOptions();
+
+        UseUtcTimestamp = true;
+        IncludeProcessId = true;
+        IncludeTimestamp = true;
+        IncludeMachineName = true;
+        GroupConcurrencyLimit = 3;
+        TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
+    }
 
     #endregion Constructors
 
     #region APIs
+
+    /// <summary>
+    /// Sets the log distributor for publishing log messages. This method allows you to replace the default log distributor with a custom implementation.
+    /// </summary>
+    /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
+    /// <returns>The current <see cref="NLogixOptions"/> instance for method chaining.</returns>
+    public NLogixOptions SetPublisher(ILogDistributor publisher)
+    {
+        System.ArgumentNullException.ThrowIfNull(publisher);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
+        Publisher = publisher;
+        return this;
+    }
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
@@ -122,7 +158,7 @@ public sealed class NLogixOptions : System.IDisposable
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
 
-        _ = _publisher.RegisterTarget(target);
+        _ = Publisher?.RegisterTarget(target);
         return this;
     }
 
@@ -165,7 +201,7 @@ public sealed class NLogixOptions : System.IDisposable
 
         try
         {
-            _publisher.Dispose();
+            Publisher?.Dispose();
         }
         catch (System.Exception ex)
         {

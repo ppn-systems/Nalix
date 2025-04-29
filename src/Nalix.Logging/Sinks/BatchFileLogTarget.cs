@@ -1,9 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.File;
 using Nalix.Logging.Internal.Formatters;
-using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
 

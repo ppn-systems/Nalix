@@ -6,8 +6,8 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.Formatters;
-using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Console;
 
@@ -90,7 +90,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             options: new WorkerOptions
             {
                 Tag = "console-consumer",       // Gắn tag để report hoặc log
-                GroupConcurrencyLimit = 1,      // Chỉ chạy duy nhất 1 log worker cho nhóm này
+                GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,      // Chỉ chạy duy nhất 1 log worker cho nhóm này
                 OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
                 OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
             });
