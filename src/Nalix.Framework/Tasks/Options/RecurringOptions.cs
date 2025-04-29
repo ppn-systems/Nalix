@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Tasks.Options;
+using Nalix.Common.Tasks;
 
 namespace Nalix.Framework.Tasks.Options;
 

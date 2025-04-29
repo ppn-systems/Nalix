@@ -1,6 +1,4 @@
-﻿using Nalix.Common.Packets.Models;
-
-namespace Nalix.Common.Packets.Abstractions;
+﻿namespace Nalix.Common.Packets.Abstractions;
 
 /// <summary>
 /// Provides a read-only catalog that maps magic numbers and packet types
