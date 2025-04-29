@@ -11,8 +11,8 @@ public readonly partial struct Packet
     // Cache the max packet size locally to avoid field access costs
     private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
 
-    private const int MaxHeapAllocSize = PacketConstants.HeapAllocThreshold;
-    private const int MaxStackAllocSize = PacketConstants.StackAllocThreshold;
+    private const int MaxHeapAllocSize = PacketConstants.HeapAllocLimit;
+    private const int MaxStackAllocSize = PacketConstants.StackAllocLimit;
 
     #endregion Constants
 

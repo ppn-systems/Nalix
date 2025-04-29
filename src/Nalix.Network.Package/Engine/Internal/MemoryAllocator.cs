@@ -21,13 +21,13 @@ public static class MemoryAllocator
 
         switch (length)
         {
-            case <= PacketConstants.StackAllocThreshold:
+            case <= PacketConstants.StackAllocLimit:
                 {
                     System.Span<byte> stackBuffer = stackalloc byte[length];
                     payload.Span.CopyTo(stackBuffer);
                     return stackBuffer.ToArray();
                 }
-            case <= PacketConstants.HeapAllocThreshold:
+            case <= PacketConstants.HeapAllocLimit:
                 {
                     byte[] buffer = System.GC.AllocateUninitializedArray<byte>(length, pinned: true);
                     payload.Span.CopyTo(buffer);

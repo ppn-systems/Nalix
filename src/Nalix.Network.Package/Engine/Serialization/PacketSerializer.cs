@@ -104,7 +104,7 @@ public static partial class PacketSerializer
         }
         else
         {
-            byte[] rentedArray = PacketConstants.SharedBytePool.Rent(totalSize);
+            byte[] rentedArray = PacketConstants.Pool.Rent(totalSize);
             try
             {
                 WritePacket(rentedArray.AsSpan(0, totalSize), in packet);
@@ -112,7 +112,7 @@ public static partial class PacketSerializer
             }
             finally
             {
-                PacketConstants.SharedBytePool.Return(rentedArray, clearArray: true);
+                PacketConstants.Pool.Return(rentedArray, clearArray: true);
             }
         }
     }
