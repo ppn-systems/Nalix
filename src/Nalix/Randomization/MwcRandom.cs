@@ -10,7 +10,7 @@ namespace Nalix.Randomization;
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
 /// The generator has a period of approximately 2^63 and provides good statistical properties.
 /// </remarks>
-public abstract class RandMwc
+public abstract class MwcRandom
 {
     // Performance for the MWC algorithm
     private const ulong Multiplier = 698769069UL;
@@ -33,10 +33,10 @@ public abstract class RandMwc
     private ulong _state;
 
     /// <summary>
-    /// Initializes a RandMwc instance with a given seed value.
+    /// Initializes a MwcRandom instance with a given seed value.
     /// </summary>
     /// <param name="seed">The seed value to initialize the random Number generator. If 0, uses the current time.</param>
-    protected RandMwc(uint seed)
+    protected MwcRandom(uint seed)
     {
         // If seed is 0, use current time ticks as a seed
         if (seed == 0)
@@ -162,7 +162,7 @@ public abstract class RandMwc
     /// Returns a string representation of the current generator state.
     /// </summary>
     /// <returns>A string representing the generator state.</returns>
-    public override string ToString() => $"RandMwc[state=0x{_state:X16}]";
+    public override string ToString() => $"MwcRandom[state=0x{_state:X16}]";
 
     /// <summary>
     /// Fills the given buffer with random bytes.

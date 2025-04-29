@@ -10,38 +10,8 @@ namespace Nalix.Randomization;
 /// Initializes a new instance of the <see cref="Rand"/> class with a specified seed.
 /// </remarks>
 /// <param name="seed">The seed value to initialize the random Number generator.</param>
-public sealed class Rand(uint seed) : RandMwc(seed)
+public sealed class Rand(uint seed) : MwcRandom(seed)
 {
-    /// <summary>
-    /// Returns a random floating-point Number in the range [0.0, 1.0).
-    /// </summary>
-    /// <remarks>
-    /// This implementation ensures uniform distribution across the entire range
-    /// and avoids common precision issues in floating-point random generation.
-    /// </remarks>
-    /// <returns>A random float in the range [0.0, 1.0).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new float GetFloat()
-    {
-        // Use 24 bits (mantissa size for float) to ensure uniform distribution
-        return (Get() >> 8) * (1.0f / 16777216.0f);
-    }
-
-    /// <summary>
-    /// Returns a random double-precision floating-point Number in the range [0.0, 1.0).
-    /// </summary>
-    /// <remarks>
-    /// This implementation ensures uniform distribution across the entire range
-    /// and uses the full 53-bit precision available in a double.
-    /// </remarks>
-    /// <returns>A random double in the range [0.0, 1.0).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new double GetDouble()
-    {
-        // Use all 53 bits of precision available in a double
-        return (Get64() >> 11) * (1.0 / 9007199254740992.0);
-    }
-
     /// <summary>
     /// Returns a random integer in the range [0, max).
     /// </summary>
@@ -276,6 +246,30 @@ public sealed class Rand(uint seed) : RandMwc(seed)
 
         return GetDouble() < probability;
     }
+
+    /// <summary>
+    /// Returns a random floating-point Number in the range [0.0, 1.0).
+    /// </summary>
+    /// <remarks>
+    /// This implementation ensures uniform distribution across the entire range
+    /// and avoids common precision issues in floating-point random generation.
+    /// </remarks>
+    /// <returns>A random float in the range [0.0, 1.0).</returns>
+    // Use 24 bits (mantissa size for float) to ensure uniform distribution
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new float GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
+
+    /// <summary>
+    /// Returns a random double-precision floating-point Number in the range [0.0, 1.0).
+    /// </summary>
+    /// <remarks>
+    /// This implementation ensures uniform distribution across the entire range
+    /// and uses the full 53-bit precision available in a double.
+    /// </remarks>
+    /// <returns>A random double in the range [0.0, 1.0).</returns>
+    // Use all 53 bits of precision available in a double
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public new double GetDouble() => (Get64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
