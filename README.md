@@ -32,7 +32,6 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 [![My Skills](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
 
-
 ## 📦 Available NuGet Packages
 
 | Package ID                |Description                             | Install Command                            |
@@ -58,3 +57,5 @@ _Nalix is copyright &copy; PhcNguyen - Provided under the [Apache License, Versi
 ## 📬 Contact
 
 For questions, suggestions, or support, open an issue on [GitHub](https://github.com/phcnguyen/Nalix/issues) or contact the maintainers.
+
+Give a ⭐️ if this project helped you!
