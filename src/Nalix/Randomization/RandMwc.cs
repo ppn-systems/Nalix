@@ -12,7 +12,7 @@ namespace Nalix.Randomization;
 /// </remarks>
 public abstract class RandMwc
 {
-    // Constants for the MWC algorithm
+    // Performance for the MWC algorithm
     private const ulong Multiplier = 698769069UL;
 
     private const ulong InitialCarry = 666UL;

@@ -13,7 +13,7 @@ namespace Nalix.Environment;
 /// </summary>
 public static class Directories
 {
-    #region Private Fields
+    #region Fields
 
     // Thread-safe directory creation lock
     private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
@@ -84,9 +84,9 @@ public static class Directories
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/tmp/notio"))
+        if (IsContainerLazy.Value && Directory.Exists("/tmp/nalix"))
         {
-            path = "/tmp/notio";
+            path = "/tmp/nalix";
         }
         else
         {
@@ -176,9 +176,9 @@ public static class Directories
         return path;
     });
 
-    #endregion Private Fields
+    #endregion Fields
 
-    #region Public Properties
+    #region Properties
 
     /// <summary>
     /// The base directory of the application.
@@ -236,7 +236,7 @@ public static class Directories
     /// </summary>
     public static bool IsContainer => IsContainerLazy.Value;
 
-    #endregion Public Properties
+    #endregion Properties
 
     #region Constructors
 

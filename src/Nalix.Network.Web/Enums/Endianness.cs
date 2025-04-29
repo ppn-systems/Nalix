@@ -1,7 +1,7 @@
-namespace Nalix.Runtime;
+namespace Nalix.Network.Web.Enums;
 
 /// <summary>
-/// Defines Endianness, big or little.
+/// Defines Endianness, big or little.Ư
 /// </summary>
 public enum Endianness
 {

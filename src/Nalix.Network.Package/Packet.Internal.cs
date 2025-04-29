@@ -18,7 +18,7 @@ public readonly partial struct Packet
         PacketPriority priority,
         byte number,
         System.Memory<byte> payload)
-        : this(id, 0, Utilities.PreciseTimeClock.GetTimestamp(),
+        : this(id, 0, Utils.PreciseTimeClock.GetTimestamp(),
               code, type, flags, priority, number, payload, true)
     {
     }
@@ -81,7 +81,7 @@ public readonly partial struct Packet
         Number = number == 0 ? (byte)(timestamp % byte.MaxValue) : number;
 
         // Create a secure copy of the payload to prevent external modification
-        Payload = Utilities.BufferAllocator.Allocate(payload);
+        Payload = Utils.BufferAllocator.Allocate(payload);
 
         // Compute checksum only if needed
         Checksum = computeChecksum ? Integrity.Crc32.Compute(Payload.Span) : checksum;

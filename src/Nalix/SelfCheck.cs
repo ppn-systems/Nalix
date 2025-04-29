@@ -8,7 +8,7 @@ namespace Nalix;
 /// </summary>
 public static class SelfCheck
 {
-    // Constants to improve readability and performance
+    // Performance to improve readability and performance
     private const char Colon = ':';
 
     private const char Space = ' ';

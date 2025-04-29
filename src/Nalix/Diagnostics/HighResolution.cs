@@ -4,7 +4,7 @@ namespace Nalix.Diagnostics;
 /// Provides access to a high-resolution, time measuring device.
 /// </summary>
 /// <seealso cref="System.Diagnostics.Stopwatch" />
-public sealed class HighResolutionTimer : System.Diagnostics.Stopwatch
+public sealed class HighResolution : System.Diagnostics.Stopwatch
 {
     /// <summary>
     /// Gets the Number of microseconds per timer tick.
@@ -17,10 +17,10 @@ public sealed class HighResolutionTimer : System.Diagnostics.Stopwatch
     public long ElapsedMicroseconds => (long)(ElapsedTicks * MicrosecondsPerTick);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HighResolutionTimer"/> class.
+    /// Initializes a new instance of the <see cref="HighResolution"/> class.
     /// </summary>
     /// <exception cref="System.NotSupportedException">High-resolution timer not available.</exception>
-    public HighResolutionTimer()
+    public HighResolution()
     {
         if (!IsHighResolution)
             throw new System.NotSupportedException("High-resolution timer not available");

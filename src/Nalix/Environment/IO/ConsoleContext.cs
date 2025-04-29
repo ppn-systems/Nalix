@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.IO;
+namespace Nalix.Environment.IO;
 
 /// <summary>
 /// Provides a context for managing console input and output,

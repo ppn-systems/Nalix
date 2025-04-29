@@ -2,7 +2,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Environment;
 using Nalix.Integrity;
-using Nalix.Utilities;
+using Nalix.Utils;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -32,7 +32,7 @@ internal static class PacketWriter
     /// <param name="payload">String payload.</param>
     /// <returns>Packet as Memory&lt;byte&gt;.</returns>
     internal static Memory<byte> String(PacketCode code, string payload)
-        => Assemble(code, PacketType.String, Constants.DefaultEncoding.GetBytes(payload));
+        => Assemble(code, PacketType.String, Performance.Encoding.GetBytes(payload));
 
     /// <summary>
     /// Builds a complete string packet with header and payload from the message associated with the PacketCode.

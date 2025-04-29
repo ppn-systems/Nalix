@@ -1,5 +1,5 @@
 using Nalix.Integrity;
-using Nalix.Utilities;
+using Nalix.Utils;
 
 namespace Nalix.Network.Package;
 

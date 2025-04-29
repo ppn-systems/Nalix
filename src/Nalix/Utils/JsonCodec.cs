@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Nalix.Utilities;
+namespace Nalix.Utils;
 
 /// <summary>
 /// Provides optimized JSON serialization and deserialization methods, supporting both strings and byte arrays.
@@ -41,7 +41,7 @@ public static class JsonCodec
         Encoding encoding = null)
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        encoding ??= Constants.DefaultEncoding;
+        encoding ??= Performance.Encoding;
         return encoding.GetBytes(Serialize(obj, jsonTypeInfo));
     }
 
@@ -98,7 +98,7 @@ public static class JsonCodec
         ArgumentNullException.ThrowIfNull(jsonBytes);
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
-        encoding ??= Constants.DefaultEncoding;
+        encoding ??= Performance.Encoding;
         return Deserialize(encoding.GetString(jsonBytes), jsonTypeInfo);
     }
 

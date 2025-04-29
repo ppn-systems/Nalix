@@ -1,6 +1,6 @@
 using Nalix.Environment;
 
-namespace Nalix.Utilities;
+namespace Nalix.Utils;
 
 /// <summary>
 /// Provides a high-resolution timestamp in microseconds.
@@ -11,7 +11,7 @@ public static class PreciseTimeClock
     /// Conversion factor from stopwatch ticks to microseconds.
     /// </summary>
     public static readonly double TickMicroseconds =
-        (Constants.MicrosecondsInSecond / System.Diagnostics.Stopwatch.Frequency);
+        (Performance.MicrosecondsInSecond / System.Diagnostics.Stopwatch.Frequency);
 
     /// <summary>
     /// Gets the current timestamp in microseconds.

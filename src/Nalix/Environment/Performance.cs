@@ -3,7 +3,7 @@ namespace Nalix.Environment;
 /// <summary>
 /// Represents default values and constants for configurations.
 /// </summary>
-public static class Constants
+public static class Performance
 {
     /// <summary>
     /// The amount of memory to use in kibibytes (KiB).
@@ -36,5 +36,5 @@ public static class Constants
     /// <summary>
     /// The default encoding used for JSON serialization and deserialization.
     /// </summary>
-    public static System.Text.Encoding DefaultEncoding { get; set; } = System.Text.Encoding.UTF8;
+    public static System.Text.Encoding Encoding { get; set; } = System.Text.Encoding.UTF8;
 }

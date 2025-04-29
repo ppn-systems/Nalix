@@ -1,7 +1,7 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Environment;
-using Nalix.Utilities;
+using Nalix.Utils;
 
 namespace Nalix.Network.Package;
 
@@ -65,7 +65,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority, string s)
-        : this(id, code, PacketType.String, flags, priority, Constants.DefaultEncoding.GetBytes(s))
+        : this(id, code, PacketType.String, flags, priority, Performance.Encoding.GetBytes(s))
     {
     }
 

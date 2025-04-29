@@ -1,6 +1,5 @@
 using Nalix.Network.Web.Enums;
 using Nalix.Network.Web.Utilities;
-using Nalix.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -106,7 +105,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && RuntimeOS.OS != OSPlatform.Windows)
+            if (value && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
@@ -129,9 +128,9 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
         set
         {
             EnsureConfigurationNotLocked();
-            if (value && RuntimeOS.OS != OSPlatform.Windows)
+            if (value && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                throw new PlatformNotSupportedException("AutoRegisterCertificate functionality is only available under Windows.");
+                throw new PlatformNotSupportedException("AutoLoadCertificate functionality is only available under Windows.");
             }
 
             _autoRegisterCertificate = value;
@@ -196,7 +195,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
 
     private X509Certificate2? LoadCertificate()
     {
-        if (RuntimeOS.OS != OSPlatform.Windows)
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return null;
         }
@@ -289,7 +288,7 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
 
     private bool TryRegisterCertificate()
     {
-        if (RuntimeOS.OS != OSPlatform.Windows)
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return false;
         }
@@ -305,7 +304,8 @@ public sealed partial class WebServerOptions : WebServerOptionsBase
                 "The provided certificate cannot be added to the default store, add it manually");
         }
 
-        using Process netsh = GetNetsh("add", $"certhash={_certificate.Thumbprint} appid={{adaa04bb-8b63-4073-a12f-d6f8c0b4383f}}");
+        using Process netsh = GetNetsh("add",
+            $"certhash={_certificate.Thumbprint} appid={{adaa04bb-8b63-4073-a12f-d6f8c0b4383f}}");
 
         StringBuilder sb = new();
 

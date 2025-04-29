@@ -83,7 +83,7 @@ public static partial class Benchmark
     {
         ArgumentNullException.ThrowIfNull(target);
 
-        var sw = Stopwatch.IsHighResolution ? new HighResolutionTimer() : new Stopwatch();
+        var sw = Stopwatch.IsHighResolution ? new HighResolution() : new Stopwatch();
 
         try
         {

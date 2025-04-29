@@ -168,7 +168,7 @@ public static class Salsa20
         // Initialize the state with constants, key, counter, and nonce
         Span<uint> state = stackalloc uint[16];
 
-        // Constants "expand 32-byte k"
+        // Performance "expand 32-byte k"
         state[0] = 0x61707865; // "expa"
         state[5] = 0x3320646e; // "nd 3"
         state[10] = 0x79622d32; // "2-by"

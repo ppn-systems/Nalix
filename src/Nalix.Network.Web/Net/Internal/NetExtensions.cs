@@ -1,4 +1,4 @@
-using Nalix.Runtime;
+using Nalix.Network.Web.Enums;
 using System;
 using System.Linq;
 
@@ -32,16 +32,12 @@ internal static class NetExtensions
     }
 
     internal static byte[] ToHostOrder(this byte[] source, Endianness sourceOrder)
-    {
-        return source.Length < 1 ? source
+        => source.Length < 1 ? source
             : sourceOrder.IsHostOrder() ? source
             : [.. source.Reverse()];
-    }
 
     // true: !(true ^ true) or !(false ^ false)
     // false: !(true ^ false) or !(false ^ true)
     private static bool IsHostOrder(this Endianness order)
-    {
-        return !(BitConverter.IsLittleEndian ^ order == Endianness.Little);
-    }
+        => !(BitConverter.IsLittleEndian ^ (order == Endianness.Little));
 }

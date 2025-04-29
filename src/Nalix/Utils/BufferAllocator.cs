@@ -1,6 +1,6 @@
 using Nalix.Environment;
 
-namespace Nalix.Utilities;
+namespace Nalix.Utils;
 
 /// <summary>
 /// Provides memory allocation utilities to optimize memory usage for different packet sizes.
@@ -21,13 +21,13 @@ public static class BufferAllocator
 
         switch (length)
         {
-            case <= Constants.StackAllocThreshold:
+            case <= Performance.StackAllocThreshold:
                 {
                     System.Span<byte> stackBuffer = stackalloc byte[length];
                     payload.Span.CopyTo(stackBuffer);
                     return stackBuffer.ToArray();
                 }
-            case <= Constants.HeapAllocThreshold:
+            case <= Performance.HeapAllocThreshold:
                 {
                     byte[] buffer = System.GC.AllocateUninitializedArray<byte>(length, pinned: true);
                     payload.Span.CopyTo(buffer);

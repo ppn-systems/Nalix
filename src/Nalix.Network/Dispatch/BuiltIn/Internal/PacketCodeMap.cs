@@ -24,7 +24,7 @@ internal static class PacketCodeMap
 
             // Cache both the string message and the byte[] version
             MessageCache[code] = message;
-            MessageCacheBytes[code] = Constants.DefaultEncoding.GetBytes(message); // Using UTF8 encoding directly
+            MessageCacheBytes[code] = Performance.Encoding.GetBytes(message); // Using UTF8 encoding directly
         }
     }
 

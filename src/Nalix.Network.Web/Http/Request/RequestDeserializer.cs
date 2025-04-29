@@ -1,6 +1,6 @@
-using Nalix.Environment;
 using Nalix.Network.Web.Http.Exceptions;
 using Nalix.Network.Web.Http.Extensions;
+using Nalix.Utils;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
