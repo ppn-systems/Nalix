@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
-namespace Nalix.Utils;
+namespace Nalix.Serialization;
 
 /// <summary>
 /// Provides optimized JSON serialization and deserialization methods, supporting both strings and byte arrays.

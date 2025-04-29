@@ -86,6 +86,8 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public byte[] EncryptionKey
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _encryptionKey;
         set
         {
@@ -102,6 +104,8 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public string RemoteEndPoint
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
             if (_remoteEndPoint == null && _socket.Connected)

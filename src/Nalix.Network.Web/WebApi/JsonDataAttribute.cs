@@ -1,6 +1,6 @@
 using Nalix.Network.Web.Http.Exceptions;
 using Nalix.Network.Web.Http.Extensions;
-using Nalix.Utils;
+using Nalix.Serialization;
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;

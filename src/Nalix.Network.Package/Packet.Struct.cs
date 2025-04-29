@@ -1,8 +1,8 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Environment;
+using Nalix.Serialization;
 using Nalix.Shared.Time;
-using Nalix.Utils;
 
 namespace Nalix.Network.Package;
 
