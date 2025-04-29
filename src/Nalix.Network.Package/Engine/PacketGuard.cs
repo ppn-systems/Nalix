@@ -1,3 +1,4 @@
+using Nalix.Common.Connection;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
@@ -10,6 +11,20 @@ namespace Nalix.Network.Package.Engine;
 /// </summary>
 public static class PacketGuard
 {
+    /// <summary>
+    /// Encrypts the payload of the given packet using the specified algorithm.
+    /// </summary>
+    /// <param name="packet">The packet whose payload needs to be encrypted.</param>
+    /// <param name="connection">The connection object containing the encryption key.</param>
+    /// <returns>A new <see cref="Packet"/> instance with the encrypted payload.</returns>
+    /// <exception cref="PackageException">
+    /// Thrown if encryption conditions are not met or if an error occurs during encryption.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Packet Encrypt(in Packet packet, IConnection connection)
+        => Encrypt(packet, connection.EncryptionKey, connection.Encryption);
+
     /// <summary>
     /// Encrypts the payload of the given packet using the specified algorithm.
     /// </summary>
@@ -39,6 +54,20 @@ public static class PacketGuard
             throw new PackageException("Failed to encrypt the packet payload.", ex);
         }
     }
+
+    /// <summary>
+    /// Decrypts the payload of the given packet using the specified algorithm.
+    /// </summary>
+    /// <param name="packet">The packet whose payload needs to be decrypted.</param>
+    /// <param name="connection">The connection object containing the encryption key.</param>
+    /// <returns>A new <see cref="Packet"/> instance with the decrypted payload.</returns>
+    /// <exception cref="PackageException">
+    /// Thrown if decryption conditions are not met or if an error occurs during decryption.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Packet Decrypt(in Packet packet, IConnection connection)
+        => Decrypt(packet, connection.EncryptionKey, connection.Encryption);
 
     /// <summary>
     /// Decrypts the payload of the given packet using the specified algorithm.

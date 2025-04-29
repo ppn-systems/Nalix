@@ -89,6 +89,8 @@ public static class PacketCompact
 
     #region Private Methods
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
@@ -103,6 +105,8 @@ public static class PacketCompact
         return System.MemoryExtensions.AsMemory(buffer, 0, lenght);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Memory<byte> DecompressLZ4(System.ReadOnlySpan<byte> input)
     {
         if (input.Length < Header.Size)

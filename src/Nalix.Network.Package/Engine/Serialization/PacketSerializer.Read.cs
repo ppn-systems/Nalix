@@ -68,6 +68,7 @@ public static partial class PacketSerializer
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous read operation, returning the deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if any error occurs during reading from the stream.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async ValueTask<Packet> ReadFromStreamAsync(Stream stream, CancellationToken cancellationToken = default)
     {
         // Use thread-local buffer for the header to reduce allocations

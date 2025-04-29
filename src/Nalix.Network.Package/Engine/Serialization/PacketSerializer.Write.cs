@@ -106,6 +106,7 @@ public static partial class PacketSerializer
     /// <param name="packet">The packet to be written.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async ValueTask WriteToStreamAsync(
         Stream stream,
         Packet packet,
