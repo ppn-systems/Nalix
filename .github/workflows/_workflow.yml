@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build-library:
-    uses: ./.github/workflows/_build.yml@master
+    uses: ./.github/workflows/_build.yml
     with:
       project:  |
         src/Nalix/Nalix.csproj

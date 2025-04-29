@@ -40,15 +40,15 @@ jobs:
     - name: Restore & Build src/
       run: |
         dotnet restore src/Nalix.sln  # Assuming you have a solution file
-        dotnet build src/Nalix.sln --configuration Release
+        dotnet build src/Nalix.sln --configuration Debug
 
     - name: Restore & Build tests/
       run: |
         dotnet restore tests/Nalix.Tests.sln  # Assuming you have a solution file for tests
-        dotnet build tests/Nalix.Tests.sln --configuration Release
+        dotnet build tests/Nalix.Tests.sln --configuration Debug
 
     - name: Run xUnit Tests (Optional but good for CI)
-      run: dotnet test tests/Nalix.Tests.sln --configuration Release --no-build --verbosity normal
+      run: dotnet test tests/Nalix.Tests.sln --configuration Debug --no-build --verbosity normal
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
