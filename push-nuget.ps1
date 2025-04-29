@@ -84,13 +84,13 @@ try {
 
     Write-Section "Discover Packages"
 
-    $packages = Get-ChildItem -LiteralPath $pkgDirFull -File |
-        Where-Object {
-            $_.Extension -ieq ".nupkg" -and
-            ($IncludeSymbols.IsPresent -or $_.Name -notmatch '\.symbols\.nupkg$') -and
-            $_.Name -notmatch '\.snupkg$'
-        } |
-        Sort-Object Name
+    $packages = @(Get-ChildItem -LiteralPath $pkgDirFull -File |
+    	Where-Object {
+    	    $_.Extension -ieq ".nupkg" -and
+     	   ($IncludeSymbols.IsPresent -or $_.Name -notmatch '\.symbols\.nupkg$') -and
+    	    $_.Name -notmatch '\.snupkg$'
+   	 } |
+    	Sort-Object Name)
 
     if ($packages.Count -eq 0) {
         Write-Host "No .nupkg packages found in: $pkgDirFull" -ForegroundColor Yellow
