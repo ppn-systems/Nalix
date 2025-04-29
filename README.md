@@ -23,6 +23,16 @@ Nalix is a real-time server solution designed for efficient communication and da
 - Install .NET SDK 9 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
 - `Visual Studio 2022` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
+## 💻 Technologies
+
+- C#
+- .Net 9
+- Console Debug Logging
+- XUnit Testing
+
+[![My Skills](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
+
+
 ## 📦 Available NuGet Packages
 
 | Package ID                |Description                             | Install Command                            |
