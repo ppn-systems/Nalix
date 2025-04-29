@@ -1,12 +1,45 @@
-# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico) **Nalix**
-
-![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
+<div style="
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 2rem 0;
+">
+    <img src="https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico"
+         alt="Nalix Icon"
+         width="65"
+         height="65"
+         style="border-radius: 8px;"
+    />
+    <div>
+        <h1 style="
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #007bff;
+            margin: 0;
+            padding: 0;
+            letter-spacing: 1px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        ">
+            NALIX
+        </h1>
+        <div style="
+            font-size: 1.1rem;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        ">
+            Modern Real-Time Communication Solution
+        </div>
+    </div>
+</div>
 
 ![NuGet Version](https://img.shields.io/nuget/v/Nalix?style=flat-square&logo=nuget)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix?style=flat-square&logo=nuget)
 
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10470/badge)](https://www.bestpractices.dev/projects/10470)
+![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
+
+## 📖 About
 
 Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
@@ -16,6 +49,9 @@ Nalix is a real-time server solution designed for efficient communication and da
 - ⚡ **High performance** – Designed to handle thousands of concurrent connections.
 - 🔐 **Security-focused** – Implements encryption (ChaCha20-Poly1305, XTEA) to protect data.
 - 🛠️ **Extensible** – Easily customizable with your own protocols and handlers.
+- 📡 **Live Updates** – Stay up to date with real-time updates, ensuring dynamic and responsive experiences.
+- 💻 **Modern C# Implementation** – Leveraging cutting-edge C# features for clean, efficient, and maintainable code.
+- 🧩 **SOLID & DDD Principles** – Adhering to SOLID principles and Domain-Driven Design for a robust and scalable architecture.
 
 ## 🔧 Requirements
 
@@ -30,7 +66,7 @@ Nalix is a real-time server solution designed for efficient communication and da
 - Console Debug Logging
 - XUnit Testing
 
-[![My Skills](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
+    [![My Skills](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
 
 ## 📦 Available NuGet Packages
 
