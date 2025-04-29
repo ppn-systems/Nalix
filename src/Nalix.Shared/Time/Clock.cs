@@ -397,18 +397,21 @@ public static class Clock
     /// <summary>
     /// Starts a new performance measurement using the current thread's stopwatch.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void StartMeasurement() => _threadStopwatch.Value!.Restart();
 
     /// <summary>
     /// Gets the elapsed time since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time as a TimeSpan.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TimeSpan GetElapsed() => _threadStopwatch.Value!.Elapsed;
 
     /// <summary>
     /// Gets the elapsed time in milliseconds since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in milliseconds.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double GetElapsedMilliseconds()
         => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
 
@@ -416,6 +419,7 @@ public static class Clock
     /// Gets the elapsed time in microseconds since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in microseconds.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double GetElapsedMicroseconds()
         => _threadStopwatch.Value!.Elapsed.Ticks / 10.0;
 
@@ -423,6 +427,7 @@ public static class Clock
     /// Creates a new TimeStamp for precise interval measurement.
     /// </summary>
     /// <returns>A TimeStamp object representing the current time.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TimeStamp CreateTimeStamp() => new(Stopwatch.GetTimestamp());
 
     /// <summary>

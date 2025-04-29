@@ -1,6 +1,7 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Environment;
+using Nalix.Shared.Time;
 using Nalix.Utils;
 
 namespace Nalix.Network.Package;
@@ -131,7 +132,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketFlags flags,
         PacketPriority priority,
         System.Memory<byte> payload)
-        : this(id, 0, PreciseTimeClock.GetTimestamp(), code, type, flags, priority, 0, payload, true)
+        : this(id, 0, Clock.UnixTicksNow(), code, type, flags, priority, 0, payload, true)
     {
     }
 

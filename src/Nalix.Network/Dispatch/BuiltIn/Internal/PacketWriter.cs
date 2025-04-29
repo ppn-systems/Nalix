@@ -2,7 +2,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Environment;
 using Nalix.Integrity;
-using Nalix.Utils;
+using Nalix.Shared.Time;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -80,7 +80,7 @@ internal static class PacketWriter
         PacketPriority priority,
         ReadOnlySpan<byte> payload)
     {
-        ulong timestamp = PreciseTimeClock.GetTimestamp();
+        ulong timestamp = Clock.UnixTicksNow();
         ushort totalLength = (ushort)(PacketSize.Header + payload.Length);
         byte[] packet = ArrayPool<byte>.Shared.Rent(totalLength);
 

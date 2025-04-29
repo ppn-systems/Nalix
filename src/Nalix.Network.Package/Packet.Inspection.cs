@@ -1,5 +1,5 @@
 using Nalix.Integrity;
-using Nalix.Utils;
+using Nalix.Shared.Time;
 
 namespace Nalix.Network.Package;
 
@@ -23,7 +23,7 @@ public readonly partial struct Packet
     public bool IsExpired(System.TimeSpan timeout)
     {
         // Use direct math operations for better performance
-        ulong currentTime = PreciseTimeClock.GetTimestamp();
+        ulong currentTime = Clock.UnixTicksNow();
         ulong timeoutMicroseconds = (ulong)(timeout.TotalMilliseconds * 1000);
 
         // Handle potential overflow (rare but possible)

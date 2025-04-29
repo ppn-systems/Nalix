@@ -1,12 +1,10 @@
-using Nalix.Environment;
-
-namespace Nalix.Utils;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Provides memory allocation utilities to optimize memory usage for different packet sizes.
 /// This class determines the appropriate memory allocation strategy (stack, heap, or pool) based on the size of the payload.
 /// </summary>
-public static class BufferAllocator
+public static class MemoryAllocator
 {
     /// <summary>
     /// Allocates memory for the given payload based on its size, choosing between stack, heap, or pooled memory.
