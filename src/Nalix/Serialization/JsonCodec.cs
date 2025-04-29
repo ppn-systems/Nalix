@@ -1,4 +1,3 @@
-using Nalix.Environment;
 using System;
 using System.IO;
 using System.Text;
@@ -41,7 +40,7 @@ public static class JsonCodec
         Encoding encoding = null)
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        encoding ??= Performance.Encoding;
+        encoding ??= JsonOptions.Encoding;
         return encoding.GetBytes(Serialize(obj, jsonTypeInfo));
     }
 
@@ -98,7 +97,7 @@ public static class JsonCodec
         ArgumentNullException.ThrowIfNull(jsonBytes);
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
-        encoding ??= Performance.Encoding;
+        encoding ??= JsonOptions.Encoding;
         return Deserialize(encoding.GetString(jsonBytes), jsonTypeInfo);
     }
 

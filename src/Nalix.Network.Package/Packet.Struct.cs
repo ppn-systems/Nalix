@@ -1,6 +1,5 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
-using Nalix.Environment;
 using Nalix.Serialization;
 using Nalix.Shared.Time;
 
@@ -66,7 +65,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority, string s)
-        : this(id, code, PacketType.String, flags, priority, Performance.Encoding.GetBytes(s))
+        : this(id, code, PacketType.String, flags, priority, JsonOptions.Encoding.GetBytes(s))
     {
     }
 

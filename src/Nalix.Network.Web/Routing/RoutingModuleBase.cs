@@ -1,3 +1,4 @@
+using Nalix.Exceptions;
 using Nalix.Network.Web.Enums;
 using Nalix.Network.Web.Http;
 using Nalix.Network.Web.Http.Exceptions;

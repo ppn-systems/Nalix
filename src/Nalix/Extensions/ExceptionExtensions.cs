@@ -1,4 +1,5 @@
 using Nalix.Common.Exceptions;
+using Nalix.Exceptions;
 using System;
 using System.Linq;
 using System.Runtime.ExceptionServices;

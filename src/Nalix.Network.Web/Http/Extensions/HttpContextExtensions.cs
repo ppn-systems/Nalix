@@ -1,3 +1,4 @@
+using Nalix.Exceptions;
 using Nalix.Network.Web.Utilities;
 using System;
 

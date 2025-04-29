@@ -6,6 +6,11 @@ namespace Nalix.Serialization;
 public static class JsonOptions
 {
     /// <summary>
+    /// The default encoding used for JSON serialization and deserialization.
+    /// </summary>
+    public static System.Text.Encoding Encoding { get; set; } = System.Text.Encoding.UTF8;
+
+    /// <summary>
     /// Standard JSON settings used across the application.
     /// Uses camelCase property naming and ignores null values.
     /// </summary>

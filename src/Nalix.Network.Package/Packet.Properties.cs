@@ -1,7 +1,6 @@
 using Nalix.Common.Constants;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
-using Nalix.Environment;
 
 namespace Nalix.Network.Package;
 
@@ -12,8 +11,8 @@ public readonly partial struct Packet
     // Cache the max packet size locally to avoid field access costs
     private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
 
-    private const int MaxHeapAllocSize = Performance.HeapAllocThreshold;
-    private const int MaxStackAllocSize = Performance.StackAllocThreshold;
+    private const int MaxHeapAllocSize = PacketConstants.HeapAllocThreshold;
+    private const int MaxStackAllocSize = PacketConstants.StackAllocThreshold;
 
     #endregion Constants
 

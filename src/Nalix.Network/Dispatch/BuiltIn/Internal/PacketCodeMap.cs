@@ -1,6 +1,6 @@
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
-using Nalix.Environment;
+using Nalix.Serialization;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -24,7 +24,7 @@ internal static class PacketCodeMap
 
             // Cache both the string message and the byte[] version
             MessageCache[code] = message;
-            MessageCacheBytes[code] = Performance.Encoding.GetBytes(message); // Using UTF8 encoding directly
+            MessageCacheBytes[code] = JsonOptions.Encoding.GetBytes(message); // Using UTF8 encoding directly
         }
     }
 

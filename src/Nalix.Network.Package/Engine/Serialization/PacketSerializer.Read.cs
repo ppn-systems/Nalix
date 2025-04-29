@@ -49,7 +49,8 @@ public static partial class PacketSerializer
                 byte priority = pHeader->Priority;
 
                 // Create payload efficiently
-                MaterializePayloadUnsafe(data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
+                MaterializePayload(
+                    data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
                 return new Packet(id, checksum, timestamp, code, number, type, flags, priority, payload);
             }

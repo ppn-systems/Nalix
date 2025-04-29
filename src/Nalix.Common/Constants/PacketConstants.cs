@@ -17,6 +17,18 @@ public static class PacketConstants
     public const ushort PacketSizeLimit = 0xFFFF;
 
     /// <summary>
+    /// The threshold size (in bytes) for using stack-based memory allocation.
+    /// This value represents the maximum size for which memory can be allocated on the stack.
+    /// </summary>
+    public const int StackAllocThreshold = 256;
+
+    /// <summary>
+    /// The threshold size (in bytes) for using heap-based memory allocation.
+    /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
+    /// </summary>
+    public const int HeapAllocThreshold = 1024;
+
+    /// <summary>
     /// Shared byte array pool for efficient memory usage.
     /// </summary>
     public static readonly System.Buffers.ArrayPool<byte> SharedBytePool = System.Buffers.ArrayPool<byte>.Shared;

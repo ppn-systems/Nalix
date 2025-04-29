@@ -4,6 +4,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,13 +12,7 @@ namespace Nalix.Network.Package.Engine.Serialization;
 
 public static partial class PacketSerializer
 {
-    #region Const
-
-    private const int ArrayPoolThreshold = 32768;
-
-    #endregion Const
-
-    #region Public Method Sync
+    #region Public Method
 
     /// <summary>
     /// Writes a packet to a given buffer in a fast and efficient way.
@@ -41,8 +36,18 @@ public static partial class PacketSerializer
 
         try
         {
-            // Write header first
-            EmitHeader(buffer, totalSize, id, timestamp, checksum, code, packet);
+            // Writing the first part of the header in one block (could optimize by grouping)
+            MemoryMarshal.Write(buffer, in totalSize);
+            MemoryMarshal.Write(buffer[PacketOffset.Id..], in id);
+            MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
+            MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
+            MemoryMarshal.Write(buffer[PacketOffset.Code..], in code);
+
+            // Writing the packet-specific fields
+            buffer[PacketOffset.Number] = packet.Number;
+            buffer[PacketOffset.Type] = (byte)packet.Type;
+            buffer[PacketOffset.Flags] = (byte)packet.Flags;
+            buffer[PacketOffset.Priority] = (byte)packet.Priority;
 
             // Write the payload if it's not empty
             if (packet.Payload.Length > 0)
@@ -56,38 +61,7 @@ public static partial class PacketSerializer
         }
     }
 
-    /// <summary>
-    /// Writes a packet directly to a buffer without intermediate allocations.
-    /// Useful for high-performance scenarios where every allocation matters.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe int WritePacketUnsafe(Span<byte> buffer, in Packet packet)
-    {
-        int totalSize = PacketSize.Header + packet.Payload.Length;
-
-        if (buffer.Length < totalSize)
-            throw new PackageException($"Buffer size ({buffer.Length}) is too small for packet size ({totalSize}).");
-
-        fixed (byte* pBuffer = buffer)
-        {
-            EmitHeaderUnsafe(pBuffer, totalSize, packet.Id, packet.Timestamp,
-                             packet.Checksum, (ushort)packet.Code, packet);
-
-            if (packet.Payload.Length > 0)
-            {
-                ReadOnlySpan<byte> payloadSpan = packet.Payload.Span;
-                fixed (byte* pPayload = payloadSpan)
-                {
-                    Buffer.MemoryCopy(pPayload, pBuffer + PacketSize.Header,
-                        buffer.Length - PacketSize.Header, packet.Payload.Length);
-                }
-            }
-        }
-
-        return totalSize;
-    }
-
-    #endregion Public Method Sync
+    #endregion Public Method
 
     #region Public Method Async
 
@@ -100,7 +74,9 @@ public static partial class PacketSerializer
     /// <returns>A value task representing the asynchronous write operation.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ValueTask<int> WritePacketAsync(
-        Memory<byte> buffer, Packet packet, CancellationToken cancellationToken = default)
+        Memory<byte> buffer,
+        Packet packet,
+        CancellationToken cancellationToken = default)
     {
         // For small payloads, perform synchronously to avoid task overhead
         if (packet.Payload.Length < 4096)
@@ -131,12 +107,14 @@ public static partial class PacketSerializer
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
     public static async ValueTask WriteToStreamAsync(
-        Stream stream, Packet packet, CancellationToken cancellationToken = default)
+        Stream stream,
+        Packet packet,
+        CancellationToken cancellationToken = default)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
 
         // For very large payloads, rent from the pool
-        byte[] buffer = totalSize <= ArrayPoolThreshold
+        byte[] buffer = totalSize <= Threshold
             ? ArrayPool<byte>.Shared.Rent(totalSize)
             : new byte[totalSize]; // For extremely large packets, avoid exhausting the pool
 
@@ -160,7 +138,7 @@ public static partial class PacketSerializer
         finally
         {
             // Only return to pool if we rented from it
-            if (totalSize <= ArrayPoolThreshold)
+            if (totalSize <= Threshold)
             {
                 ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             }
