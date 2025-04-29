@@ -46,6 +46,8 @@ internal sealed class TransportCache : System.IDisposable
 
     #endregion Properties
 
+    #region Public Methods
+
     /// <summary>
     /// Adds a sent packet to the outgoing cache.
     /// A composite key is generated from the first and last 4 bytes of the packet.
@@ -88,4 +90,6 @@ internal sealed class TransportCache : System.IDisposable
         Incoming.Dispose();
         Outgoing.Dispose();
     }
+
+    #endregion Public Methods
 }

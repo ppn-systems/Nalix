@@ -1,3 +1,7 @@
+using Nalix.Common.Connection;
+using Nalix.Common.Package;
+using Nalix.Network.Dispatch.Options;
+
 namespace Nalix.Network.Dispatch;
 
 /// <summary>
@@ -9,17 +13,19 @@ namespace Nalix.Network.Dispatch;
 /// based on the registered command IDs. It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
 /// <param name="options">
-/// A delegate used to configure <see cref="Options.PacketDispatchOptions{TPacket}"/> before processing packets.
+/// A delegate used to configure <see cref="PacketDispatchOptions{TPacket}"/> before processing packets.
 /// </param>
-public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatchOptions<TPacket>> options)
-    : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
-    Common.Package.IPacketFactory<TPacket>,
-    Common.Package.IPacketEncryptor<TPacket>,
-    Common.Package.IPacketCompressor<TPacket>,
-    Common.Package.IPacketDeserializer<TPacket>
+public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<TPacket>> options)
+    : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>,
+    IPacketDeserializer<TPacket>
 {
     /// <inheritdoc />
-    public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(byte[]? packet, IConnection connection)
     {
         if (packet == null)
         {
@@ -31,7 +37,9 @@ public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatch
     }
 
     /// <inheritdoc />
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
     {
         if (packet == null)
         {
@@ -49,7 +57,9 @@ public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatch
         "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    public void HandlePacket(in System.ReadOnlySpan<byte> packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(in System.ReadOnlySpan<byte> packet, IConnection connection)
     {
         if (packet.IsEmpty)
         {
@@ -63,6 +73,8 @@ public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatch
     }
 
     /// <inheritdoc />
-    public async void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public async void HandlePacketAsync(TPacket packet, IConnection connection)
         => await base.ExecutePacketHandlerAsync(packet, connection);
 }

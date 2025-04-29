@@ -1,15 +1,12 @@
 using Nalix.Common.Connection;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using Nalix.Common.Package.Enums;
 using Nalix.Network.Dispatch.BuiltIn;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -27,6 +24,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> BuiltInHandlers()
     {
         this.WithHandler<SessionController<TPacket>>();
@@ -48,6 +46,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(RequiredMembers)] TController>()
         where TController : class, new()
         => WithHandler(() => new TController());
@@ -67,6 +66,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="instance"/> is null.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
         (TController instance) where TController : class
@@ -88,6 +88,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
         (System.Func<TController> factory) where TController : class
@@ -185,6 +186,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// }
     /// </code>
     /// </example>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryResolveHandler(
         ushort id,
         [NotNullWhen(true)] out System.Func<TPacket, IConnection, Task>? handler)
@@ -194,124 +196,5 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         Logger?.Warn("No handler found for packet [ID={0}]", id);
         return false;
-    }
-
-    private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
-    {
-        PacketAttributes attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
-
-        return async (packet, connection) =>
-        {
-            Stopwatch? stopwatch = _isMetricsEnabled ? Stopwatch.StartNew() : null;
-
-            if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
-            {
-                _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
-                connection.Send(TPacket.Create(0, PacketCode.RateLimited));
-
-                return;
-            }
-
-            if (attributes.Permission?.Level > connection.Level)
-            {
-                _logger?.Warn("You do not have permission to perform this action.");
-                connection.Send(TPacket.Create(0, PacketCode.PermissionDenied));
-
-                return;
-            }
-
-            // Handle Compression (e.g., apply compression to packet)
-            try { packet = TPacket.Decompress(packet); }
-            catch (System.Exception ex)
-            {
-                _logger?.Error("Failed to decompress packet: {0}", ex.Message);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
-
-                return;
-            }
-
-            if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
-            {
-                string message = $"Encrypted packet not allowed for command " +
-                                 $"'{attributes.PacketId.Id}' " +
-                                 $"from connection {connection.RemoteEndPoint}.";
-
-                _logger?.Warn(message);
-                connection.Send(TPacket.Create(0, PacketCode.PacketEncryption));
-
-                return;
-            }
-            else
-            {
-                // Handle Encryption (e.g., apply encryption to packet)
-                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Encryption);
-            }
-
-            try
-            {
-                object? result;
-
-                // Cache method invocation with improved performance
-                if (attributes.Timeout != null)
-                {
-                    using CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
-                    try
-                    {
-                        result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
-                    }
-                    catch (System.OperationCanceledException)
-                    {
-                        _logger?.Error("Packet '{0}' timed out after {1}ms.",
-                            attributes.PacketId.Id,
-                            attributes.Timeout.TimeoutMilliseconds);
-                        connection.Send(TPacket.Create(0, PacketCode.RequestTimeout));
-
-                        return;
-                    }
-                }
-                else
-                {
-                    result = method.Invoke(controllerInstance, [packet, connection]);
-                }
-
-                // Await the return result, could be ValueTask if method is synchronous
-                await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
-            }
-            catch (PackageException ex)
-            {
-                _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
-                               "Exception: {3}. Remote: {4}, Exception Details: {5}",
-                    attributes.PacketId.Id,           // Command ID
-                    controllerInstance.GetType().Name,// SessionController name
-                    method.Name,                      // Method name
-                    ex.GetType().Name,                // Exception type
-                    connection.RemoteEndPoint,        // Connection details for traceability
-                    ex.Message                        // Exception message itself
-                );
-                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
-            }
-            catch (System.Exception ex)
-            {
-                _logger?.Error("Packet [Id={0}] ({1}.{2}) threw {3}: {4} [Remote: {5}]",
-                    attributes.PacketId.Id,
-                    controllerInstance.GetType().Name,
-                    method.Name,
-                    ex.GetType().Name,
-                    ex.Message,
-                    connection.RemoteEndPoint
-                );
-                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
-            }
-            finally
-            {
-                if (stopwatch is not null)
-                {
-                    stopwatch.Stop();
-                    _metricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
-                }
-            }
-        };
     }
 }

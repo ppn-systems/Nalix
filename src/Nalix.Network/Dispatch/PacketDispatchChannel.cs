@@ -1,4 +1,7 @@
+using Nalix.Common.Connection;
+using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Channel;
+using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch;
 
@@ -7,10 +10,10 @@ namespace Nalix.Network.Dispatch;
 /// with dependency injection (DI) support and flexible packet handling via reflection-based routing.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type implementing <see cref="Common.Package.IPacket"/>,
-/// <see cref="Common.Package.IPacketEncryptor{TPacket}"/>,
-/// <see cref="Common.Package.IPacketCompressor{TPacket}"/>,
-/// <see cref="Common.Package.IPacketDeserializer{TPacket}"/>.
+/// The packet type implementing <see cref="IPacket"/>,
+/// <see cref="IPacketEncryptor{TPacket}"/>,
+/// <see cref="IPacketCompressor{TPacket}"/>,
+/// <see cref="IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
 /// <remarks>
 /// <para>
@@ -34,11 +37,11 @@ namespace Nalix.Network.Dispatch;
 /// </code>
 /// </example>
 public sealed class PacketDispatchChannel<TPacket>
-    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : Common.Package.IPacket,
-    Common.Package.IPacketFactory<TPacket>,
-    Common.Package.IPacketEncryptor<TPacket>,
-    Common.Package.IPacketCompressor<TPacket>,
-    Common.Package.IPacketDeserializer<TPacket>
+    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : IPacket,
+    IPacketFactory<TPacket>,
+    IPacketEncryptor<TPacket>,
+    IPacketCompressor<TPacket>,
+    IPacketDeserializer<TPacket>
 {
     #region Fields
 
@@ -47,11 +50,10 @@ public sealed class PacketDispatchChannel<TPacket>
 
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
-        Common.Connection.IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
+        IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
 
     // Forward mapping: packet key -> connection
-    private readonly System.Collections.Generic.Dictionary<
-        ulong, Common.Connection.IConnection> _packetMap = [];
+    private readonly System.Collections.Generic.Dictionary<ulong, IConnection> _packetMap = [];
 
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
@@ -95,7 +97,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// with custom configuration options.
     /// </summary>
     /// <param name="options">A delegate used to configure dispatcher options</param>
-    public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<TPacket>> options)
+    public PacketDispatchChannel(System.Action<PacketDispatchOptions<TPacket>> options)
         : base(options)
     {
         _isProcessing = false;
@@ -116,6 +118,8 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <summary>
     /// Starts the packet processing loop
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Start()
     {
         if (_isProcessing)
@@ -133,6 +137,8 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <summary>
     /// Stops the packet processing loop
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Stop()
     {
         if (!_isProcessing)
@@ -159,7 +165,9 @@ public sealed class PacketDispatchChannel<TPacket>
     }
 
     /// <inheritdoc />
-    public void HandlePacket(byte[]? packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(byte[]? packet, IConnection connection)
     {
         if (packet == null)
         {
@@ -171,7 +179,9 @@ public sealed class PacketDispatchChannel<TPacket>
     }
 
     /// <inheritdoc />
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
     {
         if (packet == null)
         {
@@ -184,7 +194,9 @@ public sealed class PacketDispatchChannel<TPacket>
     }
 
     /// <inheritdoc />
-    public void HandlePacket(in System.ReadOnlySpan<byte> packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacket(in System.ReadOnlySpan<byte> packet, IConnection connection)
     {
         if (packet.IsEmpty)
         {
@@ -198,7 +210,9 @@ public sealed class PacketDispatchChannel<TPacket>
     }
 
     /// <inheritdoc />
-    public void HandlePacketAsync(TPacket packet, Common.Connection.IConnection connection)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void HandlePacketAsync(TPacket packet, IConnection connection)
     {
         lock (_lock)
         {
@@ -230,6 +244,8 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task RunQueueLoopAsync()
     {
         try
@@ -241,7 +257,7 @@ public sealed class PacketDispatchChannel<TPacket>
 
                 // Dequeue and process packet
                 TPacket packet;
-                Common.Connection.IConnection? connection;
+                IConnection? connection;
 
                 lock (_lock)
                 {
@@ -274,14 +290,15 @@ public sealed class PacketDispatchChannel<TPacket>
         }
     }
 
-    private void OnConnectionClosed(object? sender, Common.Connection.IConnectEventArgs e)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void OnConnectionClosed(object? sender, IConnectEventArgs e)
     {
-        if (sender is not Common.Connection.IConnection connection) return;
+        if (sender is not IConnection connection) return;
 
         lock (_lock)
         {
-            if (_reverseMap.TryGetValue(connection,
-                out System.Collections.Generic.HashSet<ulong>? keys))
+            if (_reverseMap.TryGetValue(connection, out System.Collections.Generic.HashSet<ulong>? keys))
             {
                 foreach (ulong key in keys)
                 {

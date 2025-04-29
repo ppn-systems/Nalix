@@ -40,6 +40,8 @@ internal class TransportStream : System.IDisposable
 
     #endregion Properties
 
+    #region Constructor
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportStream"/> class.
     /// </summary>
@@ -56,6 +58,10 @@ internal class TransportStream : System.IDisposable
 
         _logger?.Debug("TransportStream created");
     }
+
+    #endregion Constructor
+
+    #region Public Methods
 
     /// <summary>
     /// Begins receiving data asynchronously.
@@ -241,6 +247,10 @@ internal class TransportStream : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void RemovePacketCached(System.Action handler) => _cache.PacketCached -= handler;
 
+    #endregion Public Methods
+
+    #region Private Methods
+
     /// <summary>
     /// Handles the completion of data reception.
     /// </summary>
@@ -357,17 +367,6 @@ internal class TransportStream : System.IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="TransportStream"/> instance.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        this.Dispose(true);
-        System.GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
     /// Disposes the managed and unmanaged resources.
     /// </summary>
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
@@ -398,6 +397,19 @@ internal class TransportStream : System.IDisposable
 
         _disposed = true;
         _logger?.Debug("TransportStream disposed");
+    }
+
+    #endregion Private Methods
+
+    /// <summary>
+    /// Disposes the resources used by the <see cref="TransportStream"/> instance.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Dispose()
+    {
+        this.Dispose(true);
+        System.GC.SuppressFinalize(this);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

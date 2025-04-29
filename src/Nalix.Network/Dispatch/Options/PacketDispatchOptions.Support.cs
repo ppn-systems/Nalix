@@ -1,8 +1,13 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
+using Nalix.Common.Package.Enums;
 using System;
+using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -12,18 +17,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T EnsureNotNull<T>(T value, string paramName) where T : class
         => value ?? throw new ArgumentNullException(paramName);
 
-    private record PacketAttributes(
-        PacketIdAttribute PacketId,
-        PacketTimeoutAttribute? Timeout,
-        PacketRateGroupAttribute? RateGroup,
-        PacketRateLimitAttribute? RateLimit,
-        PacketPermissionAttribute? Permission,
-        PacketEncryptionAttribute? Encryption
-    );
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static PacketAttributes GetPacketAttributes(MethodInfo method)
     => new(
         method.GetCustomAttribute<PacketIdAttribute>()!,
@@ -35,9 +33,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     );
 
-    private void LogHandlerError(Type returnType, Exception ex)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void Failure(Type returnType, Exception ex)
         => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
     {
         packet = TPacket.Compress(packet);
@@ -46,6 +46,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         await connection.SendAsync(packet);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool CheckRateLimit(string remoteEndPoint, PacketAttributes attributes, MethodInfo method)
     {
         if (attributes.RateLimit != null && !_rateLimiter.Check(
@@ -57,9 +58,130 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
+    {
+        PacketAttributes attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
+
+        return async (packet, connection) =>
+        {
+            Stopwatch? stopwatch = _isMetricsEnabled ? Stopwatch.StartNew() : null;
+
+            if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
+            {
+                _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
+                connection.Send(TPacket.Create(0, PacketCode.RateLimited));
+
+                return;
+            }
+
+            if (attributes.Permission?.Level > connection.Level)
+            {
+                _logger?.Warn("You do not have permission to perform this action.");
+                connection.Send(TPacket.Create(0, PacketCode.PermissionDenied));
+
+                return;
+            }
+
+            // Handle Compression (e.g., apply compression to packet)
+            try { packet = TPacket.Decompress(packet); }
+            catch (System.Exception ex)
+            {
+                _logger?.Error("Failed to decompress packet: {0}", ex.Message);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+
+                return;
+            }
+
+            if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
+            {
+                string message = $"Encrypted packet not allowed for command " +
+                                 $"'{attributes.PacketId.Id}' " +
+                                 $"from connection {connection.RemoteEndPoint}.";
+
+                _logger?.Warn(message);
+                connection.Send(TPacket.Create(0, PacketCode.PacketEncryption));
+
+                return;
+            }
+            else
+            {
+                // Handle Encryption (e.g., apply encryption to packet)
+                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Encryption);
+            }
+
+            try
+            {
+                object? result;
+
+                // Cache method invocation with improved performance
+                if (attributes.Timeout != null)
+                {
+                    using CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
+                    try
+                    {
+                        result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
+                    }
+                    catch (System.OperationCanceledException)
+                    {
+                        _logger?.Error("Packet '{0}' timed out after {1}ms.",
+                            attributes.PacketId.Id,
+                            attributes.Timeout.TimeoutMilliseconds);
+                        connection.Send(TPacket.Create(0, PacketCode.RequestTimeout));
+
+                        return;
+                    }
+                }
+                else
+                {
+                    result = method.Invoke(controllerInstance, [packet, connection]);
+                }
+
+                // Await the return result, could be ValueTask if method is synchronous
+                await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
+            }
+            catch (PackageException ex)
+            {
+                _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
+                               "Exception: {3}. Remote: {4}, Exception Details: {5}",
+                    attributes.PacketId.Id,           // Command ID
+                    controllerInstance.GetType().Name,// SessionController name
+                    method.Name,                      // Method name
+                    ex.GetType().Name,                // Exception type
+                    connection.RemoteEndPoint,        // Connection details for traceability
+                    ex.Message                        // Exception message itself
+                );
+                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+            }
+            catch (System.Exception ex)
+            {
+                _logger?.Error("Packet [Id={0}] ({1}.{2}) threw {3}: {4} [Remote: {5}]",
+                    attributes.PacketId.Id,
+                    controllerInstance.GetType().Name,
+                    method.Name,
+                    ex.GetType().Name,
+                    ex.Message,
+                    connection.RemoteEndPoint
+                );
+                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
+                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+            }
+            finally
+            {
+                if (stopwatch is not null)
+                {
+                    stopwatch.Stop();
+                    _metricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
+                }
+            }
+        };
+    }
+
     /// <summary>
     /// Determines the correct handler based on the method's return type.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(Type returnType) => returnType switch
     {
         Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
@@ -89,7 +211,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 {
                     await task;
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -102,7 +224,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     byte[] data = await task;
                     await connection.SendAsync(data);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -115,7 +237,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     Memory<byte> memory = await task;
                     await connection.SendAsync(memory);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -128,7 +250,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     TPacket packet = await task;
                     await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -140,7 +262,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 {
                     await task;
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -153,7 +275,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     byte[] data = await task;
                     await connection.SendAsync(data);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -166,7 +288,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     Memory<byte> memory = await task;
                     await connection.SendAsync(memory);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,
@@ -179,7 +301,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     TPacket packet = await task;
                     await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
                 }
-                catch (Exception ex) { this.LogHandlerError(returnType, ex); }
+                catch (Exception ex) { this.Failure(returnType, ex); }
             }
         }
         ,

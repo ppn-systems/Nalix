@@ -78,6 +78,8 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : Common.Package
     /// for logging, diagnostics, or future extensibility (e.g., execution hooks, cancellation, metrics).
     /// The call to the delegate is awaited with <c>ConfigureAwait(false)</c> to avoid context capture in asynchronous environments.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected static async System.Threading.Tasks.ValueTask ExecuteHandler(
         System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
         TPacket packet,
@@ -106,6 +108,8 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : Common.Package
     /// Exceptions thrown by the handler are caught and logged, but not rethrown. This prevents one faulty handler
     /// from crashing the dispatcher loop.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
         TPacket packet,
         Common.Connection.IConnection connection)
