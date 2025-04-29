@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       project:
-        description: 'The path to the main .csproj file'
+        description: 'The path(s) to the .csproj file(s), one per line'
         required: true
         type: string
       deploy:
@@ -13,7 +13,7 @@ on:
         type: boolean
         default: false
       test:
-        description: 'The path to the test project or .sln'
+        description: 'The path(s) to test .csproj or .sln file(s), one per line'
         required: true
         type: string
 
@@ -42,28 +42,59 @@ jobs:
             ${{ runner.os }}-nuget
 
       - name: Restore dependencies
-        run: dotnet restore "$PROJECT"
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              echo "🔧 Restoring $proj"
+              dotnet restore "$proj"
+            fi
+          done
 
       - name: Restore test dependencies
-        run: dotnet restore "$TEST"
+        run: |
+          echo "${{ inputs.test }}" | while read testproj; do
+            if [ -n "$testproj" ]; then
+              echo "🧪 Restoring $testproj"
+              dotnet restore "$testproj"
+            fi
+          done
 
-      - name: Build project
-        run: dotnet build "$PROJECT" --configuration Debug --no-restore
+      - name: Build all projects
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              echo "📦 Building $proj"
+              dotnet build "$proj" --configuration Debug --no-restore
+            fi
+          done
 
       - name: Run Xunit tests
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: dotnet test "$TEST" --configuration Debug --no-restore --verbosity normal
+          command: |
+            echo "${{ inputs.test }}" | while read testproj; do
+              if [ -n "$testproj" ]; then
+                echo "🧪 Testing $testproj"
+                dotnet test "$testproj" --configuration Debug --no-restore --verbosity normal
+              fi
+            done
 
       - name: Publish build output
         if: ${{ inputs.deploy }}
-        run: dotnet publish "$PROJECT" --configuration Debug --no-restore --no-build --output ./publish
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              name=$(basename "$proj" .csproj)
+              echo "🚀 Publishing $proj to ./publish/$name"
+              dotnet publish "$proj" --configuration Debug --no-restore --no-build --output "./publish/$name"
+            fi
+          done
 
       - name: Upload publish artifact
         if: ${{ inputs.deploy }}
         uses: actions/upload-artifact@v4
         with:
           name: publish
-          path: ${{ inputs.project }}/publish
+          path: ./publish
