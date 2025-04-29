@@ -2,14 +2,12 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    margin: 2rem 0;
-">
+    margin: 2rem 0;">
     <img src="https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico"
          alt="Nalix Icon"
          width="65"
          height="65"
-         style="border-radius: 8px;"
-    />
+         style="border-radius: 8px;"/>
     <div>
         <h1 style="
             font-size: 2.5rem;
@@ -18,16 +16,14 @@
             margin: 0;
             padding: 0;
             letter-spacing: 1px;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        ">
+            font-family: 'Segoe UI', Arial, sans-serif;">
             NALIX
         </h1>
         <div style="
             font-size: 1.1rem;
             color: #666;
             margin-top: 5px;
-            font-style: italic;
-        ">
+            font-style: italic;">
             Modern Real-Time Communication Solution
         </div>
     </div>

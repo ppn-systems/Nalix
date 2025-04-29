@@ -28,6 +28,5 @@ jobs:
         src/Nalix.Network.Web/Nalix.Network.Web.csproj
         src/Nalix.Shared/Nalix.Shared.csproj
         src/Nalix.Storage/Nalix.Storage.csproj
-      test: |
-        tests/Nalix.Tests.sln
+      test: tests/Nalix.Tests.sln
       deploy: false

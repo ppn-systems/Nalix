@@ -49,6 +49,7 @@ jobs:
               dotnet restore "$proj"
             fi
           done
+        shell: bash
 
       - name: Restore test dependencies
         run: |
@@ -58,6 +59,7 @@ jobs:
               dotnet restore "$testproj"
             fi
           done
+        shell: bash
 
       - name: Build all projects
         run: |
@@ -67,19 +69,14 @@ jobs:
               dotnet build "$proj" --configuration Debug --no-restore
             fi
           done
+        shell: bash
 
       - name: Run Xunit tests
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: |
-            echo "${{ inputs.test }}" | while read testproj; do
-              if [ -n "$testproj" ]; then
-                echo "🧪 Testing $testproj"
-                dotnet test "$testproj" --configuration Debug --no-restore --verbosity normal
-              fi
-            done
+          command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal
 
       - name: Publish build output
         if: ${{ inputs.deploy }}
@@ -91,6 +88,7 @@ jobs:
               dotnet publish "$proj" --configuration Debug --no-restore --no-build --output "./publish/$name"
             fi
           done
+        shell: bash
 
       - name: Upload publish artifact
         if: ${{ inputs.deploy }}
