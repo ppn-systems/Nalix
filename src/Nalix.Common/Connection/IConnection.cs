@@ -52,11 +52,6 @@ public partial interface IConnection : System.IDisposable
     PermissionLevel Level { get; set; }
 
     /// <summary>
-    /// Gets the current state of the connection.
-    /// </summary>
-    AuthState State { get; set; }
-
-    /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
     EncryptionType Encryption { get; set; }

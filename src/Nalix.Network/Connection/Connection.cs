@@ -127,9 +127,6 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public EncryptionType Encryption { get; set; } = EncryptionType.XTEA;
 
-    /// <inheritdoc />
-    public AuthState State { get; set; } = AuthState.Connected;
-
     #endregion Properties
 
     #region Events
@@ -171,8 +168,6 @@ public sealed partial class Connection : IConnection
                 return;
 
             if (_disposed) return;
-
-            this.State = AuthState.Disconnected;
 
             _ctokens.Cancel();
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
