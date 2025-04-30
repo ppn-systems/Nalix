@@ -3,6 +3,10 @@ name: _Template Build
 on:
   workflow_call:
     inputs:
+      os:
+        description: 'Target OS to run build (ubuntu-latest, windows-latest, macos-latest)'
+        required: true
+        type: string
       project:
         description: 'The path(s) to the .csproj file(s), one per line'
         required: true
@@ -19,10 +23,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ inputs.os }}
 
     steps:
       - name: Checkout source code
@@ -76,7 +77,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal
+          command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal -m:1
 
       - name: Publish build output
         if: ${{ inputs.deploy }}

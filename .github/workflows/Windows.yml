@@ -1,0 +1,33 @@
+name: Windows
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+  issues: write  # Only necessary if your workflow creates or modifies issues.
+  pull-requests: write  # Only necessary if your workflow modifies pull requests.
+  packages: read  # For accessing and downloading packages, if applicable.
+  actions: read  # For reading actions used in the workflow.
+  security-events: write  # If your workflow interacts with security events.
+
+jobs:
+  build-library:
+    uses: ./.github/workflows/_build.yml
+    with:
+      os: windows-latest
+      project:  |
+        src/Nalix/Nalix.csproj
+        src/Nalix.Common/Nalix.Common.csproj
+        src/Nalix.Cryptography/Nalix.Cryptography.csproj
+        src/Nalix.Logging/Nalix.Logging.csproj
+        src/Nalix.Network/Nalix.Network.csproj
+        src/Nalix.Network.Package/Nalix.Network.Package.csproj
+        src/Nalix.Network.Web/Nalix.Network.Web.csproj
+        src/Nalix.Shared/Nalix.Shared.csproj
+        src/Nalix.Storage/Nalix.Storage.csproj
+      test: tests/Nalix.Tests.sln
+      deploy: false

@@ -10,6 +10,14 @@
 
 Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
+## 🛠️ Latest Builds
+
+| Enviroment | Status |
+|------------|--------|
+|![win](https://badgen.net/badge/icon/Windows,.NET%209?icon=windows&label&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)        |
+|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)|
+|![mac](https://badgen.net/badge/icon/macOS%20Latest?icon=apple&label&color=purple&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)|
+
 ## ✨ Features
 
 - 🔄 **Real-time communication** – Supports instant messaging and state synchronization.
