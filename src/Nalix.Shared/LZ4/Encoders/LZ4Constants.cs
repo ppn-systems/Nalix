@@ -1,21 +1,32 @@
 namespace Nalix.Shared.LZ4.Encoders;
 
 /// <summary>
-/// Shared constants.
+/// Provides LZ4-related compression constants used across the encoder implementation.
 /// </summary>
-internal static class LZ4Constants
+public static class LZ4Constants
 {
+    /// <summary>
+    /// The minimum length of a match for LZ4 compression.
+    /// </summary>
     public const int MinMatchLength = 4;
-    public const int MaxOffset = 65535; // Limited by ushort offset storage
-    public const int LastLiteralSize = 5; // Need 5 bytes margin for last literal run encoding
 
-    // Token details (similar to LZ4)
-    // High 4 bits: Literal Length indicator
-    // Low 4 bits: Match Length indicator (relative to MinMatchLength)
+    /// <summary>
+    /// The maximum backward offset allowed for a match (limited by 16-bit offset).
+    /// </summary>
+    public const int MaxOffset = 65535;
 
-    // Max match length (relative) fitting directly in token
+    /// <summary>
+    /// The number of trailing bytes required to safely encode a final literal segment.
+    /// </summary>
+    public const int LastLiteralSize = 5;
+
+    /// <summary>
+    /// A bitmask for extracting the match length from the token (low 4 bits).
+    /// </summary>
     public const int TokenMatchMask = 0x0F;
 
-    // Max literal length fitting directly in token
+    /// <summary>
+    /// A bitmask for extracting the literal length from the token (high 4 bits).
+    /// </summary>
     public const int TokenLiteralMask = 0x0F;
 }

@@ -1,7 +1,6 @@
-using Nalix.Shared.LZ4.Internal;
-using System.Runtime.CompilerServices;
+using Nalix.Shared.LZ4.Encoders;
 
-namespace Nalix.Shared.LZ4.Encoders;
+namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
 /// Provides functionality for finding matches in input data using a hash table.
@@ -10,7 +9,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 internal static unsafe class Matcher
 {
     private const int HashTableBits = 16; // 64k entries
-    private const int HashShift = (32 - HashTableBits);
+    private const int HashShift = 32 - HashTableBits;
 
     /// <summary>
     /// Size of the hash table used for storing offsets of previously seen sequences.
@@ -50,7 +49,8 @@ internal static unsafe class Matcher
     /// <param name="searchStartPtr">Pointer to the start of the sliding window for searching.</param>
     /// <param name="currentInputOffset">Offset of the current input pointer relative to the input base.</param>
     /// <returns>A <see cref="Match"/> struct representing the longest match found, or a default value if no match is found.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         int* hashTable,
         byte* inputBase,
@@ -104,7 +104,7 @@ internal static unsafe class Matcher
     /// </summary>
     /// <param name="sequence">The 4-byte sequence to hash.</param>
     /// <returns>The hash value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint CalculateHash(uint sequence)
-        => (sequence * 2654435761u) >> HashShift;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static uint CalculateHash(uint sequence) => sequence * 2654435761u >> HashShift;
 }

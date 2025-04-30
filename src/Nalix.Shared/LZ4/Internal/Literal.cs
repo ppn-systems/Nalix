@@ -1,12 +1,10 @@
-using Nalix.Shared.LZ4.Internal;
-
-namespace Nalix.Shared.LZ4.Encoders;
+namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
 /// Provides methods to efficiently write literal bytes directly to a memory destination.
 /// This class is optimized for high-performance memory operations with minimal overhead.
 /// </summary>
-internal static unsafe class LiteralWriter
+internal static unsafe class Literal
 {
     /// <summary>
     /// Writes a sequence of literal bytes from a memory pointer to the destination.

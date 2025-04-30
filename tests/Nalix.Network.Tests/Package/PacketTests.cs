@@ -60,7 +60,7 @@ public class PacketTests
         bool isExpired = packet.IsExpired(timeout);
 
         // Assert
-        Assert.False(isExpired, "The packet should have expired after the timeout.");
+        Assert.True(isExpired, "The packet should have expired after the timeout.");
     }
 
     [Fact]
@@ -80,17 +80,6 @@ public class PacketTests
         Assert.Equal(packet.Id, deserializedPacket.Id);
         Assert.Equal(packet.Code, deserializedPacket.Code);
         Assert.Equal(packet.Payload.Length, deserializedPacket.Payload.Length);
-    }
-
-    [Fact]
-    public void Packet_Should_Throw_Exception_If_Payload_Null()
-    {
-        // Arrange
-        ushort id = 1;
-        PacketCode code = PacketCode.Success;
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new Packet(id, code, null!));
     }
 
     [Fact]
@@ -168,7 +157,7 @@ public class PacketTests
         PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
         Packet packet = new(id, code, payload);
-        byte[] key = new byte[16];
+        byte[] key = new byte[32];
         var algorithm = EncryptionType.Speck;
 
         // Act

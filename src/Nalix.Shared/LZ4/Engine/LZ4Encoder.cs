@@ -1,6 +1,4 @@
-using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Internal;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Shared.LZ4.Engine;
 
@@ -18,7 +16,11 @@ internal readonly struct LZ4Encoder
     /// The total number of bytes written to the output buffer (including the header),
     /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
-    public static unsafe int Encode(System.ReadOnlySpan<byte> input, System.Span<byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static unsafe int Encode(
+        System.ReadOnlySpan<byte> input,
+        System.Span<byte> output)
     {
         // Handle empty input
         if (input.IsEmpty)
@@ -54,9 +56,11 @@ internal readonly struct LZ4Encoder
     /// <param name="output">The buffer where the compressed data will be written. Must have enough capacity.</param>
     /// <param name="bytesWritten">The total number of bytes written to the output buffer.</param>
     /// <returns><c>true</c> if compression succeeds; otherwise, <c>false</c>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe bool Encode(
         System.ReadOnlySpan<byte> input,
-        [NotNullWhen(true)] System.Span<byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Span<byte> output,
         out int bytesWritten)
     {
         bytesWritten = 0;
@@ -96,10 +100,21 @@ internal readonly struct LZ4Encoder
     }
 
     /// <summary>
+    /// Initializes the hash table to zero.
+    /// </summary>
+    /// <param name="hashTable">A pointer to the hash table.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void InitializeHashTable(int* hashTable)
+        => new System.Span<byte>(hashTable, Matcher.MaxStackallocHashTableSize).Clear();
+
+    /// <summary>
     /// Writes a header for an empty input to the output buffer.
     /// </summary>
     /// <param name="output">The output buffer to write the header into.</param>
     /// <returns>The size of the header, or -1 if the buffer is too small.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static int WriteEmptyHeader(System.Span<byte> output)
     {
         if (output.Length < Header.Size)
@@ -116,16 +131,11 @@ internal readonly struct LZ4Encoder
     /// <param name="output">The output buffer to write the header into.</param>
     /// <param name="originalLength">The original length of the input data.</param>
     /// <param name="compressedLength">The total compressed length, including the header.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void WriteHeader(System.Span<byte> output, int originalLength, int compressedLength)
     {
         Header header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
     }
-
-    /// <summary>
-    /// Initializes the hash table to zero.
-    /// </summary>
-    /// <param name="hashTable">A pointer to the hash table.</param>
-    private static unsafe void InitializeHashTable(int* hashTable)
-        => new System.Span<byte>(hashTable, Matcher.MaxStackallocHashTableSize).Clear();
 }

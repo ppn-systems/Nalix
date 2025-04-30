@@ -31,7 +31,7 @@ public static unsafe class LZ4Encoder
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static int EncodeBlock(
+    public static int EncodeBlock(
         System.ReadOnlySpan<byte> input,
         System.Span<byte> output,
         int* hashTable)
@@ -142,12 +142,10 @@ public static unsafe class LZ4Encoder
         // Calculate required space for this sequence
         int tokenLength = 1;
         int literalHeaderLength = (literalLength >= LZ4Constants.TokenLiteralMask)
-            ? 1 + (literalLength - LZ4Constants.TokenLiteralMask) / 255
-            : 0;
+            ? 1 + (literalLength - LZ4Constants.TokenLiteralMask) / 255 : 0;
 
         int matchHeaderLength = (matchLength >= LZ4Constants.TokenMatchMask)
-            ? 1 + (matchLength - LZ4Constants.TokenMatchMask) / 255
-            : 0;
+            ? 1 + (matchLength - LZ4Constants.TokenMatchMask) / 255 : 0;
 
         int requiredSpace = tokenLength + literalHeaderLength + literalLength + sizeof(ushort) + matchHeaderLength;
 
@@ -166,7 +164,7 @@ public static unsafe class LZ4Encoder
         }
 
         // Write literals
-        LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
+        Literal.Write(ref outputPtr, literalStartPtr, literalLength);
 
         // Write offset
         MemOps.WriteUnaligned<ushort>(outputPtr, (ushort)offset);
@@ -212,7 +210,7 @@ public static unsafe class LZ4Encoder
             outputPtr += SpanKit.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
         }
 
-        LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
+        Literal.Write(ref outputPtr, literalStartPtr, literalLength);
         return true;
     }
 }
