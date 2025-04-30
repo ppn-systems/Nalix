@@ -1,4 +1,4 @@
-name: Linux
+name: Nalix Linux
 
 on:
   push:

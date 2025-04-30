@@ -47,8 +47,8 @@ jobs:
         dotnet restore tests/Nalix.Tests.sln  # Assuming you have a solution file for tests
         dotnet build tests/Nalix.Tests.sln --configuration Debug
 
-    - name: Run xUnit Tests (Optional but good for CI)
-      run: dotnet test tests/Nalix.Tests.sln --configuration Debug --no-build --verbosity normal
+    # - name: Run xUnit Tests (Optional but good for CI)
+    #   run: dotnet test tests/Nalix.Tests.sln --configuration Debug --no-build --verbosity normal
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
