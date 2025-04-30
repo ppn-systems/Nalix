@@ -56,6 +56,22 @@ public sealed class SHA256 : ISHA, IDisposable
     }
 
     /// <summary>
+    /// Computes the SHA-256 hash of the input data and writes the result to the provided output buffer.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <param name="output">The output buffer where the 32-byte hash will be written. Must be at least 32 bytes long.</param>
+    /// <exception cref="ArgumentException">Thrown if the output buffer is smaller than 32 bytes.</exception>
+    public static void HashData(ReadOnlySpan<byte> data, Span<byte> output)
+    {
+        if (output.Length < 32)
+            throw new ArgumentException("Output buffer must be at least 32 bytes", nameof(output));
+
+        using SHA256 sha256 = new();
+        sha256.Update(data);
+        sha256.FinalizeHash().AsSpan().CopyTo(output);
+    }
+
+    /// <summary>
     /// Resets the hash state to its initial values.
     /// </summary>
     /// <remarks>

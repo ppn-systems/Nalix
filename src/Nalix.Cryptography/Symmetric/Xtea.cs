@@ -1,3 +1,4 @@
+using Nalix.Cryptography.Hashing;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -82,6 +83,22 @@ public static unsafe class Xtea
     #endregion Core Encryption/Decryption Methods
 
     #region Public API Methods
+
+    /// <summary>
+    /// Derives a 128-bit (16-byte) key suitable for XTEA from an arbitrary-length input key.
+    /// </summary>
+    /// <param name="inputKey">The input key data, which can be any length.</param>
+    /// <returns>A 16-byte key derived from the SHA-256 hash of the input.</returns>
+    /// <remarks>
+    /// This method uses SHA-256 to hash the input key and truncates the result to 16 bytes
+    /// (128 bits), which is the required key size for the XTEA algorithm.
+    /// </remarks>
+    public static byte[] DeriveXteaKey(ReadOnlySpan<byte> inputKey)
+    {
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(inputKey, hash);
+        return hash[..16].ToArray(); // Only use 128-bit for XTEA
+    }
 
     /// <summary>
     /// Encrypts data using XTEA algorithm

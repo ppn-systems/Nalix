@@ -4,6 +4,8 @@ using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
 using Nalix.Randomization;
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
 
 namespace Nalix.Cryptography;
 
@@ -23,7 +25,7 @@ public static class Ciphers
     /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
     public static Memory<byte> Encrypt(
         Memory<byte> data, byte[] key,
-        EncryptionType algorithm = EncryptionType.XTEA)
+        EncryptionType algorithm)
     {
         if (key == null)
             throw new ArgumentNullException(
@@ -32,6 +34,9 @@ public static class Ciphers
         if (data.IsEmpty)
             throw new ArgumentException(
                 "Data cannot be empty. Please provide data to encrypt.", nameof(data));
+
+        if (!Enum.IsDefined(algorithm))
+            throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
 
         try
         {
@@ -69,18 +74,21 @@ public static class Ciphers
 
                 case EncryptionType.Speck:
                     {
-                        byte[] output = new byte[data.Length];
                         int blockSize = 8;
-                        int fullBlocks = data.Length / blockSize;
+                        int bufferSize = (data.Length + blockSize - 1) & ~(blockSize - 1); // Align to blockSize
 
+                        byte[] paddedData = new byte[bufferSize];
+                        data.Span.CopyTo(paddedData);
+
+                        byte[] output = new byte[paddedData.Length];
                         Span<byte> outputSpan = output.AsSpan();
 
-                        for (int i = 0; i < fullBlocks; i++)
+                        for (int i = 0; i < paddedData.Length / blockSize; i++)
                         {
-                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
+                            ReadOnlySpan<byte> block = paddedData.AsSpan().Slice(i * blockSize, blockSize);
                             Span<byte> destination = outputSpan.Slice(i * blockSize, blockSize);
 
-                            Speck.Encrypt(block, key, destination);
+                            Speck.Encrypt(block, Xtea.DeriveXteaKey(key), destination);
                         }
 
                         return output;
@@ -114,18 +122,19 @@ public static class Ciphers
 
                 case EncryptionType.XTEA:
                     {
-                        int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
-                        byte[] encryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
+                        int originalLength = data.Length;
+                        int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
 
-                        try
-                        {
-                            Xtea.Encrypt(data.Span, key, encryptedXtea.AsSpan()[..bufferSize]);
-                            return encryptedXtea.AsMemory(0, bufferSize);
-                        }
-                        finally
-                        {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(encryptedXtea);
-                        }
+                        Span<byte> paddedInput = stackalloc byte[bufferSize];
+                        data.Span.CopyTo(paddedInput); // Zero-padding
+
+                        byte[] encrypted = new byte[4 + bufferSize]; // 4 byte prefix + ciphertext
+                        BinaryPrimitives.WriteInt32LittleEndian(encrypted.AsSpan(0, 4), originalLength);
+
+                        // Encrypt into encrypted[4..]
+                        Xtea.Encrypt(paddedInput, Xtea.DeriveXteaKey(key), encrypted.AsSpan(4));
+
+                        return encrypted;
                     }
 
                 default:
@@ -159,6 +168,9 @@ public static class Ciphers
 
         if (data.IsEmpty)
             throw new ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
+
+        if (!Enum.IsDefined(algorithm))
+            throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
 
         try
         {
@@ -204,21 +216,23 @@ public static class Ciphers
 
                 case EncryptionType.Speck:
                     {
-                        byte[] output = new byte[data.Length];
-                        int blockSize = 8;
-                        int fullBlocks = data.Length / blockSize;
+                        if (data.Length % 8 != 0)
+                            throw new ArgumentException(
+                                "Data length must be a multiple of 8 bytes for Speck encryption.", nameof(data));
 
+                        byte[] output = new byte[data.Length];
                         Span<byte> outputSpan = output.AsSpan();
 
-                        for (int i = 0; i < fullBlocks; i++)
+                        for (int i = 0; i < data.Length / 8; i++)
                         {
-                            ReadOnlySpan<byte> block = data.Span.Slice(i * blockSize, blockSize);
-                            Span<byte> destination = outputSpan.Slice(i * blockSize, blockSize);
+                            ReadOnlySpan<byte> block = data.Span.Slice(i * 8, 8);
+                            Span<byte> destination = outputSpan.Slice(i * 8, 8);
 
-                            Speck.Decrypt(block, key, destination);
+                            Speck.Decrypt(block, Xtea.DeriveXteaKey(key), destination);
                         }
 
-                        return output;
+                        // Return only the original length (remove any padding)
+                        return output.AsMemory(0, data.Length); // Remove padding
                     }
 
                 case EncryptionType.TwofishECB:
@@ -245,23 +259,25 @@ public static class Ciphers
 
                 case EncryptionType.XTEA:
                     {
-                        int bufferSize = (data.Length + 7) & ~7; // Align to 8-byte boundary
-                        byte[] decryptedXtea = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
+                        if (data.Length < 4)
+                            throw new CryptoException("Invalid encrypted data format.");
+
+                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        int encryptedLength = data.Length - 4;
+
+                        if (originalLength < 0 || originalLength > encryptedLength)
+                            throw new CryptoException("Corrupted length header.");
+
+                        byte[] decrypted = ArrayPool<byte>.Shared.Rent(encryptedLength);
 
                         try
                         {
-                            Xtea.Decrypt(data.Span, key, decryptedXtea.AsSpan()[..bufferSize]);
-
-                            return decryptedXtea.AsMemory(0, bufferSize);
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new CryptoException(
-                                "Decryption failed. Security of the data has failed.", ex);
+                            Xtea.Decrypt(data.Span[4..], Xtea.DeriveXteaKey(key), decrypted.AsSpan(0, encryptedLength));
+                            return decrypted.AsMemory(0, originalLength); // Trim padding
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(decryptedXtea);
+                            ArrayPool<byte>.Shared.Return(decrypted);
                         }
                     }
 
@@ -291,7 +307,7 @@ public static class Ciphers
     public static bool TryEncrypt(
         Memory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
-        EncryptionType mode = EncryptionType.XTEA)
+        EncryptionType mode)
     {
         try
         {
@@ -318,7 +334,7 @@ public static class Ciphers
     public static bool TryDecrypt(
         Memory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
-        EncryptionType mode = EncryptionType.XTEA)
+        EncryptionType mode)
     {
         try
         {

@@ -5,132 +5,131 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Nalix.Test.Cryptography
+namespace Nalix.Test.Cryptography;
+
+public class CiphersTests
 {
-    public class CiphersTests
+    // Test data (Dữ liệu test)
+    private readonly byte[] _validKey = new byte[32]; // Key 32 bytes
+
+    private readonly Memory<byte> _validData; // Dữ liệu hợp lệ
+
+    public CiphersTests()
     {
-        // Test data (Dữ liệu test)
-        private readonly byte[] _validKey = new byte[32]; // Key 32 bytes
+        // Initialize test data (Khởi tạo dữ liệu test)
+        Random.Shared.NextBytes(_validKey);
+        _validData = Encoding.UTF8.GetBytes("Hello, this is test data!").AsMemory();
+    }
 
-        private readonly Memory<byte> _validData; // Dữ liệu hợp lệ
+    [Fact(DisplayName = "Encrypt - With valid inputs should succeed")] // Kiểm tra mã hóa với đầu vào hợp lệ
+    public void Encrypt_WithValidInputs_ShouldSucceed()
+    {
+        // Arrange & Act
+        var result = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
 
-        public CiphersTests()
-        {
-            // Initialize test data (Khởi tạo dữ liệu test)
-            Random.Shared.NextBytes(_validKey);
-            _validData = Encoding.UTF8.GetBytes("Hello, this is test data!").AsMemory();
-        }
+        // Assert
+        Assert.True(result.Length > 0);
+    }
 
-        [Fact(DisplayName = "Encrypt - With valid inputs should succeed")] // Kiểm tra mã hóa với đầu vào hợp lệ
-        public void Encrypt_WithValidInputs_ShouldSucceed()
-        {
-            // Arrange & Act
-            var result = Ciphers.Encrypt(_validData, _validKey);
+    [Fact(DisplayName = "Decrypt - Should return original data")] // Kiểm tra giải mã trả về dữ liệu gốc
+    public void Decrypt_ShouldReturnOriginalData()
+    {
+        // Arrange
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
 
-            // Assert
-            Assert.True(result.Length > 0);
-        }
+        // Act
+        var decrypted = Ciphers.Decrypt(encrypted, _validKey);
 
-        [Fact(DisplayName = "Decrypt - Should return original data")] // Kiểm tra giải mã trả về dữ liệu gốc
-        public void Decrypt_ShouldReturnOriginalData()
-        {
-            // Arrange
-            var encrypted = Ciphers.Encrypt(_validData, _validKey);
+        // Assert
+        Assert.Equal(_validData.ToArray(), decrypted.ToArray());
+    }
 
-            // Act
-            var decrypted = Ciphers.Decrypt(encrypted, _validKey);
+    [Theory(DisplayName = "Encrypt - Should work with different algorithms")] // Kiểm tra mã hóa với các thuật toán khác nhau
+    [InlineData(EncryptionType.ChaCha20Poly1305)]
+    [InlineData(EncryptionType.Salsa20)]
+    [InlineData(EncryptionType.Speck)]
+    [InlineData(EncryptionType.TwofishECB)]
+    [InlineData(EncryptionType.TwofishCBC)]
+    [InlineData(EncryptionType.XTEA)]
+    public void Encrypt_ShouldWorkWithDifferentAlgorithms(EncryptionType algorithm)
+    {
+        // Arrange & Act
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, algorithm);
+        var decrypted = Ciphers.Decrypt(encrypted, _validKey, algorithm);
 
-            // Assert
-            Assert.Equal(_validData.ToArray(), decrypted.ToArray());
-        }
+        // Assert
+        Assert.Equal(_validData.ToArray(), decrypted.ToArray());
+    }
 
-        [Theory(DisplayName = "Encrypt - Should work with different algorithms")] // Kiểm tra mã hóa với các thuật toán khác nhau
-        [InlineData(EncryptionType.ChaCha20Poly1305)]
-        [InlineData(EncryptionType.Salsa20)]
-        [InlineData(EncryptionType.Speck)]
-        [InlineData(EncryptionType.TwofishECB)]
-        [InlineData(EncryptionType.TwofishCBC)]
-        [InlineData(EncryptionType.XTEA)]
-        public void Encrypt_ShouldWorkWithDifferentAlgorithms(EncryptionType algorithm)
-        {
-            // Arrange & Act
-            var encrypted = Ciphers.Encrypt(_validData, _validKey, algorithm);
-            var decrypted = Ciphers.Decrypt(encrypted, _validKey, algorithm);
+    [Fact(DisplayName = "Encrypt - Null key should throw ArgumentNullException")] // Kiểm tra ném ngoại lệ khi key null
+    public void Encrypt_NullKey_ShouldThrowArgumentNullException()
+    {
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            Ciphers.Encrypt(_validData, null!, EncryptionType.XTEA));
 
-            // Assert
-            Assert.Equal(_validData.ToArray(), decrypted.ToArray());
-        }
+        Assert.Equal("key", exception.ParamName);
+    }
 
-        [Fact(DisplayName = "Encrypt - Null key should throw ArgumentNullException")] // Kiểm tra ném ngoại lệ khi key null
-        public void Encrypt_NullKey_ShouldThrowArgumentNullException()
-        {
-            // Act & Assert
-            var exception = Assert.Throws<ArgumentNullException>(() =>
-                Ciphers.Encrypt(_validData, null!));
+    [Fact(DisplayName = "Encrypt - Empty data should throw ArgumentException")] // Kiểm tra ném ngoại lệ khi dữ liệu trống
+    public void Encrypt_EmptyData_ShouldThrowArgumentException()
+    {
+        // Arrange
+        Memory<byte> emptyData = Array.Empty<byte>();
 
-            Assert.Equal("key", exception.ParamName);
-        }
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Ciphers.Encrypt(emptyData, _validKey, EncryptionType.XTEA));
 
-        [Fact(DisplayName = "Encrypt - Empty data should throw ArgumentException")] // Kiểm tra ném ngoại lệ khi dữ liệu trống
-        public void Encrypt_EmptyData_ShouldThrowArgumentException()
-        {
-            // Arrange
-            Memory<byte> emptyData = Array.Empty<byte>();
+        Assert.Contains("Data cannot be empty", exception.Message);
+    }
 
-            // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() =>
-                Ciphers.Encrypt(emptyData, _validKey));
+    [Fact(DisplayName = "TryEncrypt - Should return true for valid inputs")] // Kiểm tra TryEncrypt với đầu vào hợp lệ
+    public void TryEncrypt_ValidInputs_ShouldReturnTrue()
+    {
+        // Act
+        bool success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted, EncryptionType.XTEA);
 
-            Assert.Contains("Data cannot be empty", exception.Message);
-        }
+        // Assert
+        Assert.True(success);
+        Assert.NotEqual(default, encrypted);
+    }
 
-        [Fact(DisplayName = "TryEncrypt - Should return true for valid inputs")] // Kiểm tra TryEncrypt với đầu vào hợp lệ
-        public void TryEncrypt_ValidInputs_ShouldReturnTrue()
-        {
-            // Act
-            bool success = Ciphers.TryEncrypt(_validData, _validKey, out var encrypted);
+    [Fact(DisplayName = "TryDecrypt - Should return true for valid inputs")] // Kiểm tra TryDecrypt với đầu vào hợp lệ
+    public void TryDecrypt_ValidInputs_ShouldReturnTrue()
+    {
+        // Arrange
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
 
-            // Assert
-            Assert.True(success);
-            Assert.NotEqual(default, encrypted);
-        }
+        // Act
+        bool success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted, EncryptionType.XTEA);
 
-        [Fact(DisplayName = "TryDecrypt - Should return true for valid inputs")] // Kiểm tra TryDecrypt với đầu vào hợp lệ
-        public void TryDecrypt_ValidInputs_ShouldReturnTrue()
-        {
-            // Arrange
-            var encrypted = Ciphers.Encrypt(_validData, _validKey);
+        // Assert
+        Assert.True(success);
+        Assert.Equal(_validData.ToArray(), decrypted.ToArray());
+    }
 
-            // Act
-            bool success = Ciphers.TryDecrypt(encrypted, _validKey, out var decrypted);
+    [Fact(DisplayName = "TryEncrypt - Should return false for invalid inputs")] // Kiểm tra TryEncrypt với đầu vào không hợp lệ
+    public void TryEncrypt_InvalidInputs_ShouldReturnFalse()
+    {
+        // Act
+        bool success = Ciphers.TryEncrypt(_validData, null!, out var encrypted, EncryptionType.XTEA);
 
-            // Assert
-            Assert.True(success);
-            Assert.Equal(_validData.ToArray(), decrypted.ToArray());
-        }
+        // Assert
+        Assert.False(success);
+        Assert.Equal(default, encrypted);
+    }
 
-        [Fact(DisplayName = "TryEncrypt - Should return false for invalid inputs")] // Kiểm tra TryEncrypt với đầu vào không hợp lệ
-        public void TryEncrypt_InvalidInputs_ShouldReturnFalse()
-        {
-            // Act
-            bool success = Ciphers.TryEncrypt(_validData, null!, out var encrypted);
+    [Fact(DisplayName = "Decrypt - Invalid algorithm should throw CryptoException")] // Kiểm tra ném ngoại lệ khi thuật toán không hợp lệ
+    public void Decrypt_InvalidAlgorithm_ShouldThrowCryptoException()
+    {
+        // Arrange
+        var encrypted = Ciphers.Encrypt(_validData, _validKey, EncryptionType.XTEA);
 
-            // Assert
-            Assert.False(success);
-            Assert.Equal(default, encrypted);
-        }
+        // Act & Assert
+        var exception = Assert.Throws<CryptoException>(() =>
+            Ciphers.Decrypt(encrypted, _validKey, (EncryptionType)255));
 
-        [Fact(DisplayName = "Decrypt - Invalid algorithm should throw CryptoException")] // Kiểm tra ném ngoại lệ khi thuật toán không hợp lệ
-        public void Decrypt_InvalidAlgorithm_ShouldThrowCryptoException()
-        {
-            // Arrange
-            var encrypted = Ciphers.Encrypt(_validData, _validKey);
-
-            // Act & Assert
-            var exception = Assert.Throws<CryptoException>(() =>
-                Ciphers.Decrypt(encrypted, _validKey, (EncryptionType)255));
-
-            Assert.Contains("not supported", exception.Message);
-        }
+        Assert.Contains("not supported", exception.Message);
     }
 }
