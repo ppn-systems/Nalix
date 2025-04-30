@@ -79,10 +79,7 @@ internal static class HexExtensions
             return false;
 
         foreach (char c in hex)
-        {
-            if (!Uri.IsHexDigit(c))
-                return false;
-        }
+            if (!Uri.IsHexDigit(c)) return false;
 
         return true;
     }

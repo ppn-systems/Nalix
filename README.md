@@ -41,7 +41,7 @@ Nalix is a real-time server solution designed for efficient communication and da
 - Console Debug Logging
 - XUnit Testing
 
-    [![My Skills](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
+    [![Technologies](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
 
 ## 📦 Available NuGet Packages
 
