@@ -3,6 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Security.Guard;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -23,9 +24,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Constants
 
-    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes RequiredMembers =
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
+    private const DynamicallyAccessedMemberTypes RequiredMembers =
+        DynamicallyAccessedMemberTypes.PublicMethods |
+        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
 
     #endregion Constants
 
