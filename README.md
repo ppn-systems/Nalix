@@ -14,9 +14,9 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 | Enviroment | Status |
 |------------|--------|
-|![win](https://badgen.net/badge/icon/Windows,.NET%209?icon=windows&label&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)        |
-|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)|
-|![mac](https://badgen.net/badge/icon/macOS%20Latest?icon=apple&label&color=purple&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/_workflow.yml)|
+|![win](https://badgen.net/badge/icon/Windows,.NET%209?icon=windows&label&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/Windows.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/Windows.yml)        |
+|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/Linux.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/Linux.yml)|
+|![mac](https://badgen.net/badge/icon/macOS%20Latest?icon=apple&label&color=purple&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/MacOs.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/MacOs.yml)|
 
 ## ✨ Features
 
