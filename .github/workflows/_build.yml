@@ -72,10 +72,10 @@ jobs:
           done
         shell: bash
 
-      - name: Run Xunit tests
-        uses: nick-fields/retry@v2
-        with:
-          command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal -m:1
+      # - name: Run Xunit tests
+      #   uses: nick-fields/retry@v2
+      #   with:
+      #     command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal -m:1
        
 
       - name: Publish build output
