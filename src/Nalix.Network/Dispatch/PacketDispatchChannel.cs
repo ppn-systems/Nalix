@@ -45,7 +45,7 @@ namespace Nalix.Network.Dispatch;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
-    : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable, IReportable
+    : PacketDispatcherBase<IPacket>, IPacketDispatch, System.IDisposable, IActivatable, IReportable
 {
     #region Fields
 

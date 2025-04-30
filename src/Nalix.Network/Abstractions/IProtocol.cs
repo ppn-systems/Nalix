@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Infrastructure.Connection;
 
@@ -9,7 +10,7 @@ namespace Nalix.Network.Abstractions;
 /// Interface representing a network protocol.
 /// BuiltInHandlers this interface to define how a network protocol handles connections and messages.
 /// </summary>
-public interface IProtocol : System.IDisposable
+public interface IProtocol : System.IDisposable, IReportable
 {
     /// <summary>
     /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.

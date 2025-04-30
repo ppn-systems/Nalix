@@ -16,7 +16,7 @@ namespace Nalix.Network.Dispatch;
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("PacketDispatch: Logger={Logger != null}")]
 [System.Obsolete("Use more advanced PacketDispatchChannel with explicit handler registration instead.")]
-public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>
+public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispatch
 {
     private readonly IPacketCatalog _catalog;
 
@@ -88,4 +88,9 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+
+
+    /// <inheritdoc />
+    public System.String GenerateReport() => throw new System.NotImplementedException();
+
 }

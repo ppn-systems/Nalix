@@ -10,9 +10,6 @@ namespace Nalix.Network.Abstractions;
 /// Defines the contract for a dispatch channel that manages the queuing, retrieval,
 /// and association of packets with connections.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The type of packet used in the dispatch channel, which must implement the <see cref="IPacket"/> interface.
-/// </typeparam>
 public interface IDispatchChannel<TPacket> where TPacket : IPacket
 {
     /// <summary>
