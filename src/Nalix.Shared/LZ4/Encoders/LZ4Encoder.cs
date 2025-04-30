@@ -87,7 +87,7 @@ public static unsafe class LZ4Encoder
             byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4Constants.MaxOffset);
 
             // Find the longest match for the current input block
-            Matcher.Match match = Matcher.FindLongestMatch(
+            MatchFinder.Match match = MatchFinder.FindLongestMatch(
                 hashTable,
                 inputBase,
                 inputPtr,
@@ -160,11 +160,11 @@ public static unsafe class LZ4Encoder
         // Write literal length
         if (literalLength >= LZ4Constants.TokenLiteralMask)
         {
-            outputPtr += SpanKit.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
+            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
         }
 
         // Write literals
-        Literal.Write(ref outputPtr, literalStartPtr, literalLength);
+        LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
 
         // Write offset
         MemOps.WriteUnaligned<ushort>(outputPtr, (ushort)offset);
@@ -173,7 +173,7 @@ public static unsafe class LZ4Encoder
         // Write match length
         if (matchLength >= LZ4Constants.MinMatchLength + LZ4Constants.TokenMatchMask)
         {
-            outputPtr += SpanKit.WriteVarInt(outputPtr, matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);
+            outputPtr += SpanOps.WriteVarInt(outputPtr, matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);
         }
 
         return true;
@@ -207,10 +207,10 @@ public static unsafe class LZ4Encoder
 
         if (literalLength >= LZ4Constants.TokenLiteralMask)
         {
-            outputPtr += SpanKit.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
+            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
         }
 
-        Literal.Write(ref outputPtr, literalStartPtr, literalLength);
+        LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
         return true;
     }
 }

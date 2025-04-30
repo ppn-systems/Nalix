@@ -6,7 +6,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// Provides functionality for finding matches in input data using a hash table.
 /// Optimized for high performance in LZ4 compression.
 /// </summary>
-internal static unsafe class Matcher
+internal static unsafe class MatchFinder
 {
     private const int HashTableBits = 16; // 64k entries
     private const int HashShift = 32 - HashTableBits;

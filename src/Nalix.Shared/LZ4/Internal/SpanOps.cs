@@ -3,7 +3,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// <summary>
 /// Helper methods for working with Spans.
 /// </summary>
-internal static unsafe class SpanKit
+internal static unsafe class SpanOps
 {
     /// <summary>
     /// Ensures the requested slice is within the span bounds.

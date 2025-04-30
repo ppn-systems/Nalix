@@ -31,7 +31,7 @@ internal readonly struct LZ4Encoder
             return -1;
 
         // Allocate hash table for compression
-        int* hashTable = stackalloc int[Matcher.HashTableSize];
+        int* hashTable = stackalloc int[MatchFinder.HashTableSize];
         InitializeHashTable(hashTable);
 
         // Compress the data
@@ -80,7 +80,7 @@ internal readonly struct LZ4Encoder
             return false;
 
         // Allocate hash table for compression
-        int* hashTable = stackalloc int[Matcher.HashTableSize];
+        int* hashTable = stackalloc int[MatchFinder.HashTableSize];
         InitializeHashTable(hashTable);
 
         // Compress the data
@@ -106,7 +106,7 @@ internal readonly struct LZ4Encoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe void InitializeHashTable(int* hashTable)
-        => new System.Span<byte>(hashTable, Matcher.MaxStackallocHashTableSize).Clear();
+        => new System.Span<byte>(hashTable, MatchFinder.MaxStackallocHashTableSize).Clear();
 
     /// <summary>
     /// Writes a header for an empty input to the output buffer.

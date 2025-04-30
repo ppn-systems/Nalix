@@ -95,7 +95,7 @@ public readonly struct LZ4Decoder
 
                 if (literalLength == LZ4Constants.TokenLiteralMask)
                 {
-                    int bytesRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
+                    int bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (bytesRead == -1 || extraLength < 0)
                         return false;
 
@@ -126,7 +126,7 @@ public readonly struct LZ4Decoder
                 int matchLength = token & LZ4Constants.TokenMatchMask;
                 if (matchLength == LZ4Constants.TokenMatchMask)
                 {
-                    int bytesRead = SpanKit.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
+                    int bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                     if (bytesRead == -1 || extraLength < 0)
                         return false;
 
