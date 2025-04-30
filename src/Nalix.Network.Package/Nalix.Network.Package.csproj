@@ -7,8 +7,8 @@
 		<OutputType>Library</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>0.7.39</Version>
-    <PackageVersion>0.7.39</PackageVersion>
+    <Version>0.7.82</Version>
+    <PackageVersion>0.7.82</PackageVersion>
 
     <Description>
 Nalix.Network.Package is a lightweight .NET library for structured packet-based communication. It provides utilities for packet serialization, metadata handling, extensions, and helper functions to streamline network message processing. Designed for developers who require efficient and scalable packet management in networking applications.
