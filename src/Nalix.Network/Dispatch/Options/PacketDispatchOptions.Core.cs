@@ -3,9 +3,6 @@ using Nalix.Common.Logging;
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Security.Guard;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -26,9 +23,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Constants
 
-    private const DynamicallyAccessedMemberTypes RequiredMembers =
-        DynamicallyAccessedMemberTypes.PublicMethods |
-        DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
+    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes RequiredMembers =
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
 
     #endregion Constants
 
@@ -64,7 +61,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
     /// </summary>
-    private readonly Dictionary<ushort, System.Func<TPacket, IConnection, Task>> _handlers = [];
+    private readonly System.Collections.Generic.Dictionary
+        <ushort, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlers = [];
 
     #endregion Fields
 

@@ -1,6 +1,5 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
-using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch;
 
@@ -13,9 +12,9 @@ namespace Nalix.Network.Dispatch;
 /// based on the registered command IDs. It logs errors and warnings when handling failures or unregistered commands.
 /// </remarks>
 /// <param name="options">
-/// A delegate used to configure <see cref="PacketDispatchOptions{TPacket}"/> before processing packets.
+/// A delegate used to configure <see cref="Options.PacketDispatchOptions{TPacket}"/> before processing packets.
 /// </param>
-public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<TPacket>> options)
+public sealed class PacketDispatch<TPacket>(System.Action<Options.PacketDispatchOptions<TPacket>> options)
     : PacketDispatchCore<TPacket>(options), IPacketDispatch<TPacket> where TPacket : IPacket,
     IPacketFactory<TPacket>,
     IPacketEncryptor<TPacket>,

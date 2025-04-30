@@ -2,8 +2,6 @@ using Nalix.Network.Security.Enums;
 using Nalix.Network.Security.Settings;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Configurations;
 
@@ -27,13 +25,14 @@ public sealed class RateLimitConfig(RequestLimitSettings settings) : Configurati
     private static readonly RequestLimitSettings HighSettings = new(500, 150, 120_000);
     private static readonly RequestLimitSettings UnlimitedSettings = new(1000, 60, 300_000);
 
-    private static readonly Dictionary<RequestLimitType, RequestLimitSettings> SettingsMap = new()
-    {
-        { RequestLimitType.Low, LowSettings },
-        { RequestLimitType.Medium, MediumSettings },
-        { RequestLimitType.High, HighSettings },
-        { RequestLimitType.Unlimited, UnlimitedSettings }
-    };
+    private static readonly System.Collections.Generic.Dictionary<RequestLimitType, RequestLimitSettings>
+        SettingsMap = new()
+        {
+            { RequestLimitType.Low, LowSettings },
+            { RequestLimitType.Medium, MediumSettings },
+            { RequestLimitType.High, HighSettings },
+            { RequestLimitType.Unlimited, UnlimitedSettings }
+        };
 
     #endregion Fields
 
@@ -113,7 +112,8 @@ public sealed class RateLimitConfig(RequestLimitSettings settings) : Configurati
     /// </summary>
     /// <param name="limit">The limit level.</param>
     /// <returns>A tuple with rate limit settings.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static RequestLimitSettings GetSettingsForLimit(RequestLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 

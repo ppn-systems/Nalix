@@ -1,3 +1,4 @@
+using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
@@ -30,7 +31,7 @@ public sealed class DispatchQueueConfig : ConfigurationBinder
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
-    [Shared.Configuration.Attributes.ConfiguredIgnore]
+    [ConfiguredIgnore]
     public System.TimeSpan Timeout { get; set; }
 
     /// <remarks>

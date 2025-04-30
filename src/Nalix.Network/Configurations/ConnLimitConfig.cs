@@ -2,8 +2,6 @@ using Nalix.Network.Security.Enums;
 using Nalix.Network.Security.Settings;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Configurations;
 
@@ -26,13 +24,14 @@ public sealed class ConnLimitConfig(ConnectionLimitSettings settings) : Configur
     private static readonly ConnectionLimitSettings HighSettings = new(500, 120_000, 600_000);
     private static readonly ConnectionLimitSettings UnlimitedSettings = new(10_000, 300_000, 1_800_000);
 
-    private static readonly Dictionary<ConnectionLimitType, ConnectionLimitSettings> SettingsMap = new()
-    {
-        { ConnectionLimitType.Low, LowSettings },
-        { ConnectionLimitType.Medium, MediumSettings },
-        { ConnectionLimitType.High, HighSettings },
-        { ConnectionLimitType.Unlimited, UnlimitedSettings }
-    };
+    private static readonly System.Collections.Generic.Dictionary<ConnectionLimitType, ConnectionLimitSettings>
+        SettingsMap = new()
+        {
+            { ConnectionLimitType.Low, LowSettings },
+            { ConnectionLimitType.Medium, MediumSettings },
+            { ConnectionLimitType.High, HighSettings },
+            { ConnectionLimitType.Unlimited, UnlimitedSettings }
+        };
 
     #endregion Predefined Connection Limit Settings
 
@@ -97,7 +96,8 @@ public sealed class ConnLimitConfig(ConnectionLimitSettings settings) : Configur
     /// <summary>
     /// Gets predefined settings for a connection limit level.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static ConnectionLimitSettings GetConnectionSettings(ConnectionLimitType limit)
         => SettingsMap.TryGetValue(limit, out var settings) ? settings : MediumSettings;
 

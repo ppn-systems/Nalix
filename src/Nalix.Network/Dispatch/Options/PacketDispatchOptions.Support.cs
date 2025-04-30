@@ -3,10 +3,8 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
-using System;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,11 +15,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static T EnsureNotNull<T>(T value, string paramName) where T : class
-        => value ?? throw new ArgumentNullException(paramName);
+        => value ?? throw new System.ArgumentNullException(paramName);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static PacketAttributes GetPacketAttributes(MethodInfo method)
     => new(
         method.GetCustomAttribute<PacketIdAttribute>()!,
@@ -33,11 +33,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     );
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Failure(Type returnType, Exception ex)
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Failure(System.Type returnType, System.Exception ex)
         => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
     {
         packet = TPacket.Compress(packet);
@@ -46,7 +48,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         await connection.SendAsync(packet);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private bool CheckRateLimit(string remoteEndPoint, PacketAttributes attributes, MethodInfo method)
     {
         if (attributes.RateLimit != null && !_rateLimiter.Check(
@@ -58,7 +61,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
     {
         PacketAttributes attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
@@ -181,134 +185,136 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Determines the correct handler based on the method's return type.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(Type returnType) => returnType switch
-    {
-        Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
-        Type t when t == typeof(byte[]) => async (result, _, connection) =>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(System.Type returnType)
+        => returnType switch
         {
-            if (result is byte[] data)
-                await connection.SendAsync(data);
-        }
-        ,
-        Type t when t == typeof(Memory<byte>) => async (result, _, connection) =>
-        {
-            if (result is Memory<byte> memory)
-                await connection.SendAsync(memory);
-        }
-        ,
-        Type t when t == typeof(TPacket) => async (result, _, connection) =>
-        {
-            if (result is TPacket packet)
-                await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
-        }
-        ,
-        Type t when t == typeof(ValueTask) => async (result, _, _) =>
-        {
-            if (result is ValueTask task)
+            System.Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
+            System.Type t when t == typeof(byte[]) => async (result, _, connection) =>
             {
-                try
-                {
-                    await task;
-                }
-                catch (Exception ex) { this.Failure(returnType, ex); }
-            }
-        }
-        ,
-        Type t when t == typeof(ValueTask<byte[]>) => async (result, _, connection) =>
-        {
-            if (result is ValueTask<byte[]> task)
-            {
-                try
-                {
-                    byte[] data = await task;
+                if (result is byte[] data)
                     await connection.SendAsync(data);
-                }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(ValueTask<Memory<byte>>) => async (result, _, connection) =>
-        {
-            if (result is ValueTask<Memory<byte>> task)
+            ,
+            System.Type t when t == typeof(System.Memory<byte>) => async (result, _, connection) =>
             {
-                try
-                {
-                    Memory<byte> memory = await task;
+                if (result is System.Memory<byte> memory)
                     await connection.SendAsync(memory);
-                }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(ValueTask<TPacket>) => async (result, _, connection) =>
-        {
-            if (result is ValueTask<TPacket> task)
+            ,
+            System.Type t when t == typeof(TPacket) => async (result, _, connection) =>
             {
-                try
-                {
-                    TPacket packet = await task;
+                if (result is TPacket packet)
                     await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
-                }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(Task) => async (result, _, _) =>
-        {
-            if (result is Task task)
+            ,
+            System.Type t when t == typeof(ValueTask) => async (result, _, _) =>
             {
-                try
+                if (result is ValueTask task)
                 {
-                    await task;
+                    try
+                    {
+                        await task;
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(Task<byte[]>) => async (result, _, connection) =>
-        {
-            if (result is Task<byte[]> task)
+            ,
+            System.Type t when t == typeof(ValueTask<byte[]>) => async (result, _, connection) =>
             {
-                try
+                if (result is ValueTask<byte[]> task)
                 {
-                    byte[] data = await task;
-                    await connection.SendAsync(data);
+                    try
+                    {
+                        byte[] data = await task;
+                        await connection.SendAsync(data);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(Task<Memory<byte>>) => async (result, _, connection) =>
-        {
-            if (result is Task<Memory<byte>> task)
+            ,
+            System.Type t when t == typeof(ValueTask<System.Memory<byte>>) => async (result, _, connection) =>
             {
-                try
+                if (result is ValueTask<System.Memory<byte>> task)
                 {
-                    Memory<byte> memory = await task;
-                    await connection.SendAsync(memory);
+                    try
+                    {
+                        System.Memory<byte> memory = await task;
+                        await connection.SendAsync(memory);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        Type t when t == typeof(Task<TPacket>) => async (result, _, connection) =>
-        {
-            if (result is Task<TPacket> task)
+            ,
+            System.Type t when t == typeof(ValueTask<TPacket>) => async (result, _, connection) =>
             {
-                try
+                if (result is ValueTask<TPacket> task)
                 {
-                    TPacket packet = await task;
-                    await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
+                    try
+                    {
+                        TPacket packet = await task;
+                        await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }
-                catch (Exception ex) { this.Failure(returnType, ex); }
             }
-        }
-        ,
-        _ => (_, _, _) =>
-        {
-            _logger?.Warn("Unsupported return type: {0}", returnType.Name);
-            return Task.CompletedTask;
-        }
-    };
+            ,
+            System.Type t when t == typeof(Task) => async (result, _, _) =>
+            {
+                if (result is Task task)
+                {
+                    try
+                    {
+                        await task;
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            System.Type t when t == typeof(Task<byte[]>) => async (result, _, connection) =>
+            {
+                if (result is Task<byte[]> task)
+                {
+                    try
+                    {
+                        byte[] data = await task;
+                        await connection.SendAsync(data);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            System.Type t when t == typeof(Task<System.Memory<byte>>) => async (result, _, connection) =>
+            {
+                if (result is Task<System.Memory<byte>> task)
+                {
+                    try
+                    {
+                        System.Memory<byte> memory = await task;
+                        await connection.SendAsync(memory);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            System.Type t when t == typeof(Task<TPacket>) => async (result, _, connection) =>
+            {
+                if (result is Task<TPacket> task)
+                {
+                    try
+                    {
+                        TPacket packet = await task;
+                        await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            _ => (_, _, _) =>
+            {
+                _logger?.Warn("Unsupported return type: {0}", returnType.Name);
+                return Task.CompletedTask;
+            }
+        };
 }
