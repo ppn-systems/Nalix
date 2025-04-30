@@ -4,8 +4,6 @@ using Nalix.Common.Cryptography;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
 using Nalix.Common.Security;
-using Nalix.Identifiers;
-using Nalix.Network.Connection.Transport;
 
 namespace Nalix.Network.Connection;
 
@@ -16,11 +14,11 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly Base36Id _id;
+    private readonly IEncodedId _id;
     private readonly ILogger? _logger;
-    private readonly TransportStream _cstream;
     private readonly System.Threading.Lock _lock;
     private readonly System.Net.Sockets.Socket _socket;
+    private readonly Transport.TransportStream _cstream;
     private readonly System.Threading.CancellationTokenSource _ctokens;
 
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
@@ -45,12 +43,12 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _lock = new System.Threading.Lock();
-        _id = Base36Id.NewId(IdentifierType.Session);
+        _id = Identifiers.Base36Id.NewId(IdentifierType.Session);
         _ctokens = new System.Threading.CancellationTokenSource();
 
         _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
         _logger = logger;
-        _cstream = new TransportStream(socket, bufferAllocator, _logger)
+        _cstream = new Transport.TransportStream(socket, bufferAllocator, _logger)
         {
             Disconnected = () =>
             {

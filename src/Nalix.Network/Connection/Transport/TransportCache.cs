@@ -1,4 +1,3 @@
-using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
 using Nalix.Shared.Time;
@@ -12,7 +11,9 @@ internal sealed class TransportCache : System.IDisposable
 {
     #region Fields
 
-    private static CacheSizeConfig Config => ConfigurationStore.Instance.Get<CacheSizeConfig>();
+    private static Configurations.CacheSizeConfig Config
+        => ConfigurationStore.Instance.Get<Configurations.CacheSizeConfig>();
+
     private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
 
     #endregion Fields
