@@ -20,7 +20,7 @@ public sealed partial class NLogix
         /// The logger is configured during initialization with default targets.
         /// </summary>
         private static readonly System.Lazy<NLogix> _instance = new(() =>
-            new NLogix(delegate (LogOptions cfg)
+            new NLogix(delegate (NLogOptions cfg)
             {
                 // Configure default logging outputs
                 cfg.AddTarget(new ConsoleLogTarget())

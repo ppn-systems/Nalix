@@ -15,7 +15,7 @@ public abstract class LogEngine : IDisposable
     #region Fields
 
     private readonly LogLevel _minLevel;
-    private readonly LogOptions _logOptions;
+    private readonly NLogOptions _logOptions;
     private readonly LogDistributor _distributor;
 
     private int _isDisposed;
@@ -31,10 +31,10 @@ public abstract class LogEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected LogEngine(Action<LogOptions>? configureOptions = null)
+    protected LogEngine(Action<NLogOptions>? configureOptions = null)
     {
         _distributor = new LogDistributor();
-        _logOptions = new LogOptions(_distributor);
+        _logOptions = new NLogOptions(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)
@@ -67,7 +67,7 @@ public abstract class LogEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected void Configure(Action<LogOptions> configureOptions)
+    protected void Configure(Action<NLogOptions> configureOptions)
         => configureOptions?.Invoke(_logOptions);
 
     /// <summary>

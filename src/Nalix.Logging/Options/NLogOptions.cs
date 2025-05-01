@@ -7,7 +7,7 @@ namespace Nalix.Logging.Options;
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
 /// </summary>
-public sealed class LogOptions : IDisposable
+public sealed class NLogOptions : IDisposable
 {
     #region Fields
 
@@ -63,18 +63,18 @@ public sealed class LogOptions : IDisposable
     #endregion Properties
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LogOptions"/> class.
+    /// Initializes a new instance of the <see cref="NLogOptions"/> class.
     /// </summary>
     /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
-    internal LogOptions(ILogDistributor publisher)
+    internal NLogOptions(ILogDistributor publisher)
         => _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
     /// <param name="configure">The default configuration action.</param>
-    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
-    public LogOptions ConfigureDefaults(Func<LogOptions, LogOptions> configure)
+    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    public NLogOptions ConfigureDefaults(Func<NLogOptions, NLogOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
 
@@ -85,10 +85,10 @@ public sealed class LogOptions : IDisposable
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="target">The <see cref="ILoggerTarget"/> to add.</param>
-    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public LogOptions AddTarget(ILoggerTarget target)
+    public NLogOptions AddTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
 
@@ -102,9 +102,9 @@ public sealed class LogOptions : IDisposable
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
     /// <param name="level">The minimum <see cref="LogLevel"/>.</param>
-    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public LogOptions SetMinLevel(LogLevel level)
+    public NLogOptions SetMinLevel(LogLevel level)
     {
         ThrowIfDisposed();
 
@@ -116,10 +116,10 @@ public sealed class LogOptions : IDisposable
     /// Sets the configuration options for file logging.
     /// </summary>
     /// <param name="configure">Action that configures the <see cref="FileLogOptions"/>.</param>
-    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if configure is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public LogOptions SetFileOptions(Action<FileLogOptions> configure)
+    public NLogOptions SetFileOptions(Action<FileLogOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
 
@@ -136,7 +136,7 @@ public sealed class LogOptions : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     private void ThrowIfDisposed()
     {
-        ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _disposed, 0, 0) != 0, nameof(LogOptions));
+        ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogOptions));
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public sealed class LogOptions : IDisposable
         catch (Exception ex)
         {
             // Log any disposal errors to debug output
-            System.Diagnostics.Debug.WriteLine($"Error disposing LogOptions: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error disposing NLogOptions: {ex.Message}");
         }
 
         GC.SuppressFinalize(this);
