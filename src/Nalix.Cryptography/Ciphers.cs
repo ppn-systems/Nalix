@@ -2,6 +2,7 @@ using Nalix.Common.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Utils;
 using Nalix.Randomization;
 using System;
 using System.Buffers;
@@ -59,49 +60,85 @@ public static class Ciphers
 
                 case EncryptionType.Salsa20:
                     {
-                        Span<byte> nonce = RandGenerator.CreateNonce();
-                        ulong counter = 0; // Typically starts at 0
-
+                        ulong counter = 0;
+                        Span<byte> nonce = new byte[8];
                         byte[] ciphertext = new byte[data.Length];
+
                         Salsa20.Encrypt(key, nonce, counter, data.Span, ciphertext);
 
-                        byte[] result = new byte[8 + ciphertext.Length]; // 8 for nonce
-                        nonce.CopyTo(result);
-                        ciphertext.CopyTo(result.AsSpan(8));
-
-                        return result;
+                        return ciphertext;
                     }
 
                 case EncryptionType.Speck:
                     {
-                        int blockSize = 8;
-                        int bufferSize = (data.Length + blockSize - 1) & ~(blockSize - 1); // Align to blockSize
+                        const int blockSize = 8;
+                        int originalLength = data.Length;
+                        if (originalLength == 0)
+                            throw new ArgumentException("Input data cannot be empty.");
 
-                        byte[] paddedData = new byte[bufferSize];
-                        data.Span.CopyTo(paddedData);
+                        int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
+                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + bufferSize); // 4 bytes for length prefix
 
-                        byte[] output = new byte[paddedData.Length];
-                        Span<byte> outputSpan = output.AsSpan();
-
-                        for (int i = 0; i < paddedData.Length / blockSize; i++)
+                        try
                         {
-                            ReadOnlySpan<byte> block = paddedData.AsSpan().Slice(i * blockSize, blockSize);
-                            Span<byte> destination = outputSpan.Slice(i * blockSize, blockSize);
+                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength);
+                            Span<byte> workSpan = output.AsSpan(4, bufferSize);
 
-                            Speck.Encrypt(block, Xtea.DeriveXteaKey(key), destination);
+                            data.Span.CopyTo(workSpan);
+
+                            if (bufferSize > originalLength)
+                            {
+                                RandGenerator.Fill(workSpan[originalLength..bufferSize]);
+                            }
+
+                            ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
+
+                            for (int i = 0; i < bufferSize / blockSize; i++)
+                            {
+                                Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                Speck.Encrypt(block, fixedKey, block);
+                            }
+
+                            return output.AsSpan(0, 4 + bufferSize).ToArray();
                         }
-
-                        return output;
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(output);
+                        }
                     }
 
                 case EncryptionType.TwofishECB:
                     {
-                        if (data.Length % 16 != 0)
-                            throw new ArgumentException(
-                                "Data length must be a multiple of 16 bytes for Twofish ECB.", nameof(data));
+                        const int blockSize = 16;
+                        int originalLength = data.Length;
 
-                        byte[] encrypted = Twofish.ECB.Encrypt(key, data.Span);
-                        return encrypted;
+                        if (originalLength == 0)
+                            throw new ArgumentException("Input data cannot be empty.", nameof(data));
+
+                        int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // align to 16 bytes
+                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + paddedLength); // 4 bytes for original length
+
+                        try
+                        {
+                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength);
+
+                            Span<byte> workSpan = output.AsSpan(4, paddedLength);
+                            data.Span.CopyTo(workSpan);
+
+                            if (paddedLength > originalLength)
+                            {
+                                RandGenerator.Fill(workSpan[originalLength..paddedLength]);
+                            }
+
+                            byte[] encrypted = Twofish.ECB.Encrypt(key, workSpan);
+                            encrypted.CopyTo(output, 4);
+
+                            return output.AsMemory(0, 4 + paddedLength);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(output);
+                        }
                     }
 
                 case EncryptionType.TwofishCBC:
@@ -123,18 +160,46 @@ public static class Ciphers
                 case EncryptionType.XTEA:
                     {
                         int originalLength = data.Length;
+                        if (originalLength == 0)
+                            throw new ArgumentException("Input data cannot be empty.");
+
                         int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
 
-                        Span<byte> paddedInput = stackalloc byte[bufferSize];
-                        data.Span.CopyTo(paddedInput); // Zero-padding
+                        // Use ArrayPool to avoid frequent allocations for large data
+                        byte[] encrypted = ArrayPool<byte>.Shared.Rent(4 + bufferSize);
+                        try
+                        {
+                            // Write original length prefix
+                            BinaryPrimitives.WriteInt32LittleEndian(encrypted.AsSpan(0, 4), originalLength);
 
-                        byte[] encrypted = new byte[4 + bufferSize]; // 4 byte prefix + ciphertext
-                        BinaryPrimitives.WriteInt32LittleEndian(encrypted.AsSpan(0, 4), originalLength);
+                            // Avoid unnecessary allocation for paddedInput
+                            ReadOnlySpan<byte> inputSpan = data.Span;
+                            // Use heap memory for padding to avoid stack overflow
+                            byte[] paddedInput = ArrayPool<byte>.Shared.Rent(bufferSize);
 
-                        // Encrypt into encrypted[4..]
-                        Xtea.Encrypt(paddedInput, Xtea.DeriveXteaKey(key), encrypted.AsSpan(4));
+                            try
+                            {
+                                inputSpan.CopyTo(paddedInput);
+                                // Random padding instead of zero-padding for better security
+                                RandGenerator.Fill(
+                                    paddedInput.AsSpan(originalLength, bufferSize - originalLength));
 
-                        return encrypted;
+                                Xtea.Encrypt(
+                                    paddedInput.AsSpan(0, bufferSize),
+                                    BitwiseUtils.FixedSize(key), encrypted.AsSpan(4));
+                            }
+                            finally
+                            {
+                                ArrayPool<byte>.Shared.Return(paddedInput);
+                            }
+
+                            // Return only the required portion of encrypted data
+                            return encrypted.AsSpan(0, 4 + bufferSize).ToArray();
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(encrypted);
+                        }
                     }
 
                 default:
@@ -198,51 +263,66 @@ public static class Ciphers
 
                 case EncryptionType.Salsa20:
                     {
-                        ReadOnlySpan<byte> input = data.Span;
-                        if (input.Length < 8) // Min size = 8 (nonce)
-                            throw new ArgumentException(
-                                "Invalid data length. Encrypted data must contain a nonce (8 bytes).",
-                                nameof(data));
+                        ulong counter = 0;
+                        Span<byte> nonce = new byte[8];
+                        byte[] plaintext = new byte[data.Length];
 
-                        ReadOnlySpan<byte> nonce = input[..8];
-                        ReadOnlySpan<byte> ciphertext = input[8..];
-                        ulong counter = 0; // Must match the encryption counter
-
-                        byte[] plaintext = new byte[ciphertext.Length];
-                        Salsa20.Decrypt(key, nonce, counter, ciphertext, plaintext);
+                        Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
 
                         return plaintext;
                     }
 
                 case EncryptionType.Speck:
                     {
-                        if (data.Length % 8 != 0)
-                            throw new ArgumentException(
-                                "Data length must be a multiple of 8 bytes for Speck encryption.", nameof(data));
+                        const int blockSize = 8;
+                        if (data.Length < 4)
+                            throw new ArgumentException("Input data too short to contain length prefix.");
 
-                        byte[] output = new byte[data.Length];
-                        Span<byte> outputSpan = output.AsSpan();
+                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        if (originalLength < 0 || originalLength > data.Length - 4)
+                            throw new ArgumentException("Invalid length prefix.");
 
-                        for (int i = 0; i < data.Length / 8; i++)
+                        int bufferSize = data.Length - 4;
+                        if (bufferSize % blockSize != 0)
+                            throw new ArgumentException("Input data length is not aligned to block size.");
+
+                        byte[] output = ArrayPool<byte>.Shared.Rent(originalLength);
+                        try
                         {
-                            ReadOnlySpan<byte> block = data.Span.Slice(i * 8, 8);
-                            Span<byte> destination = outputSpan.Slice(i * 8, 8);
+                            Span<byte> workSpan = data.Span[4..];
+                            ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
 
-                            Speck.Decrypt(block, Xtea.DeriveXteaKey(key), destination);
+                            for (int i = 0; i < bufferSize / blockSize; i++)
+                            {
+                                Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                Speck.Decrypt(block, fixedKey, block);
+                            }
+
+                            workSpan[..originalLength].CopyTo(output);
+                            return output.AsSpan(0, originalLength).ToArray();
                         }
-
-                        // Return only the original length (remove any padding)
-                        return output.AsMemory(0, data.Length); // Remove padding
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(output);
+                        }
                     }
 
                 case EncryptionType.TwofishECB:
                     {
-                        if (data.Length % 16 != 0)
-                            throw new ArgumentException(
-                                "Data length must be a multiple of 16 bytes for Twofish ECB.", nameof(data));
+                        const int blockSize = 16;
 
-                        byte[] decrypted = Twofish.ECB.Decrypt(key, data.Span);
-                        return decrypted;
+                        if (data.Length < 4 || (data.Length - 4) % blockSize != 0)
+                            throw new ArgumentException("Invalid encrypted data format.", nameof(data));
+
+                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+
+                        if (originalLength < 0 || originalLength > data.Length - 4)
+                            throw new ArgumentOutOfRangeException(nameof(data), "Invalid original length.");
+
+                        ReadOnlySpan<byte> encryptedSpan = data.Span[4..];
+                        byte[] decrypted = Twofish.ECB.Decrypt(key, encryptedSpan);
+
+                        return decrypted.AsMemory(0, originalLength); // loại bỏ padding
                     }
 
                 case EncryptionType.TwofishCBC:
@@ -272,7 +352,7 @@ public static class Ciphers
 
                         try
                         {
-                            Xtea.Decrypt(data.Span[4..], Xtea.DeriveXteaKey(key), decrypted.AsSpan(0, encryptedLength));
+                            Xtea.Decrypt(data.Span[4..], BitwiseUtils.FixedSize(key), decrypted.AsSpan(0, encryptedLength));
                             return decrypted.AsMemory(0, originalLength); // Trim padding
                         }
                         finally

@@ -9,7 +9,9 @@
     <DebugType>portable</DebugType>
     <Deterministic>true</Deterministic>
     <TieredCompilation>true</TieredCompilation>
+	<MaxParallelProjectBuilds>10</MaxParallelProjectBuilds>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 
     <OutputPath>..\..\build\bin\Release\</OutputPath>
     <IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>

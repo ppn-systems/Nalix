@@ -1,0 +1,15 @@
+{
+  "solution": {
+    "path": "Nalix.sln",
+    "projects": [
+      "Nalix.Common\\Nalix.Common.csproj",
+      "Nalix.Cryptography\\Nalix.Cryptography.csproj",
+      "Nalix.Logging\\Nalix.Logging.csproj",
+      "Nalix.Network.Package\\Nalix.Network.Package.csproj",
+      "Nalix.Network.Web\\Nalix.Network.Web.csproj",
+      "Nalix.Network\\Nalix.Network.csproj",
+      "Nalix.Shared\\Nalix.Shared.csproj",
+      "Nalix\\Nalix.csproj"
+    ]
+  }
+}
