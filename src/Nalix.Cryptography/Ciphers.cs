@@ -143,18 +143,40 @@ public static class Ciphers
 
                 case EncryptionType.TwofishCBC:
                     {
-                        Span<byte> iv = RandGenerator.CreateNonce(16);
-                        if (data.Length % 16 != 0)
-                            throw new ArgumentException(
-                                "Data length must be a multiple of 16 bytes for Twofish CBC.", nameof(data));
+                        const int blockSize = 16;
+                        int originalLength = data.Length;
 
-                        byte[] encrypted = Twofish.CBC.Encrypt(key, iv, data.Span);
+                        if (originalLength == 0)
+                            throw new ArgumentException("Input data cannot be empty.", nameof(data));
 
-                        byte[] result = new byte[16 + encrypted.Length]; // IV (16) + ciphertext
-                        iv.CopyTo(result);
-                        encrypted.CopyTo(result.AsSpan(16));
+                        int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // Align to 16 bytes
+                        Span<byte> iv = RandGenerator.CreateNonce(16); // 16 bytes IV
 
-                        return result;
+                        // 4 bytes for original length + 16 bytes IV + padded content
+                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + 16 + paddedLength);
+
+                        try
+                        {
+                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength); // original data length
+                            iv.CopyTo(output.AsSpan(4, 16)); // write IV
+
+                            Span<byte> workSpan = output.AsSpan(4 + 16, paddedLength);
+                            data.Span.CopyTo(workSpan);
+
+                            if (paddedLength > originalLength)
+                            {
+                                RandGenerator.Fill(workSpan[originalLength..paddedLength]); // random padding
+                            }
+
+                            byte[] encrypted = Twofish.CBC.Encrypt(key, iv, workSpan);
+                            encrypted.CopyTo(output, 4 + 16); // overwrite with encrypted data
+
+                            return output.AsMemory(0, 4 + 16 + paddedLength);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(output);
+                        }
                     }
 
                 case EncryptionType.XTEA:
@@ -327,14 +349,29 @@ public static class Ciphers
 
                 case EncryptionType.TwofishCBC:
                     {
-                        if (data.Length < 16 || (data.Length - 16) % 16 != 0)
-                            throw new ArgumentException("Invalid data length for Twofish CBC.", nameof(data));
+                        const int blockSize = 16;
 
-                        ReadOnlySpan<byte> iv = data.Span[..16];
-                        ReadOnlySpan<byte> ciphertext = data.Span[16..];
+                        if (data.Length < 4 + 16)
+                            throw new ArgumentException("Encrypted data is too short.", nameof(data));
 
-                        byte[] decrypted = Twofish.CBC.Decrypt(key, iv, ciphertext);
-                        return decrypted;
+                        ReadOnlySpan<byte> input = data.Span;
+
+                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
+                        if (originalLength < 0)
+                            throw new ArgumentException("Invalid original length found in encrypted data.", nameof(data));
+
+                        ReadOnlySpan<byte> iv = input.Slice(4, 16);
+                        ReadOnlySpan<byte> encrypted = input[(4 + 16)..];
+
+                        if (encrypted.Length % blockSize != 0)
+                            throw new ArgumentException("Encrypted data length is not aligned to block size.", nameof(data));
+
+                        byte[] decrypted = Twofish.CBC.Decrypt(key, iv, encrypted);
+
+                        if (originalLength > decrypted.Length)
+                            throw new CryptoException("Decrypted data is smaller than original length.");
+
+                        return decrypted.AsMemory(0, originalLength);
                     }
 
                 case EncryptionType.XTEA:
