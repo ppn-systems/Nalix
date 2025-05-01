@@ -221,6 +221,13 @@ public sealed class PacketDispatchChannel
                 // Pull from channel (priority-aware)
                 if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
                 {
+                    // Semaphore was signaled but packets already drained by other workers
+                    if (!_dispatch.HasPacket)
+                    {
+                        // No packets left, just continue waiting
+                        continue;
+                    }
+
                     // Rare: signaled but nothing pulled (remove/drain race)
                     Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
                     lease?.Dispose();
