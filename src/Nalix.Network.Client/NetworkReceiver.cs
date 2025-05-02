@@ -1,4 +1,5 @@
 using Nalix.Common.Constants;
+using Nalix.Common.Networking;
 using Nalix.Common.Package;
 using System;
 using System.Buffers;
@@ -18,7 +19,8 @@ namespace Nalix.Network.Client;
 /// </remarks>
 /// <param name="stream">The <see cref="NetworkStream"/> used for receiving data.</param>
 /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-internal class NetworkReceiver<TPacket>(NetworkStream stream) where TPacket : IPacket, IPacketDeserializer<TPacket>
+public sealed class NetworkReceiver<TPacket>(NetworkStream stream) : INetworkReceiver<TPacket>
+    where TPacket : IPacket, IPacketDeserializer<TPacket>
 {
     private readonly NetworkStream _stream = stream ?? throw new ArgumentNullException(nameof(stream));
 

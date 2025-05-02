@@ -7,7 +7,11 @@ using System.Threading.Tasks;
 
 namespace Nalix.Network.Client;
 
-internal class Handshake<TPacket>(ConnectionContext context, IX25519 x25519, ISHA sha)
+internal class Handshake<TPacket>(
+    ConnectionContext context,
+    IX25519 x25519,
+    ISHA sha
+    )
     where TPacket : IPacket, IPacketFactory<TPacket>
 {
     private readonly ConnectionContext _context = context;

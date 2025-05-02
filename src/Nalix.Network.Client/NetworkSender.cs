@@ -1,3 +1,4 @@
+using Nalix.Common.Networking;
 using Nalix.Common.Package;
 using System;
 using System.IO;
@@ -15,7 +16,7 @@ namespace Nalix.Network.Client;
 /// </remarks>
 /// <param name="stream">The <see cref="NetworkStream"/> used for sending data.</param>
 /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-internal class NetworkSender(NetworkStream stream)
+public sealed class NetworkSender(NetworkStream stream) : INetworkSender
 {
     private readonly NetworkStream _stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
