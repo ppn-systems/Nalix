@@ -3,6 +3,7 @@ using Nalix.Cryptography.Hashing;
 using System;
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Nalix.Cryptography.Security;
@@ -64,6 +65,7 @@ public sealed class PBKDF2 : IDisposable
     /// <returns>A byte array containing the derived key.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="password"/> is null or empty.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] DeriveKey(string password)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
@@ -87,6 +89,7 @@ public sealed class PBKDF2 : IDisposable
     /// <returns>A byte array containing the derived key.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="passwordBytes"/> is empty.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] DeriveKey(ReadOnlySpan<byte> passwordBytes)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
@@ -104,6 +107,7 @@ public sealed class PBKDF2 : IDisposable
     /// <summary>
     /// Releases all resources used by the <see cref="PBKDF2"/> instance and clears sensitive data.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed) return;
@@ -120,6 +124,7 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] DeriveKeyUsingHmacSha1(ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 20, ComputeHmacSha1);
 
@@ -128,6 +133,7 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] DeriveKeyUsingHmacSha224(ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 28, ComputeHmacSha224);
 
@@ -136,6 +142,7 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] DeriveKeyUsingHmacSha256(ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 32, ComputeHmacSha256);
 
@@ -149,6 +156,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="hashLength">The length of the hash output (20 for SHA1, 32 for SHA256).</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>
     /// <returns>A byte array containing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte[] DeriveKeyUsingHmac(
         ReadOnlySpan<byte> password, ReadOnlySpan<byte> salt,
         int iterations, int keyLength, int hashLength,
@@ -183,6 +191,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="outputBlock">The span to store the computed block.</param>
     /// <param name="hashLength">The length of the hash output.</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ComputeBlock(
         ReadOnlySpan<byte> password, ReadOnlySpan<byte> saltWithIndex,
         int iterations, Span<byte> outputBlock, int hashLength,
@@ -223,6 +232,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (20 bytes).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ComputeHmacSha1(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
     {
         const int BlockSize = 64; // SHA-1 block size in bytes
@@ -270,6 +280,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (28 bytes).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ComputeHmacSha224(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
     {
         const int BlockSize = 64; // SHA-1 block size in bytes
@@ -317,6 +328,7 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (32 bytes).</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ComputeHmacSha256(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
     {
         const int BlockSize = 64; // SHA-256 block size in bytes

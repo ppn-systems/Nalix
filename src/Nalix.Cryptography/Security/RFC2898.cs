@@ -1,5 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Nalix.Cryptography.Security;
@@ -23,6 +24,7 @@ public static class RFC2898
     /// <returns>A byte array containing the derived key.</returns>
     /// <exception cref="ArgumentException">Thrown if password or salt is null or empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] DeriveKey(
         string password, byte[] salt,
         int iterations, int keyLength,
@@ -50,6 +52,7 @@ public static class RFC2898
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A Base64Value-encoded string representing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyBase64(
         string password, byte[] salt,
         int iterations, int keyLength,
@@ -68,6 +71,7 @@ public static class RFC2898
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A lowercase hexadecimal string representing the derived key.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyHex(
         string password, byte[] salt,
         int iterations, int keyLength,

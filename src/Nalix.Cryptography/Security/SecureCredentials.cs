@@ -2,6 +2,7 @@ using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Utils;
 using Nalix.Randomization;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Security;
 
@@ -37,6 +38,7 @@ public static class SecureCredentials
     /// <param name="credential">The plaintext credential to hash.</param>
     /// <param name="salt">The generated salt.</param>
     /// <param name="hash">The derived hash.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void GenerateCredentialHash(string credential, out byte[] salt, out byte[] hash)
     {
         salt = RandGenerator.GetBytes(SaltSize);
@@ -50,6 +52,7 @@ public static class SecureCredentials
     /// </summary>
     /// <param name="credential">The plaintext credential.</param>
     /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GenerateCredentialBase64(string credential)
     {
         GenerateCredentialHash(credential, out byte[] salt, out byte[] hash);
@@ -68,6 +71,7 @@ public static class SecureCredentials
     /// <param name="salt">The salt used for hashing.</param>
     /// <param name="hash">The stored hash to compare against.</param>
     /// <returns><c>true</c> if the credential is valid; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool VerifyCredentialHash(string credential, byte[] salt, byte[] hash)
     {
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithm.Sha256);
@@ -80,6 +84,7 @@ public static class SecureCredentials
     /// <param name="credential">The credential to verify.</param>
     /// <param name="encodedCredentials">The Base64Value-encoded string containing version, salt, and hash.</param>
     /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool VerifyCredentialFromBase64(string credential, string encodedCredentials)
     {
         if (string.IsNullOrEmpty(encodedCredentials)) return false;
