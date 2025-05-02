@@ -4,7 +4,7 @@ using Nalix.Common.Cryptography.Hashing;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 
-namespace Nalix.Network.Client.Internal;
+namespace Nalix.Network.Client.BuiltIn;
 
 /// <summary>
 /// Handles the secure handshake process between a client and server using X25519 key exchange and SHA hashing.
@@ -15,12 +15,12 @@ namespace Nalix.Network.Client.Internal;
 /// </typeparam>
 public sealed class Handshake<TPacket>(
     NetworkReceiver<TPacket> receiver, NetworkSender<TPacket> sender,
-    ConnectionContext context, IX25519 x25519, ISHA sha)
+    NetworkContext context, IX25519 x25519, ISHA sha)
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
     private readonly NetworkReceiver<TPacket> _receiver = receiver;
     private readonly NetworkSender<TPacket> _sender = sender;
-    private readonly ConnectionContext _context = context;
+    private readonly NetworkContext _context = context;
     private readonly IX25519 _x25519 = x25519;
     private readonly ISHA _sha = sha;
 

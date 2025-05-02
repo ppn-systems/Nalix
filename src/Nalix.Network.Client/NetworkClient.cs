@@ -1,4 +1,3 @@
-using Nalix.Network.Client.Internal;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Client;
@@ -18,7 +17,7 @@ public class NetworkClient : SingletonBase<NetworkClient>, System.IDisposable
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public ConnectionContext Context { get; } = new();
+    public NetworkContext Context { get; } = new();
 
     /// <summary>
     /// Gets the <see cref="System.Net.Sockets.NetworkStream"/> used for network communication.
@@ -50,7 +49,7 @@ public class NetworkClient : SingletonBase<NetworkClient>, System.IDisposable
 
         try
         {
-            _client.Connect(Context.ServerAddress, Context.PortNumber); // Synchronous Connect
+            _client.Connect(Context.Address, Context.Port); // Synchronous Connect
             _stream = _client.GetStream();
         }
         catch (System.Exception ex)
@@ -75,7 +74,7 @@ public class NetworkClient : SingletonBase<NetworkClient>, System.IDisposable
 
         try
         {
-            await _client.ConnectAsync(Context.ServerAddress, Context.PortNumber, cts.Token);
+            await _client.ConnectAsync(Context.Address, Context.Port, cts.Token);
             _stream = _client.GetStream();
         }
         catch (System.Exception ex)

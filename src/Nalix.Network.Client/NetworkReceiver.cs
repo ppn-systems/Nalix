@@ -2,7 +2,6 @@ using Nalix.Common.Constants;
 using Nalix.Common.Networking;
 using Nalix.Common.Package;
 using System;
-using System.Buffers;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -59,7 +58,7 @@ public sealed class NetworkReceiver<TPacket>(NetworkStream stream) : INetworkRec
         }
 
         // Rent buffer for packet data only
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+        byte[] buffer = PacketConstants.Pool.Rent(length);
         try
         {
             // Read packet data directly into buffer
@@ -70,7 +69,7 @@ public sealed class NetworkReceiver<TPacket>(NetworkStream stream) : INetworkRec
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            PacketConstants.Pool.Return(buffer);
         }
     }
 
@@ -111,7 +110,7 @@ public sealed class NetworkReceiver<TPacket>(NetworkStream stream) : INetworkRec
         }
 
         // Rent buffer for packet data only
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+        byte[] buffer = PacketConstants.Pool.Rent(length);
         try
         {
             // Read packet data directly into buffer
@@ -122,7 +121,7 @@ public sealed class NetworkReceiver<TPacket>(NetworkStream stream) : INetworkRec
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            PacketConstants.Pool.Return(buffer);
         }
     }
 }
