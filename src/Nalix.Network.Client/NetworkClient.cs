@@ -13,11 +13,10 @@ namespace Nalix.Network.Client;
 public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, System.IDisposable
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
+    private NetworkSender<TPacket> _sender;
+    private NetworkReceiver<TPacket> _receiver;
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
-
-    private NetworkSender<TPacket> _networkSender;
-    private NetworkReceiver<TPacket> _networkReceiver;
 
     /// <summary>
     /// Gets the context associated with the network connection.
@@ -25,19 +24,19 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
     public NetworkContext Context { get; } = new();
 
     /// <summary>
-    /// Gets the <see cref="System.Net.Sockets.NetworkStream"/> used for network communication.
-    /// </summary>
-    public System.Net.Sockets.NetworkStream Stream => _stream;
-
-    /// <summary>
     /// Gets the network sender used to send packets.
     /// </summary>
-    public NetworkSender<TPacket> Sender => _networkSender;
+    public NetworkSender<TPacket> Sender => _sender;
 
     /// <summary>
     /// Gets the network receiver used to receive packets.
     /// </summary>
-    public NetworkReceiver<TPacket> Receiver => _networkReceiver;
+    public NetworkReceiver<TPacket> Receiver => _receiver;
+
+    /// <summary>
+    /// Gets the <see cref="System.Net.Sockets.NetworkStream"/> used for network communication.
+    /// </summary>
+    public System.Net.Sockets.NetworkStream Stream => _stream;
 
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
@@ -67,8 +66,8 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
             _client.Connect(Context.Address, Context.Port); // Synchronous Connect
 
             _stream = _client.GetStream();
-            _networkSender = new NetworkSender<TPacket>(_stream);
-            _networkReceiver = new NetworkReceiver<TPacket>(_stream);
+            _sender = new NetworkSender<TPacket>(_stream);
+            _receiver = new NetworkReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -95,8 +94,8 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
             await _client.ConnectAsync(Context.Address, Context.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _networkSender = new NetworkSender<TPacket>(_stream);
-            _networkReceiver = new NetworkReceiver<TPacket>(_stream);
+            _sender = new NetworkSender<TPacket>(_stream);
+            _receiver = new NetworkReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -113,8 +112,8 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
         _stream?.Dispose();
         _client?.Close();
 
-        _networkSender = null;
-        _networkReceiver = null;
+        _sender = null;
+        _receiver = null;
 
         System.GC.SuppressFinalize(this);
     }
