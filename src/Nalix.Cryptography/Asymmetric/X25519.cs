@@ -45,6 +45,7 @@ public sealed class X25519 : IX25519
     /// Generates an X25519 key pair.
     /// </summary>
     /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (byte[] PrivateKey, byte[] PublicKey) Generate() => GenerateKeyPair();
 
     /// <summary>
@@ -54,6 +55,7 @@ public sealed class X25519 : IX25519
     /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
     /// <returns>The shared secret as a 32-byte array.</returns>
     /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Compute(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey)
         => ComputeSharedSecret(privateKey, peerPublicKey);
 
@@ -62,6 +64,7 @@ public sealed class X25519 : IX25519
     /// </summary>
     /// <param name="privateKey">Output 32-byte private key.</param>
     /// <param name="publicKey">Output 32-byte public key.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void GenerateKeyPair(out byte[] privateKey, out byte[] publicKey)
     {
         // Allocate and fill private key
@@ -77,6 +80,7 @@ public sealed class X25519 : IX25519
     /// Generates an X25519 key pair.
     /// </summary>
     /// <returns>A tuple with (privateKey, publicKey) each 32 bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (byte[] PrivateKey, byte[] PublicKey) GenerateKeyPair()
     {
         X25519.GenerateKeyPair(out byte[] privateKey, out byte[] publicKey);
@@ -90,7 +94,10 @@ public sealed class X25519 : IX25519
     /// <param name="peerPublicKey">The peer's 32-byte public key.</param>
     /// <returns>The shared secret as a 32-byte array.</returns>
     /// <exception cref="ArgumentException">If either key is not exactly 32 bytes.</exception>
-    public static byte[] ComputeSharedSecret(ReadOnlySpan<byte> privateKey, ReadOnlySpan<byte> peerPublicKey)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte[] ComputeSharedSecret(
+        ReadOnlySpan<byte> privateKey,
+        ReadOnlySpan<byte> peerPublicKey)
     {
         if (privateKey.Length != FieldElementSize)
             throw new ArgumentException(
@@ -279,6 +286,7 @@ public sealed class X25519 : IX25519
     private static class Debug
     {
         [Conditional("DEBUG")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Assert(bool condition)
         {
             if (!condition)

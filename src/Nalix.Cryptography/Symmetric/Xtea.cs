@@ -90,6 +90,7 @@ public static unsafe class Xtea
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Encrypted data</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
         ValidateInputs(plaintext, key);
@@ -131,6 +132,7 @@ public static unsafe class Xtea
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Decrypted data</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
         ValidateInputs(ciphertext, key);
@@ -173,6 +175,7 @@ public static unsafe class Xtea
     /// <param name="output">Output buffer (must be at least as large as plaintext)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Number of bytes written</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Encrypt(
         ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> key,
@@ -220,6 +223,7 @@ public static unsafe class Xtea
     /// <param name="output">Output buffer (must be at least as large as ciphertext)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Number of bytes written</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Decrypt(
         ReadOnlySpan<byte> ciphertext,
         ReadOnlySpan<byte> key,
@@ -266,6 +270,7 @@ public static unsafe class Xtea
     /// <summary>
     /// Validates input parameters
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ValidateInputs(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         if (data.Length % BlockSize != 0)

@@ -62,6 +62,7 @@ public sealed class Arc4 : IDisposable
     /// </summary>
     /// <param name="buffer">The data buffer to be encrypted or decrypted.</param>
     /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Process(Span<byte> buffer)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -85,6 +86,7 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Resets the internal state of the cipher.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -96,6 +98,7 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Disposes the resources used by this instance.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (!_disposed)

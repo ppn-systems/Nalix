@@ -26,6 +26,7 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, typically 0 for first use.</param>
     /// <param name="plaintext">The data to encrypt.</param>
     /// <returns>Encrypted bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Encrypt(
         ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
         ulong counter, ReadOnlySpan<byte> plaintext)
@@ -45,6 +46,7 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <param name="ciphertext">Buffer to receive the encrypted data.</param>
     /// <returns>Number of bytes written.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Encrypt(
         ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
         ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
@@ -66,6 +68,7 @@ public static class Salsa20
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <returns>Decrypted bytes.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
         ulong counter, ReadOnlySpan<byte> ciphertext) => Encrypt(key, nonce, counter, ciphertext);
 
@@ -79,6 +82,7 @@ public static class Salsa20
     /// <param name="plaintext">Buffer to receive the decrypted data.</param>
     /// <returns>Number of bytes written.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
         ReadOnlySpan<byte> ciphertext, Span<byte> plaintext) => Encrypt(key, nonce, counter, ciphertext, plaintext);
 
@@ -93,6 +97,7 @@ public static class Salsa20
     /// </summary>
     /// <param name="passphrase">The passphrase to convert.</param>
     /// <returns>A 32-byte key derived from the passphrase.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] DeriveKeyFromPassphrase(string passphrase)
     {
         if (string.IsNullOrEmpty(passphrase))

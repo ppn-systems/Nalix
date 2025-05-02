@@ -112,6 +112,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">Number of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptBytes(byte[] output, byte[] input, int numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(output);
@@ -142,7 +143,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    public void EncryptStream(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void EncryptStream(
+        Stream output, Stream input,
+        int howManyBytesToProcessAtTime = 1024,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -159,7 +164,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    public async Task EncryptStreamAsync(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public async Task EncryptStreamAsync(
+        Stream output, Stream input,
+        int howManyBytesToProcessAtTime = 1024,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -176,6 +185,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="output">Output byte array, must have enough bytes</param>
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptBytes(byte[] output, byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(output);
@@ -197,6 +207,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="numBytes">Number of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] EncryptBytes(byte[] input, int numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -224,6 +235,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] EncryptBytes(byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -245,6 +257,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input string</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] EncryptString(string input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -273,6 +286,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">Number of bytes to decrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptBytes(byte[] output, byte[] input, int numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(output);
@@ -303,6 +317,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptStream(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -320,6 +335,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input stream</param>
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task DecryptStreamAsync(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
@@ -337,6 +353,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="output">Output byte array, must have enough bytes</param>
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptBytes(byte[] output, byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(output);
@@ -358,6 +375,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="numBytes">Number of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains decrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] DecryptBytes(byte[] input, int numBytes, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -385,6 +403,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains decrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] DecryptBytes(byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -406,6 +425,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Byte array</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string DecryptUtf8ByteArray(byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -544,6 +564,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">How many bytes to process</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WorkBytes(byte[] output, byte[] input, int numBytes, SimdMode simdMode)
     {
         if (_isDisposed)
@@ -702,14 +723,13 @@ public sealed class ChaCha20 : IDisposable
     /// <summary>
     /// Clear and dispose of the internal state. The finalizer is only called if Dispose() was never called on this cipher.
     /// </summary>
-    ~ChaCha20()
-    {
-        Dispose(false);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    ~ChaCha20() => Dispose(false);
 
     /// <summary>
     /// Clear and dispose of the internal state. Also request the GC not to call the finalizer, because all cleanup has been taken care of.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -725,6 +745,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="disposing">
     /// Should be true if called by Dispose(); false if called by the finalizer
     /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Dispose(bool disposing)
     {
         if (!_isDisposed)

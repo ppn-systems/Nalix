@@ -265,6 +265,7 @@ public class Blowfish
     /// <param name="data">The byte array to encrypt.</param>
     /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptInPlace(byte[] data, int length) => this.EncryptBlock(data, 0, length);
 
     /// <summary>
@@ -274,6 +275,7 @@ public class Blowfish
     /// <param name="offset">The starting position in the array.</param>
     /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptBlock(byte[] data, int offset, int length)
     {
         if (length % 8 != 0)
@@ -295,6 +297,7 @@ public class Blowfish
     /// </summary>
     /// <param name="plainText">The plaintext string to encrypt.</param>
     /// <returns>A Base64Value-encoded encrypted string.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string EncryptToBase64(string plainText)
     {
         byte[] data = Encoding.Unicode.GetBytes(plainText);
@@ -308,6 +311,7 @@ public class Blowfish
     /// <param name="data">The byte array to decrypt.</param>
     /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptInPlace(byte[] data, int length) => this.DecryptBlock(data, 0, length);
 
     /// <summary>
@@ -317,6 +321,7 @@ public class Blowfish
     /// <param name="offset">The starting position in the array.</param>
     /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptBlock(byte[] data, int offset, int length)
     {
         if (length % 8 != 0)
@@ -338,6 +343,7 @@ public class Blowfish
     /// </summary>
     /// <param name="cipherText">The Base64Value-encoded encrypted string.</param>
     /// <returns>The decrypted plaintext string.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string DecryptFromBase64(string cipherText)
     {
         byte[] data = Convert.FromBase64String(cipherText);

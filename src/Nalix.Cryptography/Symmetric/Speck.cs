@@ -30,6 +30,7 @@ public static unsafe class Speck
     /// <param name="plaintext">The input data to encrypt (8 bytes).</param>
     /// <param name="key">The encryption key (16 bytes).</param>
     /// <returns>The encrypted ciphertext (8 bytes).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Encrypt(byte[] plaintext, byte[] key)
     {
         if (plaintext.Length != BLOCK_SIZE_BYTES)
@@ -65,6 +66,7 @@ public static unsafe class Speck
     /// <param name="ciphertext">The encrypted data to decrypt (8 bytes).</param>
     /// <param name="key">The decryption key (16 bytes).</param>
     /// <returns>The original plaintext (8 bytes).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decrypt(byte[] ciphertext, byte[] key)
     {
         if (ciphertext.Length != BLOCK_SIZE_BYTES)
@@ -100,6 +102,7 @@ public static unsafe class Speck
     /// <param name="plaintext">The input data (8 bytes).</param>
     /// <param name="key">The encryption key (16 bytes).</param>
     /// <param name="output">The destination span to write the ciphertext.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, Span<byte> output)
     {
         if (plaintext.Length != BLOCK_SIZE_BYTES)
@@ -131,6 +134,7 @@ public static unsafe class Speck
     /// <param name="ciphertext">The encrypted input data (8 bytes).</param>
     /// <param name="key">The decryption key (16 bytes).</param>
     /// <param name="output">The destination span to write the plaintext.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, Span<byte> output)
     {
         if (ciphertext.Length != BLOCK_SIZE_BYTES)
@@ -160,8 +164,10 @@ public static unsafe class Speck
 
     #region Private Methods
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint[] ExpandKey(byte[] key) => ExpandKey((ReadOnlySpan<byte>)key);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint[] ExpandKey(ReadOnlySpan<byte> key)
     {
         uint[] roundKeys = new uint[ROUNDS];

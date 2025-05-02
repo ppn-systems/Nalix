@@ -124,6 +124,7 @@ public static class Twofish
         /// <param name="key">Key of 16, 24, or 32 bytes (128, 192, or 256 bits)</param>
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Encrypted data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
         {
             ValidateParameters(key, plaintext);
@@ -140,6 +141,7 @@ public static class Twofish
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
         /// <returns>Number of bytes written</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
         {
             ValidateParameters(key, plaintext);
@@ -165,6 +167,7 @@ public static class Twofish
         /// <param name="key">Key of 16, 24, or 32 bytes (128, 192, or 256 bits)</param>
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Decrypted data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
         {
             ValidateParameters(key, ciphertext);
@@ -181,6 +184,7 @@ public static class Twofish
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <param name="plaintext">Buffer to receive decrypted data</param>
         /// <returns>Number of bytes written</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
         {
             ValidateParameters(key, ciphertext);
@@ -213,6 +217,7 @@ public static class Twofish
         /// <param name="iv">Initialization vector (16 bytes)</param>
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Encrypted data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> plaintext)
         {
             ValidateParameters(key, plaintext);
@@ -232,8 +237,10 @@ public static class Twofish
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
         /// <returns>Number of bytes written</returns>
-        public static int Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
-                                    ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Encrypt(
+            ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
+            ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
         {
             ValidateParameters(key, plaintext);
             if (iv.Length != BlockSize)
@@ -278,7 +285,11 @@ public static class Twofish
         /// <param name="iv">Initialization vector (16 bytes, same as used for encryption)</param>
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Decrypted data</returns>
-        public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> ciphertext)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte[] Decrypt(
+            ReadOnlySpan<byte> key,
+            ReadOnlySpan<byte> iv,
+            ReadOnlySpan<byte> ciphertext)
         {
             ValidateParameters(key, ciphertext);
             if (iv.Length != BlockSize)
@@ -297,8 +308,10 @@ public static class Twofish
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <param name="plaintext">Buffer to receive decrypted data</param>
         /// <returns>Number of bytes written</returns>
-        public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
-                                    ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Decrypt(
+            ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
+            ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
         {
             ValidateParameters(key, ciphertext);
             if (iv.Length != BlockSize)
