@@ -1,7 +1,6 @@
 ﻿using System;
 using Xunit;
 using Nalix.Common.Enums;
-using Nalix.Framework.Cryptography.Symmetric.Suite;
 using System.Text;
 using Nalix.Framework.Cryptography.Symmetric;
 
