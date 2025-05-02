@@ -2,12 +2,12 @@ using Nalix.Common.Cryptography;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
-namespace Nalix.Network.Client;
+namespace Nalix.Network.Client.Internal;
 
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.
 /// </summary>
-public class ConnectionContext : ConfigurationBinder
+public sealed class ConnectionContext : ConfigurationBinder
 {
     /// <summary>
     /// Gets or sets the server address or hostname.
