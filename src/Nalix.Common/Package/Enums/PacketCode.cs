@@ -7,19 +7,25 @@ namespace Nalix.Common.Package.Enums;
 /// </summary>
 public enum PacketCode : ushort
 {
+    /// <summary>
+    /// Indicates that no error or status code was provided.
+    /// </summary>
+    [PacketCodeMessage("No error or status code provided.")]
+    None = 0,
+
     // ===== Success =====
     /// <summary>
     /// Indicates that the operation was successful.
     /// </summary>
     [PacketCodeMessage("Operation completed successfully.")]
-    Success = 0,
+    Success = 1,
 
     // ===== General Errors =====
     /// <summary>
     /// Indicates an unknown error occurred.
     /// </summary>
     [PacketCodeMessage("An unknown error occurred.")]
-    UnknownError = 1,
+    UnknownError = 2,
 
     // ===== Authorization Errors =====
     /// <summary>Client is not authenticated.</summary>

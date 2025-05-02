@@ -34,7 +34,7 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(SessionController<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.SetEncryptionMode)]
+    [PacketId((ushort)ConnectionCommand.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> SetEncryptionMode(TPacket packet, IConnection connection)

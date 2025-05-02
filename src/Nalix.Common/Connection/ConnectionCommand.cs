@@ -1,10 +1,10 @@
-namespace Nalix.Network.Dispatch.BuiltIn;
+namespace Nalix.Common.Connection;
 
 /// <summary>
 /// Defines the protocol commands used for managing secure connection processes.
 /// These commands are part of the protocol for establishing and finalizing encrypted connections.
 /// </summary>
-public enum ProtocolCommand : ushort
+public enum ConnectionCommand : ushort
 {
     /// <summary>
     /// Number to initiate the handshake by requesting the server's public key.
