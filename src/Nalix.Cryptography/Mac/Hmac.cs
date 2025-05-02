@@ -79,6 +79,7 @@ public sealed class Hmac : IDisposable
     /// <param name="data">The message to authenticate.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ComputeHash(
         ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
         HashAlgorithm algorithm = HashAlgorithm.Sha256)
@@ -93,6 +94,7 @@ public sealed class Hmac : IDisposable
     /// <param name="data">The message to authenticate.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -124,6 +126,7 @@ public sealed class Hmac : IDisposable
     /// <remarks>
     /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool VerifyHash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> expectedHmac)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -145,8 +148,12 @@ public sealed class Hmac : IDisposable
     /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
-    public static bool Verify(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
-                             ReadOnlySpan<byte> expectedHmac, HashAlgorithm algorithm = HashAlgorithm.Sha256)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool Verify(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> data,
+        ReadOnlySpan<byte> expectedHmac,
+        HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
         return hmac.VerifyHash(data, expectedHmac);

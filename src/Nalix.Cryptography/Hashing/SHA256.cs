@@ -48,6 +48,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
         using SHA256 sha256 = new();
@@ -61,6 +62,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <param name="output">The output buffer where the 32-byte hash will be written. Must be at least 32 bytes long.</param>
     /// <exception cref="ArgumentException">Thrown if the output buffer is smaller than 32 bytes.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void HashData(ReadOnlySpan<byte> data, Span<byte> output)
     {
         if (output.Length < 32)
@@ -77,6 +79,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// This method must be called before reusing an instance to compute a new hash.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
         Buffer.BlockCopy(SHA.H256, 0, _state, 0, SHA.H256.Length * sizeof(uint));
@@ -103,6 +106,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
@@ -121,6 +125,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// This method processes data in 512-bit blocks and buffers any remaining bytes for the next update.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Update(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
@@ -175,18 +180,12 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// Once finalized, the hash cannot be updated further. Calling this method multiple times returns the same result.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
-        DebugState("Before FinalizeHash");
-
-        if (_finalized && _finalHash != null)
-        {
-            // Debug output for cached hash
-            DebugState("Returning Cached Hash");
-            return _finalHash;
-        }
+        if (_finalized && _finalHash != null) return _finalHash;
 
         // Compute padding
         int remainder = (int)(_byteCount & 0x3F);
@@ -216,7 +215,6 @@ public sealed class SHA256 : ISHA, IDisposable
         _finalHash = hash;
         _finalized = true;
 
-        DebugState("After Hash Computation");
         return _finalHash;
     }
 
@@ -229,6 +227,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public byte[] Hash
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
@@ -254,7 +253,13 @@ public sealed class SHA256 : ISHA, IDisposable
     /// Thrown if <paramref name="inputOffset"/> or <paramref name="inputCount"/> are invalid.
     /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int TransformBlock(
+        byte[] inputBuffer,
+        int inputOffset,
+        int inputCount,
+        byte[] outputBuffer,
+        int outputOffset)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
@@ -285,6 +290,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <remarks>
     /// This method calls <see cref="Update"/> with the final block and then finalizes the hash.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
@@ -303,24 +309,6 @@ public sealed class SHA256 : ISHA, IDisposable
     #endregion Public Methods
 
     #region Private Methods
-
-    private void DebugState(string location)
-    {
-        Console.WriteLine($"[DEBUG] {location}:");
-        Console.WriteLine($"_disposed: {_disposed}");
-        Console.WriteLine($"_finalized: {_finalized}");
-        Console.WriteLine($"_bufferLength: {_bufferLength}");
-        Console.WriteLine($"_byteCount: {_byteCount}");
-        if (_finalHash != null)
-        {
-            Console.WriteLine($"_finalHash: {BitConverter.ToString(_finalHash)}");
-        }
-        else
-        {
-            Console.WriteLine("_finalHash: null");
-        }
-        Console.WriteLine("------------------------");
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlock(ReadOnlySpan<byte> block)

@@ -1,4 +1,5 @@
 using Nalix.Cryptography.Symmetric;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Implement;
 
@@ -187,6 +188,7 @@ public sealed class BlowfishCodec
     /// <param name="packet">The byte array containing encrypted data.</param>
     /// <param name="offset">The starting position in the packet to begin decryption.</param>
     /// <param name="len">The Number of bytes to decrypt.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Decrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
@@ -194,6 +196,7 @@ public sealed class BlowfishCodec
     /// Decrypts the entire packet in place.
     /// </summary>
     /// <param name="packet">The byte array containing encrypted data.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Decrypt(byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
@@ -203,6 +206,7 @@ public sealed class BlowfishCodec
     /// <param name="packet">The byte array containing plaintext data.</param>
     /// <param name="offset">The starting position in the packet to begin encryption.</param>
     /// <param name="len">The Number of bytes to encrypt.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Encrypt(byte[] packet, int offset, int len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
@@ -210,6 +214,7 @@ public sealed class BlowfishCodec
     /// Encrypts the entire packet in place.
     /// </summary>
     /// <param name="packet">The byte array containing plaintext data.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Encrypt(byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Padding;
 
@@ -18,6 +19,7 @@ public static class NoPadding
     /// <param name="blockSize">The block size to align to.</param>
     /// <returns>The original data if already aligned.</returns>
     /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Pad(byte[] data, int blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -42,6 +44,7 @@ public static class NoPadding
     /// <param name="blockSize">The block size to align to.</param>
     /// <returns>The original data if already aligned.</returns>
     /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (blockSize <= 0)
@@ -67,6 +70,7 @@ public static class NoPadding
     /// <param name="data">The input byte array.</param>
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Unpad(byte[] data, int blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -89,6 +93,7 @@ public static class NoPadding
     /// <param name="data">The input span.</param>
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (blockSize <= 0)

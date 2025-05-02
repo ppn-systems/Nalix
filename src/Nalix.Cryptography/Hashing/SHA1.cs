@@ -15,6 +15,7 @@ namespace Nalix.Cryptography.Hashing;
 /// It is considered weak due to known vulnerabilities but is still used in legacy systems.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
+[System.Runtime.InteropServices.ComVisible(true)]
 public sealed class SHA1 : ISHA, IDisposable
 {
     #region Fields
@@ -52,6 +53,7 @@ public sealed class SHA1 : ISHA, IDisposable
     /// <remarks>
     /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
         using SHA1 sha1 = new();
@@ -62,6 +64,7 @@ public sealed class SHA1 : ISHA, IDisposable
     /// <summary>
     /// Resets the hash state to initial values.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
         Buffer.BlockCopy(SHA.H1, 0, _state, 0, SHA.H1.Length * sizeof(uint));
@@ -80,6 +83,7 @@ public sealed class SHA1 : ISHA, IDisposable
     /// <exception cref="InvalidOperationException">
     /// Thrown if this method is called after the hash has been finalized.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Update(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
@@ -127,6 +131,7 @@ public sealed class SHA1 : ISHA, IDisposable
     /// <exception cref="ObjectDisposedException">
     /// Thrown if this method is called after the object has been disposed.
     /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
@@ -209,6 +214,7 @@ public sealed class SHA1 : ISHA, IDisposable
     /// - A padding byte `0x80` is added after the data.
     /// - The length of the original message (in bits) is appended in big-endian format.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));

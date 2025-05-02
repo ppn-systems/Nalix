@@ -16,6 +16,7 @@ public static class PKCS7
     /// <param name="data">The input span to pad.</param>
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with PKCS7 padding applied.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (blockSize <= 0 || blockSize > byte.MaxValue)
@@ -40,6 +41,7 @@ public static class PKCS7
     /// <param name="data">The input span to unpad.</param>
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with PKCS7 padding removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)

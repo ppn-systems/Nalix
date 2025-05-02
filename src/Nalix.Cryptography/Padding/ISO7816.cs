@@ -16,6 +16,7 @@ public static class ISO7816
     /// <param name="data">The input byte array to pad.</param>
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding applied.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Pad(byte[] data, int blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -43,6 +44,7 @@ public static class ISO7816
     /// <param name="data">The input span to pad.</param>
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding applied.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (blockSize <= 0 || blockSize > byte.MaxValue)
@@ -73,6 +75,7 @@ public static class ISO7816
     /// <param name="data">The input byte array to unpad.</param>
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Unpad(byte[] data, int blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
@@ -99,6 +102,7 @@ public static class ISO7816
     /// <param name="data">The input span to unpad.</param>
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding removed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)

@@ -14,6 +14,7 @@ namespace Nalix.Cryptography.Hashing;
 /// It is essentially SHA-256 with different initialization values and truncated output.
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
+[System.Runtime.InteropServices.ComVisible(true)]
 public sealed class SHA224 : ISHA, IDisposable
 {
     #region Fields
@@ -46,6 +47,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// </summary>
     /// <param name="data">The input data to hash.</param>
     /// <returns>The computed 224-bit hash as a byte array.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] HashData(ReadOnlySpan<byte> data)
     {
         using SHA224 sha224 = new();
@@ -56,6 +58,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// <summary>
     /// Resets the hash state to its initial values.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
         // Initialize state with SHA-224 specific values
@@ -77,6 +80,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown if hash has already been finalized.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Update(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(condition: _disposed, instance: this);
@@ -142,6 +146,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// </summary>
     /// <returns>A 28-byte array containing the SHA-224 hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(condition: _disposed, instance: this);
@@ -194,6 +199,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// <remarks>
     /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA224));
@@ -264,6 +270,7 @@ public sealed class SHA224 : ISHA, IDisposable
     /// <summary>
     /// Releases resources used by the SHA224 instance.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed)
