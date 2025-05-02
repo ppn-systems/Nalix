@@ -11,20 +11,6 @@
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-//
-// Represents the fixed AEAD envelope header and provides span-first
-// serialize / parse helpers.
-//
-// Header layout (12 bytes):
-// [0..3]  : MAGIC "NALX" (4 ASCII bytes)
-// [4]     : version (1 byte)
-// [5]     : type  (1 byte)  -> CipherSuiteType (Nalix.Common.Enums)
-// [6]     : flags (1 byte)  (reserved)
-// [7]     : nonceLen (1 byte)
-// [8..11] : seq (uint32 little-endian)
-
 using Nalix.Common.Enums;
 
 #if DEBUG

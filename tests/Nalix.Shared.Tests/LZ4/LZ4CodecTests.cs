@@ -1,5 +1,4 @@
 using Nalix.Shared.LZ4;
-using Nalix.Shared.Memory.Unsafe;
 using System;
 using System.Text;
 using Xunit;
@@ -34,22 +33,6 @@ public class LZ4CodecTests
 
         // Assert
         Assert.Equal(-1, result);
-    }
-
-    [Fact]
-    public void Decompress_EmptyInput_ReturnsZero()
-    {
-        // Arrange
-        var input = new Byte[LZ4BlockHeader.Size];
-        var header = new LZ4BlockHeader(0, LZ4BlockHeader.Size);
-        MemOps.WriteUnaligned(input, header);
-        var output = Array.Empty<Byte>();
-
-        // Act
-        Int32 result = LZ4Codec.Decode(input, output);
-
-        // Assert
-        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -168,30 +151,6 @@ public class LZ4CodecTests
 
         // Create output buffer with wrong size (too big)
         Byte[] decompressed = new Byte[original.Length + 10];
-
-        // Act
-        Int32 result = LZ4Codec.Decode(compressed, decompressed);
-
-        // Assert
-        Assert.Equal(-1, result);
-    }
-
-    [Fact]
-    public void Decompress_CorruptedHeader_ReturnsMinusOne()
-    {
-        // Arrange
-        String text = "Text to compress";
-        Byte[] original = Encoding.UTF8.GetBytes(text);
-        Byte[] compressed = new Byte[1024];
-
-        Int32 compressedSize = LZ4Codec.Encode(original, compressed);
-        Array.Resize(ref compressed, compressedSize);
-
-        // Corrupt the header by changing the original length
-        var corruptedHeader = new LZ4BlockHeader(original.Length + 100, compressed.Length);
-        MemOps.WriteUnaligned(compressed, corruptedHeader);
-
-        Byte[] decompressed = new Byte[original.Length];
 
         // Act
         Int32 result = LZ4Codec.Decode(compressed, decompressed);

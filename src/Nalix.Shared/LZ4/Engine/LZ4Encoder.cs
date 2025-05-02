@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Shared.Internal;
-using Nalix.Shared.Memory.Unsafe;
+using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.LZ4.Engine;
 
