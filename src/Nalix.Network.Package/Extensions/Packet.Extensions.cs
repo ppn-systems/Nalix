@@ -14,7 +14,7 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="packet">The byte array representing the packet.</param>
     /// <returns>Returns true if the checksum is valid; otherwise, false.</returns>
-    public static bool IsValidChecksum(this byte[] packet)
+    public static bool IsChecksum(this byte[] packet)
         => PacketOps.IsValidChecksum(packet);
 
     /// <summary>
@@ -56,7 +56,9 @@ public static class PacketExtensions
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
     /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(this in Packet packet, System.Span<byte> destination,
+    public static bool TrySerialize(
+        this in Packet packet,
+        System.Span<byte> destination,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
         => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
 
@@ -66,7 +68,8 @@ public static class PacketExtensions
     /// <param name="source">The byte span containing packet data.</param>
     /// <param name="packet">Outputs the deserialized packet if successful.</param>
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(this System.ReadOnlySpan<byte> source,
+    public static bool TryDeserialize(
+        this System.ReadOnlySpan<byte> source,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Packet packet)
         => PacketSerializer.TryDeserialize(source, out packet);
 }
