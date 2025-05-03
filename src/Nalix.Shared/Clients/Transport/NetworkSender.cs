@@ -1,0 +1,85 @@
+using Nalix.Common.Networking;
+using Nalix.Common.Package;
+
+namespace Nalix.Shared.Clients.Transport;
+
+/// <summary>
+/// Handles sending packets and raw bytes over a network stream.
+/// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="NetworkSender{TPacket}"/> class with the specified network stream.
+/// </remarks>
+/// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
+/// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
+public sealed class NetworkSender<TPacket>(System.Net.Sockets.NetworkStream stream) : INetworkSender<TPacket>
+    where TPacket : IPacket
+{
+    private readonly System.Net.Sockets.NetworkStream _stream = stream
+        ?? throw new System.ArgumentNullException(nameof(stream));
+
+    /// <summary>
+    /// Checks if the network stream is healthy and writable.
+    /// </summary>
+    /// <returns><c>true</c> if the stream is writable; otherwise, <c>false</c>.</returns>
+    public bool IsStreamHealthy => _stream != null && _stream.CanWrite;
+
+    /// <summary>
+    /// Asynchronously sends a packet over the network stream.
+    /// </summary>
+    /// <param name="packet">The packet to send, implementing <see cref="IPacket"/>.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
+    /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    public async System.Threading.Tasks.Task SendAsync(
+        TPacket packet,
+        System.Threading.CancellationToken cancellationToken = default)
+    {
+        System.ArgumentNullException.ThrowIfNull(packet);
+        await SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asynchronously sends raw bytes over the network stream.
+    /// </summary>
+    /// <param name="bytes">The bytes to send as a read-only memory segment.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    public async System.Threading.Tasks.Task SendAsync(
+        System.ReadOnlyMemory<byte> bytes,
+        System.Threading.CancellationToken cancellationToken = default)
+    {
+        if (!_stream.CanWrite)
+            throw new System.InvalidOperationException("The network stream is not writable.");
+
+        await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Synchronously sends a packet over the network stream.
+    /// </summary>
+    /// <param name="packet">The packet to send, implementing <see cref="IPacket"/>.</param>
+    /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
+    /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    public void Send(TPacket packet)
+    {
+        System.ArgumentNullException.ThrowIfNull(packet);
+        Send(packet.Serialize().Span);
+    }
+
+    /// <summary>
+    /// Synchronously sends raw bytes over the network stream.
+    /// </summary>
+    /// <param name="bytes">The bytes to send as a read-only span.</param>
+    /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    public void Send(System.ReadOnlySpan<byte> bytes)
+    {
+        if (!_stream.CanWrite)
+            throw new System.InvalidOperationException("The network stream is not writable.");
+
+        _stream.Write(bytes);
+        _stream.Flush();
+    }
+}

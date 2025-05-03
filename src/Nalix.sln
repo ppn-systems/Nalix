@@ -23,8 +23,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Storage", "Nalix.Stor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Application", "Nalix.Application\Nalix.Application.csproj", "{512D9722-4A5D-452F-82AD-DBFF713F53BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Client", "Nalix.Network.Client\Nalix.Network.Client.csproj", "{6494B078-E9DB-4E29-A6F8-8FDB2E027DBD}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,10 +69,6 @@ Global
 		{512D9722-4A5D-452F-82AD-DBFF713F53BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{512D9722-4A5D-452F-82AD-DBFF713F53BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{512D9722-4A5D-452F-82AD-DBFF713F53BF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6494B078-E9DB-4E29-A6F8-8FDB2E027DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6494B078-E9DB-4E29-A6F8-8FDB2E027DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6494B078-E9DB-4E29-A6F8-8FDB2E027DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6494B078-E9DB-4E29-A6F8-8FDB2E027DBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
