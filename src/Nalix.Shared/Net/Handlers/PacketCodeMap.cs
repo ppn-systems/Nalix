@@ -5,7 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Nalix.Shared.Net.Controller;
+namespace Nalix.Shared.Net.Handlers;
 
 internal static class PacketCodeMap
 {

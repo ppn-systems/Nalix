@@ -8,13 +8,13 @@ using Nalix.Common.Security;
 using Nalix.Serialization;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Net.Controller;
+namespace Nalix.Shared.Net.Handlers;
 
 /// <summary>
 /// A controller for managing keep-alive packets in a network dispatcher.
 /// </summary>
 [PacketController]
-public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+public sealed class KeepAliveHandler<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
     /// Handles a ping request from the client.
@@ -23,7 +23,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacke
     [PacketTimeout(Timeouts.Short)]
     [PacketId((ushort)ConnectionCommand.Ping)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
+    [PacketRateGroup(nameof(KeepAliveHandler<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
@@ -38,7 +38,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacke
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ConnectionCommand.Pong)]
-    [PacketRateGroup(nameof(KeepAliveController<TPacket>))]
+    [PacketRateGroup(nameof(KeepAliveHandler<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
@@ -53,7 +53,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacke
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ConnectionCommand.PingTime)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
+    [PacketRateGroup(nameof(SessionHandler<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection __)
@@ -68,7 +68,7 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacke
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketId((ushort)ConnectionCommand.PingInfo)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
+    [PacketRateGroup(nameof(SessionHandler<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingInfo(TPacket _, IConnection connection)

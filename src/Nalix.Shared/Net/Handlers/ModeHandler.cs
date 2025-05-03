@@ -8,13 +8,13 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Net.Controller;
+namespace Nalix.Shared.Net.Handlers;
 
 /// <summary>
 /// Handles connection mode settings for compression and encryption.
 /// </summary>
 [PacketController]
-public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPacket, IPacketFactory<TPacket>
+public sealed class ModeHandler<TPacket>(ILogger? logger) where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 
@@ -32,7 +32,7 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
+    [PacketRateGroup(nameof(SessionHandler<TPacket>))]
     [PacketId((ushort)ConnectionCommand.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 100)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

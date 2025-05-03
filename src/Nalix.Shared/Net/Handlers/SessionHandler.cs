@@ -8,7 +8,7 @@ using Nalix.Common.Security;
 using Nalix.Serialization;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Net.Controller;
+namespace Nalix.Shared.Net.Handlers;
 
 /// <summary>
 /// Provides handlers for managing connection-level configuration commands,
@@ -16,7 +16,7 @@ namespace Nalix.Shared.Net.Controller;
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>
 [PacketController]
-public sealed class SessionController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+public sealed class SessionHandler<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
     /// Handles a client-initiated disconnect request.
@@ -24,7 +24,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket, IPacketF
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
+    [PacketRateGroup(nameof(SessionHandler<TPacket>))]
     [PacketId((ushort)ConnectionCommand.Disconnect)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,7 +37,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket, IPacketF
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(SessionController<TPacket>))]
+    [PacketRateGroup(nameof(SessionHandler<TPacket>))]
     [PacketId((ushort)ConnectionCommand.ConnectionStatus)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

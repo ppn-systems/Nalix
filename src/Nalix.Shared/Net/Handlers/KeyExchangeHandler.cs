@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Net.Controller;
+namespace Nalix.Shared.Net.Handlers;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISHA.
@@ -19,7 +19,7 @@ namespace Nalix.Shared.Net.Controller;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
-public sealed class HandshakeController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 
@@ -32,12 +32,12 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket, IPacke
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HandshakeController{TPacket}"/> class with necessary components.
+    /// Initializes a new instance of the <see cref="KeyExchangeHandler{TPacket}"/> class with necessary components.
     /// </summary>
     /// <param name="sha">The hashing algorithm implementation to use (e.g., SHA-256).</param>
     /// <param name="x25519">The X25519 implementation for key exchange.</param>
     /// <param name="logger">Optional logger for recording events and errors during the handshake process.</param>
-    public HandshakeController(ISHA sha, IX25519 x25519, ILogger? logger)
+    public KeyExchangeHandler(ISHA sha, IX25519 x25519, ILogger? logger)
     {
         _logger = logger;
         _hashAlgorithm = sha;
@@ -57,7 +57,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket, IPacke
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeController<TPacket>))]
+    [PacketRateGroup(nameof(KeyExchangeHandler<TPacket>))]
     [PacketId((ushort)ConnectionCommand.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,7 +117,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket, IPacke
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeController<TPacket>))]
+    [PacketRateGroup(nameof(KeyExchangeHandler<TPacket>))]
     [PacketId((ushort)ConnectionCommand.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

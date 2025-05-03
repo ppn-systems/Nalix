@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using Nalix.Shared.Net.Controller;
+using Nalix.Shared.Net.Handlers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -27,9 +27,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> BuiltInHandlers()
     {
-        this.WithHandler<SessionController<TPacket>>();
-        this.WithHandler<KeepAliveController<TPacket>>();
-        this.WithHandler(() => new ModeController<TPacket>(_logger));
+        this.WithHandler<SessionHandler<TPacket>>();
+        this.WithHandler<KeepAliveHandler<TPacket>>();
+        this.WithHandler(() => new ModeHandler<TPacket>(_logger));
 
         return this;
     }
@@ -96,7 +96,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         System.Type controllerType = typeof(TController);
         PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
             ?? throw new System.InvalidOperationException(
-                $"SessionController '{controllerType.Name}' missing PacketController attribute.");
+                $"SessionHandler '{controllerType.Name}' missing PacketController attribute.");
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
@@ -111,7 +111,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         if (methods.Count == 0)
         {
-            string message = $"SessionController '{controllerType.FullName}' has no methods marked with [PacketId]. " +
+            string message = $"SessionHandler '{controllerType.FullName}' has no methods marked with [PacketId]. " +
                              $"Ensure at least one public method is decorated.";
 
             _logger?.Warn(message);
