@@ -31,6 +31,8 @@ public sealed class NetSender<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task SendAsync(
         TPacket packet,
         System.Threading.CancellationToken cancellationToken = default)
@@ -46,6 +48,8 @@ public sealed class NetSender<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task SendAsync(
         System.ReadOnlyMemory<byte> bytes,
         System.Threading.CancellationToken cancellationToken = default)
@@ -63,6 +67,8 @@ public sealed class NetSender<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// <param name="packet">The packet to send, implementing <see cref="IPacket"/>.</param>
     /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Send(TPacket packet)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
@@ -74,6 +80,8 @@ public sealed class NetSender<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// </summary>
     /// <param name="bytes">The bytes to send as a read-only span.</param>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Send(System.ReadOnlySpan<byte> bytes)
     {
         if (!_stream.CanWrite)

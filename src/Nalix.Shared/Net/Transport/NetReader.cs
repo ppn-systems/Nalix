@@ -26,6 +26,8 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// <exception cref="System.InvalidOperationException">Thrown when the stream is not readable or the packet size is invalid.</exception>
     /// <exception cref="System.IO.EndOfStreamException">Thrown when the stream ends unexpectedly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while reading from the stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket Receive()
     {
         if (!_stream.CanRead)
@@ -83,6 +85,8 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
     /// <exception cref="System.IO.EndOfStreamException">Thrown when the stream ends unexpectedly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while reading from the stream.</exception>
     /// <exception cref="System.OperationCanceledException">Thrown when the operation is canceled via <paramref name="cancellationToken"/>.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {

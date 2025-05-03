@@ -55,6 +55,8 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     /// <summary>
     /// Connects to a remote server synchronously within a specified timeout period.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Connect(
         int timeout = 30000,
         System.Threading.CancellationToken cancellationToken = default)
@@ -83,6 +85,8 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     /// <summary>
     /// Asynchronously connects to a remote server within a specified timeout period.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task ConnectAsync(
         int timeout = 30000,
         System.Threading.CancellationToken cancellationToken = default)
