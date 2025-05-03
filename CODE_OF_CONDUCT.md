@@ -1,43 +1,47 @@
-# Code of Conduct
+# Code of Conduct 📜
 
-The [Notio Organization](https://github.com/phcnguyen/notio), its related [sinks][sinks] and [community projects][projects] have adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/) to clarify expected behavior in our community.
+The [Nalix Organization](https://github.com/phcnguyen/nalix), its related [sinks][sinks] and [community projects][projects] have adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/) to clarify expected behavior in our community.
 
-## Our Pledge
+## Our Pledge 🤝
 
 We as members, contributors, and maintainers pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
-## Our Standards
+## Our Standards ⭐
 
-Examples of behavior that contributes to creating a positive environment include:
+### Positive Behaviors 👍
 
-- Using welcoming and inclusive language
-- Being respectful of differing viewpoints and experiences
-- Gracefully accepting constructive criticism
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+- 💬 Using welcoming and inclusive language
+- 🧠 Being respectful of differing viewpoints and experiences
+- 🔄 Gracefully accepting constructive criticism
+- 🌟 Focusing on what is best for the community
+- 💖 Showing empathy towards other community members
 
-Examples of unacceptable behavior by participants include:
+### Unacceptable Behaviors ⚠️
 
-- The use of sexualized language or imagery and unwelcome sexual attention or advances
-- Trolling, insulting/derogatory comments, and personal or political attacks
-- Public or private harassment
-- Publishing others' private information, such as a physical or electronic address, without explicit permission
-- Other conduct which could reasonably be considered inappropriate in a professional setting
+- 🚫 The use of sexualized language or imagery and unwelcome sexual attention or advances
+- 👎 Trolling, insulting/derogatory comments, and personal or political attacks
+- 😡 Public or private harassment
+- 🔒 Publishing others' private information, such as a physical or electronic address, without explicit permission
+- ❌ Other conduct which could reasonably be considered inappropriate in a professional setting
 
-## Our Responsibilities
+## Our Responsibilities 🛡️
 
 Project maintainers are responsible for clarifying the standards of acceptable behavior and are expected to take appropriate and fair corrective action in response to any instances of unacceptable behavior.
 
 Project maintainers have the right and responsibility to remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct, or to ban temporarily or permanently any contributor for other behaviors that they deem inappropriate, threatening, offensive, or harmful.
 
-## Scope
+## Scope 🌐
 
 This Code of Conduct applies within all project spaces, and it also applies when an individual is officially representing the project or its community in public spaces. Examples of representing a project or community include using an official project email address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
 
-## Enforcement
+## Enforcement ⚖️
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at [email@domain.com]. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident.
 
-## Attribution
+## Attribution 📝
 
-This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org/), version 2.1, available at https://www.contributor-covenant.org/version/2/1/code_of_conduct/.
+This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org/), version 2.1, available at [here](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+<!-- Link definitions -->
+[sinks]: https://github.com/phcnguyen/notio#related-sinks
+[projects]: https://github.com/phcnguyen/notio#community-projects
