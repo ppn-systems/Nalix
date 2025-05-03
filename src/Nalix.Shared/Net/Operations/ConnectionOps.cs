@@ -9,7 +9,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Serialization;
 
-namespace Nalix.Shared.Net.Handlers;
+namespace Nalix.Shared.Net.Operations;
 
 /// <summary>
 /// Provides handlers for managing connection-level configuration commands,

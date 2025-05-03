@@ -8,7 +8,7 @@ using Nalix.Common.Security;
 using Nalix.Serialization;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Net.Handlers;
+namespace Nalix.Shared.Net.Operations;
 
 /// <summary>
 /// A controller for managing keep-alive packets in a network dispatcher.

@@ -5,7 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace Nalix.Shared.Net.Handlers;
+namespace Nalix.Shared.Net.Operations;
 
 /// <summary>
 /// Provides human-readable messages associated with <see cref="PacketCode"/> values,

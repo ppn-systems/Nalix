@@ -9,7 +9,7 @@ using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Extensions.Primitives;
 
-namespace Nalix.Shared.Net.Handlers;
+namespace Nalix.Shared.Net.Operations;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISHA.
