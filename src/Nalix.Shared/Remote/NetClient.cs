@@ -8,32 +8,32 @@ namespace Nalix.Shared.Remote;
 /// Represents a network client that connects to a remote server using TCP.
 /// </summary>
 /// <remarks>
-/// The <see cref="NetworkClient{TPacket}"/> class is a singleton that manages the connection,
+/// The <see cref="NetClient{TPacket}"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
-public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, System.IDisposable
+public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDisposable
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
-    private NetworkSender<TPacket>? _sender;
-    private NetworkReader<TPacket>? _reader;
+    private NetSender<TPacket>? _sender;
+    private NetReader<TPacket>? _reader;
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream? _stream;
 
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public NetworkContext Context { get; } = new();
+    public NetContext Context { get; } = new();
 
     /// <summary>
     /// Gets the network sender used to send packets.
     /// </summary>
-    public NetworkSender<TPacket> Sender => _sender
+    public NetSender<TPacket> Sender => _sender
         ?? throw new System.InvalidOperationException("Sender is not initialized.");
 
     /// <summary>
     /// Gets the network receiver used to receive packets.
     /// </summary>
-    public NetworkReader<TPacket> Receiver => _reader
+    public NetReader<TPacket> Receiver => _reader
         ?? throw new System.InvalidOperationException("Receiver is not initialized.");
 
     /// <summary>
@@ -48,9 +48,9 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
     public bool IsConnected => _client?.Connected == true && _stream != null;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="NetworkClient{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="NetClient{TPacket}"/> class.
     /// </summary>
-    private NetworkClient() => _client = new System.Net.Sockets.TcpClient { NoDelay = true };
+    private NetClient() => _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
     /// <summary>
     /// Connects to a remote server synchronously within a specified timeout period.
@@ -70,8 +70,8 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
             _client.Connect(Context.Address, Context.Port); // Synchronous Connect
 
             _stream = _client.GetStream();
-            _sender = new NetworkSender<TPacket>(_stream);
-            _reader = new NetworkReader<TPacket>(_stream);
+            _sender = new NetSender<TPacket>(_stream);
+            _reader = new NetReader<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -98,8 +98,8 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
             await _client.ConnectAsync(Context.Address, Context.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _sender = new NetworkSender<TPacket>(_stream);
-            _reader = new NetworkReader<TPacket>(_stream);
+            _sender = new NetSender<TPacket>(_stream);
+            _reader = new NetReader<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -114,7 +114,7 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
     public void Close() => this.Dispose();
 
     /// <summary>
-    /// Releases the resources used by the <see cref="NetworkClient{TPacket}"/> instance.
+    /// Releases the resources used by the <see cref="NetClient{TPacket}"/> instance.
     /// </summary>
     public new void Dispose()
     {

@@ -5,7 +5,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// <summary>
 /// Configuration for buffer settings with enhanced performance options.
 /// </summary>
-public sealed class BufferConfig : ConfigurationBinder
+public sealed class BufferConfig : ConfigurationLoader
 {
     /// <summary>
     /// The total Number of buffers to create.

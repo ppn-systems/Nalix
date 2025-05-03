@@ -13,7 +13,7 @@ namespace Nalix.Network.Configurations;
 /// Initializes a new instance of the <see cref="ConnLimitConfig"/> class with the specified connection limit settings.
 /// </remarks>
 /// <param name="settings">The connection limit settings to apply.</param>
-public sealed class ConnLimitConfig(ConnectionLimitSettings settings) : ConfigurationBinder
+public sealed class ConnLimitConfig(ConnectionLimitSettings settings) : ConfigurationLoader
 {
     #region Predefined Connection Limit Settings
 

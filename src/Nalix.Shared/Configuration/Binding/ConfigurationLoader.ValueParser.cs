@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Configuration.Binding;
 
-public partial class ConfigurationBinder
+public partial class ConfigurationLoader
 {
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.

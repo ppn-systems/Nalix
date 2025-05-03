@@ -15,7 +15,7 @@ namespace Nalix.Shared.Configuration.Binding;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
-public abstract partial class ConfigurationBinder
+public abstract partial class ConfigurationLoader
 {
     #region Fields
 
@@ -54,7 +54,7 @@ public abstract partial class ConfigurationBinder
     /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
-    public ConfigurationBinder()
+    public ConfigurationLoader()
     {
     }
 
@@ -63,7 +63,7 @@ public abstract partial class ConfigurationBinder
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
     /// <param name="logger">The logger to log events and errors.</param>
-    public ConfigurationBinder(ILogger logger) => _logger = logger;
+    public ConfigurationLoader(ILogger logger) => _logger = logger;
 
     #endregion Constructor
 
@@ -73,7 +73,7 @@ public abstract partial class ConfigurationBinder
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
     /// <returns>A new instance with the same property values.</returns>
-    public T Clone<T>() where T : ConfigurationBinder, new()
+    public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();
         Type type = GetType();
@@ -100,7 +100,7 @@ public abstract partial class ConfigurationBinder
     #region Private Methods
 
     /// <summary>
-    /// Initializes an instance of <see cref="ConfigurationBinder"/> from the provided <see cref="ConfiguredIniFile"/>
+    /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="ConfiguredIniFile"/>
     /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>

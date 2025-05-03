@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Configuration.Binding;
 
-public partial class ConfigurationBinder
+public partial class ConfigurationLoader
 {
     /// <summary>
     /// Gets the section name for a configuration type, with caching for performance.

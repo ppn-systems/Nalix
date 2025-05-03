@@ -14,7 +14,7 @@ namespace Nalix.Network.Configurations;
 /// Initializes a new instance of the <see cref="RateLimitConfig"/> class with the specified rate limit settings.
 /// </remarks>
 /// <param name="settings">The rate limit settings to apply.</param>
-public sealed class RateLimitConfig(RequestLimitSettings settings) : ConfigurationBinder
+public sealed class RateLimitConfig(RequestLimitSettings settings) : ConfigurationLoader
 {
     #region Fields
 

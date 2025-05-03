@@ -7,7 +7,7 @@ namespace Nalix.Shared.Remote;
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.
 /// </summary>
-public sealed class NetworkContext : ConfigurationBinder
+public sealed class NetContext : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the port number for the connection.

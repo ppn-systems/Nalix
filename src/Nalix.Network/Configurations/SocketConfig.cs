@@ -7,7 +7,7 @@ namespace Nalix.Network.Configurations;
 /// <summary>
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
-public sealed class SocketConfig : ConfigurationBinder
+public sealed class SocketConfig : ConfigurationLoader
 {
     #region Fields
 

@@ -21,7 +21,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 {
     #region Fields
 
-    private readonly ConcurrentDictionary<Type, ConfigurationBinder> _configContainerDict = new();
+    private readonly ConcurrentDictionary<Type, ConfigurationLoader> _configContainerDict = new();
     private readonly ReaderWriterLockSlim _configLock = new(LockRecursionPolicy.NoRecursion);
     private readonly Lazy<ConfiguredIniFile> _iniFile;
 
@@ -78,7 +78,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// <typeparam name="TClass">The type of the configuration container.</typeparam>
     /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TClass Get<TClass>() where TClass : ConfigurationBinder, new()
+    public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
         return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), type =>
         {
@@ -150,7 +150,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to check.</typeparam>
     /// <returns>True if the configuration is loaded; otherwise, false.</returns>
-    public bool IsLoaded<TClass>() where TClass : ConfigurationBinder
+    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader
         => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
@@ -158,7 +158,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to remove.</typeparam>
     /// <returns>True if the configuration was removed; otherwise, false.</returns>
-    public bool Remove<TClass>() where TClass : ConfigurationBinder
+    public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
         _configLock.EnterWriteLock();
         try

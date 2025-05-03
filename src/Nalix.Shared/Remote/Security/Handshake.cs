@@ -15,13 +15,16 @@ namespace Nalix.Shared.Remote.Security;
 /// <see cref="IPacketFactory{TPacket}"/>, and <see cref="IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
 public sealed class Handshake<TPacket>(
-    NetworkReader<TPacket> receiver, NetworkSender<TPacket> sender,
-    NetworkContext context, IX25519 x25519, ISHA sha)
+    NetReader<TPacket> receiver,
+    NetSender<TPacket> sender,
+    NetContext context,
+    IX25519 x25519,
+    ISHA sha)
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
-    private readonly NetworkReader<TPacket> _receiver = receiver;
-    private readonly NetworkSender<TPacket> _sender = sender;
-    private readonly NetworkContext _context = context;
+    private readonly NetReader<TPacket> _receiver = receiver;
+    private readonly NetSender<TPacket> _sender = sender;
+    private readonly NetContext _context = context;
     private readonly IX25519 _x25519 = x25519;
     private readonly ISHA _sha = sha;
 
@@ -47,12 +50,13 @@ public sealed class Handshake<TPacket>(
         IPacket response = _receiver.Receive();
 
         if (response == null || response.Payload.Length != 32)
-            return (false, $"Invalid response length: {response?.Payload.Length ?? 0}");
+            return (false, $"Handshake failed: invalid response length ({response?.Payload.Length ?? 0}). " +
+                           $"Please ensure that the server is reachable and supports the protocol.");
 
         byte[] secret = _x25519.Compute(privateKey, response.Payload.ToArray());
         _context.EncryptionKey = _sha.ComputeHash(secret);
 
-        return (true, "Secure handshake completed.");
+        return (true, "Handshake successful: secure connection established.");
     }
 
     /// <summary>
@@ -76,11 +80,12 @@ public sealed class Handshake<TPacket>(
         IPacket response = await _receiver.ReceiveAsync();
 
         if (response == null || response.Payload.Length != 32)
-            return (false, $"Invalid response length: {response?.Payload.Length ?? 0}");
+            return (false, $"Handshake failed: invalid response length ({response?.Payload.Length ?? 0}). " +
+                           $"Please check server connectivity and protocol compatibility.");
 
         byte[] secret = _x25519.Compute(privateKey, response.Payload.ToArray());
         _context.EncryptionKey = _sha.ComputeHash(secret);
 
-        return (true, "Secure handshake completed.");
+        return (true, "Handshake successful: secure connection established.");
     }
 }

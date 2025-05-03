@@ -6,7 +6,7 @@ namespace Nalix.Network.Configurations;
 /// <summary>
 /// Configuration options for ChannelDispatch
 /// </summary>
-public sealed class DispatchQueueConfig : ConfigurationBinder
+public sealed class DispatchQueueConfig : ConfigurationLoader
 {
     /// <summary>
     /// Maximum number of packets in the queue (0 = unlimited)
