@@ -27,6 +27,8 @@ public sealed class ReliableClient : System.IDisposable
 {
     #region Fields
 
+    private readonly System.Threading.SemaphoreSlim _connGate;
+
     private IIdentifier _workerId;
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
@@ -50,6 +52,12 @@ public sealed class ReliableClient : System.IDisposable
     /// Gets the FIFO cache that stores incoming packets received from the remote server.
     /// </summary>
     public FifoCache<IPacket> Incoming { get; }
+
+    // In ReliableClient class
+    /// <summary>
+    /// Indicates whether a 32-byte session key has been installed (handshake completed).
+    /// </summary>
+    public System.Boolean IsHandshaked => Options?.EncryptionKey is { Length: 32 };
 
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
@@ -87,9 +95,11 @@ public sealed class ReliableClient : System.IDisposable
     /// </summary>
     public ReliableClient()
     {
+        _connGate = new(1, 1);
+        _client = new System.Net.Sockets.TcpClient { NoDelay = true };
+
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Incoming = new FifoCache<IPacket>(Options.IncomingSize);
-        _client = new System.Net.Sockets.TcpClient { NoDelay = true };
     }
 
     #endregion Constructor
@@ -115,13 +125,27 @@ public sealed class ReliableClient : System.IDisposable
         _discNotified = 0;
 
         _client?.Close();
-        _client = new System.Net.Sockets.TcpClient { NoDelay = true };
+        _client = new System.Net.Sockets.TcpClient
+        {
+            NoDelay = true,
+            LingerState = new System.Net.Sockets.LingerOption(false, 0)
+        };
+        _client.Client.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.KeepAlive, true);
 
         using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
 
+        await _connGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         try
         {
+            if (IsConnected)
+            {
+                return;
+            }
+
             await _client.ConnectAsync(Options.Address, Options.Port, cts.Token);
 
             _stream = _client.GetStream();
@@ -129,7 +153,7 @@ public sealed class ReliableClient : System.IDisposable
             _inbound = new StreamReceiver<IPacket>(_stream);
 
             // Notify connected
-            Connected?.Invoke();
+            SafeInvoke(Connected, InstanceManager.Instance.GetExistingInstance<ILogger>());
 
             // Start background receive worker through TaskManager
             IWorkerHandle woker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
@@ -143,9 +167,6 @@ public sealed class ReliableClient : System.IDisposable
                         try
                         {
                             packet = await _inbound!.ReceiveAsync(ct).ConfigureAwait(false);
-
-                            // Raise event for reactive waiters (AwaitControlAsync, etc.)
-                            PacketReceived?.Invoke(packet);
                         }
                         catch (System.OperationCanceledException)
                         {
@@ -171,9 +192,7 @@ public sealed class ReliableClient : System.IDisposable
                             this.Incoming.Push(packet);
                         }
 
-                        // Isolate subscriber faults
-                        SafeInvoke(PacketReceived, packet,
-                                   InstanceManager.Instance.GetExistingInstance<ILogger>());
+                        SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                     }
                 },
                 new WorkerOptions
@@ -193,6 +212,10 @@ public sealed class ReliableClient : System.IDisposable
         {
             // propagate user cancel
             throw;
+        }
+        finally
+        {
+            _connGate.Release();
         }
     }
 
@@ -223,14 +246,24 @@ public sealed class ReliableClient : System.IDisposable
     public void Disconnect()
     {
         _closed = true;
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_workerId);
+
+        if (_workerId is not null)
+        {
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                        .CancelWorker(_workerId);
+        }
 
         try { _stream?.Dispose(); } catch { /* swallow */ }
         try { _client?.Close(); } catch { /* swallow */ }
 
         _outbound = null;
         _inbound = null;
+
+        // Notify once on explicit disconnect as well
+        if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
+        {
+            SafeInvoke(Disconnected, null, InstanceManager.Instance.GetExistingInstance<ILogger>());
+        }
     }
 
     /// <summary>
@@ -240,18 +273,26 @@ public sealed class ReliableClient : System.IDisposable
     public void Dispose()
     {
         Disconnect();
-        // invoke-once Disconnected(null)
-        if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
-        {
-            SafeInvoke(Disconnected, null, InstanceManager.Instance.GetExistingInstance<ILogger>());
-        }
-
         System.GC.SuppressFinalize(this);
     }
 
     #endregion APIs
 
     #region Private Methods
+
+    private static void SafeInvoke(System.Action evt, ILogger log)
+    {
+        var d = evt;
+        if (d is null)
+        {
+            return;
+        }
+
+        foreach (System.Action h in d.GetInvocationList().Cast<System.Action>())
+        {
+            try { h(); } catch (System.Exception ex) { log?.Warn($"Subscriber threw: {ex}"); }
+        }
+    }
 
     private static void SafeInvoke<T>(System.Action<T> evt, T arg, ILogger log)
     {
