@@ -10,7 +10,7 @@ namespace Nalix.Storage.Configurations;
 /// <summary>
 /// Configured for file storage on disk.
 /// </summary>
-public class InDiskConfig : ConfigurationBinder, IFileStorageConfig<InDiskConfig>
+public class InDiskConfig : ConfigurationLoader, IFileStorageConfig<InDiskConfig>
 {
     /// <summary>
     /// Gets the location of the storage folder on disk.
