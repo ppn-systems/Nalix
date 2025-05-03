@@ -2,7 +2,7 @@ using Nalix.Common.Constants;
 using Nalix.Common.Networking;
 using Nalix.Common.Package;
 
-namespace Nalix.Shared.Remote.Transport;
+namespace Nalix.Shared.Net.Transport;
 
 /// <summary>
 /// Handles receiving packets from a network stream.

@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using Nalix.Network.Dispatch.BuiltIn;
+using Nalix.Shared.Net.Controller;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;

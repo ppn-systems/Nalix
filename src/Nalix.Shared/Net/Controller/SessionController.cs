@@ -5,10 +5,10 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
-using Nalix.Network.Dispatch.BuiltIn.Internal;
+using Nalix.Serialization;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.BuiltIn;
+namespace Nalix.Shared.Net.Controller;
 
 /// <summary>
 /// Provides handlers for managing connection-level configuration commands,
@@ -16,7 +16,7 @@ namespace Nalix.Network.Dispatch.BuiltIn;
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>
 [PacketController]
-public sealed class SessionController<TPacket> where TPacket : IPacket
+public sealed class SessionController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
     /// Handles a client-initiated disconnect request.
@@ -29,7 +29,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void Disconnect(IPacket _, IConnection connection)
-        => connection.Disconnect("Remote disconnect request");
+        => connection.Disconnect("Net disconnect request");
 
     /// <summary>
     /// Responds with the current connection status (compression, encryption, etc).
@@ -48,6 +48,8 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
             Encryption = connection.Encryption
         };
 
-        return PacketWriter.Json(PacketCode.Success, status, NetJsonCxt.Default.ConnInfoDto);
+        return TPacket.Create(
+            (ushort)ConnectionCommand.PingInfo, PacketCode.Success, PacketType.String, PacketFlags.None,
+            PacketPriority.Low, JsonCodec.SerializeToMemory(status, NetJsonCxt.Default.ConnInfoDto)).Serialize();
     }
 }

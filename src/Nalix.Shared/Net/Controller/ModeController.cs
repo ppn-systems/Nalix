@@ -6,16 +6,15 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
-using Nalix.Network.Dispatch.BuiltIn.Internal;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.BuiltIn;
+namespace Nalix.Shared.Net.Controller;
 
 /// <summary>
 /// Handles connection mode settings for compression and encryption.
 /// </summary>
 [PacketController]
-public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPacket
+public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 
@@ -50,14 +49,16 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
         {
             _logger?.Debug("Invalid packet type [{0}] for SetMode<{1}> from {2}",
                 packet.Type, typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketWriter.String(PacketCode.PacketType);
+            return TPacket.Create((ushort)ConnectionCommand.SetEncryptionMode, PacketCode.PacketType).Serialize();
         }
 
         if (packet.Payload.Length < 1)
         {
             _logger?.Debug("Missing payload byte in SetMode<{0}> from {1}",
                 typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketWriter.String(PacketCode.InvalidPayload);
+            return TPacket.Create(
+                (ushort)ConnectionCommand.SetEncryptionMode,
+                PacketCode.InvalidPayload).Serialize();
         }
 
         byte value = packet.Payload.Span[0];
@@ -66,7 +67,9 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
         {
             _logger?.Debug("Invalid enum value [{0}] in SetMode<{1}> from {2}",
                 value, typeof(TEnum).Name, connection.RemoteEndPoint);
-            return PacketWriter.String(PacketCode.InvalidPayload);
+            return TPacket.Create(
+                (ushort)ConnectionCommand.SetEncryptionMode,
+                PacketCode.InvalidPayload).Serialize();
         }
         TEnum enumValue = Unsafe.As<byte, TEnum>(ref value);
 
@@ -74,7 +77,9 @@ public sealed class ModeController<TPacket>(ILogger? logger) where TPacket : IPa
             connection.Encryption = Unsafe.As<TEnum, EncryptionType>(ref enumValue);
 
         _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
-        return PacketWriter.String(PacketCode.Success);
+        return TPacket.Create(
+            (ushort)ConnectionCommand.SetEncryptionMode,
+            PacketCode.Success).Serialize();
     }
 
     #endregion Private Methods

@@ -5,16 +5,16 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
-using Nalix.Network.Dispatch.BuiltIn.Internal;
+using Nalix.Serialization;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.BuiltIn;
+namespace Nalix.Shared.Net.Controller;
 
 /// <summary>
 /// A controller for managing keep-alive packets in a network dispatcher.
 /// </summary>
 [PacketController]
-public sealed class KeepAliveController<TPacket> where TPacket : IPacket
+public sealed class KeepAliveController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
     /// Handles a ping request from the client.
@@ -27,7 +27,9 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
-        => PacketWriter.String(PacketCode.Success, "Pong");
+        => TPacket.Create(
+            (ushort)ConnectionCommand.Ping, PacketCode.Success, PacketType.String,
+            PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes("Ping")).Serialize();
 
     /// <summary>
     /// Handles a ping request from the client.
@@ -40,7 +42,9 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
-        => PacketWriter.String(PacketCode.Success, "Ping");
+        => TPacket.Create(
+            (ushort)ConnectionCommand.Ping, PacketCode.Success, PacketType.String,
+            PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes("Pong")).Serialize();
 
     /// <summary>
     /// Returns the round-trip time (RTT) of the connection in milliseconds.
@@ -52,8 +56,10 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
     [PacketRateGroup(nameof(SessionController<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
-        => PacketWriter.String(PacketCode.Success, $"Ping: {connection.LastPingTime} ms");
+    internal static System.Memory<byte> GetPingTime(TPacket _, IConnection __)
+        => TPacket.Create(
+            (ushort)ConnectionCommand.PingTime, PacketCode.Success, PacketType.String, PacketFlags.None,
+            PacketPriority.Low, JsonOptions.Encoding.GetBytes("Ping: {connection.LastPingTime} ms")).Serialize();
 
     /// <summary>
     /// Returns the ping information of the connection, including up time and last ping time.
@@ -73,6 +79,8 @@ public sealed class KeepAliveController<TPacket> where TPacket : IPacket
             LastPingTime = connection.LastPingTime,
         };
 
-        return PacketWriter.Json(PacketCode.Success, pingInfoDto, NetJsonCxt.Default.PingInfoDto);
+        return TPacket.Create(
+            (ushort)ConnectionCommand.PingInfo, PacketCode.Success, PacketType.String, PacketFlags.None,
+            PacketPriority.Low, JsonCodec.SerializeToMemory(pingInfoDto, NetJsonCxt.Default.PingInfoDto)).Serialize();
     }
 }

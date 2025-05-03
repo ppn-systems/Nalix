@@ -2,7 +2,7 @@ using Nalix.Common.Cryptography;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
-namespace Nalix.Shared.Remote;
+namespace Nalix.Shared.Net;
 
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.

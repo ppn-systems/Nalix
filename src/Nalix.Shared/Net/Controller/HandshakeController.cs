@@ -7,11 +7,11 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
-using Nalix.Network.Dispatch.BuiltIn.Internal;
+using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.BuiltIn;
+namespace Nalix.Shared.Net.Controller;
 
 /// <summary>
 /// Handles the secure handshake process for establishing encrypted connections using X25519 and ISHA.
@@ -19,7 +19,7 @@ namespace Nalix.Network.Dispatch.BuiltIn;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
-public sealed class HandshakeController<TPacket> where TPacket : IPacket
+public sealed class HandshakeController<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 
@@ -69,7 +69,8 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return PacketWriter.String(PacketCode.PacketType);
+            return TPacket.Create((ushort)ConnectionCommand.StartHandshake,
+                PacketCode.PacketType).Serialize();
         }
 
         // Validate that the public key length is 32 bytes (X25519 standard).
@@ -78,13 +79,14 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return PacketWriter.String(PacketCode.InvalidPayload);
+            return TPacket.Create((ushort)ConnectionCommand.StartHandshake,
+                PacketCode.InvalidPayload).Serialize();
         }
 
         if (IsReplayAttempt(connection))
         {
             _logger?.Debug("Detected handshake replay attempt from {0}", connection.RemoteEndPoint);
-            return PacketWriter.String(PacketCode.RateLimited);
+            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.RateLimited).Serialize();
         }
 
         // Generate an X25519 key pair (private and public keys).
@@ -101,7 +103,9 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         connection.Level = PermissionLevel.User;
 
         // SendPacket the server's public key back to the client for the next phase of the handshake.
-        return PacketWriter.Binary(PacketCode.Success, @public);
+        return TPacket.Create(
+            (ushort)ConnectionCommand.StartHandshake, PacketCode.Success,
+            PacketType.Binary, PacketFlags.None, PacketPriority.Low, @public).Serialize();
     }
 
     /// <summary>
@@ -125,7 +129,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return PacketWriter.String(PacketCode.PacketType);
+            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.PacketType).Serialize();
         }
 
         // CheckLimit if the public key length is correct (32 bytes).
@@ -134,7 +138,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return PacketWriter.String(PacketCode.InvalidPayload);
+            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.InvalidPayload).Serialize();
         }
 
         // Retrieve the stored private key from connection metadata.
@@ -143,7 +147,7 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         {
             _logger?.Debug("Missing or invalid private key for {0}", connection.RemoteEndPoint);
 
-            return PacketWriter.String(PacketCode.UnknownError);
+            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.UnknownError).Serialize();
         }
 
         // Derive the shared secret using the private key and the client's public key.
@@ -155,11 +159,15 @@ public sealed class HandshakeController<TPacket> where TPacket : IPacket
         if (connection.EncryptionKey is null || !connection.EncryptionKey.SequenceEqual(derivedKey))
         {
             _logger?.Debug("Key mismatch during handshake finalization for {0}", connection.RemoteEndPoint);
-            return PacketWriter.String(PacketCode.Conflict);
+            return TPacket.Create(
+                (ushort)ConnectionCommand.CompleteHandshake,
+                PacketCode.Conflict).Serialize();
         }
 
         _logger?.Debug("Secure connection established for {0}", connection.RemoteEndPoint);
-        return PacketWriter.String(PacketCode.Success);
+        return TPacket.Create(
+                (ushort)ConnectionCommand.CompleteHandshake,
+                PacketCode.Success).Serialize();
     }
 
     #region Private Methods

@@ -267,7 +267,7 @@ internal class TransportStream : System.IDisposable
             int totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
-                _logger?.Debug("[{0}] Remote closed", nameof(TransportStream));
+                _logger?.Debug("[{0}] Net closed", nameof(TransportStream));
                 // Close the connection on the server when the client disconnects
                 Disconnected?.Invoke();
                 return;
@@ -329,7 +329,7 @@ internal class TransportStream : System.IDisposable
 
                 if (bytesRead == 0)
                 {
-                    _logger?.Debug($"[{0}] Remote closed during read", nameof(TransportStream));
+                    _logger?.Debug($"[{0}] Net closed during read", nameof(TransportStream));
                     this.Disconnected?.Invoke();
 
                     return;
@@ -415,7 +415,7 @@ internal class TransportStream : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"TransportStream (Remote = {_socket.RemoteEndPoint}, " +
+        => $"TransportStream (Net = {_socket.RemoteEndPoint}, " +
            $"Disposed = {_disposed}, UpTime = {UpTime}ms, LastPing = {LastPingTime}ms)" +
            $"IncomingCount = {_cache.Incoming.Count}, OutgoingCount = {_cache.Outgoing.Count} }}";
 }
