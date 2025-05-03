@@ -7,7 +7,11 @@ using System.Reflection;
 
 namespace Nalix.Shared.Net.Handlers;
 
-internal static class PacketCodeMap
+/// <summary>
+/// Provides human-readable messages associated with <see cref="PacketCode"/> values,
+/// supporting both string and UTF-8 byte formats.
+/// </summary>
+public static class PacketCodeMap
 {
     // Thread-safe cache for storing the messages
     private static readonly ConcurrentDictionary<PacketCode, string> MessageCache = new();
@@ -29,10 +33,11 @@ internal static class PacketCodeMap
     }
 
     /// <summary>
-    /// Gets the message for a PacketCode.
+    /// Gets the human-readable string message associated with a <see cref="PacketCode"/>.
     /// </summary>
-    /// <param name="code">The PacketCode.</param>
-    /// <returns>The message associated with the PacketCode.</returns>
+    /// <param name="code">The <see cref="PacketCode"/> value to look up.</param>
+    /// <returns>The associated message string.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if no message is found (should not occur).</exception>
     public static string GetMessage(PacketCode code)
     {
         // Try to get the message from the cache
@@ -44,10 +49,11 @@ internal static class PacketCodeMap
     }
 
     /// <summary>
-    /// Gets the message for a PacketCode.
+    /// Gets the message for a <see cref="PacketCode"/> as a UTF-8 encoded <see cref="byte"/> array.
     /// </summary>
-    /// <param name="code">The PacketCode.</param>
-    /// <returns>The message associated with the PacketCode.</returns>
+    /// <param name="code">The <see cref="PacketCode"/> value.</param>
+    /// <returns>UTF-8 encoded byte array of the message.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if no message is found (should not occur).</exception>
     public static byte[] GetMessageBytes(PacketCode code)
     {
         // Try to get the message from the cache
