@@ -29,7 +29,7 @@ public sealed class SessionController<TPacket> where TPacket : IPacket
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void Disconnect(IPacket _, IConnection connection)
-        => connection.Disconnect("Clients disconnect request");
+        => connection.Disconnect("Remote disconnect request");
 
     /// <summary>
     /// Responds with the current connection status (compression, encryption, etc).

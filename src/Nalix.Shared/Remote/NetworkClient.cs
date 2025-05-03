@@ -1,8 +1,8 @@
 using Nalix.Common.Package;
-using Nalix.Shared.Clients.Transport;
 using Nalix.Shared.Injection.DI;
+using Nalix.Shared.Remote.Transport;
 
-namespace Nalix.Shared.Clients;
+namespace Nalix.Shared.Remote;
 
 /// <summary>
 /// Represents a network client that connects to a remote server using TCP.

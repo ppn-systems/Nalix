@@ -138,7 +138,7 @@ public static class ISO7816
         {
             if (data[i] == 0x80)
             {
-                if (AnsiX923.IsValidPadding(data, i))
+                if (AnsiX923.HasValidPadding(data, i))
                     return i;
             }
             else if (data[i] != 0x00)

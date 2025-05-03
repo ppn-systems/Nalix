@@ -2,7 +2,7 @@ using Nalix.Common.Constants;
 using Nalix.Common.Networking;
 using Nalix.Common.Package;
 
-namespace Nalix.Shared.Clients.Transport;
+namespace Nalix.Shared.Remote.Transport;
 
 /// <summary>
 /// Handles receiving packets from a network stream.
@@ -49,7 +49,9 @@ public sealed class NetworkReader<TPacket>(System.Net.Sockets.NetworkStream stre
         if (length <= PacketConstants.StackAllocLimit)
         {
             System.Span<byte> sbuffer = stackalloc byte[length];
-            _stream.ReadExactly(sbuffer);
+            sbuffer[0] = header[0];
+            sbuffer[1] = header[1];
+            _stream.ReadExactly(sbuffer[2..]);
             return TPacket.Deserialize(sbuffer);
         }
 
@@ -57,8 +59,11 @@ public sealed class NetworkReader<TPacket>(System.Net.Sockets.NetworkStream stre
         byte[] buffer = PacketConstants.Pool.Rent(length);
         try
         {
+            buffer[0] = header[0];
+            buffer[1] = header[1];
+
             // Read packet data directly into buffer
-            _stream.ReadExactly(buffer, 0, length);
+            _stream.ReadExactly(buffer, 2, length - 2);
 
             // Deserialize from buffer
             return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length));
@@ -102,7 +107,11 @@ public sealed class NetworkReader<TPacket>(System.Net.Sockets.NetworkStream stre
         if (length <= PacketConstants.StackAllocLimit)
         {
             byte[] sbuffer = new byte[length];
-            await _stream.ReadExactlyAsync(sbuffer, cancellationToken).ConfigureAwait(false);
+            System.Array.Copy(header, sbuffer, 2);
+            await _stream.ReadExactlyAsync(
+                System.MemoryExtensions.AsMemory(sbuffer, 2, length - 2),
+                cancellationToken).ConfigureAwait(false);
+
             return TPacket.Deserialize(sbuffer);
         }
 

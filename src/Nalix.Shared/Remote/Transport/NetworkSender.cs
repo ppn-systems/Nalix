@@ -1,7 +1,7 @@
 using Nalix.Common.Networking;
 using Nalix.Common.Package;
 
-namespace Nalix.Shared.Clients.Transport;
+namespace Nalix.Shared.Remote.Transport;
 
 /// <summary>
 /// Handles sending packets and raw bytes over a network stream.

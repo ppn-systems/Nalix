@@ -267,7 +267,7 @@ internal class TransportStream : System.IDisposable
             int totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
-                _logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
+                _logger?.Debug("[{0}] Remote closed", nameof(TransportStream));
                 // Close the connection on the server when the client disconnects
                 Disconnected?.Invoke();
                 return;
@@ -329,7 +329,7 @@ internal class TransportStream : System.IDisposable
 
                 if (bytesRead == 0)
                 {
-                    _logger?.Debug($"[{0}] Clients closed during read", nameof(TransportStream));
+                    _logger?.Debug($"[{0}] Remote closed during read", nameof(TransportStream));
                     this.Disconnected?.Invoke();
 
                     return;

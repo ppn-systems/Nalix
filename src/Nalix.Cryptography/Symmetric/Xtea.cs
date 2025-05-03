@@ -93,7 +93,7 @@ public static unsafe class Xtea
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
-        ValidateInputs(plaintext, key);
+        AssertInputSizes(plaintext, key);
 
         byte[] ciphertext = new byte[plaintext.Length];
         fixed (byte* keyPtr = key)
@@ -135,7 +135,7 @@ public static unsafe class Xtea
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
     {
-        ValidateInputs(ciphertext, key);
+        AssertInputSizes(ciphertext, key);
 
         byte[] plaintext = new byte[ciphertext.Length];
         fixed (byte* keyPtr = key)
@@ -181,7 +181,7 @@ public static unsafe class Xtea
         ReadOnlySpan<byte> key,
         Span<byte> output, int rounds = DefaultRounds)
     {
-        ValidateInputs(plaintext, key);
+        AssertInputSizes(plaintext, key);
 
         if (output.Length < plaintext.Length)
             throw new ArgumentException("Output buffer too small", nameof(output));
@@ -229,7 +229,7 @@ public static unsafe class Xtea
         ReadOnlySpan<byte> key,
         Span<byte> output, int rounds = DefaultRounds)
     {
-        ValidateInputs(ciphertext, key);
+        AssertInputSizes(ciphertext, key);
 
         if (output.Length < ciphertext.Length)
             throw new ArgumentException("Output buffer too small", nameof(output));
@@ -271,7 +271,7 @@ public static unsafe class Xtea
     /// Validates input parameters
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ValidateInputs(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
+    private static void AssertInputSizes(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         if (data.Length % BlockSize != 0)
             throw new ArgumentException($"Data length must be a multiple of {BlockSize} bytes", nameof(data));

@@ -96,7 +96,7 @@ public static class AnsiX923
             throw new InvalidOperationException("Invalid padding size.");
 
         // Validate padding - all bytes before the last padding byte must be 0x00
-        if (!IsValidPadding(data.AsSpan(), paddingSize))
+        if (!HasValidPadding(data.AsSpan(), paddingSize))
             throw new InvalidOperationException("Invalid padding.");
 
         // Create new array without padding
@@ -126,7 +126,7 @@ public static class AnsiX923
             throw new InvalidOperationException("Invalid padding size.");
 
         // Validate padding - all bytes before the last padding byte must be 0x00
-        if (!IsValidPadding(data, paddingSize))
+        if (!HasValidPadding(data, paddingSize))
             throw new InvalidOperationException("Invalid padding.");
 
         // Create new array without padding
@@ -147,7 +147,7 @@ public static class AnsiX923
     /// <param name="paddingSize">The padding size obtained from the last byte.</param>
     /// <returns>True if the padding is valid, false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize)
+    internal static bool HasValidPadding(ReadOnlySpan<byte> data, int paddingSize)
     {
         bool isValid = true;
 

@@ -3,9 +3,9 @@ using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
-using Nalix.Shared.Clients.Transport;
+using Nalix.Shared.Remote.Transport;
 
-namespace Nalix.Shared.Clients.Security;
+namespace Nalix.Shared.Remote.Security;
 
 /// <summary>
 /// Handles the secure handshake process between a client and server using X25519 key exchange and SHA hashing.

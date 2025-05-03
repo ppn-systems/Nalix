@@ -127,7 +127,7 @@ public static class Twofish
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
         {
-            ValidateParameters(key, plaintext);
+            AssertKeyData(key, plaintext);
 
             byte[] ciphertext = new byte[plaintext.Length];
             Encrypt(key, plaintext, ciphertext);
@@ -144,7 +144,7 @@ public static class Twofish
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
         {
-            ValidateParameters(key, plaintext);
+            AssertKeyData(key, plaintext);
 
             if (ciphertext.Length < plaintext.Length)
                 throw new ArgumentException("Output buffer is too small", nameof(ciphertext));
@@ -170,7 +170,7 @@ public static class Twofish
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
         {
-            ValidateParameters(key, ciphertext);
+            AssertKeyData(key, ciphertext);
 
             byte[] plaintext = new byte[ciphertext.Length];
             Decrypt(key, ciphertext, plaintext);
@@ -187,7 +187,7 @@ public static class Twofish
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
         {
-            ValidateParameters(key, ciphertext);
+            AssertKeyData(key, ciphertext);
 
             if (plaintext.Length < ciphertext.Length)
                 throw new ArgumentException("Output buffer is too small", nameof(plaintext));
@@ -220,7 +220,7 @@ public static class Twofish
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> plaintext)
         {
-            ValidateParameters(key, plaintext);
+            AssertKeyData(key, plaintext);
             if (iv.Length != BlockSize)
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
 
@@ -242,7 +242,7 @@ public static class Twofish
             ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
             ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
         {
-            ValidateParameters(key, plaintext);
+            AssertKeyData(key, plaintext);
             if (iv.Length != BlockSize)
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
 
@@ -291,7 +291,7 @@ public static class Twofish
             ReadOnlySpan<byte> iv,
             ReadOnlySpan<byte> ciphertext)
         {
-            ValidateParameters(key, ciphertext);
+            AssertKeyData(key, ciphertext);
             if (iv.Length != BlockSize)
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
 
@@ -313,7 +313,7 @@ public static class Twofish
             ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
             ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
         {
-            ValidateParameters(key, ciphertext);
+            AssertKeyData(key, ciphertext);
             if (iv.Length != BlockSize)
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
 
@@ -358,7 +358,7 @@ public static class Twofish
     #region Core Implementation
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ValidateParameters(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
+    private static void AssertKeyData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
     {
         if (key.Length != 16 && key.Length != 24 && key.Length != 32)
             throw new ArgumentException("Key must be 16, 24, or 32 bytes (128, 192, or 256 bits)", nameof(key));

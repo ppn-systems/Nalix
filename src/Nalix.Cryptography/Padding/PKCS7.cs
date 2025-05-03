@@ -51,7 +51,7 @@ public static class PKCS7
 
         int size = data[^1];
 
-        if (size <= 0 || size > blockSize || !IsValidPadding(data, size))
+        if (size <= 0 || size > blockSize || !HasValidPadding(data, size))
             throw new InvalidOperationException("Invalid padding.");
 
         return data[..^size].ToArray();
@@ -68,8 +68,9 @@ public static class PKCS7
     /// <param name="paddingSize">The expected padding size.</param>
     /// <returns>True if the padding is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidPadding(ReadOnlySpan<byte> data, int paddingSize) =>
-        paddingSize > 0 && paddingSize <= data.Length && !(data[^paddingSize..].IndexOfAnyExcept((byte)paddingSize) >= 0);
+    private static bool HasValidPadding(ReadOnlySpan<byte> data, int paddingSize) =>
+        paddingSize > 0 && paddingSize <= data.Length &&
+        !(data[^paddingSize..].IndexOfAnyExcept((byte)paddingSize) >= 0);
 
     #endregion Private Methods
 }
