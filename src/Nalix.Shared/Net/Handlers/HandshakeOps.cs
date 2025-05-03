@@ -7,9 +7,7 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
-using System;
-using System.Linq;
-using System.Runtime.CompilerServices;
+using Nalix.Extensions.Primitives;
 
 namespace Nalix.Shared.Net.Handlers;
 
@@ -19,7 +17,7 @@ namespace Nalix.Shared.Net.Handlers;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
-public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 
@@ -32,12 +30,12 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="KeyExchangeHandler{TPacket}"/> class with necessary components.
+    /// Initializes a new instance of the <see cref="HandshakeOps{TPacket}"/> class with necessary components.
     /// </summary>
     /// <param name="sha">The hashing algorithm implementation to use (e.g., SHA-256).</param>
     /// <param name="x25519">The X25519 implementation for key exchange.</param>
     /// <param name="logger">Optional logger for recording events and errors during the handshake process.</param>
-    public KeyExchangeHandler(ISHA sha, IX25519 x25519, ILogger? logger)
+    public HandshakeOps(ISHA sha, IX25519 x25519, ILogger? logger)
     {
         _logger = logger;
         _hashAlgorithm = sha;
@@ -57,10 +55,11 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeyExchangeHandler<TPacket>))]
+    [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
     [PacketId((ushort)ConnectionCommand.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
     {
         // CheckLimit if the packet type is binary (as expected for X25519 public key).
@@ -117,10 +116,11 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeyExchangeHandler<TPacket>))]
+    [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
     [PacketId((ushort)ConnectionCommand.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)
     {
         // Ensure the packet type is binary (expected for public key).
@@ -156,7 +156,7 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
         connection.Metadata.Remove(Meta.PrivateKey);
 
         // Compare the derived key with the encryption key in the connection.
-        if (connection.EncryptionKey is null || !connection.EncryptionKey.SequenceEqual(derivedKey))
+        if (connection.EncryptionKey is null || !connection.EncryptionKey.IsEqualTo(derivedKey))
         {
             _logger?.Debug("Key mismatch during handshake finalization for {0}", connection.RemoteEndPoint);
             return TPacket.Create(
@@ -180,6 +180,8 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
     /// <param name="privateKey">The server's private key used in the key exchange.</param>
     /// <param name="publicKey">The client's public key involved in the key exchange.</param>
     /// <returns>The derived encryption key, which is used to establish a secure connection.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private byte[] DeriveSharedKey(byte[] privateKey, byte[] publicKey)
     {
         // Perform the X25519 key exchange to derive the shared secret.
@@ -195,6 +197,8 @@ public sealed class KeyExchangeHandler<TPacket> where TPacket : IPacket, IPacket
     /// </summary>
     /// <param name="connection"></param>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static bool IsReplayAttempt(IConnection connection)
     {
         if (connection.Metadata.TryGetValue(Meta.LastHandshakeTime,

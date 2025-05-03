@@ -149,7 +149,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                "Exception: {3}. Net: {4}, Exception Details: {5}",
                     attributes.PacketId.Id,           // Command ID
-                    controllerInstance.GetType().Name,// SessionHandler name
+                    controllerInstance.GetType().Name,// ConnectionOps name
                     method.Name,                      // Method name
                     ex.GetType().Name,                // Exception type
                     connection.RemoteEndPoint,        // Connection details for traceability

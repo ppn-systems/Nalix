@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,11 +15,22 @@ namespace Nalix.Extensions.Primitives;
 public static class ByteArrayExtensions
 {
     /// <summary>
+    /// Compares two byte arrays for value equality.
+    /// </summary>
+    /// <param name="a">The first byte array to compare.</param>
+    /// <param name="b">The second byte array to compare.</param>
+    /// <returns><c>true</c> if both arrays are non-null and contain the same sequence of bytes; otherwise, <c>false</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsEqualTo(this byte[] a, byte[] b)
+        => a != null && b != null && a.SequenceEqual(b);
+
+    /// <summary>
     /// Converts an array of bytes into text with the specified encoding.
     /// </summary>
     /// <param name="buffer">The buffer.</param>
     /// <param name="encoding">The encoding.</param>
     /// <returns>A <see cref="string" /> that contains the results of decoding the specified sequence of bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToText(this IEnumerable<byte> buffer, Encoding encoding) =>
         encoding == null
             ? throw new ArgumentNullException(nameof(encoding))
@@ -28,6 +41,7 @@ public static class ByteArrayExtensions
     /// </summary>
     /// <param name="buffer">The buffer.</param>
     /// <returns>A <see cref="string" /> that contains the results of decoding the specified sequence of bytes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToText(this IEnumerable<byte> buffer) => buffer.ToText(Encoding.UTF8);
 
     /// <summary>
@@ -41,6 +55,7 @@ public static class ByteArrayExtensions
     /// A byte array containing the results of encoding the specified set of characters.
     /// </returns>
     /// <exception cref="ArgumentNullException">stream.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async Task<byte[]> ReadBytesAsync(this Stream stream, long length, int bufferLength, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -81,6 +96,7 @@ public static class ByteArrayExtensions
     /// A byte array containing the results of encoding the specified set of characters.
     /// </returns>
     /// <exception cref="ArgumentNullException">stream.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async Task<byte[]> ReadBytesAsync(this Stream stream, int length, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
