@@ -109,6 +109,11 @@ public class NetworkClient<TPacket> : SingletonBase<NetworkClient<TPacket>>, Sys
     }
 
     /// <summary>
+    /// Closes the network connection and releases resources.
+    /// </summary>
+    public void Close() => this.Dispose();
+
+    /// <summary>
     /// Releases the resources used by the <see cref="NetworkClient{TPacket}"/> instance.
     /// </summary>
     public new void Dispose()
