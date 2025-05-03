@@ -26,7 +26,7 @@ public sealed class Ed25519
 
     #endregion Constants
 
-    #region API Methods
+    #region Public Methods
 
     /// <summary>
     /// Signs a message with the provided private key using the Ed25519 algorithm.
@@ -128,9 +128,9 @@ public sealed class Ed25519
         return PointEquals(sB, rplusH);
     }
 
-    #endregion API Methods
+    #endregion Public Methods
 
-    #region Core
+    #region Private Methods
 
     /// <summary>
     /// Computes the SHA-512 hash of the provided data.
@@ -325,5 +325,5 @@ public sealed class Ed25519
     // Optimized SHA-512 with buffer reuse (thread-local instance)
     private static readonly ThreadLocal<SHA256> Sha256 = new();
 
-    #endregion Core
+    #endregion Private Methods
 }

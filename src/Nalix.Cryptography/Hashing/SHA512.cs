@@ -1,3 +1,4 @@
+using Nalix.Common.Cryptography.Hashing;
 using System;
 using System.Buffers.Binary;
 using System.Numerics;
@@ -9,7 +10,7 @@ namespace Nalix.Cryptography.Hashing;
 /// Provides a managed implementation of the SHA-512 hashing algorithm.
 /// </summary>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed class SHA512 : IDisposable
+public sealed class SHA512 : ISHA, IDisposable
 {
     #region Fields
 

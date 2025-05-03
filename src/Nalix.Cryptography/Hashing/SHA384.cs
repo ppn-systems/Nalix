@@ -1,3 +1,4 @@
+using Nalix.Common.Cryptography.Hashing;
 using System;
 using System.Buffers.Binary;
 using System.Numerics;
@@ -22,7 +23,7 @@ namespace Nalix.Cryptography.Hashing;
 /// </para>
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed unsafe class SHA384 : IDisposable
+public sealed unsafe class SHA384 : ISHA, IDisposable
 {
     #region Fields
 
@@ -192,7 +193,7 @@ public sealed unsafe class SHA384 : IDisposable
         int padLength = (_bufferLength < 112) ? (112 - _bufferLength) : (240 - _bufferLength);
 
         // Create a span from the padding buffer and update
-        Span<byte> paddingSpan = new Span<byte>(paddingPtr, 256);
+        Span<byte> paddingSpan = new(paddingPtr, 256);
         Update(paddingSpan[..padLength]);
 
         // Prepare length block

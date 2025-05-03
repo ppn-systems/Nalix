@@ -1,7 +1,6 @@
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Randomization;
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -128,8 +127,6 @@ public sealed class X25519 : IX25519
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ClampScalar(Span<byte> scalar)
     {
-        Debug.Assert(scalar.Length == FieldElementSize);
-
         scalar[0] &= 248;     // Clear lower 3 bits
         scalar[31] &= 127;    // Clear high bit
         scalar[31] |= 64;     // Set second-highest bit
@@ -155,9 +152,6 @@ public sealed class X25519 : IX25519
     /// <returns>The resulting 32-byte u-coordinate.</returns>
     private static byte[] ScalarMult(ReadOnlySpan<byte> scalar, ReadOnlySpan<byte> uCoordinate)
     {
-        Debug.Assert(scalar.Length == FieldElementSize &&
-                     uCoordinate.Length == FieldElementSize);
-
         // Convert little-endian byte arrays to BigInteger
         BigInteger uValue = ToBigInteger(uCoordinate);
 
@@ -278,20 +272,6 @@ public sealed class X25519 : IX25519
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// AssertionSentry assertion class
-    /// </summary>
-    private static class Debug
-    {
-        [Conditional("DEBUG")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Assert(bool condition)
-        {
-            if (!condition)
-                throw new InvalidOperationException("AssertionSentry assertion failed");
-        }
     }
 
     #endregion Private Methods

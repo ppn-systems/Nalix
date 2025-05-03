@@ -2,11 +2,11 @@ using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Hashing;
 using Nalix.Randomization;
+using Nalix.Serialization;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Nalix.Cryptography.Asymmetric;
 
@@ -47,7 +47,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     private readonly BigInteger _saltValue = new(salt, true);
     private readonly BigInteger _verifier = new(verifier, true);
-    private readonly byte[] _usernameBytes = Encoding.UTF8.GetBytes(username);
+    private readonly byte[] _usernameBytes = JsonOptions.Encoding.GetBytes(username);
 
     private BigInteger _sessionKey;
     private BigInteger _clientProof;
@@ -69,7 +69,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <returns>Verifier as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] salt, string username, string password)
     {
-        byte[] data = SHA256.HashData(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        byte[] data = SHA256.HashData(JsonOptions.Encoding.GetBytes($"{username}:{password}"));
         BigInteger x = Hash(true, new BigInteger(salt, true), new BigInteger(data, true));
 
         return BigInteger.ModPow(G, x, N).ToByteArray();
