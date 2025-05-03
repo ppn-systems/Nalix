@@ -5,7 +5,7 @@ using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Shared.Net.Transport;
 
-namespace Nalix.Shared.Net.Security;
+namespace Nalix.Shared.Net.Clients;
 
 /// <summary>
 /// Handles the secure handshake process between a client and server using X25519 key exchange and SHA hashing.
