@@ -14,6 +14,8 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="packet">The byte array representing the packet.</param>
     /// <returns>Returns true if the checksum is valid; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsChecksum(this byte[] packet)
         => PacketOps.IsValidChecksum(packet);
 
@@ -22,6 +24,8 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="packet">The packet to serialize.</param>
     /// <returns>A byte array representing the serialized packet.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte[] Serialize(this in Packet packet)
         => PacketSerializer.Serialize(in packet);
 
@@ -30,6 +34,8 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="data">The byte span containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IPacket Deserialize(this System.ReadOnlySpan<byte> data)
         => PacketSerializer.Deserialize(data);
 
@@ -38,6 +44,8 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="data">The memory segment containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IPacket Deserialize(this System.ReadOnlyMemory<byte> data)
         => PacketSerializer.Deserialize(data);
 
@@ -46,6 +54,8 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="data">The byte array containing packet data.</param>
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet Deserialize(this byte[] data)
         => PacketSerializer.Deserialize(data);
 
@@ -56,6 +66,8 @@ public static class PacketExtensions
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
     /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TrySerialize(
         this in Packet packet,
         System.Span<byte> destination,
@@ -68,6 +80,8 @@ public static class PacketExtensions
     /// <param name="source">The byte span containing packet data.</param>
     /// <param name="packet">Outputs the deserialized packet if successful.</param>
     /// <returns>True if deserialization was successful; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryDeserialize(
         this System.ReadOnlySpan<byte> source,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Packet packet)

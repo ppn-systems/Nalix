@@ -16,6 +16,8 @@ public static class PacketEncryption
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">The encryption algorithm to use (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
         => PacketGuard.Encrypt(packet, key, algorithm);
 
@@ -27,6 +29,8 @@ public static class PacketEncryption
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">The encryption algorithm that was used (e.g., XTEA, AesGcm, ChaCha20Poly1305).</param>
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
         => PacketGuard.Decrypt(packet, key, algorithm);
 }

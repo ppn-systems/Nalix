@@ -50,7 +50,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, PacketCode code, System.Memory<byte> payload)
-        : this(id, code, PacketType.None, PacketFlags.None, PacketPriority.Low, payload)
+        : this(id, code, PacketType.Binary, PacketFlags.None, PacketPriority.Low, payload)
     {
     }
 
@@ -59,35 +59,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// </summary>
     /// <param name="id">The packet id.</param>
     /// <param name="code">The packet code.</param>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, PacketFlags flags, PacketPriority priority, string s)
-        : this(id, code, PacketType.String, flags, priority, JsonOptions.Encoding.GetBytes(s))
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with the specified flags, priority, id, and payload.
-    /// </summary>
-    /// <param name="id">The identifier for the packet.</param>
-    /// <param name="code">The packet code.</param>
-    /// <param name="flags">The packet flags indicating specific properties of the packet.</param>
-    /// <param name="priority">The priority level of the packet.</param>
-    /// <param name="obj">The payload of the packet.</param>
-    /// <param name="jsonTypeInfo">The metadata used for JSON serialization.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(
-        ushort id,
-        PacketCode code,
-        PacketFlags flags,
-        PacketPriority priority,
-        object obj,
-        System.Text.Json.Serialization.Metadata.JsonTypeInfo<object> jsonTypeInfo)
-        : this(id, code, PacketType.Object, flags, priority, JsonCodec.SerializeToMemory(obj, jsonTypeInfo))
+    public Packet(ushort id, PacketCode code, string s)
+        : this(id, code, PacketType.String, PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes(s))
     {
     }
 
