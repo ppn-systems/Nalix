@@ -16,6 +16,14 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     #region Constructors
 
     /// <summary>
+    /// Creates an empty packet with the specified id and code.
+    /// </summary>
+    /// <param name="id">The packet Number.</param>
+    /// <param name="code">The packet code.</param>
+    public static Packet Empty(ushort id, PacketCode code)
+        => new(id, code, PacketType.None, PacketFlags.None, PacketPriority.Low, System.Memory<byte>.Empty);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
     /// </summary>
     /// <param name="id">The packet Number.</param>
@@ -36,7 +44,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, System.Span<byte> payload)
+    public Packet(ushort id, PacketCode code, System.ReadOnlySpan<byte> payload)
         : this(id, code, new System.Memory<byte>(payload.ToArray()))
     {
     }

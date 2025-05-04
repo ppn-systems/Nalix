@@ -10,7 +10,7 @@ public readonly partial struct Packet : IPacketFactory<Packet>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static Packet IPacketFactory<Packet>.Create(ushort id, PacketCode code)
-        => new(id, code, Array.Empty<byte>());
+        => new(id, code, []);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
