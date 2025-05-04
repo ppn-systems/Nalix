@@ -52,13 +52,10 @@ public static partial class Clock
         System.Int64 seconds = (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
 
         // Check for overflow before casting
-        if (seconds > System.UInt32.MaxValue)
-        {
-            throw new System.OverflowException(
-                "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.");
-        }
-
-        return seconds < 0
+        return seconds > System.UInt32.MaxValue
+            ? throw new System.OverflowException(
+                "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.")
+            : seconds < 0
             ? throw new System.OverflowException(
                 "Unix timestamp is negative, indicating time before Unix epoch.")
             : (System.UInt32)seconds;
