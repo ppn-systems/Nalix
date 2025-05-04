@@ -134,6 +134,12 @@ public sealed class ReliableClient : System.IDisposable
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.KeepAlive, true);
 
+
+        // Optional: allow address reuse during dev/testing
+        _client.Client.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReuseAddress, true);
+
         using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
 
@@ -163,7 +169,8 @@ public sealed class ReliableClient : System.IDisposable
                 {
                     while (!ct.IsCancellationRequested && IsConnected)
                     {
-                        IPacket packet;
+                        IPacket packet = null;
+
                         try
                         {
                             packet = await _inbound!.ReceiveAsync(ct).ConfigureAwait(false);
@@ -177,6 +184,12 @@ public sealed class ReliableClient : System.IDisposable
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Error($"Network receive loop error: {ex.Message}");
 
+                            // Push FIFO (with simple backpressure policy)
+                            if (Options.IncomingSize > 0 && packet != null)
+                            {
+                                this.Incoming.Push(packet);
+                            }
+
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
                             {
                                 SafeInvoke(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
@@ -184,12 +197,6 @@ public sealed class ReliableClient : System.IDisposable
 
                             Disconnect();
                             break;
-                        }
-
-                        // Push FIFO (with simple backpressure policy)
-                        if (Options.IncomingSize > 0)
-                        {
-                            this.Incoming.Push(packet);
                         }
 
                         SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
@@ -253,6 +260,8 @@ public sealed class ReliableClient : System.IDisposable
                                         .CancelWorker(_workerId);
         }
 
+        DeepClose();
+
         try { _stream?.Dispose(); } catch { /* swallow */ }
         try { _client?.Close(); } catch { /* swallow */ }
 
@@ -279,6 +288,57 @@ public sealed class ReliableClient : System.IDisposable
     #endregion APIs
 
     #region Private Methods
+
+    // Add to ReliableClient
+    private static void AbortiveClose(System.Net.Sockets.Socket s)
+    {
+        if (s == null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Enable abortive close (RST) to avoid TIME_WAIT
+            s.LingerState = new System.Net.Sockets.LingerOption(true, 0);
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            // Best effort shutdown; may throw if already closed
+            s.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            // Close immediately; Close(0) is equivalent to Dispose()
+            s.Close(0);
+        }
+        catch { /* ignore */ }
+
+        try { s.Dispose(); } catch { /* ignore */ }
+    }
+
+    private void DeepClose()
+    {
+        // 1) Dispose the stream first to stop pending I/O
+        try { _stream?.Dispose(); } catch { /* ignore */ }
+        _stream = null;
+
+        // 2) Abortive-close underlying socket
+        try { AbortiveClose(_client?.Client); } catch { /* ignore */ }
+
+        // 3) Dispose TcpClient wrapper
+        try { _client?.Dispose(); } catch { /* ignore */ }
+        _client = null;
+
+        // 4) Clear transport pipe refs
+        _outbound = null;
+        _inbound = null;
+    }
+
 
     private static void SafeInvoke(System.Action evt, ILogger log)
     {
