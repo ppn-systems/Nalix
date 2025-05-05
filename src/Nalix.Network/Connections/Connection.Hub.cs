@@ -588,7 +588,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
+        const System.Int32 Limit = 15;
+
+        System.Int32 count = 0;
+        System.Int64 sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = System.Int64.MaxValue;
+
         System.Text.StringBuilder sb = new();
+        System.Collections.Generic.Dictionary<System.String, System.Int32> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
+        System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
         _ = sb.AppendLine($"Total Connections    : {_count}");
@@ -596,16 +603,40 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine($"Authenticated Users  : {_usernames.Count}");
         _ = sb.AppendLine($"Evicted Connections  : {_evictedConnections}");
         _ = sb.AppendLine($"Rejected Connections : {_rejectedConnections}");
-        _ = sb.AppendLine();
-        // ===== Connection Status Summary =====
-        System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
         foreach (IConnection conn in _connections.Values)
         {
-            System.String status = conn.Level.ToString();
+            // Bytes sent
+            sumBytesSent += conn.BytesSent;
 
+            // Uptime
+            System.Int64 up = conn.UpTime;
+            sumUptime += up;
+
+            if (up > maxUptime)
+            {
+                maxUptime = up;
+            }
+
+            if (up < minUptime)
+            {
+                minUptime = up;
+            }
+
+            System.String status = conn.Level.ToString();
+            System.String algo = conn.Algorithm.ToString();
+
+            algoCounts[algo] = algoCounts.TryGetValue(algo, out System.Int32 n) ? n + 1 : 1;
             statusCounts[status] = statusCounts.TryGetValue(status, out System.Int32 current) ? current + 1 : 1;
         }
+
+        sb.AppendLine($"Total Bytes Sent   : {sumBytesSent:N0}");
+        sb.AppendLine($"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
+        sb.AppendLine($"Max Connection Time: {maxUptime}s");
+        sb.AppendLine($"Min Connection Time: {(minUptime == System.Int64.MaxValue ? 0 : minUptime)}s");
+
+        _ = sb.AppendLine();
+        // ===== Connection Status Summary =====
 
         _ = sb.AppendLine("Connection Status Summary:");
         _ = sb.AppendLine("----------------------------------------");
@@ -620,14 +651,22 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
 
+        sb.AppendLine("Algorithm Summary:");
+        sb.AppendLine("----------------------------------------");
+        sb.AppendLine("Algorithm         | Count");
+        sb.AppendLine("----------------------------------------");
+        foreach (var kvp in algoCounts)
+        {
+            sb.AppendLine($"{kvp.Key,-16} | {kvp.Value,5}");
+        }
+        sb.AppendLine("----------------------------------------");
+        sb.AppendLine();
+
         // ===== Active Connections =====
         _ = sb.AppendLine("Active Connections:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
-
-        System.Int32 count = 0;
-        const System.Int32 Limit = 20;
 
         foreach (System.Collections.Generic.KeyValuePair<ISnowflake, IConnection> kvp in _connections)
         {
