@@ -21,8 +21,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Shared", "Nalix.Share
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Storage", "Nalix.Storage\Nalix.Storage.csproj", "{FF9582AC-4348-454D-B6BF-DF046F0A919B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Application", "Nalix.Application\Nalix.Application.csproj", "{512D9722-4A5D-452F-82AD-DBFF713F53BF}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
