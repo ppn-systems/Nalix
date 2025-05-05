@@ -1,4 +1,4 @@
-namespace Nalix.Common.Connection.Contracts;
+namespace Nalix.Shared.Contracts;
 
 /// <summary>
 /// Represents diagnostic information about a connection's uptime and last ping latency.

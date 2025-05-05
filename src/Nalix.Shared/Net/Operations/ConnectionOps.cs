@@ -1,5 +1,4 @@
 using Nalix.Common.Connection;
-using Nalix.Common.Connection.Contracts;
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Logging;
@@ -8,6 +7,7 @@ using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Serialization;
+using Nalix.Shared.Contracts;
 
 namespace Nalix.Shared.Net.Operations;
 

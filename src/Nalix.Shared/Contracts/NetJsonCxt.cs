@@ -1,4 +1,4 @@
-namespace Nalix.Common.Connection.Contracts;
+namespace Nalix.Shared.Contracts;
 
 /// <summary>
 /// Provides a JSON serialization context for types in the Notio network dispatcher.

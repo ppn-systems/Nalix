@@ -1,6 +1,6 @@
 using Nalix.Common.Cryptography;
 
-namespace Nalix.Common.Connection.Contracts;
+namespace Nalix.Shared.Contracts;
 
 /// <summary>
 /// Represents the status of a network connection, including compression and encryption details.
