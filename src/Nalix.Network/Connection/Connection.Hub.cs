@@ -598,10 +598,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// Broadcasts a message using batching to reduce memory pressure.
     /// </summary>
     private async System.Threading.Tasks.Task BroadcastBatchedAsync<T>(
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections,
-        T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Threading.CancellationToken cancellationToken)
+        System.Collections.Generic.IReadOnlyCollection<IConnection> connections, T message,
+        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc, System.Threading.CancellationToken cancellationToken)
         where T : class
     {
         System.Int32 batchSize = _options.BroadcastBatchSize;
