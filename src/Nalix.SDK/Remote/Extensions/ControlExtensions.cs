@@ -273,7 +273,7 @@ public static class ControlExtensions
     ///     ct);
     /// </code>
     /// </example>
-    public static System.Threading.Tasks.Task SendControlAsync(
+    public static System.Threading.Tasks.ValueTask SendControlAsync(
         this ReliableClient client,
         System.UInt16 opCode,
         ControlType type,
@@ -300,7 +300,7 @@ public static class ControlExtensions
     /// await client.SendDisconnectAsync(seq: 7, tr: ProtocolType.TCP, ct);
     /// </code>
     /// </example>
-    public static System.Threading.Tasks.Task SendDisconnectAsync(
+    public static System.Threading.Tasks.ValueTask SendDisconnectAsync(
         this ReliableClient client,
         System.UInt16 opCode,
         System.UInt32 seq = 0,

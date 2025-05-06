@@ -67,6 +67,7 @@ public sealed class ReliableClient : System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(_stream), nameof(_outbound), nameof(_inbound))]
     public System.Boolean IsConnected => !_closed && _ioHealthy && _stream is { CanRead: true, CanWrite: true };
 
     #endregion Properties

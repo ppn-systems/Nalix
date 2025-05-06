@@ -93,8 +93,8 @@ public static class HandshakeExtensions
             await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
                         .ConfigureAwait(false);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()
-                ?.Debug("Handshake request sent (client public key).");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("Handshake request sent (client public key).");
 
             // Await server response (with timeout/ct)
             using (linked.Token.Register(() => tcs.TrySetCanceled(linked.Token)))
@@ -119,8 +119,8 @@ public static class HandshakeExtensions
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
                     client.Options.EncryptionKey = SHA3256.HashData(secret);
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()
-                        ?.Info("Handshake completed. EncryptionKey installed.");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info("Handshake completed. EncryptionKey installed.");
 
                     return true;
                 }
