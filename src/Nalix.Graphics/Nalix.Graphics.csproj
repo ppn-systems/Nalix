@@ -16,6 +16,11 @@
 
   <Import Project="..\Nalix.Build.props" />
   <Import Project="..\Package.Build.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nalix.Logging\Nalix.Logging.csproj" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="SFML.Graphics" Version="2.6.1" />
   </ItemGroup>
