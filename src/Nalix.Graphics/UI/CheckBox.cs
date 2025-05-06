@@ -9,11 +9,12 @@ namespace Nalix.Graphics.UI;
 /// </summary>
 public class CheckBox : Drawable
 {
-    private readonly Sprite _uncheckedSprite;  // The sprite for the unchecked state
-    private readonly Sprite _checkedSprite;    // The sprite for the checked state
     private readonly Text _label;              // The label next to the checkbox
+    private readonly string _labelText;        // The text to display in the label
+    private readonly Sprite _checkedSprite;    // The sprite for the checked state
+    private readonly Sprite _uncheckedSprite;  // The sprite for the unchecked state
+
     private bool _isChecked;                   // Indicates if the checkbox is checked
-    private readonly string _labelText;
 
     /// <summary>
     /// Gets or sets whether the CheckBox is checked.
@@ -70,7 +71,8 @@ public class CheckBox : Drawable
     /// <param name="e">The event to handle.</param>
     public void HandleInput(Event e)
     {
-        if (e.Type == EventType.MouseButtonPressed && _uncheckedSprite.GetGlobalBounds().Contains(e.MouseButton.X, e.MouseButton.Y))
+        if (e.Type == EventType.MouseButtonPressed &&
+            _uncheckedSprite.GetGlobalBounds().Contains(e.MouseButton.X, e.MouseButton.Y))
         {
             // Toggle the checked state when clicked
             _isChecked = !_isChecked;
