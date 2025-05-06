@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Internal;
@@ -146,9 +146,9 @@ public partial class ConfigurationLoader
             : currentValue?.ToString() ?? GetDefaultValueString(property);
 
         configFile.WriteValue(section, property.Name, valueToWrite);
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"default-written section={section} key={property.Name} val={valueToWrite}");
+                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] default-written section={section} key={property.Name} val={valueToWrite}");
     }
 
     /// <summary>
@@ -207,7 +207,7 @@ public partial class ConfigurationLoader
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"unsupported-type type={property.PropertyType.Name} key={property.Name}");
+                                       $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
 
         throw new System.NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files.");
     }

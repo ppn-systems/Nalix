@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 namespace Nalix.Framework.Configuration.Binding;
 
@@ -23,7 +23,7 @@ public partial class ConfigurationLoader
 
             foreach (System.String suffix in _suffixesToTrim)
             {
-                if (suffix.Length > longestLength && 
+                if (suffix.Length > longestLength &&
                     section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
                 {
                     longestMatch = suffix;

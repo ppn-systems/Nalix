@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Environment;
@@ -16,7 +16,7 @@ namespace Nalix.Framework.Configuration;
 /// <remarks>
 /// <para>
 /// This implementation provides thread-safe access to configuration containers through the following mechanisms:
-/// - <see cref="Get{TClass}"/> uses <see cref="System.Collections.Concurrent.ConcurrentDictionary{TKey, TValue}"/> for thread-safe container retrieval and creation.
+/// - <see cref="Get{TClass}()"/> uses <see cref="System.Collections.Concurrent.ConcurrentDictionary{TKey, TValue}"/> for thread-safe container retrieval and creation.
 /// - <see cref="ReloadAll"/> uses a <see cref="System.Threading.ReaderWriterLockSlim"/> write lock to ensure exclusive access during reload operations.
 /// - All public methods are safe to call concurrently from multiple threads.
 /// </para>
@@ -35,13 +35,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     #region Fields
 
     private System.Lazy<IniConfig> _iniFile;
+    private readonly System.String _baseConfigDirectory;
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ConfigurationLoader> _configContainerDict;
 
     private System.Int32 _isReloading;
     private System.Boolean _directoryChecked;
     private System.String _configFilePath;
-    private readonly System.String _baseConfigDirectory;
+    private System.IO.FileSystemWatcher? _configFileWatcher;
 
     #endregion Fields
 
@@ -108,6 +109,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
+        SETUP_FILE_WATCHER();
 
         _configContainerDict = new();
         _configLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
@@ -204,6 +206,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 // Create new lazy INI file instance
                 _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
+                SETUP_FILE_WATCHER();
 
                 // Log the change
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -239,6 +242,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         // Rollback the path change on reload failure
                         _configFilePath = oldPath;
                         _iniFile = CREATE_LAZY_INI_CONFIG(oldPath);
+                        SETUP_FILE_WATCHER();
+
                         return false;
                     }
                 }
@@ -288,6 +293,62 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     }
 
     /// <summary>
+    /// Initializes if needed and returns an instance of <typeparamref name="TClass"/>.
+    /// </summary>
+    /// <typeparam name="TClass">The type of the configuration container.</typeparam>
+    /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
+    /// <param name="configFilePath">The new configuration file path.</param>
+    /// <param name="autoReload">
+    /// If <see langword="true"/>, automatically reloads all configurations from the new file.
+    /// Default is <see langword="true"/>.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the path was changed successfully;
+    /// otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="configFilePath"/> is null or whitespace.
+    /// </exception>
+    /// <exception cref="System.Security.SecurityException">
+    /// Thrown when <paramref name="configFilePath"/> is outside the allowed configuration directory.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// This method is thread-safe and will block all configuration access during the path change.
+    /// </para>
+    /// <para>
+    /// Security: The new path must be within the base configuration directory to prevent
+    /// directory traversal attacks.
+    /// </para>
+    /// <para>
+    /// If <paramref name="autoReload"/> is <see langword="true"/>, all existing configuration
+    /// containers will be reinitialized from the new file. If <see langword="false"/>, you must
+    /// manually call <see cref="ReloadAll"/> to load configurations from the new file.
+    /// </para>
+    /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public TClass Get<TClass>(System.String configFilePath, System.Boolean autoReload = true) where TClass : ConfigurationLoader, new()
+    {
+        this.SetConfigFilePath(configFilePath, autoReload);
+        return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), _ =>
+        {
+            TClass container = new();
+
+            // Get the INI file reference first (thread-safe via Lazy<T>)
+            IniConfig iniFile = _iniFile.Value;
+
+            // Initialize the container outside of any explicit lock
+            // ConcurrentDictionary.GetOrAdd ensures only one initialization per type
+            container.Initialize(iniFile);
+
+            return container;
+        });
+    }
+
+    /// <summary>
     /// Reloads all configuration containers from the INI file.
     /// </summary>
     /// <returns>
@@ -297,7 +358,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <remarks>
     /// This method is thread-safe but will block concurrent reload attempts.
     /// Only one reload operation can execute at a time. During reload, configuration
-    /// access via <see cref="Get{TClass}"/> may be briefly blocked.
+    /// access via <see cref="Get{TClass}()"/> may be briefly blocked.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -378,7 +439,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </returns>
     /// <remarks>
     /// This method is thread-safe. Removing a configuration will cause it to be
-    /// reinitialized on the next call to <see cref="Get{TClass}"/>.
+    /// reinitialized on the next call to <see cref="Get{TClass}()"/>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -389,7 +450,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     /// <remarks>
     /// This method is thread-safe. All configurations will be reinitialized on
-    /// the next call to <see cref="Get{TClass}"/> for each type.
+    /// the next call to <see cref="Get{TClass}()"/> for each type.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -441,6 +502,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             }
         }
 
+        _configFileWatcher?.Dispose();
+        _configFileWatcher = null;
+
         // Clean up resources
         _configLock.Dispose();
         _configContainerDict.Clear();
@@ -452,6 +516,36 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     #endregion Protected Methods
 
     #region Private Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void SETUP_FILE_WATCHER()
+    {
+        // Dispose watcher cũ nếu có
+        _configFileWatcher?.Dispose();
+        _configFileWatcher = null;
+
+        System.String? directory = System.IO.Path.GetDirectoryName(_configFilePath);
+        System.String file = System.IO.Path.GetFileName(_configFilePath);
+
+        if (directory == null || file == null)
+        {
+            return;
+        }
+
+        _configFileWatcher = new System.IO.FileSystemWatcher(directory, file)
+        {
+            NotifyFilter = System.IO.NotifyFilters.LastWrite | System.IO.NotifyFilters.Size
+        };
+        _configFileWatcher.Changed += (s, e) =>
+        {
+            if (e.FullPath.Equals(_configFilePath, System.StringComparison.OrdinalIgnoreCase))
+            {
+                ReloadAll();
+            }
+        };
+        _configFileWatcher.EnableRaisingEvents = true;
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
