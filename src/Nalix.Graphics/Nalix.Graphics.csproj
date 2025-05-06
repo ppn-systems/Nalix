@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IsTrimmable>true</IsTrimmable>
+    <OutputType>Library</OutputType>
+
+    <Version>0.8.26</Version>
+    <PackageVersion>0.8.26</PackageVersion>
+
+    <PackageReleaseNotes>
+      - Initial release of Nalix.Graphics.
+    </PackageReleaseNotes>
+
+  </PropertyGroup>
+
+  <Import Project="..\Nalix.Build.props" />
+  <Import Project="..\Package.Build.props" />
+  <ItemGroup>
+    <PackageReference Include="SFML.Graphics" Version="2.6.1" />
+  </ItemGroup>
+
+</Project>
