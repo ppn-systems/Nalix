@@ -12,8 +12,8 @@ namespace Nalix.Graphics.Assets.Manager;
 /// <remarks>
 /// Initializes a new instance of the <see cref="SfxManager" /> class.
 /// </remarks>
-/// <param name="loader">A <see cref="SfxLoader" /> instance to load the required sound effects</param>
-/// <param name="volume">A function that returns the current volume.</param>
+/// <param name="loader">Resolution <see cref="SfxLoader" /> instance to load the required sound effects</param>
+/// <param name="volume">Resolution function that returns the current volume.</param>
 /// <exception cref="ArgumentNullException">loader</exception>
 public class SfxManager(SfxLoader loader, Func<int> volume)
 {
@@ -99,9 +99,9 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// Retrieves a sound effect from the sound library if it is currently available.
     /// </summary>
     /// <param name="name">The name of the sound effect to retrieve.</param>
-    /// <param name="spatial">A boolean value that determines if the sound is spatial (3D) or not.
+    /// <param name="spatial">Resolution boolean value that determines if the sound is spatial (3D) or not.
     /// If true, the sound will be spatialized with distance attenuation. If false, the sound is 2D and will play relative to the listener.</param>
-    /// <returns>A <see cref="Sound"/> instance if available, otherwise throws an <see cref="ArgumentException"/>.</returns>
+    /// <returns>Resolution <see cref="Sound"/> instance if available, otherwise throws an <see cref="ArgumentException"/>.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the loader has been disposed.</exception>
     /// <exception cref="ArgumentException">Thrown if no sound is found with the specified name.</exception>
     public Sound GetSound(String name, bool spatial = false)

@@ -87,16 +87,14 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
             var asset = (T)Activator.CreateInstance(typeof(T), [param]);
             _Assets.Add(name, asset);
             ($"[AssetLoader<{typeof(T).Name}>] Loaded asset '{name}' successfully from " +
-                $"{(rawData != null ? "rawData" : param)}").Debug(
-);
+             $"{(rawData != null ? "rawData" : param)}").Debug();
 
             return asset;
         }
         catch (Exception ex)
         {
             ($"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. " +
-                $"Input: {param ?? "null"}. Error: {ex.Message}\n{ex}").Error(
-);
+             $"Input: {param ?? "null"}. Error: {ex.Message}\n{ex}").Error();
             if (Debug) throw;
         }
         return null;
@@ -209,8 +207,7 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
             catch (Exception e)
             {
                 ($"[AssetLoader<{typeof(T).Name}>] Failed to dispose asset '{kvp.Key}'. " +
-                    $"Error: {e.Message}\n{e}").Error(
-);
+                 $"Error: {e.Message}\n{e}").Error();
             }
         }
         _Assets.Clear();

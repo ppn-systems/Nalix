@@ -27,10 +27,5 @@
     <PackageReference Include="SFML.Graphics" Version="2.6.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Collision\" />
-    <Folder Include="Entities\" />
-  </ItemGroup>
 
 </Project>
