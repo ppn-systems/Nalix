@@ -28,18 +28,21 @@ public sealed class ReliableClient : System.IDisposable
     #region Fields
 
     private readonly System.Threading.SemaphoreSlim _connGate;
-    private readonly System.Threading.CancellationTokenSource _lifectx;
-    private readonly System.Threading.Channels.Channel<IPacket> _sendQueue;
 
-    private IIdentifier _workerId;
+    private readonly IIdentifier[] _workerId;
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
+    private System.Threading.CancellationTokenSource _lifectx;
+    private System.Threading.Channels.Channel<IPacket> _sendQueue;
 
     private StreamSender<IPacket> _outbound;
     private StreamReceiver<IPacket> _inbound;
 
     private volatile System.Boolean _closed;
+    private volatile System.Boolean _ioHealthy;
+
     private System.Int32 _discNotified; // 0/1 gate for Disconnected
+    private System.Int32 _sendWorkerStarted;
 
     #endregion Fields
 
@@ -64,23 +67,23 @@ public sealed class ReliableClient : System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
     /// </summary>
-    public System.Boolean IsConnected => !_closed && _client is { Connected: true } && _stream?.CanRead == true && _stream.CanWrite;
+    public System.Boolean IsConnected => !_closed && _ioHealthy && _stream is { CanRead: true, CanWrite: true };
 
     #endregion Properties
 
     #region Events
 
     /// <summary>
-    /// Raised whenever a packet is received on the background network worker.
-    /// Executed on a background thread; do not touch Unity API here.
-    /// </summary>
-    public event System.Action<IPacket> PacketReceived;
-
-    /// <summary>
     /// Raised after a successful connection is established.
     /// Executed on the calling thread of ConnectAsync.
     /// </summary>
     public event System.Action Connected;
+
+    /// <summary>
+    /// Raised whenever a packet is received on the background network worker.
+    /// Executed on a background thread; do not touch Unity API here.
+    /// </summary>
+    public event System.Action<IPacket> PacketReceived;
 
     /// <summary>
     /// Raised when the connection is closed or the receive loop exits due to an error.
@@ -98,42 +101,11 @@ public sealed class ReliableClient : System.IDisposable
     public ReliableClient()
     {
         _connGate = new(1, 1);
+        _workerId = new IIdentifier[2];
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Incoming = new FifoCache<IPacket>(Options.IncomingSize);
-
-        // In ConnectAsync(), after stream created:
-        _lifectx = new System.Threading.CancellationTokenSource();
-        _sendQueue = System.Threading.Channels.Channel.CreateBounded<IPacket>(
-            new System.Threading.Channels.BoundedChannelOptions(capacity: Options.OutboundQueueSize > 0 ? Options.OutboundQueueSize : 1024)
-            {
-                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest, // backpressure
-                SingleReader = true,
-                SingleWriter = false
-            });
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: $"tcp-send-{this.Options.Address}:{this.Options.Port}",
-            group: "network",
-            async (_, ct) =>
-            {
-                var token = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, this._lifectx!.Token).Token;
-                while (!token.IsCancellationRequested && this.IsConnected)
-                {
-                    if (!await this._sendQueue.Reader.WaitToReadAsync(token).ConfigureAwait(false))
-                    {
-                        break;
-                    }
-
-                    while (this._sendQueue.Reader.TryRead(out IPacket pkt))
-                    {
-                        await this._outbound!.SendAsync(pkt, token).ConfigureAwait(false);
-                    }
-                }
-            },
-            new WorkerOptions { Tag = "tcp" }
-        );
     }
 
     #endregion Constructor
@@ -174,6 +146,20 @@ public sealed class ReliableClient : System.IDisposable
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress, true);
 
+        _lifectx?.Dispose();
+        _lifectx = new System.Threading.CancellationTokenSource();
+        _sendQueue = System.Threading.Channels.Channel.CreateBounded<IPacket>(
+            new System.Threading.Channels.BoundedChannelOptions(capacity: Options.OutboundQueueSize > 0 ? Options.OutboundQueueSize : 1024)
+            {
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest, // backpressure
+                SingleReader = true,
+                SingleWriter = false
+            });
+
+        // Start send worker exactly once per connection
+        System.Threading.Interlocked.Exchange(ref _sendWorkerStarted, 0);
+        this.StartSendWorker();
+
         using var cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
 
@@ -189,6 +175,9 @@ public sealed class ReliableClient : System.IDisposable
             await _client.ConnectAsync(Options.Address, Options.Port, cts.Token);
 
             _stream = _client.GetStream();
+
+            _stream.ReadTimeout = 10_000;
+            _stream.WriteTimeout = 10_000;
 
             _outbound = new StreamSender<IPacket>(_stream);
             _inbound = new StreamReceiver<IPacket>(_stream);
@@ -222,9 +211,10 @@ public sealed class ReliableClient : System.IDisposable
                             // Push FIFO (with simple backpressure policy)
                             if (packet != null)
                             {
-                                if (Options.IncomingSize > 0)
+                                if (Options.IncomingSize > 0 || PacketReceived == null)
                                 {
                                     Incoming.Push(packet);
+                                    continue;
                                 }
 
                                 SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
@@ -235,7 +225,8 @@ public sealed class ReliableClient : System.IDisposable
                                 SafeInvoke(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
-                            Disconnect();
+                            this.MarkIoDead(ex);
+                            this.Disconnect();
                             break;
                         }
 
@@ -248,7 +239,7 @@ public sealed class ReliableClient : System.IDisposable
                     OnFailed = (st, ex) => InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn($"Worker failed: {ex.Message}")
                 });
 
-            _workerId = woker.Id;
+            _workerId[0] = woker.Id;
         }
         catch (System.OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -281,10 +272,16 @@ public sealed class ReliableClient : System.IDisposable
     /// <exception cref="System.IO.IOException">
     /// Thrown if an I/O error occurs while writing to the underlying stream.
     /// </exception>
-    public System.Threading.Tasks.Task SendAsync(
-        IPacket packet,
-        System.Threading.CancellationToken ct = default)
-        => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SendAsync(packet, ct);
+    public System.Threading.Tasks.ValueTask SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
+    {
+        if (_outbound is null || !IsConnected)
+        {
+            throw new System.InvalidOperationException("Not connected.");
+        }
+
+        // Enqueue with back-pressure; avoids drops under load
+        return _sendQueue.Writer.WriteAsync(packet, ct);
+    }
 
     /// <summary>
     /// Closes the network connection and releases resources.
@@ -293,17 +290,28 @@ public sealed class ReliableClient : System.IDisposable
     public void Disconnect()
     {
         _closed = true;
+        _lifectx?.Cancel();
 
         if (_workerId is not null)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                        .CancelWorker(this._workerId);
+            for (System.Int32 i = 0; i < _workerId.Length; i++)
+            {
+                if (_workerId[i] is null)
+                {
+                    continue;
+                }
+
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelWorker(_workerId[i]);
+            }
+
         }
 
-        DeepClose();
+        this.DeepClose();
 
         try { _stream?.Dispose(); } catch { /* swallow */ }
         try { _client?.Close(); } catch { /* swallow */ }
+        try { _sendQueue?.Writer.TryComplete(); } catch { /* ignore */ }
 
         _outbound = null;
         _inbound = null;
@@ -321,13 +329,73 @@ public sealed class ReliableClient : System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {
-        Disconnect();
+        this.Disconnect();
+
+        _lifectx?.Dispose();
         System.GC.SuppressFinalize(this);
     }
 
     #endregion APIs
 
     #region Private Methods
+
+    private void MarkIoDead(System.Exception ex = null)
+    {
+        _ioHealthy = false;
+        if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
+        {
+            SafeInvoke(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
+        }
+    }
+
+    private void StartSendWorker()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _sendWorkerStarted, 1) == 1)
+        {
+            return;
+        }
+
+        IWorkerHandle worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            name: $"tcp-send-{Options.Address}:{Options.Port}",
+            group: "network",
+            async (_, ct) =>
+            {
+                var token = System.Threading.CancellationTokenSource
+                    .CreateLinkedTokenSource(ct, _lifectx.Token).Token;
+
+                while (!token.IsCancellationRequested && IsConnected)
+                {
+                    if (!await _sendQueue.Reader.WaitToReadAsync(token).ConfigureAwait(false))
+                    {
+                        break;
+                    }
+
+                    while (_sendQueue.Reader.TryRead(out var pkt))
+                    {
+                        try
+                        {
+                            await _outbound.SendAsync(pkt, token).ConfigureAwait(false);
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn($"Send failed: {ex.Message}");
+
+                            MarkIoDead(ex);
+                            Disconnect(); // fail-fast đóng phiên
+                            return;
+                        }
+                    }
+                }
+            },
+            new WorkerOptions { Tag = "tcp" }
+        );
+
+        _workerId[1] = worker.Id;
+    }
 
     // Add to ReliableClient
     private static void AbortiveClose(System.Net.Sockets.Socket s)
@@ -378,7 +446,6 @@ public sealed class ReliableClient : System.IDisposable
         _outbound = null;
         _inbound = null;
     }
-
 
     private static void SafeInvoke(System.Action evt, ILogger log)
     {
