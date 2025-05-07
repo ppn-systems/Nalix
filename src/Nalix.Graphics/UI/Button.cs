@@ -44,7 +44,7 @@ public sealed class Button : BaseUIElement
 
     /// <summary>
     /// Gets or sets the position of the button in window coordinates.
-    /// Updates the background, sprite, and text alignment.
+    /// Updates the background, Sprite, and text alignment.
     /// </summary>
     public Vector2f Position
     {

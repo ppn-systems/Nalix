@@ -11,8 +11,8 @@ public class CheckBox : Drawable
 {
     private readonly Text _label;              // The label next to the checkbox
     private readonly string _labelText;        // The text to display in the label
-    private readonly Sprite _checkedSprite;    // The sprite for the checked state
-    private readonly Sprite _uncheckedSprite;  // The sprite for the unchecked state
+    private readonly Sprite _checkedSprite;    // The Sprite for the checked state
+    private readonly Sprite _uncheckedSprite;  // The Sprite for the unchecked state
 
     private bool _isChecked;                   // Indicates if the checkbox is checked
 
@@ -86,15 +86,15 @@ public class CheckBox : Drawable
     /// <param name="states">The render states to apply.</param>
     public void Draw(RenderTarget target, RenderStates states)
     {
-        // Draw the appropriate sprite based on the checked state
+        // Draw the appropriate Sprite based on the checked state
         if (_isChecked)
         {
-            // Draw checked sprite
+            // Draw checked Sprite
             target.Draw(_checkedSprite, states);
         }
         else
         {
-            target.Draw(_uncheckedSprite, states);  // Draw unchecked sprite
+            target.Draw(_uncheckedSprite, states);  // Draw unchecked Sprite
         }
 
         target.Draw(_label, states);  // Draw the label next to the checkbox

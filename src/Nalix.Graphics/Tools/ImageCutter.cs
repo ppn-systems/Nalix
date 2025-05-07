@@ -73,7 +73,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// </summary>
     /// <param name="index">The index of the icon in the grid.</param>
     /// <param name="iconsPerRow">The number of icons per row.</param>
-    /// <returns>A sprite representing the icon at the specified index.</returns>
+    /// <returns>A Sprite representing the icon at the specified index.</returns>
     public Sprite CutIconAt(int index, int iconsPerRow)
     {
         int row = index / iconsPerRow;
@@ -91,11 +91,11 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
         => new(column * _iconWidth, row * _iconHeight, _iconWidth, _iconHeight);
 
     /// <summary>
-    /// Creates a sprite from a specific section of the texture based on x and y coordinates.
+    /// Creates a Sprite from a specific section of the texture based on x and y coordinates.
     /// </summary>
     /// <param name="x">The x-coordinate of the top-left corner of the icon.</param>
     /// <param name="y">The y-coordinate of the top-left corner of the icon.</param>
-    /// <returns>A sprite representing the icon at the given coordinates.</returns>
+    /// <returns>A Sprite representing the icon at the given coordinates.</returns>
     private Sprite CreateIcon(int x, int y)
     {
         IntRect iconRect = new(x, y, _iconWidth, _iconHeight);
@@ -103,11 +103,11 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     }
 
     /// <summary>
-    /// Rotates the given sprite by a specified angle.
+    /// Rotates the given Sprite by a specified angle.
     /// </summary>
-    /// <param name="icon">The sprite to be rotated.</param>
+    /// <param name="icon">The Sprite to be rotated.</param>
     /// <param name="angle">The angle of rotation in degrees.</param>
-    /// <returns>The rotated sprite.</returns>
+    /// <returns>The rotated Sprite.</returns>
     public static Sprite RotateIcon(Sprite icon, float angle)
     {
         icon.Rotation = angle;
@@ -118,7 +118,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// Cuts a custom region from the texture based on a specific rectangular area.
     /// </summary>
     /// <param name="region">The <see cref="IntRect"/> defining the region to be cut from the texture.</param>
-    /// <returns>A sprite representing the custom region.</returns>
+    /// <returns>A Sprite representing the custom region.</returns>
     /// <exception cref="ArgumentException">Thrown if the region exceeds the bounds of the texture.</exception>
     public Sprite CutCustomRegion(IntRect region)
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Nalix.Assemblies;
+namespace Nalix.Environment.Assemblies;
 
 /// <summary>
 /// Structure containing comprehensive assembly version information.

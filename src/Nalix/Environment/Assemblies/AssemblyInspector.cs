@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
-namespace Nalix.Assemblies;
+namespace Nalix.Environment.Assemblies;
 
 /// <summary>
 /// High-performance helper class for retrieving assembly metadata information.
