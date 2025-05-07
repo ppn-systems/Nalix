@@ -18,8 +18,8 @@ public sealed class Button : BaseUIElement
 
     private bool _useTexture;
     private Texture _texture;
-    private Texture _normalTexture;
-    private Texture _hoverTexture;
+    private IntRect _normalRect;
+    private IntRect _hoverRect;
 
     private Sound _hoverSound;
     private Sound _clickSound;
@@ -129,31 +129,30 @@ public sealed class Button : BaseUIElement
     /// <summary>
     /// Sets two textures for normal and hover states.
     /// </summary>
-    /// <param name="normalTexture">The default texture when not hovered.</param>
-    /// <param name="hoverTexture">The texture used when hovered.</param>
-    public void SetTextures(Texture normalTexture, Texture hoverTexture)
+    public void SetTexture(Texture texture, IntRect normalRect, IntRect hoverRect)
     {
-        _normalTexture = normalTexture;
-        _hoverTexture = hoverTexture;
+        _texture = texture;
+        _normalRect = normalRect;
+        _hoverRect = hoverRect;
         _useTexture = true;
 
-        _texture = _normalTexture;
-        _sprite.Texture = _texture;
+        _sprite.Texture = texture;
+        _sprite.TextureRect = normalRect;
 
-        this.UpdateSpriteScale();
+        UpdateSpriteScale();
     }
 
     /// <inheritdoc/>
-    public override void Draw(RenderWindow window, RenderStates states)
+    public override void Draw(RenderTarget target, RenderStates states)
     {
         if (!IsVisible) return;
 
         if (_useTexture && _texture != null)
-            window.Draw(_sprite, states);
+            target.Draw(_sprite, states);
         else
-            window.Draw(_background, states);
+            target.Draw(_background, states);
 
-        window.Draw(_label, states);
+        target.Draw(_label, states);
     }
 
     /// <inheritdoc/>
@@ -169,11 +168,8 @@ public sealed class Button : BaseUIElement
 
         if (_useTexture)
         {
-            if (_hoverTexture != null)
-            {
-                _texture = _hoverTexture;
-                _sprite.Texture = _texture;
-            }
+            _sprite.TextureRect = _hoverRect;
+            UpdateSpriteScale();
         }
         else
         {
@@ -186,11 +182,8 @@ public sealed class Button : BaseUIElement
     {
         if (_useTexture)
         {
-            if (_normalTexture != null)
-            {
-                _texture = _normalTexture;
-                _sprite.Texture = _texture;
-            }
+            _sprite.TextureRect = _normalRect;
+            UpdateSpriteScale();
         }
         else
         {

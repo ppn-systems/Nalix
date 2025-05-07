@@ -1,3 +1,4 @@
+using Nalix.Graphics.Attributes;
 using Nalix.Logging.Extensions;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ public static class SceneManager
     /// Retrieves all objects in the scene of a specific type.
     /// </summary>
     /// <typeparam name="T">The type of objects to retrieve.</typeparam>
-    /// <returns>A HashSet of all objects of the specified type.</returns>
+    /// <returns>ScreenSize HashSet of all objects of the specified type.</returns>
     public static HashSet<T> AllObjects<T>() where T : SceneObject
         => [.. _sceneObjects.OfType<T>()];
 
@@ -63,6 +64,16 @@ public static class SceneManager
             // Skip compiler-generated types (like anonymous types or internal generic types)
             if (type.Name.Contains('<')) continue;
 
+            // Check if the class has the NotLoadableAttribute
+            if (type.GetCustomAttribute<NotLoadableAttribute>() != null)
+            {
+                NLogixFx.Warn(
+                    source: type.Name,
+                    message: $"Skipping load of scene {type.Name} because it is marked as not loadable."
+                );
+                continue;
+            }
+
             // Attempt to find a constructor with no parameters
             ConstructorInfo constructor = type.GetConstructor(Type.EmptyTypes);
             if (constructor == null) continue;
@@ -76,7 +87,11 @@ public static class SceneManager
             catch (Exception ex)
             {
                 // Handle any exceptions that occur during instantiation
-                Console.WriteLine($"Error instantiating scene {type.Name}: {ex.Message}");
+                NLogixFx.Error(
+                    ex,
+                    source: type.Name,
+                    message: $"Error instantiating scene {type.Name}: {ex.Message}"
+                );
                 continue;
             }
 

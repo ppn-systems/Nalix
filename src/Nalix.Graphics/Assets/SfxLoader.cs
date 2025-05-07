@@ -44,4 +44,23 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
         stream.ReadExactly(data);
         return Load(name, data);
     }
+
+    /// <inheritdoc/>
+    protected override SoundBuffer CreateInstanceFromRawData(byte[] rawData)
+    {
+        if (rawData == null || rawData.Length == 0)
+            throw new ArgumentException("Raw data is null or empty.", nameof(rawData));
+
+        using var memoryStream = new MemoryStream(rawData, writable: false);
+        return new SoundBuffer(memoryStream);
+    }
+
+    /// <inheritdoc/>
+    protected override SoundBuffer CreateInstanceFromPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Path is null or empty.", nameof(path));
+
+        return new SoundBuffer(path);
+    }
 }

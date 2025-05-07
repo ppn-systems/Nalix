@@ -26,7 +26,7 @@ public abstract class SpriteObject : RenderObject
     /// Initializes a new instance of the <see cref="SpriteObject"/> class with a texture, rectangle, position, scale, and rotation.
     /// </summary>
     /// <param name="texture">The texture to be used for the Sprite.</param>
-    /// <param name="rect">A rectangle defining a subregion of the texture.</param>
+    /// <param name="rect">ScreenSize rectangle defining a subregion of the texture.</param>
     /// <param name="position">The position of the Sprite.</param>
     /// <param name="scale">The scale of the Sprite.</param>
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
@@ -53,7 +53,7 @@ public abstract class SpriteObject : RenderObject
     /// Initializes a new instance of the <see cref="SpriteObject"/> class with a texture and rectangle.
     /// </summary>
     /// <param name="texture">The texture to be used for the Sprite.</param>
-    /// <param name="rect">A rectangle defining a subregion of the texture.</param>
+    /// <param name="rect">ScreenSize rectangle defining a subregion of the texture.</param>
     public SpriteObject(Texture texture, IntRect rect)
     {
         this.Sprite = new Sprite(texture, rect);

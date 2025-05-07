@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Nalix.Graphics.Assets;
 
@@ -15,44 +16,35 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     : IDisposable where T : class, IDisposable
 {
     /// <summary>
-    /// List of supported file endings for this AssetManager
+    /// List of supported file endings for this AssetLoader
     /// </summary>
     protected string[] _FileEndings;
 
     /// <summary>
-    /// Dictionary containing all loaded assets
+    /// Dictionary of loaded assets, where the key is the asset name and the value is the asset instance.
     /// </summary>
     protected Dictionary<string, T> _Assets = [];
 
     /// <summary>
-    /// The supported file endings by this <see cref="AssetLoader{T}"/> instance
+    /// List of supported file endings for this AssetLoader
     /// </summary>
-    public IEnumerable<string> FileEndings
-    {
-        get => _FileEndings;
-    }
+    public IEnumerable<string> FileEndings => _FileEndings;
 
     /// <summary>
-    /// Root-folder to look for Assets
+    /// The root folder where assets are located.
     /// </summary>
     public string RootFolder { get; set; }
 
     /// <summary>
-    /// Determines whether this asset loader should operate in debug mode.
-    /// Setting this value to <c>true</c> will cause loading exceptions to be thrown instead of being handled internally.
+    /// Indicates whether the asset loader should log debug information.
     /// </summary>
     public bool Debug { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether this AssetManager is disposed.
+    /// Indicates whether the asset loader has been disposed.
     /// </summary>
     public bool Disposed { get; private set; }
 
-    /// <summary>
-    /// Creates a new instance of the AssetManager class.
-    /// </summary>
-    /// <param name="supportedFileEndings">List of File Endings this manager is supposed to support (i.e: .jpg)</param>
-    /// <param name="assetRoot">Optional root path of the managed asset folder</param>
     internal AssetLoader(IEnumerable<string> supportedFileEndings, string assetRoot = "")
     {
         RootFolder = assetRoot;
@@ -60,67 +52,73 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     }
 
     /// <summary>
-    /// Finalizes an instance of the <see cref="AssetLoader{T}"/> class.
+    /// Finalizer for the AssetLoader class. Calls Dispose(false) to release unmanaged resources.
     /// </summary>
-    ~AssetLoader()
-    {
-        Dispose(false);
-    }
+    ~AssetLoader() => Dispose(false);
 
     /// <summary>
-    /// Loads or retrieves an already loaded instance of an Asset from a File or Raw Data Source
+    /// Loads or retrieves an already loaded instance of T from a File or Raw Data Source
     /// </summary>
-    /// <param name="name">Name of the Resource</param>
-    /// <param name="rawData">Optional byte array containing the raw data of the asset</param>
-    /// <returns>The managed Asset</returns>
+    /// <param name="name"></param>
+    /// <param name="rawData"></param>
+    /// <returns></returns>
     public virtual T Load(string name, byte[] rawData = null)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
-
         ArgumentNullException.ThrowIfNull(name);
+
         if (_Assets.TryGetValue(name, out T value)) return value;
 
-        object param = null;
+        string input = null;
         try
         {
-            param = rawData as object ?? ResolveFileEndings(name);
-            var asset = (T)Activator.CreateInstance(typeof(T), [param]);
-            _Assets.Add(name, asset);
-            ($"[AssetLoader<{typeof(T).Name}>] Loaded asset '{name}' successfully from " +
-             $"{(rawData != null ? "rawData" : param)}").Debug();
+            T asset;
 
+            if (rawData != null)
+            {
+                asset = CreateInstanceFromRawData(rawData);
+                input = "rawData";
+            }
+            else
+            {
+                input = ResolveFileEndings(name);
+                asset = CreateInstanceFromPath(input);
+            }
+
+            _Assets.Add(name, asset);
+
+            ($"[AssetLoader<{typeof(T).Name}>] Loaded asset '{name}' successfully from {input}").Debug();
             return asset;
         }
         catch (Exception ex)
         {
-            ($"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. " +
-             $"Input: {param ?? "null"}. Error: {ex.Message}\n{ex}").Error();
+            ($"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. Input: {input ?? "null"}. Error: {ex.Message}\n{ex}").Error();
             if (Debug) throw;
         }
+
         return null;
     }
 
     /// <summary>
-    /// Loads all compatible files in the root directory.
+    /// Loads all files in the specified directory and adds them to the asset manager.
     /// </summary>
-    /// <param name="logErrors">Determines if errors should be logged</param>
-    /// <returns>Array containing the names of all successfully loaded files</returns>
+    /// <param name="logErrors"></param>
+    /// <returns></returns>
     public virtual string[] LoadAllFilesInDirectory(bool logErrors = false)
     {
         var assetNames = new List<string>();
+
         foreach (var file in Directory.EnumerateFiles(RootFolder))
         {
             try
             {
-                T asset = (T)Activator.CreateInstance(typeof(T), [file]);
+                T asset = CreateInstanceFromPath(file);
                 string name = Path.GetFileNameWithoutExtension(file);
                 _Assets.Add(name, asset);
                 assetNames.Add(name);
 
                 if (Debug)
-                {
                     $"[AssetLoader<{typeof(T).Name}>] Loaded asset: '{name}' from file: '{file}'".Info();
-                }
             }
             catch (Exception e)
             {
@@ -131,17 +129,14 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
                     Reason: {e.GetType().Name} - {e.Message}
                     """.Error();
                 }
+
                 if (Debug) throw;
             }
         }
+
         return [.. assetNames];
     }
 
-    /// <summary>
-    /// Resolves the file endings.
-    /// </summary>
-    /// <param name="name">The name of the file.</param>
-    /// <returns>Filename + proper file ending or the original String in case no file could be found.</returns>
     private string ResolveFileEndings(string name)
     {
         foreach (var ending in _FileEndings)
@@ -168,9 +163,9 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     }
 
     /// <summary>
-    /// Unloads the Asset with the given name
+    /// Releases the asset with the specified name.
     /// </summary>
-    /// <param name="name">Name of the Asset</param>
+    /// <param name="name"></param>
     public void Release(string name)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
@@ -181,7 +176,7 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     }
 
     /// <summary>
-    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// Disposes the asset loader and all loaded assets.
     /// </summary>
     public void Dispose()
     {
@@ -190,9 +185,9 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     }
 
     /// <summary>
-    /// Releases unmanaged and managed resources.
+    /// Disposes the asset loader and all loaded assets.
     /// </summary>
-    /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+    /// <param name="disposing"></param>
     protected virtual void Dispose(bool disposing)
     {
         if (Disposed) return;
@@ -206,10 +201,42 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
             }
             catch (Exception e)
             {
-                ($"[AssetLoader<{typeof(T).Name}>] Failed to dispose asset '{kvp.Key}'. " +
-                 $"Error: {e.Message}\n{e}").Error();
+                ($"[AssetLoader<{typeof(T).Name}>] Failed to dispose asset '{kvp.Key}'. Error: {e.Message}\n{e}").Error();
             }
         }
+
         _Assets.Clear();
+    }
+
+    /// <summary>
+    /// Creates an instance of type <typeparamref name="T"/> from raw binary data.
+    /// </summary>
+    /// <param name="rawData">The raw byte array representing the asset data.</param>
+    /// <returns>An instance of <typeparamref name="T"/> created from the raw data.</returns>
+    /// <exception cref="NotSupportedException">
+    /// Thrown if this type <typeparamref name="T"/> does not support loading from raw data.
+    /// Override this method in a derived class to provide a valid implementation.
+    /// </exception>
+    protected virtual T CreateInstanceFromRawData(byte[] rawData)
+    {
+        throw new NotSupportedException($"{typeof(T).Name} does not support loading from raw data. Override this method.");
+    }
+
+    /// <summary>
+    /// Creates an instance of type <typeparamref name="T"/> from a file path.
+    /// </summary>
+    /// <param name="path">The full or relative file path to the asset.</param>
+    /// <returns>
+    /// An instance of <typeparamref name="T"/> created using a constructor that accepts a single <see cref="string"/> argument.
+    /// </returns>
+    /// <exception cref="MissingMethodException">
+    /// Thrown if <typeparamref name="T"/> does not have a public constructor accepting a <see cref="string"/> path.
+    /// </exception>
+    /// <exception cref="TargetInvocationException">
+    /// Thrown if the constructor of <typeparamref name="T"/> throws an exception.
+    /// </exception>
+    protected virtual T CreateInstanceFromPath(string path)
+    {
+        return (T)Activator.CreateInstance(typeof(T), [path]);
     }
 }

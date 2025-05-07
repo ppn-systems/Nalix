@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Nalix.Graphics.Tools;
 
 /// <summary>
-/// A class responsible for cutting a large texture into smaller icon-sized sprites.
+/// ScreenSize class responsible for cutting a large texture into smaller icon-sized sprites.
 /// It supports cutting icons in a grid layout, flipping, rotating, and custom region extraction.
 /// </summary>
 /// <remarks>
@@ -35,7 +35,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// </summary>
     /// <param name="iconsPerRow">The number of icons per row.</param>
     /// <param name="iconsPerColumn">The number of icons per column.</param>
-    /// <returns>A task representing the asynchronous operation, with a result of an array of sprites.</returns>
+    /// <returns>ScreenSize task representing the asynchronous operation, with a result of an array of sprites.</returns>
     /// <remarks>
     /// This method uses asynchronous tasks to cut icons in parallel for better performance on large textures.
     /// </remarks>
@@ -73,7 +73,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// </summary>
     /// <param name="index">The index of the icon in the grid.</param>
     /// <param name="iconsPerRow">The number of icons per row.</param>
-    /// <returns>A Sprite representing the icon at the specified index.</returns>
+    /// <returns>ScreenSize Sprite representing the icon at the specified index.</returns>
     public Sprite CutIconAt(int index, int iconsPerRow)
     {
         int row = index / iconsPerRow;
@@ -95,7 +95,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// </summary>
     /// <param name="x">The x-coordinate of the top-left corner of the icon.</param>
     /// <param name="y">The y-coordinate of the top-left corner of the icon.</param>
-    /// <returns>A Sprite representing the icon at the given coordinates.</returns>
+    /// <returns>ScreenSize Sprite representing the icon at the given coordinates.</returns>
     private Sprite CreateIcon(int x, int y)
     {
         IntRect iconRect = new(x, y, _iconWidth, _iconHeight);
@@ -118,7 +118,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// Cuts a custom region from the texture based on a specific rectangular area.
     /// </summary>
     /// <param name="region">The <see cref="IntRect"/> defining the region to be cut from the texture.</param>
-    /// <returns>A Sprite representing the custom region.</returns>
+    /// <returns>ScreenSize Sprite representing the custom region.</returns>
     /// <exception cref="ArgumentException">Thrown if the region exceeds the bounds of the texture.</exception>
     public Sprite CutCustomRegion(IntRect region)
     {

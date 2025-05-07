@@ -15,7 +15,7 @@ public abstract class RenderObject : SceneObject
     /// Gets the drawable object to be rendered.
     /// Derived classes must implement this method to provide their specific drawable.
     /// </summary>
-    /// <returns>A <see cref="Drawable"/> object to be rendered.</returns>
+    /// <returns>ScreenSize <see cref="Drawable"/> object to be rendered.</returns>
     protected abstract Drawable GetDrawable();
 
     /// <summary>

@@ -77,7 +77,7 @@ public readonly struct AABB
     /// Creates a new AABB by expanding the current bounds by the specified amount in all directions.
     /// </summary>
     /// <param name="amount">The amount to expand the AABB in each direction.</param>
-    /// <returns>A new, inflated AABB.</returns>
+    /// <returns>ScreenSize new, inflated AABB.</returns>
     public AABB Inflate(float amount)
     {
         return new AABB(Min - new Vector2(amount), Max + new Vector2(amount));
@@ -86,7 +86,7 @@ public readonly struct AABB
     /// <summary>
     /// Returns a string that represents the current AABB.
     /// </summary>
-    /// <returns>A string in the format <c>AABB(Min: x, Max: y)</c>.</returns>
+    /// <returns>ScreenSize string in the format <c>AABB(Min: x, Max: y)</c>.</returns>
     public override string ToString()
     {
         return $"AABB(Min: {Min}, Max: {Max})";

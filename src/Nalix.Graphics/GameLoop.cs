@@ -26,15 +26,21 @@ public static class GameLoop
     public static AssemblyConfig AssemblyConfig { get; private set; }
 
     /// <summary>
+    /// Gets the dimensions (width and height) of the screen or viewport, used to set the screen size for rendering purposes.
+    /// </summary>
+    public static Vector2u ScreenSize { get; private set; }
+
+    /// <summary>
     /// Static constructor to initialize the game configuration and window.
     /// </summary>
     static GameLoop()
     {
         AssemblyConfig = new AssemblyConfig();
+        ScreenSize = new Vector2u(AssemblyConfig.ScreenWidth, AssemblyConfig.ScreenHeight);
 
         _window = new RenderWindow(
             new VideoMode(AssemblyConfig.ScreenWidth, AssemblyConfig.ScreenHeight),
-            AssemblyConfig.Title
+            AssemblyConfig.Title, Styles.Titlebar | Styles.Close
         );
         _window.Closed += (_, _) => _window.Close();
         _window.SetFramerateLimit(AssemblyConfig.FrameLimit);
@@ -75,7 +81,7 @@ public static class GameLoop
     /// <param name="deltaTime">Time elapsed since the last update, in seconds.</param>
     private static void Update(float deltaTime)
     {
-        Input.Update();
+        Input.Update(_window);
         SceneManager.ProcessLoadScene();
         SceneManager.ProcessDestroyQueue();
         SceneManager.ProcessSpawnQueue();

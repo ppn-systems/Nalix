@@ -26,9 +26,9 @@ public sealed class AssemblyConfig : ConfigurationLoader
     public uint ScreenHeight { get; init; } = 720;
 
     /// <summary>
-    /// Gets the title of the application. Default value is "Nalix GameLoop".
+    /// Gets the title of the application. Default value is "Nalix".
     /// </summary>
-    public string Title { get; init; } = "Nalix GameLoop";
+    public string Title { get; init; } = "Nalix";
 
     /// <summary>
     /// Gets the name of the main scene to be loaded. Default value is "main".

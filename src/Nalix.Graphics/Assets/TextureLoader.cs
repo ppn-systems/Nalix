@@ -90,4 +90,20 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
 
         return Load(name, data);
     }
+
+    /// <inheritdoc/>
+    protected override Texture CreateInstanceFromRawData(byte[] rawData)
+    {
+        using var ms = new MemoryStream(rawData);
+        var texture = new Texture(ms); // Pass the MemoryStream to the constructor
+        return texture;
+    }
+
+    /// <inheritdoc/>
+    protected override Texture CreateInstanceFromPath(string path)
+    {
+        using var fs = File.OpenRead(path);
+        var texture = new Texture(fs); // Pass the FileStream to the constructor
+        return texture;
+    }
 }

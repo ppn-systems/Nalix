@@ -22,7 +22,7 @@ public abstract class Scene(string name)
     /// <summary>
     /// Retrieves the list of initial objects in the scene.
     /// </summary>
-    /// <returns>A list of <see cref="SceneObject"/>.</returns>
+    /// <returns>ScreenSize list of <see cref="SceneObject"/>.</returns>
     public List<SceneObject> GetObjects() => _objects;
 
     /// <summary>

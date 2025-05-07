@@ -20,8 +20,8 @@ public class ParallaxPlayer(Vector2u viewport)
     /// <summary>
     /// Adds a new layer to the parallax system.
     /// </summary>
-    public void AddLayer(Texture texture, float speed)
-        => _layers.Add(new Layer(_viewport, texture, speed));
+    public void AddLayer(Texture texture, float speed, bool autoScale)
+        => _layers.Add(new Layer(_viewport, texture, speed, autoScale));
 
     /// <summary>
     /// Updates the parallax scrolling based on elapsed time.
@@ -60,7 +60,7 @@ public class ParallaxPlayer(Vector2u viewport)
         public float Offset;
         public IntRect Rect; // cached rect
 
-        public Layer(Vector2u viewport, Texture texture, float speed)
+        public Layer(Vector2u viewport, Texture texture, float speed, bool autoScale = false)
         {
             Texture = texture;
             Speed = speed;
@@ -69,6 +69,13 @@ public class ParallaxPlayer(Vector2u viewport)
             Texture.Repeated = true;
             Rect = new IntRect(0, 0, (int)viewport.X, (int)viewport.Y);
             Sprite = new Sprite(Texture) { TextureRect = Rect };
+
+            if (autoScale)
+            {
+                float scaleX = (float)viewport.X / texture.Size.X;
+                float scaleY = (float)viewport.Y / texture.Size.Y;
+                Sprite.Scale = new(scaleX, scaleY);
+            }
         }
     }
 }

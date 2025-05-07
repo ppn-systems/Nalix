@@ -57,9 +57,6 @@ public abstract class BaseUIElement : IUIElement
     }
 
     /// <inheritdoc/>
-    public abstract void Draw(RenderWindow window, RenderStates states);
-
-    /// <inheritdoc/>
     public abstract FloatRect GetBounds();
 
     /// <inheritdoc/>
@@ -88,5 +85,10 @@ public abstract class BaseUIElement : IUIElement
     protected virtual void OnClick(Mouse.Button button)
     {
         // Optional override
+    }
+
+    /// <inheritdoc/>
+    public virtual void Draw(RenderTarget target, RenderStates states)
+    {
     }
 }
