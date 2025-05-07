@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nalix\Nalix.csproj" />
+    <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
     <ProjectReference Include="..\Nalix.Logging\Nalix.Logging.csproj" />
   </ItemGroup>
   

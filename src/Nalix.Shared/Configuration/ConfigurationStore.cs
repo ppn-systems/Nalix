@@ -57,7 +57,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private ConfigurationStore()
     {
         // Determine the configuration file path
-        this.ConfigFilePath = Path.Combine(Directories.ConfigPath, "Configured.ini");
+        this.ConfigFilePath = Path.Combine(Directories.ConfigPath, "configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new Lazy<ConfiguredIniFile>(() =>

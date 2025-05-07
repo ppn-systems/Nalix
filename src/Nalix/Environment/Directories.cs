@@ -36,11 +36,11 @@ public static class Directories
             return _basePathOverride;
 
         // Handle Docker and Kubernetes environments by using /app as base path
-        if (IsContainerLazy.Value && Directory.Exists("/app"))
-            return "/app";
+        if (IsContainerLazy.Value && Directory.Exists("/assets"))
+            return "/assets";
 
         // Standard to the application's base directory
-        return AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+        return Path.Combine(AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar), "assets");
     });
 
     private static readonly Lazy<string> DataPathLazy = new(() =>
@@ -72,7 +72,7 @@ public static class Directories
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "Logs");
+            path = Path.Combine(DataPathLazy.Value, "logs");
         }
 
         EnsureDirectoryExists(path);
@@ -84,13 +84,13 @@ public static class Directories
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/tmp/nalix"))
+        if (IsContainerLazy.Value && Directory.Exists("/tmp"))
         {
-            path = "/tmp/nalix";
+            path = "/tmp";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "Temp");
+            path = Path.Combine(DataPathLazy.Value, "tmp");
         }
 
         EnsureDirectoryExists(path);
@@ -112,7 +112,7 @@ public static class Directories
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "Config");
+            path = Path.Combine(DataPathLazy.Value, "config");
         }
 
         EnsureDirectoryExists(path);
@@ -130,7 +130,7 @@ public static class Directories
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "Storage");
+            path = Path.Combine(DataPathLazy.Value, "storage");
         }
 
         EnsureDirectoryExists(path);
@@ -148,7 +148,7 @@ public static class Directories
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "Database");
+            path = Path.Combine(DataPathLazy.Value, "db");
         }
 
         EnsureDirectoryExists(path);
@@ -157,21 +157,21 @@ public static class Directories
 
     private static readonly Lazy<string> CachesPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "Caches");
+        string path = Path.Combine(DataPathLazy.Value, "caches");
         EnsureDirectoryExists(path);
         return path;
     });
 
     private static readonly Lazy<string> UploadsPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "Uploads");
+        string path = Path.Combine(DataPathLazy.Value, "uploads");
         EnsureDirectoryExists(path);
         return path;
     });
 
     private static readonly Lazy<string> BackupsPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "Backups");
+        string path = Path.Combine(DataPathLazy.Value, "backups");
         EnsureDirectoryExists(path);
         return path;
     });
