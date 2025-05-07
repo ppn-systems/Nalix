@@ -16,12 +16,10 @@ public sealed class Button : BaseUIElement
     private readonly Font _font;
     private readonly Sprite _sprite;
 
-    private bool _useTexture;
     private Texture _texture;
     private IntRect _normalRect;
     private IntRect _hoverRect;
 
-    private Sound _hoverSound;
     private Sound _clickSound;
 
     private Color _normalColor = new(70, 70, 70);
@@ -105,25 +103,10 @@ public sealed class Button : BaseUIElement
     /// <summary>
     ///
     /// </summary>
-    /// <param name="hover"></param>
     /// <param name="click"></param>
-    public void SetSounds(Sound hover, Sound click)
+    public void SetSounds(Sound click)
     {
-        _hoverSound = hover;
         _clickSound = click;
-    }
-
-    /// <summary>
-    /// Sets the background texture for the button.
-    /// </summary>
-    /// <param name="texture">The texture to use.</param>
-    public void SetTexture(Texture texture)
-    {
-        _texture = texture;
-        _sprite.Texture = texture;
-        _useTexture = true;
-
-        this.UpdateSpriteScale();
     }
 
     /// <summary>
@@ -134,12 +117,12 @@ public sealed class Button : BaseUIElement
         _texture = texture;
         _normalRect = normalRect;
         _hoverRect = hoverRect;
-        _useTexture = true;
 
         _sprite.Texture = texture;
         _sprite.TextureRect = normalRect;
 
-        UpdateSpriteScale();
+        this.UpdateSpriteScale();
+        this.UpdateLabelPosition();
     }
 
     /// <inheritdoc/>
@@ -147,7 +130,7 @@ public sealed class Button : BaseUIElement
     {
         if (!IsVisible) return;
 
-        if (_useTexture && _texture != null)
+        if (_texture != null)
             target.Draw(_sprite, states);
         else
             target.Draw(_background, states);
@@ -157,19 +140,14 @@ public sealed class Button : BaseUIElement
 
     /// <inheritdoc/>
     public override FloatRect GetBounds()
-        => _useTexture && _texture != null
-           ? _sprite.GetGlobalBounds()
-           : _background.GetGlobalBounds();
+        => _texture != null ? _sprite.GetGlobalBounds() : _background.GetGlobalBounds();
 
     /// <inheritdoc/>
     public override void OnMouseEnter()
     {
-        _hoverSound?.Play();
-
-        if (_useTexture)
+        if (_sprite != null)
         {
             _sprite.TextureRect = _hoverRect;
-            UpdateSpriteScale();
         }
         else
         {
@@ -180,10 +158,9 @@ public sealed class Button : BaseUIElement
     /// <inheritdoc/>
     public override void OnMouseLeave()
     {
-        if (_useTexture)
+        if (_sprite != null)
         {
             _sprite.TextureRect = _normalRect;
-            UpdateSpriteScale();
         }
         else
         {
@@ -206,11 +183,16 @@ public sealed class Button : BaseUIElement
 
     private void UpdateLabelPosition()
     {
-        FloatRect textBounds = _label.GetLocalBounds();
         Vector2f basePos = _background.Position;
         Vector2f size = _background.Size;
 
+        // Set the character size first
         _label.CharacterSize = (uint)(MathF.Min(size.X, size.Y) / 2);
+
+        // Get the updated text bounds after setting the character size
+        FloatRect textBounds = _label.GetLocalBounds();
+
+        // Calculate the centered position
         _label.Position = new Vector2f(
             basePos.X + (size.X - textBounds.Width) / 2f - textBounds.Left,
             basePos.Y + (size.Y - textBounds.Height) / 2f - textBounds.Top
