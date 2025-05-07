@@ -144,16 +144,16 @@ public sealed class Button : BaseUIElement
     }
 
     /// <inheritdoc/>
-    public override void Draw(RenderWindow window)
+    public override void Draw(RenderWindow window, RenderStates states)
     {
         if (!IsVisible) return;
 
         if (_useTexture && _texture != null)
-            window.Draw(_sprite);
+            window.Draw(_sprite, states);
         else
-            window.Draw(_background);
+            window.Draw(_background, states);
 
-        window.Draw(_label);
+        window.Draw(_label, states);
     }
 
     /// <inheritdoc/>

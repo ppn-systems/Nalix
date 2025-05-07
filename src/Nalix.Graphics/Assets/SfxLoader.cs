@@ -23,7 +23,7 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
             ".paf", ".svx", ".nist", ".voc", ".ircam", ".w64",
             ".mat4", ".mat5", ".pvf", ".htk", ".sds", ".avr",
             ".sd2", ".caf", ".wve", ".mpc2k", ".rf64"
-        ];
+    ];
 
     /// <summary>
     /// Loads or retrieves an already loaded instance of a Sound from a Stream Source

@@ -54,7 +54,7 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <returns>The managed Texture</returns>
     public Texture Load(string name, bool? repeat = null, bool? smoothing = null, byte[] rawData = null)
     {
-        var tex = base.Load(name, rawData);
+        Texture tex = base.Load(name, rawData);
         if (tex != null)
         {
             tex.Repeated = repeat ?? Repeat;
