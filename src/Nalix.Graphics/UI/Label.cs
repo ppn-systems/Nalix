@@ -139,16 +139,16 @@ public sealed class Label : BaseUIElement
     }
 
     /// <inheritdoc/>
-    public override void Draw(RenderWindow window)
+    public override void Draw(RenderWindow window, RenderStates states)
     {
         if (!IsVisible)
             return;
 
         if (_backgroundSprite != null)
-            window.Draw(_backgroundSprite);
+            window.Draw(_backgroundSprite, states);
 
         if (_iconSprite != null)
-            window.Draw(_iconSprite);
+            window.Draw(_iconSprite, states);
 
         window.Draw(_text);
     }

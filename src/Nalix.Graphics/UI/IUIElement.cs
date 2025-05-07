@@ -38,7 +38,8 @@ public interface IUIElement
     /// Draws the UI element to the specified render window.
     /// </summary>
     /// <param name="window">The SFML render window to draw the element on.</param>
-    void Draw(RenderWindow window);
+    /// <param name="states">The render states to apply.</param>
+    void Draw(RenderWindow window, RenderStates states);
 
     /// <summary>
     /// Updates the UI element’s internal state based on the current mouse position.

@@ -57,7 +57,7 @@ public abstract class BaseUIElement : IUIElement
     }
 
     /// <inheritdoc/>
-    public abstract void Draw(RenderWindow window);
+    public abstract void Draw(RenderWindow window, RenderStates states);
 
     /// <inheritdoc/>
     public abstract FloatRect GetBounds();
