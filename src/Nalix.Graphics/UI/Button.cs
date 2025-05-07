@@ -221,9 +221,10 @@ public sealed class Button : BaseUIElement
     {
         if (_texture == null) return;
 
-        Vector2u texSize = _texture.Size;
-        float scaleX = Size.X / texSize.X;
-        float scaleY = Size.Y / texSize.Y;
+        if (_normalRect.Width == 0 || _normalRect.Height == 0) return;
+
+        float scaleX = Size.X / _normalRect.Width;
+        float scaleY = Size.Y / _normalRect.Height;
 
         _sprite.Scale = new Vector2f(scaleX, scaleY);
     }
