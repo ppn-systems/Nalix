@@ -1,19 +1,27 @@
 using Nalix.Environment;
-using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics;
 
 /// <summary>
 /// Represents the configuration for the graphics assembly in the Nalix framework.
 /// </summary>
-public sealed class AssemblyConfig : ConfigurationLoader
+public sealed class GraphicsConfig : ConfigurationLoader
 {
     /// <summary>
     /// Gets the frame limit for the application. Default value is 60.
     /// </summary>
     public uint FrameLimit { get; init; } = 60;
+
+    /// <summary>
+    /// Music volume from 0 (mute) to 100
+    /// </summary>
+    public float MusicVolume { get; init; } = 50;
+
+    /// <summary>
+    /// Sound volume from 0 (mute) to 100
+    /// </summary>
+    public float SoundVolume { get; init; } = 100;
 
     /// <summary>
     /// Gets the width of the screen. Default value is 1280.
@@ -44,16 +52,4 @@ public sealed class AssemblyConfig : ConfigurationLoader
     /// Gets the base path for assets. Default value is <see cref="Directories.BasePath"/>.
     /// </summary>
     public string AssetPath { get; init; } = Directories.BasePath;
-
-    /// <summary>
-    /// Gets the predefined layers in the configuration. This field is ignored in configuration binding.
-    /// </summary>
-    [ConfiguredIgnore]
-    public Dictionary<string, int> PredefinedLayers { get; init; } = [];
-
-    /// <summary>
-    /// Gets the preloaded assets in the configuration. This field is ignored in configuration binding.
-    /// </summary>
-    [ConfiguredIgnore]
-    public Dictionary<string, string[]> PreLoadedAssets { get; init; } = [];
 }

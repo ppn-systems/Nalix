@@ -5,8 +5,8 @@
     <IsTrimmable>true</IsTrimmable>
     <OutputType>Library</OutputType>
 
-    <Version>0.8.26</Version>
-    <PackageVersion>0.8.26</PackageVersion>
+    <Version>0.8.42</Version>
+    <PackageVersion>0.8.42</PackageVersion>
 
     <PackageReleaseNotes>
       - Initial release of Nalix.Graphics.

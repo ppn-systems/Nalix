@@ -2,7 +2,7 @@ using SFML.Graphics;
 using SFML.System;
 using System.Collections.Generic;
 
-namespace Nalix.Graphics.Parallax;
+namespace Nalix.Graphics.Rendering.Parallax;
 
 /// <summary>
 /// Provides parallax scrolling functionality by managing multiple background layers with varying scroll speeds.

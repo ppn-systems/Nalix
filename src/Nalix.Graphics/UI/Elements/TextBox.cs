@@ -2,7 +2,7 @@ using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Elements;
 
 /// <summary>
 /// Represents a simple text input box with focus handling, text input, and placeholder support.

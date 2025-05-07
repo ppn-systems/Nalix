@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace Nalix.Graphics.Physics;
+namespace Nalix.Graphics.Rendering.Physics;
 
 /// <summary>
 /// Represents an axis-aligned bounding box (AABB) in 2D space,

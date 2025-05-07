@@ -1,6 +1,7 @@
+using Nalix.Graphics.Rendering.Object;
 using System.Collections.Generic;
 
-namespace Nalix.Graphics.Scene;
+namespace Nalix.Graphics.Scenes;
 
 /// <summary>
 /// Represents a base class for a scene in the game.

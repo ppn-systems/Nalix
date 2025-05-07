@@ -1,7 +1,7 @@
 using SFML.Graphics;
 using SFML.System;
 
-namespace Nalix.Graphics.Render;
+namespace Nalix.Graphics.Rendering.Object;
 
 /// <summary>
 /// Represents an abstract base class for objects that render a Sprite.
@@ -32,8 +32,8 @@ public abstract class SpriteObject : RenderObject
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
     public SpriteObject(Texture texture, IntRect rect, Vector2f position, Vector2f scale, float rotation)
     {
-        this.Sprite = new Sprite(texture, rect);
-        SetTransform(ref this.Sprite, position, scale, rotation);
+        Sprite = new Sprite(texture, rect);
+        SetTransform(ref Sprite, position, scale, rotation);
     }
 
     /// <summary>
@@ -45,8 +45,8 @@ public abstract class SpriteObject : RenderObject
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
     public SpriteObject(Texture texture, Vector2f position, Vector2f scale, float rotation)
     {
-        this.Sprite = new Sprite(texture);
-        SetTransform(ref this.Sprite, position, scale, rotation);
+        Sprite = new Sprite(texture);
+        SetTransform(ref Sprite, position, scale, rotation);
     }
 
     /// <summary>
@@ -56,8 +56,8 @@ public abstract class SpriteObject : RenderObject
     /// <param name="rect">ScreenSize rectangle defining a subregion of the texture.</param>
     public SpriteObject(Texture texture, IntRect rect)
     {
-        this.Sprite = new Sprite(texture, rect);
-        SetTransform(ref this.Sprite, new Vector2f(0f, 0f), new Vector2f(1f, 1f), 0f);
+        Sprite = new Sprite(texture, rect);
+        SetTransform(ref Sprite, new Vector2f(0f, 0f), new Vector2f(1f, 1f), 0f);
     }
 
     /// <summary>
@@ -66,8 +66,8 @@ public abstract class SpriteObject : RenderObject
     /// <param name="texture">The texture to be used for the Sprite.</param>
     public SpriteObject(Texture texture)
     {
-        this.Sprite = new Sprite(texture);
-        SetTransform(ref this.Sprite, new Vector2f(0f, 0f), new Vector2f(1f, 1f), 0f);
+        Sprite = new Sprite(texture);
+        SetTransform(ref Sprite, new Vector2f(0f, 0f), new Vector2f(1f, 1f), 0f);
     }
 
     /// <summary>
@@ -88,5 +88,5 @@ public abstract class SpriteObject : RenderObject
     /// Gets the drawable object for rendering the Sprite.
     /// </summary>
     /// <returns>The Sprite as a drawable object.</returns>
-    protected override sealed Drawable GetDrawable() => this.Sprite;
+    protected override sealed Drawable GetDrawable() => Sprite;
 }

@@ -2,7 +2,7 @@ using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Core;
 
 /// <summary>
 /// Provides a base implementation for UI elements, handling common properties and interaction logic.
@@ -36,9 +36,9 @@ public abstract class BaseUIElement : IUIElement
         _isHovered = HitTest(mousePosition);
 
         if (_isHovered && !wasHovered)
-            this.OnMouseEnter();
+            OnMouseEnter();
         else if (!_isHovered && wasHovered)
-            this.OnMouseLeave();
+            OnMouseLeave();
     }
 
     /// <inheritdoc/>
@@ -46,7 +46,7 @@ public abstract class BaseUIElement : IUIElement
     {
         if (IsVisible && IsEnabled && HitTest(mousePosition))
         {
-            this.OnClick(button);
+            OnClick(button);
         }
     }
 

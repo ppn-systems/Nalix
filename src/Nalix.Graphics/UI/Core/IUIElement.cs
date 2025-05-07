@@ -2,7 +2,7 @@ using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Core;
 
 /// <summary>
 /// Represents a basic UI element in the game, capable of rendering, interaction, and input handling.

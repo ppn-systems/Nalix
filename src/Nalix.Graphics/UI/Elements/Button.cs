@@ -1,10 +1,11 @@
+using Nalix.Graphics.UI.Core;
 using SFML.Audio;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 using System;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Elements;
 
 /// <summary>
 /// Represents a clickable UI button, optionally with a background texture.
@@ -51,7 +52,7 @@ public sealed class Button : BaseUIElement
         {
             _background.Position = value;
             _sprite.Position = value;
-            this.UpdateLabelPosition();
+            UpdateLabelPosition();
         }
     }
 
@@ -65,8 +66,8 @@ public sealed class Button : BaseUIElement
         set
         {
             _background.Size = value;
-            this.UpdateLabelPosition();
-            this.UpdateSpriteScale();
+            UpdateLabelPosition();
+            UpdateSpriteScale();
         }
     }
 
@@ -97,7 +98,7 @@ public sealed class Button : BaseUIElement
             FillColor = _textColor
         };
 
-        this.UpdateLabelPosition();
+        UpdateLabelPosition();
     }
 
     /// <summary>
@@ -121,8 +122,8 @@ public sealed class Button : BaseUIElement
         _sprite.Texture = texture;
         _sprite.TextureRect = normalRect;
 
-        this.UpdateSpriteScale();
-        this.UpdateLabelPosition();
+        UpdateSpriteScale();
+        UpdateLabelPosition();
     }
 
     /// <inheritdoc/>
@@ -178,7 +179,7 @@ public sealed class Button : BaseUIElement
         _clickSound?.Play();
 
         // Invoke the Clicked event
-        this.Clicked?.Invoke();
+        Clicked?.Invoke();
     }
 
     private void UpdateLabelPosition()

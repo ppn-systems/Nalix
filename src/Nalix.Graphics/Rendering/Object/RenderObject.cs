@@ -1,7 +1,6 @@
-using Nalix.Graphics.Scene;
 using SFML.Graphics;
 
-namespace Nalix.Graphics.Render;
+namespace Nalix.Graphics.Rendering.Object;
 
 /// <summary>
 /// Represents an abstract base class for objects that can be rendered on a target.

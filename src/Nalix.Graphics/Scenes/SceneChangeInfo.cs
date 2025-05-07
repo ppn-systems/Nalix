@@ -1,4 +1,6 @@
-namespace Nalix.Graphics.Scene;
+using Nalix.Graphics.Rendering.Object;
+
+namespace Nalix.Graphics.Scenes;
 
 /// <summary>
 /// Represents a sealed class that stores information about a scene change and persists across scene transitions.

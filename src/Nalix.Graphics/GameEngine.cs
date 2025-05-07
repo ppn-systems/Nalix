@@ -1,5 +1,5 @@
-using Nalix.Graphics.Render;
-using Nalix.Graphics.Scene;
+using Nalix.Graphics.Rendering.Object;
+using Nalix.Graphics.Scenes;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
@@ -10,7 +10,7 @@ namespace Nalix.Graphics;
 /// <summary>
 /// The Game class serves as the entry point for managing the game window, rendering, and scene updates.
 /// </summary>
-public static class GameLoop
+public static class GameEngine
 {
     // Private fields
     private static readonly RenderWindow _window;
@@ -23,7 +23,7 @@ public static class GameLoop
     /// <summary>
     /// Provides access to the assembly configuration.
     /// </summary>
-    public static AssemblyConfig AssemblyConfig { get; private set; }
+    public static GraphicsConfig GraphicsConfig { get; private set; }
 
     /// <summary>
     /// Gets the dimensions (width and height) of the screen or viewport, used to set the screen size for rendering purposes.
@@ -33,17 +33,17 @@ public static class GameLoop
     /// <summary>
     /// Static constructor to initialize the game configuration and window.
     /// </summary>
-    static GameLoop()
+    static GameEngine()
     {
-        AssemblyConfig = new AssemblyConfig();
-        ScreenSize = new Vector2u(AssemblyConfig.ScreenWidth, AssemblyConfig.ScreenHeight);
+        GraphicsConfig = new GraphicsConfig();
+        ScreenSize = new Vector2u(GraphicsConfig.ScreenWidth, GraphicsConfig.ScreenHeight);
 
         _window = new RenderWindow(
-            new VideoMode(AssemblyConfig.ScreenWidth, AssemblyConfig.ScreenHeight),
-            AssemblyConfig.Title, Styles.Titlebar | Styles.Close
+            new VideoMode(GraphicsConfig.ScreenWidth, GraphicsConfig.ScreenHeight),
+            GraphicsConfig.Title, Styles.Titlebar | Styles.Close
         );
         _window.Closed += (_, _) => _window.Close();
-        _window.SetFramerateLimit(AssemblyConfig.FrameLimit);
+        _window.SetFramerateLimit(GraphicsConfig.FrameLimit);
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using System;
 using System.IO;
 
-namespace Nalix.Graphics.Assets;
+namespace Nalix.Graphics.Assets.Manager;
 
 /// <summary>
 /// Centralized manager that handles textures, fonts, and sound effects loading/unloading.

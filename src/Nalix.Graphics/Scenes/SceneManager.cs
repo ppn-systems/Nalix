@@ -1,4 +1,4 @@
-using Nalix.Graphics.Attributes;
+using Nalix.Graphics.Rendering.Object;
 using Nalix.Logging.Extensions;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
-namespace Nalix.Graphics.Scene;
+namespace Nalix.Graphics.Scenes;
 
 /// <summary>
 /// The SceneManager class is responsible for managing scenes and objects within those scenes.
@@ -43,7 +43,7 @@ public static class SceneManager
         => _spawnQueue.Contains(o);
 
     /// <summary>
-    /// Creates instances of all classes inheriting from Scene in the specified namespace.
+    /// Creates instances of all classes inheriting from Scenes in the specified namespace.
     /// </summary>
     [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
@@ -54,7 +54,7 @@ public static class SceneManager
         IEnumerable<Type> sceneTypes = Assembly.GetEntryAssembly()!
             .GetTypes()
             .Where(t => t.Namespace != null &&
-                        t.Namespace.Contains(GameLoop.AssemblyConfig.ScenesNamespace));
+                        t.Namespace.Contains(GameEngine.GraphicsConfig.ScenesNamespace));
 
         // HashSet to check for duplicate scene names efficiently
         HashSet<string> sceneNames = [];
@@ -64,8 +64,8 @@ public static class SceneManager
             // Skip compiler-generated types (like anonymous types or internal generic types)
             if (type.Name.Contains('<')) continue;
 
-            // Check if the class has the NotLoadableAttribute
-            if (type.GetCustomAttribute<NotLoadableAttribute>() != null)
+            // Check if the class has the IgnoredLoadAttribute
+            if (type.GetCustomAttribute<IgnoredLoadAttribute>() != null)
             {
                 NLogixFx.Warn(
                     source: type.Name,
@@ -98,7 +98,7 @@ public static class SceneManager
             // Check for duplicate scene names
             if (sceneNames.Contains(scene.Name))
             {
-                throw new Exception($"Scene with name {scene.Name} already exists.");
+                throw new Exception($"Scenes with name {scene.Name} already exists.");
             }
 
             // Add the scene name to the HashSet for future checks
@@ -109,7 +109,7 @@ public static class SceneManager
         }
 
         // Switch to the main scene defined in the config
-        ChangeScene(GameLoop.AssemblyConfig.MainScene);
+        ChangeScene(GameEngine.GraphicsConfig.MainScene);
     }
 
     /// <summary>
@@ -151,7 +151,7 @@ public static class SceneManager
     {
         if (o.Initialized)
         {
-            throw new Exception($"Instance of SceneObject {nameof(o)} already exists in Scene");
+            throw new Exception($"Instance of SceneObject {nameof(o)} already exists in Scenes");
         }
         if (!_spawnQueue.Add(o))
         {

@@ -1,8 +1,9 @@
 using Nalix.Graphics.Extensions;
+using Nalix.Graphics.UI.Core;
 using SFML.Graphics;
 using SFML.System;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Elements;
 
 /// <summary>
 /// Represents a label UI element that can display text, an icon, and a background.

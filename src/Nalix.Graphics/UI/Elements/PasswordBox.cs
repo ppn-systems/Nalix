@@ -2,7 +2,7 @@ using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 
-namespace Nalix.Graphics.UI;
+namespace Nalix.Graphics.UI.Elements;
 
 /// <summary>
 /// Represents a text input box for passwords, where the entered text is obscured.
