@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 
@@ -23,7 +23,26 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean operator ==(Snowflake left, Snowflake right) => left.__combined == right.__combined;
+    public static System.Boolean operator ==(Snowflake left, Snowflake right)
+    {
+        // Stack-allocate space for both Snowflake instances
+        System.Span<System.Byte> leftBytes = stackalloc System.Byte[Size];
+        System.Span<System.Byte> rightBytes = stackalloc System.Byte[Size];
+
+        // Serialize both instances into memory
+        left.TryWriteBytes(leftBytes);
+        right.TryWriteBytes(rightBytes);
+
+        // Perform constant-time comparison
+        System.Int32 isEqual = 0; // Start with equality assumed
+        for (System.Int32 i = 0; i < Size; i++)
+        {
+            isEqual |= leftBytes[i] ^ rightBytes[i]; // XOR bytes; zero means equal
+        }
+
+        // Return true if all bytes are equal (isEqual == 0)
+        return isEqual == 0;
+    }
 
     /// <summary>
     /// Determines whether two <see cref="Snowflake"/> instances are not equal.

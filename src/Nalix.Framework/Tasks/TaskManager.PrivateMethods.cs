@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Tasks;
@@ -317,5 +318,58 @@ public partial class TaskManager
 
             return;
         }
+    }
+
+    private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(System.Threading.CancellationToken ct)
+    {
+        TaskManagerOptions options = _options;
+
+        while (!ct.IsCancellationRequested && options.DynamicAdjustmentEnabled)
+        {
+            try
+            {
+                // Measure CPU Usage
+                System.Double cpuUsage = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds / (System.Environment.ProcessorCount * 1000.0);
+
+                // Adjust based on CPU thresholds
+                if (cpuUsage > options.ThresholdHighCpu && _currentConcurrencyLimit > 1)
+                {
+                    System.Int32 newLimit = System.Math.Max(1, _currentConcurrencyLimit - 1);
+                    ADJUST_CONCURRENCY(newLimit);
+                }
+                else if (cpuUsage < options.ThresholdLowCpu && _currentConcurrencyLimit < options.MaxWorkers)
+                {
+                    System.Int32 newLimit = System.Math.Min(_options.MaxWorkers, _currentConcurrencyLimit + 1);
+                    ADJUST_CONCURRENCY(newLimit);
+                }
+
+                await System.Threading.Tasks.Task.Delay(options.ObservingInterval, ct);
+            }
+            catch (System.OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}] dynamic-adjustment ex={ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adjusts the SemaphoreSlim concurrency limit dynamically.
+    /// </summary>
+    /// <param name="newLimit">The new concurrency limit.</param>
+    private void ADJUST_CONCURRENCY(System.Int32 newLimit)
+    {
+        System.Int32 previousLimit = _currentConcurrencyLimit;
+        _currentConcurrencyLimit = newLimit;
+        System.Int32 delta = newLimit - previousLimit;
+
+        if (delta > 0)
+        {
+            _globalConcurrencyGate.Release(delta); // Increase available slots
+        }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[FW.{nameof(TaskManager)}] concurrency-adjusted=[{previousLimit} -> {newLimit}]");
     }
 }
