@@ -117,6 +117,8 @@ public sealed class Button : BaseUIElement
         _normal = normal;
         _hover = hover;
 
+        _sprite.Texture = _normal;
+
         UpdateSpriteScale();
         UpdateLabelPosition();
     }
