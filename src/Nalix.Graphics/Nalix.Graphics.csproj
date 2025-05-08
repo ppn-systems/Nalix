@@ -8,8 +8,16 @@
     <Version>0.8.42</Version>
     <PackageVersion>0.8.42</PackageVersion>
 
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+
     <PackageReleaseNotes>
-      - Initial release of Nalix.Graphics.
+      - Initial release of Nalix.Graphics library.
+      - Includes Parallax rendering system.
+      - Integrated SFML 2.6.1 for 2D graphics, audio, and input.
+      - Support for layered background effects.
+      - Basic UI rendering and scalable icon system.
+      - Compatible with .NET 9.0 on Windows and Linux (linux-x64).
+      - Experimental support for image slicing and animated scenes.
     </PackageReleaseNotes>
 
   </PropertyGroup>

@@ -7,15 +7,15 @@ namespace Nalix.Graphics.Rendering.Parallax;
 /// <summary>
 /// Provides parallax scrolling functionality by managing multiple background layers with varying scroll speeds.
 /// </summary>
-public class ParallaxPlayer(Vector2u viewport)
+public class ParallaxBackground(Vector2u viewport)
 {
     private readonly List<Layer> _layers = [];
     private readonly Vector2u _viewport = viewport;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ParallaxPlayer"/> class with the specified viewport size.
+    /// Initializes a new instance of the <see cref="ParallaxBackground"/> class with the specified viewport size.
     /// </summary>
-    public ParallaxPlayer(uint width, uint height) : this(new Vector2u(width, height)) { }
+    public ParallaxBackground(uint width, uint height) : this(new Vector2u(width, height)) { }
 
     /// <summary>
     /// Adds a new layer to the parallax system.

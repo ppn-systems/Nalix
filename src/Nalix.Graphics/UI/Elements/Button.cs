@@ -12,20 +12,19 @@ namespace Nalix.Graphics.UI.Elements;
 /// </summary>
 public sealed class Button : BaseUIElement
 {
-    private readonly RectangleShape _background;
-    private readonly Text _label;
     private readonly Font _font;
+    private readonly Text _label;
     private readonly Sprite _sprite;
+    private readonly RectangleShape _background;
 
-    private Texture _texture;
-    private IntRect _normalRect;
-    private IntRect _hoverRect;
+    private Texture _hover;
+    private Texture _normal;
 
     private Sound _clickSound;
 
+    private Color _textColor = Color.White;
     private Color _normalColor = new(70, 70, 70);
     private Color _hoverColor = new(100, 100, 100);
-    private Color _textColor = Color.White;
 
     /// <summary>
     /// Occurs when the button is clicked with the left mouse button.
@@ -98,7 +97,7 @@ public sealed class Button : BaseUIElement
             FillColor = _textColor
         };
 
-        UpdateLabelPosition();
+        this.UpdateLabelPosition();
     }
 
     /// <summary>
@@ -113,14 +112,10 @@ public sealed class Button : BaseUIElement
     /// <summary>
     /// Sets two textures for normal and hover states.
     /// </summary>
-    public void SetTexture(Texture texture, IntRect normalRect, IntRect hoverRect)
+    public void SetTexture(Texture normal, Texture hover)
     {
-        _texture = texture;
-        _normalRect = normalRect;
-        _hoverRect = hoverRect;
-
-        _sprite.Texture = texture;
-        _sprite.TextureRect = normalRect;
+        _normal = normal;
+        _hover = hover;
 
         UpdateSpriteScale();
         UpdateLabelPosition();
@@ -131,7 +126,7 @@ public sealed class Button : BaseUIElement
     {
         if (!IsVisible) return;
 
-        if (_texture != null)
+        if (_hover != null)
             target.Draw(_sprite, states);
         else
             target.Draw(_background, states);
@@ -141,14 +136,14 @@ public sealed class Button : BaseUIElement
 
     /// <inheritdoc/>
     public override FloatRect GetBounds()
-        => _texture != null ? _sprite.GetGlobalBounds() : _background.GetGlobalBounds();
+        => _normal != null ? _sprite.GetGlobalBounds() : _background.GetGlobalBounds();
 
     /// <inheritdoc/>
     public override void OnMouseEnter()
     {
         if (_sprite != null)
         {
-            _sprite.TextureRect = _hoverRect;
+            _sprite.Texture = _hover;
         }
         else
         {
@@ -161,7 +156,7 @@ public sealed class Button : BaseUIElement
     {
         if (_sprite != null)
         {
-            _sprite.TextureRect = _normalRect;
+            _sprite.Texture = _normal;
         }
         else
         {
@@ -202,12 +197,10 @@ public sealed class Button : BaseUIElement
 
     private void UpdateSpriteScale()
     {
-        if (_texture == null) return;
+        if (_normal == null) return;
 
-        if (_normalRect.Width == 0 || _normalRect.Height == 0) return;
-
-        float scaleX = Size.X / _normalRect.Width;
-        float scaleY = Size.Y / _normalRect.Height;
+        float scaleX = Size.X / _normal.Size.X;
+        float scaleY = Size.Y / _normal.Size.Y;
 
         _sprite.Scale = new Vector2f(scaleX, scaleY);
     }
