@@ -27,11 +27,6 @@ public sealed class Button : BaseUIElement
     private Color _hoverColor = new(100, 100, 100);
 
     /// <summary>
-    /// Occurs when the button is clicked with the left mouse button.
-    /// </summary>
-    public event Action Clicked;
-
-    /// <summary>
     /// Gets or sets the text displayed on the button.
     /// </summary>
     public string Text
@@ -69,6 +64,11 @@ public sealed class Button : BaseUIElement
             UpdateSpriteScale();
         }
     }
+
+    /// <summary>
+    /// Occurs when the button is clicked with the left mouse button.
+    /// </summary>
+    public event Action Clicked;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Button"/> class with the specified font, text, position, and size.
