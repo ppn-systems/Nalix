@@ -193,7 +193,7 @@ public sealed class Button : BaseUIElement
         // Calculate the centered position
         _label.Position = new Vector2f(
             basePos.X + (size.X - textBounds.Width) / 2f - textBounds.Left,
-            basePos.Y + (size.Y - textBounds.Height) / 2f - textBounds.Top
+            basePos.Y + (size.Y - textBounds.Height) / 2f - textBounds.Top - 2f
         );
     }
 
