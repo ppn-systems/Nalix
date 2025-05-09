@@ -1,5 +1,10 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
 namespace Nalix.Logging.Internal.Formatters;
 
 /// <summary>
@@ -24,12 +29,12 @@ internal static class JsonFormatter
             switch (c)
             {
                 case '"': sb.Append("\\\""); break;
-                case '\\': sb.Append("\\\\"); break;
                 case '\b': sb.Append("\\b"); break;
                 case '\f': sb.Append("\\f"); break;
                 case '\n': sb.Append("\\n"); break;
                 case '\r': sb.Append("\\r"); break;
                 case '\t': sb.Append("\\t"); break;
+                case '\\': sb.Append("\\\\"); break;
                 default:
                     if (c is < (System.Char)32 or (>= (System.Char)0x7f and <= (System.Char)0x9f))
                     {
