@@ -17,7 +17,7 @@ public static class Clock
     /// <summary>
     /// The Unix timestamp representing the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
     /// </summary>
-    public const ulong TimeEpochTimestamp = 1577836800UL; // (Wed Jan 01 2020 00:00:00)
+    public const long TimeEpochTimestamp = 1577836800L; // (Wed Jan 01 2020 00:00:00)
 
     /// <summary>
     /// The <see cref="DateTime"/> representation of the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
@@ -89,11 +89,11 @@ public static class Clock
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime GetUtcNowPrecise()
     {
-        var elapsed = UtcStopwatch.Elapsed;
+        TimeSpan elapsed = UtcStopwatch.Elapsed;
         if (_isSynchronized)
         {
             // Apply drift correction and offset
-            var correctedTicks = (long)(elapsed.Ticks * _driftCorrection) + _timeOffset;
+            long correctedTicks = (long)(elapsed.Ticks * _driftCorrection) + _timeOffset;
             return UtcBase.AddTicks(correctedTicks);
         }
         return UtcBase.Add(elapsed);
@@ -111,29 +111,29 @@ public static class Clock
     /// Current Unix timestamp (seconds) as ulong.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong UnixSecondsNow()
-        => (ulong)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalSeconds;
+    public static long UnixSecondsNow()
+        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
     /// Current Unix timestamp (milliseconds) as ulong.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong UnixMillisecondsNow()
-        => (ulong)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalMilliseconds;
+    public static long UnixMillisecondsNow()
+        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Current Unix timestamp (microseconds) as ulong.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong UnixMicrosecondsNow()
-        => (ulong)(GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks / 10;
+    public static long UnixMicrosecondsNow()
+        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as ulong.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong UnixTicksNow()
-        => (ulong)(GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks;
+    public static long UnixTicksNow()
+        => (GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Returns the current Unix time as TimeSpan.
@@ -161,9 +161,9 @@ public static class Clock
     /// Converts Unix timestamp (seconds) to DateTime with overflow check.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeSecondsToDateTime(ulong timestamp)
+    public static DateTime UnixTimeSecondsToDateTime(long timestamp)
     {
-        if (timestamp > (ulong)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalSeconds)
+        if (timestamp > (long)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalSeconds)
             throw new OverflowException("Timestamp exceeds DateTime limits");
         return DateTime.UnixEpoch.AddSeconds(timestamp);
     }
@@ -172,9 +172,9 @@ public static class Clock
     /// Converts Unix timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeMillisecondsToDateTime(ulong timestamp)
+    public static DateTime UnixTimeMillisecondsToDateTime(long timestamp)
     {
-        if (timestamp > (ulong)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalMilliseconds)
+        if (timestamp > (long)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalMilliseconds)
             throw new OverflowException("Timestamp exceeds DateTime limits");
 
         return DateTime.UnixEpoch.AddMilliseconds(timestamp);
@@ -184,21 +184,21 @@ public static class Clock
     /// Converts Unix timestamp (microseconds) to DateTime with overflow check.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeMicrosecondsToDateTime(ulong timestamp)
+    public static DateTime UnixTimeMicrosecondsToDateTime(long timestamp)
     {
-        if (timestamp > (ulong)(DateTime.MaxValue.Subtract(DateTime.UnixEpoch).Ticks / 10))
+        if (timestamp > (DateTime.MaxValue.Subtract(DateTime.UnixEpoch).Ticks / 10))
             throw new OverflowException("Timestamp exceeds DateTime limits");
 
-        return DateTime.UnixEpoch.AddTicks((long)timestamp * 10);
+        return DateTime.UnixEpoch.AddTicks(timestamp * 10);
     }
 
     /// <summary>
     /// Converts timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime TimeMillisecondsToDateTime(ulong timestamp)
+    public static DateTime TimeMillisecondsToDateTime(long timestamp)
     {
-        if (timestamp > (ulong)DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds)
+        if (timestamp > (long)DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds)
             throw new OverflowException("Timestamp exceeds DateTime limits");
 
         return TimeEpoch.AddMilliseconds(timestamp);
