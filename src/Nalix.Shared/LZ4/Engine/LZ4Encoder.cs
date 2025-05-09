@@ -34,41 +34,41 @@ internal readonly struct LZ4Encoder
             return WriteEmptyHeader(output);
         }
 
-        // Ensure space for at least the header
         if (output.Length < LZ4BlockHeader.Size)
         {
             return -1;
         }
 
-        // Allocate hash table for compression
-        System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
-        InitializeHashTable(hashTable);
-
-        // Compress the data
-        System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
-        System.Int32 compressedDataLength = Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
-
-        // Token compression failure
-        if (compressedDataLength < 0)
+        // Rent hash table once per call, reuse across the whole encode.
+        // Table size equals MatchFinder.HashTableSize.
+        System.Int32[] table = System.Buffers.ArrayPool<System.Int32>.Shared.Rent(MatchFinder.HashTableSize);
+        try
         {
-            return -1;
+            // Clear using vectorized Span.Clear() (fast in CoreCLR)
+            System.MemoryExtensions.AsSpan(table, 0, MatchFinder.HashTableSize).Clear();
+
+            // Pin to obtain a stable pointer for the duration of EncodeBlock
+            fixed (System.Int32* hashTable = table)
+            {
+                System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                System.Int32 compressedDataLength =
+                    Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
+
+                if (compressedDataLength < 0)
+                {
+                    return -1;
+                }
+
+                System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
+                WriteHeader(output, input.Length, totalCompressedLength);
+                return totalCompressedLength;
+            }
         }
-
-        // WriteInt16 the header and return total compressed length
-        System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
-        WriteHeader(output, input.Length, totalCompressedLength);
-
-        return totalCompressedLength;
+        finally
+        {
+            System.Buffers.ArrayPool<System.Int32>.Shared.Return(table, clearArray: false);
+        }
     }
-
-    /// <summary>
-    /// Initializes the hash table to zero.
-    /// </summary>
-    /// <param name="hashTable">A pointer to the hash table.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void InitializeHashTable(System.Int32* hashTable)
-        => new System.Span<System.Byte>(hashTable, MatchFinder.MaxStackallocHashTableSize).Clear();
 
     /// <summary>
     /// Writes a header for an empty input to the output buffer.
