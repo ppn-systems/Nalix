@@ -42,7 +42,7 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the timestamp when the packet was created in microseconds since system startup.
     /// </summary>
-    public ulong Timestamp { get; }
+    public long Timestamp { get; }
 
     /// <summary>
     /// Gets the packet Hash.

@@ -41,7 +41,7 @@ public static partial class PacketSerializer
                 // Extract all fields from the header in one go
                 ushort id = pHeader->Id;
                 uint checksum = pHeader->Checksum;
-                ulong timestamp = pHeader->Timestamp;
+                long timestamp = pHeader->Timestamp;
                 ushort code = pHeader->Code;
                 byte number = pHeader->Number;
                 byte type = pHeader->Type;

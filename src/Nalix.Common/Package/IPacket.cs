@@ -30,7 +30,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the timestamp when the packet was created.
     /// </summary>
-    ulong Timestamp { get; }
+    long Timestamp { get; }
 
     /// <summary>
     /// Gets the packet code.

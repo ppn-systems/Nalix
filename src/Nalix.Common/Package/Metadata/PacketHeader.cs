@@ -31,7 +31,7 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.
     /// </summary>
-    public readonly ulong Timestamp = packet.Timestamp;
+    public readonly long Timestamp = packet.Timestamp;
 
     /// <summary>
     /// Gets the code associated with the packet, which can specify a specific command or operation.

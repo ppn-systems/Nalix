@@ -23,7 +23,7 @@ public static class PacketSize
     /// <summary>
     /// The size of the Timestamp field in the packet header, in bytes.
     /// </summary>
-    public const int Timestamp = sizeof(ulong);
+    public const int Timestamp = sizeof(long);
 
     /// <summary>
     /// The size of the Code field in the packet header, in bytes.

@@ -33,7 +33,7 @@ public readonly partial struct Packet
     internal Packet(
         ushort id,
         uint checksum,
-        ulong timestamp,
+        long timestamp,
         ushort code,
         byte type,
         byte flags,
@@ -57,7 +57,7 @@ public readonly partial struct Packet
     internal Packet(
         ushort id,
         uint checksum,
-        ulong timestamp,
+        long timestamp,
         PacketCode code,
         PacketType type,
         PacketFlags flags,
@@ -93,7 +93,7 @@ public readonly partial struct Packet
             ((ulong)Type << 32) |
             ((ulong)Code << 24) |
             ((ulong)Flags << 16) |
-            (Timestamp & 0xFFFFFFFFFF)
+            ((ulong)Timestamp & 0xFFFFFFFFFF)
         );
     }
 }
