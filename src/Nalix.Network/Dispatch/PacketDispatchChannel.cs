@@ -107,15 +107,15 @@ public sealed class PacketDispatchChannel
         for (System.Int32 i = 0; i < _dispatchLoops; i++)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"{NetTaskNames.PacketDispatchWorker()}_{i}",
-                group: NetTaskNames.PacketDispatchGroup,
+                name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
+                group: $"{NetTaskNames.Net}/{TaskNaming.Tags.Dispatch}",
                 work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
                 options: new WorkerOptions
                 {
                     IdType = SnowflakeType.System,
                     CancellationToken = linkedToken,
                     RetainFor = System.TimeSpan.Zero,
-                    Tag = TaskNaming.Tags.Dispatch
+                    Tag = NetTaskNames.Net
                 });
         }
 

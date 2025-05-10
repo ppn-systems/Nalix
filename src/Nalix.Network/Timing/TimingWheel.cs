@@ -176,14 +176,14 @@ public sealed class TimingWheel : IActivatable
 
         // Prefer a dedicated thread to reduce pool jitter.
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: NetTaskNames.TimingWheelWorker(TickMs, WheelSize),
-            group: NetTaskNames.TimingWheelGroup,
+            name: $"{NetTaskNames.Time}.{NetTaskNames.Wheel}",
+            group: NetTaskNames.Time,
             work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
+                Tag = NetTaskNames.Wheel,
                 IdType = SnowflakeType.System,
                 CancellationToken = linkedToken,
-                Tag = nameof(TimingWheel),
                 RetainFor = System.TimeSpan.Zero
             }
         );

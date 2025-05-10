@@ -36,16 +36,19 @@ public abstract partial class UdpListenerBase
                 System.Int32 idx = next & System.Int32.MaxValue;
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: NetTaskNames.UdpProcessWorker(_port, idx),
-                    group: NetTaskNames.UdpProcessGroup(_port),
-                    work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
+                    name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Accept}",
+                    group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",
+                    work: (_, __) =>
+                    {
+                        ProcessDatagram(result); return new System.Threading.Tasks.ValueTask();
+                    },
                     options: new WorkerOptions
                     {
+                        Tag = NetTaskNames.Udp,
                         IdType = SnowflakeType.System,
                         TryAcquireSlotImmediately = true,
-                        Tag = nameof(NetTaskNames.Segments.Udp),
-                        GroupConcurrencyLimit = Config.MaxGroupConcurrency,
-                        CancellationToken = cancellationToken
+                        CancellationToken = cancellationToken,
+                        GroupConcurrencyLimit = Config.MaxGroupConcurrency
                     });
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
