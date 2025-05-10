@@ -14,13 +14,13 @@ public class TestPacket : IPacket
     public ushort Id { get; set; }
     public byte Number { get; set; }
     public uint Checksum { get; set; }
-    public ulong Timestamp { get; set; }
+    public long Timestamp { get; set; }
     public PacketCode Code { get; set; }
     public PacketType Type { get; set; }
     public PacketFlags Flags { get; set; }
     public Memory<byte> Payload { get; set; }
 
-    public ulong Hash => ComputeHash();
+    public long Hash => ComputeHash();
 
     // Default constructor with reasonable defaults for testing
     public TestPacket()
@@ -30,7 +30,7 @@ public class TestPacket : IPacket
         Id = 1;
         Number = 1;
         Checksum = 123456; // Example checksum
-        Timestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // Current timestamp
+        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // Current timestamp
         Code = PacketCode.Success;
         Type = PacketType.Binary;
         Flags = PacketFlags.None;
@@ -55,8 +55,8 @@ public class TestPacket : IPacket
 
     public bool IsExpired(TimeSpan timeout)
     {
-        ulong currentTime = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        return currentTime - Timestamp > (ulong)timeout.TotalMilliseconds;
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return currentTime - Timestamp > timeout.TotalMilliseconds;
     }
 
     public bool IsValid()
@@ -89,14 +89,14 @@ public class TestPacket : IPacket
         return $"Packet[Priority={Priority}, Id={Id}, Number={Number}, Checksum={Checksum}, Timestamp={Timestamp}]";
     }
 
-    private ulong ComputeHash()
+    private long ComputeHash()
     {
-        ulong hash = 0;
-        hash |= (ulong)Number << 56;
-        hash |= (ulong)Id << 40;
-        hash |= (ulong)Type << 32;
-        hash |= (ulong)Code << 24;
-        hash |= (ulong)Flags << 16;
+        long hash = 0;
+        hash |= (long)Number << 56;
+        hash |= (long)Id << 40;
+        hash |= (long)Type << 32;
+        hash |= (long)Code << 24;
+        hash |= (long)Flags << 16;
         hash |= Timestamp & 0xFFFFFFFFFF; // Use only the lowest 40 bits of the timestamp
         return hash;
     }
