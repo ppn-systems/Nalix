@@ -108,28 +108,28 @@ public static class Clock
         => GetUtcNowPrecise().ToString(format);
 
     /// <summary>
-    /// Current Unix timestamp (seconds) as ulong.
+    /// Current Unix timestamp (seconds) as long.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long UnixSecondsNow()
         => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
-    /// Current Unix timestamp (milliseconds) as ulong.
+    /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long UnixMillisecondsNow()
         => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
-    /// Current Unix timestamp (microseconds) as ulong.
+    /// Current Unix timestamp (microseconds) as long.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long UnixMicrosecondsNow()
         => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
-    /// Current Unix timestamp (ticks) as ulong.
+    /// Current Unix timestamp (ticks) as long.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long UnixTicksNow()
