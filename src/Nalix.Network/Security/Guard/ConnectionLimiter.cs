@@ -174,7 +174,7 @@ public sealed class ConnectionLimiter : IDisposable
         // Fast path if entry doesn't exist
         if (!_connectionInfo.TryGetValue(endPoint, out var existingInfo)) return false;
 
-        // Update the current connections count
+        // UpdateTime the current connections count
         var newInfo = existingInfo with
         {
             CurrentConnections = Math.Max(0, existingInfo.CurrentConnections - 1),

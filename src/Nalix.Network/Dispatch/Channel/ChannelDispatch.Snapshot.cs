@@ -145,7 +145,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     }
 
     /// <summary>
-    /// Update performance statistics
+    /// UpdateTime performance statistics
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void UpdatePerformanceStats(long startTicks)

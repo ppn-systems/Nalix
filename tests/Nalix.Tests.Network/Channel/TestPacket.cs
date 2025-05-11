@@ -20,7 +20,7 @@ public class TestPacket : IPacket
     public PacketFlags Flags { get; set; }
     public Memory<byte> Payload { get; set; }
 
-    public long Hash => ComputeHash();
+    public ulong Hash => ComputeHash();
 
     // Default constructor with reasonable defaults for testing
     public TestPacket()
@@ -89,15 +89,15 @@ public class TestPacket : IPacket
         return $"Packet[Priority={Priority}, Id={Id}, Number={Number}, Checksum={Checksum}, Timestamp={Timestamp}]";
     }
 
-    private long ComputeHash()
+    private ulong ComputeHash()
     {
-        long hash = 0;
-        hash |= (long)Number << 56;
-        hash |= (long)Id << 40;
-        hash |= (long)Type << 32;
-        hash |= (long)Code << 24;
-        hash |= (long)Flags << 16;
-        hash |= Timestamp & 0xFFFFFFFFFF; // Use only the lowest 40 bits of the timestamp
+        ulong hash = 0;
+        hash |= (ulong)Number << 56;
+        hash |= (ulong)Id << 40;
+        hash |= (ulong)Type << 32;
+        hash |= (ulong)Code << 24;
+        hash |= (ulong)Flags << 16;
+        hash |= (ulong)Timestamp & 0xFFFFFFFFFF; // Use only the lowest 40 bits of the timestamp
         return hash;
     }
 
