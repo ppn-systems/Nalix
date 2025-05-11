@@ -243,7 +243,7 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
     {
-        System.Byte[] h = SHA3256.HashData(data);
+        System.Byte[] h = Keccak256.HashData(data);
         return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
     }
 
@@ -254,13 +254,13 @@ public static class Ed25519
     {
         // Incremental hashing to avoid building a temporary buffer:
         // H(prefix || message)
-        using SHA3256 sha3 = new();
+        using Keccak256 sha3 = new();
         sha3.Update(prefix);
         sha3.Update(message);
 
         // Write 32-byte digest directly into a stack buffer (no heap allocation)
         System.Span<System.Byte> digest = stackalloc System.Byte[32];
-        sha3.Finalize(digest);
+        sha3.Finish(digest);
 
         // Little-endian!
         return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % L;
@@ -359,13 +359,13 @@ public static class Ed25519
         // aBytes = SHA3-256(sk || 0x00)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x00;
-        System.Byte[] h0 = SHA3256.HashData(tmp); // 32 bytes
+        System.Byte[] h0 = Keccak256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h0, aBytes);
 
         // prefix = SHA3-256(sk || 0x01)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x01;
-        System.Byte[] h1 = SHA3256.HashData(tmp); // 32 bytes
+        System.Byte[] h1 = Keccak256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h1, prefix);
     }
 
