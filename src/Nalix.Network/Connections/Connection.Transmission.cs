@@ -63,7 +63,6 @@ public sealed partial class Connection : IConnection
             const System.Int32 BufferSize = (System.Int32)(1024 * 1.35);
 
             // Optional socket options
-            _socket.NoDelay = false;
             _socket.SendBufferSize = BufferSize;
             _socket.ReceiveBufferSize = BufferSize;
 

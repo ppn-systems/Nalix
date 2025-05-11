@@ -31,7 +31,7 @@ public abstract partial class TcpListenerBase
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public virtual System.String GenerateReport()
     {
-        System.Text.StringBuilder sb = new();
+        System.Text.StringBuilder sb = new(512);
         System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");

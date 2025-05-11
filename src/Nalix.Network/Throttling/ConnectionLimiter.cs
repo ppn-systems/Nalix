@@ -94,6 +94,13 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                        $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
     }
 
+    /// <summary>
+    /// Initializes a new <see cref="ConnectionLimiter"/> with optional configuration.
+    /// </summary>
+    public ConnectionLimiter() : this(config: null)
+    {
+    }
+
     #endregion Constructors
 
     #region Public API
@@ -145,7 +152,19 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     public System.Boolean IsConnectionAllowed(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.EndPoint endPoint)
     {
-        VALIDATE_ENDPOINT_TYPE(endPoint);
+        if (endPoint is null)
+        {
+            throw new InternalErrorException("EndPoint cannot be null", nameof(endPoint));
+        }
+
+        if (endPoint is not System.Net.IPEndPoint ipEndPoint)
+        {
+            // Defensive: log and return false instead of throwing.
+            // This prevents callers from crashing if they mistakenly pass a non-IPEndPoint.
+            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] received non-IPEndPoint ({endPoint.GetType().Name}) - rejecting");
+            return false;
+        }
+
         return IsConnectionAllowed((System.Net.IPEndPoint)endPoint);
     }
 
@@ -164,8 +183,10 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
-        VALIDATE_CONNECTION_EVENT_ARGS(args);
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
 
         System.DateTime now = System.DateTime.UtcNow;
         INetworkEndpoint key = args.Connection.EndPoint;
@@ -241,31 +262,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     {
         if (endPoint is null)
         {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] EndPoint cannot be null",
-                nameof(endPoint));
-        }
-    }
-
-    /// <summary>
-    /// Validates endpoint type is IPEndPoint.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void VALIDATE_ENDPOINT_TYPE(System.Net.EndPoint endPoint)
-    {
-        if (endPoint is null)
-        {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] EndPoint cannot be null",
-                nameof(endPoint));
-        }
-
-        if (endPoint is not System.Net.IPEndPoint)
-        {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] EndPoint must be IPEndPoint, got {endPoint.GetType().Name}",
-                nameof(endPoint));
+            throw new InternalErrorException($"EndPoint cannot be null", nameof(endPoint));
         }
     }
 
@@ -278,23 +275,17 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     {
         if (args is null)
         {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] Connection event args cannot be null",
-                nameof(args));
+            throw new InternalErrorException("Connection event args cannot be null", nameof(args));
         }
 
         if (args.Connection is null)
         {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] Connection cannot be null",
-                nameof(args));
+            throw new InternalErrorException("Connection cannot be null", nameof(args));
         }
 
         if (args.Connection.EndPoint is null)
         {
-            throw new InternalErrorException(
-                $"[{nameof(ConnectionLimiter)}] Connection endpoint cannot be null",
-                nameof(args));
+            throw new InternalErrorException("Connection endpoint cannot be null", nameof(args));
         }
     }
 
@@ -326,28 +317,26 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     {
         System.DateTime today = now.Date;
 
-        // Ensure entry exists
-        _ = _map.TryAdd(key, CREATE_INITIAL_CONNECTION(now));
-
-        // ✅ FIX: Bounded CAS loop to prevent infinite retry
         for (System.Int32 attempt = 0; attempt < MaxCasRetries; attempt++)
         {
+            // Case 1: Entry chưa tồn tại → tạo mới với count=1
             if (!_map.TryGetValue(key, out ConnectionLimitInfo existing))
             {
-                // Entry was removed - try recreate
-                if (_map.TryAdd(key, CREATE_INITIAL_CONNECTION(now)))
+                ConnectionLimitInfo fresh = new(
+                    currentConnections: 1,
+                    lastConnectionTime: now,
+                    totalConnectionsToday: 1);
+
+                if (_map.TryAdd(key, fresh))
                 {
-                    return new ConnectionAllowResult
-                    {
-                        Allowed = true,
-                        CurrentConnections = 1
-                    };
+                    return new ConnectionAllowResult { Allowed = true, CurrentConnections = 1 };
                 }
 
+                // Race: entry được tạo bởi thread khác → retry để đọc và update
                 continue;
             }
 
-            // Check limit
+            // Case 2: Entry tồn tại → kiểm tra limit
             if (existing.CurrentConnections >= _maxPerEndpoint)
             {
                 return new ConnectionAllowResult
@@ -357,10 +346,9 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 };
             }
 
-            // Calculate new totals (reset if new day)
+            // Case 3: Còn slot → CAS increment
             System.Int32 newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(existing, today);
 
-            // Propose update
             ConnectionLimitInfo proposed = existing with
             {
                 CurrentConnections = existing.CurrentConnections + 1,
@@ -368,7 +356,6 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 TotalConnectionsToday = newTotalToday
             };
 
-            // Try atomic update
             if (_map.TryUpdate(key, proposed, existing))
             {
                 return new ConnectionAllowResult
@@ -378,21 +365,14 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 };
             }
 
-            // CAS failed - retry with backoff
             if (attempt > 10)
             {
                 System.Threading.Thread.SpinWait(1 << System.Math.Min(attempt - 10, 10));
             }
         }
 
-        // ✅ FIX: Exhausted retries - fail safe by rejecting
-        _logger?.Warn($"[NW. {nameof(ConnectionLimiter)}] CAS retry exhausted for {key.Address}");
-
-        return new ConnectionAllowResult
-        {
-            Allowed = false,
-            CurrentConnections = _maxPerEndpoint
-        };
+        _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] CAS retry exhausted for {key.Address}");
+        return new ConnectionAllowResult { Allowed = false, CurrentConnections = _maxPerEndpoint };
     }
 
     /// <summary>
