@@ -15,8 +15,7 @@ public readonly partial struct Identifier
     /// <returns>A reconstructed <see cref="Identifier"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier FromBytes(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
@@ -42,8 +41,7 @@ public readonly partial struct Identifier
     /// <returns>A reconstructed <see cref="Identifier"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier FromBytes(System.Byte[] bytes)
     {
         return bytes == null || bytes.Length != 7
@@ -60,7 +58,6 @@ public readonly partial struct Identifier
     /// Thrown if the input string is not a valid Base36 representation of a <see cref="Identifier"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier Parse(System.String text)
     {
@@ -81,10 +78,8 @@ public readonly partial struct Identifier
     /// <c>true</c> if the string was successfully parsed; otherwise, <c>false</c>.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean TryParse(
-        System.ReadOnlySpan<System.Char> text, out Identifier handle)
+    public static System.Boolean TryParse(System.ReadOnlySpan<System.Char> text, out Identifier handle)
     {
         handle = default;
 
@@ -153,9 +148,6 @@ public readonly partial struct Identifier
     /// - FEEDFACE 4-5: Machine ID (ushort)
     /// - Byte 6: Type (byte)
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] ToByteArray()
     {
         System.Byte[] result = new System.Byte[7];
@@ -172,7 +164,6 @@ public readonly partial struct Identifier
     /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryFormatBase36(
         System.Span<System.Char> destination, out System.Byte charsWritten)
@@ -218,7 +209,6 @@ public readonly partial struct Identifier
     /// The bytes are written in little-endian format.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryWriteBytes(
         System.Span<System.Byte> destination, out System.Int32 bytesWritten)
