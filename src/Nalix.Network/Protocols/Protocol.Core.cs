@@ -4,7 +4,7 @@ namespace Nalix.Network.Protocols;
 /// Represents an abstract base class for network protocols.
 /// This class defines the common logic for handling connections and processing messages.
 /// </summary>
-public abstract partial class Protocol : IProtocol, System.IDisposable
+public abstract partial class Protocol : IProtocol
 {
     /// <summary>
     /// Processes a message received on the connection.

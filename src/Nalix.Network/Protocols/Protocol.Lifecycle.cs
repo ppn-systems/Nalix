@@ -34,22 +34,16 @@ public abstract partial class Protocol
     }
 
     /// <summary>
-    /// Override this method to clean up any resources when the protocol is disposed.
+    /// Core disposal logic. Override to release managed resources.
     /// </summary>
-    protected virtual void OnDisposing()
-    { }
-
-    /// <summary>
-    /// Disposes resources used by this Protocol.
-    /// </summary>
-    /// <param name="disposing">True if called explicitly, false if called from finalizer.</param>
+    /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
     protected virtual void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
-
-        // Dispose of managed resources
-        if (disposing) this.OnDisposing();
+        if (_isDisposed)
+            return;
 
         _isDisposed = true;
+
+        // Optional: clean up managed resources if (disposing)
     }
 }

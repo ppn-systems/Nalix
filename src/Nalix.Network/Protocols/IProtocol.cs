@@ -1,6 +1,4 @@
 using Nalix.Common.Connection;
-using System;
-using System.Threading;
 
 namespace Nalix.Network.Protocols;
 
@@ -8,7 +6,7 @@ namespace Nalix.Network.Protocols;
 /// Interface representing a network protocol.
 /// BuiltInHandlers this interface to define how a network protocol handles connections and messages.
 /// </summary>
-public interface IProtocol
+public interface IProtocol : System.IDisposable
 {
     /// <summary>
     /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.
@@ -22,8 +20,8 @@ public interface IProtocol
     /// </summary>
     /// <param name="connection">The connection to handle.</param>
     /// <param name="cancellationToken">Token for cancellation</param>
-    /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
-    void OnAccept(IConnection connection, CancellationToken cancellationToken = default);
+    /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
+    void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Processes an incoming message from the connection.
@@ -31,7 +29,7 @@ public interface IProtocol
     /// </summary>
     /// <param name="sender">The source of the event triggering the message processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
-    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(object sender, IConnectEventArgs args);
 
     /// <summary>
@@ -40,6 +38,6 @@ public interface IProtocol
     /// </summary>
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
-    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(object sender, IConnectEventArgs args);
 }
