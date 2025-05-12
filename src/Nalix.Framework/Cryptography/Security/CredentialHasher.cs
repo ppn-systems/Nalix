@@ -8,7 +8,8 @@ namespace Nalix.Framework.Cryptography.Security;
 /// <summary>
 /// Provides secure credential hashing and verification using PBKDF2.
 /// </summary>
-public static class HASHER
+[System.Runtime.CompilerServices.SkipLocalsInit]
+public static class CredentialHasher
 {
     #region Constants
 
@@ -40,7 +41,7 @@ public static class HASHER
     /// <param name="salt">The generated salt.</param>
     /// <param name="hash">The derived hash.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Hash(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential,
         out System.Byte[] salt, out System.Byte[] hash)
@@ -58,7 +59,7 @@ public static class HASHER
     /// <param name="hash">The stored hash to compare against.</param>
     /// <returns><c>true</c> if the credential is valid; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Verify(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential,
         System.Byte[] salt, System.Byte[] hash)
@@ -79,11 +80,11 @@ public static class HASHER
         /// <param name="credential">The plaintext credential.</param>
         /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String Hash(
             [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential)
         {
-            HASHER.Hash(credential, out System.Byte[] salt, out System.Byte[] hash);
+            CredentialHasher.Hash(credential, out System.Byte[] salt, out System.Byte[] hash);
             System.Byte[] blob = new System.Byte[1 + salt.Length + hash.Length];
             blob[0] = Version;
             System.Array.Copy(salt, 0, blob, 1, salt.Length);
@@ -98,7 +99,7 @@ public static class HASHER
         /// <param name="encoded"></param>
         /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.Boolean Verify(
             [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential, System.String encoded)
         {
@@ -112,13 +113,13 @@ public static class HASHER
                 return false;
             }
 
-            return HASHER.Verify(credential, salt, hash);
+            return CredentialHasher.Verify(credential, salt, hash);
         }
 
         /// <summary>
         /// Parses an encoded Base64([ver|salt|hash]) into parts without throwing.
         /// </summary>
-        public static System.Boolean TryParse(System.String encoded,
+        internal static System.Boolean TryParse(System.String encoded,
             [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[] salt,
             [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[] hash,
             [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte version)

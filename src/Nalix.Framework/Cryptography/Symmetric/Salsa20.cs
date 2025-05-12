@@ -1,7 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Cryptography.Primitives;
-
 namespace Nalix.Framework.Cryptography.Symmetric;
 
 /// <summary>
@@ -27,7 +25,7 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <returns>Encrypted bytes.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
         System.UInt64 counter, System.ReadOnlySpan<System.Byte> plaintext)
@@ -58,7 +56,7 @@ public static class Salsa20
     /// <param name="ciphertext">Buffer to receive the encrypted data.</param>
     /// <returns>ProtocolType of bytes written.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Encrypt(
         System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt64 counter,
         System.ReadOnlySpan<System.Byte> plaintext, System.Span<System.Byte> ciphertext)
@@ -90,7 +88,7 @@ public static class Salsa20
     /// <returns>Decrypted bytes.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -108,7 +106,7 @@ public static class Salsa20
     /// <returns>ProtocolType of bytes written.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce, System.UInt64 counter,
@@ -127,7 +125,7 @@ public static class Salsa20
     /// Main function to process data (encrypt or decrypt)
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void B1C2D3E4(
         System.ReadOnlySpan<System.Byte> E4F5A6B7,
         System.ReadOnlySpan<System.Byte> F5A6B7C8, System.UInt64 BB22CC33EE55FF66AAX,
@@ -155,7 +153,7 @@ public static class Salsa20
     /// Generates BCDE2345 64-byte Salsa20 keystream block
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void C2D3E4F5(
         System.ReadOnlySpan<System.Byte> DD44EE55,
         System.ReadOnlySpan<System.Byte> EE55FF66,
@@ -254,10 +252,10 @@ public static class Salsa20
         ref System.UInt32 BCDE2345, ref System.UInt32 CDEF3456,
         ref System.UInt32 DEF45678, ref System.UInt32 EFAB5678)
     {
-        CDEF3456 ^= BitwiseOperations.RotateLeft(BCDE2345 + EFAB5678, 7);
-        DEF45678 ^= BitwiseOperations.RotateLeft(CDEF3456 + BCDE2345, 9);
-        EFAB5678 ^= BitwiseOperations.RotateLeft(DEF45678 + CDEF3456, 13);
-        BCDE2345 ^= BitwiseOperations.RotateLeft(EFAB5678 + DEF45678, 18);
+        CDEF3456 ^= System.Numerics.BitOperations.RotateLeft(BCDE2345 + EFAB5678, 7);
+        DEF45678 ^= System.Numerics.BitOperations.RotateLeft(CDEF3456 + BCDE2345, 9);
+        EFAB5678 ^= System.Numerics.BitOperations.RotateLeft(DEF45678 + CDEF3456, 13);
+        BCDE2345 ^= System.Numerics.BitOperations.RotateLeft(EFAB5678 + DEF45678, 18);
     }
 
     #endregion Utility Methods

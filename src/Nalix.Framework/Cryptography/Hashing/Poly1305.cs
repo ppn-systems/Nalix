@@ -17,12 +17,15 @@ namespace Nalix.Framework.Cryptography.Hashing;
 /// constant-time operations for enhanced security.
 /// </para>
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class Poly1305 : System.IDisposable
 {
     #region Constants
 
     /// <summary>
-    /// The size of the authentication tag produced by Poly1305 (16 bytes).
+    /// The size, in bytes, of the Poly1305 key (32 bytes).
     /// </summary>
     public const System.Byte KeySize = 32;
 
@@ -38,7 +41,7 @@ public sealed class Poly1305 : System.IDisposable
     /// <summary>
     /// The prime ProtocolType (2^130 - 5) used in Poly1305 algorithm.
     /// </summary>
-    private static readonly System.UInt32[] s_prime = [0xFFFFFFFB, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x3];
+    private static readonly System.UInt32[] s_prime = [0xFFFFFFFB, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000003];
 
     /// <summary>
     /// Represents the r part of the key (clamped).
@@ -403,7 +406,7 @@ public sealed class Poly1305 : System.IDisposable
     /// <param name="rBytes">The r portion of the key (16 bytes).</param>
     /// <param name="r">Array to store the clamped r value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void ClampR(
         System.ReadOnlySpan<System.Byte> rBytes,
         System.Span<System.UInt32> r)
@@ -413,9 +416,9 @@ public sealed class Poly1305 : System.IDisposable
 
         // Convert to uint array (little-endian)
         r[0] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes[..4]) & 0x0FFF_FFFC;
-        r[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(4, 4)) & 0x0FFF_FFF0;
-        r[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(8, 4)) & 0x0FFF_FFF0;
-        r[3] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(12, 4)) & 0x0FFF_FFF0;
+        r[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(4, 4)) & 0x0FFF_FFFC;
+        r[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(8, 4)) & 0x0FFF_FFFC;
+        r[3] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(12, 4)) & 0x0FFF_FFFF;
         r[4] = 0;
     }
 
@@ -426,11 +429,10 @@ public sealed class Poly1305 : System.IDisposable
     /// <param name="block">The block data to add (already padded).</param>
     /// <param name="isFinalBlock">Whether this is the final block.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void AddBlock(
         System.Span<System.UInt32> accumulator,
-        System.ReadOnlySpan<System.Byte> block,
-        System.Boolean isFinalBlock)
+        System.ReadOnlySpan<System.Byte> block, System.Boolean isFinalBlock)
     {
         // Convert block to uint array with proper little-endian handling
         System.Span<System.UInt32> n =
@@ -469,7 +471,8 @@ public sealed class Poly1305 : System.IDisposable
     /// Safely reads a UInt32 from a span that might be too short, returning 0 for out of bounds access.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.UInt32 GetUInt32OrZero(System.ReadOnlySpan<System.Byte> data, System.Int32 offset)
     {
         System.UInt32 result = 0;
@@ -487,10 +490,8 @@ public sealed class Poly1305 : System.IDisposable
     /// Adds two 130-bit integers represented as uint arrays.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Add(
-        System.Span<System.UInt32> a,
-        System.ReadOnlySpan<System.UInt32> b)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static void Add(System.Span<System.UInt32> a, System.ReadOnlySpan<System.UInt32> b)
     {
         System.Diagnostics.Debug.Assert(a.Length >= 5, "Span a must have at least 5 elements");
         System.Diagnostics.Debug.Assert(b.Length >= 5, "Span b must have at least 5 elements");
@@ -526,10 +527,8 @@ public sealed class Poly1305 : System.IDisposable
     /// Multiplies a 130-bit integer by another 130-bit integer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Multiply(
-        System.Span<System.UInt32> a,
-        System.ReadOnlySpan<System.UInt32> b)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static void Multiply(System.Span<System.UInt32> a, System.ReadOnlySpan<System.UInt32> b)
     {
         System.Span<System.UInt32> product = stackalloc System.UInt32[10];
 
@@ -547,13 +546,13 @@ public sealed class Poly1305 : System.IDisposable
         ReduceProduct(a, product);
     }
 
+
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void MultiplyRow(
         System.ReadOnlySpan<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b,
-        System.Span<System.UInt32> product,
-        System.Int32 row)
+        System.Span<System.UInt32> product, System.Int32 row)
     {
         System.UInt64 carry = 0;
         System.UInt32 aValue = a[row];
@@ -596,7 +595,7 @@ public sealed class Poly1305 : System.IDisposable
     /// Reduces a 260-bit product modulo 2^130 - 5 to a 130-bit result.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void ReduceProduct(
         System.Span<System.UInt32> result,
         System.ReadOnlySpan<System.UInt32> product)
@@ -639,7 +638,7 @@ public sealed class Poly1305 : System.IDisposable
     /// Reduces a value modulo 2^130 - 5.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void Modulo(System.Span<System.UInt32> value)
     {
         // Check if the value needs reduction
@@ -654,7 +653,7 @@ public sealed class Poly1305 : System.IDisposable
     /// Determines if one ProtocolType is greater than or equal to another.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsGreaterOrEqual(
         System.ReadOnlySpan<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
@@ -718,26 +717,25 @@ public sealed class Poly1305 : System.IDisposable
     /// Subtracts one ProtocolType from another.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void Subtract(
         System.Span<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
         System.UInt64 diff = (System.UInt64)a[0] - b[0];
         a[0] = (System.UInt32)diff;
-        System.UInt32 borrow = (System.UInt32)(diff >> 32 & 1);
-
+        System.UInt32 borrow = diff >> 63 == 1 ? 1u : 0u;
         diff = (System.UInt64)a[1] - b[1] - borrow;
         a[1] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = ((System.UInt64)a[1] + borrow) > a[1] ? 1u : 0u; // or: (diff >> 63)==1 ? 1u : 0u
 
         diff = (System.UInt64)a[2] - b[2] - borrow;
         a[2] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = (diff >> 63) == 1 ? 1u : 0u;
 
         diff = (System.UInt64)a[3] - b[3] - borrow;
         a[3] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = (diff >> 63) == 1 ? 1u : 0u;
 
         diff = (System.UInt64)a[4] - b[4] - borrow;
         a[4] = (System.UInt32)diff;
@@ -749,7 +747,7 @@ public sealed class Poly1305 : System.IDisposable
     /// <param name="accumulator">The current accumulator value.</param>
     /// <param name="tag">The span where the tag will be written.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void FinalizeTag(
         System.ReadOnlySpan<System.UInt32> accumulator,
         System.Span<System.Byte> tag)

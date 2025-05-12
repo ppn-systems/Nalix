@@ -77,7 +77,7 @@ public static class Xtea
     /// or when <paramref name="output"/> is smaller than <c>plaintext.Length</c>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Encrypt(
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key,
@@ -137,7 +137,7 @@ public static class Xtea
     /// or when <paramref name="output"/> is smaller than <c>ciphertext.Length</c>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key,
@@ -195,7 +195,7 @@ public static class Xtea
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
     /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static unsafe void E5F6A7B8(
         ref System.UInt32 v0, ref System.UInt32 v1,
         System.UInt32* key, System.Byte rounds = DefaultRounds)
@@ -218,7 +218,7 @@ public static class Xtea
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
     /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static unsafe void F0A1B2C3(
         ref System.UInt32 v0, ref System.UInt32 v1,
         System.UInt32* key, System.Byte rounds = DefaultRounds)
@@ -242,9 +242,7 @@ public static class Xtea
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void A9B8C7D6(
-        System.ReadOnlySpan<System.Byte> data,
-        System.ReadOnlySpan<System.Byte> key)
+    private static void A9B8C7D6(System.ReadOnlySpan<System.Byte> data, System.ReadOnlySpan<System.Byte> key)
     {
         if (data.Length % BlockSize != 0)
         {

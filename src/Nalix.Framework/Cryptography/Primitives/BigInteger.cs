@@ -17,7 +17,8 @@ internal static class BigInteger
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Numerics.BigInteger ModAdd(
         this System.Numerics.BigInteger a,
         System.Numerics.BigInteger b, System.Numerics.BigInteger mod)
@@ -45,7 +46,8 @@ internal static class BigInteger
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Numerics.BigInteger ModSub(
         this System.Numerics.BigInteger a,
         System.Numerics.BigInteger b, System.Numerics.BigInteger mod)
@@ -73,7 +75,8 @@ internal static class BigInteger
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Numerics.BigInteger MultiplyMod(
         this System.Numerics.BigInteger a,
         System.Numerics.BigInteger b, System.Numerics.BigInteger mod) => a * b % mod;
@@ -87,7 +90,8 @@ internal static class BigInteger
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Numerics.BigInteger Mod(
         this System.Numerics.BigInteger num, System.Numerics.BigInteger modulo)
     {

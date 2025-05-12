@@ -25,6 +25,8 @@ internal static class EnvelopeFormat
     /// Parse envelope into constituent spans without allocations.
     /// Supports both AEAD (with tag) and Symmetric (no tag) formats.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean TryParseEnvelope(
         System.ReadOnlySpan<System.Byte> blob,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ParsedEnvelope env)
@@ -95,6 +97,8 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose AEAD envelope: header || nonce || ciphertext || tag.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 WriteEnvelope(
         System.Span<System.Byte> dest,
         CipherSuiteType type,
@@ -124,6 +128,8 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose Symmetric envelope: header || nonce || ciphertext (no tag).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 WriteEnvelope(
         System.Span<System.Byte> dest,
         CipherSuiteType type,
@@ -152,6 +158,7 @@ internal static class EnvelopeFormat
     /// Returned parsed envelope - ref struct carrying spans.
     /// Tag may be empty when HasTag = false (symmetric envelopes).
     /// </summary>
+    [System.Diagnostics.DebuggerDisplay("Ver={Version}, Alg={AeadType}, NonceLen={NonceLen}, Seq={Seq}, Tag={HasTag}")]
     public readonly ref struct ParsedEnvelope
     {
         public readonly System.Byte Version;
@@ -187,6 +194,8 @@ internal static class EnvelopeFormat
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsAeadSuite(CipherSuiteType t) =>
         t is CipherSuiteType.ChaCha20Poly1305
         or CipherSuiteType.Salsa20Poly1305
