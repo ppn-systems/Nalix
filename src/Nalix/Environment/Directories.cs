@@ -2,7 +2,6 @@ using Nalix.Common.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Nalix.Environment;
@@ -575,6 +574,8 @@ public static class Directories
     /// </summary>
     /// <param name="parentPath">The parent directory path.</param>
     /// <returns>The path to the hierarchical date-based directory.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string CreateHierarchicalDateDirectory(string parentPath)
     {
         if (string.IsNullOrWhiteSpace(parentPath))
@@ -602,9 +603,9 @@ public static class Directories
     /// <param name="callerFilePath">The path of the source file that contains the caller.</param>
     /// <param name="callerLineNumber">The line Number in the source file at which the method is called.</param>
     private static void EnsureDirectoryExists(string path,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerFilePath] string callerFilePath = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
             throw new ArgumentNullException(nameof(path));
