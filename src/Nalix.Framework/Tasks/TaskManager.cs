@@ -67,10 +67,12 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public IRecurringHandle ScheduleRecurring(
-        System.String name, System.TimeSpan interval,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        IRecurringOptions? options = null)
+        [System.Diagnostics.CodeAnalysis.StringSyntax("identifier")]
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name, System.TimeSpan interval,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work, IRecurringOptions? options = null)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
@@ -105,8 +107,10 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public async System.Threading.Tasks.ValueTask RunOnceAsync(
-        System.String name,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         System.Threading.CancellationToken ct = default)
     {
@@ -141,8 +145,11 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the worker cannot be added.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public IWorkerHandle StartWorker(
-        System.String name, System.String group,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String group,
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         IWorkerOptions? options = null)
     {
@@ -276,7 +283,8 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="name">The name of the recurring task.</param>
     /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String? name)
     {
         if (name is null)
@@ -328,8 +336,9 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="id">The identifier of the worker.</param>
     /// <returns><c>true</c> if the worker was found and cancelled; otherwise, <c>false</c>.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    public System.Boolean CancelWorker(IIdentifier id)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
     {
         if (_workers.TryGetValue(id, out var st))
         {
@@ -357,8 +366,9 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="group">The group name.</param>
     /// <returns>The number of workers cancelled.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    public System.Int32 CancelGroup(System.String group)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.DisallowNull] System.String group)
     {
         System.Int32 n = 0;
         foreach (var kv in _workers)
@@ -387,6 +397,8 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <returns>The number of workers cancelled.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Int32 CancelAllWorkers()
     {
         System.Int32 n = 0;
@@ -412,8 +424,11 @@ public sealed partial class TaskManager : ITaskManager
     /// <param name="id">The identifier of the worker.</param>
     /// <param name="handle">The handle of the worker, if found.</param>
     /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryGetWorker(
-        IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle? handle)
     {
         if (_workers.TryGetValue(id, out var st)) { handle = st; return true; }
@@ -426,8 +441,11 @@ public sealed partial class TaskManager : ITaskManager
     /// <param name="name">The name of the recurring task.</param>
     /// <param name="handle">The handle of the recurring task, if found.</param>
     /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryGetRecurring(
-        System.String name,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IRecurringHandle? handle)
     {
         if (_recurring.TryGetValue(name, out var st)) { handle = st; return true; }
@@ -438,6 +456,9 @@ public sealed partial class TaskManager : ITaskManager
     /// Lists all scheduled recurring tasks.
     /// </summary>
     /// <returns>A read-only collection of recurring handles.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
     {
         System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
@@ -455,8 +476,11 @@ public sealed partial class TaskManager : ITaskManager
     /// <param name="runningOnly">If <c>true</c>, only running workers are listed.</param>
     /// <param name="group">Optional group name to filter workers.</param>
     /// <returns>A read-only collection of worker handles.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> ListWorkers(
-        System.Boolean runningOnly = true, System.String? group = null)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Boolean runningOnly = true,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String? group = null)
     {
         System.Collections.Generic.List<IWorkerHandle> list = new(_workers.Count);
         foreach (var kv in _workers)
@@ -485,7 +509,9 @@ public sealed partial class TaskManager : ITaskManager
     /// Generates a report summarizing all background tasks and workers.
     /// </summary>
     /// <returns>A formatted string containing report details.</returns>
-    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
         var sb = new System.Text.StringBuilder(1024);
@@ -579,6 +605,8 @@ public sealed partial class TaskManager : ITaskManager
     /// <summary>
     /// Disposes the background task manager and cancels all running tasks.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         if (_disposed)

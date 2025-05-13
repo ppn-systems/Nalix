@@ -96,7 +96,8 @@ public partial class TaskManager
         #region Computed Methods
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
             var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -107,7 +108,8 @@ public partial class TaskManager
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkStop()
         {
             IsRunning = false;
@@ -118,7 +120,8 @@ public partial class TaskManager
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkError(System.Exception __)
         {
             IsRunning = false;
@@ -130,7 +133,8 @@ public partial class TaskManager
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void Beat()
         {
             System.Int64 ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -139,6 +143,8 @@ public partial class TaskManager
 
         public System.Int64 Progress => System.Threading.Interlocked.Read(ref _progress);
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void Add(System.Int64 delta, System.String? note)
         {
             if (delta != 0)
@@ -155,8 +161,12 @@ public partial class TaskManager
             _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void Cancel() => Cts.Cancel();
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         void System.IDisposable.Dispose() => Cancel();
 
         #endregion Computed Methods
@@ -254,7 +264,8 @@ public partial class TaskManager
         #region Computed Methods
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
             IsRunning = true;
@@ -262,7 +273,8 @@ public partial class TaskManager
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkSuccess()
         {
             IsRunning = false;
@@ -271,7 +283,8 @@ public partial class TaskManager
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkFailure()
         {
             IsRunning = false;
@@ -279,8 +292,12 @@ public partial class TaskManager
             _ = System.Threading.Interlocked.Increment(ref _totalRuns);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void Cancel() => Cts.Cancel();
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         void System.IDisposable.Dispose() => Cancel();
 
         #endregion Computed Methods
@@ -321,11 +338,12 @@ public partial class TaskManager
         public System.String Group => _st.Group;
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void Beat() => _st.Beat();
 
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void Advance(System.Int64 delta, System.String? note = null) => _st.Add(delta, note);
 
         public System.Boolean IsCancellationRequested => _st.Cts.IsCancellationRequested;
