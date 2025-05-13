@@ -40,7 +40,7 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
-    protected virtual bool ValidateConnection(Common.Connection.IConnection connection) => false;
+    protected virtual bool ValidateConnection(Common.Connection.IConnection connection) => true;
 
     /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
