@@ -59,7 +59,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
 
     /// <summary>Force-creates the instance (useful for warmup).</summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
         Justification = "Static member intentionally bound to closed generic SingletonBase<T>.")]
@@ -84,7 +84,8 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// <summary>
     /// Override to release managed state. Base does nothing.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected virtual void DisposeManaged() { }
 
     #endregion IDisposable Support
@@ -112,6 +113,8 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// Builds a compiled lambda that invokes the non-public parameterless constructor of T.
     /// This runs once per closed generic T.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Func<T> CreateCtor()
     {
         const System.Reflection.BindingFlags Flags =
