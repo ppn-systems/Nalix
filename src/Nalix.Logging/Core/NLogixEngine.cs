@@ -3,7 +3,7 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Sinks;
 
-namespace Nalix.Logging;
+namespace Nalix.Logging.Core;
 
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
