@@ -14,6 +14,8 @@ public sealed partial class Connection : IConnection
     #region User Datagram Protocol
 
     /// <inheritdoc />
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public sealed class UdpTransport : IConnection.IUdp, IPoolable
     {
         #region Fields
@@ -68,13 +70,15 @@ public sealed partial class Connection : IConnection
         #region Synchronous Methods
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
@@ -91,14 +95,18 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => packet is not null && await this.SendAsync(packet
-                                               .Serialize(), cancellationToken)
-                                               .ConfigureAwait(false);
+            => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -119,14 +127,16 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public void ResetForPool()
         {
             _endPoint = null;
             _socket.Dispose();
             _socket = new System.Net.Sockets.Socket(
                 System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Dgram,
-                System.Net.Sockets.ProtocolType.Udp);
+                System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
 
         #endregion Asynchronous Methods
@@ -137,13 +147,17 @@ public sealed partial class Connection : IConnection
     #region Transmission Control Protocol
 
     /// <inheritdoc />
-    public sealed class TcpTransport(Connection outer) : IConnection.ITcp
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
+    public sealed class TcpTransport([System.Diagnostics.CodeAnalysis.NotNull] Connection outer) : IConnection.ITcp
     {
         private readonly Connection _outer = outer;
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
         {
             System.ObjectDisposedException.ThrowIf(this._outer._disposed, nameof(Connection));
@@ -153,13 +167,15 @@ public sealed partial class Connection : IConnection
         #region Synchronous Methods
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (this._outer._cstream.Send(message))
@@ -174,8 +190,9 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc/>
+        [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
@@ -229,14 +246,18 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => await this.SendAsync(packet
-                         .Serialize(), cancellationToken)
-                         .ConfigureAwait(false);
+            => await this.SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc />
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -253,6 +274,9 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc/>
+        [System.Diagnostics.StackTraceHidden]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]

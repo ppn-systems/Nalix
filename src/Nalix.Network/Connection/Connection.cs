@@ -150,7 +150,8 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(System.Byte[] bytes)
     {
         if (bytes.Length == 0 || this._disposed)
@@ -168,6 +169,8 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Close(System.Boolean force = false)
     {
         if (this._disposed)
@@ -185,7 +188,8 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(System.String? reason = null) => this.Close(force: true);
 
     #endregion Methods
@@ -193,6 +197,8 @@ public sealed partial class Connection : IConnection
     #region Dispose Pattern
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         lock (this._lock)
@@ -228,7 +234,8 @@ public sealed partial class Connection : IConnection
     #region Event Bridges
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
     {
         if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -240,7 +247,8 @@ public sealed partial class Connection : IConnection
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -252,7 +260,8 @@ public sealed partial class Connection : IConnection
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(System.Object? sender, IConnectEventArgs e)
     {
         if (sender is not Connection self)
