@@ -67,7 +67,7 @@ public static partial class Clock
     /// Converts Unix timestamp (seconds) to DateTime with overflow check.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.DateTime UnixTimeSecondsToDateTime(System.Int64 timestamp)
     {
         return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalSeconds
@@ -79,7 +79,7 @@ public static partial class Clock
     /// Converts Unix timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.DateTime UnixTimeMillisecondsToDateTime(System.Int64 timestamp)
     {
         return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalMilliseconds
@@ -91,7 +91,7 @@ public static partial class Clock
     /// Converts Unix timestamp (microseconds) to DateTime with overflow check.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.DateTime UnixTimeMicrosecondsToDateTime(System.Int64 timestamp)
     {
         return timestamp > System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).Ticks / 10
@@ -103,7 +103,7 @@ public static partial class Clock
     /// Converts timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.DateTime TimeMillisecondsToDateTime(System.Int64 timestamp)
     {
         return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds
@@ -115,7 +115,7 @@ public static partial class Clock
     /// Converts TimeSpan to DateTime with validation.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.DateTime UnixTimeToDateTime(System.TimeSpan timeSpan)
     {
         return timeSpan.Ticks < 0
@@ -128,7 +128,7 @@ public static partial class Clock
     /// Converts DateTime to Unix TimeSpan with validation.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.TimeSpan DateTimeToUnixTime(System.DateTime dateTime)
     {
         return dateTime.Kind != System.DateTimeKind.Utc
@@ -141,7 +141,7 @@ public static partial class Clock
     /// Converts DateTime to application-specific TimeSpan with validation.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.TimeSpan DateTimeToTime(System.DateTime dateTime)
     {
         return dateTime.Kind != System.DateTimeKind.Utc
@@ -153,7 +153,7 @@ public static partial class Clock
     /// Converts UTC DateTime to Unix timestamp in seconds.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.UInt64 DateTimeToUnixTimeSeconds(System.DateTime utcDateTime)
     {
         return utcDateTime.Kind != System.DateTimeKind.Utc
@@ -166,7 +166,7 @@ public static partial class Clock
     /// Converts UTC DateTime to Unix timestamp in milliseconds.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.UInt64 DateTimeToUnixTimeMilliseconds(System.DateTime utcDateTime)
     {
         return utcDateTime.Kind != System.DateTimeKind.Utc
@@ -177,63 +177,6 @@ public static partial class Clock
 
     #endregion Conversion Methods
 
-    #region Comparison Methods
-
-    /// <summary>
-    /// Compares two TimeSpan values and returns the greater one.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan Max(
-        System.TimeSpan time1,
-        System.TimeSpan time2)
-        => time1 > time2 ? time1 : time2;
-
-    /// <summary>
-    /// Compares two TimeSpan values and returns the lesser one.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan Min(
-        System.TimeSpan time1,
-        System.TimeSpan time2)
-        => time1 < time2 ? time1 : time2;
-
-    /// <summary>
-    /// Checks if a DateTime is within the allowed range.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsInRange(
-        System.DateTime dateTime,
-        System.TimeSpan range)
-    {
-        System.TimeSpan diff = GetUtcNowPrecise() - dateTime;
-        return diff.Ticks >= -range.Ticks && diff.Ticks <= range.Ticks;
-    }
-
-    /// <summary>
-    /// Clamps a DateTime between a minimum and maximum value.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.DateTime Clamp(
-        System.DateTime value,
-        System.DateTime min,
-        System.DateTime max) => value < min ? min : value > max ? max : value;
-
-    /// <summary>
-    /// Clamps a TimeSpan between a minimum and maximum value.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan Clamp(
-        System.TimeSpan value,
-        System.TimeSpan min,
-        System.TimeSpan max) => value < min ? min : value > max ? max : value;
-
-    #endregion Comparison Methods
-
     #region Time Synchronization Methods
 
     /// <summary>
@@ -242,6 +185,8 @@ public static partial class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Double SynchronizeTime(System.DateTime externalTime, System.Double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != System.DateTimeKind.Utc)
@@ -280,6 +225,8 @@ public static partial class Clock
     /// <summary>
     /// Resets time synchronization to use the local system time.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void ResetSynchronization()
     {
         _timeOffset = 0;
@@ -293,11 +240,15 @@ public static partial class Clock
     /// A value greater than 1.0 means the local clock is running slower than the reference clock.
     /// A value less than 1.0 means the local clock is running faster than the reference clock.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Double GetDriftRate() => _driftCorrection;
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Double GetCurrentErrorEstimateMs()
     {
         if (!IsSynchronized)
@@ -318,7 +269,7 @@ public static partial class Clock
     /// Starts a new performance measurement using the current thread's stopwatch.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void StartMeasurement() => _threadStopwatch.Value!.Restart();
 
     /// <summary>
@@ -326,9 +277,8 @@ public static partial class Clock
     /// </summary>
     /// <returns>The elapsed time in milliseconds.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Double GetElapsedMilliseconds()
-        => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static System.Double GetElapsedMilliseconds() => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
 
     #endregion Performance Measurement
 }
