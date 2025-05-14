@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
@@ -332,6 +333,7 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
+        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -342,7 +344,7 @@ public abstract partial class TcpListenerBase
                                                    .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{NetTaskNames.Tcp}/{TaskNaming.Tags.Accept}",
+                    name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Process}.Protocol",
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
                     work: async (_, _) => this.ProcessConnection(connection),
                     options: new WorkerOptions
@@ -353,6 +355,9 @@ public abstract partial class TcpListenerBase
                         CancellationToken = cancellationToken,
                     }
                 );
+
+                ctx.Beat();
+                ctx.Advance(1);
 
                 continue;
             }

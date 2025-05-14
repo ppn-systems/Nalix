@@ -164,7 +164,7 @@ public abstract partial class TcpListenerBase
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
-                    work: async (_, ct) => await AcceptConnectionsAsync(ct).ConfigureAwait(false),
+                    work: async (ctx, ct) => await AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         CancellationToken = linkedToken,
