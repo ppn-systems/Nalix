@@ -1,63 +1,108 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Provides configuration options for limiting the number of concurrent
-/// connections allowed per IP address.
+/// Represents configuration options that control connection limiting
+/// behavior per IP address.
 /// </summary>
 /// <remarks>
-/// This configuration helps prevent abuse and excessive resource usage by
-/// restricting how many simultaneous connections a single IP can establish.
-/// Default values are chosen for security and efficiency, but can be adjusted
-/// based on deployment scenarios (e.g., NAT, proxies, or carrier-grade networks).
+/// These options are designed to mitigate abuse, denial-of-service attempts,
+/// and excessive resource consumption by restricting how many concurrent
+/// and rapid connections a single IP address may establish.
+/// <para>
+/// Default values are optimized for security and performance and may be
+/// adjusted depending on deployment environments such as NAT gateways,
+/// reverse proxies, or carrier-grade networks.
+/// </para>
 /// </remarks>
 public sealed class ConnectionLimitOptions : ConfigurationLoader
 {
     /// <summary>
-    /// Gets or sets the maximum number of connections allowed per IP address.
+    /// Gets or sets the maximum number of concurrent connections
+    /// allowed per IP address.
     /// </summary>
     /// <remarks>
-    /// Default is 10.
-    /// - Suitable for most client-to-server scenarios (e.g., games, chat, APIs).
-    /// - In environments where multiple users share the same IP
-    ///   (e.g., NAT, proxies, ISPs), consider increasing this value
-    ///   to 100 or higher.
-    /// - Range: 1 to 10,000.
+    /// Default value is <c>10</c>.
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// Suitable for most client-server workloads such as games, chat systems,
+    /// and RESTful APIs.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// In environments where many users share the same IP address
+    /// (e.g., NAT, proxies, ISPs), consider increasing this value
+    /// to <c>100</c> or higher.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// Recommended range: <c>1</c> to <c>10,000</c>.
     /// </remarks>
     public System.Int32 MaxConnectionsPerIpAddress { get; set; } = 10;
 
     /// <summary>
-    /// Gets or sets the interval in milliseconds between cleanup operations.
+    /// Gets or sets the maximum number of connection attempts
+    /// allowed within the configured rate window.
     /// </summary>
     /// <remarks>
-    /// During cleanup, stale or inactive connection entries are removed.
-    /// Default is 60,000 ms (1 minute).
+    /// This setting helps protect against burst-based connection floods.
+    /// Default value is <c>10</c>.
     /// </remarks>
-    public System.Int32 CleanupIntervalMs { get; set; } = 60_000;
+    public System.Int32 MaxConnectionsPerWindow { get; set; } = 10;
 
     /// <summary>
-    /// Gets or sets the inactivity threshold in milliseconds.
+    /// Ban duration: Gets or sets the time window during which repeated connection attempts
     /// </summary>
     /// <remarks>
-    /// A connection entry is considered stale if it has been inactive longer
-    /// than this threshold.
-    /// Default is 300,000 ms (5 minutes).
+    /// All connection attempts from the same IP address are counted
+    /// within this time window.
+    /// Default value is <c>1 second</c>.
     /// </remarks>
-    public System.Int32 InactivityThresholdMs { get; set; } = 300_000;
+    public System.TimeSpan BanDuration { get; set; } = System.TimeSpan.FromMinutes(5);
 
     /// <summary>
-    /// Gets the cleanup interval as a <see cref="System.TimeSpan"/>.
+    /// Gets or sets the time window used to evaluate connection rate limits.
     /// </summary>
-    [ConfiguredIgnore]
-    public System.TimeSpan CleanupInterval => System.TimeSpan.FromMilliseconds(this.CleanupIntervalMs);
+    /// <remarks>
+    /// All connection attempts from the same IP address are counted
+    /// within this time window.
+    /// Default value is <c>1 second</c>.
+    /// </remarks>
+    public System.TimeSpan ConnectionRateWindow { get; set; } = System.TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Gets the inactivity threshold as a <see cref="System.TimeSpan"/>.
+    /// DDoS mitigation: Gets or sets the time window during which repeated connection attempts.
     /// </summary>
-    [ConfiguredIgnore]
-    public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(this.InactivityThresholdMs);
+    /// <remarks>
+    /// All connection attempts from the same IP address are counted
+    /// within this time window.
+    /// Default value is <c>10 second</c>.
+    /// </remarks>
+    public System.TimeSpan DDoSLogSuppressWindow { get; set; } = System.TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// Gets the interval at which cleanup operations are performed.
+    /// </summary>
+    /// <remarks>
+    /// During cleanup, stale or expired connection tracking entries
+    /// are removed to reduce memory usage.
+    /// Default value is <c>60 seconds</c>.
+    /// </remarks>
+    public System.TimeSpan CleanupInterval { get; set; } = System.TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Gets the duration after which an inactive connection
+    /// is considered expired.
+    /// </summary>
+    /// <remarks>
+    /// Connections that remain inactive beyond this threshold
+    /// are eligible for cleanup.
+    /// Default value is <c>5 minutes</c>.
+    /// </remarks>
+    public System.TimeSpan InactivityThreshold { get; set; } = System.TimeSpan.FromMinutes(5);
 }

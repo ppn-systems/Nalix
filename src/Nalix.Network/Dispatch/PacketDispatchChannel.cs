@@ -251,6 +251,7 @@ public sealed class PacketDispatchChannel
                 }
                 catch (System.Exception ex)
                 {
+                    connection.IncrementErrorCount();
                     Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.EndPoint}", ex);
                 }
                 finally
