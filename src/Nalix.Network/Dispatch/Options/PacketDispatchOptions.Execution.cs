@@ -10,11 +10,11 @@ namespace Nalix.Network.Dispatch.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {
-    #region Private Methods
-
-    private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
-        PacketHandler<TPacket> descriptor,
-        PacketContext<TPacket> context)
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
         context.SkipOutbound = IsVoidLike(descriptor.ReturnType);
 
@@ -75,6 +75,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.ValueTask HandleExecutionExceptionAsync(
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, System.Exception exception)
@@ -95,25 +99,30 @@ public sealed partial class PacketDispatchOptions<TPacket>
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
 
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsVoidLike(System.Type returnType)
-    {
-        return returnType == typeof(void)
-            || returnType == typeof(System.Threading.Tasks.Task)
-            || returnType == typeof(System.Threading.Tasks.ValueTask);
-    }
+        => returnType == typeof(void)
+        || returnType == typeof(System.Threading.Tasks.Task)
+        || returnType == typeof(System.Threading.Tasks.ValueTask);
 
+
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static T EnsureNotNull<T>(T value, System.String paramName)
-        where T : class
-        => value ?? throw new System.ArgumentNullException(paramName);
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static T EnsureNotNull<T>(T value, System.String param)
+        where T : class => value ?? throw new System.ArgumentNullException(param);
 
     /// <summary>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
     /// Adjust mappings to match your enum set.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags) ClassifyException(System.Exception ex)
     {
         // 1) Cancellation/Timeout => transient
@@ -183,6 +192,4 @@ public sealed partial class PacketDispatchOptions<TPacket>
             };
         }
     }
-
-    #endregion Private Methods
 }

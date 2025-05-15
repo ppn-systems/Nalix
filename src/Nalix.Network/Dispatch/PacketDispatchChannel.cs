@@ -39,6 +39,8 @@ namespace Nalix.Network.Dispatch;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
     : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
@@ -82,8 +84,10 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Starts the lease processing loop
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
@@ -121,8 +125,10 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Stops the lease processing loop
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.Exchange(ref _running, 0) == 0)
@@ -197,9 +203,11 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
-    private async System.Threading.Tasks.Task RunLoop(
-        IWorkerContext ctx,
-        System.Threading.CancellationToken ct)
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private async System.Threading.Tasks.Task RunLoop(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         try
         {
