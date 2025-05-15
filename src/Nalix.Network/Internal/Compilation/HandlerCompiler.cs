@@ -22,6 +22,8 @@ namespace Nalix.Network.Internal.Compilation;
 /// </summary>
 /// <typeparam name="TController">The controller type to scan.</typeparam>
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 internal sealed class HandlerCompiler<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
@@ -50,7 +52,8 @@ internal sealed class HandlerCompiler<
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static PacketHandler<TPacket>[] CompileHandlers(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
@@ -110,13 +113,13 @@ internal sealed class HandlerCompiler<
     /// </summary>
     /// <param name="controllerType">The controller type.</param>
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, HandlerInvoker<TPacket>>
-        GetOrCompileMethodAccessors(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, HandlerInvoker<TPacket>> GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
-        System.Type controllerType)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
     {
         // Get methods with [PacketOpcode] attribute
         var methodInfos = System.Linq.Enumerable.ToArray(
@@ -184,8 +187,10 @@ internal sealed class HandlerCompiler<
     /// </summary>
     /// <param name="method">The method to compile.</param>
     /// <returns>A compiled handler delegate.</returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static HandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -294,11 +299,14 @@ internal sealed class HandlerCompiler<
     /// Creates an async-compatible wrapper for a compiled delegate,
     /// handling Task, ValueTask, and their generic variants.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> CreateAsyncWrapper(
         System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
-        System.Type returnType)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]System.Type returnType)
     {
         if (returnType == typeof(System.Threading.Tasks.Task))
         {
@@ -386,8 +394,10 @@ internal sealed class HandlerCompiler<
     /// </summary>
     /// <param name="method">The method to scan.</param>
     /// <returns>The parsed packet metadata.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static PacketMetadata GetCachedAttributes(System.Reflection.MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
@@ -400,6 +410,10 @@ internal sealed class HandlerCompiler<
         ));
     }
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.String Ctx(
         System.String controller, System.UInt16 opcode,
         System.Reflection.MethodInfo? method = null, System.Type? returnType = null)

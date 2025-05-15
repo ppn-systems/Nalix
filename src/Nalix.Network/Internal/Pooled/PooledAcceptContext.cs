@@ -15,12 +15,16 @@ namespace Nalix.Network.Internal.Pooled;
 /// Represents a pooled context for accepting TCP socket connections asynchronously.
 /// Wraps a reusable <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> with built-in pooling logic.
 /// </summary>
+[System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Args={Args}")]
 internal sealed class PooledAcceptContext : IPoolable
 {
     private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
-        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
+        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
+            (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
 
         _ = e.SocketError == System.Net.Sockets.SocketError.Success
             ? tcs.TrySetResult(e.AcceptSocket!)
@@ -56,7 +60,9 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Rebinds this context to a new <see cref="System.Net.Sockets.SocketAsyncEventArgs"/>:
     /// detaches from old args (if any) and attaches the shared completion handler to the new args.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_args))]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BindArgs(System.Net.Sockets.SocketAsyncEventArgs newArgs)
     {
         if (_args != null)
@@ -71,7 +77,9 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <summary>
     /// Binds this context to a new <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> without attaching the completion handler.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_args))]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BindArgsForSync(System.Net.Sockets.SocketAsyncEventArgs newArgs)
     {
         if (_args != null)
@@ -86,7 +94,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Starts an accept with the correct order: prepare TCS first, then call AcceptAsync.
     /// Works for both sync and async completion.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.Contracts.Pure]
     public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> BeginAcceptAsync(System.Net.Sockets.Socket listener)
     {
         var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>(
@@ -117,7 +125,8 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <summary>
     /// Resets the internal state of this context before returning to the pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         if (_args != null)
