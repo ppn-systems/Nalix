@@ -16,8 +16,8 @@ internal class ElasticsearchLogTarget : ILoggerTarget
         if (string.IsNullOrWhiteSpace(elasticsearchUrl))
             throw new ArgumentNullException(nameof(elasticsearchUrl));
 
-        _elasticsearchUrl = elasticsearchUrl;
         _httpClient = new HttpClient();
+        _elasticsearchUrl = elasticsearchUrl;
     }
 
     public async void Publish(LogEntry entry)
