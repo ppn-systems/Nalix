@@ -24,17 +24,23 @@ public abstract class Scene(string name)
     /// Retrieves the list of initial objects in the scene.
     /// </summary>
     /// <returns>ScreenSize list of <see cref="SceneObject"/>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public List<SceneObject> GetObjects() => _objects;
 
     /// <summary>
     /// Adds an object to the list of initial objects in the scene.
     /// </summary>
     /// <param name="o">The <see cref="SceneObject"/> to add.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected void AddObject(SceneObject o) => _objects.Add(o);
 
     /// <summary>
     /// Creates the scene by clearing and loading its objects.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CreateScene()
     {
         this.ClearObjects();
@@ -44,10 +50,14 @@ public abstract class Scene(string name)
     /// <summary>
     /// An abstract method that must be implemented by derived scenes to load their specific objects.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected abstract void LoadObjects();
 
     /// <summary>
     /// Clears all objects from the initial objects list.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ClearObjects() => _objects.Clear();
 }

@@ -33,12 +33,16 @@ public static class SceneManager
     /// </summary>
     /// <typeparam name="T">The type of objects to retrieve.</typeparam>
     /// <returns>ScreenSize HashSet of all objects of the specified type.</returns>
-    public static HashSet<T> AllObjects<T>() where T : SceneObject
-        => [.. _sceneObjects.OfType<T>()];
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static HashSet<T> AllObjects<T>() where T : SceneObject => [.. _sceneObjects.OfType<T>()];
 
-    internal static bool InDestroyQueue(this SceneObject o)
-        => _destroyQueue.Contains(o);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static bool InDestroyQueue(this SceneObject o) => _destroyQueue.Contains(o);
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static bool InSpawnQueue(this SceneObject o)
         => _spawnQueue.Contains(o);
 
@@ -48,6 +52,8 @@ public static class SceneManager
     [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void Instantiate()
     {
         // Get the types from the entry assembly that match the scene namespace
@@ -116,11 +122,12 @@ public static class SceneManager
     /// Queues a scene to be loaded on the next frame.
     /// </summary>
     /// <param name="name">The name of the scene to be loaded.</param>
-    public static void ChangeScene(string name)
-    {
-        _nextScene = name;
-    }
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void ChangeScene(string name) => _nextScene = name;
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void ClearScene()
     {
         foreach (SceneObject sceneObject in _sceneObjects)
@@ -136,6 +143,8 @@ public static class SceneManager
         _spawnQueue.RemoveWhere(o => !o.PersistOnSceneChange);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void LoadScene(string name)
     {
         _currentScene = _scenes.First(scene => scene.Name == name);
@@ -147,6 +156,8 @@ public static class SceneManager
     /// Queues a single object to be spawned in the scene.
     /// </summary>
     /// <param name="o">The object to be spawned.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void QueueSpawn(SceneObject o)
     {
         if (o.Initialized)
@@ -163,6 +174,8 @@ public static class SceneManager
     /// Queues a collection of objects to be spawned in the scene.
     /// </summary>
     /// <param name="sceneObjects">The collection of objects to be spawned.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void QueueSpawn(IEnumerable<SceneObject> sceneObjects)
     {
         foreach (SceneObject o in sceneObjects)
@@ -175,6 +188,8 @@ public static class SceneManager
     /// Queues an object to be destroyed in the scene.
     /// </summary>
     /// <param name="o">The object to be destroyed.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void QueueDestroy(SceneObject o)
     {
         if (!_sceneObjects.Contains(o) && !_spawnQueue.Contains(o))
@@ -192,6 +207,8 @@ public static class SceneManager
     /// Queues a collection of objects to be destroyed in the scene.
     /// </summary>
     /// <param name="sceneObjects">The collection of objects to be destroyed.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void QueueDestroy(IEnumerable<SceneObject> sceneObjects)
     {
         foreach (SceneObject o in sceneObjects)
@@ -200,6 +217,8 @@ public static class SceneManager
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void ProcessLoadScene()
     {
         if (_nextScene == "") return;
@@ -210,6 +229,8 @@ public static class SceneManager
         _nextScene = "";
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void ProcessDestroyQueue()
     {
         foreach (SceneObject o in _destroyQueue)
@@ -224,6 +245,8 @@ public static class SceneManager
         _destroyQueue.Clear();
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void ProcessSpawnQueue()
     {
         foreach (SceneObject q in _spawnQueue)
@@ -242,6 +265,8 @@ public static class SceneManager
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void UpdateSceneObjects(float deltaTime)
     {
         foreach (SceneObject o in _sceneObjects)
@@ -255,6 +280,8 @@ public static class SceneManager
     /// </summary>
     /// <typeparam name="T">The type of object to find.</typeparam>
     /// <returns>The first object of the specified type, or null if none exist.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T FindByType<T>() where T : SceneObject
     {
         HashSet<T> objects = AllObjects<T>();

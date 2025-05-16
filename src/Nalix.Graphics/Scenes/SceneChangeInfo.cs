@@ -32,16 +32,22 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// Extracts the stored information.
     /// </summary>
     /// <returns>The information of type <typeparamref name="T"/>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Extract() => _info;
 
     /// <summary>
     /// Initializes the scene change info and subscribes to the SceneChanged event.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override void Initialize() => SceneManager.SceneChanged += OnSceneChange;
 
     /// <summary>
     /// Cleans up before the object is destroyed and unsubscribes from the SceneChanged event.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override void BeforeDestroy() => SceneManager.SceneChanged -= OnSceneChange;
 
     /// <summary>
@@ -49,12 +55,16 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// </summary>
     /// <param name="lastScene">The name of the last scene.</param>
     /// <param name="nextScene">The name of the next scene.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnSceneChange(string lastScene, string nextScene) => _sceneChanged = true;
 
     /// <summary>
     /// Updates the state of the SceneChangeInfo object and destroys it after a scene change.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since the last update in seconds.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override void Update(float deltaTime)
     {
         // Destroy this instance on the first frame after a new scene has been loaded
@@ -67,6 +77,8 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// <param name="name">The name of the scene change info to look for.</param>
     /// <param name="defaultValue">The default value to return if no matching object is found.</param>
     /// <returns>The stored information of type <typeparamref name="T"/> or the default value.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T Catch(string name, T defaultValue)
     {
         SceneChangeInfo<T> info = SceneManager.FindByType<SceneChangeInfo<T>>();

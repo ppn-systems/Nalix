@@ -10,6 +10,8 @@ internal static class FloatRectExtensions
     /// <param name="rect1">The first rectangle.</param>
     /// <param name="rect2">The second rectangle.</param>
     /// <returns>Resolution new FloatRect that is the union of the two rectangles.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FloatRect Union(this FloatRect rect1, FloatRect rect2)
     {
         float left = System.Math.Min(rect1.Left, rect2.Left);

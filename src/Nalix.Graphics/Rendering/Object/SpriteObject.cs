@@ -77,6 +77,8 @@ public abstract class SpriteObject : RenderObject
     /// <param name="position">The position of the Sprite.</param>
     /// <param name="scale">The scale of the Sprite.</param>
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void SetTransform(ref Sprite s, Vector2f position, Vector2f scale, float rotation)
     {
         s.Position = position;
@@ -88,5 +90,7 @@ public abstract class SpriteObject : RenderObject
     /// Gets the drawable object for rendering the Sprite.
     /// </summary>
     /// <returns>The Sprite as a drawable object.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override sealed Drawable GetDrawable() => Sprite;
 }

@@ -20,12 +20,16 @@ public class ParallaxBackground(Vector2u viewport)
     /// <summary>
     /// Adds a new layer to the parallax system.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AddLayer(Texture texture, float speed, bool autoScale)
         => _layers.Add(new Layer(_viewport, texture, speed, autoScale));
 
     /// <summary>
     /// Updates the parallax scrolling based on elapsed time.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(float deltaTime)
     {
         foreach (var layer in _layers)
@@ -46,6 +50,8 @@ public class ParallaxBackground(Vector2u viewport)
     /// <summary>
     /// Draws all layers to the specified render target.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Draw(RenderTarget target)
     {
         foreach (var layer in _layers)
