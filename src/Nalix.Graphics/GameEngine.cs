@@ -50,11 +50,15 @@ public static class GameEngine
     /// Enables or disables debug mode.
     /// </summary>
     /// <param name="on">Set to true to enable debug mode, false to disable it.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void SetDebugMode(bool on) => Debugging = on;
 
     /// <summary>
     /// Opens the game window and starts the main game loop.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void OpenWindow()
     {
         Clock clock = new();
@@ -79,6 +83,8 @@ public static class GameEngine
     /// Updates all game components, including input, scene management, and scene objects.
     /// </summary>
     /// <param name="deltaTime">Time elapsed since the last update, in seconds.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Update(float deltaTime)
     {
         Input.Update(_window);
@@ -92,6 +98,8 @@ public static class GameEngine
     /// Renders all objects in the current scene, sorted by their Z-index.
     /// </summary>
     /// <param name="target">The render target.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Render(RenderTarget target)
     {
         List<RenderObject> renderObjects = [.. SceneManager.AllObjects<RenderObject>()];

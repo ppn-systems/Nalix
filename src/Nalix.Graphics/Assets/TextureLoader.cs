@@ -44,6 +44,8 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <param name="name">Name of the Texture</param>
     /// <param name="rawData">Optional byte array containing the raw data of the Texture</param>
     /// <returns>The managed Texture</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override Texture Load(string name, byte[] rawData = null) => Load(name, Repeat, Smoothing, rawData);
 
     /// <summary>Loads or retrieves an already loaded instance of a Texture from a File or Raw Data Source</summary>
@@ -52,6 +54,8 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <param name="smoothing">Determines if a smoothing should be applied onto newly loaded Textures.</param>
     /// <param name="rawData">Optional byte array containing the raw data of the Texture</param>
     /// <returns>The managed Texture</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Texture Load(string name, bool? repeat = null, bool? smoothing = null, byte[] rawData = null)
     {
         Texture tex = base.Load(name, rawData);
@@ -69,6 +73,8 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <param name="name">Name of the Texture</param>
     /// <param name="image">Bitmap to be converted to a Texture</param>
     /// <returns>The managed Texture</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Texture Load(string name, Image<Rgba32> image)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(TextureLoader));
@@ -92,6 +98,8 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     }
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override Texture CreateInstanceFromRawData(byte[] rawData)
     {
         using var ms = new MemoryStream(rawData);
@@ -100,6 +108,8 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     }
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override Texture CreateInstanceFromPath(string path)
     {
         using var fs = File.OpenRead(path);

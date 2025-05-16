@@ -20,6 +20,8 @@ public sealed class FontLoader(string assetRoot = "") : AssetLoader<Font>(Availa
     public static readonly IEnumerable<string> AvailableFormats = [".ttf", ".cff", ".fnt", ".ttf", ".otf", ".eot"];
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override Font CreateInstanceFromRawData(byte[] rawData)
     {
         if (rawData == null || rawData.Length == 0)
@@ -30,6 +32,8 @@ public sealed class FontLoader(string assetRoot = "") : AssetLoader<Font>(Availa
     }
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override Font CreateInstanceFromPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

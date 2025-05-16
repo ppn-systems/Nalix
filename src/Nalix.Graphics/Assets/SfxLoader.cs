@@ -31,6 +31,8 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     /// <param name="name">Name of the Resource</param>
     /// <param name="stream">Readable stream containing the raw data of the sound</param>
     /// <returns>The managed Sound</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public SoundBuffer Load(string name, Stream stream)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(SfxLoader));
@@ -46,6 +48,8 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     }
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override SoundBuffer CreateInstanceFromRawData(byte[] rawData)
     {
         if (rawData == null || rawData.Length == 0)
@@ -56,6 +60,8 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     }
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected override SoundBuffer CreateInstanceFromPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

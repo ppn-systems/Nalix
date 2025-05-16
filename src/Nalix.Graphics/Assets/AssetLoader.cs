@@ -62,6 +62,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <param name="name"></param>
     /// <param name="rawData"></param>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual T Load(string name, byte[] rawData = null)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
@@ -104,6 +106,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// </summary>
     /// <param name="logErrors"></param>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual string[] LoadAllFilesInDirectory(bool logErrors = false)
     {
         var assetNames = new List<string>();
@@ -137,6 +141,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
         return [.. assetNames];
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private string ResolveFileEndings(string name)
     {
         foreach (var ending in _FileEndings)
@@ -166,6 +172,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// Releases the asset with the specified name.
     /// </summary>
     /// <param name="name"></param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Release(string name)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
@@ -178,6 +186,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <summary>
     /// Disposes the asset loader and all loaded assets.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -188,6 +198,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// Disposes the asset loader and all loaded assets.
     /// </summary>
     /// <param name="disposing"></param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(bool disposing)
     {
         if (Disposed) return;
@@ -217,6 +229,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// Thrown if this type <typeparamref name="T"/> does not support loading from raw data.
     /// Override this method in a derived class to provide a valid implementation.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual T CreateInstanceFromRawData(byte[] rawData)
     {
         throw new NotSupportedException($"{typeof(T).Name} does not support loading from raw data. Override this method.");
@@ -235,8 +249,8 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <exception cref="TargetInvocationException">
     /// Thrown if the constructor of <typeparamref name="T"/> throws an exception.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual T CreateInstanceFromPath(string path)
-    {
-        return (T)Activator.CreateInstance(typeof(T), [path]);
-    }
+        => (T)Activator.CreateInstance(typeof(T), [path]);
 }
