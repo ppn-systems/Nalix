@@ -48,6 +48,8 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// </summary>
     /// <param name="root">Optional: root folder path when different from the default asset root.</param>
     /// <param name="parallelSounds">The amount of times each sound can be played in parallel.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void LoadFromDirectory(string root = null, int parallelSounds = 2)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
@@ -66,6 +68,8 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// </summary>
     /// <param name="files">The files to load.</param>
     /// <param name="parallelSounds">The amount of times each sound can be played in parallel.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void LoadFromFileList(IEnumerable<String> files, int parallelSounds)
     {
         foreach (var file in files) AddToLibrary(file, parallelSounds);
@@ -76,6 +80,8 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// </summary>
     /// <param name="name">The name of the sound effect.</param>
     /// <param name="parallelSounds">The amount of times this sound can be played in parallel.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AddToLibrary(String name, int parallelSounds)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
@@ -104,6 +110,8 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// <returns>Resolution <see cref="Sound"/> instance if available, otherwise throws an <see cref="ArgumentException"/>.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the loader has been disposed.</exception>
     /// <exception cref="ArgumentException">Thrown if no sound is found with the specified name.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Sound GetSound(String name, bool spatial = false)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
@@ -132,6 +140,8 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// </summary>
     /// <param name="name">The name of the sound effect.</param>
     /// <param name="position">Optional position of the sound. Only relevant when sound is supposed to be spatial.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Play(String name, Vector2f? position = null)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));

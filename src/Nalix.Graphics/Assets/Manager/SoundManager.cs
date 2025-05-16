@@ -47,6 +47,8 @@ public class SoundManager : IDisposable
     /// Retrieves a sound when available. The amount of sounds per frame is limited.
     /// </summary>
     /// <returns>The sound instance or null when too many instances of the same sound are already active</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Sound GetSound()
     {
         ObjectDisposedException.ThrowIf(Disposed, Name);
@@ -64,6 +66,8 @@ public class SoundManager : IDisposable
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -74,6 +78,8 @@ public class SoundManager : IDisposable
     /// Releases unmanaged and managed resources.
     /// </summary>
     /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(bool disposing)
     {
         if (!Disposed)

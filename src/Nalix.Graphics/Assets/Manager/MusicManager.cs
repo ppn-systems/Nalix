@@ -38,6 +38,8 @@ public static class MusicManager
     /// <param name="filename">The path to the music file.</param>
     /// <param name="loop">Determines whether the music should loop.</param>
     /// <exception cref="FileNotFoundException">Thrown if the file does not exist.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Play(string filename, bool loop = true)
     {
         Stop(); // Stop current before playing new
@@ -59,23 +61,25 @@ public static class MusicManager
     /// <summary>
     /// Pauses the currently playing music.
     /// </summary>
-    public static void Pause()
-    {
-        _current?.Pause();
-    }
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void Pause() => _current?.Pause();
 
     /// <summary>
     /// Resumes playback if the music is paused.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Resume()
     {
-        if (_current?.Status == SoundStatus.Paused)
-            _current.Play();
+        if (_current?.Status == SoundStatus.Paused) _current.Play();
     }
 
     /// <summary>
     /// Stops the currently playing music and clears the reference.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Stop()
     {
         _current?.Stop();

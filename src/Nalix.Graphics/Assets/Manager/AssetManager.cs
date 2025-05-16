@@ -39,8 +39,9 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <param name="name">The name of the texture.</param>
     /// <param name="data">The binary data of the texture (optional).</param>
     /// <returns>ScreenSize <see cref="Texture"/> object.</returns>
-    public Texture LoadTexture(string name, byte[] data = null) =>
-        TextureLoader.Load(name, data);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Texture LoadTexture(string name, byte[] data = null) => TextureLoader.Load(name, data);
 
     /// <summary>
     /// Load a texture from an ImageSharp image.
@@ -48,8 +49,9 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <param name="name">The name of the texture.</param>
     /// <param name="image">The <see cref="Image{Rgba32}"/> object.</param>
     /// <returns>ScreenSize <see cref="Texture"/> object.</returns>
-    public Texture LoadTexture(string name, Image<Rgba32> image) =>
-        TextureLoader.Load(name, image);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Texture LoadTexture(string name, Image<Rgba32> image) => TextureLoader.Load(name, image);
 
     /// <summary>
     /// Load a font by name (from file or memory).
@@ -57,8 +59,9 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <param name="name">The name of the font.</param>
     /// <param name="data">The binary data of the font (optional).</param>
     /// <returns>ScreenSize <see cref="Font"/> object.</returns>
-    public Font LoadFont(string name, byte[] data = null) =>
-        FontLoader.Load(name, data);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Font LoadFont(string name, byte[] data = null) => FontLoader.Load(name, data);
 
     /// <summary>
     /// Load a sound buffer by name (from file or memory).
@@ -66,8 +69,9 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <param name="name">The name of the sound buffer.</param>
     /// <param name="data">The binary data of the sound buffer (optional).</param>
     /// <returns>ScreenSize <see cref="SoundBuffer"/> object.</returns>
-    public SoundBuffer LoadSound(string name, byte[] data = null) =>
-        SfxLoader.Load(name, data);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public SoundBuffer LoadSound(string name, byte[] data = null) => SfxLoader.Load(name, data);
 
     /// <summary>
     /// Load a sound buffer by name (from stream).
@@ -75,12 +79,15 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <param name="name">The name of the sound buffer.</param>
     /// <param name="stream">The stream containing the sound buffer data.</param>
     /// <returns>ScreenSize <see cref="SoundBuffer"/> object.</returns>
-    public SoundBuffer LoadSound(string name, Stream stream) =>
-        SfxLoader.Load(name, stream);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public SoundBuffer LoadSound(string name, Stream stream) => SfxLoader.Load(name, stream);
 
     /// <summary>
     /// Release all loaded assets.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public new void Dispose()
     {
         TextureLoader.Dispose();
