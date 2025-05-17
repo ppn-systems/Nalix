@@ -18,6 +18,8 @@ namespace Nalix.Network.Throttling;
 /// Uses lock-free CAS updates on a ConcurrentDictionary to avoid lost updates under contention.
 /// Supports cleanup of stale entries to bound memory usage.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class ConnectionLimiter : System.IDisposable, IReportable
 {
     #region Constants
@@ -94,9 +96,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// Returns <c>true</c> if allowed (and increments counters), otherwise <c>false</c>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
@@ -166,8 +167,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Net.EndPoint? endPoint)
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.MaybeNull] System.Net.EndPoint? endPoint)
     {
         if (endPoint is null)
         {
@@ -185,7 +185,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// Marks a connection as closed for the given IP address. Returns <c>true</c> if the counter was decremented.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void OnConnectionClosed(System.Object? sender, IConnectEventArgs args)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
@@ -239,6 +240,9 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// This method is allocation-friendly: uses a single StringBuilder, limits sorting,
     /// and caps the number of displayed rows for readability.
     /// </remarks>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
         // Take a stable snapshot to minimize contention and keep the report consistent.
@@ -308,6 +312,9 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// <summary>
     /// Timer tick entry: non-reentrant, best-effort cleanup of stale entries.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void RunCleanupOnce()
     {
         if (_disposed)
