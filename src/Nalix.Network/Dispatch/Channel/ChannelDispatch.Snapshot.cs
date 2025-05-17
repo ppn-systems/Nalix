@@ -1,8 +1,5 @@
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Snapshot;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 
 namespace Nalix.Network.Dispatch.Channel;
 
@@ -24,7 +21,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
     /// <remarks>
     /// This value is updated atomically and reflects real-time state.
     /// </remarks>
-    public int TotalPendingCount => Volatile.Read(ref _totalCount);
+    public int TotalPendingCount => System.Threading.Volatile.Read(ref _totalCount);
 
     #endregion Properties
 
@@ -62,13 +59,13 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Dictionary<PacketPriority, int> Snapshot()
+    public System.Collections.Generic.Dictionary<PacketPriority, int> Snapshot()
     {
-        Dictionary<PacketPriority, int> result = [];
+        System.Collections.Generic.Dictionary<PacketPriority, int> result = [];
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            result[(PacketPriority)i] = Volatile.Read(ref _priorityCounts[i]);
+            result[(PacketPriority)i] = System.Threading.Volatile.Read(ref _priorityCounts[i]);
         }
 
         return result;
@@ -97,13 +94,13 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
         if (!_options.EnableMetrics || _queueTimer == null)
             return new PacketSnapshot();
 
-        Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];
+        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];
 
         this.CollectStatisticsInternal(stats);
 
         float avgProcessingMs = 0;
         if (_packetsProcessed > 0)
-            avgProcessingMs = (float)(_totalProcessingTicks * 1000.0 / Stopwatch.Frequency) / _packetsProcessed;
+            avgProcessingMs = (float)(_totalProcessingTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency) / _packetsProcessed;
 
         return new PacketSnapshot
         {
@@ -133,13 +130,14 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
 
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void CollectStatisticsInternal(Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
+    private void CollectStatisticsInternal(
+        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
     {
         for (int i = 0; i < _priorityCount; i++)
         {
             stats[(PacketPriority)i] = new PriorityQueueSnapshot
             {
-                PendingPackets = Volatile.Read(ref _priorityCounts[i]),
+                PendingPackets = System.Threading.Volatile.Read(ref _priorityCounts[i]),
                 TotalEnqueued = _enqueuedCounts[i],
                 TotalDequeued = _dequeuedCounts[i],
                 TotalExpiredPackets = _expiredCounts[i],
@@ -155,7 +153,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void UpdatePerformanceStats(long startTicks)
     {
-        long endTicks = Stopwatch.GetTimestamp();
+        long endTicks = System.Diagnostics.Stopwatch.GetTimestamp();
         long elapsed = endTicks - startTicks;
 
         _totalProcessingTicks += elapsed;
