@@ -7,8 +7,8 @@
     <DefineConstants>UNSAFE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-    <Version>0.8.26</Version>
-    <PackageVersion>0.8.26</PackageVersion>
+    <Version>0.8.73</Version>
+    <PackageVersion>0.8.73</PackageVersion>
 
     <Description>
 Nalix.Cryptography is a high-performance .NET library providing secure and efficient cryptographic utilities. It supports symmetric and asymmetric encryption, authenticated encryption (AEAD), hashing, message authentication codes (MAC), integrity checks, padding schemes, and general security enhancements. Designed for developers requiring robust cryptographic solutions with minimal overhead.

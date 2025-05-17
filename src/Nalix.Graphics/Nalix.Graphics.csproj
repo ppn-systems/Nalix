@@ -5,8 +5,8 @@
     <IsTrimmable>true</IsTrimmable>
     <OutputType>Library</OutputType>
 
-    <Version>0.8.47</Version>
-    <PackageVersion>0.8.47</PackageVersion>
+    <Version>0.8.73</Version>
+    <PackageVersion>0.8.73</PackageVersion>
 
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 
