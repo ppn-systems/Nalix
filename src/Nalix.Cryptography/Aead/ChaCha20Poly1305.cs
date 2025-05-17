@@ -1,8 +1,5 @@
 using Nalix.Cryptography.Mac;
 using Nalix.Cryptography.Symmetric;
-using System;
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Aead;
 
@@ -48,12 +45,12 @@ public static class ChaCha20Poly1305
     public static byte[] Encrypt(byte[] key, byte[] nonce, byte[] plaintext, byte[] aad = null)
     {
         if (key == null || key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
+            throw new System.ArgumentException($"Key must be {KeySize} bytes", nameof(key));
 
         if (nonce == null || nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+            throw new System.ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
 
-        ArgumentNullException.ThrowIfNull(plaintext);
+        System.ArgumentNullException.ThrowIfNull(plaintext);
 
         byte[] result = new byte[plaintext.Length + TagSize];
 
@@ -70,9 +67,9 @@ public static class ChaCha20Poly1305
         using (Poly1305 poly1305 = new(poly1305Key))
         {
             byte[] mac = new byte[TagSize];
-            byte[] authData = PrepareAuthData(aad, result.AsSpan(0, plaintext.Length));
+            byte[] authData = PrepareAuthData(aad, System.MemoryExtensions.AsSpan(result, 0, plaintext.Length));
             poly1305.ComputeTag(authData, mac);
-            Buffer.BlockCopy(mac, 0, result, plaintext.Length, TagSize);
+            System.Buffer.BlockCopy(mac, 0, result, plaintext.Length, TagSize);
         }
 
         return result;
@@ -89,14 +86,14 @@ public static class ChaCha20Poly1305
     /// <param name="ciphertext">The encrypted output data.</param>
     /// <param name="tag">The 16-byte authentication tag.</param>
     public static void Encrypt(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
-        ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> aad,
+        System.ReadOnlySpan<byte> key, System.ReadOnlySpan<byte> nonce,
+        System.ReadOnlySpan<byte> plaintext, System.ReadOnlySpan<byte> aad,
         out byte[] ciphertext, out byte[] tag)
     {
         if (key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
+            throw new System.ArgumentException($"Key must be {KeySize} bytes", nameof(key));
         if (nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+            throw new System.ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
 
         // Generate Poly1305 key using first block of ChaCha20
         byte[] poly1305Key = new byte[KeySize];
@@ -126,11 +123,11 @@ public static class ChaCha20Poly1305
     public static byte[] Decrypt(byte[] key, byte[] nonce, byte[] ciphertext, byte[] aad = null)
     {
         if (key == null || key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
+            throw new System.ArgumentException($"Key must be {KeySize} bytes", nameof(key));
         if (nonce == null || nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+            throw new System.ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
         if (ciphertext == null || ciphertext.Length < TagSize)
-            throw new ArgumentException("Invalid ciphertext", nameof(ciphertext));
+            throw new System.ArgumentException("Invalid ciphertext", nameof(ciphertext));
 
         // Generate Poly1305 key using first block of ChaCha20
         byte[] poly1305Key = new byte[KeySize];
@@ -142,23 +139,23 @@ public static class ChaCha20Poly1305
         {
             byte[] expectedMac = new byte[TagSize];
             byte[] authData = PrepareAuthData(
-                aad, ciphertext.AsSpan(0, ciphertext.Length - TagSize));
+                aad, System.MemoryExtensions.AsSpan(ciphertext, 0, ciphertext.Length - TagSize));
             poly1305.ComputeTag(authData, expectedMac);
 
             byte[] receivedMac = new byte[TagSize];
-            Buffer.BlockCopy(
+            System.Buffer.BlockCopy(
                 ciphertext, ciphertext.Length - TagSize,
                 receivedMac, 0, TagSize);
 
             if (!CompareBytes(expectedMac, receivedMac))
-                throw new InvalidOperationException("Authentication failed");
+                throw new System.InvalidOperationException("Authentication failed");
         }
 
         // Decrypt ciphertext
         byte[] plaintext = new byte[ciphertext.Length - TagSize];
         using (ChaCha20 chacha20 = new(key, nonce, 1))
             chacha20.DecryptBytes(
-                plaintext, ciphertext.AsSpan(0, ciphertext.Length - TagSize).ToArray());
+                plaintext, System.MemoryExtensions.AsSpan(ciphertext, 0, ciphertext.Length - TagSize).ToArray());
 
         return plaintext;
     }
@@ -175,17 +172,17 @@ public static class ChaCha20Poly1305
     /// <param name="plaintext">The decrypted output data if authentication is successful.</param>
     /// <returns>True if authentication is successful, false otherwise.</returns>
     public static bool Decrypt(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> ciphertext,
-        ReadOnlySpan<byte> aad, ReadOnlySpan<byte> tag, out byte[] plaintext)
+        System.ReadOnlySpan<byte> key, System.ReadOnlySpan<byte> nonce, System.ReadOnlySpan<byte> ciphertext,
+        System.ReadOnlySpan<byte> aad, System.ReadOnlySpan<byte> tag, out byte[] plaintext)
     {
         plaintext = null;
 
         if (key.Length != KeySize)
-            throw new ArgumentException($"Key must be {KeySize} bytes", nameof(key));
+            throw new System.ArgumentException($"Key must be {KeySize} bytes", nameof(key));
         if (nonce.Length != NonceSize)
-            throw new ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
+            throw new System.ArgumentException($"Nonce must be {NonceSize} bytes", nameof(nonce));
         if (tag.Length != TagSize)
-            throw new ArgumentException($"Tag must be {TagSize} bytes", nameof(tag));
+            throw new System.ArgumentException($"Tag must be {TagSize} bytes", nameof(tag));
 
         // Generate Poly1305 key using first block of ChaCha20
         byte[] poly1305Key = new byte[KeySize];
@@ -223,7 +220,8 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Securely compares two byte arrays in constant time to prevent timing attacks.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static bool CompareBytes(byte[] a, byte[] b)
     {
         if (a.Length != b.Length) return false;
@@ -233,8 +231,11 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Prepares the authenticated data input for Poly1305.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte[] PrepareAuthData(byte[] associatedData, ReadOnlySpan<byte> ciphertext)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static byte[] PrepareAuthData(
+        byte[] associatedData,
+        System.ReadOnlySpan<byte> ciphertext)
     {
         long adLength = associatedData?.Length ?? 0;
         long ctLength = ciphertext.Length;
@@ -251,19 +252,22 @@ public static class ChaCha20Poly1305
 
         if (associatedData != null && associatedData.Length > 0)
         {
-            Buffer.BlockCopy(associatedData, 0, macData, offset, associatedData.Length);
+            System.Buffer.BlockCopy(associatedData, 0, macData, offset, associatedData.Length);
             offset += associatedData.Length;
             if (associatedData.Length % 16 != 0)
                 offset += 16 - (associatedData.Length % 16);
         }
 
-        ciphertext.CopyTo(macData.AsSpan(offset));
+        ciphertext.CopyTo(System.MemoryExtensions.AsSpan(macData, offset));
         offset += ciphertext.Length;
         if (ciphertext.Length % 16 != 0)
             offset += 16 - (ciphertext.Length % 16);
 
-        BinaryPrimitives.WriteUInt64LittleEndian(macData.AsSpan(offset), (ulong)adLength);
-        BinaryPrimitives.WriteUInt64LittleEndian(macData.AsSpan(offset + 8), (ulong)ctLength);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
+            System.MemoryExtensions.AsSpan(macData, offset), (ulong)adLength);
+
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
+            System.MemoryExtensions.AsSpan(macData, offset + 8), (ulong)ctLength);
 
         return macData;
     }
