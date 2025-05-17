@@ -4,9 +4,6 @@ using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
 using Nalix.Cryptography.Utils;
 using Nalix.Randomization;
-using System;
-using System.Buffers;
-using System.Buffers.Binary;
 
 namespace Nalix.Cryptography;
 
@@ -18,25 +15,25 @@ public static class Ciphers
     /// <summary>
     /// Encrypts the provided data using the specified algorithm.
     /// </summary>
-    /// <param name="data">The input data as <see cref="ReadOnlyMemory{Byte}"/>.</param>
+    /// <param name="data">The input data as <see cref="System.ReadOnlyMemory{Byte}"/>.</param>
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">
     /// The encryption algorithm to use.
     /// </param>
-    /// <returns>The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static Memory<byte> Encrypt(
-        Memory<byte> data, byte[] key,
+    /// <returns>The encrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
+    public static System.Memory<byte> Encrypt(
+        System.Memory<byte> data, byte[] key,
         EncryptionType algorithm)
     {
         if (key == null)
-            throw new ArgumentNullException(
+            throw new System.ArgumentNullException(
                 nameof(key), "Encryption key cannot be null. Please provide a valid key.");
 
         if (data.IsEmpty)
-            throw new ArgumentException(
+            throw new System.ArgumentException(
                 "Data cannot be empty. Please provide data to encrypt.", nameof(data));
 
-        if (!Enum.IsDefined(algorithm))
+        if (!System.Enum.IsDefined(algorithm))
             throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
 
         try
@@ -45,15 +42,16 @@ public static class Ciphers
             {
                 case EncryptionType.ChaCha20Poly1305:
                     {
-                        Span<byte> nonce = RandGenerator.CreateNonce();
+                        System.Span<byte> nonce = RandGenerator.CreateNonce();
 
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null,
                             out byte[] ciphertext, out byte[] tag);
 
                         byte[] result = new byte[12 + ciphertext.Length + 16]; // 12 for nonce, 16 for tag
                         nonce.CopyTo(result);
-                        ciphertext.CopyTo(result.AsSpan(12));
-                        tag.CopyTo(result.AsSpan(12 + ciphertext.Length));
+
+                        System.Array.Copy(ciphertext, 0, result, 12, ciphertext.Length);
+                        System.Array.Copy(tag, 0, result, 12 + ciphertext.Length, 16);
 
                         return result;
                     }
@@ -61,7 +59,7 @@ public static class Ciphers
                 case EncryptionType.Salsa20:
                     {
                         ulong counter = 0;
-                        Span<byte> nonce = new byte[8];
+                        System.Span<byte> nonce = new byte[8];
                         byte[] ciphertext = new byte[data.Length];
 
                         Salsa20.Encrypt(key, nonce, counter, data.Span, ciphertext);
@@ -74,15 +72,16 @@ public static class Ciphers
                         const int blockSize = 8;
                         int originalLength = data.Length;
                         if (originalLength == 0)
-                            throw new ArgumentException("Input data cannot be empty.");
+                            throw new System.ArgumentException("Input data cannot be empty.");
 
                         int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
-                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + bufferSize); // 4 bytes for length prefix
+                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + bufferSize); // 4 bytes for length prefix
 
                         try
                         {
-                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength);
-                            Span<byte> workSpan = output.AsSpan(4, bufferSize);
+                            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+                                System.MemoryExtensions.AsSpan(output, 0, 4), originalLength);
+                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, bufferSize);
 
                             data.Span.CopyTo(workSpan);
 
@@ -91,19 +90,19 @@ public static class Ciphers
                                 RandGenerator.Fill(workSpan[originalLength..bufferSize]);
                             }
 
-                            ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
+                            System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
 
                             for (int i = 0; i < bufferSize / blockSize; i++)
                             {
-                                Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                System.Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
                                 Speck.Encrypt(block, fixedKey, block);
                             }
 
-                            return output.AsSpan(0, 4 + bufferSize).ToArray();
+                            return System.MemoryExtensions.AsSpan(output, 0, 4 + bufferSize).ToArray();
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
                         }
                     }
 
@@ -113,16 +112,17 @@ public static class Ciphers
                         int originalLength = data.Length;
 
                         if (originalLength == 0)
-                            throw new ArgumentException("Input data cannot be empty.", nameof(data));
+                            throw new System.ArgumentException("Input data cannot be empty.", nameof(data));
 
                         int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // align to 16 bytes
-                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + paddedLength); // 4 bytes for original length
+                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + paddedLength); // 4 bytes for original length
 
                         try
                         {
-                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength);
+                            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+                                System.MemoryExtensions.AsSpan(output, 0, 4), originalLength);
 
-                            Span<byte> workSpan = output.AsSpan(4, paddedLength);
+                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, paddedLength);
                             data.Span.CopyTo(workSpan);
 
                             if (paddedLength > originalLength)
@@ -133,11 +133,11 @@ public static class Ciphers
                             byte[] encrypted = Twofish.ECB.Encrypt(key, workSpan);
                             encrypted.CopyTo(output, 4);
 
-                            return output.AsMemory(0, 4 + paddedLength);
+                            return System.MemoryExtensions.AsMemory(output, 0, 4 + paddedLength);
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
                         }
                     }
 
@@ -147,20 +147,21 @@ public static class Ciphers
                         int originalLength = data.Length;
 
                         if (originalLength == 0)
-                            throw new ArgumentException("Input data cannot be empty.", nameof(data));
+                            throw new System.ArgumentException("Input data cannot be empty.", nameof(data));
 
                         int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // Align to 16 bytes
-                        Span<byte> iv = RandGenerator.CreateNonce(16); // 16 bytes IV
+                        System.Span<byte> iv = RandGenerator.CreateNonce(16); // 16 bytes IV
 
                         // 4 bytes for original length + 16 bytes IV + padded content
-                        byte[] output = ArrayPool<byte>.Shared.Rent(4 + 16 + paddedLength);
+                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + 16 + paddedLength);
 
                         try
                         {
-                            BinaryPrimitives.WriteInt32LittleEndian(output.AsSpan(0, 4), originalLength); // original data length
-                            iv.CopyTo(output.AsSpan(4, 16)); // write IV
+                            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+                                System.MemoryExtensions.AsSpan(output, 0, 4), originalLength); // original data length
+                            iv.CopyTo(System.MemoryExtensions.AsSpan(output, 4, 16)); // write IV
 
-                            Span<byte> workSpan = output.AsSpan(4 + 16, paddedLength);
+                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4 + 16, paddedLength);
                             data.Span.CopyTo(workSpan);
 
                             if (paddedLength > originalLength)
@@ -171,11 +172,11 @@ public static class Ciphers
                             byte[] encrypted = Twofish.CBC.Encrypt(key, iv, workSpan);
                             encrypted.CopyTo(output, 4 + 16); // overwrite with encrypted data
 
-                            return output.AsMemory(0, 4 + 16 + paddedLength);
+                            return System.MemoryExtensions.AsMemory(output, 0, 4 + 16 + paddedLength);
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
                         }
                     }
 
@@ -183,44 +184,46 @@ public static class Ciphers
                     {
                         int originalLength = data.Length;
                         if (originalLength == 0)
-                            throw new ArgumentException("Input data cannot be empty.");
+                            throw new System.ArgumentException("Input data cannot be empty.");
 
                         int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
 
                         // Use ArrayPool to avoid frequent allocations for large data
-                        byte[] encrypted = ArrayPool<byte>.Shared.Rent(4 + bufferSize);
+                        byte[] encrypted = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + bufferSize);
                         try
                         {
                             // Write original length prefix
-                            BinaryPrimitives.WriteInt32LittleEndian(encrypted.AsSpan(0, 4), originalLength);
+                            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
+                                System.MemoryExtensions.AsSpan(encrypted, 0, 4), originalLength);
 
                             // Avoid unnecessary allocation for paddedInput
-                            ReadOnlySpan<byte> inputSpan = data.Span;
+                            System.ReadOnlySpan<byte> inputSpan = data.Span;
                             // Use heap memory for padding to avoid stack overflow
-                            byte[] paddedInput = ArrayPool<byte>.Shared.Rent(bufferSize);
+                            byte[] paddedInput = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
 
                             try
                             {
                                 inputSpan.CopyTo(paddedInput);
                                 // Random padding instead of zero-padding for better security
                                 RandGenerator.Fill(
-                                    paddedInput.AsSpan(originalLength, bufferSize - originalLength));
+                                    System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
 
                                 Xtea.Encrypt(
-                                    paddedInput.AsSpan(0, bufferSize),
-                                    BitwiseUtils.FixedSize(key), encrypted.AsSpan(4));
+                                    System.MemoryExtensions.AsSpan(paddedInput, 0, bufferSize),
+                                    BitwiseUtils.FixedSize(key),
+                                    System.MemoryExtensions.AsSpan(encrypted, 4));
                             }
                             finally
                             {
-                                ArrayPool<byte>.Shared.Return(paddedInput);
+                                System.Buffers.ArrayPool<byte>.Shared.Return(paddedInput);
                             }
 
                             // Return only the required portion of encrypted data
-                            return encrypted.AsSpan(0, 4 + bufferSize).ToArray();
+                            return System.MemoryExtensions.AsSpan(encrypted, 0, 4 + bufferSize).ToArray();
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(encrypted);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(encrypted);
                         }
                     }
 
@@ -230,7 +233,7 @@ public static class Ciphers
                         $"Please choose a valid algorithm.");
             }
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             throw new CryptoException(
                 "Encryption failed. An unexpected error occurred during the encryption process.", ex);
@@ -240,23 +243,23 @@ public static class Ciphers
     /// <summary>
     /// Decrypts the provided data using the specified algorithm.
     /// </summary>
-    /// <param name="data">The encrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</param>
+    /// <param name="data">The encrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</param>
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">
     /// The encryption algorithm that was used.
     /// </param>
-    /// <returns>The decrypted data as <see cref="ReadOnlyMemory{Byte}"/>.</returns>
-    public static Memory<byte> Decrypt(
-        Memory<byte> data, byte[] key,
+    /// <returns>The decrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
+    public static System.Memory<byte> Decrypt(
+        System.Memory<byte> data, byte[] key,
         EncryptionType algorithm = EncryptionType.XTEA)
     {
         if (key == null)
-            throw new ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
+            throw new System.ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
 
         if (data.IsEmpty)
-            throw new ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
+            throw new System.ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
 
-        if (!Enum.IsDefined(algorithm))
+        if (!System.Enum.IsDefined(algorithm))
             throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
 
         try
@@ -265,16 +268,15 @@ public static class Ciphers
             {
                 case EncryptionType.ChaCha20Poly1305:
                     {
-                        ReadOnlySpan<byte> input = data.Span;
+                        System.ReadOnlySpan<byte> input = data.Span;
                         if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
-                            throw new ArgumentException(
-                                "Invalid data length. " +
-                                "Encrypted data must contain a nonce (12 bytes) and a tag (16 bytes).",
+                            throw new System.ArgumentException(
+                                "Invalid data length. Encrypted data must contain a nonce (12 bytes) and a tag (16 bytes).",
                                 nameof(data));
 
-                        ReadOnlySpan<byte> nonce = input[..12];
-                        ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
-                        ReadOnlySpan<byte> ciphertext = input[12..^16];
+                        System.ReadOnlySpan<byte> nonce = input[..12];
+                        System.ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
+                        System.ReadOnlySpan<byte> ciphertext = input[12..^16];
 
                         if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
                             throw new CryptoException(
@@ -286,7 +288,7 @@ public static class Ciphers
                 case EncryptionType.Salsa20:
                     {
                         ulong counter = 0;
-                        Span<byte> nonce = new byte[8];
+                        System.Span<byte> nonce = new byte[8];
                         byte[] plaintext = new byte[data.Length];
 
                         Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
@@ -298,34 +300,35 @@ public static class Ciphers
                     {
                         const int blockSize = 8;
                         if (data.Length < 4)
-                            throw new ArgumentException("Input data too short to contain length prefix.");
+                            throw new System.ArgumentException("Input data too short to contain length prefix.");
 
-                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
                         if (originalLength < 0 || originalLength > data.Length - 4)
-                            throw new ArgumentException("Invalid length prefix.");
+                            throw new System.ArgumentException("Invalid length prefix.");
 
                         int bufferSize = data.Length - 4;
                         if (bufferSize % blockSize != 0)
-                            throw new ArgumentException("Input data length is not aligned to block size.");
+                            throw new System.ArgumentException("Input data length is not aligned to block size.");
 
-                        byte[] output = ArrayPool<byte>.Shared.Rent(originalLength);
+                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(originalLength);
                         try
                         {
-                            Span<byte> workSpan = data.Span[4..];
-                            ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
+                            System.Span<byte> workSpan = data.Span[4..];
+                            System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
 
                             for (int i = 0; i < bufferSize / blockSize; i++)
                             {
-                                Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                System.Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
                                 Speck.Decrypt(block, fixedKey, block);
                             }
 
                             workSpan[..originalLength].CopyTo(output);
-                            return output.AsSpan(0, originalLength).ToArray();
+
+                            return System.MemoryExtensions.AsMemory(output, 0, originalLength);
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
                         }
                     }
 
@@ -334,17 +337,17 @@ public static class Ciphers
                         const int blockSize = 16;
 
                         if (data.Length < 4 || (data.Length - 4) % blockSize != 0)
-                            throw new ArgumentException("Invalid encrypted data format.", nameof(data));
+                            throw new System.ArgumentException("Invalid encrypted data format.", nameof(data));
 
-                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
 
                         if (originalLength < 0 || originalLength > data.Length - 4)
-                            throw new ArgumentOutOfRangeException(nameof(data), "Invalid original length.");
+                            throw new System.ArgumentOutOfRangeException(nameof(data), "Invalid original length.");
 
-                        ReadOnlySpan<byte> encryptedSpan = data.Span[4..];
+                        System.ReadOnlySpan<byte> encryptedSpan = data.Span[4..];
                         byte[] decrypted = Twofish.ECB.Decrypt(key, encryptedSpan);
 
-                        return decrypted.AsMemory(0, originalLength); // loại bỏ padding
+                        return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength); // remove padding
                     }
 
                 case EncryptionType.TwofishCBC:
@@ -352,26 +355,26 @@ public static class Ciphers
                         const int blockSize = 16;
 
                         if (data.Length < 4 + 16)
-                            throw new ArgumentException("Encrypted data is too short.", nameof(data));
+                            throw new System.ArgumentException("Encrypted data is too short.", nameof(data));
 
-                        ReadOnlySpan<byte> input = data.Span;
+                        System.ReadOnlySpan<byte> input = data.Span;
 
-                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
+                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
                         if (originalLength < 0)
-                            throw new ArgumentException("Invalid original length found in encrypted data.", nameof(data));
+                            throw new System.ArgumentException("Invalid original length found in encrypted data.", nameof(data));
 
-                        ReadOnlySpan<byte> iv = input.Slice(4, 16);
-                        ReadOnlySpan<byte> encrypted = input[(4 + 16)..];
+                        System.ReadOnlySpan<byte> iv = input.Slice(4, 16);
+                        System.ReadOnlySpan<byte> encrypted = input[(4 + 16)..];
 
                         if (encrypted.Length % blockSize != 0)
-                            throw new ArgumentException("Encrypted data length is not aligned to block size.", nameof(data));
+                            throw new System.ArgumentException("Encrypted data length is not aligned to block size.", nameof(data));
 
                         byte[] decrypted = Twofish.CBC.Decrypt(key, iv, encrypted);
 
                         if (originalLength > decrypted.Length)
                             throw new CryptoException("Decrypted data is smaller than original length.");
 
-                        return decrypted.AsMemory(0, originalLength);
+                        return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength);
                     }
 
                 case EncryptionType.XTEA:
@@ -379,22 +382,24 @@ public static class Ciphers
                         if (data.Length < 4)
                             throw new CryptoException("Invalid encrypted data format.");
 
-                        int originalLength = BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
                         int encryptedLength = data.Length - 4;
 
                         if (originalLength < 0 || originalLength > encryptedLength)
                             throw new CryptoException("Corrupted length header.");
 
-                        byte[] decrypted = ArrayPool<byte>.Shared.Rent(encryptedLength);
+                        byte[] decrypted = System.Buffers.ArrayPool<byte>.Shared.Rent(encryptedLength);
 
                         try
                         {
-                            Xtea.Decrypt(data.Span[4..], BitwiseUtils.FixedSize(key), decrypted.AsSpan(0, encryptedLength));
-                            return decrypted.AsMemory(0, originalLength); // Trim padding
+                            Xtea.Decrypt(data.Span[4..], BitwiseUtils.FixedSize(key),
+                                System.MemoryExtensions.AsSpan(decrypted, 0, encryptedLength));
+
+                            return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength); // Trim padding
                         }
                         finally
                         {
-                            ArrayPool<byte>.Shared.Return(decrypted);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(decrypted);
                         }
                     }
 
@@ -404,7 +409,7 @@ public static class Ciphers
                         $"Please choose a valid algorithm.");
             }
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             throw new CryptoException(
                 "Decryption failed. An unexpected error occurred during the decryption process.", ex);
@@ -422,9 +427,9 @@ public static class Ciphers
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryEncrypt(
-        Memory<byte> data, byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
-        EncryptionType mode)
+        System.Memory<byte> data, byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out System.Memory<byte> memory, EncryptionType mode)
     {
         try
         {
@@ -449,9 +454,9 @@ public static class Ciphers
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryDecrypt(
-        Memory<byte> data, byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Memory<byte> memory,
-        EncryptionType mode)
+        System.Memory<byte> data, byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out System.Memory<byte> memory, EncryptionType mode)
     {
         try
         {
