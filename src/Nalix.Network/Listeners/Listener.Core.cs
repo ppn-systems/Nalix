@@ -5,7 +5,6 @@ using Nalix.Network.Protocols;
 using Nalix.Shared.Configuration;
 using System;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Nalix.Network.Listeners;
@@ -122,7 +121,8 @@ public abstract partial class Listener : IListener, IDisposable
     /// <summary>
     /// Disposes the resources used by the listener.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -133,7 +133,8 @@ public abstract partial class Listener : IListener, IDisposable
     /// Disposes the resources used by the listener.
     /// </summary>
     /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(bool disposing)
     {
         if (_isDisposed) return;

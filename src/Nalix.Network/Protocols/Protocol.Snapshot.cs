@@ -1,6 +1,6 @@
 namespace Nalix.Network.Protocols;
 
-public abstract partial class Protocol
+public abstract partial class Protocol : Snapshot.ISnapshot<Snapshot.ProtocolSnapshot>
 {
     #region Fields
 
@@ -31,7 +31,7 @@ public abstract partial class Protocol
     /// A <see cref="Snapshot.ProtocolSnapshot"/> containing metrics like
     /// total messages processed and total errors encountered.
     /// </returns>
-    public virtual Snapshot.ProtocolSnapshot Snapshot() => new()
+    public virtual Snapshot.ProtocolSnapshot GetSnapshot() => new()
     {
         IsListening = IsAccepting,
         TotalMessages = System.Threading.Interlocked.Read(ref _totalMessages),

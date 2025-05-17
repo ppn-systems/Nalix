@@ -1,7 +1,6 @@
 using Nalix.Common.Connection;
 using System;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,7 +13,8 @@ public abstract partial class Listener
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The connection event arguments.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
         _logger.Debug("Closing {0}", args.Connection.RemoteEndPoint);
@@ -29,7 +29,8 @@ public abstract partial class Listener
     /// <summary>
     /// Processes a new connection using the protocol handler.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ProcessConnection(IConnection connection)
     {
         try
@@ -59,6 +60,8 @@ public abstract partial class Listener
 
         AcceptNext();
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void AcceptNext()
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -94,6 +97,8 @@ public abstract partial class Listener
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void HandleAccept(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success && e.AcceptSocket is Socket socket)
@@ -122,6 +127,8 @@ public abstract partial class Listener
     /// <summary>
     /// Accepts connections in a loop until cancellation is requested
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -151,7 +158,8 @@ public abstract partial class Listener
     /// Creates a new connection from an incoming socket.
     /// </summary>
     /// <returns>A task representing the connection creation.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private IConnection CreateConnection(Socket socket)
     {
         ConfigureHighPerformanceSocket(socket);
@@ -170,7 +178,8 @@ public abstract partial class Listener
     /// </summary>
     /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
     /// <returns>A task representing the connection creation.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         Socket socket = await Task.Factory

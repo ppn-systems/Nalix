@@ -1,6 +1,6 @@
 namespace Nalix.Network.Listeners;
 
-public abstract partial class Listener
+public abstract partial class Listener : Snapshot.ISnapshot<Snapshot.ListenerSnapshot>
 {
     /// <summary>
     /// Retrieves a snapshot of the current state of the listener, including its port, listening status,

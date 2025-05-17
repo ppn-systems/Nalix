@@ -2,12 +2,11 @@ using Nalix.Common.Package.Enums;
 using Nalix.Network.Snapshot;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot> where TPacket : Common.Package.IPacket
 {
     #region Properties
 
@@ -42,7 +41,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// The total number of packets in the queue if no priority is specified,
     /// or the number of packets in the queue with the specified priority.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int GetQueueLength(PacketPriority? priority = null)
     {
         if (priority.HasValue)
@@ -60,7 +60,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <remarks>
     /// This method is thread-safe and reflects the queue state at the time of the call.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Dictionary<PacketPriority, int> Snapshot()
     {
         Dictionary<PacketPriority, int> result = [];
@@ -89,8 +90,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// packets are pending and the overall processing performance. If metrics collection is disabled
     /// or if the queue timer is unavailable, an empty snapshot will be returned.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PacketSnapshot GetStatistics()
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public PacketSnapshot GetSnapshot()
     {
         if (!_options.EnableMetrics || _queueTimer == null)
             return new PacketSnapshot();
@@ -119,7 +121,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <summary>
     /// Clears all collected statistics for a specific priority level.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ClearStatistics(int index)
     {
         _expiredCounts[index] = 0;
@@ -128,7 +131,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         _dequeuedCounts[index] = 0;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void CollectStatisticsInternal(Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
     {
         for (int i = 0; i < _priorityCount; i++)
@@ -147,7 +151,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <summary>
     /// UpdateTime performance statistics
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void UpdatePerformanceStats(long startTicks)
     {
         long endTicks = Stopwatch.GetTimestamp();
