@@ -3,10 +3,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
-using System.Diagnostics;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -22,15 +18,14 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static PacketAttributes GetPacketAttributes(MethodInfo method)
+    private static PacketAttributes GetPacketAttributes(System.Reflection.MethodInfo method)
     => new(
-        method.GetCustomAttribute<PacketIdAttribute>()!,
-        method.GetCustomAttribute<PacketTimeoutAttribute>(),
-        method.GetCustomAttribute<PacketRateGroupAttribute>(),
-        method.GetCustomAttribute<PacketRateLimitAttribute>(),
-        method.GetCustomAttribute<PacketPermissionAttribute>(),
-        method.GetCustomAttribute<PacketEncryptionAttribute>()
-
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketIdAttribute>(method)!,
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(method),
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateGroupAttribute>(method),
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(method),
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(method),
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(method)
     );
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -40,7 +35,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static async ValueTask DispatchPacketAsync(TPacket packet, IConnection connection)
+    private static async System.Threading.Tasks.ValueTask DispatchPacketAsync(
+        TPacket packet,
+        IConnection connection)
     {
         packet = TPacket.Compress(packet);
         packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
@@ -50,7 +47,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private bool CheckRateLimit(string remoteEndPoint, PacketAttributes attributes, MethodInfo method)
+    private bool CheckRateLimit(
+        string remoteEndPoint,
+        PacketAttributes attributes,
+        System.Reflection.MethodInfo method)
     {
         if (attributes.RateLimit != null && !_rateLimiter.Check(
             remoteEndPoint, attributes.RateGroup?.GroupName ?? method.Name,
@@ -63,13 +63,14 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
+    private System.Func<TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateHandlerDelegate(System.Reflection.MethodInfo method, object controllerInstance)
     {
         PacketAttributes attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
 
         return async (packet, connection) =>
         {
-            Stopwatch? stopwatch = _isMetricsEnabled ? Stopwatch.StartNew() : null;
+            System.Diagnostics.Stopwatch? stopwatch = _isMetricsEnabled ? System.Diagnostics.Stopwatch.StartNew() : null;
 
             if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
             {
@@ -121,10 +122,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 // Cache method invocation with improved performance
                 if (attributes.Timeout != null)
                 {
-                    using CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
+                    using System.Threading.CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
                     try
                     {
-                        result = await Task.Run(() => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
+                        result = await System.Threading.Tasks.Task.Run(
+                            () => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
                     }
                     catch (System.OperationCanceledException)
                     {
@@ -187,10 +189,15 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(System.Type returnType)
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        ResolveHandlerDelegate(System.Type returnType)
         => returnType switch
         {
-            System.Type t when t == typeof(void) => (_, _, _) => Task.CompletedTask,
+            System.Type t when t == typeof(void) => (_, _, _) =>
+            {
+                return System.Threading.Tasks.Task.CompletedTask;
+            }
+            ,
             System.Type t when t == typeof(byte[]) => async (result, _, connection) =>
             {
                 if (result is byte[] data)
@@ -209,9 +216,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
             }
             ,
-            System.Type t when t == typeof(ValueTask) => async (result, _, _) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask) => async (result, _, _) =>
             {
-                if (result is ValueTask task)
+                if (result is System.Threading.Tasks.ValueTask task)
                 {
                     try
                     {
@@ -221,9 +228,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(ValueTask<byte[]>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<byte[]>) => async (result, _, connection) =>
             {
-                if (result is ValueTask<byte[]> task)
+                if (result is System.Threading.Tasks.ValueTask<byte[]> task)
                 {
                     try
                     {
@@ -234,9 +241,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(ValueTask<System.Memory<byte>>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Memory<byte>>)
+            => async (result, _, connection) =>
             {
-                if (result is ValueTask<System.Memory<byte>> task)
+                if (result is System.Threading.Tasks.ValueTask<System.Memory<byte>> task)
                 {
                     try
                     {
@@ -247,9 +255,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(ValueTask<TPacket>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<TPacket>)
+            => async (result, _, connection) =>
             {
-                if (result is ValueTask<TPacket> task)
+                if (result is System.Threading.Tasks.ValueTask<TPacket> task)
                 {
                     try
                     {
@@ -260,9 +269,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(Task) => async (result, _, _) =>
+            System.Type t when t == typeof(System.Threading.Tasks.Task)
+            => async (result, _, _) =>
             {
-                if (result is Task task)
+                if (result is System.Threading.Tasks.Task task)
                 {
                     try
                     {
@@ -272,9 +282,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(Task<byte[]>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.Task<byte[]>)
+            => async (result, _, connection) =>
             {
-                if (result is Task<byte[]> task)
+                if (result is System.Threading.Tasks.Task<byte[]> task)
                 {
                     try
                     {
@@ -285,9 +296,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(Task<System.Memory<byte>>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Memory<byte>>)
+            => async (result, _, connection) =>
             {
-                if (result is Task<System.Memory<byte>> task)
+                if (result is System.Threading.Tasks.Task<System.Memory<byte>> task)
                 {
                     try
                     {
@@ -298,9 +310,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(Task<TPacket>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.Task<TPacket>)
+            => async (result, _, connection) =>
             {
-                if (result is Task<TPacket> task)
+                if (result is System.Threading.Tasks.Task<TPacket> task)
                 {
                     try
                     {
@@ -314,7 +327,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             _ => (_, _, _) =>
             {
                 _logger?.Warn("Unsupported return type: {0}", returnType.Name);
-                return Task.CompletedTask;
+                return System.Threading.Tasks.Task.CompletedTask;
             }
         };
 }
