@@ -2,12 +2,6 @@ using Nalix.Common.Connection;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
 using Nalix.Shared.Net.Operations;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -16,6 +10,18 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
+    #region Constants
+
+    private const System.Reflection.BindingFlags BindingFlags =
+                  System.Reflection.BindingFlags.Public |
+                  System.Reflection.BindingFlags.Instance |
+                  System.Reflection.BindingFlags.Static;
+
+    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PublicMethods =
+                  System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods;
+
+    #endregion Constants
+
     /// <summary>
     /// Registers default handlers for the packet dispatcher, including controllers for session management,
     /// keep-alive functionality, and mode handling. This method sets up the standard set of handlers
@@ -24,8 +30,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> BuiltInHandlers()
+
     {
         this.WithHandler<KeepAliveOps<TPacket>>();
         this.WithHandler(() => new ConnectionOps<TPacket>(_logger));
@@ -45,8 +53,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(RequiredMembers)] TController>()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public PacketDispatchOptions<TPacket> WithHandler<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(RequiredMembers)] TController>()
         where TController : class, new()
         => WithHandler(() => new TController());
 
@@ -65,9 +75,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="instance"/> is null.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PublicMethods)] TController>
         (TController instance) where TController : class
         => WithHandler(() => EnsureNotNull(instance, nameof(instance)));
 
@@ -87,15 +98,17 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PublicMethods)] TController>
         (System.Func<TController> factory) where TController : class
     {
         System.Type controllerType = typeof(TController);
-        PacketControllerAttribute controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>()
+        PacketControllerAttribute controllerAttr =
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new System.InvalidOperationException(
-                $"ConnectionOps '{controllerType.Name}' missing PacketController attribute.");
+                $"ConnectionOps '{controllerType.Name}' is missing the PacketController attribute.");
 
         string controllerName = controllerAttr.Name ?? controllerType.Name;
 
@@ -104,9 +117,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         // Log method scanning process
         _logger?.Debug("Scanning '{0}' for packet handler methods...", controllerName);
 
-        List<MethodInfo> methods = [.. typeof(TController)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-            .Where(m => m.GetCustomAttribute<PacketIdAttribute>() != null)];
+        System.Collections.Generic.List<System.Reflection.MethodInfo> methods = [.. System.Linq.Enumerable
+            .Where(typeof(TController)
+            .GetMethods(BindingFlags), m => System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<PacketIdAttribute>(m) != null)
+        ];
 
         if (methods.Count == 0)
         {
@@ -117,12 +132,20 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             throw new System.InvalidOperationException(message);
         }
 
-        IEnumerable<ushort> duplicateCommandIds = methods
-            .GroupBy(m => m.GetCustomAttribute<PacketIdAttribute>()!.Id)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key);
+        System.Collections.Generic.IEnumerable<ushort> duplicateCommandIds =
+            System.Linq.Enumerable.Select(
+                System.Linq.Enumerable.Where(
+                    System.Linq.Enumerable.GroupBy(
+                        methods,
+                        m => System.Reflection.CustomAttributeExtensions
+                                .GetCustomAttribute<PacketIdAttribute>(m)!.Id
+                    ),
+                    g => System.Linq.Enumerable.Count(g) > 1
+                ),
+                g => g.Key
+            );
 
-        if (duplicateCommandIds.Any())
+        if (System.Linq.Enumerable.Any(duplicateCommandIds))
         {
             string message = $"Duplicate PacketId values found in controller " +
                              $"'{controllerName}': {string.Join(", ", duplicateCommandIds)}. " +
@@ -132,11 +155,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             throw new System.InvalidOperationException(message);
         }
 
-        List<ushort> registeredIds = [];
+        System.Collections.Generic.List<ushort> registeredIds = [];
 
-        foreach (MethodInfo method in methods)
+        foreach (System.Reflection.MethodInfo method in methods)
         {
-            ushort id = method.GetCustomAttribute<PacketIdAttribute>()!.Id;
+            ushort id = System.Reflection.CustomAttributeExtensions
+                        .GetCustomAttribute<PacketIdAttribute>(method)!
+                        .Id;
 
             if (_handlers.ContainsKey(id))
             {
@@ -185,10 +210,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// }
     /// </code>
     /// </example>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryResolveHandler(
         ushort id,
-        [NotNullWhen(true)] out System.Func<TPacket, IConnection, Task>? handler)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
         if (_handlers.TryGetValue(id, out handler))
             return true;
