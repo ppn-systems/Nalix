@@ -1,10 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
-using System;
-using System.Buffers.Binary;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Text;
+using Nalix.Serialization;
 
 namespace Nalix.Cryptography.Security;
 
@@ -12,7 +8,7 @@ namespace Nalix.Cryptography.Security;
 /// High-performance implementation of the PBKDF2 (Password-Based Key Derivation Function 2) algorithm.
 /// Supports HMAC-SHA1 and HMAC-SHA256 for key derivation.
 /// </summary>
-public sealed class PBKDF2 : IDisposable
+public sealed class PBKDF2 : System.IDisposable
 {
     #region Fields
 
@@ -33,20 +29,20 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="iterations">The Number of iterations to perform. Must be greater than 0.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes. Must be greater than 0.</param>
     /// <param name="hashType">The hash algorithm to use (SHA1 or SHA256). Environment to SHA1.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="salt"/> is null or empty.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="iterations"/> or <paramref name="keyLength"/> is less than or equal to 0.</exception>
     public PBKDF2(
         byte[] salt, int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         if (salt == null || salt.Length == 0)
-            throw new ArgumentException("Salt cannot be empty.", nameof(salt));
+            throw new System.ArgumentException("Salt cannot be empty.", nameof(salt));
 
         if (iterations <= 0)
-            throw new ArgumentOutOfRangeException(nameof(iterations), "Must be > 0.");
+            throw new System.ArgumentOutOfRangeException(nameof(iterations), "Must be > 0.");
 
         if (keyLength <= 0)
-            throw new ArgumentOutOfRangeException(nameof(keyLength), "Must be > 0.");
+            throw new System.ArgumentOutOfRangeException(nameof(keyLength), "Must be > 0.");
 
         _salt = (byte[])salt.Clone();
         _keyLength = keyLength;
@@ -63,22 +59,24 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="password"/> is null or empty.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="password"/> is null or empty.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public byte[] DeriveKey(string password)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
-        if (string.IsNullOrEmpty(password)) throw new ArgumentException("Password cannot be empty.", nameof(password));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
+        if (string.IsNullOrEmpty(password))
+            throw new System.ArgumentException("Password cannot be empty.", nameof(password));
 
-        ReadOnlySpan<byte> passwordBytes = Encoding.UTF8.GetBytes(password);
+        System.ReadOnlySpan<byte> passwordBytes = JsonOptions.Encoding.GetBytes(password);
 
         return _hashType switch
         {
             HashAlgorithm.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
             HashAlgorithm.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
             HashAlgorithm.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
-            _ => throw new NotSupportedException($"Hash algorithm {_hashType} is not supported.")
+            _ => throw new System.NotSupportedException($"Hash algorithm {_hashType} is not supported.")
         };
     }
 
@@ -87,32 +85,36 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="passwordBytes">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="passwordBytes"/> is empty.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] DeriveKey(ReadOnlySpan<byte> passwordBytes)
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="passwordBytes"/> is empty.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public byte[] DeriveKey(System.ReadOnlySpan<byte> passwordBytes)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
-        if (passwordBytes.IsEmpty) throw new ArgumentException("Password bytes cannot be empty.", nameof(passwordBytes));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(PBKDF2));
+        if (passwordBytes.IsEmpty)
+            throw new System.ArgumentException("Password bytes cannot be empty.", nameof(passwordBytes));
 
         return _hashType switch
         {
             HashAlgorithm.Sha1 => DeriveKeyUsingHmacSha1(passwordBytes),
             HashAlgorithm.Sha224 => DeriveKeyUsingHmacSha224(passwordBytes),
             HashAlgorithm.Sha256 => DeriveKeyUsingHmacSha256(passwordBytes),
-            _ => throw new NotSupportedException($"Hash algorithm {_hashType} is not supported.")
+            _ => throw new System.NotSupportedException($"Hash algorithm {_hashType} is not supported.")
         };
     }
 
     /// <summary>
     /// Releases all resources used by the <see cref="PBKDF2"/> instance and clears sensitive data.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed) return;
-        Array.Clear(_salt, 0, _salt.Length);
         _disposed = true;
+
+        System.Array.Clear(_salt, 0, _salt.Length);
     }
 
     #endregion Public Methods
@@ -124,8 +126,9 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] DeriveKeyUsingHmacSha1(ReadOnlySpan<byte> password)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private byte[] DeriveKeyUsingHmacSha1(System.ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 20, ComputeHmacSha1);
 
     /// <summary>
@@ -133,8 +136,9 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] DeriveKeyUsingHmacSha224(ReadOnlySpan<byte> password)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private byte[] DeriveKeyUsingHmacSha224(System.ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 28, ComputeHmacSha224);
 
     /// <summary>
@@ -142,8 +146,9 @@ public sealed class PBKDF2 : IDisposable
     /// </summary>
     /// <param name="password">The password bytes to derive the key from.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] DeriveKeyUsingHmacSha256(ReadOnlySpan<byte> password)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private byte[] DeriveKeyUsingHmacSha256(System.ReadOnlySpan<byte> password)
         => DeriveKeyUsingHmac(password, _salt, _iterations, _keyLength, 32, ComputeHmacSha256);
 
     /// <summary>
@@ -156,25 +161,28 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="hashLength">The length of the hash output (20 for SHA1, 32 for SHA256).</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>
     /// <returns>A byte array containing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static byte[] DeriveKeyUsingHmac(
-        ReadOnlySpan<byte> password, ReadOnlySpan<byte> salt,
+         System.ReadOnlySpan<byte> password, System.ReadOnlySpan<byte> salt,
         int iterations, int keyLength, int hashLength,
-        Action<ReadOnlySpan<byte>, ReadOnlySpan<byte>, Span<byte>> computeHmac)
+         System.Action<System.ReadOnlySpan<byte>, System.ReadOnlySpan<byte>, System.Span<byte>> computeHmac)
     {
         int blockCount = (keyLength + hashLength - 1) / hashLength;
         byte[] derivedKey = new byte[keyLength];
 
-        Span<byte> buffer = stackalloc byte[salt.Length + 4];
+        System.Span<byte> buffer = stackalloc byte[salt.Length + 4];
         salt.CopyTo(buffer);
 
         int offset = 0;
         for (int i = 1; i <= blockCount; i++)
         {
-            BinaryPrimitives.WriteInt32BigEndian(buffer[salt.Length..], i);
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(buffer[salt.Length..], i);
 
-            int bytesToCopy = Math.Min(hashLength, keyLength - offset);
-            ComputeBlock(password, buffer, iterations, derivedKey.AsSpan(offset, bytesToCopy), hashLength, computeHmac);
+            int bytesToCopy = System.Math.Min(hashLength, keyLength - offset);
+
+            ComputeBlock(password, buffer, iterations,
+                System.MemoryExtensions.AsSpan(derivedKey, offset, bytesToCopy), hashLength, computeHmac);
 
             offset += hashLength;
         }
@@ -191,14 +199,15 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="outputBlock">The span to store the computed block.</param>
     /// <param name="hashLength">The length of the hash output.</param>
     /// <param name="computeHmac">The HMAC computation function to use.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void ComputeBlock(
-        ReadOnlySpan<byte> password, ReadOnlySpan<byte> saltWithIndex,
-        int iterations, Span<byte> outputBlock, int hashLength,
-        Action<ReadOnlySpan<byte>, ReadOnlySpan<byte>, Span<byte>> computeHmac)
+        System.ReadOnlySpan<byte> password, System.ReadOnlySpan<byte> saltWithIndex,
+        int iterations, System.Span<byte> outputBlock, int hashLength,
+        System.Action<System.ReadOnlySpan<byte>, System.ReadOnlySpan<byte>, System.Span<byte>> computeHmac)
     {
-        Span<byte> u = stackalloc byte[hashLength];
-        Span<byte> temp = stackalloc byte[hashLength];
+        System.Span<byte> u = stackalloc byte[hashLength];
+        System.Span<byte> temp = stackalloc byte[hashLength];
 
         computeHmac(password, saltWithIndex, u);
         u.CopyTo(outputBlock);
@@ -208,13 +217,13 @@ public sealed class PBKDF2 : IDisposable
             computeHmac(password, u, temp);
             temp.CopyTo(u);
 
-            if (Vector.IsHardwareAccelerated && hashLength >= Vector<byte>.Count)
+            if (System.Numerics.Vector.IsHardwareAccelerated && hashLength >= System.Numerics.Vector<byte>.Count)
             {
                 int j = 0;
-                for (; j + Vector<byte>.Count <= outputBlock.Length; j += Vector<byte>.Count)
+                for (; j + System.Numerics.Vector<byte>.Count <= outputBlock.Length; j += System.Numerics.Vector<byte>.Count)
                 {
-                    var vU = new Vector<byte>(u[j..]);
-                    var vOut = new Vector<byte>(outputBlock[j..]);
+                    System.Numerics.Vector<byte> vU = new(u[j..]);
+                    System.Numerics.Vector<byte> vOut = new(outputBlock[j..]);
                     (vOut ^ vU).CopyTo(outputBlock[j..]);
                 }
                 for (; j < outputBlock.Length; j++) outputBlock[j] ^= u[j];
@@ -232,18 +241,21 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (20 bytes).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ComputeHmacSha1(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void ComputeHmacSha1(
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> message, System.Span<byte> output)
     {
         const int BlockSize = 64; // SHA-1 block size in bytes
-        Span<byte> keyBlock = stackalloc byte[BlockSize];
+        System.Span<byte> keyBlock = stackalloc byte[BlockSize];
         keyBlock.Clear();
 
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
             SHA1 sha1 = new();
-            sha1.ComputeHash(key).CopyTo(keyBlock);
+            System.MemoryExtensions.CopyTo(sha1.ComputeHash(key), keyBlock);
         }
         else
         {
@@ -251,8 +263,8 @@ public sealed class PBKDF2 : IDisposable
         }
 
         // Step 2: Generate ipad and opad
-        Span<byte> ipad = stackalloc byte[BlockSize];
-        Span<byte> opad = stackalloc byte[BlockSize];
+        System.Span<byte> ipad = stackalloc byte[BlockSize];
+        System.Span<byte> opad = stackalloc byte[BlockSize];
 
         for (int i = 0; i < BlockSize; i++)
         {
@@ -264,14 +276,14 @@ public sealed class PBKDF2 : IDisposable
         SHA1 sha1Inner = new();
         sha1Inner.Update(ipad);
         sha1Inner.Update(message);
-        Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
-        sha1Inner.FinalizeHash().CopyTo(innerHash);
+        System.Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
+        System.MemoryExtensions.CopyTo(sha1Inner.FinalizeHash(), innerHash);
 
         // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
         SHA1 sha1Outer = new();
         sha1Outer.Update(opad);
         sha1Outer.Update(innerHash);
-        sha1Outer.FinalizeHash().CopyTo(output);
+        System.MemoryExtensions.CopyTo(sha1Outer.FinalizeHash(), output);
     }
 
     /// <summary>
@@ -280,18 +292,21 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (28 bytes).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ComputeHmacSha224(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void ComputeHmacSha224(
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> message, System.Span<byte> output)
     {
         const int BlockSize = 64; // SHA-1 block size in bytes
-        Span<byte> keyBlock = stackalloc byte[BlockSize];
+        System.Span<byte> keyBlock = stackalloc byte[BlockSize];
         keyBlock.Clear();
 
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
             using SHA224 sha224 = new();
-            sha224.ComputeHash(key).CopyTo(keyBlock);
+            System.MemoryExtensions.CopyTo(sha224.ComputeHash(key), keyBlock);
         }
         else
         {
@@ -299,8 +314,8 @@ public sealed class PBKDF2 : IDisposable
         }
 
         // Step 2: Generate ipad and opad
-        Span<byte> ipad = stackalloc byte[BlockSize];
-        Span<byte> opad = stackalloc byte[BlockSize];
+        System.Span<byte> ipad = stackalloc byte[BlockSize];
+        System.Span<byte> opad = stackalloc byte[BlockSize];
 
         for (int i = 0; i < BlockSize; i++)
         {
@@ -312,14 +327,14 @@ public sealed class PBKDF2 : IDisposable
         using SHA224 sha224Inner = new();
         sha224Inner.Update(ipad);
         sha224Inner.Update(message);
-        Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
-        sha224Inner.FinalizeHash().CopyTo(innerHash);
+        System.Span<byte> innerHash = stackalloc byte[20]; // SHA-1 output size
+        System.MemoryExtensions.CopyTo(sha224Inner.FinalizeHash(), innerHash);
 
         // Step 4: Compute outer hash (H(K ⊕ opad || innerHash))
         using SHA224 sha224Outer = new();
         sha224Outer.Update(opad);
         sha224Outer.Update(innerHash);
-        sha224Outer.FinalizeHash().CopyTo(output);
+        System.MemoryExtensions.CopyTo(sha224Outer.FinalizeHash(), output);
     }
 
     /// <summary>
@@ -328,18 +343,21 @@ public sealed class PBKDF2 : IDisposable
     /// <param name="key">The key for the HMAC computation.</param>
     /// <param name="message">The message to hash.</param>
     /// <param name="output">The span to store the hash output (32 bytes).</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ComputeHmacSha256(ReadOnlySpan<byte> key, ReadOnlySpan<byte> message, Span<byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void ComputeHmacSha256(
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> message, System.Span<byte> output)
     {
         const int BlockSize = 64; // SHA-256 block size in bytes
-        Span<byte> keyPadded = stackalloc byte[BlockSize];
-        Span<byte> ipad = stackalloc byte[BlockSize];
-        Span<byte> opad = stackalloc byte[BlockSize];
+        System.Span<byte> keyPadded = stackalloc byte[BlockSize];
+        System.Span<byte> ipad = stackalloc byte[BlockSize];
+        System.Span<byte> opad = stackalloc byte[BlockSize];
 
         // Step 1: Process Key
         if (key.Length > BlockSize)
         {
-            SHA256.HashData(key).CopyTo(keyPadded);
+            System.MemoryExtensions.CopyTo(SHA256.HashData(key), keyPadded);
         }
         else
         {
@@ -354,7 +372,7 @@ public sealed class PBKDF2 : IDisposable
         }
 
         // Step 3: Hash (ipad || message)
-        Span<byte> innerHash = stackalloc byte[32];
+        System.Span<byte> innerHash = stackalloc byte[32];
         using (SHA256 sha256 = new())
         {
             sha256.Update(ipad);
@@ -367,7 +385,7 @@ public sealed class PBKDF2 : IDisposable
         {
             sha256.Update(opad);
             sha256.Update(innerHash);
-            sha256.FinalizeHash().CopyTo(output);
+            System.MemoryExtensions.CopyTo(sha256.FinalizeHash(), output);
         }
     }
 

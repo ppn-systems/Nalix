@@ -1,7 +1,4 @@
 using Nalix.Common.Cryptography.Hashing;
-using System;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Nalix.Cryptography.Security;
 
@@ -22,22 +19,23 @@ public static class RFC2898
     /// <param name="keyLength">The desired length of the derived key in bytes. Must be greater than 0.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A byte array containing the derived key.</returns>
-    /// <exception cref="ArgumentException">Thrown if password or salt is null or empty.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentException">Thrown if password or salt is null or empty.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte[] DeriveKey(
         string password, byte[] salt,
         int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         if (string.IsNullOrEmpty(password))
-            throw new ArgumentException("Password cannot be null or empty.", nameof(password));
+            throw new System.ArgumentException("Password cannot be null or empty.", nameof(password));
         if (salt == null || salt.Length == 0)
-            throw new ArgumentException("Salt cannot be null or empty.", nameof(salt));
+            throw new System.ArgumentException("Salt cannot be null or empty.", nameof(salt));
         if (iterations <= 0)
-            throw new ArgumentOutOfRangeException(nameof(iterations), "Iterations must be greater than 0.");
+            throw new System.ArgumentOutOfRangeException(nameof(iterations), "Iterations must be greater than 0.");
         if (keyLength <= 0)
-            throw new ArgumentOutOfRangeException(nameof(keyLength), "Key length must be greater than 0.");
+            throw new System.ArgumentOutOfRangeException(nameof(keyLength), "Key length must be greater than 0.");
 
         using var pbkdf2 = new PBKDF2(salt, iterations, keyLength, hashType);
         return pbkdf2.DeriveKey(password);
@@ -52,14 +50,15 @@ public static class RFC2898
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A Base64Value-encoded string representing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyBase64(
         string password, byte[] salt,
         int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
-        return Convert.ToBase64String(key);
+        return System.Convert.ToBase64String(key);
     }
 
     /// <summary>
@@ -71,14 +70,15 @@ public static class RFC2898
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
     /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
     /// <returns>A lowercase hexadecimal string representing the derived key.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyHex(
         string password, byte[] salt,
         int iterations, int keyLength,
         HashAlgorithm hashType = HashAlgorithm.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
-        StringBuilder sb = new(key.Length * 2);
+        System.Text.StringBuilder sb = new(key.Length * 2);
 
         foreach (byte b in key)
         {
