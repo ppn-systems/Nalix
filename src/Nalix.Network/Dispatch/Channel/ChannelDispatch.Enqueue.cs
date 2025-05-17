@@ -1,12 +1,9 @@
+using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
-using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Adds a packet to the appropriate priority queue.
@@ -16,7 +13,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if the packet was added successfully;
     /// <c>false</c> if the packet is <c>null</c> or the queue has reached its maximum capacity.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool Enqueue(TPacket packet)
     {
         if (packet == null)
@@ -29,11 +27,11 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
         {
-            Interlocked.Increment(ref _totalCount);
-            Interlocked.Increment(ref _priorityCounts[priorityIndex]);
+            System.Threading.Interlocked.Increment(ref _totalCount);
+            System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
             if (_options.EnableMetrics)
-                Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
+                System.Threading.Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
 
             return true;
         }
@@ -47,8 +45,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <param name="packets">The collection of packets to enqueue.</param>
     /// <returns>The total number of packets successfully enqueued.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Enqueue(IEnumerable<TPacket> packets)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public int Enqueue(System.Collections.Generic.IEnumerable<TPacket> packets)
     {
         int added = 0;
 
@@ -65,7 +64,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <returns>
     /// The next packet if available, or <c>null</c> if the queue is empty.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket? PeekFirst(PacketPriority priority)
         => _priorityChannels[(int)priority].Reader.TryPeek(out TPacket? packet) ? packet : default;
 
@@ -78,14 +78,15 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if a packet was dequeued successfully;
     /// <c>false</c> if the queue is empty or the operation failed.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue(PacketPriority priority, out TPacket? packet)
     {
         packet = default;
 
         // Check if priority is valid
         if (priority < 0 || (int)priority >= _priorityCount)
-            throw new ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
+            throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
 
         return _priorityChannels[(int)priority].Reader.TryRead(out packet);
     }
@@ -99,13 +100,14 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if the packet was eventually enqueued within the allowed retries;
     /// <c>false</c> otherwise.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryEnqueue(TPacket packet, int retries = 3)
     {
         for (int i = 0; i <= retries; i++)
         {
             if (this.Enqueue(packet)) return true;
-            Thread.SpinWait(20 * (i + 1)); // spin-based delay
+            System.Threading.Thread.SpinWait(20 * (i + 1)); // spin-based delay
         }
 
         return false;
@@ -123,24 +125,25 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <c>true</c> if the packet was successfully re-enqueued;
     /// <c>false</c> if the queue is full.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryRequeue(TPacket packet, PacketPriority? priority = null)
     {
         int priorityIndex = (int)(priority ?? packet.Priority);
 
         if (priorityIndex < 0 || priorityIndex >= _priorityChannels.Length)
-            throw new ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
+            throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
 
         if (_options.MaxCapacity > 0 && _totalCount >= _options.MaxCapacity)
             return false;
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
         {
-            Interlocked.Increment(ref _totalCount);
-            Interlocked.Increment(ref _priorityCounts[priorityIndex]);
+            System.Threading.Interlocked.Increment(ref _totalCount);
+            System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
             if (_options.EnableMetrics)
-                Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
+                System.Threading.Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
 
             return true;
         }

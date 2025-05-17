@@ -3,8 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 
 namespace Nalix.Network.Dispatch.Channel;
 
@@ -15,7 +13,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <returns>The next valid packet in the queue.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the queue is empty.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket Dequeue()
     {
         if (this.TryDequeue(out TPacket? packet)) return packet;
@@ -37,7 +36,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <exception cref="InvalidOperationException">
     /// Thrown when the specified priority channel is empty and no packet can be dequeued.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket Dequeue(PacketPriority priority)
     {
         // Check if the priority is valid (ensure it's within the expected range)
@@ -71,7 +71,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <exception cref="InvalidOperationException">
     /// Thrown when the specified priority channel is empty and no packets can be dequeued.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public List<TPacket> Dequeue(PacketPriority priority, int limit)
     {
         // Check if the priority is valid (ensure it's within the expected range)
@@ -107,7 +108,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </param>
     /// <param name="limit">The maximum number of packets to dequeue.</param>
     /// <returns>A list of packets dequeued before the stop condition was met.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public List<TPacket> Dequeue(Func<TPacket, bool> predicate, int limit = 100)
     {
         List<TPacket> result = [];
@@ -133,7 +135,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <param name="limit">The maximum number of packets to dequeue. Environment to 100.</param>
     /// <returns>A list of dequeued packets. May contain fewer than <paramref name="limit"/> packets if the queue runs out.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public List<TPacket> DequeueBatch(int limit = 100)
     {
         List<TPacket> result = new(Math.Min(limit, _totalCount));
@@ -154,7 +157,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <param name="packet">The dequeued packet, if available; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a packet was successfully dequeued; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue([NotNullWhen(true)] out TPacket? packet)
     {
         long ticks = _options.EnableMetrics ? Stopwatch.GetTimestamp() : 0;
@@ -191,7 +195,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <returns>
     /// <c>true</c> if a valid packet was dequeued; otherwise, <c>false</c> if the packet was invalid or expired.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryDequeue(
         [NotNullWhen(true)] out TPacket? packet,
         [NotNullWhen(false)] out TPacket? rejected)
@@ -252,11 +257,13 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <param name="priority">The priority level of the queue to peek from.</param>
     /// <param name="packet">The next packet if available; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a packet was found; otherwise, <c>false</c>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool PeekAll(
         PacketPriority priority,
         [NotNullWhen(true)] out TPacket? packet)
     {
-        ChannelReader<TPacket> reader = _priorityChannels[(int)priority].Reader;
+        System.Threading.Channels.ChannelReader<TPacket> reader = _priorityChannels[(int)priority].Reader;
 
         if (reader.TryPeek(out packet))
             return true;
@@ -270,7 +277,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// </summary>
     /// <param name="packet">The next packet if available; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if a packet was found; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool TryPeek([NotNullWhen(true)] out TPacket? packet)
     {
         // Initialize the output to default before any attempt
@@ -279,7 +287,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         // Iterate from highest to lowest priority
         for (int i = _priorityCount - 1; i >= 0; i--)
         {
-            ChannelReader<TPacket> reader = _priorityChannels[i].Reader;
+            System.Threading.Channels.ChannelReader<TPacket> reader = _priorityChannels[i].Reader;
 
             // Try to peek from the current priority queue
             if (reader.TryPeek(out packet))
