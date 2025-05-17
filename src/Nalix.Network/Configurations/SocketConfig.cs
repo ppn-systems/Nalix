@@ -1,6 +1,5 @@
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
-using System.Runtime.InteropServices;
 
 namespace Nalix.Network.Configurations;
 
@@ -84,7 +83,8 @@ public sealed class SocketConfig : ConfigurationLoader
     /// <c>true</c> if the application is running on Windows; otherwise, <c>false</c>.
     /// </value>
     [ConfiguredIgnore]
-    public bool IsWindows { get; set; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    public bool IsWindows { get; set; } = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform
+        (System.Runtime.InteropServices.OSPlatform.Windows);
 
     #endregion Properties
 }

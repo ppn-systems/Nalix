@@ -1,5 +1,4 @@
 using Nalix.Common.Package.Enums;
-using System.Collections.Generic;
 
 namespace Nalix.Network.Snapshot;
 
@@ -26,5 +25,5 @@ public record PacketSnapshot
     /// <summary>
     /// Gets the per-priority level statistics, grouped by <see cref="PacketPriority"/>.
     /// </summary>
-    public Dictionary<PacketPriority, PriorityQueueSnapshot> PriorityLevel { get; init; } = [];
+    public System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> PriorityLevel { get; init; } = [];
 }
