@@ -1,9 +1,10 @@
+using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot> where TPacket : Common.Package.IPacket
+public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
 {
     #region Properties
 
