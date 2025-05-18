@@ -14,11 +14,10 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Object? GetConfigValue(
-        IniConfig configFile,
-        System.String section, PropertyMetadata property)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    private static System.Object? GetConfigValue(IniConfig configFile, System.String section, PropertyMetadata property)
     {
         // Handle Enums of any underlying type
         if (property.PropertyType.IsEnum)
@@ -58,12 +57,9 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void HandleEmptyValue(
-        IniConfig configFile,
-        System.String section,
-        PropertyMetadata property)
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private void HandleEmptyValue(IniConfig configFile, System.String section, PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
         System.String valueToWrite;
@@ -113,10 +109,12 @@ public partial class ConfigurationLoader
             _ => System.String.Empty,
         };
 
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.Object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
