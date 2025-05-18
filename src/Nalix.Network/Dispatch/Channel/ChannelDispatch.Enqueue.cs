@@ -80,7 +80,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryDequeue(PacketPriority priority, out TPacket? packet)
+    public bool TryDequeue(
+        PacketPriority priority,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TPacket? packet)
     {
         packet = default;
 
