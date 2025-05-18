@@ -185,6 +185,8 @@ public abstract partial class Listener
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private async System.Threading.Tasks.Task<IConnection> CreateConnectionAsync(
         System.Threading.CancellationToken cancellationToken)
     {
