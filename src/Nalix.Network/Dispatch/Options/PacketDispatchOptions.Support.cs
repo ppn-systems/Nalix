@@ -144,7 +144,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
 
                 // Await the return result, could be ValueTask if method is synchronous
-                await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
+                await this.ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
             }
             catch (PackageException ex)
             {
@@ -202,6 +202,17 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 if (result is byte[] data)
                     await connection.SendAsync(data);
+            }
+            ,
+            System.Type t when t == typeof(string) => async (result, _, connection) =>
+            {
+                if (result is string data)
+                {
+                    TPacket packet = TPacket.Create(
+                        0, PacketCode.Success, PacketType.String,
+                        PacketFlags.None, PacketPriority.Low, data);
+                    await connection.SendAsync(packet);
+                }
             }
             ,
             System.Type t when t == typeof(System.Memory<byte>) => async (result, _, connection) =>

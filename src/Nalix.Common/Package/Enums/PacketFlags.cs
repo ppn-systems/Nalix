@@ -27,22 +27,7 @@ public enum PacketFlags : byte
     Fragmented = 0x08,            // Gói tin đã bị phân mảnh
 
     /// <summary>
-    /// Packet is signed for integrity verification.
-    /// </summary>
-    Signed = 0x10,                // Gói tin đã được ký để kiểm tra tính toàn vẹn
-
-    /// <summary>
     /// Packet is a control packet (used for protocol commands).
     /// </summary>
-    Control = 0x20,               // Gói tin điều khiển (dùng cho lệnh giao thức)
-
-    /// <summary>
-    /// Packet is acknowledged (used in reliable transmission).
-    /// </summary>
-    Acknowledged = 0x40,          // Gói tin đã được xác nhận (ACK)
-
-    /// <summary>
-    /// Packet is retransmitted (used for error correction).
-    /// </summary>
-    Retransmitted = 0x80          // Gói tin được gửi lại do lỗi
+    Control = 0x10,               // Gói tin điều khiển (dùng cho lệnh giao thức)
 }

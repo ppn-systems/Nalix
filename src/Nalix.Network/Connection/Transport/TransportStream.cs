@@ -1,5 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
+using Nalix.Extensions;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Connection.Transport;
@@ -275,7 +276,7 @@ internal class TransportStream : System.IDisposable
 
             if (totalBytesRead < 2) return;
 
-            ushort size = System.BitConverter.ToUInt16(_buffer, 0);
+            ushort size = _buffer.ToUInt16(0);
             _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > _pool.MaxBufferSize)

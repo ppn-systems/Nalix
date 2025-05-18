@@ -3,6 +3,8 @@ namespace Nalix.Common.Package;
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
+/// [Length (2 bytes)][Id (2 bytes)][Number (1 byte)][Checksum (4 bytes)][Timestamp (8 bytes)]
+/// [Code (2 bytes)][Type (1 byte)][Flags (1 byte)][Priority (1 byte)][Payload]
 public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
 {
     #region Metadata
