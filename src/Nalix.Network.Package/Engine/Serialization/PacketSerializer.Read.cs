@@ -42,7 +42,6 @@ public static partial class PacketSerializer
                 ushort id = pHeader->Id;
                 uint checksum = pHeader->Checksum;
                 long timestamp = pHeader->Timestamp;
-                ushort code = pHeader->Code;
                 byte number = pHeader->Number;
                 byte type = pHeader->Type;
                 byte flags = pHeader->Flags;
@@ -52,7 +51,7 @@ public static partial class PacketSerializer
                 MaterializePayload(
                     data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
-                return new Packet(id, checksum, timestamp, code, number, type, flags, priority, payload);
+                return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
             }
         }
         catch (Exception ex) when (ex is not PackageException)

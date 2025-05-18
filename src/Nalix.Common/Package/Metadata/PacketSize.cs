@@ -26,11 +26,6 @@ public static class PacketSize
     public const int Timestamp = sizeof(long);
 
     /// <summary>
-    /// The size of the Code field in the packet header, in bytes.
-    /// </summary>
-    public const int Code = sizeof(ushort);
-
-    /// <summary>
     /// The size of the Number field in the packet header, in bytes.
     /// </summary>
     public const int Number = sizeof(byte);

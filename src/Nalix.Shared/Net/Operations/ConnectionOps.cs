@@ -1,4 +1,5 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Logging;
@@ -32,7 +33,7 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ConnectionCommand.SetEncryptionMode)]
+    [PacketId((ushort)ProtocolCommand.SetEncryptionMode)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -46,7 +47,7 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ConnectionCommand.Disconnect)]
+    [PacketId((ushort)ProtocolCommand.Disconnect)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -60,7 +61,7 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ConnectionCommand.ConnectionStatus)]
+    [PacketId((ushort)ProtocolCommand.ConnectionStatus)]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -72,7 +73,7 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
         };
 
         return TPacket.Create(
-            (ushort)ConnectionCommand.PingInfo, PacketCode.Success, PacketType.String, PacketFlags.None,
+            (ushort)ProtocolCommand.PingInfo, PacketType.String, PacketFlags.None,
             PacketPriority.Low, JsonCodec.SerializeToMemory(status, NetJsonCxt.Default.ConnInfoDto)).Serialize();
     }
 
@@ -89,7 +90,8 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
                 "Invalid packet type [{0}] for SetMode<{1}> from {2}",
                 packet.Type, typeof(TEnum).Name, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.SetEncryptionMode, PacketCode.PacketType).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.SetEncryptionMode, "Invalid packet type")
+                          .Serialize();
         }
 
         if (packet.Payload.Length < 1)
@@ -98,18 +100,20 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
                 "Missing payload byte in SetMode<{0}> from {1}",
                 typeof(TEnum).Name, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.SetEncryptionMode, PacketCode.InvalidPayload).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.SetEncryptionMode, "Invalid packet type")
+                          .Serialize();
         }
 
         byte value = packet.Payload.Span[0];
 
         if (!System.Enum.IsDefined(typeof(TEnum), value))
         {
-            _logger?.Debug("Invalid enum value [{0}] in SetMode<{1}> from {2}",
+            _logger?.Debug(
+                "Invalid enum value [{0}] in SetMode<{1}> from {2}",
                 value, typeof(TEnum).Name, connection.RemoteEndPoint);
-            return TPacket.Create(
-                (ushort)ConnectionCommand.SetEncryptionMode,
-                PacketCode.InvalidPayload).Serialize();
+
+            return TPacket.Create((ushort)ProtocolCommand.SetEncryptionMode, "Invalid packet type")
+                          .Serialize();
         }
         TEnum enumValue = System.Runtime.CompilerServices.Unsafe.As<byte, TEnum>(ref value);
 
@@ -117,9 +121,12 @@ public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPac
             connection.Encryption = System.Runtime.CompilerServices.Unsafe
                 .As<TEnum, EncryptionType>(ref enumValue);
 
-        _logger?.Debug("Set {0} to [{1}] for {2}", typeof(TEnum).Name, value, connection.RemoteEndPoint);
+        _logger?.Debug(
+            "Set {0} to [{1}] for {2}",
+            typeof(TEnum).Name, value, connection.RemoteEndPoint);
 
-        return TPacket.Create((ushort)ConnectionCommand.SetEncryptionMode, PacketCode.Success).Serialize();
+        return TPacket.Create((ushort)ProtocolCommand.SetEncryptionMode, "Invalid packet type")
+                      .Serialize();
     }
 
     #endregion Private Methods

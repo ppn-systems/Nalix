@@ -14,13 +14,12 @@ public readonly partial struct Packet
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
         ushort id,
-        PacketCode code,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
         byte number,
         System.Memory<byte> payload)
-        : this(id, 0, Clock.UnixTicksNow(), code, type, flags, priority, number, payload, true)
+        : this(id, 0, Clock.UnixTicksNow(), type, flags, priority, number, payload, true)
     {
     }
 
@@ -34,7 +33,6 @@ public readonly partial struct Packet
         ushort id,
         uint checksum,
         long timestamp,
-        ushort code,
         byte type,
         byte flags,
         byte priority,
@@ -42,9 +40,8 @@ public readonly partial struct Packet
         System.Memory<byte> payload,
         bool computeChecksum = false)
         : this(id, checksum, timestamp,
-              (PacketCode)code, (PacketType)type,
-              (PacketFlags)flags, (PacketPriority)priority,
-              number, payload, computeChecksum)
+              (PacketType)type, (PacketFlags)flags,
+              (PacketPriority)priority, number, payload, computeChecksum)
     {
     }
 
@@ -58,7 +55,6 @@ public readonly partial struct Packet
         ushort id,
         uint checksum,
         long timestamp,
-        PacketCode code,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
@@ -74,7 +70,6 @@ public readonly partial struct Packet
 
         // Initialize fields
         Id = id;
-        Code = code;
         Type = type;
         Flags = flags;
         Priority = priority;
@@ -87,13 +82,13 @@ public readonly partial struct Packet
         // Compute checksum only if needed
         Checksum = computeChecksum ? Integrity.Crc32.Compute(Payload.Span) : checksum;
 
-        _hash = unchecked(
-            ((ulong)Number << 56) |
-            ((ulong)Id << 40) |
-            ((ulong)Type << 32) |
-            ((ulong)Code << 24) |
-            ((ulong)Flags << 16) |
-            ((ulong)Timestamp & 0xFFFFFFFFFF)
-        );
+        unchecked
+        {
+            _hash = ((ulong)number << 56)
+                  | ((ulong)id << 40)
+                  | ((ulong)type << 32)
+                  | ((ulong)flags << 24)
+                  | ((ulong)timestamp & 0x000000FFFFFFUL);
+        }
     }
 }

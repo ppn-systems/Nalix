@@ -1,4 +1,5 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Constants;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
@@ -21,15 +22,15 @@ public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactor
     /// </summary>
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
-    [PacketId((ushort)ConnectionCommand.Ping)]
+    [PacketId((ushort)ProtocolCommand.Ping)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(KeepAliveOps<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
         => TPacket.Create(
-            (ushort)ConnectionCommand.Pong, PacketCode.Success, PacketType.String,
-            PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes("Pong")).Serialize();
+            (ushort)ProtocolCommand.Pong, PacketType.String, PacketFlags.None,
+            PacketPriority.Low, JsonOptions.Encoding.GetBytes("Pong")).Serialize();
 
     /// <summary>
     /// Handles a ping request from the client.
@@ -37,14 +38,14 @@ public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactor
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ConnectionCommand.Pong)]
+    [PacketId((ushort)ProtocolCommand.Pong)]
     [PacketRateGroup(nameof(KeepAliveOps<TPacket>))]
     [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
         => TPacket.Create(
-            (ushort)ConnectionCommand.Ping, PacketCode.Success, PacketType.String,
-            PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes("Ping")).Serialize();
+            (ushort)ProtocolCommand.Ping, PacketType.String, PacketFlags.None,
+            PacketPriority.Low, JsonOptions.Encoding.GetBytes("Ping")).Serialize();
 
     /// <summary>
     /// Returns the round-trip time (RTT) of the connection in milliseconds.
@@ -52,13 +53,13 @@ public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactor
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ConnectionCommand.PingTime)]
+    [PacketId((ushort)ProtocolCommand.PingTime)]
     [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
         => TPacket.Create(
-            (ushort)ConnectionCommand.PingTime, PacketCode.Success, PacketType.String, PacketFlags.None,
+            (ushort)ProtocolCommand.PingTime, PacketType.String, PacketFlags.None,
             PacketPriority.Low, JsonOptions.Encoding.GetBytes($"Ping: {connection.LastPingTime} ms")).Serialize();
 
     /// <summary>
@@ -67,7 +68,7 @@ public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactor
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ConnectionCommand.PingInfo)]
+    [PacketId((ushort)ProtocolCommand.PingInfo)]
     [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
     [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,7 +81,7 @@ public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactor
         };
 
         return TPacket.Create(
-            (ushort)ConnectionCommand.PingInfo, PacketCode.Success, PacketType.String, PacketFlags.None,
+            (ushort)ProtocolCommand.PingInfo, PacketType.String, PacketFlags.None,
             PacketPriority.Low, JsonCodec.SerializeToMemory(pingInfoDto, NetJsonCxt.Default.PingInfoDto)).Serialize();
     }
 }

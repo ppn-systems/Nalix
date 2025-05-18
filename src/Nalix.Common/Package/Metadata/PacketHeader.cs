@@ -34,11 +34,6 @@ public readonly struct PacketHeader(in IPacket packet)
     public readonly long Timestamp = packet.Timestamp;
 
     /// <summary>
-    /// Gets the code associated with the packet, which can specify a specific command or operation.
-    /// </summary>
-    public readonly ushort Code = (ushort)packet.Code;
-
-    /// <summary>
     /// Gets the unique identifier for the packet instance.
     /// </summary>
     public readonly byte Number = packet.Number;

@@ -50,11 +50,6 @@ public readonly partial struct Packet
     public ulong Hash => _hash;
 
     /// <summary>
-    /// Gets the packet code, which is used to identify the packet type.
-    /// </summary>
-    public PacketCode Code { get; }
-
-    /// <summary>
     /// Gets the packet type, which specifies the kind of packet.
     /// </summary>
     public PacketType Type { get; }

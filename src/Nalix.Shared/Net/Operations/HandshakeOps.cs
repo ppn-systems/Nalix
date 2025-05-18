@@ -1,4 +1,5 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Cryptography.Hashing;
@@ -56,7 +57,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
-    [PacketId((ushort)ConnectionCommand.StartHandshake)]
+    [PacketId((ushort)ProtocolCommand.StartHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -68,8 +69,8 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.StartHandshake,
-                PacketCode.PacketType).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.StartHandshake, "Invalid packet type")
+                          .Serialize();
         }
 
         // Validate that the public key length is 32 bytes (X25519 standard).
@@ -78,14 +79,14 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.StartHandshake,
-                PacketCode.InvalidPayload).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.StartHandshake, ProtocolMessage.InvalidData)
+                          .Serialize();
         }
 
         if (IsReplayAttempt(connection))
         {
             _logger?.Debug("Detected handshake replay attempt from {0}", connection.RemoteEndPoint);
-            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.RateLimited).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.CompleteHandshake, ProtocolMessage.RateLimited).Serialize();
         }
 
         // Generate an X25519 key pair (private and public keys).
@@ -103,7 +104,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
 
         // SendPacket the server's public key back to the client for the next phase of the handshake.
         return TPacket.Create(
-            (ushort)ConnectionCommand.StartHandshake, PacketCode.Success,
+            (ushort)ProtocolCommand.StartHandshake,
             PacketType.Binary, PacketFlags.None, PacketPriority.Low, @public).Serialize();
     }
 
@@ -117,7 +118,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
     [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
-    [PacketId((ushort)ConnectionCommand.CompleteHandshake)]
+    [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
     [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -129,7 +130,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
             _logger?.Debug("Received non-binary packet [Type={0}] from {1}",
                            packet.Type, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.PacketType).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.CompleteHandshake, ProtocolMessage.InvalidData).Serialize();
         }
 
         // CheckLimit if the public key length is correct (32 bytes).
@@ -138,7 +139,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
             _logger?.Debug("Invalid public key length [Length={0}] from {1}",
                            packet.Payload.Length, connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.InvalidPayload).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.CompleteHandshake, ProtocolMessage.InvalidPayload).Serialize();
         }
 
         // Retrieve the stored private key from connection metadata.
@@ -147,7 +148,7 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
         {
             _logger?.Debug("Missing or invalid private key for {0}", connection.RemoteEndPoint);
 
-            return TPacket.Create((ushort)ConnectionCommand.CompleteHandshake, PacketCode.UnknownError).Serialize();
+            return TPacket.Create((ushort)ProtocolCommand.CompleteHandshake, ProtocolMessage.UnknownError).Serialize();
         }
 
         // Derive the shared secret using the private key and the client's public key.
@@ -160,14 +161,13 @@ public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactor
         {
             _logger?.Debug("Key mismatch during handshake finalization for {0}", connection.RemoteEndPoint);
             return TPacket.Create(
-                (ushort)ConnectionCommand.CompleteHandshake,
-                PacketCode.Conflict).Serialize();
+                (ushort)ProtocolCommand.CompleteHandshake, ProtocolMessage.Conflict).Serialize();
         }
 
         _logger?.Debug("Secure connection established for {0}", connection.RemoteEndPoint);
         return TPacket.Create(
-                (ushort)ConnectionCommand.CompleteHandshake,
-                PacketCode.Success).Serialize();
+                (ushort)ProtocolCommand.CompleteHandshake,
+                ProtocolMessage.Success).Serialize();
     }
 
     #region Private Methods

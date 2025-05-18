@@ -1,8 +1,8 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using Nalix.Common.Package.Enums;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -75,7 +75,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
-                connection.Send(TPacket.Create(0, PacketCode.RateLimited));
+                connection.Send(TPacket.Create(0, ProtocolMessage.RateLimited));
 
                 return;
             }
@@ -83,7 +83,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
-                connection.Send(TPacket.Create(0, PacketCode.PermissionDenied));
+                connection.Send(TPacket.Create(0, ProtocolMessage.PermissionDenied));
 
                 return;
             }
@@ -93,7 +93,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             catch (System.Exception ex)
             {
                 _logger?.Error("Failed to decompress packet: {0}", ex.Message);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+                connection.Send(TPacket.Create(0, ProtocolMessage.ServerError));
 
                 return;
             }
@@ -105,7 +105,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Warn(message);
-                connection.Send(TPacket.Create(0, PacketCode.PacketEncryption));
+                connection.Send(TPacket.Create(0, ProtocolMessage.PacketEncryption));
 
                 return;
             }
@@ -133,7 +133,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         _logger?.Error("Packet '{0}' timed out after {1}ms.",
                             attributes.PacketId.Id,
                             attributes.Timeout.TimeoutMilliseconds);
-                        connection.Send(TPacket.Create(0, PacketCode.RequestTimeout));
+                        connection.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
 
                         return;
                     }
@@ -158,7 +158,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     ex.Message                        // Exception message itself
                 );
                 _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+                connection.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             catch (System.Exception ex)
             {
@@ -171,7 +171,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     connection.RemoteEndPoint
                 );
                 _errorHandler?.Invoke(ex, attributes.PacketId.Id);
-                connection.Send(TPacket.Create(0, PacketCode.ServerError));
+                connection.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             finally
             {
@@ -208,10 +208,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 if (result is string data)
                 {
-                    TPacket packet = TPacket.Create(
-                        0, PacketCode.Success, PacketType.String,
-                        PacketFlags.None, PacketPriority.Low, data);
-                    await connection.SendAsync(packet);
+                    await connection.SendAsync(TPacket.Create(0, data));
                 }
             }
             ,
@@ -247,6 +244,19 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     {
                         byte[] data = await task;
                         await connection.SendAsync(data);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<string>) => async (result, _, connection) =>
+            {
+                if (result is System.Threading.Tasks.ValueTask<string> task)
+                {
+                    try
+                    {
+                        string data = await task;
+                        await connection.SendAsync(TPacket.Create(0, data));
                     }
                     catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }
@@ -302,6 +312,20 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     {
                         byte[] data = await task;
                         await connection.SendAsync(data);
+                    }
+                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                }
+            }
+            ,
+            System.Type t when t == typeof(System.Threading.Tasks.Task<string>)
+            => async (result, _, connection) =>
+            {
+                if (result is System.Threading.Tasks.Task<string> task)
+                {
+                    try
+                    {
+                        string data = await task;
+                        await connection.SendAsync(TPacket.Create(0, data));
                     }
                     catch (System.Exception ex) { this.Failure(returnType, ex); }
                 }

@@ -19,20 +19,18 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Creates an empty packet with the specified id and code.
     /// </summary>
     /// <param name="id">The packet Number.</param>
-    /// <param name="code">The packet code.</param>
-    public static Packet Empty(ushort id, PacketCode code)
-        => new(id, code, PacketType.None, PacketFlags.None, PacketPriority.Low, System.Memory<byte>.Empty);
+    public static Packet Empty(ushort id)
+        => new(id, PacketType.None, PacketFlags.None, PacketPriority.Low, System.Memory<byte>.Empty);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
     /// </summary>
     /// <param name="id">The packet Number.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, byte[] payload)
-        : this(id, code, new System.Memory<byte>(payload))
+    public Packet(ushort id, byte[] payload)
+        : this(id, new System.Memory<byte>(payload))
     {
     }
 
@@ -40,12 +38,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
     /// </summary>
     /// <param name="id">The packet Number.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, System.ReadOnlySpan<byte> payload)
-        : this(id, code, new System.Memory<byte>(payload.ToArray()))
+    public Packet(ushort id, System.ReadOnlySpan<byte> payload)
+        : this(id, new System.Memory<byte>(payload.ToArray()))
     {
     }
 
@@ -53,12 +50,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
     /// </summary>
     /// <param name="id">The packet Number.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, System.Memory<byte> payload)
-        : this(id, code, PacketType.Binary, PacketFlags.None, PacketPriority.Low, payload)
+    public Packet(ushort id, System.Memory<byte> payload)
+        : this(id, PacketType.Binary, PacketFlags.None, PacketPriority.Low, payload)
     {
     }
 
@@ -66,12 +62,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for flags and priority.
     /// </summary>
     /// <param name="id">The packet id.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, PacketCode code, string s)
-        : this(id, code, PacketType.String, PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes(s))
+    public Packet(ushort id, string s)
+        : this(id, PacketType.String, PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes(s))
     {
     }
 
@@ -79,7 +74,6 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Initializes a new instance of the <see cref="Packet"/> struct with type, flags, priority, id, and payload.
     /// </summary>
     /// <param name="id">The packet id.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
@@ -88,12 +82,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(
         ushort id,
-        ushort code,
         byte type,
         byte flags,
         byte priority,
         System.Memory<byte> payload)
-        : this(id, (PacketCode)code, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
+        : this(id, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
 
@@ -101,7 +94,6 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// Initializes a new instance of the <see cref="Packet"/> struct with specified enum values for type, flags, and priority.
     /// </summary>
     /// <param name="id">The packet id.</param>
-    /// <param name="code">The packet code.</param>
     /// <param name="type">The packet type.</param>
     /// <param name="flags">The packet flags.</param>
     /// <param name="priority">The packet priority.</param>
@@ -110,12 +102,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(
         ushort id,
-        PacketCode code,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
         System.Memory<byte> payload)
-        : this(id, 0, Clock.UnixTicksNow(), code, type, flags, priority, 0, payload, true)
+        : this(id, 0, Clock.UnixTicksNow(), type, flags, priority, 0, payload, true)
     {
     }
 

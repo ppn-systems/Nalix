@@ -32,7 +32,6 @@ public static partial class PacketSerializer
         ushort id = packet.Id;
         long timestamp = packet.Timestamp;
         uint checksum = packet.Checksum;
-        ushort code = (ushort)packet.Code;
 
         try
         {
@@ -41,7 +40,6 @@ public static partial class PacketSerializer
             MemoryMarshal.Write(buffer[PacketOffset.Id..], in id);
             MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
             MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
-            MemoryMarshal.Write(buffer[PacketOffset.Code..], in code);
 
             // Writing the packet-specific fields
             buffer[PacketOffset.Number] = packet.Number;

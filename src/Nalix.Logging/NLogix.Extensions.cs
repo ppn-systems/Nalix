@@ -13,7 +13,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a meta-level message with class and member context.
     /// </summary>
-    public static void Meta<T>(this NLogix logger, string message,
+    public static void Meta<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -22,7 +22,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a trace-level message with class and member context.
     /// </summary>
-    public static void Trace<T>(this NLogix logger, string message,
+    public static void Trace<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -31,7 +31,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a debug message with class and member context.
     /// </summary>
-    public static void Debug<T>(this NLogix logger, string message,
+    public static void Debug<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -40,7 +40,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an informational message with class and member context.
     /// </summary>
-    public static void Info<T>(this NLogix logger, string message,
+    public static void Info<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -49,7 +49,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a warning message with class and member context.
     /// </summary>
-    public static void Warn<T>(this NLogix logger, string message,
+    public static void Warn<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -58,7 +58,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an error message with class and member context.
     /// </summary>
-    public static void Error<T>(this NLogix logger, string message,
+    public static void Error<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -67,7 +67,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an exception as an error with class and member context.
     /// </summary>
-    public static void Error<T>(this NLogix logger, Exception ex,
+    public static void Error<T>(this ILogger logger, Exception ex,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -76,7 +76,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a fatal error message with class and member context.
     /// </summary>
-    public static void Fatal<T>(this NLogix logger, string message,
+    public static void Fatal<T>(this ILogger logger, string message,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
@@ -85,7 +85,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an exception as a fatal error with class and member context.
     /// </summary>
-    public static void Fatal<T>(this NLogix logger, Exception ex,
+    public static void Fatal<T>(this ILogger logger, Exception ex,
         EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class

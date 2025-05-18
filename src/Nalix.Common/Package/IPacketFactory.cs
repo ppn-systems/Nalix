@@ -12,35 +12,33 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// Creates a packet using strongly-typed enums.
     /// </summary>
     /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="code">The operation code of the packet as an enum.</param>
+    /// <param name="s">The string.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(ushort id, PacketCode code);
+    static abstract TPacket Create(ushort id, string s);
 
     /// <summary>
     /// Creates a packet using strongly-typed enums.
     /// </summary>
     /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="code">The operation code of the packet as an enum.</param>
     /// <param name="type">The type of the packet as an enum.</param>
     /// <param name="flags">The flags associated with the packet as an enum.</param>
     /// <param name="priority">The priority of the packet as an enum.</param>
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(
-        ushort id, PacketCode code, PacketType type,
-        PacketFlags flags, PacketPriority priority, System.Memory<byte> payload);
+        ushort id, PacketType type, PacketFlags flags,
+        PacketPriority priority, System.Memory<byte> payload);
 
     /// <summary>
     /// Creates a packet using primitive data types.
     /// </summary>
     /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="code">The operation code of the packet.</param>
     /// <param name="type">The type of the packet.</param>
     /// <param name="flags">The flags associated with the packet.</param>
     /// <param name="priority">The priority of the packet.</param>
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(
-        ushort id, ushort code, byte type,
-        byte flags, byte priority, System.Memory<byte> payload);
+        ushort id, byte type, byte flags,
+        byte priority, System.Memory<byte> payload);
 }

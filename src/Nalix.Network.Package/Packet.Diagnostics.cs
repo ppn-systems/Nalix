@@ -22,7 +22,6 @@ public readonly partial struct Packet
         System.Text.StringBuilder sb = new();
 
         sb.AppendLine($"Packet [{Id}]:");
-        sb.AppendLine($"  Code: {Code}");
         sb.AppendLine($"  Type: {Type}");
         sb.AppendLine($"  Flags: {Flags}");
         sb.AppendLine($"  Number: 0x{Number:X4}");

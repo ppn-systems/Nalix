@@ -1,4 +1,4 @@
-using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Common.Package;
@@ -43,7 +43,8 @@ public sealed class Handshake<TPacket>(
     {
         (byte[] privateKey, byte[] publicKey) = _x25519.Generate();
 
-        TPacket request = TPacket.Create((ushort)ConnectionCommand.StartHandshake, PacketCode.None,
+        TPacket request = TPacket.Create(
+            (ushort)ProtocolCommand.StartHandshake,
             PacketType.Binary, PacketFlags.None, PacketPriority.Low, publicKey);
 
         _sender.Send(request);
@@ -73,7 +74,8 @@ public sealed class Handshake<TPacket>(
     {
         (byte[] privateKey, byte[] publicKey) = _x25519.Generate();
 
-        TPacket request = TPacket.Create((ushort)ConnectionCommand.StartHandshake, PacketCode.None,
+        TPacket request = TPacket.Create(
+            (ushort)ProtocolCommand.StartHandshake,
             PacketType.Binary, PacketFlags.None, PacketPriority.Low, publicKey);
 
         await _sender.SendAsync(request);
