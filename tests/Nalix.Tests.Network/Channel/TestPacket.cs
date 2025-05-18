@@ -15,7 +15,6 @@ public class TestPacket : IPacket
     public byte Number { get; set; }
     public uint Checksum { get; set; }
     public long Timestamp { get; set; }
-    public PacketCode Code { get; set; }
     public PacketType Type { get; set; }
     public PacketFlags Flags { get; set; }
     public Memory<byte> Payload { get; set; }
@@ -31,7 +30,6 @@ public class TestPacket : IPacket
         Number = 1;
         Checksum = 123456; // Example checksum
         Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // Current timestamp
-        Code = PacketCode.Success;
         Type = PacketType.Binary;
         Flags = PacketFlags.None;
         Payload = new Memory<byte>(new byte[Length]);
@@ -95,7 +93,6 @@ public class TestPacket : IPacket
         hash |= (ulong)Number << 56;
         hash |= (ulong)Id << 40;
         hash |= (ulong)Type << 32;
-        hash |= (ulong)Code << 24;
         hash |= (ulong)Flags << 16;
         hash |= (ulong)Timestamp & 0xFFFFFFFFFF; // Use only the lowest 40 bits of the timestamp
         return hash;

@@ -1,6 +1,5 @@
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography;
-using Nalix.Common.Package.Enums;
 using Nalix.Network.Package;
 using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Serialization;
@@ -17,15 +16,13 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum value from your project
         byte[] payload = [1, 2, 3, 4];
 
         // Act
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Assert
         Assert.Equal(id, packet.Id);
-        Assert.Equal(code, packet.Code);
         Assert.Equal(payload.Length, packet.Payload.Length);
     }
 
@@ -34,9 +31,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum value
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Act
         bool isValid = packet.IsValid();
@@ -50,9 +46,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum value
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
         TimeSpan timeout = TimeSpan.FromMilliseconds(1);
 
         // Act
@@ -68,9 +63,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum value
         byte[] payload = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Act
         Memory<byte> serialized = packet.Serialize();
@@ -78,7 +72,6 @@ public class PacketTests
 
         // Assert
         Assert.Equal(packet.Id, deserializedPacket.Id);
-        Assert.Equal(packet.Code, deserializedPacket.Code);
         Assert.Equal(packet.Payload.Length, deserializedPacket.Payload.Length);
     }
 
@@ -87,9 +80,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
         TimeSpan timeout = TimeSpan.FromSeconds(2);
 
         // Act
@@ -104,9 +96,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Act
         Memory<byte> serialized = packet.Serialize();
@@ -114,7 +105,6 @@ public class PacketTests
 
         // Assert
         Assert.Equal(packet.Id, deserializedPacket.Id);
-        Assert.Equal(packet.Code, deserializedPacket.Code);
         Assert.Equal(packet.Payload.Length, deserializedPacket.Payload.Length);
     }
 
@@ -123,11 +113,10 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] largePayload = new byte[PacketConstants.PacketSizeLimit + 1];
 
         // Act & Assert
-        Assert.Throws<Common.Exceptions.PackageException>(() => new Packet(id, code, largePayload));
+        Assert.Throws<Common.Exceptions.PackageException>(() => new Packet(id, largePayload));
     }
 
     [Fact]
@@ -135,9 +124,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Act
         Packet compressed = PacketCompact.Compress(packet);
@@ -145,7 +133,6 @@ public class PacketTests
 
         // Assert
         Assert.Equal(packet.Id, decompressed.Id);
-        Assert.Equal(packet.Code, decompressed.Code);
         Assert.Equal(packet.Payload.Length, decompressed.Payload.Length);
     }
 
@@ -154,9 +141,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
         byte[] key = new byte[32];
         var algorithm = EncryptionType.Speck;
 
@@ -166,7 +152,6 @@ public class PacketTests
 
         // Assert
         Assert.Equal(packet.Id, decrypted.Id);
-        Assert.Equal(packet.Code, decrypted.Code);
         Assert.Equal(packet.Payload.Length, decrypted.Payload.Length);
     }
 
@@ -175,9 +160,8 @@ public class PacketTests
     {
         // Arrange
         ushort id = 1;
-        PacketCode code = PacketCode.Success; // Replace with appropriate enum
         byte[] payload = [1, 2, 3, 4];
-        Packet packet = new(id, code, payload);
+        Packet packet = new(id, payload);
 
         // Act
         string result = packet.ToString();
