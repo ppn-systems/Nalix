@@ -1,3 +1,5 @@
+using Nalix.Common.Connection;
+
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol
@@ -27,12 +29,8 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection where the error occurred.</param>
     /// <param name="exception">The exception that was thrown.</param>
-    protected virtual void OnConnectionError(
-        Common.Connection.IConnection connection,
-        System.Exception exception)
-    {
-        System.Threading.Interlocked.Increment(ref _totalErrors);
-    }
+    protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
+        => System.Threading.Interlocked.Increment(ref _totalErrors);
 
     /// <summary>
     /// Validates the incoming connection before accepting it.
@@ -51,7 +49,7 @@ public abstract partial class Protocol
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     public virtual void OnAccept(
-        Common.Connection.IConnection connection,
+        IConnection connection,
         System.Threading.CancellationToken cancellationToken = default)
     {
         // Check if accepting connections is enabled

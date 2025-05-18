@@ -1,6 +1,8 @@
+using Nalix.Network.Snapshot;
+
 namespace Nalix.Network.Protocols;
 
-public abstract partial class Protocol : Snapshot.ISnapshot<Snapshot.ProtocolSnapshot>
+public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
 {
     #region Fields
 
@@ -28,10 +30,10 @@ public abstract partial class Protocol : Snapshot.ISnapshot<Snapshot.ProtocolSna
     /// including connection acceptance status and message statistics.
     /// </summary>
     /// <returns>
-    /// A <see cref="Snapshot.ProtocolSnapshot"/> containing metrics like
+    /// A <see cref="ProtocolSnapshot"/> containing metrics like
     /// total messages processed and total errors encountered.
     /// </returns>
-    public virtual Snapshot.ProtocolSnapshot GetSnapshot() => new()
+    public virtual ProtocolSnapshot GetSnapshot() => new()
     {
         IsListening = IsAccepting,
         TotalMessages = System.Threading.Interlocked.Read(ref _totalMessages),

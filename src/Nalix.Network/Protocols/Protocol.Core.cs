@@ -1,3 +1,5 @@
+using Nalix.Common.Connection;
+
 namespace Nalix.Network.Protocols;
 
 /// <summary>
@@ -12,5 +14,5 @@ public abstract partial class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
-    public abstract void ProcessMessage(object sender, Common.Connection.IConnectEventArgs args);
+    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
 }
