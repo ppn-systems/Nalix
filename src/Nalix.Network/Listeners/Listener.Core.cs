@@ -3,9 +3,6 @@ using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Protocols;
 using Nalix.Shared.Configuration;
-using System;
-using System.Net.Sockets;
-using System.Threading;
 
 namespace Nalix.Network.Listeners;
 
@@ -14,7 +11,7 @@ namespace Nalix.Network.Listeners;
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
 /// </summary>
-public abstract partial class Listener : IListener, IDisposable
+public abstract partial class Listener : IListener, System.IDisposable
 {
     #region Constants
 
@@ -33,14 +30,15 @@ public abstract partial class Listener : IListener, IDisposable
     private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
-    private readonly Socket _listenerSocket;
-    private readonly SemaphoreSlim _listenerLock;
+    private readonly System.Net.IPEndPoint _bindEndPoint;
+    private readonly System.Net.Sockets.Socket _listenerSocket;
+    private readonly System.Threading.SemaphoreSlim _listenerLock;
 
-    private Thread? _listenerThread;
-    private CancellationTokenSource? _cts;
+    private System.Threading.CancellationTokenSource? _cts;
 
     private volatile bool _isDisposed;
     private volatile bool _isListening = false;
+    private volatile bool _enableUpdate = false;
 
     #endregion Fields
 
@@ -49,7 +47,21 @@ public abstract partial class Listener : IListener, IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _isListening && _listenerThread?.IsAlive == true;
+    public bool IsListening => _isListening;
+
+    /// <summary>
+    /// Enables or disables the update loop for the listener.
+    /// </summary>
+    public bool EnableUpdate
+    {
+        get => _enableUpdate;
+        set
+        {
+            if (_isListening)
+                throw new System.InvalidOperationException("Cannot change EnableUpdate while listening.");
+            _enableUpdate = value;
+        }
+    }
 
     #endregion Properties
 
@@ -67,29 +79,36 @@ public abstract partial class Listener : IListener, IDisposable
     /// <param name="logger">The logger to log events and errors.</param>
     protected Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(logger, nameof(logger));
-        ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
-        ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
+        System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
+        System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
+        System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
         _port = port;
         _logger = logger;
         _protocol = protocol;
         _buffer = bufferPool;
-        _listenerLock = new SemaphoreSlim(1, 1);
+        _bindEndPoint = new(System.Net.IPAddress.Any, _port);
+        _listenerLock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
-        _listenerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+        _listenerSocket = new System.Net.Sockets.Socket(
+            System.Net.Sockets.AddressFamily.InterNetwork,
+            System.Net.Sockets.SocketType.Stream,
+            System.Net.Sockets.ProtocolType.Tcp)
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
-            LingerState = new LingerOption(true, SocketConfig.False) // No need for LingerState if not close soon
+            // No need for LingerState if not close soon
+            LingerState = new System.Net.Sockets.LingerOption(true, SocketConfig.False)
         };
 
         // Increase the queue size on the socket listener.
         _listenerSocket.SetSocketOption(
-            SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, Config.BufferSize);
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
         _listenerSocket.SetSocketOption(
-            SocketOptionLevel.Socket, SocketOptionName.ReuseAddress,
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
 
         // Optimized for Socket.IOControlCode on Windows
@@ -97,8 +116,11 @@ public abstract partial class Listener : IListener, IDisposable
         {
             int parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
             // Thread pool optimization for IOCP
-            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-            ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelismLevel), completionPortThreads);
+            System.Threading.ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            System.Threading.ThreadPool.SetMinThreads(System.Math.Max(workerThreads, parallelismLevel), completionPortThreads);
+
+            System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
+            _logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
     }
 
@@ -126,7 +148,7 @@ public abstract partial class Listener : IListener, IDisposable
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -145,8 +167,6 @@ public abstract partial class Listener : IListener, IDisposable
 
             _cts?.Cancel();
             _cts?.Dispose();
-
-            Interlocked.Exchange(ref _listenerThread, null)?.Join(1000);
 
             try
             {

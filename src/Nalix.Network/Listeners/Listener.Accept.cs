@@ -1,8 +1,4 @@
 using Nalix.Common.Connection;
-using System;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Listeners;
 
@@ -38,7 +34,7 @@ public abstract partial class Listener
             _logger.Debug("New connection from {0}", connection.RemoteEndPoint);
             _protocol.OnAccept(connection);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.Error("Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
             connection.Close();
@@ -49,9 +45,11 @@ public abstract partial class Listener
     /// Synchronous method for accepting connections
     /// </summary>
     /// <param name="cancellationToken">Token for cancellation</param>
-    private void AcceptConnections(CancellationToken cancellationToken)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void AcceptConnections(System.Threading.CancellationToken cancellationToken)
     {
-        SocketAsyncEventArgs args = new();
+        System.Net.Sockets.SocketAsyncEventArgs args = new();
         args.Completed += (sender, e) =>
         {
             HandleAccept(e);
@@ -77,31 +75,33 @@ public abstract partial class Listener
                     // If the connection has been received synchronously, process it immediately.
                     HandleAccept(args);
                 }
-                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted ||
-                                                 ex.SocketErrorCode == SocketError.ConnectionAborted)
+                catch (System.Net.Sockets.SocketException ex) when (
+                    ex.SocketErrorCode == System.Net.Sockets.SocketError.Interrupted ||
+                    ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionAborted)
                 {
                     // Socket was closed or interrupted
                     break;
                 }
-                catch (ObjectDisposedException)
+                catch (System.ObjectDisposedException)
                 {
                     // Socket was disposed
                     break;
                 }
-                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
                     _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
                     // Brief delay to prevent CPU spinning on repeated errors
-                    Task.Delay(50, cancellationToken);
+                    System.Threading.Tasks.Task.Delay(50, cancellationToken);
                 }
             }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void HandleAccept(SocketAsyncEventArgs e)
+        void HandleAccept(System.Net.Sockets.SocketAsyncEventArgs e)
         {
-            if (e.SocketError == SocketError.Success && e.AcceptSocket is Socket socket)
+            if (e.SocketError == System.Net.Sockets.SocketError.Success &&
+                e.AcceptSocket is System.Net.Sockets.Socket socket)
             {
                 try
                 {
@@ -111,7 +111,7 @@ public abstract partial class Listener
                     // Process the connection
                     this.ProcessConnection(connection);
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
                     _logger.Error("Process accept error: {0}", ex.Message);
                     try { socket.Close(); } catch { }
@@ -129,7 +129,8 @@ public abstract partial class Listener
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task AcceptConnectionsAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -141,15 +142,17 @@ public abstract partial class Listener
 
                 this.ProcessConnection(connection);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 break; // Exit loop on cancellation
             }
-            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
                 // Brief delay to prevent CPU spinning on repeated errors
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                await System.Threading.Tasks.Task
+                        .Delay(50, cancellationToken)
+                        .ConfigureAwait(false);
             }
         }
     }
@@ -160,7 +163,7 @@ public abstract partial class Listener
     /// <returns>A task representing the connection creation.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private IConnection CreateConnection(Socket socket)
+    private IConnection CreateConnection(System.Net.Sockets.Socket socket)
     {
         ConfigureHighPerformanceSocket(socket);
 
@@ -180,13 +183,16 @@ public abstract partial class Listener
     /// <returns>A task representing the connection creation.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    private async System.Threading.Tasks.Task<IConnection> CreateConnectionAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
-        Socket socket = await Task.Factory
+        System.Net.Sockets.Socket socket = await System.Threading.Tasks.Task.Factory
             .FromAsync(_listenerSocket.BeginAccept, _listenerSocket.EndAccept, null)
             .ConfigureAwait(false);
 
-        await Task.Yield();
+        await System.Threading.Tasks.Task.Yield();
 
         ConfigureHighPerformanceSocket(socket);
 

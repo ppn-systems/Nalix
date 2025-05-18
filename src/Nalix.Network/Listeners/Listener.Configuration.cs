@@ -1,9 +1,3 @@
-using System;
-using System.Buffers.Binary;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Network.Listeners;
 
 public abstract partial class Listener
@@ -12,10 +6,13 @@ public abstract partial class Listener
     /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void ConfigureHighPerformanceSocket(Socket socket)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+    private static void ConfigureHighPerformanceSocket(System.Net.Sockets.Socket socket)
     {
         // Performance tuning
         socket.NoDelay = Config.NoDelay;
@@ -31,7 +28,8 @@ public abstract partial class Listener
         if (Config.KeepAlive)
         {
             // Windows specific settings
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
+                                   System.Net.Sockets.SocketOptionName.KeepAlive, true);
 
             if (Config.IsWindows)
             {
@@ -43,14 +41,14 @@ public abstract partial class Listener
                 const int time = 3_000;
                 const int interval = 1_000;
 
-                Span<byte> keepAlive = stackalloc byte[12];
+                System.Span<byte> keepAlive = stackalloc byte[12];
 
-                BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
-                BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
-                BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
+                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
+                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
+                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
 
                 // Windows specific settings
-                socket.IOControl(IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
+                socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
             }
         }
     }

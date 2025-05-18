@@ -1,11 +1,5 @@
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Time;
-using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Listeners;
 
@@ -19,12 +13,13 @@ public abstract partial class Listener
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
-    /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
+    /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
-    public async Task BeginListeningAsync(CancellationToken cancellationToken)
+    /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
+    public async System.Threading.Tasks.Task BeginListeningAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
         if (_isListening) return;
 
         _isListening = true;
@@ -32,37 +27,42 @@ public abstract partial class Listener
         const int maxParallelAccepts = 5;
 
         // Create a linked token source to combine external cancellation with Internal cancellation
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var linkedToken = _cts.Token;
+        _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        System.Threading.CancellationToken linkedToken = _cts.Token;
 
         await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
 
         try
         {
             // Bind and Listen
-            _listenerSocket.Bind(new IPEndPoint(IPAddress.Any, _port));
+
+            _listenerSocket.Bind(_bindEndPoint);
             _listenerSocket.Listen(Listener.SocketBacklog);
 
             _logger.Info("{0} online on {1}", _protocol, _port);
 
             // Create multiple accept tasks in parallel for higher throughput
-            Task updateTask = this.RunUpdateLoopAsync(linkedToken);
-            Task[] acceptTasks = new Task[maxParallelAccepts];
+            System.Threading.Tasks.Task updateTask = this.RunUpdateLoopAsync(linkedToken);
+            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[maxParallelAccepts];
 
             for (int i = 0; i < maxParallelAccepts; i++)
+            {
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
+            }
 
-            await Task.WhenAll(acceptTasks.Append(updateTask)).ConfigureAwait(false);
+            await System.Threading.Tasks.Task
+                    .WhenAll(System.Linq.Enumerable.Append(acceptTasks, updateTask))
+                    .ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (System.OperationCanceledException)
         {
             _logger.Info("Listener on {0} stopped", _port);
         }
-        catch (SocketException ex)
+        catch (System.Net.Sockets.SocketException ex)
         {
             throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
         }
@@ -83,7 +83,7 @@ public abstract partial class Listener
     /// </summary>
     public void EndListening()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         _cts?.Cancel();
 
@@ -92,15 +92,9 @@ public abstract partial class Listener
             // Close the socket listener to deactivate the accept
             _listenerSocket.Close();
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.Error("Error closing listener socket: {0}", ex.Message);
-        }
-
-        // Wait for the listener thread to complete with a timeout
-        if (_listenerThread?.IsAlive == true)
-        {
-            _listenerThread.Join(TimeSpan.FromSeconds(5));
         }
 
         _isListening = false;
@@ -109,10 +103,27 @@ public abstract partial class Listener
 
     #region Private Methods
 
-    private async Task RunUpdateLoopAsync(CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task RunUpdateLoopAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
         try
         {
+            // Wait until enabled
+            if (!_enableUpdate)
+            {
+                _logger.Debug("Waiting for update loop to be enabled...");
+            }
+
+            while (!_enableUpdate && !cancellationToken.IsCancellationRequested)
+            {
+                await System.Threading.Tasks.Task
+                        .Delay(10000, cancellationToken)
+                        .ConfigureAwait(false);
+            }
+
+            _logger.Info("Update loop enabled, starting update cycle.");
+
+            // Main update loop
             while (_isListening)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -123,14 +134,18 @@ public abstract partial class Listener
                 long remaining = 16 - elapsed;
 
                 if (remaining < 16)
-                    await Task.Delay((int)remaining, cancellationToken).ConfigureAwait(false);
+                {
+                    await System.Threading.Tasks.Task
+                            .Delay((int)remaining, cancellationToken)
+                            .ConfigureAwait(false);
+                }
             }
         }
-        catch (OperationCanceledException)
+        catch (System.OperationCanceledException)
         {
             _logger.Debug("UpdateTime loop cancelled");
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.Error("UpdateTime loop error: {0}", ex.Message);
         }
