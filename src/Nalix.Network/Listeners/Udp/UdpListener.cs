@@ -116,7 +116,7 @@ internal class UdpListener : IDisposable
     #endregion IDisposable
 }
 
-public class UdpPacketEventArgs : EventArgs
+internal class UdpPacketEventArgs : EventArgs
 {
     public IPEndPoint RemoteEndPoint { get; }
     public byte[] Buffer { get; }
