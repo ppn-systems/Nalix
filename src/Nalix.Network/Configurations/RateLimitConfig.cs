@@ -95,13 +95,13 @@ public sealed class RateLimitConfig(RequestLimitSettings settings) : Configurati
     /// Gets the time window as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public System.TimeSpan TimeWindow => System.TimeSpan.FromMilliseconds(TimeWindowInMilliseconds);
+    public System.TimeSpan TimeWindow => System.TimeSpan.FromMilliseconds(this.TimeWindowInMilliseconds);
 
     /// <summary>
     /// Gets the lockout duration as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public System.TimeSpan LockoutDuration => System.TimeSpan.FromSeconds(LockoutDurationSeconds);
+    public System.TimeSpan LockoutDuration => System.TimeSpan.FromSeconds(this.LockoutDurationSeconds);
 
     #endregion Properties
 

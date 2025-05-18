@@ -1,3 +1,6 @@
 [submodule "example/Nalix.Garage"]
 	path = example/Nalix.Garage
 	url = https://github.com/phcnguyen/Nalix.Garage
+[submodule "example/Nalix.Game"]
+	path = example/Nalix.Game
+	url = https://github.com/phcnguyen/Nalix.Game
