@@ -7,7 +7,7 @@ using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Messaging.Text;
 using Control = Nalix.Shared.Messaging.Controls.Control;
 
-namespace DDOS.Helpers;
+namespace DDoS.Helpers;
 
 /// <summary>
 /// Helper class để tạo các loại packet từ input của user
