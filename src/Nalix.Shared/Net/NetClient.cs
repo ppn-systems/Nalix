@@ -5,7 +5,7 @@ using Nalix.Shared.Net.Transport;
 namespace Nalix.Shared.Net;
 
 /// <summary>
-/// Represents a network client that connects to a remote server using TCP.
+/// Represents a network client that connects to a remote server using Reliable.
 /// </summary>
 /// <remarks>
 /// The <see cref="NetClient{TPacket}"/> class is a singleton that manages the connection,

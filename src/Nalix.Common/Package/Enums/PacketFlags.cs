@@ -27,7 +27,12 @@ public enum PacketFlags : byte
     Fragmented = 0x08,            // Gói tin đã bị phân mảnh
 
     /// <summary>
-    /// Packet is a control packet (used for protocol commands).
+    /// Packet uses TCP.
     /// </summary>
-    Control = 0x10,               // Gói tin điều khiển (dùng cho lệnh giao thức)
+    Reliable = 0x10,
+
+    /// <summary>
+    /// Packet uses UDP.
+    /// </summary>
+    Unreliable = 0x20
 }

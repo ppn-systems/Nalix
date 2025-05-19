@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Nalix.Network.Web.Security;
 
 /// <summary>
-/// A module to ban clients by IP address, based on TCP requests-per-second or RegEx matches on log messages.
+/// A module to ban clients by IP address, based on Reliable requests-per-second or RegEx matches on log messages.
 /// </summary>
 /// <seealso cref="WebModuleBase" />
 public class IPBanningModule : WebModuleBase, IDisposable

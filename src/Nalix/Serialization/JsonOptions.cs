@@ -32,7 +32,7 @@ public static class JsonOptions
     };
 
     /// <summary>
-    /// JSON settings optimized for TCP communication.
+    /// JSON settings optimized for Reliable communication.
     /// Uses camelCase property naming and no indentation to reduce data size.
     /// </summary>
     public static System.Text.Json.JsonSerializerOptions TcpCompact => new()

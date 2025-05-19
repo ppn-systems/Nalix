@@ -1,9 +1,10 @@
+using Nalix.Common.Connection;
+
 namespace Nalix.Network.Connection;
 
 /// <inheritdoc />
-public sealed class ConnectionEventArgs(Connection connection)
-    : System.EventArgs, Common.Connection.IConnectEventArgs
+public sealed class ConnectionEventArgs(IConnection connection) : System.EventArgs, IConnectEventArgs
 {
     /// <inheritdoc />
-    public Common.Connection.IConnection Connection { get; } = connection;
+    public IConnection Connection { get; } = connection;
 }

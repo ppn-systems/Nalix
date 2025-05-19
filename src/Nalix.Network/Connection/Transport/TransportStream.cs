@@ -80,16 +80,16 @@ internal class TransportStream : System.IDisposable
         {
             _logger?.Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
 
-            System.Net.Sockets.SocketAsyncEventArgs saea = new();
-            saea.SetBuffer(_buffer, 0, 2);
+            System.Net.Sockets.SocketAsyncEventArgs args = new();
+            args.SetBuffer(_buffer, 0, 2);
 
-            saea.Completed += (sender, args) =>
+            args.Completed += (sender, args) =>
             {
                 // Convert the result to Task to keep the API intact
                 System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
                 tcs.SetResult(args.BytesTransferred);
 
-                var receiveTask = tcs.Task;
+                System.Threading.Tasks.Task<int> receiveTask = tcs.Task;
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     try
@@ -110,13 +110,13 @@ internal class TransportStream : System.IDisposable
                 }, cancellationToken);
             };
 
-            if (!_socket.ReceiveAsync(saea))
+            if (!_socket.ReceiveAsync(args))
             {
                 System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
-                tcs.SetResult(saea.BytesTransferred);
+                tcs.SetResult(args.BytesTransferred);
 
-                var receiveTask = tcs.Task;
-                _ = System.Threading.Tasks.Task.Run(async () =>
+                System.Threading.Tasks.Task<int> receiveTask = tcs.Task;
+                System.Threading.Tasks.Task.Run(async () =>
                 {
                     await OnReceiveCompleted(receiveTask, cancellationToken);
                 }, cancellationToken);

@@ -6,6 +6,11 @@ namespace Nalix.Common.Cryptography;
 public enum EncryptionType : byte
 {
     /// <summary>
+    /// No encryption is applied.
+    /// </summary>
+    None = 0,
+
+    /// <summary>
     /// ChaCha20 encryption with Poly1305 for authenticated encryption.
     /// </summary>
     ChaCha20Poly1305 = 1,
