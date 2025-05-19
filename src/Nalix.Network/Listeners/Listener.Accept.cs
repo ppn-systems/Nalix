@@ -13,7 +13,7 @@ public abstract partial class Listener
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClose(object? sender, IConnectEventArgs args)
     {
-        _logger.Debug("Closing {0}", args.Connection.RemoteEndPoint);
+        _logger.Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= OnConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
@@ -31,12 +31,12 @@ public abstract partial class Listener
     {
         try
         {
-            _logger.Debug("New connection from {0}", connection.RemoteEndPoint);
+            _logger.Debug("[TCP] New connection from {0}", connection.RemoteEndPoint);
             _protocol.OnAccept(connection);
         }
         catch (System.Exception ex)
         {
-            _logger.Error("Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
+            _logger.Error("[TCP] Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
             connection.Close();
         }
     }
@@ -89,7 +89,7 @@ public abstract partial class Listener
                 }
                 catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
+                    _logger.Error("[TCP] Accept error on {0}: {1}", Config.TcpPort, ex.Message);
                     // Brief delay to prevent CPU spinning on repeated errors
                     System.Threading.Tasks.Task.Delay(50, cancellationToken);
                 }
@@ -113,13 +113,13 @@ public abstract partial class Listener
                 }
                 catch (System.Exception ex)
                 {
-                    _logger.Error("Process accept error: {0}", ex.Message);
+                    _logger.Error("[TCP] Process accept error: {0}", ex.Message);
                     try { socket.Close(); } catch { }
                 }
             }
             else
             {
-                _logger.Warn("Accept failed: {0}", e.SocketError);
+                _logger.Warn("[TCP] Accept failed: {0}", e.SocketError);
             }
         }
     }
@@ -148,7 +148,7 @@ public abstract partial class Listener
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.Error("Accept error on {0}: {1}", _port, ex.Message);
+                _logger.Error("[TCP] Accept error on {0}: {1}", Config.TcpPort, ex.Message);
                 // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task
                         .Delay(50, cancellationToken)

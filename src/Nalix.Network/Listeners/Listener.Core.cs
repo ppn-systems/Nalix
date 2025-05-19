@@ -36,8 +36,8 @@ public abstract partial class Listener : IListener, System.IDisposable
     private System.Threading.CancellationTokenSource? _cts;
 
     private volatile bool _isDisposed;
+    private volatile bool _isUpdate = false;
     private volatile bool _isListening = false;
-    private volatile bool _enableUpdate = false;
 
     #endregion Fields
 
@@ -53,12 +53,12 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// </summary>
     public bool EnableUpdate
     {
-        get => _enableUpdate;
+        get => _isUpdate;
         set
         {
             if (_isListening)
                 throw new System.InvalidOperationException("Cannot change EnableUpdate while listening.");
-            _enableUpdate = value;
+            _isUpdate = value;
         }
     }
 
@@ -160,8 +160,6 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         if (disposing)
         {
-            _logger.Info("[TCP] Disposing on {0}", Config.TcpPort);
-
             _cts?.Cancel();
             _cts?.Dispose();
 
@@ -176,7 +174,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         }
 
         _isDisposed = true;
-        _logger.Debug("Listener disposed");
+        _logger.Info("Listener disposed");
     }
 
     #endregion IDispose

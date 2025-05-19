@@ -6,6 +6,42 @@ namespace Nalix.Network.Listeners;
 public abstract partial class Listener
 {
     /// <summary>
+    /// Stops the listener from accepting further connections.
+    /// </summary>
+    public void EndListening()
+    {
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+
+        _cts?.Cancel();
+
+        try
+        {
+            // Close the socket listener to deactivate the accept
+            _tcpListener.Close();
+        }
+        catch (System.Exception ex)
+        {
+            _logger.Error("Error closing listener socket: {0}", ex.Message);
+        }
+
+        _isListening = false;
+        _logger.Info("Listener stopped.");
+    }
+
+    /// <summary>
+    /// Enables or disables the update loop for the listener.
+    /// </summary>
+    /// <param name="enable">True to enable, false to disable.</param>
+    public void EnableUpdateLoop(bool enable)
+    {
+        _isUpdate = enable;
+        if (enable)
+        {
+            _logger.Debug("Update loop enabled");
+        }
+    }
+
+    /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
@@ -85,29 +121,6 @@ public abstract partial class Listener
         }
     }
 
-    /// <summary>
-    /// Stops the listener from accepting further connections.
-    /// </summary>
-    public void EndListening()
-    {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
-
-        _cts?.Cancel();
-
-        try
-        {
-            // Close the socket listener to deactivate the accept
-            _tcpListener.Close();
-        }
-        catch (System.Exception ex)
-        {
-            _logger.Error("Error closing listener socket: {0}", ex.Message);
-        }
-
-        _isListening = false;
-        _logger.Info("Listener stopped.");
-    }
-
     #region Private Methods
 
     private async System.Threading.Tasks.Task ReceiveUdpLoopAsync(
@@ -128,7 +141,7 @@ public abstract partial class Listener
                     new System.ArraySegment<byte>(buffer),
                     System.Net.Sockets.SocketFlags.None, remote);
 
-                //_protocol.ProcessMessage(buffer.AsSpan(0, result.ReceivedBytes), result.RemoteEndPoint);
+                _protocol.ProcessMessage(System.MemoryExtensions.AsSpan(buffer, 0, result.ReceivedBytes));
             }
             catch (System.OperationCanceledException)
             {
@@ -147,12 +160,12 @@ public abstract partial class Listener
         try
         {
             // Wait until enabled
-            if (!_enableUpdate)
+            if (!_isUpdate)
             {
                 _logger.Debug("Waiting for update loop to be enabled...");
             }
 
-            while (!_enableUpdate && !cancellationToken.IsCancellationRequested)
+            while (!_isUpdate && !cancellationToken.IsCancellationRequested)
             {
                 await System.Threading.Tasks.Task
                         .Delay(10000, cancellationToken)

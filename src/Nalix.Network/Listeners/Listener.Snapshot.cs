@@ -16,7 +16,7 @@ public abstract partial class Listener : ISnapshot<ListenerSnapshot>
     public ListenerSnapshot GetSnapshot()
         => new()
         {
-            Port = _port,
+            Port = Config.TcpPort,
             IsDisposed = _isDisposed,
             IsListening = IsListening,
             Address = ListenerSnapshot.GetIpAddress(_tcpListener),

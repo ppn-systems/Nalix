@@ -8,16 +8,22 @@ namespace Nalix.Network.Listeners;
 public interface IListener
 {
     /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Shared.Time.Clock.UnixMillisecondsNow"/>.</param>
-    abstract void UpdateTime(long milliseconds);
-
-    /// <summary>
     /// Stops the listening process.
     /// This method should gracefully stop the listener, cleaning up resources and terminating any ongoing network connection acceptances.
     /// </summary>
     void EndListening();
+
+    /// <summary>
+    /// Enables or disables the update loop for the listener.
+    /// </summary>
+    /// <param name="enable">True to enable, false to disable.</param>
+    void EnableUpdateLoop(bool enable);
+
+    /// <summary>
+    /// Updates the listener with the current server time, provided as a Unix timestamp.
+    /// </summary>
+    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Shared.Time.Clock.UnixMillisecondsNow"/>.</param>
+    abstract void UpdateTime(long milliseconds);
 
     /// <summary>
     /// Starts listening for network connections using a CancellationToken for optional cancellation.

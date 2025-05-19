@@ -15,13 +15,11 @@ public interface IProtocol : System.IDisposable
     bool KeepConnectionOpen { get; }
 
     /// <summary>
-    /// Handles a new connection when it is accepted.
-    /// This method should implement the logic for initializing the connection and setting up data reception.
+    /// Processes a message received on the connection.
+    /// This method must be implemented by derived classes to handle specific message processing.
     /// </summary>
-    /// <param name="connection">The connection to handle.</param>
-    /// <param name="cancellationToken">Token for cancellation</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
-    void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default);
+    /// <param name="bytes">The message data.</param>
+    abstract void ProcessMessage(System.ReadOnlySpan<byte> bytes);
 
     /// <summary>
     /// Processes an incoming message from the connection.
@@ -40,4 +38,13 @@ public interface IProtocol : System.IDisposable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(object sender, IConnectEventArgs args);
+
+    /// <summary>
+    /// Handles a new connection when it is accepted.
+    /// This method should implement the logic for initializing the connection and setting up data reception.
+    /// </summary>
+    /// <param name="connection">The connection to handle.</param>
+    /// <param name="cancellationToken">Token for cancellation</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
+    void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default);
 }

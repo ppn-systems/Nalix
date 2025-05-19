@@ -12,6 +12,15 @@ public abstract partial class Protocol : IProtocol
     /// Processes a message received on the connection.
     /// This method must be implemented by derived classes to handle specific message processing.
     /// </summary>
+    /// <param name="bytes">The message data.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public abstract void ProcessMessage(System.ReadOnlySpan<byte> bytes);
+
+    /// <summary>
+    /// Processes a message received on the connection.
+    /// This method must be implemented by derived classes to handle specific message processing.
+    /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
