@@ -117,9 +117,6 @@ public sealed partial class Connection : IConnection
     public System.ReadOnlyMemory<byte> IncomingPacket => _cstream.GetIncomingPackets();
 
     /// <inheritdoc />
-    public System.DateTimeOffset Timestamp { get; } = System.DateTimeOffset.UtcNow;
-
-    /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
 
     /// <inheritdoc />

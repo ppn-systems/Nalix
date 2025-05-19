@@ -37,11 +37,6 @@ public partial interface IConnection : System.IDisposable
     string RemoteEndPoint { get; }
 
     /// <summary>
-    /// Gets the timestamp indicating when the connection was established.
-    /// </summary>
-    System.DateTimeOffset Timestamp { get; }
-
-    /// <summary>
     /// Gets the encryption key used for securing communication.
     /// </summary>
     byte[] EncryptionKey { get; set; }

@@ -46,8 +46,6 @@ internal class UdpConnection(IPEndPoint remoteEndPoint) : IConnection
 
     public string RemoteEndPoint => _remoteEndPoint.ToString();
 
-    public DateTimeOffset Timestamp => _timestamp;
-
     public byte[] EncryptionKey { get; set; } = [];
 
     public PermissionLevel Level { get; set; } = PermissionLevel.None;

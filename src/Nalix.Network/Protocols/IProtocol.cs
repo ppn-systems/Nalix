@@ -32,8 +32,6 @@ public interface IProtocol : System.IDisposable
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(object sender, IConnectEventArgs args);
 
-    void ProcessMessage();
-
     /// <summary>
     /// Executes after a message from the connection has been processed.
     /// This method can be used to perform additional actions after message handling, like disconnecting the connection if needed.
