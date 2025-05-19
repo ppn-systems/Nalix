@@ -160,7 +160,7 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         if (disposing)
         {
-            _logger.Info("Disposing on {0}", _port);
+            _logger.Info("[TCP] Disposing on {0}", Config.TcpPort);
 
             _cts?.Cancel();
             _cts?.Dispose();

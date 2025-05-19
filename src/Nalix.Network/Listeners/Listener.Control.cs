@@ -1,8 +1,5 @@
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Time;
-using System;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -35,12 +32,11 @@ public abstract partial class Listener
 
         await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
 
-        EndPoint remote = new IPEndPoint(IPAddress.Any, Config.TcpPort);
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.TcpPort);
 
         try
         {
             // Bind and Listen
-
             _tcpListener.Bind(remote);
             _udpListener.Bind(remote);
 
@@ -50,16 +46,20 @@ public abstract partial class Listener
 
             // Create multiple accept tasks in parallel for higher throughput
             System.Threading.Tasks.Task updateTask = this.RunUpdateLoopAsync(linkedToken);
-            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[maxParallelAccepts];
+            System.Threading.Tasks.Task receiveTask = this.ReceiveUdpLoopAsync(linkedToken);
+            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[maxParallelAccepts + 2];
 
             for (int i = 0; i < maxParallelAccepts; i++)
             {
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
             }
 
-            await System.Threading.Tasks.Task
-                    .WhenAll(System.Linq.Enumerable.Append(acceptTasks, updateTask))
-                    .ConfigureAwait(false);
+            acceptTasks.CopyTo(acceptTasks, 0);
+
+            acceptTasks[maxParallelAccepts] = updateTask;
+            acceptTasks[maxParallelAccepts + 1] = receiveTask;
+
+            await System.Threading.Tasks.Task.WhenAll(acceptTasks).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException)
         {
@@ -110,21 +110,33 @@ public abstract partial class Listener
 
     #region Private Methods
 
-    private async System.Threading.Tasks.Task ReceiveUdpLoopAsync()
+    private async System.Threading.Tasks.Task ReceiveUdpLoopAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
-        byte[] buffer = new byte[Config.BufferSize];
-        EndPoint remote = new IPEndPoint(IPAddress.Any, Config.UdpPort);
+        _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.UdpPort);
 
-        while (!_cts!.Token.IsCancellationRequested)
+        byte[] buffer = new byte[Config.BufferSize];
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.UdpPort);
+
+        while (_isListening)
         {
             try
             {
-                var result = await _udpListener.ReceiveFromAsync(new ArraySegment<byte>(buffer), SocketFlags.None, remote);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                System.Net.Sockets.SocketReceiveFromResult result = await _udpListener.ReceiveFromAsync(
+                    new System.ArraySegment<byte>(buffer),
+                    System.Net.Sockets.SocketFlags.None, remote);
+
                 //_protocol.ProcessMessage(buffer.AsSpan(0, result.ReceivedBytes), result.RemoteEndPoint);
             }
-            catch (Exception ex)
+            catch (System.OperationCanceledException)
             {
-                _logger.Error("Error in UDP listener: {0}", ex);
+                _logger.Info("[UDP] Listener on {0} stopped", Config.UdpPort);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error("[UDP] Listener Ex: {0}", ex);
             }
         }
     }
