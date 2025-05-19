@@ -6,11 +6,124 @@ namespace Nalix.Network.Connection;
 
 public sealed partial class Connection : IConnection
 {
-    /// <inheritdoc/>
-    public IConnection.ITcp Tcp { get; }
+    #region User Datagram Protocol
 
-    /// <inheritdoc/>
-    public IConnection.IUdp Udp { get; }
+    /// <inheritdoc />
+    public class UdpTransport : IConnection.IUdp
+    {
+        #region Fields
+
+        private readonly ILogger? _logger;
+        private readonly System.Net.EndPoint _remoteEndPoint;
+        private static readonly System.Net.Sockets.Socket _socket;
+
+        #endregion Fields
+
+        #region Constructor
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UdpTransport"/> class.
+        /// </summary>
+        static UdpTransport()
+        {
+            _socket = new System.Net.Sockets.Socket(
+                System.Net.Sockets.AddressFamily.InterNetwork,
+                System.Net.Sockets.SocketType.Dgram,
+                System.Net.Sockets.ProtocolType.Udp);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UdpTransport"/> class.
+        /// </summary>
+        /// <param name="outer"></param>
+        /// <exception cref="System.InvalidOperationException"></exception>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+        public UdpTransport(Connection outer)
+        {
+            _logger = outer._logger;
+            _remoteEndPoint = outer._socket.RemoteEndPoint
+                        ?? throw new System.InvalidOperationException("RemoteEndPoint is null.");
+        }
+
+        #endregion Constructor
+
+        #region Synchronous Methods
+
+        /// <inheritdoc />
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool Send(IPacket packet)
+        {
+            if (packet is null)
+            {
+                _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                return false;
+            }
+
+            return Send(packet.Serialize().Span);
+        }
+
+        /// <inheritdoc />
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool Send(System.ReadOnlySpan<byte> message)
+        {
+            if (message.IsEmpty) return false;
+            if (_remoteEndPoint is null)
+            {
+                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
+                return false;
+            }
+
+            int sentBytes = _socket.SendTo(message.ToArray(), _remoteEndPoint);
+            return sentBytes == message.Length;
+        }
+
+        #endregion Synchronous Methods
+
+        #region Asynchronous Methods
+
+        /// <inheritdoc />
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public async System.Threading.Tasks.Task<bool> SendAsync(
+            IPacket packet,
+            System.Threading.CancellationToken cancellationToken = default)
+        {
+            if (packet is null)
+            {
+                _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                return false;
+            }
+
+            return await SendAsync(packet.Serialize(), cancellationToken);
+        }
+
+        /// <inheritdoc />
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public async System.Threading.Tasks.Task<bool> SendAsync(
+            System.ReadOnlyMemory<byte> message,
+            System.Threading.CancellationToken cancellationToken = default)
+        {
+            if (message.IsEmpty) return false;
+            if (_remoteEndPoint is null)
+            {
+                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
+                return false;
+            }
+
+            int sentBytes = await _socket.SendToAsync(
+                message.ToArray(), _remoteEndPoint, cancellationToken);
+
+            return sentBytes == message.Length;
+        }
+
+        #endregion Asynchronous Methods
+    }
+
+    #endregion User Datagram Protocol
 
     #region Transmission Control Protocol
 
@@ -87,115 +200,4 @@ public sealed partial class Connection : IConnection
     }
 
     #endregion Transmission Control Protocol
-
-    #region User Datagram Protocol
-
-    /// <inheritdoc />
-    public class UdpTransport : IConnection.IUdp
-    {
-        #region Fields
-
-        private readonly ILogger? _logger;
-        private readonly System.Net.EndPoint _remoteEndPoint;
-        private static readonly System.Net.Sockets.Socket _socket;
-
-        #endregion Fields
-
-        #region Constructor
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UdpTransport"/> class.
-        /// </summary>
-        static UdpTransport()
-        {
-            _socket = new System.Net.Sockets.Socket(
-                System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Dgram,
-                System.Net.Sockets.ProtocolType.Udp);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UdpTransport"/> class.
-        /// </summary>
-        /// <param name="outer"></param>
-        /// <exception cref="System.InvalidOperationException"></exception>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-        public UdpTransport(Connection outer)
-        {
-            _logger = outer._logger;
-            _remoteEndPoint = outer._socket.RemoteEndPoint
-                        ?? throw new System.InvalidOperationException("RemoteEndPoint is null.");
-        }
-
-        #endregion Constructor
-
-        #region Synchronous Methods
-
-        /// <inheritdoc />
-        public bool Send(IPacket packet)
-        {
-            if (packet is null)
-            {
-                _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
-                return false;
-            }
-
-            return Send(packet.Serialize().Span);
-        }
-
-        /// <inheritdoc />
-        public bool Send(System.ReadOnlySpan<byte> message)
-        {
-            if (message.IsEmpty) return false;
-            if (_remoteEndPoint is null)
-            {
-                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
-                return false;
-            }
-
-            int sentBytes = _socket.SendTo(message.ToArray(), _remoteEndPoint);
-            return sentBytes == message.Length;
-        }
-
-        #endregion Synchronous Methods
-
-        #region Asynchronous Methods
-
-        /// <inheritdoc />
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default)
-        {
-            if (packet is null)
-            {
-                _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
-                return false;
-            }
-
-            return await SendAsync(packet.Serialize(), cancellationToken);
-        }
-
-        /// <inheritdoc />
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
-            System.Threading.CancellationToken cancellationToken = default)
-        {
-            if (message.IsEmpty) return false;
-            if (_remoteEndPoint is null)
-            {
-                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
-                return false;
-            }
-
-            int sentBytes = await _socket.SendToAsync(
-                message.ToArray(), _remoteEndPoint, cancellationToken);
-
-            return sentBytes == message.Length;
-        }
-
-        #endregion Asynchronous Methods
-    }
-
-    #endregion User Datagram Protocol
 }

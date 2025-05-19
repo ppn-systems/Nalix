@@ -38,7 +38,7 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
-    protected virtual bool ValidateConnection(Common.Connection.IConnection connection) => true;
+    protected virtual bool ValidateConnection(IConnection connection) => true;
 
     /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
@@ -65,7 +65,7 @@ public abstract partial class Protocol
         {
             if (this.ValidateConnection(connection))
             {
-                connection.BeginReceive(cancellationToken);
+                connection.Tcp.BeginReceive(cancellationToken);
                 return;
             }
 

@@ -16,6 +16,8 @@ public sealed partial class Connection : IConnection
 
     private readonly IEncodedId _id;
     private readonly ILogger? _logger;
+    private readonly IConnection.ITcp _tcp;
+    private readonly IConnection.IUdp _udp;
     private readonly System.Threading.Lock _lock;
     private readonly System.Net.Sockets.Socket _socket;
     private readonly Transport.TransportStream _cstream;
@@ -61,8 +63,8 @@ public sealed partial class Connection : IConnection
         _disposed = false;
         _encryptionKey = new byte[32];
 
-        this.Tcp = new TcpTransport(this);
-        this.Udp = new UdpTransport(this);
+        _tcp = new TcpTransport(this);
+        _udp = new UdpTransport(this);
 
         _logger?.Debug("[{0}] Connection created for {1}",
             nameof(Connection), _socket.RemoteEndPoint?.ToString());
@@ -74,6 +76,12 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public IEncodedId Id => _id;
+
+    /// <inheritdoc/>
+    public IConnection.ITcp Tcp => _tcp;
+
+    /// <inheritdoc/>
+    public IConnection.IUdp Udp => _udp;
 
     /// <inheritdoc />
     public long UpTime => _cstream.UpTime;
