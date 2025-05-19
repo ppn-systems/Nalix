@@ -79,12 +79,12 @@ public abstract partial class Listener
                     ex.SocketErrorCode == System.Net.Sockets.SocketError.Interrupted ||
                     ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionAborted)
                 {
-                    // Socket was closed or interrupted
+                    // _udpSocket was closed or interrupted
                     break;
                 }
                 catch (System.ObjectDisposedException)
                 {
-                    // Socket was disposed
+                    // _udpSocket was disposed
                     break;
                 }
                 catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)

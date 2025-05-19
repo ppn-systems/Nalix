@@ -99,7 +99,7 @@ internal class TransportStream : System.IDisposable
                     catch (System.Net.Sockets.SocketException ex) when
                         (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
                     {
-                        _logger?.Debug("[{0}] Socket reset", nameof(TransportStream));
+                        _logger?.Debug("[{0}] _udpSocket reset", nameof(TransportStream));
                         Disconnected?.Invoke();
                     }
                     catch (System.Exception ex)
@@ -354,7 +354,7 @@ internal class TransportStream : System.IDisposable
         catch (System.Net.Sockets.SocketException ex) when
               (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
         {
-            _logger?.Debug("[{0}] Socket reset", nameof(TransportStream));
+            _logger?.Debug("[{0}] _udpSocket reset", nameof(TransportStream));
             Disconnected?.Invoke();
         }
         catch (System.Exception ex)

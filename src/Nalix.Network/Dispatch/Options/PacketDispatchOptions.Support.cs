@@ -42,7 +42,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         packet = TPacket.Compress(packet);
         packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
 
-        await connection.SendAsync(packet);
+        await connection.ITcp.SendAsync(packet);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

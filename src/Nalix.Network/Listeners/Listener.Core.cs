@@ -111,7 +111,7 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
 
-        // Optimized for Socket.IOControlCode on Windows
+        // Optimized for _udpSocket.IOControlCode on Windows
         if (Config.IsWindows)
         {
             int parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;

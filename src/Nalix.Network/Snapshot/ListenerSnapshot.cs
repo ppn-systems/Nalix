@@ -43,11 +43,11 @@ public record ListenerSnapshot
     public static string GetSocketStatus(System.Net.Sockets.Socket socket)
     {
         if (socket == null)
-            return "Socket not initialized";
+            return "_udpSocket not initialized";
 
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"Socket Type: {socket.SocketType}");
+        sb.AppendLine($"_udpSocket Type: {socket.SocketType}");
         sb.AppendLine($"Protocol Type: {socket.ProtocolType}");
         sb.AppendLine($"Address Family: {socket.AddressFamily}");
         sb.AppendLine($"Linger State Enabled: {socket.LingerState?.Enabled}");
@@ -75,7 +75,7 @@ public record ListenerSnapshot
     public static string GetIpAddress(System.Net.Sockets.Socket socket)
     {
         if (socket == null)
-            return "Socket not initialized";
+            return "_udpSocket not initialized";
 
         return (socket.LocalEndPoint as System.Net.IPEndPoint)?
             .Address.ToString() ?? "IP not available";
@@ -95,7 +95,7 @@ public record ListenerSnapshot
         sb.AppendLine($"Port: {Port}");
         sb.AppendLine($"Is Listening: {IsListening}");
         sb.AppendLine($"Is Disposed: {IsDisposed}");
-        sb.AppendLine($"Listener Socket Status: {ListenerSocketStatus}");
+        sb.AppendLine($"Listener _udpSocket Status: {ListenerSocketStatus}");
         sb.AppendLine($"Address: {Address}");
 
         return sb.ToString();

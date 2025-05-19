@@ -61,6 +61,9 @@ public sealed partial class Connection : IConnection
         _disposed = false;
         _encryptionKey = new byte[32];
 
+        this.Tcp = new TcpTransport(this);
+        this.Udp = new UdpTransport(this);
+
         _logger?.Debug("[{0}] Connection created for {1}",
             nameof(Connection), _socket.RemoteEndPoint?.ToString());
     }
