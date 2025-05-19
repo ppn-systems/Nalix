@@ -29,6 +29,8 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection where the error occurred.</param>
     /// <param name="exception">The exception that was thrown.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
         => System.Threading.Interlocked.Increment(ref _totalErrors);
 
@@ -38,6 +40,8 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual bool ValidateConnection(IConnection connection) => true;
 
     /// <summary>
@@ -48,6 +52,8 @@ public abstract partial class Protocol
     /// <param name="cancellationToken">Token for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual void OnAccept(
         IConnection connection,
         System.Threading.CancellationToken cancellationToken = default)

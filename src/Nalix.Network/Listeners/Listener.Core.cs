@@ -26,12 +26,11 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     private static readonly SocketConfig Config;
 
-    private readonly int _port;
     private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
-    private readonly System.Net.IPEndPoint _bindEndPoint;
-    private readonly System.Net.Sockets.Socket _listenerSocket;
+    private readonly System.Net.Sockets.Socket _udpListener;
+    private readonly System.Net.Sockets.Socket _tcpListener;
     private readonly System.Threading.SemaphoreSlim _listenerLock;
 
     private System.Threading.CancellationTokenSource? _cts;
@@ -73,25 +72,22 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
-    /// <param name="port">The port to listen on.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(int port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     {
         System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
-        _port = port;
         _logger = logger;
         _protocol = protocol;
         _buffer = bufferPool;
-        _bindEndPoint = new(System.Net.IPAddress.Any, _port);
         _listenerLock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
-        _listenerSocket = new System.Net.Sockets.Socket(
+        _tcpListener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream,
             System.Net.Sockets.ProtocolType.Tcp)
@@ -102,16 +98,29 @@ public abstract partial class Listener : IListener, System.IDisposable
         };
 
         // Increase the queue size on the socket listener.
-        _listenerSocket.SetSocketOption(
+        _tcpListener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
-        _listenerSocket.SetSocketOption(
+        _tcpListener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
 
-        // Optimized for _udpSocket.IOControlCode on Windows
+        _udpListener = new System.Net.Sockets.Socket(
+            System.Net.Sockets.AddressFamily.InterNetwork,
+            System.Net.Sockets.SocketType.Dgram,
+            System.Net.Sockets.ProtocolType.Udp)
+        {
+            ExclusiveAddressUse = !Config.ReuseAddress
+        };
+
+        _udpListener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReuseAddress,
+            Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
+
+        // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
         {
             int parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
@@ -122,18 +131,6 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
             _logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
-    /// and the specified protocol, buffer pool, and logger.
-    /// </summary>
-    /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
-        : this(Config.Port, protocol, bufferPool, logger)
-    {
     }
 
     #endregion Constructors
@@ -170,8 +167,8 @@ public abstract partial class Listener : IListener, System.IDisposable
 
             try
             {
-                _listenerSocket.Close();
-                _listenerSocket.Dispose();
+                _tcpListener.Close();
+                _tcpListener.Dispose();
             }
             catch { }
 

@@ -70,7 +70,7 @@ public abstract partial class Listener
                     args.AcceptSocket = null;
 
                     // Try accepting the connection asynchronously
-                    if (_listenerSocket.AcceptAsync(args)) break;
+                    if (_tcpListener.AcceptAsync(args)) break;
 
                     // If the connection has been received synchronously, process it immediately.
                     HandleAccept(args);
@@ -79,12 +79,12 @@ public abstract partial class Listener
                     ex.SocketErrorCode == System.Net.Sockets.SocketError.Interrupted ||
                     ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionAborted)
                 {
-                    // _udpSocket was closed or interrupted
+                    // _udpListener was closed or interrupted
                     break;
                 }
                 catch (System.ObjectDisposedException)
                 {
-                    // _udpSocket was disposed
+                    // _udpListener was disposed
                     break;
                 }
                 catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -191,7 +191,7 @@ public abstract partial class Listener
         System.Threading.CancellationToken cancellationToken)
     {
         System.Net.Sockets.Socket socket = await System.Threading.Tasks.Task.Factory
-            .FromAsync(_listenerSocket.BeginAccept, _listenerSocket.EndAccept, null)
+            .FromAsync(_tcpListener.BeginAccept, _tcpListener.EndAccept, null)
             .ConfigureAwait(false);
 
         await System.Threading.Tasks.Task.Yield();

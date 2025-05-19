@@ -33,6 +33,8 @@ public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
     /// A <see cref="ProtocolSnapshot"/> containing metrics like
     /// total messages processed and total errors encountered.
     /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual ProtocolSnapshot GetSnapshot() => new()
     {
         IsListening = IsAccepting,

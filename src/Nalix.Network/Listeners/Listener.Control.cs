@@ -1,5 +1,8 @@
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Time;
+using System;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -32,14 +35,18 @@ public abstract partial class Listener
 
         await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
 
+        EndPoint remote = new IPEndPoint(IPAddress.Any, Config.TcpPort);
+
         try
         {
             // Bind and Listen
 
-            _listenerSocket.Bind(_bindEndPoint);
-            _listenerSocket.Listen(Listener.SocketBacklog);
+            _tcpListener.Bind(remote);
+            _udpListener.Bind(remote);
 
-            _logger.Info("{0} online on {1}", _protocol, _port);
+            _tcpListener.Listen(SocketBacklog);
+
+            _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.TcpPort);
 
             // Create multiple accept tasks in parallel for higher throughput
             System.Threading.Tasks.Task updateTask = this.RunUpdateLoopAsync(linkedToken);
@@ -56,21 +63,21 @@ public abstract partial class Listener
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Info("Listener on {0} stopped", _port);
+            _logger.Info("[TCP] Listener on {0} stopped", Config.TcpPort);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            throw new InternalErrorException($"Could not start {_protocol} on port {_port}", ex);
+            throw new InternalErrorException($"[TCP] Could not start {_protocol} on port {Config.TcpPort}", ex);
         }
         catch (System.Exception ex)
         {
-            throw new InternalErrorException($"Critical error in listener on port {_port}", ex);
+            throw new InternalErrorException($"[TCP] Critical error in listener on port {Config.TcpPort}", ex);
         }
         finally
         {
             try
             {
-                _listenerSocket.Close();
+                _tcpListener.Close();
             }
             catch { }
 
@@ -90,7 +97,7 @@ public abstract partial class Listener
         try
         {
             // Close the socket listener to deactivate the accept
-            _listenerSocket.Close();
+            _tcpListener.Close();
         }
         catch (System.Exception ex)
         {
@@ -102,6 +109,25 @@ public abstract partial class Listener
     }
 
     #region Private Methods
+
+    private async System.Threading.Tasks.Task ReceiveUdpLoopAsync()
+    {
+        byte[] buffer = new byte[Config.BufferSize];
+        EndPoint remote = new IPEndPoint(IPAddress.Any, Config.UdpPort);
+
+        while (!_cts!.Token.IsCancellationRequested)
+        {
+            try
+            {
+                var result = await _udpListener.ReceiveFromAsync(new ArraySegment<byte>(buffer), SocketFlags.None, remote);
+                //_protocol.ProcessMessage(buffer.AsSpan(0, result.ReceivedBytes), result.RemoteEndPoint);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Error in UDP listener: {0}", ex);
+            }
+        }
+    }
 
     private async System.Threading.Tasks.Task RunUpdateLoopAsync(
         System.Threading.CancellationToken cancellationToken)

@@ -27,6 +27,8 @@ public abstract partial class Protocol
     /// <summary>
     /// Disposes resources used by this Protocol.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         this.Dispose(true);
@@ -37,6 +39,8 @@ public abstract partial class Protocol
     /// Core disposal logic. Override to release managed resources.
     /// </summary>
     /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(bool disposing)
     {
         if (_isDisposed)
