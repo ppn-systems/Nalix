@@ -12,7 +12,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struct
+internal sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struct
 {
     private static System.String DebuggerDisplay => $"NullableArrayFormatter<{typeof(T).FullName}>";
 
@@ -22,8 +22,7 @@ public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struc
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array of nullable value type elements to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T?[] value)
     {
         if (value == null)
@@ -54,8 +53,7 @@ public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struc
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of nullable value type elements, or null if the serialized data represents a null array.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T?[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

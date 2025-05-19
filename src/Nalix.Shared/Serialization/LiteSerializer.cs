@@ -36,10 +36,12 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] Serialize<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static System.Byte[] Serialize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
@@ -141,6 +143,8 @@ public static class LiteSerializer
     /// <exception cref="System.NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Serialize<T>(in T value, System.Byte[] buffer)
@@ -196,6 +200,8 @@ public static class LiteSerializer
     /// <exception cref="System.NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Serialize<T>(in T value, System.Span<System.Byte> buffer)
@@ -226,8 +232,11 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
         System.ReadOnlySpan<System.Byte> buffer, ref T value)

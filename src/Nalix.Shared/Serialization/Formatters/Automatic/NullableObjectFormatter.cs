@@ -16,7 +16,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class, new()
+internal sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class, new()
 {
     private static System.String DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
 
@@ -30,8 +30,7 @@ public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class,
     /// The serialization of the underlying object is handled by an <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider.Get{TFormatter}"/>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T? value)
     {
         if (value is null)
@@ -61,8 +60,7 @@ public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class,
     /// is deserialized using an <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider.Get{TFormatter}"/>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
         System.Byte marker = FormatterProvider.Get<System.Byte>()
