@@ -19,7 +19,11 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// <typeparam name="TField">Field type.</typeparam>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAccessor<T>
+internal sealed class FieldAccessorImpl<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TField>(System.Int32 index) : FieldAccessor<T>
 {
     #region Fields
 
