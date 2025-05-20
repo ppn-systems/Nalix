@@ -1,6 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
+using Nalix.Identifiers;
 using Nalix.Shared.Injection.DI;
 using System;
 using System.Collections.Concurrent;
@@ -58,6 +59,10 @@ public sealed class ConnectionHub(ILogger? logger = null) : SingletonBase<Connec
     /// <inheritdoc/>
     public IConnection? GetConnection(IEncodedId id)
         => _connections.TryGetValue(id, out IConnection? connection) ? connection : null;
+
+    /// <inheritdoc/>
+    public IConnection? GetConnection(ReadOnlySpan<byte> id)
+        => _connections.TryGetValue(Base36Id.FromByteArray(id), out IConnection? connection) ? connection : null;
 
     /// <inheritdoc/>
     public IReadOnlyCollection<IConnection> ListConnections() =>

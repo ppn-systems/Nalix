@@ -10,7 +10,7 @@ public abstract partial class Listener
     {
         ConfigureHighPerformanceSocket(socket);
 
-        Connection.Connection connection = new(socket, _buffer, _logger);
+        IConnection connection = new Connection.Connection(socket, _buffer, _logger);
 
         connection.OnCloseEvent += HandleConnectionClose;
         connection.OnProcessEvent += _protocol.ProcessMessage!;

@@ -308,7 +308,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// </summary>
     /// <param name="obj">The object to compare with the current instance.</param>
     /// <returns>true if the specified object is a <see cref="Base36Id"/> and equals the current instance; otherwise, false.</returns>
-    public override bool Equals(object obj) => obj is Base36Id other && Equals(other);
+    public override bool Equals(object obj) => obj is Base36Id other && this.Equals(other);
 
     /// <summary>
     /// Determines whether the current instance is equal to another <see cref="Base36Id"/>.

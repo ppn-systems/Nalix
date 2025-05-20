@@ -1,4 +1,5 @@
 using Nalix.Common.Identity;
+using System;
 using System.Collections.Generic;
 
 namespace Nalix.Common.Connection;
@@ -29,6 +30,13 @@ public interface IConnectionHub
     /// <param name="id">The unique identifier of the connection to retrieve.</param>
     /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
     IConnection GetConnection(IEncodedId id);
+
+    /// <summary>
+    /// Retrieves a client connection by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the connection to retrieve.</param>
+    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
+    IConnection GetConnection(ReadOnlySpan<byte> id);
 
     /// <summary>
     /// Retrieves a read-only view of all active client connections.
