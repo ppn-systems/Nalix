@@ -1,6 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
+using Nalix.Shared.Injection.DI;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,10 +12,14 @@ namespace Nalix.Network.Connection;
 /// <summary>
 /// Manages active network connections in a thread-safe manner.
 /// </summary>
-public sealed class ConnectionHub(ILogger? logger = null)
+public sealed class ConnectionHub(ILogger? logger = null) : SingletonBase<ConnectionHub>, IConnectionHub
 {
-    private readonly ILogger? _logger = logger;
+    private ILogger? _logger = logger;
     private readonly ConcurrentDictionary<IEncodedId, IConnection> _connections = new();
+
+    /// <inheritdoc/>
+    public void SetLogging(ILogger logger)
+        => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc/>
     public bool RegisterConnection(IConnection connection)
