@@ -64,7 +64,7 @@ public sealed class RequestLimiter : IDisposable
 
         _ipData = new();
         _timeWindowTicks = TimeSpan.FromMilliseconds(_config.TimeWindowInMilliseconds).Ticks;
-        _lockoutDurationTicks = TimeSpan.FromSeconds(_config.LockoutDurationSeconds).Ticks;
+        _lockoutDurationTicks = TimeSpan.FromMilliseconds(_config.LockoutDurationSeconds).Ticks;
 
         _cleanupTimer = new Timer(static s
             => ((RequestLimiter)s!).Cleanup(), this, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));

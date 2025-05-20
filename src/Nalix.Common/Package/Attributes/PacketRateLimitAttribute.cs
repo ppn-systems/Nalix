@@ -1,3 +1,5 @@
+using Nalix.Common.Security;
+
 namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
@@ -23,33 +25,21 @@ namespace Nalix.Common.Package.Attributes;
 public sealed class PacketRateLimitAttribute : System.Attribute
 {
     /// <summary>
-    /// Gets or sets the maximum number of allowed requests during the time window.
+    /// Defines the level of granularity the rate limit is applied to.
     /// </summary>
-    public int MaxRequests { get; init; } = 5;
-
-    /// <summary>
-    /// Gets or sets the duration of the time window in milliseconds
-    /// within which the requests are counted.
-    /// </summary>
-    public int TimeWindowMs { get; init; } = 1000;
-
-    /// <summary>
-    /// Gets or sets the number of seconds to block further requests
-    /// once the limit has been exceeded.
-    /// </summary>
-    public int LockoutDurationSeconds { get; init; } = 1;
+    public RequestLimitType Level { get; init; } = RequestLimitType.Low;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketRateLimitAttribute"/> class
-    /// with default values (MaxRequests = 5, TimeWindowMs = 1000, LockoutDurationSeconds = 1).
+    /// with default values (MaxRequests = 20, TimeWindowMs = 2000, LockoutDurationSeconds = 3).
     /// </summary>
     public PacketRateLimitAttribute()
     { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketRateLimitAttribute"/> class
-    /// with a specific maximum request count.
+    /// with default values (MaxRequests = 20, TimeWindowMs = 2000, LockoutDurationSeconds = 3).
     /// </summary>
-    /// <param name="maxRequests">The maximum number of allowed requests per time window.</param>
-    public PacketRateLimitAttribute(int maxRequests) => MaxRequests = maxRequests;
+    /// <param name="level">The level of granularity the rate limit is applied to.</param>
+    public PacketRateLimitAttribute(RequestLimitType level) => Level = level;
 }

@@ -1,5 +1,6 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
+using Nalix.Extensions;
 using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch;
@@ -75,6 +76,6 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async void HandlePacketAsync(TPacket packet, IConnection connection)
-        => await base.ExecutePacketHandlerAsync(packet, connection);
+    public void HandlePacketAsync(TPacket packet, IConnection connection)
+        => base.ExecutePacketHandlerAsync(packet, connection).Await();
 }

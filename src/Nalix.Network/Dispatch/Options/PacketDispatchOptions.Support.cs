@@ -3,6 +3,7 @@ using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
+using Nalix.Common.Package.Attributes.Metadata;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -18,11 +19,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static PacketAttributes GetPacketAttributes(System.Reflection.MethodInfo method)
+    private static PacketDescriptor GetPacketAttributes(System.Reflection.MethodInfo method)
     => new(
-        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketIdAttribute>(method)!,
+        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(method)!,
         System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(method),
-        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateGroupAttribute>(method),
         System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(method),
         System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(method),
         System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(method)
@@ -49,12 +49,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private bool CheckRateLimit(
         string remoteEndPoint,
-        PacketAttributes attributes,
+        PacketDescriptor attributes,
         System.Reflection.MethodInfo method)
     {
         if (attributes.RateLimit != null && !_rateLimiter.Check(
-            remoteEndPoint, attributes.RateGroup?.GroupName ?? method.Name,
-            attributes.RateLimit, attributes.RateGroup))
+            remoteEndPoint, attributes.RateLimit))
         {
             return false;
         }
@@ -66,7 +65,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private System.Func<TPacket, IConnection, System.Threading.Tasks.Task>
         CreateHandlerDelegate(System.Reflection.MethodInfo method, object controllerInstance)
     {
-        PacketAttributes attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
+        PacketDescriptor attributes = PacketDispatchOptions<TPacket>.GetPacketAttributes(method);
 
         return async (packet, connection) =>
         {
@@ -101,7 +100,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
             {
                 string message = $"Encrypted packet not allowed for command " +
-                                 $"'{attributes.PacketId.Id}' " +
+                                 $"'{attributes.Opcode.Id}' " +
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Warn(message);
@@ -131,7 +130,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     catch (System.OperationCanceledException)
                     {
                         _logger?.Error("Packet '{0}' timed out after {1}ms.",
-                            attributes.PacketId.Id,
+                            attributes.Opcode.Id,
                             attributes.Timeout.TimeoutMilliseconds);
                         connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
 
@@ -150,27 +149,27 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                "Exception: {3}. Net: {4}, Exception Details: {5}",
-                    attributes.PacketId.Id,           // Command ID
+                    attributes.Opcode.Id,           // Command ID
                     controllerInstance.GetType().Name,// ConnectionOps name
                     method.Name,                      // Method name
                     ex.GetType().Name,                // Exception type
                     connection.RemoteEndPoint,        // Connection details for traceability
                     ex.Message                        // Exception message itself
                 );
-                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
+                _errorHandler?.Invoke(ex, attributes.Opcode.Id);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             catch (System.Exception ex)
             {
                 _logger?.Error("Packet [Id={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
-                    attributes.PacketId.Id,
+                    attributes.Opcode.Id,
                     controllerInstance.GetType().Name,
                     method.Name,
                     ex.GetType().Name,
                     ex.Message,
                     connection.RemoteEndPoint
                 );
-                _errorHandler?.Invoke(ex, attributes.PacketId.Id);
+                _errorHandler?.Invoke(ex, attributes.Opcode.Id);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             finally

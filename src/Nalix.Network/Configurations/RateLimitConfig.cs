@@ -1,4 +1,4 @@
-using Nalix.Network.Security.Enums;
+using Nalix.Common.Security;
 using Nalix.Network.Security.Settings;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
@@ -19,11 +19,11 @@ public sealed class RateLimitConfig(RequestLimitSettings settings) : Configurati
     #region Fields
 
     // Pre-defined configurations to avoid memory allocations
-    private static readonly RequestLimitSettings LowSettings = new(50, 600, 30_000);
 
-    private static readonly RequestLimitSettings MediumSettings = new(100, 300, 60_000);
-    private static readonly RequestLimitSettings HighSettings = new(500, 150, 120_000);
-    private static readonly RequestLimitSettings UnlimitedSettings = new(1000, 60, 300_000);
+    private static readonly RequestLimitSettings LowSettings = new(10, 1000, 5000);
+    private static readonly RequestLimitSettings MediumSettings = new(20, 1000, 3000);
+    private static readonly RequestLimitSettings HighSettings = new(50, 1000, 2000);
+    private static readonly RequestLimitSettings LoginSettings = new(3, 5000, 10000);
 
     private static readonly System.Collections.Generic.Dictionary<RequestLimitType, RequestLimitSettings>
         SettingsMap = new()
@@ -31,7 +31,7 @@ public sealed class RateLimitConfig(RequestLimitSettings settings) : Configurati
             { RequestLimitType.Low, LowSettings },
             { RequestLimitType.Medium, MediumSettings },
             { RequestLimitType.High, HighSettings },
-            { RequestLimitType.Unlimited, UnlimitedSettings }
+            { RequestLimitType.Login, LoginSettings }
         };
 
     #endregion Fields

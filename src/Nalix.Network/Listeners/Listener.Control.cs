@@ -1,4 +1,5 @@
 using Nalix.Common.Exceptions;
+using Nalix.Common.Package.Metadata;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Listeners;
@@ -181,7 +182,11 @@ public abstract partial class Listener
                     new System.ArraySegment<byte>(buffer),
                     System.Net.Sockets.SocketFlags.None, remote);
 
-                _protocol.ProcessMessage(System.MemoryExtensions.AsSpan(buffer, 0, result.ReceivedBytes));
+                if (result.ReceivedBytes > PacketSize.Header + 16)
+                {
+                    _protocol.ProcessMessage(System.MemoryExtensions
+                             .AsSpan(buffer, 0, result.ReceivedBytes));
+                }
             }
             catch (System.OperationCanceledException)
             {

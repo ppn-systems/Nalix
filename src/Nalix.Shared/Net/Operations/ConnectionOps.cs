@@ -32,9 +32,8 @@ internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IP
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.SetEncryptionMode)]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [PacketOpcode((ushort)ProtocolCommand.SetEncryptionMode)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> SetEncryptionMode(TPacket packet, IConnection connection)
@@ -46,9 +45,8 @@ internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IP
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.Disconnect)]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [PacketOpcode((ushort)ProtocolCommand.Disconnect)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void Disconnect(IPacket _, IConnection connection)
@@ -60,9 +58,8 @@ internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IP
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.ConnectionStatus)]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [PacketOpcode((ushort)ProtocolCommand.ConnectionStatus)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetCurrentModes(IPacket _, IConnection connection)

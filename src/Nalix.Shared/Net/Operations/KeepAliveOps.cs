@@ -22,10 +22,9 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     /// </summary>
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
-    [PacketId((ushort)ProtocolCommand.Ping)]
+    [PacketOpcode((ushort)ProtocolCommand.Ping)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(KeepAliveOps<TPacket>))]
-    [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
         => TPacket.Create(
@@ -38,9 +37,8 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolCommand.Pong)]
-    [PacketRateGroup(nameof(KeepAliveOps<TPacket>))]
-    [PacketRateLimit(MaxRequests = 10, LockoutDurationSeconds = 1000)]
+    [PacketOpcode((ushort)ProtocolCommand.Pong)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
         => TPacket.Create(
@@ -53,9 +51,8 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolCommand.PingTime)]
-    [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [PacketOpcode((ushort)ProtocolCommand.PingTime)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
         => TPacket.Create(
@@ -68,9 +65,8 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Short)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketId((ushort)ProtocolCommand.PingInfo)]
-    [PacketRateGroup(nameof(ConnectionOps<TPacket>))]
-    [PacketRateLimit(MaxRequests = 2, LockoutDurationSeconds = 20)]
+    [PacketOpcode((ushort)ProtocolCommand.PingInfo)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static System.Memory<byte> GetPingInfo(TPacket _, IConnection connection)
     {

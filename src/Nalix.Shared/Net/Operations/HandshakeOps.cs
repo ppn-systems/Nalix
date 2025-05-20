@@ -56,9 +56,8 @@ internal sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFact
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.StartHandshake)]
-    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
+    [PacketOpcode((ushort)ProtocolCommand.StartHandshake)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> StartHandshake(IPacket packet, IConnection connection)
@@ -117,9 +116,8 @@ internal sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFact
     [PacketEncryption(false)]
     [PacketTimeout(Timeouts.Moderate)]
     [PacketPermission(PermissionLevel.Guest)]
-    [PacketRateGroup(nameof(HandshakeOps<TPacket>))]
-    [PacketId((ushort)ProtocolCommand.CompleteHandshake)]
-    [PacketRateLimit(MaxRequests = 1, LockoutDurationSeconds = 120)]
+    [PacketOpcode((ushort)ProtocolCommand.CompleteHandshake)]
+    [PacketRateLimit(RequestLimitType.Low)]
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal System.Memory<byte> CompleteHandshake(IPacket packet, IConnection connection)

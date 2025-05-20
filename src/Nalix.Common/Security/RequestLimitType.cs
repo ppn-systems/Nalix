@@ -1,4 +1,4 @@
-namespace Nalix.Network.Security.Enums;
+namespace Nalix.Common.Security;
 
 /// <summary>
 /// Represents different levels of request limits that can be applied to a firewall configuration.
@@ -24,5 +24,5 @@ public enum RequestLimitType
     /// <summary>
     /// Represents an unlimited request limit, with no restrictions on the Number of requests.
     /// </summary>
-    Unlimited
+    Login
 }

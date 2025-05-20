@@ -23,7 +23,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
-    /// and scanning its methods decorated with <see cref="PacketIdAttribute"/>.
+    /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register.
@@ -65,7 +65,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// using a provided factory function, then scanning its methods decorated
-    /// with <see cref="PacketIdAttribute"/>.
+    /// with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register. This type does not require
@@ -100,7 +100,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         System.Collections.Generic.List<System.Reflection.MethodInfo> methods = [.. System.Linq.Enumerable
             .Where(typeof(TController)
             .GetMethods(BindingFlags), m => System.Reflection.CustomAttributeExtensions
-            .GetCustomAttribute<PacketIdAttribute>(m) != null)
+            .GetCustomAttribute<PacketOpcodeAttribute>(m) != null)
         ];
 
         if (methods.Count == 0)
@@ -118,7 +118,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     System.Linq.Enumerable.GroupBy(
                         methods,
                         m => System.Reflection.CustomAttributeExtensions
-                                .GetCustomAttribute<PacketIdAttribute>(m)!.Id
+                                .GetCustomAttribute<PacketOpcodeAttribute>(m)!.Id
                     ),
                     g => System.Linq.Enumerable.Count(g) > 1
                 ),
@@ -140,7 +140,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         foreach (System.Reflection.MethodInfo method in methods)
         {
             ushort id = System.Reflection.CustomAttributeExtensions
-                        .GetCustomAttribute<PacketIdAttribute>(method)!
+                        .GetCustomAttribute<PacketOpcodeAttribute>(method)!
                         .Id;
 
             if (_handlers.ContainsKey(id))

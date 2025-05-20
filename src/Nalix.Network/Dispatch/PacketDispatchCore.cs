@@ -42,7 +42,8 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="options"/> is <c>null</c>.
     /// </exception>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
         => Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
@@ -84,10 +85,10 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected static async System.Threading.Tasks.ValueTask ExecuteHandler(
-        System.Func<TPacket, Common.Connection.IConnection, System.Threading.Tasks.Task> handler,
+    protected static async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
         TPacket packet,
-        Common.Connection.IConnection connection)
+        IConnection connection,
+        System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
         => await handler(packet, connection).ConfigureAwait(false);
 
     /// <summary>
@@ -128,7 +129,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
             try
             {
                 await PacketDispatchCore<TPacket>
-                    .ExecuteHandler(handler, packet, connection)
+                    .ExecuteHandlerAsync(packet, connection, handler)
                     .ConfigureAwait(false);
             }
             catch (System.Exception ex)
