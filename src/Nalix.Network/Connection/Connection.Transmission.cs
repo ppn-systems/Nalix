@@ -9,12 +9,12 @@ public sealed partial class Connection : IConnection
     #region User Datagram Protocol
 
     /// <inheritdoc />
-    public class UdpTransport : IConnection.IUdp
+    public sealed class UdpTransport : IConnection.IUdp
     {
         #region Fields
 
         private readonly ILogger? _logger;
-        private readonly System.Net.EndPoint _remoteEndPoint;
+        private readonly System.Net.EndPoint _endPoint;
         private static readonly System.Net.Sockets.Socket _socket;
 
         #endregion Fields
@@ -42,8 +42,7 @@ public sealed partial class Connection : IConnection
         public UdpTransport(Connection outer)
         {
             _logger = outer._logger;
-            _remoteEndPoint = outer._socket.RemoteEndPoint
-                        ?? throw new System.InvalidOperationException("RemoteEndPoint is null.");
+            _endPoint = outer._endPoint;
         }
 
         #endregion Constructor
@@ -70,13 +69,13 @@ public sealed partial class Connection : IConnection
         public bool Send(System.ReadOnlySpan<byte> message)
         {
             if (message.IsEmpty) return false;
-            if (_remoteEndPoint is null)
+            if (_endPoint is null)
             {
                 _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
-            int sentBytes = _socket.SendTo(message.ToArray(), _remoteEndPoint);
+            int sentBytes = _socket.SendTo(message.ToArray(), _endPoint);
             return sentBytes == message.Length;
         }
 
@@ -108,14 +107,14 @@ public sealed partial class Connection : IConnection
             System.Threading.CancellationToken cancellationToken = default)
         {
             if (message.IsEmpty) return false;
-            if (_remoteEndPoint is null)
+            if (_endPoint is null)
             {
                 _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
             int sentBytes = await _socket.SendToAsync(
-                message.ToArray(), _remoteEndPoint, cancellationToken);
+                message.ToArray(), _endPoint, cancellationToken);
 
             return sentBytes == message.Length;
         }
@@ -128,7 +127,7 @@ public sealed partial class Connection : IConnection
     #region Transmission Control Protocol
 
     /// <inheritdoc />
-    public class TcpTransport(Connection outer) : IConnection.ITcp
+    public sealed class TcpTransport(Connection outer) : IConnection.ITcp
     {
         private readonly Connection _outer = outer;
 

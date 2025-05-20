@@ -19,6 +19,7 @@ public sealed partial class Connection : IConnection
     private readonly IConnection.ITcp _tcp;
     private readonly IConnection.IUdp _udp;
     private readonly System.Threading.Lock _lock;
+    private readonly System.Net.EndPoint _endPoint;
     private readonly System.Net.Sockets.Socket _socket;
     private readonly Transport.TransportStream _cstream;
     private readonly System.Threading.CancellationTokenSource _ctokens;
@@ -29,7 +30,6 @@ public sealed partial class Connection : IConnection
 
     private bool _disposed;
     private byte[] _encryptionKey;
-    private string? _remoteEndPoint;
 
     #endregion Fields
 
@@ -48,8 +48,10 @@ public sealed partial class Connection : IConnection
         _id = Identifiers.Base36Id.NewId(IdentifierType.Session);
         _ctokens = new System.Threading.CancellationTokenSource();
 
-        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
         _logger = logger;
+        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
+        _endPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
+
         _cstream = new Transport.TransportStream(socket, bufferAllocator, _logger)
         {
             Disconnected = () =>
@@ -84,6 +86,9 @@ public sealed partial class Connection : IConnection
     public IConnection.IUdp Udp => _udp;
 
     /// <inheritdoc />
+    public System.Net.EndPoint RemoteEndPoint => _endPoint;
+
+    /// <inheritdoc />
     public long UpTime => _cstream.UpTime;
 
     /// <inheritdoc />
@@ -107,20 +112,6 @@ public sealed partial class Connection : IConnection
             {
                 _encryptionKey = value;
             }
-        }
-    }
-
-    /// <inheritdoc />
-    public string RemoteEndPoint
-    {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (_remoteEndPoint == null && _socket.Connected)
-                _remoteEndPoint = _socket.RemoteEndPoint?.ToString() ?? "0.0.0.0";
-
-            return _remoteEndPoint ?? "0.0.0.0";
         }
     }
 

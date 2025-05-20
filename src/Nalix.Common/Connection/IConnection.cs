@@ -34,7 +34,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the remote endpoint address associated with the connection.
     /// </summary>
-    string RemoteEndPoint { get; }
+    System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.

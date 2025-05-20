@@ -72,7 +72,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             System.Diagnostics.Stopwatch? stopwatch = _isMetricsEnabled ? System.Diagnostics.Stopwatch.StartNew() : null;
 
-            if (!this.CheckRateLimit(connection.RemoteEndPoint, attributes, method))
+            if (!this.CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes, method))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RateLimited));
