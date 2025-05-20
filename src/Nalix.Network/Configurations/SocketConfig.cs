@@ -10,7 +10,7 @@ public sealed class SocketConfig : ConfigurationLoader
 {
     #region Fields
 
-    private int _port = 52006;
+    private ushort _port = 52006;
 
     #endregion Fields
 
@@ -35,16 +35,15 @@ public sealed class SocketConfig : ConfigurationLoader
     /// Must be within the range of 1 to 65535.
     /// Standard is 52006.
     /// </summary>
-    public int Port
+    public ushort Port
     {
         get => _port;
         private set
         {
-            if (value < 1 || value > 65535)
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(value), "Port must be between 1 and 65535.");
-            else
-                _port = value;
+            if (value <= ushort.MinValue || value > ushort.MaxValue)
+                throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
+
+            _port = value;
         }
     }
 

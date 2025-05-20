@@ -26,6 +26,7 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     private static readonly SocketConfig Config;
 
+    private readonly System.Int32 _port;
     private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
@@ -87,15 +88,17 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
+    /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected Listener(ushort port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     {
         System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
+        _port = port;
         _logger = logger;
         _protocol = protocol;
         _buffer = bufferPool;
@@ -146,6 +149,18 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
             _logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
+    /// and the specified protocol, buffer pool, and logger.
+    /// </summary>
+    /// <param name="protocol">The protocol to handle the connections.</param>
+    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
+    /// <param name="logger">The logger to log events and errors.</param>
+    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+        : this(Config.Port, protocol, bufferPool, logger)
+    {
     }
 
     #endregion Constructors
