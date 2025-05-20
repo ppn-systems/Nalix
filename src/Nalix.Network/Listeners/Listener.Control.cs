@@ -58,7 +58,7 @@ public abstract partial class Listener
 
         await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
 
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.TcpPort);
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
 
         try
         {
@@ -68,7 +68,7 @@ public abstract partial class Listener
 
             _tcpListener.Listen(SocketBacklog);
 
-            _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.TcpPort);
+            _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.Port);
 
             // Create multiple accept tasks in parallel for higher throughput
             int acceptCount = Config.MaxParallel;
@@ -89,15 +89,15 @@ public abstract partial class Listener
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Info("[TCP] Listener on {0} stopped", Config.TcpPort);
+            _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            throw new InternalErrorException($"[TCP] Could not start {_protocol} on port {Config.TcpPort}", ex);
+            throw new InternalErrorException($"[TCP] Could not start {_protocol} on port {Config.Port}", ex);
         }
         catch (System.Exception ex)
         {
-            throw new InternalErrorException($"[TCP] Critical error in listener on port {Config.TcpPort}", ex);
+            throw new InternalErrorException($"[TCP] Critical error in listener on port {Config.Port}", ex);
         }
         finally
         {
@@ -166,10 +166,10 @@ public abstract partial class Listener
     {
         if (_isUdpEnabled) return;
 
-        _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.UdpPort);
+        _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.Port);
 
         byte[] buffer = new byte[Config.BufferSize];
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.UdpPort);
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
 
         while (_isListening)
         {
@@ -185,7 +185,7 @@ public abstract partial class Listener
             }
             catch (System.OperationCanceledException)
             {
-                _logger.Info("[UDP] Listener on {0} stopped", Config.UdpPort);
+                _logger.Info("[UDP] Listener on {0} stopped", Config.Port);
             }
             catch (System.Exception ex)
             {

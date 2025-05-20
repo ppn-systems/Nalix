@@ -92,7 +92,7 @@ public record ListenerSnapshot
         System.Text.StringBuilder sb = new();
 
         sb.AppendLine($"Listener Snapshot:");
-        sb.AppendLine($"TcpPort: {Port}");
+        sb.AppendLine($"Port: {Port}");
         sb.AppendLine($"Is Listening: {IsListening}");
         sb.AppendLine($"Is Disposed: {IsDisposed}");
         sb.AppendLine($"Listener _udpListener Status: {ListenerSocketStatus}");

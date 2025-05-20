@@ -104,9 +104,9 @@ public abstract partial class Listener
                 }
                 catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
                 {
-                    _logger.Error("[TCP] Accept error on {0}: {1}", Config.TcpPort, ex.Message);
+                    _logger.Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
                     // Brief delay to prevent CPU spinning on repeated errors
-                    System.Threading.Thread.Sleep(Config.AcceptRetryDelayMs);
+                    System.Threading.Thread.Sleep(100);
                 }
             }
         }
@@ -163,7 +163,7 @@ public abstract partial class Listener
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.Error("[TCP] Accept error on {0}: {1}", Config.TcpPort, ex.Message);
+                _logger.Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
                 // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task
                         .Delay(50, cancellationToken)
