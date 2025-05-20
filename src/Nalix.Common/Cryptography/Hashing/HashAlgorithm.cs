@@ -23,5 +23,15 @@ public enum HashAlgorithm : byte
     /// <summary>
     /// SHA-256 hash algorithm (256-bit output)
     /// </summary>
-    Sha256 = 3
+    Sha256 = 3,
+
+    /// <summary>
+    /// SHA-384 hash algorithm (384-bit output)
+    /// </summary>
+    Sha384 = 4,
+
+    /// <summary>
+    /// SHA-512 hash algorithm (512-bit output)
+    /// </summary>
+    Sha512 = 5,
 }

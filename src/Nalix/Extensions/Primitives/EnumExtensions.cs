@@ -18,6 +18,8 @@ public static class EnumExtensions
     /// <exception cref="ArgumentException">
     /// Thrown if the size of <typeparamref name="TEnum"/> and <typeparamref name="TValue"/> are not the same.
     /// </exception>
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TValue As<TEnum, TValue>(this TEnum @this) where TEnum : Enum
     {
         // Ensure that TEnum and TValue have the same size in memory

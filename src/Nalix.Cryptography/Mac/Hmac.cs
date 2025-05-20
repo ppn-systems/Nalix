@@ -1,7 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
 using Nalix.Cryptography.Utils;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Mac;
@@ -14,14 +13,21 @@ namespace Nalix.Cryptography.Mac;
 /// hash function and a secret cryptographic key. It provides a way to verify both the data
 /// integrity and the authentication of a message.
 /// </remarks>
-public sealed class Hmac : IDisposable
+public sealed class Hmac : System.IDisposable
 {
     #region Constants
 
     private const int Sha1BlockSize = 64;
     private const int Sha1HashSize = 20;
+
+    private const int Sha224BlockSize = 64;
+    private const int Sha224HashSize = 28;
+
     private const int Sha256BlockSize = 64;
     private const int Sha256HashSize = 32;
+
+    private const int Sha384BlockSize = 128;
+    private const int Sha384HashSize = 48;
 
     private const byte OuterPadValue = 0x5C;
     private const byte InnerPadValue = 0x36;
@@ -46,12 +52,12 @@ public sealed class Hmac : IDisposable
     /// </summary>
     /// <param name="key">The secret key for HMAC generation.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
-    /// <exception cref="ArgumentNullException">Thrown when the key is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when the key is empty.</exception>
-    public Hmac(ReadOnlySpan<byte> key, HashAlgorithm algorithm = HashAlgorithm.Sha256)
+    /// <exception cref="System.ArgumentNullException">Thrown when the key is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when the key is empty.</exception>
+    public Hmac(System.ReadOnlySpan<byte> key, HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
         if (key.IsEmpty)
-            throw new ArgumentException("HMAC key cannot be empty", nameof(key));
+            throw new System.ArgumentException("HMAC key cannot be empty", nameof(key));
 
         _algorithm = algorithm;
 
@@ -59,8 +65,10 @@ public sealed class Hmac : IDisposable
         (_blockSize, _hashSize) = algorithm switch
         {
             HashAlgorithm.Sha1 => (Sha1BlockSize, Sha1HashSize),
+            HashAlgorithm.Sha224 => (Sha224BlockSize, Sha224HashSize),
             HashAlgorithm.Sha256 => (Sha256BlockSize, Sha256HashSize),
-            _ => throw new ArgumentException("Unsupported hash algorithm", nameof(algorithm))
+            HashAlgorithm.Sha384 => (Sha384BlockSize, Sha384HashSize),
+            _ => throw new System.ArgumentException("Unsupported hash algorithm", nameof(algorithm))
         };
 
         // Process the key
@@ -81,7 +89,8 @@ public sealed class Hmac : IDisposable
     /// <returns>A byte array containing the computed HMAC.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ComputeHash(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> data,
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> data,
         HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
@@ -93,11 +102,11 @@ public sealed class Hmac : IDisposable
     /// </summary>
     /// <param name="data">The message to authenticate.</param>
     /// <returns>A byte array containing the computed HMAC.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public byte[] ComputeHash(System.ReadOnlySpan<byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         // Create inner and outer keys with appropriate padding
         byte[] innerKeyPad = new byte[_blockSize];
@@ -122,14 +131,14 @@ public sealed class Hmac : IDisposable
     /// <param name="data">The message that was authenticated.</param>
     /// <param name="expectedHmac">The expected HMAC value to compare against.</param>
     /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <remarks>
     /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool VerifyHash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> expectedHmac)
+    public bool VerifyHash(System.ReadOnlySpan<byte> data, System.ReadOnlySpan<byte> expectedHmac)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (expectedHmac.Length != _hashSize)
             return false;
@@ -150,47 +159,41 @@ public sealed class Hmac : IDisposable
     /// <returns>True if the computed HMAC matches the expected HMAC; otherwise, false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Verify(
-        ReadOnlySpan<byte> key,
-        ReadOnlySpan<byte> data,
-        ReadOnlySpan<byte> expectedHmac,
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> data,
+        System.ReadOnlySpan<byte> expectedHmac,
         HashAlgorithm algorithm = HashAlgorithm.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
         return hmac.VerifyHash(data, expectedHmac);
     }
 
-    #endregion Public Methods
-
-    #region Private Methods
-
     /// <summary>
     /// Prepares the key for use in HMAC by ensuring it's exactly blockSize bytes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] PrepareKey(ReadOnlySpan<byte> key)
+    private byte[] PrepareKey(System.ReadOnlySpan<byte> key)
     {
         byte[] normalizedKey = new byte[_blockSize];
 
         // If key is longer than block size, hash it
         if (key.Length > _blockSize)
         {
-            byte[] hashedKey;
-
-            if (_algorithm == HashAlgorithm.Sha1)
+            byte[] hashedKey = _algorithm switch
             {
-                hashedKey = SHA1.HashData(key);
-            }
-            else
-            {
-                hashedKey = SHA256.HashData(key);
-            }
+                HashAlgorithm.Sha1 => SHA1.HashData(key),
+                HashAlgorithm.Sha224 => SHA224.HashData(key),
+                HashAlgorithm.Sha256 => SHA256.HashData(key),
+                HashAlgorithm.Sha384 => SHA384.HashData(key),
+                _ => throw new System.ArgumentException("Unsupported hash algorithm", nameof(key))
+            };
 
-            Array.Copy(hashedKey, normalizedKey, Math.Min(hashedKey.Length, _blockSize));
+            System.Array.Copy(hashedKey, normalizedKey, System.Math.Min(hashedKey.Length, _blockSize));
         }
         // If key is shorter than or equal to block size, use it as is with zero padding
         else
         {
-            key.CopyTo(normalizedKey.AsSpan(0, key.Length));
+            key.CopyTo(System.MemoryExtensions.AsSpan(normalizedKey, 0, key.Length));
         }
 
         return normalizedKey;
@@ -200,32 +203,48 @@ public sealed class Hmac : IDisposable
     /// Computes the inner hash of the HMAC function.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private byte[] ComputeInnerHash(byte[] innerKeyPad, ReadOnlySpan<byte> data)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    private byte[] ComputeInnerHash(byte[] innerKeyPad, System.ReadOnlySpan<byte> data)
     {
-        if (_algorithm == HashAlgorithm.Sha1)
+        switch (_algorithm)
         {
-            // For SHA1, we'll use the static implementation
-            using var ms = new System.IO.MemoryStream();
-            using var sha1 = new SHA1();
+            case HashAlgorithm.Sha1:
+                {
+                    using SHA1 sha1 = new();
+                    sha1.Update(innerKeyPad);
+                    sha1.Update(data);
+                    return sha1.FinalizeHash();
+                }
 
-            sha1.Update(innerKeyPad);
+            case HashAlgorithm.Sha224:
+                {
+                    using SHA224 sha224 = new();
+                    sha224.Update(innerKeyPad);
+                    sha224.Update(data);
+                    return sha224.FinalizeHash();
+                }
 
-            // Copy the data to the memory stream
-            if (data.Length > 0)
-            {
-                byte[] dataArray = data.ToArray();
-                sha1.Update(dataArray);
-            }
+            case HashAlgorithm.Sha256:
+                {
+                    using SHA256 sha256 = new();
+                    sha256.Update(innerKeyPad);
+                    sha256.Update(data);
+                    return sha256.FinalizeHash();
+                }
 
-            return sha1.FinalizeHash();
-        }
-        else
-        {
-            // For SHA256, we'll use the instance-based implementation
-            using var sha256 = new SHA256();
-            sha256.Update(innerKeyPad);
-            sha256.Update(data);
-            return sha256.FinalizeHash();
+            case HashAlgorithm.Sha384:
+                {
+                    using SHA384 sha384 = new();
+                    sha384.Update(innerKeyPad);
+                    sha384.Update(data);
+                    return sha384.FinalizeHash();
+                }
+
+            default:
+                throw new System.ArgumentException("Unsupported hash algorithm", nameof(_algorithm));
         }
     }
 
@@ -233,28 +252,52 @@ public sealed class Hmac : IDisposable
     /// Computes the outer hash of the HMAC function.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private byte[] ComputeOuterHash(byte[] outerKeyPad, byte[] innerHash)
     {
-        if (_algorithm == HashAlgorithm.Sha1)
+        switch (_algorithm)
         {
-            // For SHA1, we'll use the static implementation
-            using var ms = new System.IO.MemoryStream();
-            using var sha1 = new SHA1();
-            sha1.Update(outerKeyPad);
-            sha1.Update(innerHash);
-            return sha1.FinalizeHash();
-        }
-        else
-        {
-            // For SHA256, we'll use the instance-based implementation
-            using var sha256 = new SHA256();
-            sha256.Update(outerKeyPad);
-            sha256.Update(innerHash);
-            return sha256.FinalizeHash();
+            case HashAlgorithm.Sha1:
+                {
+                    using SHA1 sha1 = new();
+                    sha1.Update(outerKeyPad);
+                    sha1.Update(innerHash);
+                    return sha1.FinalizeHash();
+                }
+
+            case HashAlgorithm.Sha224:
+                {
+                    using SHA224 sha224 = new();
+                    sha224.Update(outerKeyPad);
+                    sha224.Update(innerHash);
+                    return sha224.FinalizeHash();
+                }
+
+            case HashAlgorithm.Sha256:
+                {
+                    using SHA256 sha256 = new();
+                    sha256.Update(outerKeyPad);
+                    sha256.Update(innerHash);
+                    return sha256.FinalizeHash();
+                }
+
+            case HashAlgorithm.Sha384:
+                {
+                    using SHA384 sha384 = new();
+                    sha384.Update(outerKeyPad);
+                    sha384.Update(innerHash);
+                    return sha384.FinalizeHash();
+                }
+
+            default:
+                throw new System.ArgumentException("Unsupported hash algorithm", nameof(_algorithm));
         }
     }
 
-    #endregion Private Methods
+    #endregion Public Methods
 
     #region IDisposable
 
@@ -269,7 +312,7 @@ public sealed class Hmac : IDisposable
         // Clear sensitive data
         if (_key != null)
         {
-            Array.Clear(_key, 0, _key.Length);
+            System.Array.Clear(_key, 0, _key.Length);
         }
 
         _disposed = true;
