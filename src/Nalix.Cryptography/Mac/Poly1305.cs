@@ -245,18 +245,15 @@ public sealed class Poly1305 : IDisposable
     private void AddBlock(Span<uint> accumulator, ReadOnlySpan<byte> block, bool isFinalBlock)
     {
         // Convert block to uint array with proper little-endian handling
-        Span<uint> n =
-        [
-            isFinalBlock && block.Length < 5 ? GetUInt32OrZero(block, 0) :
-            BinaryPrimitives.ReadUInt32LittleEndian(block[..4]),
-            isFinalBlock && block.Length < 9 ? GetUInt32OrZero(block, 4) :
-            BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(4, 4)),
-            isFinalBlock && block.Length < 13 ? GetUInt32OrZero(block, 8) :
-            BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(8, 4)),
-            isFinalBlock && block.Length < 17 ? GetUInt32OrZero(block, 12) :
-            BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(12, 4)),
-            (uint)(isFinalBlock && block.Length <= 16 ? 0 : block[16]),
-        ];
+        Span<uint> n = stackalloc uint[5];
+        for (int i = 0; i < 4; i++)
+        {
+            int offset = i * 4;
+            n[i] = (isFinalBlock && block.Length < offset + 4)
+                ? GetUInt32OrZero(block, offset)
+                : BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(offset, 4));
+        }
+        n[4] = (uint)(isFinalBlock && block.Length <= 16 ? 0 : block[16]);
 
         // Add the message block to the accumulator
         Add(accumulator, n);
