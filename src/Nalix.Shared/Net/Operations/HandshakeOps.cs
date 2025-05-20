@@ -18,7 +18,7 @@ namespace Nalix.Shared.Net.Operations;
 /// The class ensures secure communication by exchanging keys and validating them using X25519 and hashing via ISHA.
 /// </summary>
 [PacketController]
-public sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+internal sealed class HandshakeOps<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     #region Fields
 

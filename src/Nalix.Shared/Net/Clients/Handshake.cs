@@ -14,7 +14,7 @@ namespace Nalix.Shared.Net.Clients;
 /// The type of packet used in the handshake, implementing <see cref="IPacket"/>,
 /// <see cref="IPacketFactory{TPacket}"/>, and <see cref="IPacketDeserializer{TPacket}"/>.
 /// </typeparam>
-public sealed class Handshake<TPacket>(
+internal sealed class Handshake<TPacket>(
     NetReader<TPacket> receiver,
     NetSender<TPacket> sender,
     NetContext context,

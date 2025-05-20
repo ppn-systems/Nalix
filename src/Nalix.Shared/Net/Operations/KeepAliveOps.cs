@@ -15,7 +15,7 @@ namespace Nalix.Shared.Net.Operations;
 /// A controller for managing keep-alive packets in a network dispatcher.
 /// </summary>
 [PacketController]
-public sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
+internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
     /// Handles a ping request from the client.

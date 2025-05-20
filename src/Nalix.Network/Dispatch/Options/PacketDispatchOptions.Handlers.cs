@@ -1,7 +1,6 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using Nalix.Shared.Net.Operations;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -21,25 +20,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                   System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods;
 
     #endregion Constants
-
-    /// <summary>
-    /// Registers default handlers for the packet dispatcher, including controllers for session management,
-    /// keep-alive functionality, and mode handling. This method sets up the standard set of handlers
-    /// used by the dispatcher using their respective controller types.
-    /// </summary>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
-    /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> BuiltInHandlers()
-
-    {
-        this.WithHandler<KeepAliveOps<TPacket>>();
-        this.WithHandler(() => new ConnectionOps<TPacket>(_logger));
-
-        return this;
-    }
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type

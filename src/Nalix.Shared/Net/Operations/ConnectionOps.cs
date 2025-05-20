@@ -18,7 +18,7 @@ namespace Nalix.Shared.Net.Operations;
 /// This controller is designed to be used with Dependency Injection and supports logging.
 /// </summary>
 [PacketController]
-public sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPacket, IPacketFactory<TPacket>
+internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IPacket, IPacketFactory<TPacket>
 {
     private readonly ILogger? _logger = logger;
 
