@@ -530,7 +530,7 @@ public sealed class ChaCha20 : IDisposable
             // Encrypt or decrypt
             WorkBytes(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
 
-            // Write buffer
+            // WriteInt16 buffer
             output.Write(outputBuffer, 0, readBytes);
         }
     }
@@ -549,7 +549,7 @@ public sealed class ChaCha20 : IDisposable
             // Encrypt or decrypt
             WorkBytes(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
 
-            // Write
+            // WriteInt16
             await output.WriteAsync(writeBytesBuffer.AsMemory(0, howManyBytesWereRead));
 
             // Read more

@@ -192,7 +192,7 @@ public static class Ciphers
                         byte[] encrypted = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + bufferSize);
                         try
                         {
-                            // Write original length prefix
+                            // WriteInt16 original length prefix
                             System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
                                 System.MemoryExtensions.AsSpan(encrypted, 0, 4), originalLength);
 

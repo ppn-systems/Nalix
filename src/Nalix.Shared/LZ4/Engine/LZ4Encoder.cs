@@ -42,7 +42,7 @@ internal readonly struct LZ4Encoder
         if (compressedDataLength < 0)
             return -1;
 
-        // Write the header and return total compressed length
+        // WriteInt16 the header and return total compressed length
         int totalCompressedLength = Header.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 
@@ -91,7 +91,7 @@ internal readonly struct LZ4Encoder
         if (compressedDataLength < 0)
             return false;
 
-        // Write the header and calculate total compressed length
+        // WriteInt16 the header and calculate total compressed length
         int totalCompressedLength = Header.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 

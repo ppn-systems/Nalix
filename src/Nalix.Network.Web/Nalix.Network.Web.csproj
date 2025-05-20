@@ -4,8 +4,8 @@
 		<Nullable>enable</Nullable>
 		<OutputType>Library</OutputType>
 
-    <Version>0.7.39</Version>
-    <PackageVersion>0.7.39</PackageVersion>
+    <Version>0.8.98</Version>
+    <PackageVersion>0.8.98</PackageVersion>
 
     <Description>
 Nalix.Network.Web is a high-performance, lightweight web framework for .NET, designed for building modular and extensible web servers. It supports authentication, CORS, routing, sessions, WebSockets, and security features.

@@ -1,6 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
-using Nalix.Extensions;
+using Nalix.Extensions.IO;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Connection.Transport;

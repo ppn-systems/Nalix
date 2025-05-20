@@ -106,7 +106,7 @@ public static unsafe class LZ4Encoder
             int matchLength = match.Length;
             int offset = match.Offset;
 
-            // Write literals and match sequence
+            // WriteInt16 literals and match sequence
             if (!WriteSequence(ref outputPtr, outputEnd, literalStartPtr, literalLength, matchLength, offset))
             {
                 return -1; // Output buffer too small
@@ -151,26 +151,26 @@ public static unsafe class LZ4Encoder
 
         if (outputPtr + requiredSpace > outputEnd) return false;
 
-        // Write the token
+        // WriteInt16 the token
         byte literalToken = (byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
         byte matchToken = (byte)System.Math.Min(matchLength - LZ4Constants.MinMatchLength, LZ4Constants.TokenMatchMask);
         byte token = (byte)((literalToken << 4) | matchToken);
         *outputPtr++ = token;
 
-        // Write literal length
+        // WriteInt16 literal length
         if (literalLength >= LZ4Constants.TokenLiteralMask)
         {
             outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
         }
 
-        // Write literals
+        // WriteInt16 literals
         LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
 
-        // Write offset
+        // WriteInt16 offset
         MemOps.WriteUnaligned<ushort>(outputPtr, (ushort)offset);
         outputPtr += sizeof(ushort);
 
-        // Write match length
+        // WriteInt16 match length
         if (matchLength >= LZ4Constants.MinMatchLength + LZ4Constants.TokenMatchMask)
         {
             outputPtr += SpanOps.WriteVarInt(outputPtr, matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);

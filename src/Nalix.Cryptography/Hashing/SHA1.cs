@@ -175,7 +175,7 @@ public sealed class SHA1 : ISHA, IDisposable
             paddingBuffer[paddingBufferPos++] = 0;
         }
 
-        // Write the length in bits as a 64-bit big-endian integer
+        // WriteInt16 the length in bits as a 64-bit big-endian integer
         BinaryPrimitives.WriteUInt64BigEndian(
             paddingBuffer[(finalBlockSize - 8)..],
             bitLength);
@@ -249,7 +249,7 @@ public sealed class SHA1 : ISHA, IDisposable
         int blockCount = (remainingBytes + 1 + 8 > 64) ? 2 : 1;
         int finalBlockSize = blockCount * 64;
 
-        // Write the length in bits as a 64-bit big-endian integer
+        // WriteInt16 the length in bits as a 64-bit big-endian integer
         BinaryPrimitives.WriteUInt64BigEndian(
             finalBlock[(finalBlockSize - 8)..],
             bitLength);

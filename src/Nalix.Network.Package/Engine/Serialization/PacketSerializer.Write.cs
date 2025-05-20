@@ -47,7 +47,7 @@ public static partial class PacketSerializer
             buffer[PacketOffset.Flags] = (byte)packet.Flags;
             buffer[PacketOffset.Priority] = (byte)packet.Priority;
 
-            // Write the payload if it's not empty
+            // WriteInt16 the payload if it's not empty
             if (packet.Payload.Length > 0)
                 packet.Payload.Span.CopyTo(buffer[PacketSize.Header..]);
 

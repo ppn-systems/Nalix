@@ -463,7 +463,7 @@ public static class Twofish
         input[2] ^= key.ExpandedKey[6];
         input[3] ^= key.ExpandedKey[7];
 
-        // Write output
+        // WriteInt16 output
         for (int i = 0; i < 4; i++)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(ciphertext.Slice(i * 4, 4), input[i]);
@@ -512,7 +512,7 @@ public static class Twofish
         input[2] ^= key.ExpandedKey[2];
         input[3] ^= key.ExpandedKey[3];
 
-        // Write output
+        // WriteInt16 output
         for (int i = 0; i < 4; i++)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(plaintext.Slice(i * 4, 4), input[i]);

@@ -134,7 +134,7 @@ internal sealed class ConfiguredIniFile
                     _fileLock.ExitWriteLock();
                 }
 
-                // Write changes to the file
+                // WriteInt16 changes to the file
                 WriteFile();
             }
         }
@@ -774,7 +774,7 @@ internal sealed class ConfiguredIniFile
                 Directory.CreateDirectory(directory);
             }
 
-            // Write to a temporary file first to prevent corruption
+            // WriteInt16 to a temporary file first to prevent corruption
             string tempFileName = _path + ".tmp";
 
             using (var writer = new StreamWriter(tempFileName, false, Encoding.UTF8, DefaultBufferSize))

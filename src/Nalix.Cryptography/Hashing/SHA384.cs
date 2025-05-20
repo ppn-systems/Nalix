@@ -210,7 +210,7 @@ public sealed unsafe class SHA384 : ISHA, IDisposable
 
             for (int i = 0; i < 6; i++)
             {
-                // Write the state values in big endian format
+                // WriteInt16 the state values in big endian format
                 ulong value = _state[i];
                 byte* valuePtr = (byte*)(resultULongPtr + i);
 
