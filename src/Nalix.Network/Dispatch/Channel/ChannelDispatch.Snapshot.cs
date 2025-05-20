@@ -148,7 +148,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
     }
 
     /// <summary>
-    /// UpdateTime performance statistics
+    /// SynchronizeTime performance statistics
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

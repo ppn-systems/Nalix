@@ -36,8 +36,9 @@ public abstract partial class Listener : IListener, System.IDisposable
     private System.Threading.CancellationTokenSource? _cts;
 
     private volatile bool _isDisposed;
-    private volatile bool _isUpdate = false;
     private volatile bool _isListening = false;
+    private volatile bool _isUdpEnabled = true;
+    private volatile bool _isUpdateEnable = false;
 
     #endregion Fields
 
@@ -53,12 +54,26 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// </summary>
     public bool EnableUpdate
     {
-        get => _isUpdate;
+        get => _isUpdateEnable;
         set
         {
             if (_isListening)
                 throw new System.InvalidOperationException("Cannot change EnableUpdate while listening.");
-            _isUpdate = value;
+            _isUpdateEnable = value;
+        }
+    }
+
+    /// <summary>
+    /// Enables or disables the UDP receive loop.
+    /// </summary>
+    public bool EnableUdp
+    {
+        get => _isUdpEnabled;
+        set
+        {
+            if (_isListening)
+                throw new System.InvalidOperationException("Cannot change EnableUdp while listening.");
+            _isUdpEnabled = value;
         }
     }
 

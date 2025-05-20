@@ -4,6 +4,21 @@ namespace Nalix.Network.Listeners;
 
 public abstract partial class Listener
 {
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IConnection InitializeConnection(System.Net.Sockets.Socket socket)
+    {
+        ConfigureHighPerformanceSocket(socket);
+
+        Connection.Connection connection = new(socket, _buffer, _logger);
+
+        connection.OnCloseEvent += HandleConnectionClose;
+        connection.OnProcessEvent += _protocol.ProcessMessage!;
+        connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
+
+        return connection;
+    }
+
     /// <summary>
     /// Handles the closure of a connection by unsubscribing from its events.
     /// </summary>
@@ -11,11 +26,11 @@ public abstract partial class Listener
     /// <param name="args">The connection event arguments.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClose(object? sender, IConnectEventArgs args)
+    private void HandleConnectionClose(object? sender, IConnectEventArgs args)
     {
         _logger.Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
         // De-subscribe to prevent memory leaks
-        args.Connection.OnCloseEvent -= OnConnectionClose;
+        args.Connection.OnCloseEvent -= HandleConnectionClose;
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
 
@@ -47,7 +62,7 @@ public abstract partial class Listener
     /// <param name="cancellationToken">Token for cancellation</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void AcceptConnections(System.Threading.CancellationToken cancellationToken)
+    private void AcceptConnectionsSync(System.Threading.CancellationToken cancellationToken)
     {
         System.Net.Sockets.SocketAsyncEventArgs args = new();
         args.Completed += (sender, e) =>
@@ -91,7 +106,7 @@ public abstract partial class Listener
                 {
                     _logger.Error("[TCP] Accept error on {0}: {1}", Config.TcpPort, ex.Message);
                     // Brief delay to prevent CPU spinning on repeated errors
-                    System.Threading.Tasks.Task.Delay(50, cancellationToken);
+                    System.Threading.Thread.Sleep(Config.AcceptRetryDelayMs);
                 }
             }
         }
@@ -163,18 +178,7 @@ public abstract partial class Listener
     /// <returns>A task representing the connection creation.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private IConnection CreateConnection(System.Net.Sockets.Socket socket)
-    {
-        ConfigureHighPerformanceSocket(socket);
-
-        IConnection connection = new Connection.Connection(socket, _buffer, _logger);
-
-        // Use weak event pattern to avoid memory leaks
-        connection.OnCloseEvent += OnConnectionClose;
-        connection.OnProcessEvent += _protocol.ProcessMessage!;
-        connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
-        return connection;
-    }
+    private IConnection CreateConnection(System.Net.Sockets.Socket socket) => InitializeConnection(socket);
 
     /// <summary>
     /// Creates a new connection from an incoming socket.
@@ -196,15 +200,6 @@ public abstract partial class Listener
 
         await System.Threading.Tasks.Task.Yield();
 
-        ConfigureHighPerformanceSocket(socket);
-
-        Connection.Connection connection = new(socket, _buffer, _logger);
-
-        // Use weak event pattern to avoid memory leaks
-        connection.OnCloseEvent += OnConnectionClose;
-        connection.OnProcessEvent += _protocol.ProcessMessage!;
-        connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
-
-        return connection;
+        return InitializeConnection(socket);
     }
 }

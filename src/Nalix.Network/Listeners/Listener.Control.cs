@@ -8,7 +8,7 @@ public abstract partial class Listener
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
-    public void EndListening()
+    public void StopListening()
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);
 
@@ -29,38 +29,28 @@ public abstract partial class Listener
     }
 
     /// <summary>
-    /// Enables or disables the update loop for the listener.
-    /// </summary>
-    /// <param name="enable">True to enable, false to disable.</param>
-    public void EnableUpdateLoop(bool enable)
-    {
-        _isUpdate = enable;
-        if (enable)
-        {
-            _logger.Debug("Update loop enabled");
-        }
-    }
-
-    /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    public abstract void UpdateTime(long milliseconds);
+    public abstract void SynchronizeTime(long milliseconds);
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
-    public async System.Threading.Tasks.Task BeginListeningAsync(
-        System.Threading.CancellationToken cancellationToken)
+    public async System.Threading.Tasks.Task StartListeningAsync(
+        System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+
+        if (Config.MaxParallel < 1)
+            throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
+
         if (_isListening) return;
 
         _isListening = true;
         _logger.Debug("Starting listener");
-        const int maxParallelAccepts = 5;
 
         // Create a linked token source to combine external cancellation with Internal cancellation
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -81,19 +71,19 @@ public abstract partial class Listener
             _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.TcpPort);
 
             // Create multiple accept tasks in parallel for higher throughput
-            System.Threading.Tasks.Task updateTask = this.RunUpdateLoopAsync(linkedToken);
-            System.Threading.Tasks.Task receiveTask = this.ReceiveUdpLoopAsync(linkedToken);
-            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[maxParallelAccepts + 2];
+            int acceptCount = Config.MaxParallel;
 
-            for (int i = 0; i < maxParallelAccepts; i++)
+            System.Threading.Tasks.Task updateTask = this.RunTimeSyncLoopAsync(linkedToken);
+            System.Threading.Tasks.Task receiveTask = this.RunUdpReceiveLoopAsync(linkedToken);
+            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[acceptCount + 2];
+
+            for (int i = 0; i < acceptCount; i++)
             {
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
             }
 
-            acceptTasks.CopyTo(acceptTasks, 0);
-
-            acceptTasks[maxParallelAccepts] = updateTask;
-            acceptTasks[maxParallelAccepts + 1] = receiveTask;
+            acceptTasks[Config.MaxParallel] = updateTask;
+            acceptTasks[Config.MaxParallel + 1] = receiveTask;
 
             await System.Threading.Tasks.Task.WhenAll(acceptTasks).ConfigureAwait(false);
         }
@@ -123,9 +113,59 @@ public abstract partial class Listener
 
     #region Private Methods
 
-    private async System.Threading.Tasks.Task ReceiveUdpLoopAsync(
+    private async System.Threading.Tasks.Task RunTimeSyncLoopAsync(
         System.Threading.CancellationToken cancellationToken)
     {
+        try
+        {
+            // Wait until enabled
+            if (!_isUpdateEnable)
+            {
+                _logger.Debug("Waiting for update loop to be enabled...");
+            }
+
+            while (!_isUpdateEnable && !cancellationToken.IsCancellationRequested)
+            {
+                await System.Threading.Tasks.Task
+                        .Delay(10000, cancellationToken)
+                        .ConfigureAwait(false);
+            }
+
+            _logger.Info("Update loop enabled, starting update cycle.");
+
+            // Main update loop
+            while (_isListening)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                long start = Clock.UnixMillisecondsNow();
+                this.SynchronizeTime(start);
+
+                long elapsed = Clock.UnixMillisecondsNow() - start;
+                long remaining = 16 - elapsed;
+
+                if (remaining < 16)
+                {
+                    await System.Threading.Tasks.Task
+                            .Delay((int)remaining, cancellationToken)
+                            .ConfigureAwait(false);
+                }
+            }
+        }
+        catch (System.OperationCanceledException)
+        {
+            _logger.Debug("SynchronizeTime loop cancelled");
+        }
+        catch (System.Exception ex)
+        {
+            _logger.Error("SynchronizeTime loop error: {0}", ex.Message);
+        }
+    }
+
+    private async System.Threading.Tasks.Task RunUdpReceiveLoopAsync(
+        System.Threading.CancellationToken cancellationToken)
+    {
+        if (_isUdpEnabled) return;
+
         _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.UdpPort);
 
         byte[] buffer = new byte[Config.BufferSize];
@@ -151,54 +191,6 @@ public abstract partial class Listener
             {
                 _logger.Error("[UDP] Listener Ex: {0}", ex);
             }
-        }
-    }
-
-    private async System.Threading.Tasks.Task RunUpdateLoopAsync(
-        System.Threading.CancellationToken cancellationToken)
-    {
-        try
-        {
-            // Wait until enabled
-            if (!_isUpdate)
-            {
-                _logger.Debug("Waiting for update loop to be enabled...");
-            }
-
-            while (!_isUpdate && !cancellationToken.IsCancellationRequested)
-            {
-                await System.Threading.Tasks.Task
-                        .Delay(10000, cancellationToken)
-                        .ConfigureAwait(false);
-            }
-
-            _logger.Info("Update loop enabled, starting update cycle.");
-
-            // Main update loop
-            while (_isListening)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                long start = Clock.UnixMillisecondsNow();
-                this.UpdateTime(start);
-
-                long elapsed = Clock.UnixMillisecondsNow() - start;
-                long remaining = 16 - elapsed;
-
-                if (remaining < 16)
-                {
-                    await System.Threading.Tasks.Task
-                            .Delay((int)remaining, cancellationToken)
-                            .ConfigureAwait(false);
-                }
-            }
-        }
-        catch (System.OperationCanceledException)
-        {
-            _logger.Debug("UpdateTime loop cancelled");
-        }
-        catch (System.Exception ex)
-        {
-            _logger.Error("UpdateTime loop error: {0}", ex.Message);
         }
     }
 

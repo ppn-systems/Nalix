@@ -11,19 +11,13 @@ public interface IListener
     /// Stops the listening process.
     /// This method should gracefully stop the listener, cleaning up resources and terminating any ongoing network connection acceptances.
     /// </summary>
-    void EndListening();
-
-    /// <summary>
-    /// Enables or disables the update loop for the listener.
-    /// </summary>
-    /// <param name="enable">True to enable, false to disable.</param>
-    void EnableUpdateLoop(bool enable);
+    void StopListening();
 
     /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Shared.Time.Clock.UnixMillisecondsNow"/>.</param>
-    abstract void UpdateTime(long milliseconds);
+    abstract void SynchronizeTime(long milliseconds);
 
     /// <summary>
     /// Starts listening for network connections using a CancellationToken for optional cancellation.
@@ -31,5 +25,5 @@ public interface IListener
     /// The listening process can be cancelled via the provided CancellationToken.
     /// </summary>
     /// <param name="cancellationToken">A CancellationToken used to cancel the listening process.</param>
-    System.Threading.Tasks.Task BeginListeningAsync(System.Threading.CancellationToken cancellationToken);
+    System.Threading.Tasks.Task StartListeningAsync(System.Threading.CancellationToken cancellationToken = default);
 }

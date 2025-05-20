@@ -73,6 +73,11 @@ public sealed class SocketConfig : ConfigurationLoader
     public bool NoDelay { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets the maximum number of parallel connections.
+    /// </summary>
+    public int MaxParallel { get; set; } = 5;
+
+    /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
     /// <value>
@@ -93,6 +98,11 @@ public sealed class SocketConfig : ConfigurationLoader
     /// Standard is false.
     /// </summary>
     public bool ReuseAddress { get; set; } = false;
+
+    /// <summary>
+    /// Delay in milliseconds before retrying to accept a connection.
+    /// </summary>
+    public int AcceptRetryDelayMs { get; set; } = 100;
 
     /// <summary>
     /// Gets a value indicating whether the current operating system is Windows.
