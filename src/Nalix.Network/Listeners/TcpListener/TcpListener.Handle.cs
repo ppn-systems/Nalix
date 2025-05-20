@@ -12,7 +12,6 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Memory.Pooling;
 using System.Net;
@@ -55,10 +54,10 @@ public abstract partial class TcpListenerBase
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
+        args.Connection.OnCloseEvent -= Limiter.OnConnectionClosed;
+
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
-        args.Connection.OnCloseEvent -= InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                                .OnConnectionClosed;
 
         args.Connection.Dispose();
     }
@@ -78,11 +77,10 @@ public abstract partial class TcpListenerBase
         IConnection connection = new Connection(socket);
 
         connection.OnCloseEvent += this.HandleConnectionClose;
+        connection.OnCloseEvent += Limiter.OnConnectionClosed;
 
         connection.OnProcessEvent += _protocol.ProcessMessage;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage;
-        connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                           .OnConnectionClosed;
 
         if (Config.EnableTimeout)
         {
@@ -133,8 +131,7 @@ public abstract partial class TcpListenerBase
 
                     if (socket.RemoteEndPoint is IPEndPoint ip)
                     {
-                        if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                     .IsConnectionAllowed(ip))
+                        if (!Limiter.IsConnectionAllowed(ip))
                         {
                             SafeCloseSocket(socket);
                             return;
@@ -422,8 +419,7 @@ public abstract partial class TcpListenerBase
             socket = await context.BeginAcceptAsync(_listener)
                                   .ConfigureAwait(false);
 
-            if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                         .IsConnectionAllowed(socket.RemoteEndPoint))
+            if (!Limiter.IsConnectionAllowed(socket.RemoteEndPoint))
             {
                 SafeCloseSocket(socket);
 
