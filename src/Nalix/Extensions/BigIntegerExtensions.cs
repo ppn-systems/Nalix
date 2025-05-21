@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Nalix.Extensions.Math;
+namespace Nalix.Extensions;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
@@ -14,6 +14,8 @@ public static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a + b) % mod.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BigInteger ModAdd(this BigInteger a, BigInteger b, BigInteger mod)
     {
         a += b;
@@ -31,6 +33,8 @@ public static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a - b) % mod.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BigInteger ModSub(this BigInteger a, BigInteger b, BigInteger mod)
     {
         a -= b;
@@ -48,6 +52,8 @@ public static class BigIntegerExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a * b) % mod.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BigInteger MultiplyMod(this BigInteger a, BigInteger b, BigInteger mod)
         => a * b % mod;
 
@@ -57,6 +63,8 @@ public static class BigIntegerExtensions
     /// <param name="num">The BigInteger value.</param>
     /// <param name="modulo">The modulo value.</param>
     /// <returns>The result of num % modulo, adjusted to be non-negative.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BigInteger Mod(this BigInteger num, BigInteger modulo)
     {
         BigInteger result = num % modulo;

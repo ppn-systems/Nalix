@@ -1,12 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Nalix.Extensions.Primitives;
 
 /// <summary>
@@ -20,9 +11,10 @@ public static class ByteArrayExtensions
     /// <param name="a">The first byte array to compare.</param>
     /// <param name="b">The second byte array to compare.</param>
     /// <returns><c>true</c> if both arrays are non-null and contain the same sequence of bytes; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsEqualTo(this byte[] a, byte[] b)
-        => a != null && b != null && a.SequenceEqual(b);
+        => a != null && b != null && System.Linq.Enumerable.SequenceEqual(a, b);
 
     /// <summary>
     /// Converts an array of bytes into text with the specified encoding.
@@ -30,10 +22,11 @@ public static class ByteArrayExtensions
     /// <param name="buffer">The buffer.</param>
     /// <param name="encoding">The encoding.</param>
     /// <returns>A <see cref="string" /> that contains the results of decoding the specified sequence of bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string ToText(this IEnumerable<byte> buffer, Encoding encoding) =>
-        encoding == null
-            ? throw new ArgumentNullException(nameof(encoding))
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static string ToText(this System.Collections.Generic.IEnumerable<byte> buffer, System.Text.Encoding encoding)
+        => encoding == null
+            ? throw new System.ArgumentNullException(nameof(encoding))
             : encoding.GetString([.. buffer]);
 
     /// <summary>
@@ -41,8 +34,10 @@ public static class ByteArrayExtensions
     /// </summary>
     /// <param name="buffer">The buffer.</param>
     /// <returns>A <see cref="string" /> that contains the results of decoding the specified sequence of bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string ToText(this IEnumerable<byte> buffer) => buffer.ToText(Encoding.UTF8);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static string ToText(this System.Collections.Generic.IEnumerable<byte> buffer)
+        => buffer.ToText(System.Text.Encoding.UTF8);
 
     /// <summary>
     /// Reads the bytes asynchronous.
@@ -54,23 +49,30 @@ public static class ByteArrayExtensions
     /// <returns>
     /// A byte array containing the results of encoding the specified set of characters.
     /// </returns>
-    /// <exception cref="ArgumentNullException">stream.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async Task<byte[]> ReadBytesAsync(this Stream stream, long length, int bufferLength, CancellationToken cancellationToken = default)
+    /// <exception cref="System.ArgumentNullException">stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static async System.Threading.Tasks.Task<byte[]> ReadBytesAsync(
+        this System.IO.Stream stream,
+        long length, int bufferLength,
+        System.Threading.CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
+        System.ArgumentNullException.ThrowIfNull(stream);
 
-        using var dest = new MemoryStream();
+        using System.IO.MemoryStream dest = new();
 
         try
         {
-            var buff = new byte[bufferLength];
+            byte[] buff = new byte[bufferLength];
             while (length > 0)
             {
                 if (length < bufferLength)
                     bufferLength = (int)length;
 
-                var read = await stream.ReadAsync(buff.AsMemory(0, bufferLength), cancellationToken).ConfigureAwait(false);
+                int read = await stream.ReadAsync(
+                    System.MemoryExtensions.AsMemory(buff, 0, bufferLength),
+                    cancellationToken).ConfigureAwait(false);
+
                 if (read == 0)
                     break;
 
@@ -95,20 +97,26 @@ public static class ByteArrayExtensions
     /// <returns>
     /// A byte array containing the results of encoding the specified set of characters.
     /// </returns>
-    /// <exception cref="ArgumentNullException">stream.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async Task<byte[]> ReadBytesAsync(this Stream stream, int length, CancellationToken cancellationToken = default)
+    /// <exception cref="System.ArgumentNullException">stream.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static async System.Threading.Tasks.Task<byte[]> ReadBytesAsync(
+        this System.IO.Stream stream, int length,
+        System.Threading.CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
+        System.ArgumentNullException.ThrowIfNull(stream);
 
-        var buff = new byte[length];
-        var offset = 0;
+        int offset = 0;
+        byte[] buff = new byte[length];
 
         try
         {
             while (length > 0)
             {
-                var read = await stream.ReadAsync(buff.AsMemory(offset, length), cancellationToken).ConfigureAwait(false);
+                int read = await stream.ReadAsync(
+                    System.MemoryExtensions.AsMemory(buff, offset, length),
+                    cancellationToken).ConfigureAwait(false);
+
                 if (read == 0)
                     break;
 
@@ -121,6 +129,6 @@ public static class ByteArrayExtensions
             // ignored
         }
 
-        return new ArraySegment<byte>(buff, 0, offset).ToArray();
+        return new System.ArraySegment<byte>(buff, 0, offset).ToArray();
     }
 }
