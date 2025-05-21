@@ -57,6 +57,12 @@ public class TestPacket : IPacket
         return currentTime - Timestamp > timeout.TotalMilliseconds;
     }
 
+    public bool IsExpired(long timeout)
+    {
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return currentTime - Timestamp > timeout;
+    }
+
     public bool IsValid()
     {
         uint calculatedChecksum = ComputeChecksum(Payload.Span);
