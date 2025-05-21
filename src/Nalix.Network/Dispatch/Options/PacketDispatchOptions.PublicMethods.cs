@@ -118,72 +118,30 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Adds a middleware component to the beginning of the packet processing pipeline.
+    /// Configures how the middleware pipeline handles exceptions
+    /// thrown during packet processing.
     /// </summary>
-    /// <param name="middleware">
-    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked before the main packet handler.
+    /// <param name="continueOnError">
+    /// A value indicating whether the pipeline should continue executing
+    /// remaining middleware after an exception is thrown.
+    /// </param>
+    /// <param name="errorHandler">
+    /// An optional callback that is invoked when a middleware throws an exception.
+    /// The callback receives the exception instance and the middleware type
+    /// that caused the failure.
     /// </param>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
-    /// Outbound-processing middleware allows for custom logic such as validation, authorization, logging,
-    /// or modification of packet data before it reaches the main handler. Middleware is executed in the
-    /// order it is added.
+    /// When <paramref name="continueOnError"/> is set to <see langword="false"/>,
+    /// the first unhandled exception will immediately terminate pipeline execution.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithInbound([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
+    public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
+        System.Boolean continueOnError,
+        System.Action<System.Exception, System.Type> errorHandler = null)
     {
-        _pipeline.UseInbound(middleware);
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a middleware component to the end of the packet processing pipeline.
-    /// </summary>
-    /// <param name="middleware">
-    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked after the main packet handler completes.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
-    /// </returns>
-    /// <remarks>
-    /// Inbound-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
-    /// or response transformation. Middleware is executed in the order it is added.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithOutbound([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
-    {
-        _pipeline.UseOutbound(middleware);
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a middleware component to the end of the packet processing pipeline.
-    /// </summary>
-    /// <param name="middleware">
-    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked after the main packet handler completes.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
-    /// </returns>
-    /// <remarks>
-    /// Inbound-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
-    /// or response transformation. Middleware is executed in the order it is added.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithOutboundAlways([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
-    {
-        _pipeline.UseOutboundAlways(middleware);
+        _pipeline.ConfigureErrorHandling(continueOnError, errorHandler);
         return this;
     }
 
