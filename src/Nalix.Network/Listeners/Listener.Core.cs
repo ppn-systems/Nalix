@@ -26,18 +26,19 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     private static readonly SocketConfig Config;
 
-    private readonly System.Int32 _port;
     private readonly ILogger _logger;
+    private readonly System.Int32 _port;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
     private readonly System.Net.Sockets.Socket _udpListener;
     private readonly System.Net.Sockets.Socket _tcpListener;
-    private readonly System.Threading.SemaphoreSlim _listenerLock;
+    private readonly System.Threading.SemaphoreSlim _lockListener;
 
     private System.Threading.CancellationTokenSource? _cts;
 
-    private volatile bool _isDisposed;
-    private volatile bool _isListening = false;
+    private volatile bool _isDisposed = false;
+    private volatile bool _isTcpRunning = false;
+    private volatile bool _isUdpRunning = false;
     private volatile bool _isUdpEnabled = true;
     private volatile bool _isUpdateEnable = false;
 
@@ -48,7 +49,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _isListening;
+    public bool IsListening => _isTcpRunning || _isUdpRunning;
 
     /// <summary>
     /// Enables or disables the update loop for the listener.
@@ -58,7 +59,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         get => _isUpdateEnable;
         set
         {
-            if (_isListening)
+            if (_isTcpRunning)
                 throw new System.InvalidOperationException("Cannot change EnableUpdate while listening.");
             _isUpdateEnable = value;
         }
@@ -72,7 +73,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         get => _isUdpEnabled;
         set
         {
-            if (_isListening)
+            if (_isTcpRunning)
                 throw new System.InvalidOperationException("Cannot change EnableUdp while listening.");
             _isUdpEnabled = value;
         }
@@ -102,7 +103,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         _logger = logger;
         _protocol = protocol;
         _buffer = bufferPool;
-        _listenerLock = new System.Threading.SemaphoreSlim(1, 1);
+        _lockListener = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
         _tcpListener = new System.Net.Sockets.Socket(
@@ -200,7 +201,7 @@ public abstract partial class Listener : IListener, System.IDisposable
             }
             catch { }
 
-            _listenerLock.Dispose();
+            _lockListener.Dispose();
         }
 
         _isDisposed = true;

@@ -18,14 +18,25 @@ public abstract partial class Listener
         try
         {
             // Close the socket listener to deactivate the accept
-            _tcpListener.Close();
+            if (_isTcpRunning)
+            {
+                _tcpListener.Close();
+                _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
+            }
+
+            if (_isUdpRunning)
+            {
+                _udpListener.Close();
+                _logger.Info("[UDP] Listener on {0} stopped", Config.Port);
+            }
         }
         catch (System.Exception ex)
         {
             _logger.Error("Error closing listener socket: {0}", ex.Message);
         }
 
-        _isListening = false;
+        _isTcpRunning = false;
+        _isUdpRunning = false;
         _logger.Info("Listener stopped.");
     }
 
@@ -48,18 +59,23 @@ public abstract partial class Listener
         if (Config.MaxParallel < 1)
             throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
 
-        if (_isListening) return;
+        if (_isTcpRunning)
+        {
+            _logger.Warn("[TCP] Accept connections is already running.");
+            return;
+        }
 
-        _isListening = true;
+        _isTcpRunning = true;
         _logger.Debug("Starting listener");
 
         // Create a linked token source to combine external cancellation with Internal cancellation
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         System.Threading.CancellationToken linkedToken = _cts.Token;
 
-        await _listenerLock.WaitAsync(linkedToken).ConfigureAwait(false);
+        await _lockListener.WaitAsync(linkedToken).ConfigureAwait(false);
 
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
+        _logger.Debug("[TCP] TCP socket bound to {0}", remote);
 
         try
         {
@@ -83,8 +99,8 @@ public abstract partial class Listener
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
             }
 
-            acceptTasks[Config.MaxParallel] = updateTask;
-            acceptTasks[Config.MaxParallel + 1] = receiveTask;
+            acceptTasks[Config.MaxParallel] = receiveTask;
+            acceptTasks[Config.MaxParallel + 1] = updateTask;
 
             await System.Threading.Tasks.Task.WhenAll(acceptTasks).ConfigureAwait(false);
         }
@@ -108,7 +124,7 @@ public abstract partial class Listener
             }
             catch { }
 
-            _listenerLock.Release();
+            _lockListener.Release();
         }
     }
 
@@ -135,7 +151,7 @@ public abstract partial class Listener
             _logger.Info("Update loop enabled, starting update cycle.");
 
             // Main update loop
-            while (_isListening)
+            while (_isTcpRunning)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 long start = Clock.UnixMillisecondsNow();
@@ -165,14 +181,26 @@ public abstract partial class Listener
     private async System.Threading.Tasks.Task RunUdpReceiveLoopAsync(
         System.Threading.CancellationToken cancellationToken)
     {
-        if (_isUdpEnabled) return;
+        if (!_isUdpEnabled)
+        {
+            _logger.Warn("[UDP] Skipped receiving loop because UDP is disabled.");
+            return;
+        }
+        else if (_isUdpRunning)
+        {
+            _logger.Warn("[UDP] Receive loop is already running.");
+            return;
+        }
+
+        _isUdpRunning = true;
 
         _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.Port);
 
         byte[] buffer = new byte[Config.BufferSize];
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
+        _logger.Debug("[UDP] TCP socket bound to {0}", remote);
 
-        while (_isListening)
+        while (_isTcpRunning)
         {
             try
             {
