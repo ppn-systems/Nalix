@@ -1,13 +1,13 @@
 using System;
 
-namespace Nalix.Common.Package;
+namespace Nalix.Common.Serialization;
 
 /// <summary>
 /// Defines an interface for objects that can be serialized and deserialized using <see cref="Span{T}"/> of bytes.
 /// This interface provides methods for serializing data into a byte span, deserializing data from a byte span,
 /// and determining the size required to store the object's data.
 /// </summary>
-public interface ISerializablePacket
+public interface ISerializable
 {
     /// <summary>
     /// Gets the number of bytes required to store the serialized form of this object.

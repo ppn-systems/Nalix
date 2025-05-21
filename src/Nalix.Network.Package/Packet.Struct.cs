@@ -1,5 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
+using Nalix.Common.Serialization;
 using Nalix.Serialization;
 
 namespace Nalix.Network.Package;
@@ -40,7 +41,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort id, ISerializablePacket payload)
+    public Packet(ushort id, ISerializable payload)
     {
         int size = payload.GetSize();
         _rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);

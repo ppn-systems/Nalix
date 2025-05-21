@@ -1,4 +1,5 @@
 using Nalix.Common.Package.Enums;
+using Nalix.Common.Serialization;
 
 namespace Nalix.Common.Package;
 
@@ -15,6 +16,14 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// <param name="s">The string.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(ushort id, string s);
+
+    /// <summary>
+    /// Creates a packet using strongly-typed enums.
+    /// </summary>
+    /// <param name="id">The unique identifier of the packet.</param>
+    /// <param name="obj">The object.</param>
+    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
+    static abstract TPacket Create(ushort id, ISerializable obj);
 
     /// <summary>
     /// Creates a packet using strongly-typed enums.

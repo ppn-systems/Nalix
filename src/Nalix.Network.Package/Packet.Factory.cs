@@ -1,5 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
+using Nalix.Common.Serialization;
 
 namespace Nalix.Network.Package;
 
@@ -10,6 +11,12 @@ public readonly partial struct Packet : IPacketFactory<Packet>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static Packet IPacketFactory<Packet>.Create(ushort id, string s)
         => new(id, s);
+
+    /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    static Packet IPacketFactory<Packet>.Create(ushort id, ISerializable obj)
+        => new(id, obj);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
