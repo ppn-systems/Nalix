@@ -1,12 +1,6 @@
+using Nalix.Common.Constants;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Metadata;
-using System;
-using System.Buffers;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Package.Engine.Serialization;
 
@@ -18,8 +12,9 @@ public static partial class PacketSerializer
     /// <param name="data">The data span to read the packet from.</param>
     /// <returns>The deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if the data is invalid or corrupted.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Packet ReadPacket(ReadOnlySpan<byte> data)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static unsafe Packet ReadPacket(System.ReadOnlySpan<byte> data)
     {
         if (data.Length < PacketSize.Header)
             throw new PackageException(
@@ -49,12 +44,14 @@ public static partial class PacketSerializer
 
                 // Create payload efficiently
                 MaterializePayload(
-                    data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
+                    data[PacketSize.Header..],
+                    (length - PacketSize.Header),
+                    out System.Memory<byte> payload);
 
                 return new Packet(id, number, checksum, timestamp, type, flags, priority, payload);
             }
         }
-        catch (Exception ex) when (ex is not PackageException)
+        catch (System.Exception ex) when (ex is not PackageException)
         {
             throw new PackageException("Failed to deserialize packet", ex);
         }
@@ -67,8 +64,11 @@ public static partial class PacketSerializer
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A task representing the asynchronous read operation, returning the deserialized packet.</returns>
     /// <exception cref="PackageException">Thrown if any error occurs during reading from the stream.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async ValueTask<Packet> ReadFromStreamAsync(Stream stream, CancellationToken cancellationToken = default)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static async System.Threading.Tasks.ValueTask<Packet> ReadFromStreamAsync(
+        System.IO.Stream stream,
+        System.Threading.CancellationToken cancellationToken = default)
     {
         // Use thread-local buffer for the header to reduce allocations
         byte[] headerBuffer = RentHeaderBuffer();
@@ -83,7 +83,7 @@ public static partial class PacketSerializer
                     $"Failed to read the packet header. Got {bytesRead} bytes instead of {PacketSize.Header}.");
 
             // Read the packet length from the header
-            ushort length = MemoryMarshal.Read<ushort>(headerBuffer);
+            ushort length = System.Runtime.InteropServices.MemoryMarshal.Read<ushort>(headerBuffer);
 
             if (length < PacketSize.Header)
                 throw new PackageException($"Invalid packet length: {length}. Must be at least {PacketSize.Header}.");
@@ -93,21 +93,21 @@ public static partial class PacketSerializer
             if (payloadSize <= 0)
             {
                 // No payload, just return a packet constructed from the header
-                return ReadPacket(headerBuffer.AsSpan(0, PacketSize.Header));
+                return ReadPacket(System.MemoryExtensions.AsSpan(headerBuffer, 0, PacketSize.Header));
             }
 
             // For payloads, optimize based on size
             if (length <= 8192) // Use shared buffer pool for reasonably sized packets
             {
-                byte[] fullBuffer = ArrayPool<byte>.Shared.Rent(length);
+                byte[] fullBuffer = PacketConstants.Pool.Rent(length);
                 try
                 {
                     // Copy header to the full buffer
-                    Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
+                    System.Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
 
                     // Read the payload directly into the buffer
                     bytesRead = await stream.ReadAtLeastAsync(
-                        fullBuffer.AsMemory(PacketSize.Header, payloadSize),
+                        System.MemoryExtensions.AsMemory(fullBuffer, PacketSize.Header, payloadSize),
                         payloadSize,
                         throwOnEndOfStream: true,
                         cancellationToken);
@@ -115,11 +115,11 @@ public static partial class PacketSerializer
                     if (bytesRead < payloadSize)
                         throw new PackageException($"Failed to read the full packet payload. Got {bytesRead} bytes instead of {payloadSize}.");
 
-                    return ReadPacket(fullBuffer.AsSpan(0, length));
+                    return ReadPacket(System.MemoryExtensions.AsSpan(fullBuffer, 0, length));
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(fullBuffer, clearArray: true);
+                    PacketConstants.Pool.Return(fullBuffer, clearArray: true);
                 }
             }
             else // For extremely large packets, avoid exhausting the pool
@@ -128,11 +128,11 @@ public static partial class PacketSerializer
                 byte[] fullBuffer = new byte[length];
 
                 // Copy header to the full buffer
-                Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
+                System.Buffer.BlockCopy(headerBuffer, 0, fullBuffer, 0, PacketSize.Header);
 
                 // Read the payload directly into the buffer
                 bytesRead = await stream.ReadAtLeastAsync(
-                    fullBuffer.AsMemory(PacketSize.Header, payloadSize),
+                    System.MemoryExtensions.AsMemory(fullBuffer, PacketSize.Header, payloadSize),
                     payloadSize,
                     throwOnEndOfStream: true,
                     cancellationToken);
@@ -143,7 +143,7 @@ public static partial class PacketSerializer
                 return ReadPacket(fullBuffer);
             }
         }
-        catch (Exception ex) when (ex is not PackageException and not OperationCanceledException)
+        catch (System.Exception ex) when (ex is not PackageException and not System.OperationCanceledException)
         {
             throw new PackageException("Failed to read packet from stream", ex);
         }

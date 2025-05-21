@@ -1,24 +1,18 @@
 using Nalix.Common.Constants;
 using Nalix.Common.Package.Metadata;
-using System;
-using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace Nalix.Network.Package.Engine.Serialization;
 
 /// <summary>
 /// Provides high-performance methods for serializing and deserializing network packets.
 /// </summary>
-[SkipLocalsInit]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static partial class PacketSerializer
 {
     #region Constants
 
     // Pre-allocated buffers for stream operations
-    private static readonly ThreadLocal<byte[]> _threadLocalHeaderBuffer =
+    private static readonly System.Threading.ThreadLocal<byte[]> _threadLocalHeaderBuffer =
         new(() => new byte[PacketSize.Header], trackAllValues: false);
 
     private const int Threshold = 32768;
@@ -27,7 +21,8 @@ public static partial class PacketSerializer
 
     #region Internal Methods
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static byte[] RentHeaderBuffer()
     {
         byte[]? buffer = _threadLocalHeaderBuffer.Value;
@@ -43,30 +38,33 @@ public static partial class PacketSerializer
     /// <summary>
     /// Efficiently materializes a payload using unsafe code when appropriate.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static unsafe void MaterializePayload(ReadOnlySpan<byte> data, int payloadSize, out Memory<byte> payload)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static unsafe void MaterializePayload(
+        System.ReadOnlySpan<byte> data,
+        int payloadSize, out System.Memory<byte> payload)
     {
         // For empty payloads, avoid allocation
         if (payloadSize == 0)
         {
-            payload = Memory<byte>.Empty;
+            payload = System.Memory<byte>.Empty;
             return;
         }
 
         // For small payloads, use a pooled buffer
         if (payloadSize <= 4096)
         {
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(payloadSize);
+            byte[] buffer = PacketConstants.Pool.Rent(payloadSize);
 
             // Fast copy using unsafe pointer arithmetic for small-to-medium payloads
             fixed (byte* source = data)
             fixed (byte* destination = buffer)
             {
-                Buffer.MemoryCopy(source, destination, payloadSize, payloadSize);
+                System.Buffer.MemoryCopy(source, destination, payloadSize, payloadSize);
             }
 
             // Note: The caller is responsible for returning this buffer to the pool
-            payload = buffer.AsMemory(0, payloadSize);
+            payload = System.MemoryExtensions.AsMemory(buffer, 0, payloadSize);
         }
         else
         {
@@ -76,7 +74,7 @@ public static partial class PacketSerializer
             fixed (byte* source = data)
             fixed (byte* destination = buffer)
             {
-                Buffer.MemoryCopy(source, destination, payloadSize, payloadSize);
+                System.Buffer.MemoryCopy(source, destination, payloadSize, payloadSize);
             }
 
             payload = buffer;
@@ -98,7 +96,7 @@ public static partial class PacketSerializer
 
         if (totalSize <= PacketConstants.StackAllocLimit)
         {
-            Span<byte> stackBuffer = stackalloc byte[totalSize];
+            System.Span<byte> stackBuffer = stackalloc byte[totalSize];
             WritePacket(stackBuffer, in packet);
             return stackBuffer.ToArray();
         }
@@ -107,8 +105,8 @@ public static partial class PacketSerializer
             byte[] rentedArray = PacketConstants.Pool.Rent(totalSize);
             try
             {
-                WritePacket(rentedArray.AsSpan(0, totalSize), in packet);
-                return rentedArray.AsSpan(0, totalSize).ToArray();
+                WritePacket(System.MemoryExtensions.AsSpan(rentedArray, 0, totalSize), in packet);
+                return System.MemoryExtensions.AsSpan(rentedArray, 0, totalSize).ToArray();
             }
             finally
             {
@@ -126,21 +124,21 @@ public static partial class PacketSerializer
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlySpan<byte> data) => ReadPacket(data);
+    public static Packet Deserialize(System.ReadOnlySpan<byte> data) => ReadPacket(data);
 
     /// <summary>
     /// Deserializes the specified ReadOnlyMemory to a packet.
     /// </summary>
     /// <param name="data">The ReadOnlyMemory to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(ReadOnlyMemory<byte> data) => Deserialize(data.Span);
+    public static Packet Deserialize(System.ReadOnlyMemory<byte> data) => Deserialize(data.Span);
 
     /// <summary>
     /// Deserializes the specified byte array to a packet.
     /// </summary>
     /// <param name="data">The byte array to deserialize.</param>
     /// <returns>The deserialized packet.</returns>
-    public static Packet Deserialize(byte[] data) => Deserialize(new ReadOnlySpan<byte>(data));
+    public static Packet Deserialize(byte[] data) => Deserialize(new System.ReadOnlySpan<byte>(data));
 
     #endregion Methods Deserialization
 
@@ -153,7 +151,8 @@ public static partial class PacketSerializer
     /// <param name="destination">The destination span to hold the serialized packet.</param>
     /// <param name="bytesWritten">The Number of bytes written to the destination span.</param>
     /// <returns>Returns true if serialization was successful; otherwise, false.</returns>
-    public static bool TrySerialize(in Packet packet, Span<byte> destination,
+    public static bool TrySerialize(
+        in Packet packet, System.Span<byte> destination,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
     {
         int totalSize = PacketSize.Header + packet.Payload.Length;
@@ -183,7 +182,9 @@ public static partial class PacketSerializer
     /// <param name="source">The source span to deserialize.</param>
     /// <param name="packet">When this method returns, contains the deserialized packet if the operation was successful; otherwise, the default packet value.</param>
     /// <returns>Returns true if deserialization was successful; otherwise, false.</returns>
-    public static bool TryDeserialize(ReadOnlySpan<byte> source, [NotNullWhen(true)] out Packet packet)
+    public static bool TryDeserialize(
+        System.ReadOnlySpan<byte> source,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Packet packet)
     {
         packet = default;
 
@@ -192,7 +193,7 @@ public static partial class PacketSerializer
 
         try
         {
-            short length = MemoryMarshal.Read<short>(source);
+            ushort length = System.Runtime.InteropServices.MemoryMarshal.Read<ushort>(source);
             if (length < PacketSize.Header || length > source.Length)
                 return false;
 
