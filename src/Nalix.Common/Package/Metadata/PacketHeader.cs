@@ -24,6 +24,11 @@ public readonly struct PacketHeader(in IPacket packet)
     public readonly ushort Id = packet.Id;
 
     /// <summary>
+    /// Gets the unique identifier for the packet instance.
+    /// </summary>
+    public readonly byte Number = packet.Number;
+
+    /// <summary>
     /// Gets the checksum of the packet, computed based on the payload. Used for integrity validation.
     /// </summary>
     public readonly uint Checksum = packet.Checksum;
@@ -32,11 +37,6 @@ public readonly struct PacketHeader(in IPacket packet)
     /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.
     /// </summary>
     public readonly long Timestamp = packet.Timestamp;
-
-    /// <summary>
-    /// Gets the unique identifier for the packet instance.
-    /// </summary>
-    public readonly byte Number = packet.Number;
 
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.

@@ -16,19 +16,19 @@ public static class PacketOffset
     public const int Id = Length + PacketSize.Length;
 
     /// <summary>
+    /// Offset for the packet Number.
+    /// </summary>
+    public const int Number = Id + PacketSize.Id;
+
+    /// <summary>
     /// Offset for the packet checksum.
     /// </summary>
-    public const int Checksum = Id + PacketSize.Id;
+    public const int Checksum = Number + PacketSize.Number;
 
     /// <summary>
     /// Offset for the packet timestamp.
     /// </summary>
     public const int Timestamp = Checksum + PacketSize.Checksum;
-
-    /// <summary>
-    /// Offset for the packet Number.
-    /// </summary>
-    public const int Number = Timestamp + PacketSize.Timestamp;
 
     /// <summary>
     /// Offset for the packet type.

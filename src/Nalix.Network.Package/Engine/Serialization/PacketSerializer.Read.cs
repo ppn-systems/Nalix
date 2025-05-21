@@ -51,7 +51,7 @@ public static partial class PacketSerializer
                 MaterializePayload(
                     data[PacketSize.Header..], (length - PacketSize.Header), out Memory<byte> payload);
 
-                return new Packet(id, checksum, timestamp, number, type, flags, priority, payload);
+                return new Packet(id, number, checksum, timestamp, type, flags, priority, payload);
             }
         }
         catch (Exception ex) when (ex is not PackageException)

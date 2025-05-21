@@ -25,8 +25,8 @@ public static class PacketOps
         byte[] copy = new byte[length];
 
         if (length == 0)
-            return new Packet(packet.Id, packet.Checksum, packet.Timestamp,
-                              packet.Type, packet.Flags, packet.Priority, packet.Number, copy);
+            return new Packet(packet.Id, packet.Number, packet.Checksum, packet.Timestamp,
+                              packet.Type, packet.Flags, packet.Priority, copy);
 
         fixed (byte* srcPtr = packet.Payload.Span)
         fixed (byte* dstPtr = copy)
@@ -34,8 +34,8 @@ public static class PacketOps
             System.Buffer.MemoryCopy(srcPtr, dstPtr, length, length);
         }
 
-        return new Packet(packet.Id, packet.Checksum, packet.Timestamp,
-                          packet.Type, packet.Flags, packet.Priority, packet.Number, copy);
+        return new Packet(packet.Id, packet.Number, packet.Checksum, packet.Timestamp,
+                          packet.Type, packet.Flags, packet.Priority, copy);
     }
 
     /// <summary>

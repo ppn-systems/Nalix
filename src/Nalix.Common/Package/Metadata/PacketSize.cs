@@ -16,6 +16,11 @@ public static class PacketSize
     public const int Id = sizeof(ushort);
 
     /// <summary>
+    /// The size of the Number field in the packet header, in bytes.
+    /// </summary>
+    public const int Number = sizeof(byte);
+
+    /// <summary>
     /// The size of the Checksum field in the packet header, in bytes.
     /// </summary>
     public const int Checksum = sizeof(uint);
@@ -24,11 +29,6 @@ public static class PacketSize
     /// The size of the Timestamp field in the packet header, in bytes.
     /// </summary>
     public const int Timestamp = sizeof(long);
-
-    /// <summary>
-    /// The size of the Number field in the packet header, in bytes.
-    /// </summary>
-    public const int Number = sizeof(byte);
 
     /// <summary>
     /// The size of the Type field in the packet header, in bytes.

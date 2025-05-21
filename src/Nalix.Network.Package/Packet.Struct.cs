@@ -106,7 +106,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketFlags flags,
         PacketPriority priority,
         System.Memory<byte> payload)
-        : this(id, 0, Clock.UnixTicksNow(), type, flags, priority, 0, payload, true)
+        : this(id, 0, 0, Clock.UnixTicksNow(), type, flags, priority, payload, true)
     {
     }
 

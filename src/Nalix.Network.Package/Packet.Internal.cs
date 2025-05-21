@@ -14,12 +14,13 @@ public readonly partial struct Packet
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
         ushort id,
+        byte number,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        byte number,
+
         System.Memory<byte> payload)
-        : this(id, 0, Clock.UnixTicksNow(), type, flags, priority, number, payload, true)
+        : this(id, number, 0, Clock.UnixTicksNow(), type, flags, priority, payload, true)
     {
     }
 
@@ -31,17 +32,17 @@ public readonly partial struct Packet
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
         ushort id,
+        byte number,
         uint checksum,
         long timestamp,
         byte type,
         byte flags,
         byte priority,
-        byte number,
         System.Memory<byte> payload,
         bool computeChecksum = false)
-        : this(id, checksum, timestamp,
+        : this(id, number, checksum, timestamp,
               (PacketType)type, (PacketFlags)flags,
-              (PacketPriority)priority, number, payload, computeChecksum)
+              (PacketPriority)priority, payload, computeChecksum)
     {
     }
 
@@ -53,12 +54,12 @@ public readonly partial struct Packet
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
         ushort id,
+        byte number,
         uint checksum,
         long timestamp,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        byte number,
         System.Memory<byte> payload,
         bool computeChecksum = false)
     {

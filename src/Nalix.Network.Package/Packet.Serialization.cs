@@ -27,8 +27,7 @@ public readonly partial struct Packet : IPacketDeserializer<Packet>
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(System.Span<byte> buffer)
-        => PacketSerializer.WritePacket(buffer, this);
+    public void Serialize(System.Span<byte> buffer) => PacketSerializer.WritePacket(buffer, this);
 
     /// <summary>
     /// Deserializes a <see cref="Packet"/> from the given byte buffer using fast deserialization logic.

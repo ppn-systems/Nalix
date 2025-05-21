@@ -45,9 +45,9 @@ public static class PacketGuard
         try
         {
             return new Packet(
-                packet.Id, packet.Checksum, packet.Timestamp,
+                packet.Id, packet.Number, packet.Checksum, packet.Timestamp,
                 packet.Type, packet.Flags | PacketFlags.Encrypted,
-                packet.Priority, packet.Number, Ciphers.Encrypt(packet.Payload, key, algorithm), true);
+                packet.Priority, Ciphers.Encrypt(packet.Payload, key, algorithm), true);
         }
         catch (System.Exception ex)
         {
@@ -89,9 +89,9 @@ public static class PacketGuard
         try
         {
             return new Packet(
-                packet.Id, packet.Checksum, packet.Timestamp,
+                packet.Id, packet.Number, packet.Checksum, packet.Timestamp,
                 packet.Type, packet.Flags & ~PacketFlags.Encrypted,
-                packet.Priority, packet.Number, Ciphers.Decrypt(packet.Payload, key, algorithm), true);
+                packet.Priority, Ciphers.Decrypt(packet.Payload, key, algorithm), true);
         }
         catch (System.Exception ex)
         {
