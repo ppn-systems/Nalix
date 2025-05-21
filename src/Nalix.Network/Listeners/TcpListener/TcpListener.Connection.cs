@@ -20,7 +20,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     private IConnection InitializeConnection(System.Net.Sockets.Socket socket, PooledAcceptContext context)
     {
-        ConfigureHighPerformanceSocket(socket);
+        InitializeSocketOptions(socket);
 
         try
         {

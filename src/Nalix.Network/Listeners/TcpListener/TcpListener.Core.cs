@@ -11,6 +11,7 @@ using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
+using System.Threading;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -36,6 +37,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private System.Boolean _isDisposed;
     private System.Int32 _stopInitiated;
     private System.Net.Sockets.Socket? _listener;
+    private CancellationTokenRegistration _cancelReg;
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
     private System.Int32 _state = (System.Int32)ListenerState.Stopped;
@@ -98,8 +100,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     {
         Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
-        // Optimized for _udpListener.IOControlCode on Windows
-        if (Config.IsWindows)
+        if (Config.IsWindows && Config.TuneThreadPool)
         {
             System.Int32 parallelismLevel = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
