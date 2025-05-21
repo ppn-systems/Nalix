@@ -98,6 +98,12 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// Checks if the packet has expired.
     /// </summary>
     /// <param name="timeout">The expiration timeout.</param>
+    bool IsExpired(long timeout);
+
+    /// <summary>
+    /// Checks if the packet has expired.
+    /// </summary>
+    /// <param name="timeout">The expiration timeout.</param>
     bool IsExpired(System.TimeSpan timeout);
 
     /// <summary>

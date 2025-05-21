@@ -1,7 +1,6 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Serialization;
-using Nalix.Shared.Time;
 
 namespace Nalix.Network.Package;
 
@@ -32,6 +31,36 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     public Packet(ushort id, byte[] payload)
         : this(id, new System.Memory<byte>(payload))
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
+    /// </summary>
+    /// <param name="id">The packet Number.</param>
+    /// <param name="payload">The packet payload (data).</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public Packet(ushort id, ISerializablePacket payload)
+    {
+        int size = payload.GetSize();
+        _rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+
+        payload.Serialize(
+            System.MemoryExtensions.AsSpan(_rentedBuffer, 0, size),
+            out int written);
+
+        System.Memory<byte> memory = new(_rentedBuffer, 0, written);
+
+        this = new Packet(
+            id: id,
+            number: 0,
+            checksum: 0,
+            timestamp: 0,
+            type: PacketType.Object,
+            flags: PacketFlags.None,
+            priority: PacketPriority.Low,
+            payload: memory
+        );
     }
 
     /// <summary>
@@ -106,7 +135,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketFlags flags,
         PacketPriority priority,
         System.Memory<byte> payload)
-        : this(id, 0, 0, Clock.UnixTicksNow(), type, flags, priority, payload, true)
+        : this(id, 0, 0, 0, type, flags, priority, payload)
     {
     }
 
@@ -129,6 +158,9 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         {
             System.Buffers.ArrayPool<byte>.Shared.Return(array, clearArray: true);
         }
+
+        if (_rentedBuffer != null)
+            System.Buffers.ArrayPool<byte>.Shared.Return(_rentedBuffer, clearArray: true);
     }
 
     #endregion IDisposable

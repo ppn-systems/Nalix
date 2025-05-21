@@ -29,7 +29,7 @@ namespace Nalix.Network.Dispatch;
 /// var dispatcher = new PacketDispatchChannel`Packet`(opts => {
 ///     opts.WithHandler(...);
 /// });
-/// dispatcher.Start();
+/// dispatcher.RunAsync();
 /// ...
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
@@ -122,7 +122,7 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         if (_isProcessing)
         {
-            base.Logger?.Debug("[Dispatch] Start() called but dispatcher is already running.");
+            base.Logger?.Debug("[Dispatch] RunAsync() called but dispatcher is already running.");
             return;
         }
 

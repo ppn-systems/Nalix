@@ -18,9 +18,8 @@ public readonly partial struct Packet
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-
         System.Memory<byte> payload)
-        : this(id, number, 0, Clock.UnixTicksNow(), type, flags, priority, payload, true)
+        : this(id, number, 0, 0, type, flags, priority, payload)
     {
     }
 
@@ -38,11 +37,9 @@ public readonly partial struct Packet
         byte type,
         byte flags,
         byte priority,
-        System.Memory<byte> payload,
-        bool computeChecksum = false)
-        : this(id, number, checksum, timestamp,
-              (PacketType)type, (PacketFlags)flags,
-              (PacketPriority)priority, payload, computeChecksum)
+        System.Memory<byte> payload)
+        : this(id, number, checksum, timestamp, (PacketType)type,
+              (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
 
@@ -60,8 +57,7 @@ public readonly partial struct Packet
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<byte> payload,
-        bool computeChecksum = false)
+        System.Memory<byte> payload)
     {
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)
@@ -74,14 +70,14 @@ public readonly partial struct Packet
         Type = type;
         Flags = flags;
         Priority = priority;
-        Timestamp = timestamp;
         Number = number == 0 ? (byte)(timestamp % byte.MaxValue) : number;
+        Timestamp = timestamp == 0 ? Clock.UnixMillisecondsNow() : timestamp;
 
         // Create a secure copy of the payload to prevent external modification
         Payload = MemoryAllocator.Allocate(payload);
 
         // Compute checksum only if needed
-        Checksum = computeChecksum ? Integrity.Crc32.Compute(Payload.Span) : checksum;
+        Checksum = checksum == 0 ? Integrity.Crc32.Compute(Payload.Span) : checksum;
 
         unchecked
         {

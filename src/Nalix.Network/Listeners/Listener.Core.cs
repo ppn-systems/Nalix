@@ -1,6 +1,7 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
+using Nalix.Network.Listeners.Internal;
 using Nalix.Network.Protocols;
 using Nalix.Shared.Configuration;
 
@@ -24,23 +25,21 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     #region Fields
 
-    private static readonly SocketConfig Config;
+    internal static readonly SocketConfig Config;
 
     private readonly ILogger _logger;
     private readonly System.Int32 _port;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _buffer;
-    private readonly System.Net.Sockets.Socket _udpListener;
-    private readonly System.Net.Sockets.Socket _tcpListener;
-    private readonly System.Threading.SemaphoreSlim _lockListener;
+    private readonly TimeSynchronizer _timeSyncWorker;
+    private readonly UdpIngressWorker _udpIngressWorker;
+    private readonly System.Net.Sockets.Socket _listener;
+    private readonly System.Threading.SemaphoreSlim _lock;
 
     private System.Threading.CancellationTokenSource? _cts;
 
     private volatile bool _isDisposed = false;
-    private volatile bool _isTcpRunning = false;
-    private volatile bool _isUdpRunning = false;
-    private volatile bool _isUdpEnabled = true;
-    private volatile bool _isUpdateEnable = false;
+    private volatile bool _isRunning = false;
 
     #endregion Fields
 
@@ -49,33 +48,33 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _isTcpRunning || _isUdpRunning;
+    public bool IsListening => _isRunning || _udpIngressWorker.IsRunning;
 
     /// <summary>
     /// Enables or disables the update loop for the listener.
     /// </summary>
-    public bool EnableUpdate
+    public bool IsTimeSyncEnabled
     {
-        get => _isUpdateEnable;
+        get => _timeSyncWorker.IsTimeSyncEnabled;
         set
         {
-            if (_isTcpRunning)
-                throw new System.InvalidOperationException("Cannot change EnableUpdate while listening.");
-            _isUpdateEnable = value;
+            if (_isRunning)
+                throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
+            _timeSyncWorker.IsTimeSyncEnabled = value;
         }
     }
 
     /// <summary>
     /// Enables or disables the UDP receive loop.
     /// </summary>
-    public bool EnableUdp
+    public bool IsUdpEnabled
     {
-        get => _isUdpEnabled;
+        get => _udpIngressWorker.IsEnabled;
         set
         {
-            if (_isTcpRunning)
-                throw new System.InvalidOperationException("Cannot change EnableUdp while listening.");
-            _isUdpEnabled = value;
+            if (_udpIngressWorker.IsRunning)
+                throw new System.InvalidOperationException("Cannot change IsUdpEnabled while listening.");
+            _udpIngressWorker.IsEnabled = value;
         }
     }
 
@@ -103,10 +102,10 @@ public abstract partial class Listener : IListener, System.IDisposable
         _logger = logger;
         _protocol = protocol;
         _buffer = bufferPool;
-        _lockListener = new System.Threading.SemaphoreSlim(1, 1);
+        _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
-        _tcpListener = new System.Net.Sockets.Socket(
+        _listener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream,
             System.Net.Sockets.ProtocolType.Tcp)
@@ -117,27 +116,21 @@ public abstract partial class Listener : IListener, System.IDisposable
         };
 
         // Increase the queue size on the socket listener.
-        _tcpListener.SetSocketOption(
+        _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
-        _tcpListener.SetSocketOption(
+        _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
 
-        _udpListener = new System.Net.Sockets.Socket(
-            System.Net.Sockets.AddressFamily.InterNetwork,
-            System.Net.Sockets.SocketType.Dgram,
-            System.Net.Sockets.ProtocolType.Udp)
-        {
-            ExclusiveAddressUse = !Config.ReuseAddress
-        };
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
+        _logger.Debug("[TCP] TCP socket bound to {0}", remote);
 
-        _udpListener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
+        // Bind and Listen
+        _listener.Bind(remote);
+        _listener.Listen(SocketBacklog);
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
@@ -150,6 +143,11 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
             _logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
+
+        _timeSyncWorker = new TimeSynchronizer(logger);
+        _udpIngressWorker = new UdpIngressWorker(logger, protocol);
+
+        _timeSyncWorker.TimeSynchronized += SynchronizeTime;
     }
 
     /// <summary>
@@ -196,12 +194,12 @@ public abstract partial class Listener : IListener, System.IDisposable
 
             try
             {
-                _tcpListener.Close();
-                _tcpListener.Dispose();
+                _listener.Close();
+                _listener.Dispose();
             }
             catch { }
 
-            _lockListener.Dispose();
+            _lock.Dispose();
         }
 
         _isDisposed = true;

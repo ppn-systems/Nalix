@@ -1,51 +1,10 @@
 using Nalix.Common.Exceptions;
-using Nalix.Common.Package.Metadata;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Listeners;
 
 public abstract partial class Listener
 {
-    /// <summary>
-    /// Stops the listener from accepting further connections.
-    /// </summary>
-    public void StopListening()
-    {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
-
-        _cts?.Cancel();
-
-        try
-        {
-            // Close the socket listener to deactivate the accept
-            if (_isTcpRunning)
-            {
-                _tcpListener.Close();
-                _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
-            }
-
-            if (_isUdpRunning)
-            {
-                _udpListener.Close();
-                _logger.Info("[UDP] Listener on {0} stopped", Config.Port);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            _logger.Error("Error closing listener socket: {0}", ex.Message);
-        }
-
-        _isTcpRunning = false;
-        _isUdpRunning = false;
-        _logger.Info("Listener stopped.");
-    }
-
-    /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    public abstract void SynchronizeTime(long milliseconds);
-
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
@@ -59,39 +18,30 @@ public abstract partial class Listener
         if (Config.MaxParallel < 1)
             throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
 
-        if (_isTcpRunning)
+        if (_isRunning)
         {
             _logger.Warn("[TCP] Accept connections is already running.");
             return;
         }
 
-        _isTcpRunning = true;
+        _isRunning = true;
         _logger.Debug("Starting listener");
 
         // Create a linked token source to combine external cancellation with Internal cancellation
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         System.Threading.CancellationToken linkedToken = _cts.Token;
 
-        await _lockListener.WaitAsync(linkedToken).ConfigureAwait(false);
-
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
-        _logger.Debug("[TCP] TCP socket bound to {0}", remote);
+        await _lock.WaitAsync(linkedToken).ConfigureAwait(false);
 
         try
         {
-            // Bind and Listen
-            _tcpListener.Bind(remote);
-            _udpListener.Bind(remote);
-
-            _tcpListener.Listen(SocketBacklog);
-
             _logger.Info("[TCP] {0} listening on port {1}", _protocol, Config.Port);
 
             // Create multiple accept tasks in parallel for higher throughput
             int acceptCount = Config.MaxParallel;
 
-            System.Threading.Tasks.Task updateTask = this.RunTimeSyncLoopAsync(linkedToken);
-            System.Threading.Tasks.Task receiveTask = this.RunUdpReceiveLoopAsync(linkedToken);
+            System.Threading.Tasks.Task updateTask = _timeSyncWorker.RunAsync(linkedToken);
+            System.Threading.Tasks.Task receiveTask = _udpIngressWorker.RunAsync(linkedToken);
             System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[acceptCount + 2];
 
             for (int i = 0; i < acceptCount; i++)
@@ -120,112 +70,50 @@ public abstract partial class Listener
         {
             try
             {
-                _tcpListener.Close();
+                _listener.Close();
             }
             catch { }
 
-            _lockListener.Release();
+            _lock.Release();
         }
     }
 
-    #region Private Methods
-
-    private async System.Threading.Tasks.Task RunTimeSyncLoopAsync(
-        System.Threading.CancellationToken cancellationToken)
+    /// <summary>
+    /// Stops the listener from accepting further connections.
+    /// </summary>
+    public void StopListening()
     {
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+
+        _cts?.Cancel();
+
         try
         {
-            // Wait until enabled
-            if (!_isUpdateEnable)
+            // Close the socket listener to deactivate the accept
+            if (_isRunning)
             {
-                _logger.Debug("Waiting for update loop to be enabled...");
+                _listener.Close();
+                _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
             }
 
-            while (!_isUpdateEnable && !cancellationToken.IsCancellationRequested)
+            if (_udpIngressWorker.IsRunning)
             {
-                await System.Threading.Tasks.Task
-                        .Delay(10000, cancellationToken)
-                        .ConfigureAwait(false);
+                _udpIngressWorker.Close();
             }
-
-            _logger.Info("Update loop enabled, starting update cycle.");
-
-            // Main update loop
-            while (_isTcpRunning)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                long start = Clock.UnixMillisecondsNow();
-                this.SynchronizeTime(start);
-
-                long elapsed = Clock.UnixMillisecondsNow() - start;
-                long remaining = 16 - elapsed;
-
-                if (remaining < 16)
-                {
-                    await System.Threading.Tasks.Task
-                            .Delay((int)remaining, cancellationToken)
-                            .ConfigureAwait(false);
-                }
-            }
-        }
-        catch (System.OperationCanceledException)
-        {
-            _logger.Debug("SynchronizeTime loop cancelled");
         }
         catch (System.Exception ex)
         {
-            _logger.Error("SynchronizeTime loop error: {0}", ex.Message);
+            _logger.Error("Error closing listener socket: {0}", ex.Message);
         }
+
+        _isRunning = false;
+        _logger.Info("Listener stopped.");
     }
 
-    private async System.Threading.Tasks.Task RunUdpReceiveLoopAsync(
-        System.Threading.CancellationToken cancellationToken)
-    {
-        if (!_isUdpEnabled)
-        {
-            _logger.Warn("[UDP] Skipped receiving loop because UDP is disabled.");
-            return;
-        }
-        else if (_isUdpRunning)
-        {
-            _logger.Warn("[UDP] Receive loop is already running.");
-            return;
-        }
-
-        _isUdpRunning = true;
-
-        _logger.Info("[UDP] {0} listening on port {1}", _protocol, Config.Port);
-
-        byte[] buffer = new byte[Config.BufferSize];
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
-        _logger.Debug("[UDP] TCP socket bound to {0}", remote);
-
-        while (_isTcpRunning)
-        {
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                System.Net.Sockets.SocketReceiveFromResult result = await _udpListener.ReceiveFromAsync(
-                    new System.ArraySegment<byte>(buffer),
-                    System.Net.Sockets.SocketFlags.None, remote);
-
-                if (result.ReceivedBytes > PacketSize.Header + 16)
-                {
-                    _protocol.ProcessMessage(System.MemoryExtensions
-                             .AsSpan(buffer, 0, result.ReceivedBytes));
-                }
-            }
-            catch (System.OperationCanceledException)
-            {
-                _logger.Info("[UDP] Listener on {0} stopped", Config.Port);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.Error("[UDP] Listener Ex: {0}", ex);
-            }
-        }
-    }
-
-    #endregion Private Methods
+    /// <summary>
+    /// Updates the listener with the current server time, provided as a Unix timestamp.
+    /// </summary>
+    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
+    public virtual void SynchronizeTime(long milliseconds)
+    { }
 }

@@ -85,7 +85,7 @@ public abstract partial class Listener
                     args.AcceptSocket = null;
 
                     // Try accepting the connection asynchronously
-                    if (_tcpListener.AcceptAsync(args)) break;
+                    if (_listener.AcceptAsync(args)) break;
 
                     // If the connection has been received synchronously, process it immediately.
                     HandleAccept(args);
@@ -195,7 +195,7 @@ public abstract partial class Listener
         System.Threading.CancellationToken cancellationToken)
     {
         System.Net.Sockets.Socket socket = await System.Threading.Tasks.Task.Factory
-            .FromAsync(_tcpListener.BeginAccept, _tcpListener.EndAccept, null)
+            .FromAsync(_listener.BeginAccept, _listener.EndAccept, null)
             .ConfigureAwait(false);
 
         await System.Threading.Tasks.Task.Yield();

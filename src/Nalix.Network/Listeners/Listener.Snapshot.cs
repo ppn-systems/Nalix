@@ -19,7 +19,7 @@ public abstract partial class Listener : ISnapshot<ListenerSnapshot>
             Port = Config.Port,
             IsDisposed = _isDisposed,
             IsListening = IsListening,
-            Address = ListenerSnapshot.GetIpAddress(_tcpListener),
-            ListenerSocketStatus = ListenerSnapshot.GetSocketStatus(_tcpListener)
+            Address = ListenerSnapshot.GetIpAddress(_listener),
+            ListenerSocketStatus = ListenerSnapshot.GetSocketStatus(_listener)
         };
 }

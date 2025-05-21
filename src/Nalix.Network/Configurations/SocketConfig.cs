@@ -1,3 +1,4 @@
+using Nalix.Common.Package.Metadata;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
@@ -48,6 +49,11 @@ public sealed class SocketConfig : ConfigurationLoader
     }
 
     /// <summary>
+    /// Indicates whether to use IPv4 or IPv6.
+    /// </summary>
+    public bool EnableIPv6 { get; set; } = false;
+
+    /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency communication).
     /// Standard is true.
     /// </summary>
@@ -65,6 +71,11 @@ public sealed class SocketConfig : ConfigurationLoader
     /// The buffer size in bytes. Default is <c>65535</c>.
     /// </value>
     public int BufferSize { get; set; } = 65535;
+
+    /// <summary>
+    /// Gets or sets the maximum size of the UDP packet.
+    /// </summary>
+    public int MinUdpSize { get; set; } = PacketSize.Header + 16;
 
     /// <summary>
     /// Gets or sets a value indicating whether the socket should use the Reliable Keep-Alive mechanism.

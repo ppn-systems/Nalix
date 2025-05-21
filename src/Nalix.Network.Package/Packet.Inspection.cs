@@ -20,14 +20,31 @@ public readonly partial struct Packet
     /// <returns>True if the packet has expired; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public bool IsExpired(long timeout)
+    {
+        // Use direct math operations for better performance
+        long currentTime = Clock.UnixMillisecondsNow();
+
+        // Handle potential overflow (rare but possible)
+        if (currentTime < this.Timestamp) return false;
+        return (currentTime - this.Timestamp) > timeout;
+    }
+
+    /// <summary>
+    /// Determines if the packet has expired based on the provided timeout.
+    /// </summary>
+    /// <param name="timeout">The timeout to check against.</param>
+    /// <returns>True if the packet has expired; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool IsExpired(System.TimeSpan timeout)
     {
         // Use direct math operations for better performance
-        long currentTime = Clock.UnixTicksNow();
-        long timeoutMicroseconds = ((long)timeout.TotalMilliseconds * 1000L);
+        long currentTime = Clock.UnixMillisecondsNow();
+        long timeoutMs = (long)timeout.TotalMilliseconds;
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < Timestamp) return false;
-        return (currentTime - Timestamp) > timeoutMicroseconds;
+        if (currentTime < this.Timestamp) return false;
+        return (currentTime - this.Timestamp) > timeoutMs;
     }
 }

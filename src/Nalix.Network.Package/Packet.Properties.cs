@@ -19,6 +19,7 @@ public readonly partial struct Packet
     #region Fields
 
     private readonly ulong _hash;
+    private readonly byte[]? _rentedBuffer;
 
     #endregion Fields
 
@@ -33,6 +34,11 @@ public readonly partial struct Packet
     /// Gets the Number associated with the packet, which specifies an operation type.
     /// </summary>
     public ushort Id { get; }
+
+    /// <summary>
+    /// Gets the packet identifier, which is a unique identifier for this packet instance.
+    /// </summary>
+    public byte Number { get; }
 
     /// <summary>
     /// Gets the CRC32 checksum of the packet payload for integrity validation.
@@ -63,11 +69,6 @@ public readonly partial struct Packet
     /// Gets the priority level of the packet, which affects how the packet is processed.
     /// </summary>
     public PacketPriority Priority { get; }
-
-    /// <summary>
-    /// Gets the packet identifier, which is a unique identifier for this packet instance.
-    /// </summary>
-    public byte Number { get; }
 
     /// <summary>
     /// Gets the payload data being transmitted in this packet.

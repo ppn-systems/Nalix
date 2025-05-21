@@ -72,7 +72,7 @@ public sealed class ConnectionLimiter : IDisposable
             StringComparer.OrdinalIgnoreCase);
         _cleanupLock = new SemaphoreSlim(1, 1);
 
-        // Start cleanup timer with configured interval
+        // RunAsync cleanup timer with configured interval
         _cleanupTimer = new Timer(
             async _ => await CleanupStaleConnectionsAsync().ConfigureAwait(false),
             null,
