@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
@@ -149,9 +149,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             return false;
         }
 
-        if (data.Length > System.UInt16.MaxValue - HeaderSize)
+        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
+            throw new System.ArgumentOutOfRangeException(nameof(data),
+                $"Packet size {data.Length} exceeds limit {PacketConstants.PacketSizeLimit - HeaderSize}");
         }
 
         System.UInt16 totalLength = (System.UInt16)(data.Length + HeaderSize);
@@ -256,7 +257,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             return false;
         }
 
-        if (data.Length > System.UInt16.MaxValue - HeaderSize)
+        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
         {
             throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
         }
@@ -312,6 +313,13 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     #region Private Methods
 
+    private static System.Boolean IS_VALID_PACKET_SIZE(System.UInt16 size)
+    {
+        return size is >= HeaderSize and
+               <= PacketConstants.PacketSizeLimit and
+               <= System.UInt16.MaxValue;
+    }
+
     [System.Diagnostics.DebuggerStepThrough]
     private static System.String FORMAT_ENDPOINT(System.Net.Sockets.Socket s)
     {
@@ -329,10 +337,6 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
     }
 
-    /// <summary>
-    /// Returns true when the exception indicates a peer-initiated close or shutdown flow
-    /// that should be treated as a normal disconnect (not an error).
-    /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     private static System.Boolean IS_BENIGN_DISCONNECT(System.Exception ex)
     {
@@ -433,7 +437,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                         .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] recv-header size(le)={size}");
 #endif
 
-                if (size is < HeaderSize or > PacketConstants.PacketSizeLimit)
+                if (!IS_VALID_PACKET_SIZE(size))
                 {
                     throw new System.Net.Sockets.SocketException(
                         (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
@@ -442,14 +446,23 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 // 2) Ensure capacity
                 if (size > _buffer.Length)
                 {
-                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                            .Return(_buffer);
+                    System.Byte[] oldBuffer = _buffer;
+                    System.Byte[] newBuffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                                      .Rent(size);
 
-                    _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                      .Rent(size);
+                    // Copy header to new buffer
+                    System.MemoryExtensions.AsSpan(oldBuffer, 0, HeaderSize)
+                                           .CopyTo(System.MemoryExtensions
+                                           .AsSpan(newBuffer));
 
-                    System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
-                                                          .AsSpan(_buffer, 0, HeaderSize), size);
+                    // Atomic swap
+                    System.Byte[] swapped = System.Threading.Interlocked.Exchange(ref _buffer, newBuffer);
+
+                    if (swapped is not null && swapped != newBuffer)
+                    {
+                        InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                .Return(swapped);
+                    }
                 }
 
                 // 3) Read payload
@@ -465,11 +478,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 #endif
 
                 // 4) Handoff to session cache
-                this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
-                this.Cache.PushIncoming(BufferLease
-                          .TakeOwnership(_buffer, HeaderSize, payload));
+                System.Byte[] currentBuffer = System.Threading.Interlocked.Exchange(ref _buffer, null);
 
-                _buffer = null; // ownership transferred
+                if (currentBuffer is not null)
+                {
+                    this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
+                    this.Cache.PushIncoming(BufferLease
+                              .TakeOwnership(currentBuffer, HeaderSize, payload));
+                }
+
                 _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                                   .Rent(); // prepare for next read
             }
@@ -507,12 +524,19 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
+            // 1. Stop receive loop first
             this.CANCEL_RECEIVE_ONCE();
-            this.INVOKE_CLOSE_ONCE();
 
+            // 2. Wait a bit for async operations to complete
+            System.Threading.Thread.Sleep(100);
+
+            // 3. Shutdown socket
             try
             {
-                this._socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                if (_socket.Connected)
+                {
+                    this._socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                }
             }
             catch { /* ignore */ }
 
@@ -522,24 +546,30 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             }
             catch { /* ignore */ }
 
-            // now it’s safe to return pooled buffer
-            if (_buffer != null)
+            // 4. Return buffer using Interlocked to avoid race
+            System.Byte[] bufferToReturn = System.Threading.Interlocked.Exchange(ref _buffer, null);
+            if (bufferToReturn is not null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                        .Return(_buffer);
+                                        .Return(bufferToReturn);
             }
 
-            _cts.Dispose();
+            // 5. Dispose cache (which may contain additional buffers)
             this.Cache.Dispose();
+
+            // 6. Invoke close callback
+            this.INVOKE_CLOSE_ONCE();
+
+            // 7. Dispose resources
+            _cts.Dispose();
             this._socket.Dispose();
         }
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
+            .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
 #endif
     }
-
 
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -553,7 +583,6 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         AsyncCallback.Invoke(_callbackClose, _sender!, _cachedArgs!);
     }
-
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

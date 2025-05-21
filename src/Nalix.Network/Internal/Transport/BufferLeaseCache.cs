@@ -1,8 +1,10 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Connection;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Memory.Buffers;
@@ -16,22 +18,25 @@ using Nalix.Shared.Memory.Caches;
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
-/// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
+/// Provides a thread-safe caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.DebuggerDisplay("Uptime={Uptime}ms, Dropped={DroppedPackets}, Incoming={Incoming.Count}")]
 internal sealed class BufferLeaseCache : System.IDisposable
 {
     #region Fields
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     private IConnection _sender;
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     private IConnectEventArgs _cachedArgs;
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     private System.EventHandler<IConnectEventArgs> _callback;
 
     private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+    private readonly System.Threading.ReaderWriterLockSlim _callbackLock = new();
+
+    private System.Int32 _isCallbackSet;
+    private System.Int64 _lastPingTime;
+    private System.Int64 _droppedPackets;
+    private System.Int32 _disposed;
 
     #endregion Fields
 
@@ -44,8 +49,18 @@ internal sealed class BufferLeaseCache : System.IDisposable
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
+    /// Thread-safe via Interlocked operations.
     /// </summary>
-    public System.Int64 LastPingTime { get; set; }
+    public System.Int64 LastPingTime
+    {
+        get => System.Threading.Interlocked.Read(ref _lastPingTime);
+        set => System.Threading.Interlocked.Exchange(ref _lastPingTime, value);
+    }
+
+    /// <summary>
+    /// Gets the number of packets dropped due to cache overflow.
+    /// </summary>
+    public System.Int64 DroppedPackets => System.Threading.Volatile.Read(ref _droppedPackets);
 
     /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
@@ -56,7 +71,11 @@ internal sealed class BufferLeaseCache : System.IDisposable
 
     #region Constructors
 
-    public BufferLeaseCache() => this.Incoming = new(ConfigurationManager.Instance.Get<CacheSizeOptions>().Incoming);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferLeaseCache"/> class.
+    /// </summary>
+    public BufferLeaseCache()
+        => this.Incoming = new(ConfigurationManager.Instance.Get<CacheSizeOptions>().Incoming);
 
     #endregion Constructors
 
@@ -64,38 +83,154 @@ internal sealed class BufferLeaseCache : System.IDisposable
 
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached. The state is passed back as the argument.
+    /// Can only be called once per instance.
     /// </summary>
+    /// <param name="callback">The callback to invoke.</param>
+    /// <param name="sender">The connection that will be passed to the callback.</param>
+    /// <param name="args">The event arguments that will be passed to the callback.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when callback is already set.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache is disposed.</exception>
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_callback), nameof(_sender), nameof(_cachedArgs))]
     public void SetCallback(
         System.EventHandler<IConnectEventArgs> callback,
-        IConnection sender, IConnectEventArgs args)
+        IConnection sender,
+        IConnectEventArgs args)
     {
-        _callback = callback;
-        _sender = sender ?? throw new System.ArgumentNullException(nameof(sender));
-        _cachedArgs = args ?? throw new System.ArgumentNullException(nameof(args));
+        this.ThrowIfDisposed();
+
+        System.ArgumentNullException.ThrowIfNull(callback);
+        System.ArgumentNullException.ThrowIfNull(sender);
+        System.ArgumentNullException.ThrowIfNull(args);
+
+        if (System.Threading.Interlocked.CompareExchange(ref _isCallbackSet, 1, 0) != 0)
+        {
+            throw new System.InvalidOperationException("Callback has already been set");
+        }
+
+        _callbackLock.EnterWriteLock();
+        try
+        {
+            _callback = callback;
+            _sender = sender;
+            _cachedArgs = args;
+        }
+        finally
+        {
+            _callbackLock.ExitWriteLock();
+        }
     }
 
     /// <summary>
     /// Adds a received packet to the incoming cache and triggers the cache event.
+    /// If cache is full, the oldest packet is dropped and disposed.
     /// </summary>
     /// <param name="data">The received packet data.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when data is null.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when callback is not set.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache is disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(BufferLease data)
     {
+        this.ThrowIfDisposed();
+
+        System.ArgumentNullException.ThrowIfNull(data);
+
+        if (System.Threading.Volatile.Read(ref _isCallbackSet) == 0)
+        {
+            throw new System.InvalidOperationException(
+                "Callback must be set before pushing incoming data. Call SetCallback first.");
+        }
+
+        // Handle cache overflow
+        if (this.Incoming.IsFull)
+        {
+            if (this.Incoming.TryPop(out BufferLease oldLease))
+            {
+                (oldLease as System.IDisposable)?.Dispose();
+                System.Threading.Interlocked.Increment(ref _droppedPackets);
+
+#if DEBUG
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[BufferLeaseCache] Cache full, dropped packet. Total dropped: {_droppedPackets}");
+#endif
+            }
+        }
+
         this.Incoming.Push(data);
-        AsyncCallback.Invoke(_callback, _sender!, _cachedArgs!);
+
+        // Thread-safe callback invocation
+        _callbackLock.EnterReadLock();
+        try
+        {
+            if (_callback is not null && _sender is not null && _cachedArgs is not null)
+            {
+                AsyncCallback.Invoke(_callback, _sender, _cachedArgs);
+            }
+        }
+        finally
+        {
+            _callbackLock.ExitReadLock();
+        }
     }
 
     /// <summary>
     /// Releases all resources used by this <see cref="BufferLeaseCache"/> instance.
-    /// Clears and disposes both incoming and outgoing caches.
+    /// Disposes all cached items and clears the cache. Safe to call multiple times.
     /// </summary>
     public void Dispose()
     {
-        this.Incoming.Clear();
-        this.Incoming.Dispose();
+        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return; // Already disposed
+        }
+
+        _callbackLock.EnterWriteLock();
+        try
+        {
+            _callback = null;
+            _sender = null;
+            _cachedArgs = null;
+
+            // Dispose all cached items before clearing
+            while (this.Incoming.TryPop(out BufferLease lease))
+            {
+                (lease as System.IDisposable)?.Dispose();
+            }
+
+            this.Incoming.Clear();
+            this.Incoming.Dispose();
+        }
+        finally
+        {
+            _callbackLock.ExitWriteLock();
+            _callbackLock.Dispose();
+        }
+
+#if DEBUG
+        Nalix.Framework.Injection.InstanceManager.Instance
+            .GetExistingInstance<Nalix.Common.Diagnostics.ILogger>()?
+            .Debug($"[BufferLeaseCache] Disposed. Total dropped packets: {_droppedPackets}");
+#endif
     }
 
     #endregion Public Methods
+
+    #region Private Methods
+
+    /// <summary>
+    /// Throws <see cref="System.ObjectDisposedException"/> if the cache is disposed.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfDisposed()
+    {
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        {
+            throw new System.ObjectDisposedException(nameof(BufferLeaseCache));
+        }
+    }
+
+    #endregion Private Methods
 }
