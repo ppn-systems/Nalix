@@ -6,6 +6,7 @@ using Nalix.Common.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Pooling;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
@@ -43,7 +44,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private System.Int32 _disposed;                 // 0 = no, 1 = yes
     private System.Int32 _receiveStarted;           // 0 = not yet, 1 = started
     private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
-    private System.Byte[] _buffer = BufferLease.Pool.Rent(256);
+    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
 
     #endregion Fields
 
@@ -175,7 +176,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             }
         }
 
-        System.Byte[] buffer = BufferLease.Pool.Rent(totalLength);
+        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                       .Rent(totalLength);
 
         try
         {
@@ -213,7 +215,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
         finally
         {
-            BufferLease.Pool.Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(buffer);
         }
     }
 
@@ -238,7 +241,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
 
         System.UInt16 totalLength = (System.UInt16)(data.Length + HeaderSize);
-        System.Byte[] buffer = BufferLease.Pool.Rent(totalLength);
+        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                       .Rent(totalLength);
 
         try
         {
@@ -283,7 +287,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
         finally
         {
-            BufferLease.Pool.Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(buffer);
         }
     }
 
@@ -395,8 +400,12 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 // 2) Ensure capacity
                 if (size > _buffer.Length)
                 {
-                    BufferLease.Pool.Return(_buffer);
-                    _buffer = BufferLease.Pool.Rent(size);
+                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                            .Return(_buffer);
+
+                    _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                      .Rent(size);
+
                     System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                           .AsSpan(_buffer, 0, HeaderSize), size);
                 }
@@ -418,7 +427,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 this.Cache.PushIncoming(BufferLease
                           .TakeOwnership(_buffer, HeaderSize, payload));
 
-                _buffer = BufferLease.Pool.Rent(256); // prepare for next read
+                _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                  .Rent(256); // prepare for next read
             }
         }
         catch (System.Exception ex) when (IsBenignDisconnect(ex))
@@ -473,7 +483,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             catch { /* ignore */ }
 
             // now it’s safe to return pooled buffer
-            BufferLease.Pool.Return(this._buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(this._buffer);
 
             this.Cache.Dispose();
             this._socket.Dispose();
