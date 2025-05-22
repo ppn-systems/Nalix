@@ -9,7 +9,7 @@ public class SerializableFieldAttribute : System.Attribute
     /// <summary>
     /// Gets the serialization order of the field or property.
     /// </summary>
-    public int Order { get; }
+    public int Order { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SerializableFieldAttribute"/> class with the specified serialization order.

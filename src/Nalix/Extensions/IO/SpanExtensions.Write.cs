@@ -486,6 +486,7 @@ public static partial class SpanExtensions
         {
             span.WriteInt32(-1, offset);
             offset += sizeof(int);
+            return;
         }
 
         encoding ??= SerializationOptions.Encoding ??
@@ -522,6 +523,7 @@ public static partial class SpanExtensions
         {
             buffer.WriteInt32(-1, offset);
             offset += sizeof(int);
+            return;
         }
 
         encoding ??= SerializationOptions.Encoding ??
