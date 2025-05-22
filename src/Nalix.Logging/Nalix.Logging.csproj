@@ -34,6 +34,8 @@ non-blocking log processing under heavy concurrent workloads.
 			- General cleanup, documentation updates, and unit test enhancements.
 		</PackageReleaseNotes>
 
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

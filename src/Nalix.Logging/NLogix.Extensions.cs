@@ -80,7 +80,7 @@ public static class NLogixExtensions
     /// Logs an exception as an error with class and member context.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Error<T>(
         this ILogger logger, System.Exception ex, EventId? eventId = null,
         [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
@@ -102,7 +102,7 @@ public static class NLogixExtensions
     /// Logs an exception as a fatal error with class and member context.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Fatal<T>(
         this ILogger logger, System.Exception ex, EventId? eventId = null,
         [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
