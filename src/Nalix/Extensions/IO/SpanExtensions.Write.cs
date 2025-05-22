@@ -30,6 +30,28 @@ public static partial class SpanExtensions
         => array[offset] = unchecked((byte)value);
 
     /// <summary>
+    /// Writes an 8-bit signed integer to the specified offset in the span.
+    /// </summary>
+    /// <param name="span">The span to write to.</param>
+    /// <param name="value">The 8-bit signed integer to write.</param>
+    /// <param name="offset">The zero-based offset in the span where writing begins. Defaults to 0.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void WriteBool(this System.Span<byte> span, in bool value, int offset = 0)
+        => span[offset] = value ? (byte)1 : (byte)0;
+
+    /// <summary>
+    /// Writes an 8-bit signed integer to the specified offset in the byte array.
+    /// </summary>
+    /// <param name="array">The byte array to write to.</param>
+    /// <param name="value">The 8-bit signed integer to write.</param>
+    /// <param name="offset">The zero-based offset in the array where writing begins. Defaults to 0.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void WriteBool(this byte[] array, in bool value, int offset = 0)
+        => array[offset] = value ? (byte)1 : (byte)0;
+
+    /// <summary>
     /// Writes an 8-bit unsigned integer to the specified offset in the span.
     /// </summary>
     /// <param name="span">The span to write to.</param>
@@ -50,6 +72,36 @@ public static partial class SpanExtensions
     public static void WriteByte(this byte[] array, in byte value, int offset = 0)
     {
         array[offset] = value;
+    }
+
+    /// <summary>
+    /// Writes an Array unsigned integer to the specified offset in the span.
+    /// </summary>
+    /// <param name="span">The span to write to.</param>
+    /// <param name="value">The Array unsigned integer to write.</param>
+    /// <param name="offset">The zero-based offset in the span where writing begins. Defaults to 0.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static unsafe int WriteBytes(this System.Span<byte> span, byte[] value, int offset)
+    {
+        int length = value?.Length ?? 0;
+
+        // Write length as 4 bytes
+        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.Add(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span), offset), length);
+        offset += 4;
+
+        if (length == 0 || value == null)
+            return 4;
+
+        fixed (byte* src = value)
+        fixed (byte* dst = &System.Runtime.InteropServices.MemoryMarshal.GetReference(span[offset..]))
+        {
+            System.Buffer.MemoryCopy(src, dst, span.Length - offset, length);
+        }
+
+        return 4 + length;
     }
 
     /// <summary>

@@ -44,6 +44,54 @@ public static partial class SpanExtensions
     }
 
     /// <summary>
+    /// Reads a bool (<see cref="byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// </summary>
+    /// <param name="span">The span of bytes to read from.</param>
+    /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
+    /// <returns>The <see cref="byte"/> value at the specified offset.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="byte"/>.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool ToBool(this System.ReadOnlySpan<byte> span, int offset = 0)
+    {
+        if (span.Length < offset + 1)
+            throw new System.ArgumentException("Span too small to read Byte.", nameof(span));
+
+        return span[offset] != 0;
+    }
+
+    /// <summary>
+    /// Reads a byte[] (<see cref="byte"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
+    /// </summary>
+    /// <param name="span">The span of bytes to read from.</param>
+    /// <param name="offset">The zero-based byte offset in the span to start reading.</param>
+    /// <returns>The <see cref="byte"/> value at the specified offset.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="byte"/>.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static unsafe byte[] ReadBytes(this System.ReadOnlySpan<byte> span, ref int offset)
+    {
+        int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(ref
+            System.Runtime.CompilerServices.Unsafe.Add(ref
+            System.Runtime.InteropServices.MemoryMarshal.GetReference(span), offset));
+        offset += 4;
+
+        if (length == 0)
+            return [];
+
+        byte[] result = new byte[length];
+
+        fixed (byte* src = &System.Runtime.InteropServices.MemoryMarshal.GetReference(span.Slice(offset, length)))
+        fixed (byte* dst = result)
+        {
+            System.Buffer.MemoryCopy(src, dst, length, length);
+        }
+
+        offset += length;
+        return result;
+    }
+
+    /// <summary>
     /// Reads a 16-bit unsigned integer (<see cref="ushort"/>) from a <see cref="System.ReadOnlySpan{Byte}"/> at the specified offset.
     /// </summary>
     /// <param name="span">The span of bytes to read from.</param>
@@ -249,6 +297,14 @@ public static partial class SpanExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte ToByte(this byte[] buffer, int offset = 0)
         => ((System.ReadOnlySpan<byte>)buffer).ToByte(offset);
+
+    /// <summary>
+    /// Reads a bool (<see cref="byte"/>) from a <see cref="byte"/> array at the specified offset.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool ToBool(this byte[] buffer, int offset = 0)
+        => ((System.ReadOnlySpan<byte>)buffer).ToBool(offset);
 
     /// <summary>
     /// Reads a 16-bit unsigned integer (<see cref="ushort"/>) from a <see cref="byte"/> array at the specified offset.
