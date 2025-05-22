@@ -1,9 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Platforms>AnyCPU</Platforms>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Nalix">
+      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.dll</HintPath>
+    </Reference>
+    <Reference Include="Nalix.Common">
+      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 </Project>

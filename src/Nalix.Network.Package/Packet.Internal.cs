@@ -81,11 +81,11 @@ public readonly partial struct Packet
 
         unchecked
         {
-            _hash = ((ulong)number << 56)
-                  | ((ulong)id << 40)
-                  | ((ulong)type << 32)
-                  | ((ulong)flags << 24)
-                  | ((ulong)timestamp & 0x000000FFFFFFUL);
+            _hash = ((ulong)Number << 56)
+                  | ((ulong)Id << 40)
+                  | ((ulong)Type << 32)
+                  | ((ulong)Flags << 24)
+                  | ((ulong)Timestamp & 0x000000FFFFFFUL);
         }
     }
 }

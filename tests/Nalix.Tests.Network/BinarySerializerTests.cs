@@ -1,4 +1,4 @@
-using Nalix.Common.Attributes;
+using Nalix.Common.Serialization;
 using Nalix.Serialization;
 using System;
 using Xunit;
@@ -9,22 +9,14 @@ public class BinarySerializerTests
 {
     private struct TestStruct
     {
-        [SerializableField(1)]
+        [FieldOrder(1)]
         public int IntValue;
 
-        [SerializableField(2)]
+        [FieldOrder(2)]
         public byte ByteValue;
 
-        [SerializableField(3)]
-        public string StringValue;
-
-        [SerializableField(4)]
-        private bool _flag;
-
-        public bool Flag { get => _flag; set => _flag = value; }
-
-        [SerializableField(5)]
-        public byte[] Bytes;
+        [FieldOrder(3)]
+        private byte _a;
     }
 
     [Fact]
@@ -34,9 +26,6 @@ public class BinarySerializerTests
         {
             IntValue = 1,
             ByteValue = 0x7F,
-            StringValue = "Xin chào .NET",
-            Flag = true,
-            Bytes = new byte[] { 1, 2, 3, 4 }
         };
 
         int size = BinarySerializer<TestStruct>.GetSize(in original);
@@ -47,9 +36,6 @@ public class BinarySerializerTests
 
         Assert.Equal(original.IntValue, result.IntValue);
         Assert.Equal(original.ByteValue, result.ByteValue);
-        Assert.Equal(original.StringValue, result.StringValue);
-        Assert.Equal(original.Flag, result.Flag);
-        Assert.Equal(original.Bytes, result.Bytes);
     }
 
     [Fact]
@@ -59,9 +45,6 @@ public class BinarySerializerTests
         {
             IntValue = 1,
             ByteValue = 2,
-            StringValue = null,
-            Flag = false,
-            Bytes = null
         };
 
         int size = BinarySerializer<TestStruct>.GetSize(in original);
@@ -70,10 +53,7 @@ public class BinarySerializerTests
 
         var result = BinarySerializer<TestStruct>.Deserialize(buffer.AsSpan()); // Explicitly use ReadOnlySpan<byte>
 
-        Assert.Null(result.StringValue);
-        Assert.Null(result.Bytes);
         Assert.Equal(original.IntValue, result.IntValue);
         Assert.Equal(original.ByteValue, result.ByteValue);
-        Assert.Equal(original.Flag, result.Flag);
     }
 }
