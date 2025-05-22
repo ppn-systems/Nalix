@@ -1,6 +1,6 @@
+using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
-using Nalix.Common.Package.Attributes;
 
 namespace Nalix.Network.Dispatch.Options;
 

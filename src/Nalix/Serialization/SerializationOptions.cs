@@ -1,12 +1,13 @@
 namespace Nalix.Serialization;
 
 /// <summary>
-/// Provides predefined JSON serialization settings for different use cases.
+/// Predefined serialization settings.
 /// </summary>
-public static class JsonOptions
+
+public static class SerializationOptions
 {
     /// <summary>
-    /// The default encoding used for JSON serialization and deserialization.
+    /// Default encoding for serialization and deserialization.
     /// </summary>
     public static System.Text.Encoding Encoding { get; set; } = System.Text.Encoding.UTF8;
 

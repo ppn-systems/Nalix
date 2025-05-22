@@ -182,7 +182,7 @@ public static partial class SpanExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe char ToChar(this System.ReadOnlySpan<byte> span, int offset = 0, System.Text.Encoding encoding = null)
     {
-        encoding ??= JsonOptions.Encoding;
+        encoding ??= SerializationOptions.Encoding;
 
         if (offset < 0 || offset >= span.Length)
             throw new System.ArgumentOutOfRangeException(nameof(offset));
@@ -210,9 +210,12 @@ public static partial class SpanExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe string ToString(
-        this System.ReadOnlySpan<byte> span, int offset = 0, int length = -1, System.Text.Encoding encoding = null)
+        this System.ReadOnlySpan<byte> span,
+        int offset = 0, int length = -1,
+        System.Text.Encoding encoding = null)
     {
-        encoding ??= JsonOptions.Encoding;
+        encoding ??= SerializationOptions.Encoding
+            ?? throw new System.ArgumentNullException(nameof(encoding));
 
         if (length < 0)
             length = span.Length - offset;

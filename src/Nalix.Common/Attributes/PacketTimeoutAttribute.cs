@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Attributes;
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// An attribute that specifies the timeout duration for a packet operation.

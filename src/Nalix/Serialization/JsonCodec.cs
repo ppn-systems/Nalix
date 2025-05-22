@@ -9,6 +9,7 @@ namespace Nalix.Serialization;
 /// <summary>
 /// Provides optimized JSON serialization and deserialization methods, supporting both strings and byte arrays.
 /// </summary>
+[System.Obsolete("This class is obsolete. Use Serializer instead.")]
 public static class JsonCodec
 {
     /// <summary>
@@ -40,7 +41,7 @@ public static class JsonCodec
         Encoding encoding = null)
     {
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        encoding ??= JsonOptions.Encoding;
+        encoding ??= SerializationOptions.Encoding;
         return encoding.GetBytes(Serialize(obj, jsonTypeInfo));
     }
 
@@ -97,7 +98,7 @@ public static class JsonCodec
         ArgumentNullException.ThrowIfNull(jsonBytes);
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
 
-        encoding ??= JsonOptions.Encoding;
+        encoding ??= SerializationOptions.Encoding;
         return Deserialize(encoding.GetString(jsonBytes), jsonTypeInfo);
     }
 

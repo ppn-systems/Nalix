@@ -96,7 +96,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(ushort id, string s)
-        : this(id, PacketType.String, PacketFlags.None, PacketPriority.Low, JsonOptions.Encoding.GetBytes(s))
+        : this(id, PacketType.String, PacketFlags.None, PacketPriority.Low, SerializationOptions.Encoding.GetBytes(s))
     {
     }
 

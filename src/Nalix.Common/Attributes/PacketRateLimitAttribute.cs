@@ -1,6 +1,6 @@
 using Nalix.Common.Security;
 
-namespace Nalix.Common.Package.Attributes;
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// Specifies the maximum number of times a packet handler method can be invoked

@@ -1,9 +1,8 @@
+using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
-using Nalix.Common.Package.Attributes;
-using Nalix.Common.Package.Attributes.Metadata;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -12,6 +11,22 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
+    /// <summary>
+    /// Defines metadata and behavior for a packet.
+    /// </summary>
+    /// <param name="Opcode">Unique identifier for the packet type.</param>
+    /// <param name="Timeout">Optional response timeout.</param>
+    /// <param name="RateLimit">Optional sending rate limit.</param>
+    /// <param name="Permission">Optional required privileges.</param>
+    /// <param name="Encryption">Optional encryption setting.</param>
+    private record PacketDescriptor(
+        PacketOpcodeAttribute Opcode,
+        PacketTimeoutAttribute? Timeout,
+        PacketRateLimitAttribute? RateLimit,
+        PacketPermissionAttribute? Permission,
+        PacketEncryptionAttribute? Encryption
+    );
+
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static T EnsureNotNull<T>(T value, string paramName) where T : class
@@ -49,8 +64,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private bool CheckRateLimit(
         string remoteEndPoint,
-        PacketDescriptor attributes,
-        System.Reflection.MethodInfo method)
+        PacketDescriptor attributes)
     {
         if (attributes.RateLimit != null && !_rateLimiter.Check(
             remoteEndPoint, attributes.RateLimit))
@@ -71,7 +85,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             System.Diagnostics.Stopwatch? stopwatch = _isMetricsEnabled ? System.Diagnostics.Stopwatch.StartNew() : null;
 
-            if (!this.CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes, method))
+            if (!this.CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RateLimited));
@@ -149,12 +163,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                "Exception: {3}. Net: {4}, Exception Details: {5}",
-                    attributes.Opcode.Id,           // Command ID
-                    controllerInstance.GetType().Name,// ConnectionOps name
-                    method.Name,                      // Method name
-                    ex.GetType().Name,                // Exception type
-                    connection.RemoteEndPoint,        // Connection details for traceability
-                    ex.Message                        // Exception message itself
+                                attributes.Opcode.Id,             // Opcode ID
+                                controllerInstance.GetType().Name,// ConnectionOps name
+                                method.Name,                      // Method name
+                                ex.GetType().Name,                // Exception type
+                                connection.RemoteEndPoint,        // Connection details for traceability
+                                ex.Message                        // Exception message itself
                 );
                 _errorHandler?.Invoke(ex, attributes.Opcode.Id);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
