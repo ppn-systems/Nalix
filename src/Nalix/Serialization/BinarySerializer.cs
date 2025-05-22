@@ -25,7 +25,196 @@ internal static class BinarySerializer<
     }
 
     private static readonly System.Collections.Generic.List<FieldSerializer> _serializers;
-    private static readonly System.Reflection.BindingFlags _binding;
+
+    private static readonly System.Reflection.BindingFlags _binding =
+        System.Reflection.BindingFlags.Instance |
+        System.Reflection.BindingFlags.Public |
+        System.Reflection.BindingFlags.NonPublic;
+
+    private static readonly System.Collections.Generic.Dictionary<
+        System.Type,
+        System.Func<System.Reflection.FieldInfo, FieldSerializer>> _typeSerializers = new()
+        {
+            [typeof(byte)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    byte value = GetField<byte>(in obj, field);
+                    span.WriteByte(in value, offset);
+                    offset += sizeof(byte);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    byte value = span.ToByte(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(byte);
+                }, sizeof(byte)
+            ),
+            [typeof(sbyte)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    sbyte value = GetField<sbyte>(in obj, field);
+                    span.WriteSByte(in value, offset);
+                    offset += sizeof(sbyte);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    sbyte value = span.ToSByte(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(sbyte);
+                }, sizeof(sbyte)
+            ),
+            [typeof(bool)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    bool value = GetField<bool>(in obj, field);
+                    span.WriteBool(in value, offset);
+                    offset += sizeof(bool);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    bool value = span.ToBool(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(bool);
+                }, sizeof(bool)
+            ),
+            [typeof(short)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    short value = GetField<short>(in obj, field);
+                    span.WriteInt16(in value, offset);
+                    offset += sizeof(short);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    short value = span.ToInt16(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(short);
+                }, sizeof(short)
+            ),
+            [typeof(ushort)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    ushort value = GetField<ushort>(in obj, field);
+                    span.WriteUInt16(in value, offset);
+                    offset += sizeof(ushort);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    ushort value = span.ToUInt16(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(ushort);
+                }, sizeof(ushort)
+            ),
+            [typeof(int)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    int value = GetField<int>(in obj, field);
+                    span.WriteInt32(in value, offset);
+                    offset += sizeof(int);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    int value = span.ToInt32(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(int);
+                }, sizeof(int)
+            ),
+            [typeof(uint)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    uint value = GetField<uint>(in obj, field);
+                    span.WriteUInt32(in value, offset);
+                    offset += sizeof(uint);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    uint value = span.ToUInt32(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(uint);
+                }, sizeof(uint)
+            ),
+            [typeof(float)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    float value = GetField<float>(in obj, field);
+                    span.WriteSingle(in value, offset);
+                    offset += sizeof(double);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    float value = span.ToSingle(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(float);
+                }, sizeof(float)
+            ),
+            [typeof(double)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    double value = GetField<double>(in obj, field);
+                    span.WriteDouble(in value, offset);
+                    offset += sizeof(double);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    double value = span.ToDouble(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(double);
+                }, sizeof(double)
+            ),
+            [typeof(long)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    long value = GetField<long>(in obj, field);
+                    span.WriteInt64(in value, offset);
+                    offset += sizeof(long);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    long value = span.ToInt64(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(long);
+                }, sizeof(long)
+            ),
+            [typeof(ulong)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    ulong value = GetField<ulong>(in obj, field);
+                    span.WriteUInt64(in value, offset);
+                    offset += sizeof(ulong);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    ulong value = span.ToUInt64(offset);
+                    SetField(ref obj, field, value);
+                    offset += sizeof(ulong);
+                }, sizeof(ulong)
+            ),
+            [typeof(string)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    string value = GetField<string>(in obj, field);
+                    span.WriteString(value, ref offset);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    string value = span.ToString(ref offset);
+                    SetField(ref obj, field, value);
+                }, sizeof(int)
+            ),
+            [typeof(byte[])] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    byte[] value = (byte[])field.GetValue(obj);
+                    offset += span.WriteBytes(value, offset);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    byte[] value = span.ReadBytes(ref offset);
+                    field.SetValue(obj, value);
+                }, sizeof(int) + 0
+            ),
+            // Add more primitive types as needed...
+        };
 
     #endregion Fields
 
@@ -34,7 +223,6 @@ internal static class BinarySerializer<
     static BinarySerializer()
     {
         _serializers = [];
-        _binding = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
 
         System.Collections.Generic.List<
             (System.Reflection.FieldInfo Field, SerializableFieldAttribute Attribute)> fields = [];
@@ -55,7 +243,10 @@ internal static class BinarySerializer<
 
         foreach (var (Field, Attribute) in fields)
         {
-            _serializers.Add(CreateFieldSerializer(Field.FieldType, Field));
+            if (_typeSerializers.TryGetValue(Field.FieldType, out var creator))
+            {
+                _serializers.Add(creator(Field));
+            }
         }
     }
 
@@ -83,250 +274,36 @@ internal static class BinarySerializer<
 
     #region Private Method
 
-    private static FieldSerializer CreateFieldSerializer(
-        System.Type type,
-        System.Reflection.FieldInfo field)
+    // 2. Use SetValueDirect and GetValueDirect for value types (structs)
+    private static TValue GetField<TValue>(in T obj, System.Reflection.FieldInfo field)
     {
-        if (type == typeof(byte))
+        if (typeof(T).IsValueType)
         {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    byte value = (byte)field.GetValue(obj);
-                    span.WriteByte(in value, offset);
-                    offset += 1;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    byte value = span.ToByte(offset);
-                    field.SetValue(obj, value);
-                    offset += 1;
-                },
-                1);
+            // For value types, use TypedReference (requires unsafe)
+            object boxed = (object)obj;
+            var tr = __makeref(boxed);
+            return (TValue)field.GetValueDirect(tr);
         }
-        else if (type == typeof(sbyte))
+        else
         {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    sbyte value = (sbyte)field.GetValue(obj);
-                    span.WriteSByte(in value, offset);
-                    offset += 1;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    sbyte value = span.ToSByte(offset);
-                    field.SetValue(obj, value);
-                    offset += 1;
-                },
-                1);
+            return (TValue)field.GetValue(obj);
         }
-        else if (type == typeof(bool))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    bool value = (bool)field.GetValue(obj);
-                    span.WriteBool(in value, offset);
-                    offset += 1;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    bool value = span.ToBool(offset);
-                    field.SetValue(obj, value);
-                    offset += 1;
-                },
-                1);
-        }
-        else if (type == typeof(short))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    short value = (short)field.GetValue(obj);
-                    span.WriteInt16(in value, offset);
-                    offset += 2;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    short value = span.ToInt16(offset);
-                    field.SetValue(obj, value);
-                    offset += 2;
-                },
-                2);
-        }
-        else if (type == typeof(ushort))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    ushort value = (ushort)field.GetValue(obj);
-                    span.WriteUInt16(in value, offset);
-                    offset += 2;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    ushort value = span.ToUInt16(offset);
-                    field.SetValue(obj, value);
-                    offset += 2;
-                },
-                2);
-        }
-        else if (type == typeof(int))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    int value = (int)field.GetValue(obj);
-                    span.WriteInt32(in value, offset);
-                    offset += 4;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    int value = span.ToInt32(offset);
-                    field.SetValue(obj, value);
-                    offset += 4;
-                },
-                4);
-        }
-        else if (type == typeof(uint))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    uint value = (uint)field.GetValue(obj);
-                    span.WriteUInt32(in value, offset);
-                    offset += 4;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    uint value = span.ToUInt32(offset);
-                    field.SetValue(obj, value);
-                    offset += 4;
-                },
-                4);
-        }
-        else if (type == typeof(float))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    float value = (float)field.GetValue(obj);
-                    span.WriteSingle(in value, offset);
-                    offset += 4;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    float value = span.ToSingle(offset);
-                    field.SetValue(obj, value);
-                    offset += 4;
-                },
-                4);
-        }
-        else if (type == typeof(double))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    double value = (double)field.GetValue(obj);
-                    span.WriteDouble(in value, offset);
-                    offset += 8;
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    double value = span.ToDouble(offset);
-                    field.SetValue(obj, value);
-                    offset += 8;
-                },
-                8);
-        }
-        else if (type.IsEnum)
-        {
-            var underlyingType = System.Enum.GetUnderlyingType(type);
-            if (underlyingType == typeof(int))
-            {
-                return new FieldSerializer(
-                    (in T obj, System.Span<byte> span, ref int offset) =>
-                    {
-                        int value = (int)field.GetValue(obj)!;
-                        span.WriteInt32(in value, offset);
-                        offset += 4;
-                    },
-                    (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                    {
-                        int value = span.ToInt32(offset);
-                        field.SetValue(obj, System.Enum.ToObject(type, value));
-                        offset += 4;
-                    },
-                    4);
-            }
-            else if (underlyingType == typeof(short))
-            {
-                return new FieldSerializer(
-                    (in T obj, System.Span<byte> span, ref int offset) =>
-                    {
-                        short value = (short)field.GetValue(obj)!;
-                        span.WriteInt16(in value, offset);
-                        offset += 2;
-                    },
-                    (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                    {
-                        short value = span.ToInt16(offset);
-                        field.SetValue(obj, System.Enum.ToObject(type, value));
-                        offset += 2;
-                    },
-                    2);
-            }
-            else if (underlyingType == typeof(byte))
-            {
-                return new FieldSerializer(
-                    (in T obj, System.Span<byte> span, ref int offset) =>
-                    {
-                        byte value = (byte)field.GetValue(obj)!;
-                        span.WriteByte(in value, offset);
-                        offset += 1;
-                    },
-                    (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                    {
-                        byte value = span.ToByte(offset);
-                        field.SetValue(obj, System.Enum.ToObject(type, value));
-                        offset += 1;
-                    },
-                    1);
-            }
-        }
-        else if (type == typeof(string))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    string value = (string)field.GetValue(obj);
-                    offset += span.WriteString(value, offset);
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    string value = span.ReadString(ref offset);
-                    field.SetValue(obj, value);
-                },
-                0);
-        }
-        else if (type.IsArray && type.GetElementType() == typeof(byte))
-        {
-            return new FieldSerializer(
-                (in T obj, System.Span<byte> span, ref int offset) =>
-                {
-                    byte[] value = (byte[])field.GetValue(obj);
-                    offset += span.WriteBytes(value, offset);
-                },
-                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
-                {
-                    byte[] value = span.ReadBytes(ref offset);
-                    field.SetValue(obj, value);
-                },
-                4);
-        }
+    }
 
-        throw new System.NotSupportedException($"Type {type.Name} is not supported for serialization.");
+    private static void SetField<TValue>(ref T obj, System.Reflection.FieldInfo field, TValue value)
+    {
+        if (typeof(T).IsValueType)
+        {
+            // For value types, use TypedReference (requires unsafe)
+            object boxed = obj!;
+            var tr = __makeref(boxed);
+            field.SetValueDirect(tr, value);
+            obj = (T)boxed!;
+        }
+        else
+        {
+            field.SetValue(obj, value);
+        }
     }
 
     #endregion Private Method

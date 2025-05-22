@@ -69,7 +69,7 @@ public static partial class SpanExtensions
     /// <param name="span">The read-only span of bytes to read from.</param>
     /// <param name="offset">The offset in the span where reading begins. This value is incremented by the size of the encoded string.</param>
     /// <returns>The string read from the span, or null if the stored length is -1.</returns>
-    public static unsafe string ReadString(this ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe string ToString(this ReadOnlySpan<byte> span, ref int offset)
     {
         int length = span.Read<int>(ref offset);
         if (length == -1) return null;
