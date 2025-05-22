@@ -69,15 +69,18 @@ public static partial class SpanExtensions
     /// <exception cref="System.ArgumentException">Thrown when the span is too small to read the <see cref="byte"/>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe byte[] ReadBytes(this System.ReadOnlySpan<byte> span, ref int offset)
+    public static unsafe byte[] ToBytes(this System.ReadOnlySpan<byte> span, ref int offset)
     {
-        int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(ref
-            System.Runtime.CompilerServices.Unsafe.Add(ref
-            System.Runtime.InteropServices.MemoryMarshal.GetReference(span), offset));
-        offset += 4;
+        int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
+            ref System.Runtime.CompilerServices.Unsafe.Add(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span), offset));
+        offset += sizeof(int); // = 4
 
-        if (length == 0)
-            return [];
+        if (length == -1)
+            return null; // Properly return null, not empty array
+
+        if (length < 0 || offset + length > span.Length)
+            throw new System.ArgumentException("Invalid or corrupt byte array length.");
 
         byte[] result = new byte[length];
 
@@ -228,28 +231,24 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe char ToChar(this System.ReadOnlySpan<byte> span, int offset = 0, System.Text.Encoding encoding = null)
+    public static unsafe char ToChar(
+        this System.ReadOnlySpan<byte> span,
+        ref int offset, System.Text.Encoding encoding = null)
     {
-        encoding ??= SerializationOptions.Encoding;
-
         if (offset < 0 || offset >= span.Length)
             throw new System.ArgumentOutOfRangeException(nameof(offset));
 
-        fixed (byte* pBytes = &span[offset])
-        {
-            // Decode one char from bytes starting at offset
-            // Since UTF-8 char can be multiple bytes, decode 4 bytes max (max UTF-8 char length)
-            System.Span<byte> buffer = stackalloc byte[System.Math.Min(4, span.Length - offset)];
-            for (int i = 0; i < buffer.Length; i++)
-                buffer[i] = span[offset + i];
+        encoding ??= SerializationOptions.Encoding
+            ?? throw new System.ArgumentNullException(nameof(encoding));
 
-            System.Span<char> chars = stackalloc char[1];
-            int charsDecoded = encoding.GetChars(buffer, chars);
-            if (charsDecoded == 0)
-                throw new System.ArgumentException("Invalid bytes for decoding char.");
+        System.Span<char> chars = stackalloc char[1];
+        int bytesConsumed = encoding.GetChars(span.Slice(offset, 4), chars);
 
-            return chars[0];
-        }
+        if (bytesConsumed == 0)
+            throw new System.ArgumentException("Invalid bytes for decoding char.");
+
+        offset += bytesConsumed;
+        return chars[0];
     }
 
     /// <summary>
@@ -259,23 +258,22 @@ public static partial class SpanExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe string ToString(
         this System.ReadOnlySpan<byte> span,
-        int offset = 0, int length = -1,
-        System.Text.Encoding encoding = null)
+        ref int offset, System.Text.Encoding encoding = null)
     {
+        int length = span.ToInt32(offset); // read and update offset inside ToInt32
+        offset += sizeof(int);
+
+        if (length == -1) return null;
+
+        if (length < 0 || offset + length > span.Length)
+            throw new System.ArgumentException("Invalid string length or span too small.");
+
         encoding ??= SerializationOptions.Encoding
             ?? throw new System.ArgumentNullException(nameof(encoding));
 
-        if (length < 0)
-            length = span.Length - offset;
-
-        if (offset < 0 || length < 0 || offset + length > span.Length)
-            throw new System.ArgumentOutOfRangeException(nameof(length), "Invalid offset and length.");
-
-        fixed (byte* pBytes = &span[offset])
-        {
-            // Decode bytes to string using pointer overload
-            return encoding.GetString(pBytes, length);
-        }
+        string result = encoding.GetString(span.Slice(offset, length));
+        offset += length;
+        return result;
     }
 
     #endregion System.ReadOnlySpan<byte> methods
@@ -375,8 +373,8 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static char ToChar(this byte[] buffer, int offset = 0, System.Text.Encoding encoding = null)
-        => ((System.ReadOnlySpan<byte>)buffer).ToChar(offset, encoding);
+    public static char ToChar(this byte[] buffer, ref int offset, System.Text.Encoding encoding = null)
+        => ((System.ReadOnlySpan<byte>)buffer).ToChar(ref offset, encoding);
 
     /// <summary>
     /// Converts a <see cref="byte"/> array to a <see cref="string"/> using the specified encoding.
@@ -384,8 +382,8 @@ public static partial class SpanExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string ToString(
-        this byte[] buffer, int offset = 0, int length = -1, System.Text.Encoding encoding = null)
-        => ((System.ReadOnlySpan<byte>)buffer).ToString(offset, length, encoding);
+        this byte[] buffer, ref int offset, System.Text.Encoding encoding = null)
+        => ((System.ReadOnlySpan<byte>)buffer).ToString(ref offset, encoding);
 
     #endregion byte[] overloads
 }

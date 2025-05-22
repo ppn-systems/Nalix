@@ -82,26 +82,32 @@ public static partial class SpanExtensions
     /// <param name="offset">The zero-based offset in the span where writing begins. Defaults to 0.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe int WriteBytes(this System.Span<byte> span, byte[] value, int offset)
+    public static unsafe void WriteBytes(this System.Span<byte> span, byte[] value, ref int offset)
     {
-        int length = value?.Length ?? 0;
+        int length = value?.Length ?? -1;
 
-        // Write length as 4 bytes
+        // Write length
         System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
             ref System.Runtime.CompilerServices.Unsafe.Add(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(span), offset), length);
-        offset += 4;
+        offset += sizeof(int);
 
-        if (length == 0 || value == null)
-            return 4;
+        // If null or empty, return (null is -1, empty is 0 but still valid to skip copy)
+        if (length <= 0)
+            return;
 
+        // Validate buffer space
+        if (span.Length < offset + length)
+            throw new System.ArgumentException("Span too small to write byte array.", nameof(span));
+
+        // Write byte array content
         fixed (byte* src = value)
         fixed (byte* dst = &System.Runtime.InteropServices.MemoryMarshal.GetReference(span[offset..]))
         {
             System.Buffer.MemoryCopy(src, dst, span.Length - offset, length);
         }
 
-        return 4 + length;
+        offset += length;
     }
 
     /// <summary>
@@ -429,7 +435,7 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe void WriteChar(this System.Span<byte> span, in char value, int offset = 0)
+    public static unsafe void WriteChar(this System.Span<byte> span, in char value, ref int offset)
     {
         if (span.Length < offset + 2)
             throw new System.ArgumentException("Span too small to write Char.", nameof(span));
@@ -445,15 +451,25 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe void WriteChar(this byte[] buffer, in char value, int offset = 0)
+    public static void WriteChar(
+        this byte[] buffer,
+        in char value, ref int offset,
+        System.Text.Encoding encoding = null)
     {
-        if (buffer.Length < offset + 2)
+        encoding ??= SerializationOptions.Encoding ?? System.Text.Encoding.UTF8;
+
+        int maxByteCount = encoding.GetMaxByteCount(1);
+        if (buffer.Length < offset + maxByteCount)
             throw new System.ArgumentException("Buffer too small to write Char.", nameof(buffer));
 
-        fixed (byte* ptr = &buffer[offset])
-        {
-            *(char*)ptr = value;
-        }
+        System.Span<byte> tempSpan = stackalloc byte[maxByteCount];
+        System.ReadOnlySpan<char> charSpan = System.Runtime.InteropServices.MemoryMarshal
+            .CreateReadOnlySpan(ref System.Runtime.CompilerServices.Unsafe.AsRef(in value), 1);
+
+        int bytesWritten = encoding.GetBytes(charSpan, tempSpan);
+        tempSpan[..bytesWritten].CopyTo(System.MemoryExtensions.AsSpan(buffer, offset));
+
+        offset += bytesWritten;
     }
 
     /// <summary>
@@ -461,31 +477,34 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe int WriteString(
+    public static unsafe void WriteString(
         this System.Span<byte> span,
-        string value, int offset = 0,
+        string value, ref int offset,
         System.Text.Encoding encoding = null)
     {
         if (value == null)
         {
             span.WriteInt32(-1, offset);
-            return 4;
+            offset += sizeof(int);
         }
 
         encoding ??= SerializationOptions.Encoding ??
             throw new System.ArgumentNullException(nameof(encoding));
 
-        // Calculate byte count for the encoded string
         int byteCount = encoding.GetByteCount(value);
 
-        if (span.Length < offset + byteCount)
+        if (span.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Span too small to write string.", nameof(span));
+
+        // Write string length
+        span.WriteInt32(byteCount, offset);
+        offset += sizeof(int);
 
         fixed (char* pChars = value)
         fixed (byte* pBytes = &span[offset])
         {
-            // Encode chars to bytes directly into span's memory
-            return encoding.GetBytes(pChars, value.Length, pBytes, span.Length - offset);
+            int written = encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            offset += written;
         }
     }
 
@@ -494,28 +513,33 @@ public static partial class SpanExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe int WriteString(
+    public static unsafe void WriteString(
         this byte[] buffer,
-        string value, int offset = 0,
+        string value, ref int offset,
         System.Text.Encoding encoding = null)
     {
         if (value == null)
         {
             buffer.WriteInt32(-1, offset);
-            return 4;
+            offset += sizeof(int);
         }
 
         encoding ??= SerializationOptions.Encoding ??
             throw new System.ArgumentNullException(nameof(encoding));
 
         int byteCount = encoding.GetByteCount(value);
-        if (buffer.Length < offset + byteCount)
+
+        if (buffer.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Buffer too small to write string.", nameof(buffer));
+
+        buffer.WriteInt32(byteCount, offset); // Write string byte length
+        offset += sizeof(int);
 
         fixed (char* pChars = value)
         fixed (byte* pBytes = &buffer[offset])
         {
-            return encoding.GetBytes(pChars, value.Length, pBytes, buffer.Length - offset);
+            int written = encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            offset += written;
         }
     }
 }

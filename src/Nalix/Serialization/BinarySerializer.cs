@@ -77,6 +77,18 @@ internal static class BinarySerializer<
                     offset += sizeof(bool);
                 }, sizeof(bool)
             ),
+            [typeof(char)] = field => new FieldSerializer(
+                (in T obj, System.Span<byte> span, ref int offset) =>
+                {
+                    char value = GetField<char>(in obj, field);
+                    span.WriteChar(value, ref offset);
+                },
+                (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
+                {
+                    char value = span.ToChar(ref offset);
+                    SetField(ref obj, field, value);
+                }, sizeof(char)
+            ),
             [typeof(short)] = field => new FieldSerializer(
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
@@ -205,13 +217,13 @@ internal static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     byte[] value = (byte[])field.GetValue(obj);
-                    offset += span.WriteBytes(value, offset);
+                    span.WriteBytes(value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    byte[] value = span.ReadBytes(ref offset);
+                    byte[] value = span.ToBytes(ref offset);
                     field.SetValue(obj, value);
-                }, sizeof(int) + 0
+                }, sizeof(int)
             ),
             // Add more primitive types as needed...
         };
