@@ -57,14 +57,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     byte value = (byte)(_getters[field](obj) ?? default(byte));
-                    span.WriteByte(in value, offset);
-                    offset += sizeof(byte);
+                    span.WriteByte(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    byte value = span.ToByte(offset);
+                    byte value = span.ToByte(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(byte);
                 },
                 (in T obj) => sizeof(byte)
             ),
@@ -72,14 +70,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     sbyte value = (sbyte)(_getters[field](obj) ?? default(sbyte));
-                    span.WriteSByte(in value, offset);
-                    offset += sizeof(sbyte);
+                    span.WriteSByte(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    sbyte value = span.ToSByte(offset);
+                    sbyte value = span.ToSByte(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(sbyte);
                 },
                 (in T obj) => sizeof(sbyte)
             ),
@@ -87,14 +83,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     bool value = (bool)(_getters[field](obj) ?? false);
-                    span.WriteBool(in value, offset);
-                    offset += sizeof(bool);
+                    span.WriteBool(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    bool value = span.ToBool(offset);
+                    bool value = span.ToBool(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(bool);
                 },
                 (in T obj) => sizeof(bool)
             ),
@@ -115,14 +109,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     short value = (short)(_getters[field](obj) ?? default(short));
-                    span.WriteInt16(in value, offset);
-                    offset += sizeof(short);
+                    span.WriteInt16(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    short value = span.ToInt16(offset);
+                    short value = span.ToInt16(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(short);
                 },
                 (in T obj) => sizeof(short)
             ),
@@ -130,14 +122,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     ushort value = (ushort)(_getters[field](obj) ?? default(ushort));
-                    span.WriteUInt16(in value, offset);
-                    offset += sizeof(ushort);
+                    span.WriteUInt16(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    ushort value = span.ToUInt16(offset);
+                    ushort value = span.ToUInt16(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(ushort);
                 },
                 (in T obj) => sizeof(ushort)
             ),
@@ -145,14 +135,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     int value = (int)(_getters[field](obj) ?? default(int));
-                    span.WriteInt32(in value, offset);
-                    offset += sizeof(int);
+                    span.WriteInt32(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    int value = span.ToInt32(offset);
+                    int value = span.ToInt32(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(int);
                 },
                 (in T obj) => sizeof(int)
             ),
@@ -160,14 +148,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     uint value = (uint)(_getters[field](obj) ?? default(uint));
-                    span.WriteUInt32(in value, offset);
-                    offset += sizeof(uint);
+                    span.WriteUInt32(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    uint value = span.ToUInt32(offset);
+                    uint value = span.ToUInt32(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(uint);
                 },
                 (in T obj) => sizeof(uint)
             ),
@@ -175,14 +161,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     float value = (float)(_getters[field](obj) ?? default(float));
-                    span.WriteSingle(in value, offset);
-                    offset += sizeof(float);
+                    span.WriteSingle(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    float value = span.ToSingle(offset);
+                    float value = span.ToSingle(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(float);
                 },
                 (in T obj) => sizeof(float)
             ),
@@ -190,14 +174,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     double value = (double)(_getters[field](obj) ?? default(double));
-                    span.WriteDouble(in value, offset);
-                    offset += sizeof(double);
+                    span.WriteDouble(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    double value = span.ToDouble(offset);
+                    double value = span.ToDouble(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(double);
                 },
                 (in T obj) => sizeof(double)
             ),
@@ -205,14 +187,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     long value = (long)(_getters[field](obj) ?? default(long));
-                    span.WriteInt64(in value, offset);
-                    offset += sizeof(long);
+                    span.WriteInt64(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    long value = span.ToInt64(offset);
+                    long value = span.ToInt64(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(long);
                 },
                 (in T obj) => sizeof(long)
             ),
@@ -220,14 +200,12 @@ public static class BinarySerializer<
                 (in T obj, System.Span<byte> span, ref int offset) =>
                 {
                     ulong value = (ulong)(_getters[field](obj) ?? default(ulong));
-                    span.WriteUInt64(in value, offset);
-                    offset += sizeof(ulong);
+                    span.WriteUInt64(in value, ref offset);
                 },
                 (ref T obj, System.ReadOnlySpan<byte> span, ref int offset) =>
                 {
-                    ulong value = span.ToUInt64(offset);
+                    ulong value = span.ToUInt64(ref offset);
                     SetFieldValue(ref obj, field, value);
-                    offset += sizeof(ulong);
                 },
                 (in T obj) => sizeof(ulong)
             ),
