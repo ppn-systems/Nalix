@@ -1,8 +1,8 @@
 using Nalix.Common.Serialization;
 
-namespace Nalix.Serialization.Internal;
+namespace Nalix.Serialization.Internal.Types;
 
-internal static class TypeMetadata
+internal static partial class TypeMetadata
 {
     private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
