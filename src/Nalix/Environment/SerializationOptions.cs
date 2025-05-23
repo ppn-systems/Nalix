@@ -1,4 +1,4 @@
-namespace Nalix.Serialization;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Predefined serialization settings.

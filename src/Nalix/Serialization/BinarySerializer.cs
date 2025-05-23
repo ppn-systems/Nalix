@@ -1,4 +1,5 @@
 using Nalix.Common.Serialization;
+using Nalix.Environment;
 using Nalix.Extensions.IO;
 using Nalix.Serialization.Internal;
 
@@ -6,7 +7,7 @@ namespace Nalix.Serialization;
 
 /// <summary>
 /// Provides high-performance binary serialization and deserialization for type <typeparamref name="T"/> using <see cref="System.Span{T}"/> and reflection.
-/// Fields must be marked with <see cref="FieldOrderAttribute"/> and can be private or public.
+/// Fields must be marked with <see cref="SerializeOrderAttribute"/> and can be private or public.
 /// Supports primitive types, string, and byte arrays.
 /// </summary>
 /// <typeparam name="T">The type to serialize/deserialize. Must have a parameterless constructor.</typeparam>
@@ -249,20 +250,20 @@ public static class BinarySerializer<
 
     /// <summary>
     /// Static constructor that scans all fields of type
-    /// <typeparamref name="T"/> with the <see cref="FieldOrderAttribute"/>,
+    /// <typeparamref name="T"/> with the <see cref="SerializeOrderAttribute"/>,
     /// orders them by the attribute's <c>Order</c> property, and builds serializers for supported types.
     /// </summary>
     static BinarySerializer()
     {
         System.Collections.Generic.List<
-            (System.Reflection.FieldInfo Field, FieldOrderAttribute Attribute)> fields = [];
+            (System.Reflection.FieldInfo Field, SerializeOrderAttribute Attribute)> fields = [];
 
         System.Reflection.FieldInfo[] allFields = typeof(T).GetFields(_binding);
 
         foreach (System.Reflection.FieldInfo field in allFields)
         {
-            FieldOrderAttribute attribute = (FieldOrderAttribute)System.Attribute
-                .GetCustomAttribute(field, typeof(FieldOrderAttribute));
+            SerializeOrderAttribute attribute = (SerializeOrderAttribute)System.Attribute
+                .GetCustomAttribute(field, typeof(SerializeOrderAttribute));
             if (attribute is not null)
             {
                 fields.Add((field, attribute));
@@ -305,7 +306,7 @@ public static class BinarySerializer<
         if (fields.Count == 0)
         {
             throw new System.InvalidOperationException(
-                $"Type {typeof(T).Name} has no fields marked with FieldOrderAttribute");
+                $"Type {typeof(T).Name} has no fields marked with SerializeOrderAttribute");
         }
 
         fields.Sort((a, b) => a.Attribute.Order.CompareTo(b.Attribute.Order));

@@ -1,7 +1,7 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Serialization;
-using Nalix.Serialization;
+using Nalix.Environment;
 
 namespace Nalix.Network.Package;
 

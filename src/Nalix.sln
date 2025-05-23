@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Storage", "Nalix.Stor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Graphics", "Nalix.Graphics\Nalix.Graphics.csproj", "{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Serialization", "Nalix.Serialization\Nalix.Serialization.csproj", "{06439A0F-4BDC-4C04-A4FE-5129194F27BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,10 @@ Global
 		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06439A0F-4BDC-4C04-A4FE-5129194F27BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06439A0F-4BDC-4C04-A4FE-5129194F27BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06439A0F-4BDC-4C04-A4FE-5129194F27BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06439A0F-4BDC-4C04-A4FE-5129194F27BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

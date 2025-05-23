@@ -1,3 +1,4 @@
+using Nalix.Environment;
 using System;
 using System.IO;
 using System.Text;

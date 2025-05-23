@@ -1,0 +1,20 @@
+namespace Nalix.Common.Serialization;
+
+/// <summary>
+/// Defines the layout strategy for serialization.
+/// </summary>
+public enum SerializeLayout
+{
+    /// <summary>
+    /// Indicates that serialization should follow a sequential layout,
+    /// where fields or properties are processed in the order they are defined.
+    /// This is the default layout.
+    /// </summary>
+    Sequential, // default
+
+    /// <summary>
+    /// Indicates that serialization should follow an explicit layout,
+    /// where the serialization order or structure is explicitly defined.
+    /// </summary>
+    Explicit
+}

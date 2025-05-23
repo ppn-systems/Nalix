@@ -1,6 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
-using Nalix.Serialization;
+using Nalix.Environment;
 
 namespace Nalix.Cryptography.Security;
 

@@ -1,8 +1,8 @@
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Hashing;
+using Nalix.Environment;
 using Nalix.Randomization;
-using Nalix.Serialization;
 using System;
 using System.Linq;
 using System.Numerics;

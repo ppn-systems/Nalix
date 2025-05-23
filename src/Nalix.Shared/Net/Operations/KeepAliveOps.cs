@@ -5,6 +5,7 @@ using Nalix.Common.Constants;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
+using Nalix.Environment;
 using Nalix.Serialization;
 using Nalix.Shared.Contracts;
 using System.Runtime.CompilerServices;
