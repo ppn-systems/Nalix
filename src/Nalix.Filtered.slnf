@@ -9,6 +9,7 @@
 		"Nalix.Network\\Nalix.Network.csproj",
 		"Nalix.Network.Package\\Nalix.Network.Package.csproj",
 		"Nalix.Shared\\Nalix.Shared.csproj",
+		"Nalix.Serialization\\Nalix.Serialization.csproj",
     ]
   }
 }

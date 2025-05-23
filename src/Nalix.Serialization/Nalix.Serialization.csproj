@@ -23,8 +23,4 @@
     <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Internal\" />
-  </ItemGroup>
-
 </Project>
