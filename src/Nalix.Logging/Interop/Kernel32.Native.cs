@@ -1,7 +1,14 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+[assembly: System.Runtime.CompilerServices.DisableRuntimeMarshalling]
+
 namespace Nalix.Logging.Interop;
 
+/// <summary>
+/// Kernel32.dll API wrappers and helper methods.
+/// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static partial class Kernel32
 {
     #region Getters
@@ -12,7 +19,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "GetStdHandle")]
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
-    private static partial System.IntPtr GET_STD_HANDLE(
+    internal static partial System.IntPtr GET_STD_HANDLE(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 nStdHandle);
 
     [System.Diagnostics.StackTraceHidden]
@@ -21,7 +28,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "GetFileType")]
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
-    private static partial System.UInt32 GET_FILE_TYPE(
+    internal static partial System.UInt32 GET_FILE_TYPE(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hFile);
 
     [System.Diagnostics.StackTraceHidden]
@@ -31,7 +38,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean GET_CONSOLE_MODE(
+    internal static partial System.Boolean GET_CONSOLE_MODE(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleHandle,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.UInt32 lpMode);
 
@@ -52,7 +59,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean GET_CONSOLE_SCREEN_BUFFER_INFO(
+    internal static partial System.Boolean GET_CONSOLE_SCREEN_BUFFER_INFO(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out CONSOLE_SCREEN_BUFFER_INFO info);
 
@@ -63,15 +70,33 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean GET_CURRENT_CONSOLE_FONT_EX(
+    internal static partial System.Boolean GET_CURRENT_CONSOLE_FONT_EX(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNull]
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] System.Boolean maximumWindow,
         [System.Diagnostics.CodeAnalysis.NotNull] ref CONSOLE_FONT_INFOEX info);
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.SuppressGCTransition]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "GetConsoleWindow", SetLastError = true)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    internal static partial System.IntPtr GET_CONSOLE_WINDOW();
+
     #endregion Getters
 
     #region Setters
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "SetStdHandle", SetLastError = true)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    internal static partial System.Boolean SET_STD_HANDLE(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 nStdHandle,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hHandle);
 
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerNonUserCode]
@@ -101,7 +126,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean SET_CONSOLE_SCREEN_BUFFER_SIZE(
+    internal static partial System.Boolean SET_CONSOLE_SCREEN_BUFFER_SIZE(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNull] COORD size);
 
@@ -112,7 +137,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean SET_CONSOLE_WINDOW_INFO(
+    internal static partial System.Boolean SET_CONSOLE_WINDOW_INFO(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNull]
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] System.Boolean absolute,
@@ -125,7 +150,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean SET_CONSOLE_TEXT_ATTRIBUTE(
+    internal static partial System.Boolean SET_CONSOLE_TEXT_ATTRIBUTE(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 attributes);
 
@@ -135,7 +160,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean SET_CURRENT_CONSOLE_FONT_EX(
+    internal static partial System.Boolean SET_CURRENT_CONSOLE_FONT_EX(
         [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
         [System.Diagnostics.CodeAnalysis.NotNull]
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] System.Boolean maximumWindow,
@@ -193,12 +218,12 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean WRITE_CONSOLE_W(
-    [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
-    [System.Diagnostics.CodeAnalysis.NotNull] System.String lpBuffer,
-    [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 nNumberOfCharsToWrite,
-    [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 lpNumberOfCharsWritten,
-    [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpReserved);
+    internal static partial System.Boolean WRITE_CONSOLE_W(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleOutput,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String lpBuffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 nNumberOfCharsToWrite,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 lpNumberOfCharsWritten,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpReserved);
 
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerNonUserCode]
@@ -206,7 +231,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean ATTACH_CONSOLE(
+    internal static partial System.Boolean ATTACH_CONSOLE(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.UInt32 dwProcessId);
 
     [System.Diagnostics.StackTraceHidden]
@@ -215,7 +240,7 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean ALLOC_CONSOLE();
+    internal static partial System.Boolean ALLOC_CONSOLE();
 
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerNonUserCode]
@@ -223,7 +248,65 @@ public static partial class Kernel32
     [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
     [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial System.Boolean FREE_CONSOLE();
+    internal static partial System.Boolean FREE_CONSOLE();
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "CloseHandle", SetLastError = true)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    internal static partial System.Boolean CLOSE_HANDLE(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hObject);
 
     #endregion Console Allocation APIs
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "CreateFileW",
+        SetLastError = true, StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf16)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    internal static partial System.IntPtr CREATE_FILE_W(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String lpFileName,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 dwDesiredAccess,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 dwShareMode,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpSecurityAttributes,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 dwCreationDisposition,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 dwFlagsAndAttributes,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hTemplateFile);
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "CreateProcessW",
+        SetLastError = true, StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf16)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    internal static partial System.Boolean CREATE_PROCESS_W(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String? lpApplicationName,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String? lpCommandLine,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpProcessAttributes,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpThreadAttributes,
+        [System.Diagnostics.CodeAnalysis.NotNull]
+        [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] System.Boolean bInheritHandles,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 dwCreationFlags,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr lpEnvironment,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String? lpCurrentDirectory,
+        [System.Diagnostics.CodeAnalysis.NotNull] ref STARTUPINFOW lpStartupInfo,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PROCESS_INFORMATION lpProcessInformation);
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerNonUserCode]
+    [System.Runtime.InteropServices.LibraryImport(KERNEL32, EntryPoint = "ReadConsoleW",
+        SetLastError = true, StringMarshalling = System.Runtime.InteropServices.StringMarshalling.Utf16)]
+    [System.Runtime.InteropServices.DefaultDllImportSearchPaths(System.Runtime.InteropServices.DllImportSearchPath.System32)]
+    [System.Runtime.InteropServices.UnmanagedCallConv(CallConvs = new[] { typeof(System.Runtime.CompilerServices.CallConvStdcall) })]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    internal static partial System.Boolean READ_CONSOLE_W(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr hConsoleInput,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String lpBuffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 nNumberOfCharsToRead,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.UInt32 lpNumberOfCharsRead,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.IntPtr pInputControl);
 }
