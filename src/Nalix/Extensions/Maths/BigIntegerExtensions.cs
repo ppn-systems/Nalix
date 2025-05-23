@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Nalix.Extensions;
+namespace Nalix.Extensions.Maths;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.

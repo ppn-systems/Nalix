@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Hashing;
-using Nalix.Extensions;
+using Nalix.Extensions.Maths;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;

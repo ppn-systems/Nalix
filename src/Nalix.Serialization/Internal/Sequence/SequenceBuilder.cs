@@ -25,7 +25,7 @@ internal sealed class SequenceBuilder
         list.Add(segment);
     }
 
-    // Nếu chỉ có một đoạn, trả về trực tiếp buffer để tránh tạo sequence
+    // Nếu chỉ có một đoạn, trả về trực tiếp _buffer để tránh tạo sequence
     public bool TryGetSingleMemory(out System.ReadOnlyMemory<byte> memory)
     {
         if (list.Count == 1)
@@ -90,7 +90,7 @@ internal sealed class SequenceBuilder
             returnToPool = false;
         }
 
-        // Gán dữ liệu buffer và cờ xác định có trả về pool không
+        // Gán dữ liệu _buffer và cờ xác định có trả về pool không
         public void SetBuffer(System.ReadOnlyMemory<byte> buffer, bool returnToPool)
         {
             Memory = buffer;
@@ -102,7 +102,7 @@ internal sealed class SequenceBuilder
         {
             if (returnToPool)
             {
-                // Trả lại buffer về ArrayPool nếu có
+                // Trả lại _buffer về ArrayPool nếu có
                 if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(
                     Memory, out var segment) && segment.Array != null)
                 {
