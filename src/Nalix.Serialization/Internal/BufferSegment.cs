@@ -27,7 +27,7 @@ internal struct BufferSegment
     public readonly System.Span<byte> FreeBuffer => System.MemoryExtensions.AsSpan(_buffer, _written);
     public readonly System.Span<byte> WrittenBuffer => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
     public readonly System.Memory<byte> WrittenMemory => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
-    public readonly System.Span<byte> ReadBuffer => System.MemoryExtensions.AsSpan(_buffer, _read, _written - _read);
+    public readonly System.ReadOnlySpan<byte> ReadBuffer => System.MemoryExtensions.AsSpan(_buffer, _read, _written - _read);
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

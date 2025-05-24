@@ -15,7 +15,7 @@ internal sealed class SequenceBuilder
     // Thêm một đoạn dữ liệu vào SequenceBuilder
     public void Add(System.ReadOnlyMemory<byte> buffer, bool returnToPool)
     {
-        // Lấy Segment từ pool hoặc tạo mới nếu không có
+        // Lấy _segment từ pool hoặc tạo mới nếu không có
         if (!segmentPool.TryPop(out var segment))
         {
             segment = new Segment();
@@ -80,7 +80,7 @@ internal sealed class SequenceBuilder
         list.Clear();
     }
 
-    // Segment đại diện cho một đoạn trong ReadOnlySequence<byte>
+    // _segment đại diện cho một đoạn trong ReadOnlySequence<byte>
     private class Segment : System.Buffers.ReadOnlySequenceSegment<byte>
     {
         private bool returnToPool;

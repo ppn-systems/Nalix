@@ -6,17 +6,17 @@ namespace Nalix.Serialization;
 public static class SerializationConstants
 {
     /// <summary>
-    /// Represents a null value (ushort.MaxValue = 65535).
+    /// Represents a null value (System.UInt16.MaxValue = 65535).
     /// </summary>
-    public const ushort Null = ushort.MaxValue;
+    public const System.UInt16 Null = System.UInt16.MaxValue;
 
     /// <summary>
-    /// Maximum allowed array size (ushort.MaxValue - 1 = 65534).
+    /// Maximum allowed array size (System.UInt16.MaxValue - 1 = 65534).
     /// </summary>
-    public const ushort MaxArray = ushort.MaxValue - 1;
+    public const System.UInt16 MaxArray = System.UInt16.MaxValue - 1;
 
     /// <summary>
-    /// Maximum allowed string length (ushort.MaxValue - 2 = 65533).
+    /// Maximum allowed string length (System.UInt16.MaxValue - 2 = 65533).
     /// </summary>
-    public const ushort MaxString = ushort.MaxValue - 2;
+    public const System.UInt16 MaxString = System.UInt16.MaxValue - 2;
 }

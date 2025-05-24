@@ -19,13 +19,15 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         if (value == null)
         {
             // Convention: -1 indicates a null array
-            FormatterProvider.Get<System.UInt16>()
+            FormatterProvider
+                .Get<System.UInt16>()
                 .Serialize(ref writer, SerializationConstants.Null);
 
             return;
         }
 
-        FormatterProvider.Get<System.UInt16>()
+        FormatterProvider
+            .Get<System.UInt16>()
             .Serialize(ref writer, unchecked((System.UInt16)value.Length));
 
         if (value.Length == 0) return;
@@ -50,23 +52,26 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
     public unsafe T[] Deserialize(ref SerializationReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
-        if (length == SerializationConstants.Null) return null;
+        System.UInt16 length = FormatterProvider
+            .Get<System.UInt16>()
+            .Deserialize(ref reader);
+
         if (length == 0) return [];
+        if (length == SerializationConstants.Null) return null;
         if (length > SerializationConstants.MaxArray)
             throw new SerializationException("Array length out of range");
 
-        int totalBytes = length * TypeMetadata.GetSizeOf<T>();
-        var span = reader.GetSpan(totalBytes);
+        int total = length * TypeMetadata.GetSizeOf<T>();
+        System.ReadOnlySpan<byte> span = reader.GetSpan(total);
         T[] result = new T[length];
 
         fixed (byte* src = span)
         fixed (T* dst = result)
         {
-            System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
+            System.Buffer.MemoryCopy(src, dst, total, total);
         }
 
-        reader.Advance(totalBytes);
+        reader.Advance(total);
         return result;
     }
 }

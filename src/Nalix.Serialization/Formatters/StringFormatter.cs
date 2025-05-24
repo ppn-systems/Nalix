@@ -68,7 +68,7 @@ public sealed class StringFormatter : IFormatter<System.String>
         if (length > SerializationConstants.MaxString)
             throw new SerializationException("String length out of range");
 
-        System.Span<byte> dest = reader.GetSpan(length);
+        System.ReadOnlySpan<byte> dest = reader.GetSpan(length);
 
         string result;
         fixed (byte* src = dest)

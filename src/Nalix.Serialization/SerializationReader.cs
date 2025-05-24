@@ -7,23 +7,23 @@ namespace Nalix.Serialization;
 /// </summary>
 public struct SerializationReader(int initialSize)
 {
-    internal BufferSegment Segment = new(initialSize);
+    private BufferSegment _segment = new(initialSize);
 
     /// <summary>
     /// Xoá bộ nhớ đệm, trả lại ArrayPool.
     /// </summary>
-    public void Clear() => Segment.Clear();
+    public void Clear() => _segment.Clear();
 
     /// <summary>
     /// Advances the current position in the buffer by the specified number of bytes.
     /// </summary>
     /// <param name="count">The number of bytes to advance.</param>
-    public void Advance(int count) => Segment.AdvanceRead(count);
+    public void Advance(int count) => _segment.AdvanceRead(count);
 
     /// <summary>
     /// Retrieves a span of free buffer space with the specified length.
     /// </summary>
     /// <param name="length">The requested length of the span.</param>
     /// <returns>A span of bytes representing the available buffer space.</returns>
-    public readonly System.Span<byte> GetSpan(int length) => Segment.ReadBuffer[..length];
+    public readonly System.ReadOnlySpan<byte> GetSpan(int length) => _segment.ReadBuffer[..length];
 }

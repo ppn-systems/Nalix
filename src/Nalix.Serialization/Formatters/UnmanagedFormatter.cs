@@ -26,11 +26,17 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// </summary>
     /// <param name="writer">The <see cref="SerializationWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
-    public void Serialize(ref SerializationWriter writer, T value)
+    public unsafe void Serialize(ref SerializationWriter writer, T value)
     {
         int size = TypeMetadata.GetSizeOf<T>();
         System.Span<byte> span = writer.GetSpan(size);
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref span[0], value);
+
+        // Pin the span to get a pointer and write unaligned
+        fixed (byte* ptr = span)
+        {
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned<T>(ptr, value);
+        }
+
         writer.Advance(size);
     }
 
@@ -39,13 +45,18 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// </summary>
     /// <param name="writer">The <see cref="SerializationReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
-    public T Deserialize(ref SerializationReader writer)
+    public unsafe T Deserialize(ref SerializationReader writer)
     {
+        T value;
         int size = TypeMetadata.GetSizeOf<T>();
-        System.Span<byte> span = writer.GetSpan(size);
-        T value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref span[0]);
-        writer.Advance(size);
+        System.ReadOnlySpan<byte> span = writer.GetSpan(size);
 
+        fixed (byte* ptr = span)
+        {
+            value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ptr);
+        }
+
+        writer.Advance(size);
         return value;
     }
 }
