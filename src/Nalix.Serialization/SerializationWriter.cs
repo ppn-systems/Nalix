@@ -14,10 +14,15 @@ public partial struct SerializationWriter(int initialSize)
     internal BufferSegment Segment = new(initialSize);
 
     /// <summary>
+    /// Xoá bộ nhớ đệm, trả lại ArrayPool.
+    /// </summary>
+    public void Clear() => Segment.Clear();
+
+    /// <summary>
     /// Advances the current position in the buffer by the specified number of bytes.
     /// </summary>
     /// <param name="count">The number of bytes to advance.</param>
-    public void Advance(int count) => Segment.Advance(count);
+    public void Advance(int count) => Segment.AdvanceWrite(count);
 
     /// <summary>
     /// Retrieves a span of free buffer space with the specified length.
