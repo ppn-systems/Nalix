@@ -9,10 +9,10 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>7.1.2</Version>
-		<FileVersion>7.1.2.0</FileVersion>
-		<PackageVersion>7.1.2</PackageVersion>
-		<InformationalVersion>7.1.2+$(SourceRevisionId)</InformationalVersion>
+		<Version>7.5.0</Version>
+		<FileVersion>7.5.0.0</FileVersion>
+		<PackageVersion>7.5.0</PackageVersion>
+		<InformationalVersion>7.5.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Shared provides the foundational low-level primitives and shared utilities

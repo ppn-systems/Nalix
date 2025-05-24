@@ -3,12 +3,12 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Net;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;
 
