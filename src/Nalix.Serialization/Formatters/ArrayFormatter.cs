@@ -14,7 +14,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array to serialize.</param>
-    public unsafe void Serialize(ref SerializationWriter writer, T[] value)
+    public unsafe void Serialize(ref BinaryWriter writer, T[] value)
     {
         if (value == null)
         {
@@ -50,7 +50,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
-    public unsafe T[] Deserialize(ref SerializationReader reader)
+    public unsafe T[] Deserialize(ref BinaryReader reader)
     {
         System.UInt16 length = FormatterProvider
             .Get<System.UInt16>()

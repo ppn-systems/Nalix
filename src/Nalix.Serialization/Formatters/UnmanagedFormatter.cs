@@ -24,9 +24,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <summary>
     /// Writes an unmanaged value to the buffer without alignment requirements.
     /// </summary>
-    /// <param name="writer">The <see cref="SerializationWriter"/> to write to.</param>
+    /// <param name="writer">The <see cref="BinaryWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
-    public unsafe void Serialize(ref SerializationWriter writer, T value)
+    public unsafe void Serialize(ref BinaryWriter writer, T value)
     {
         int size = TypeMetadata.GetSizeOf<T>();
         System.Span<byte> span = writer.GetSpan(size);
@@ -43,9 +43,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <summary>
     /// Reads an unmanaged value from the buffer without alignment requirements.
     /// </summary>
-    /// <param name="writer">The <see cref="SerializationReader"/> to read from.</param>
+    /// <param name="writer">The <see cref="BinaryReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
-    public unsafe T Deserialize(ref SerializationReader writer)
+    public unsafe T Deserialize(ref BinaryReader writer)
     {
         T value;
         int size = TypeMetadata.GetSizeOf<T>();

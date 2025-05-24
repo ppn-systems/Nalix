@@ -13,7 +13,7 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
-    public unsafe void Serialize(ref SerializationWriter writer, System.String value)
+    public unsafe void Serialize(ref BinaryWriter writer, System.String value)
     {
         if (value == null)
         {
@@ -60,7 +60,7 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// <exception cref="SerializationException">
     /// Thrown if the string length exceeds the maximum allowed limit.
     /// </exception>
-    public unsafe System.String Deserialize(ref SerializationReader reader)
+    public unsafe System.String Deserialize(ref BinaryReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
         if (length == 0) return string.Empty;

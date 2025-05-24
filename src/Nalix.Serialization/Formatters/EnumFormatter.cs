@@ -22,7 +22,7 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// <exception cref="System.NotSupportedException">
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
-    public void Serialize(ref SerializationWriter writer, T value)
+    public void Serialize(ref BinaryWriter writer, T value)
     {
         switch (UnderlyingTypeCode)
         {
@@ -103,7 +103,7 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// <exception cref="System.NotSupportedException">
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
-    public T Deserialize(ref SerializationReader reader)
+    public T Deserialize(ref BinaryReader reader)
     {
         switch (UnderlyingTypeCode)
         {

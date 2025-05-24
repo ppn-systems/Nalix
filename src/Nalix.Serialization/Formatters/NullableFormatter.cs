@@ -25,7 +25,7 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The nullable value to serialize.</param>
-    public void Serialize(ref SerializationWriter writer, T? value)
+    public void Serialize(ref BinaryWriter writer, T? value)
     {
         // 0 = null, 1 = has value
         FormatterProvider
@@ -46,7 +46,7 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// <exception cref="SerializationException">
     /// Thrown if the nullable data is invalid or has an unexpected format.
     /// </exception>
-    public T? Deserialize(ref SerializationReader reader)
+    public T? Deserialize(ref BinaryReader reader)
     {
         byte hasValue = FormatterProvider
             .Get<System.Byte>()
