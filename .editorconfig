@@ -49,3 +49,7 @@ csharp_space_around_declaration_statements = false
 csharp_space_before_open_square_brackets = false
 csharp_space_between_empty_square_brackets = false
 csharp_space_between_square_brackets = false
+
+
+dotnet_style_require_accessibility_modifiers = always:silent
+csharp_prefer_simple_default_expression = false

@@ -9,6 +9,16 @@ namespace Nalix.Serialization.Internal.Types;
 internal static partial class TypeMetadata
 {
     /// <summary>
+    /// Retrieves the size, in bytes, of the specified unmanaged type.
+    /// </summary>
+    /// <typeparam name="T">The unmanaged type to evaluate.</typeparam>
+    /// <returns>The size of the type in bytes.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static int GetSizeOf<T>()
+        => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+
+    /// <summary>
     /// Retrieves the serialization layout for a given type.
     /// </summary>
     /// <param name="type">The type to retrieve serialization layout for.</param>
@@ -38,6 +48,15 @@ internal static partial class TypeMetadata
     public static bool IsUnmanaged<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsUnmanaged;
+
+    /// <summary>
+    /// Determines whether the specified type is nullable.
+    /// </summary>
+    /// <typeparam name="T">The type to check.</typeparam>
+    /// <returns>True if the type is nullable; otherwise, false.</returns>
+    public static bool IsNullable<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
+        => Cache<T>.IsNullable;
 
     /// <summary>
     /// Determines whether the type is a reference type or nullable.

@@ -1,9 +1,19 @@
 namespace Nalix.Serialization.Internal.Writers;
 
-internal struct BufferSegment(int size)
+internal struct BufferSegment
 {
-    private int _written = 0;
-    private byte[] _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+    private int _written;
+    private byte[] _buffer;
+
+    public BufferSegment(int size)
+    {
+        if (size <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
+        }
+        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+        _written = 0;
+    }
 
     public readonly int WrittenCount => _written;
     public readonly bool IsNull => _buffer == null;

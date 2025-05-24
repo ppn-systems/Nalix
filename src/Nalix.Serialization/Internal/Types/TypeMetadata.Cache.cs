@@ -8,6 +8,7 @@ internal static partial class TypeMetadata
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
         public static bool IsUnmanaged;
+        public static bool IsNullable;
         public static bool IsReferenceOrNullable;
         public static bool IsUnmanagedSZArray;
         public static bool IsFixedSizeSerializable = false;
@@ -21,8 +22,10 @@ internal static partial class TypeMetadata
             {
                 System.Type type = typeof(T);
 
+                IsNullable = System.Nullable.GetUnderlyingType(type) != null;
                 IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
-                IsReferenceOrNullable = !type.IsValueType || System.Nullable.GetUnderlyingType(type) != null;
+
+                IsReferenceOrNullable = !type.IsValueType || IsNullable;
 
                 if (type.IsSZArray)
                 {
