@@ -8,14 +8,15 @@ internal static partial class TypeMetadata
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties;
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, SerializeLayout> _cache;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<bool>> _isRefCache;
-
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<int>> _sizeOfFnCache;
 
     static TypeMetadata()
     {
         System.Type _ = typeof(IFixedSizeSerializable);
 
+        _cache = new();
         _isRefCache = new();
         _sizeOfFnCache = new();
     }

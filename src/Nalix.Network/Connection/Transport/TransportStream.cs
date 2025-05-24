@@ -275,8 +275,9 @@ internal class TransportStream : System.IDisposable
             }
 
             if (totalBytesRead < 2) return;
+            int offset = 0;
 
-            ushort size = _buffer.ToUInt16(0);
+            ushort size = _buffer.ToUInt16(ref offset);
             _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > _pool.MaxBufferSize)

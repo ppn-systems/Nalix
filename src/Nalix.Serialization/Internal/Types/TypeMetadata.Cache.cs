@@ -1,4 +1,5 @@
 using Nalix.Common.Serialization;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Serialization.Internal.Types;
 
@@ -6,6 +7,7 @@ internal static partial class TypeMetadata
 {
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
+        public static bool IsUnmanaged;
         public static bool IsReferenceOrNullable;
         public static bool IsUnmanagedSZArray;
         public static bool IsFixedSizeSerializable = false;
@@ -18,6 +20,8 @@ internal static partial class TypeMetadata
             try
             {
                 System.Type type = typeof(T);
+
+                IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
                 IsReferenceOrNullable = !type.IsValueType || System.Nullable.GetUnderlyingType(type) != null;
 
                 if (type.IsSZArray)
