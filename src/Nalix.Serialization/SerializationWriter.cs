@@ -1,4 +1,4 @@
-using Nalix.Serialization.Internal.Writers;
+using Nalix.Serialization.Internal;
 
 namespace Nalix.Serialization;
 

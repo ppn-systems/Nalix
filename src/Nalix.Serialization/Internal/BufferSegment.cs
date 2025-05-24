@@ -1,5 +1,7 @@
-namespace Nalix.Serialization.Internal.Writers;
+namespace Nalix.Serialization.Internal;
 
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Auto)]
 internal struct BufferSegment
 {
     private int _written;
@@ -11,8 +13,9 @@ internal struct BufferSegment
         {
             throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
         }
-        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+
         _written = 0;
+        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
     }
 
     public readonly int WrittenCount => _written;
