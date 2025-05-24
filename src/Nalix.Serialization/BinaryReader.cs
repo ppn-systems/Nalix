@@ -1,35 +1,54 @@
 using Nalix.Common.Exceptions;
-using System;
-using System.Runtime.InteropServices;
 
 namespace Nalix.Serialization;
 
 /// <summary>
 /// Provides functionality for reading serialized data from a byte buffer.
+/// Supports managed <c>byte[]</c>, <c>ReadOnlyMemory&lt;byte&gt;</c>, <c>ReadOnlySpan&lt;byte&gt;</c>, and unmanaged memory.
 /// </summary>
-public unsafe struct BinaryReader
+public unsafe struct BinaryReader : System.IDisposable
 {
     private byte* _ptr;
     private int _length;
     private int _position;
-    private GCHandle _pin; // chỉ dùng khi nguồn là byte[]
     private bool _pinned;
+    private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
 
-    public int Consumed => _position;
-    public int Remaining => _length - _position;
+    /// <summary>
+    /// Gets the number of bytes that have been consumed from the buffer.
+    /// </summary>
+    public readonly int Consumed => _position;
 
-    // Dùng cho byte[] (an toàn, không lo bị GC di chuyển)
+    /// <summary>
+    /// Gets the number of bytes remaining in the buffer.
+    /// </summary>
+    public readonly int Remaining => _length - _position;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BinaryReader"/> for a managed byte array.
+    /// This ensures safety by pinning the array to prevent movement by the garbage collector.
+    /// </summary>
+    /// <param name="buffer">The byte array to read from.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the provided buffer is null.</exception>
     public BinaryReader(byte[] buffer)
     {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-        _pin = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        System.ArgumentNullException.ThrowIfNull(buffer);
+        _pin = System.Runtime.InteropServices.GCHandle.Alloc(
+            buffer,
+            System.Runtime.InteropServices.GCHandleType.Pinned);
+
         _ptr = (byte*)_pin.AddrOfPinnedObject();
         _length = buffer.Length;
         _position = 0;
         _pinned = true;
     }
 
-    // Dùng cho pointer có sẵn (native memory, stackalloc, ...)
+    /// <summary>
+    /// Initializes a new instance of <see cref="BinaryReader"/> for an unmanaged memory pointer.
+    /// This is useful for reading from native memory, stack allocations, or manually allocated buffers.
+    /// </summary>
+    /// <param name="ptr">The unmanaged memory pointer.</param>
+    /// <param name="length">The length of the buffer.</param>
     public BinaryReader(byte* ptr, int length)
     {
         _ptr = ptr;
@@ -39,32 +58,107 @@ public unsafe struct BinaryReader
         _pinned = false;
     }
 
-    public ReadOnlySpan<byte> GetSpan(int length)
+    /// <summary>
+    /// Initializes a new instance of <see cref="BinaryReader"/> for a read-only span of bytes.
+    /// This constructor creates a pinned copy of the span to ensure safe access to its data.
+    /// </summary>
+    /// <param name="span">The read-only span of bytes to read from.</param>
+    public BinaryReader(System.ReadOnlySpan<byte> span)
+    {
+        byte[] temp = span.ToArray();
+        _pin = System.Runtime.InteropServices.GCHandle.Alloc(
+            temp,
+            System.Runtime.InteropServices.GCHandleType.Pinned);
+
+        _ptr = (byte*)_pin.AddrOfPinnedObject();
+        _length = temp.Length;
+        _pinned = true;
+        _position = 0;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="BinaryReader"/> for a read-only span of bytes.
+    /// This constructor creates a pinned copy of the span to ensure safe access to its data.
+    /// </summary>
+    /// <param name="memory">The read-only memory of bytes to read from.</param>
+    public BinaryReader(System.ReadOnlyMemory<byte> memory)
+    {
+        if (System.Runtime.InteropServices.MemoryMarshal
+            .TryGetArray<byte>(memory, out var segment))
+        {
+            _pin = System.Runtime.InteropServices.GCHandle.Alloc(
+                segment.Array!,
+                System.Runtime.InteropServices.GCHandleType.Pinned);
+            _ptr = (byte*)_pin.AddrOfPinnedObject() + segment.Offset;
+            _length = segment.Count;
+            _pinned = true;
+        }
+        else
+        {
+            // fallback: allocate + copy
+            byte[] temp = memory.ToArray();
+            _pin = System.Runtime.InteropServices.GCHandle.Alloc(
+                temp,
+                System.Runtime.InteropServices.GCHandleType.Pinned);
+            _ptr = (byte*)_pin.AddrOfPinnedObject();
+            _length = temp.Length;
+            _pinned = true;
+        }
+        _position = 0;
+    }
+
+    /// <summary>
+    /// Retrieves a read-only span of bytes from the current position in the buffer.
+    /// </summary>
+    /// <param name="length">The number of bytes to retrieve.</param>
+    /// <returns>A span containing the requested bytes.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if the requested length exceeds the available buffer size.
+    /// </exception>
+    public readonly System.ReadOnlySpan<byte> GetSpan(int length)
     {
         if (length > Remaining)
             throw new SerializationException($"Không đủ dữ liệu: yêu cầu {length} bytes, chỉ còn {Remaining} bytes.");
-        return new ReadOnlySpan<byte>(_ptr + _position, length);
+        return new System.ReadOnlySpan<byte>(_ptr + _position, length);
     }
 
-    public ref byte GetSpanReference(int sizeHint)
+    /// <summary>
+    /// Retrieves a reference to the first byte in the requested span.
+    /// </summary>
+    /// <param name="sizeHint">The minimum number of bytes required.</param>
+    /// <returns>A reference to the first byte of the span.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if the requested size exceeds the available buffer size.
+    /// </exception>
+    public readonly ref byte GetSpanReference(int sizeHint)
     {
         if (sizeHint > Remaining)
             throw new SerializationException($"Không đủ dữ liệu: yêu cầu {sizeHint} bytes, chỉ còn {Remaining} bytes.");
         return ref *(_ptr + _position);
     }
 
+    /// <summary>
+    /// Advances the read position in the buffer by the specified number of bytes.
+    /// </summary>
+    /// <param name="count">The number of bytes to advance.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the advance count is negative.</exception>
+    /// <exception cref="SerializationException">
+    /// Thrown if the advance count exceeds the available buffer size.
+    /// </exception>
     public void Advance(int count)
     {
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        System.ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count > Remaining)
             throw new SerializationException($"Không thể advance {count} bytes, chỉ còn {Remaining} bytes.");
         _position += count;
     }
 
+    /// <summary>
+    /// Releases pinned memory if necessary and resets the reader state.
+    /// </summary>
     public void Dispose()
     {
-        if (_pinned)
-            _pin.Free();
+        if (_pinned) _pin.Free();
         _ptr = null;
         _length = 0;
         _position = 0;
