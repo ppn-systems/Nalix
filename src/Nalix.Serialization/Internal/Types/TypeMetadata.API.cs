@@ -15,7 +15,7 @@ internal static partial class TypeMetadata
     /// <returns>The size of the type in bytes.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int GetSizeOf<T>()
+    public static int SizeOf<T>()
         => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
 
     /// <summary>

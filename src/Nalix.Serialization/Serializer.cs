@@ -1,4 +1,4 @@
-using System;
+using Nalix.Serialization.Internal.Types;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 
@@ -15,7 +15,7 @@ public static class Serializer
     public static byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
-        if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             byte[] array = System.GC.AllocateUninitializedArray<byte>(
                 System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
@@ -32,26 +32,16 @@ public static class Serializer
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
         System.ReadOnlySpan<byte> buffer, ref T value)
     {
-        if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
-            if (buffer.Length < System.Runtime.CompilerServices.Unsafe.SizeOf<T>())
+            if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw new SerializationException($"{System.Runtime.CompilerServices.Unsafe.SizeOf<T>()}{buffer.Length}");
+                throw new SerializationException($"{TypeMetadata.SizeOf<T>()}{buffer.Length}");
             }
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(buffer));
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
         var reader = new BinaryReader(buffer);
-        try
-        {
-            reader.ReadValue(ref value);
-            return reader.Consumed;
-        }
-        finally
-        {
-            reader.Dispose();
-            state.Reset();
-        }
     }
 }

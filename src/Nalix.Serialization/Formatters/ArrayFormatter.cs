@@ -32,7 +32,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
 
         if (value.Length == 0) return;
 
-        int totalBytes = value.Length * TypeMetadata.GetSizeOf<T>();
+        int totalBytes = value.Length * TypeMetadata.SizeOf<T>();
         var span = writer.GetSpan(totalBytes);
 
         // Copy block memory
@@ -61,7 +61,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         if (length > SerializationConstants.MaxArray)
             throw new SerializationException("Array length out of range");
 
-        int total = length * TypeMetadata.GetSizeOf<T>();
+        int total = length * TypeMetadata.SizeOf<T>();
         System.ReadOnlySpan<byte> span = reader.GetSpan(total);
         T[] result = new T[length];
 
