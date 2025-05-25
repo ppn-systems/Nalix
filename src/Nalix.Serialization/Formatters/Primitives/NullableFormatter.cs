@@ -1,6 +1,7 @@
 using Nalix.Common.Exceptions;
+using Nalix.Serialization.Buffers;
 
-namespace Nalix.Serialization.Formatters;
+namespace Nalix.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Provides high-performance serialization and deserialization for nullable value types.
@@ -13,23 +14,23 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// <summary>
     /// Flag indicating that the value is null.
     /// </summary>
-    private const System.Byte NoValueFlag = 0;
+    private const byte NoValueFlag = 0;
 
     /// <summary>
     /// Flag indicating that the value is present.
     /// </summary>
-    private const System.Byte HasValueFlag = 1;
+    private const byte HasValueFlag = 1;
 
     /// <summary>
     /// Serializes a nullable value into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The nullable value to serialize.</param>
-    public void Serialize(ref BinaryWriter writer, T? value)
+    public void Serialize(ref DataWriter writer, T? value)
     {
         // 0 = null, 1 = has value
         FormatterProvider
-            .Get<System.Byte>()
+            .Get<byte>()
             .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
@@ -46,10 +47,10 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// <exception cref="SerializationException">
     /// Thrown if the nullable data is invalid or has an unexpected format.
     /// </exception>
-    public T? Deserialize(ref BinaryReader reader)
+    public T? Deserialize(ref DataReader reader)
     {
         byte hasValue = FormatterProvider
-            .Get<System.Byte>()
+            .Get<byte>()
             .Deserialize(ref reader);
 
         if (hasValue == NoValueFlag) return null;

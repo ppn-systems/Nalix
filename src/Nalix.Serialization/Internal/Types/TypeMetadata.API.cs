@@ -1,6 +1,3 @@
-using System;
-using System.Reflection;
-
 namespace Nalix.Serialization.Internal.Types;
 
 /// <summary>
@@ -115,7 +112,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2111:Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. " +
         "Trimmer can't guarantee availability of the requirements of the method.", Justification = "<Pending>")]
-    public static PropertyInfo[] GetProperties(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type type)
+    public static System.Reflection.PropertyInfo[] GetProperties(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] System.Type type)
         => _cacheProperty.GetOrAdd(type, ComputeSerializableProperties);
 }

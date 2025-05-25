@@ -1,6 +1,7 @@
+using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Internal.Types;
 
-namespace Nalix.Serialization.Formatters;
+namespace Nalix.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Provides formatting for unmanaged types.
@@ -24,9 +25,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <summary>
     /// Writes an unmanaged value to the buffer without alignment requirements.
     /// </summary>
-    /// <param name="writer">The <see cref="BinaryWriter"/> to write to.</param>
+    /// <param name="writer">The <see cref="DataWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
-    public unsafe void Serialize(ref BinaryWriter writer, T value)
+    public unsafe void Serialize(ref DataWriter writer, T value)
     {
         int size = TypeMetadata.SizeOf<T>();
         System.Span<byte> span = writer.GetSpan(size);
@@ -34,7 +35,7 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
         // Pin the span to get a pointer and write unaligned
         fixed (byte* ptr = span)
         {
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned<T>(ptr, value);
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, value);
         }
 
         writer.Advance(size);
@@ -43,9 +44,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <summary>
     /// Reads an unmanaged value from the buffer without alignment requirements.
     /// </summary>
-    /// <param name="writer">The <see cref="BinaryReader"/> to read from.</param>
+    /// <param name="writer">The <see cref="DataReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
-    public unsafe T Deserialize(ref BinaryReader writer)
+    public unsafe T Deserialize(ref DataReader writer)
     {
         T value;
         int size = TypeMetadata.SizeOf<T>();

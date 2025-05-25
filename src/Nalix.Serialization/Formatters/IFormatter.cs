@@ -1,3 +1,5 @@
+using Nalix.Serialization.Buffers;
+
 namespace Nalix.Serialization.Formatters;
 
 /// <summary>
@@ -11,12 +13,12 @@ public interface IFormatter<T>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The value to serialize.</param>
-    void Serialize(ref BinaryWriter writer, T value);
+    void Serialize(ref DataWriter writer, T value);
 
     /// <summary>
     /// Deserializes a value from the provided serialization reader.
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized value of type <typeparamref name="T"/>.</returns>
-    T Deserialize(ref BinaryReader reader);
+    T Deserialize(ref DataReader reader);
 }

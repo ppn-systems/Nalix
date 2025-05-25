@@ -1,3 +1,5 @@
+using Nalix.Serialization.Buffers;
+using Nalix.Serialization.Formatters;
 using Nalix.Serialization.Internal.Types;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -23,6 +25,12 @@ public static class Serializer
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
             return array;
         }
+
+        TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        DataWriter writer = new(size);
+
+        var a = FormatterProvider.GetComplex<T>();
+        a.Serialize(ref writer, in value);
     }
 
     /// <summary>
@@ -42,6 +50,6 @@ public static class Serializer
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
-        var reader = new BinaryReader(buffer);
+        var reader = new DataReader(buffer);
     }
 }

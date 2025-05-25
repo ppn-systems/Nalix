@@ -27,7 +27,7 @@ internal static partial class TypeMetadata
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type type)
     {
         ReadOnlySpan<PropertyInfo> allProps = type.GetProperties(Flags);
-        var layout = GetLayout(type);
+        SerializeLayout layout = GetLayout(type);
 
         return layout switch
         {

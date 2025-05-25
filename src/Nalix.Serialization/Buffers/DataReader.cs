@@ -1,12 +1,12 @@
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Serialization;
+namespace Nalix.Serialization.Buffers;
 
 /// <summary>
 /// Provides functionality for reading serialized data from a byte buffer.
 /// Supports managed <c>byte[]</c>, <c>ReadOnlyMemory&lt;byte&gt;</c>, <c>ReadOnlySpan&lt;byte&gt;</c>, and unmanaged memory.
 /// </summary>
-public unsafe struct BinaryReader : System.IDisposable
+public unsafe struct DataReader : System.IDisposable
 {
     private byte* _ptr;
     private int _length;
@@ -25,12 +25,12 @@ public unsafe struct BinaryReader : System.IDisposable
     public readonly int Remaining => _length - _position;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BinaryReader"/> for a managed byte array.
+    /// Initializes a new instance of <see cref="DataReader"/> for a managed byte array.
     /// This ensures safety by pinning the array to prevent movement by the garbage collector.
     /// </summary>
     /// <param name="buffer">The byte array to read from.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the provided buffer is null.</exception>
-    public BinaryReader(byte[] buffer)
+    public DataReader(byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(
@@ -44,12 +44,12 @@ public unsafe struct BinaryReader : System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BinaryReader"/> for an unmanaged memory pointer.
+    /// Initializes a new instance of <see cref="DataReader"/> for an unmanaged memory pointer.
     /// This is useful for reading from native memory, stack allocations, or manually allocated buffers.
     /// </summary>
     /// <param name="ptr">The unmanaged memory pointer.</param>
     /// <param name="length">The length of the buffer.</param>
-    public BinaryReader(byte* ptr, int length)
+    public DataReader(byte* ptr, int length)
     {
         _ptr = ptr;
         _length = length;
@@ -59,11 +59,11 @@ public unsafe struct BinaryReader : System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BinaryReader"/> for a read-only span of bytes.
+    /// Initializes a new instance of <see cref="DataReader"/> for a read-only span of bytes.
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="span">The read-only span of bytes to read from.</param>
-    public BinaryReader(System.ReadOnlySpan<byte> span)
+    public DataReader(System.ReadOnlySpan<byte> span)
     {
         byte[] temp = span.ToArray();
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(
@@ -77,14 +77,14 @@ public unsafe struct BinaryReader : System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BinaryReader"/> for a read-only span of bytes.
+    /// Initializes a new instance of <see cref="DataReader"/> for a read-only span of bytes.
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="memory">The read-only memory of bytes to read from.</param>
-    public BinaryReader(System.ReadOnlyMemory<byte> memory)
+    public DataReader(System.ReadOnlyMemory<byte> memory)
     {
         if (System.Runtime.InteropServices.MemoryMarshal
-            .TryGetArray<byte>(memory, out var segment))
+            .TryGetArray(memory, out var segment))
         {
             _pin = System.Runtime.InteropServices.GCHandle.Alloc(
                 segment.Array!,

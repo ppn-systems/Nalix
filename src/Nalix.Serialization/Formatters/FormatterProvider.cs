@@ -1,4 +1,6 @@
-using System;
+using Nalix.Serialization.Formatters.Cache;
+using Nalix.Serialization.Formatters.Collections;
+using Nalix.Serialization.Formatters.Primitives;
 
 namespace Nalix.Serialization.Formatters;
 
@@ -76,6 +78,21 @@ public static class FormatterProvider
         => FormatterCache<T>.Formatter = formatter
         ?? throw new System.ArgumentNullException(nameof(formatter));
 
+    public static void RegisterComplex<T>(IFormatter<T> formatter)
+    {
+        // Check if the type is a value type and not an enum
+        System.Type type = typeof(T);
+
+        if (type.IsValueType && !type.IsEnum)
+        {
+            ComplexTypeCache<T>.Formatter = formatter;
+        }
+        else if (type.IsClass)
+        {
+            ComplexTypeCache<T>.Formatter = formatter;
+        }
+    }
+
     /// <summary>
     /// Retrieves the registered formatter for the specified type.
     /// </summary>
@@ -99,10 +116,21 @@ public static class FormatterProvider
             return enums;
         }
 
-        throw new InvalidOperationException($"No formatter registered for type {typeof(T)}.");
+        throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
     }
 
-    //public static IFormatter<T> Get<T>()
-    //=> FormatterCache<T>.Formatter
-    //?? throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
+    /// <summary>
+    /// Retrieves the formatter for the specified complex type.
+    /// </summary>
+    /// <typeparam name="T">The type for which to retrieve a formatter.</typeparam>
+    /// <returns>The registered formatter for the given type.</returns>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown if no formatter is registered for the specified type.
+    /// </exception>
+    public static IFormatter<T> GetComplex<T>()
+    {
+        IFormatter<T> formatter = ComplexTypeCache<T>.Formatter;
+        if (formatter != null) return formatter;
+        throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
+    }
 }

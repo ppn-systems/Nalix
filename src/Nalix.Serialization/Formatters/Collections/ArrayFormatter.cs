@@ -1,7 +1,8 @@
+using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Internal.Types;
 using System.Runtime.Serialization;
 
-namespace Nalix.Serialization.Formatters;
+namespace Nalix.Serialization.Formatters.Collections;
 
 /// <summary>
 /// Provides serialization and deserialization for arrays of unmanaged types.
@@ -14,21 +15,21 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array to serialize.</param>
-    public unsafe void Serialize(ref BinaryWriter writer, T[] value)
+    public unsafe void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
         {
             // Convention: -1 indicates a null array
             FormatterProvider
-                .Get<System.UInt16>()
+                .Get<ushort>()
                 .Serialize(ref writer, SerializationConstants.Null);
 
             return;
         }
 
         FormatterProvider
-            .Get<System.UInt16>()
-            .Serialize(ref writer, unchecked((System.UInt16)value.Length));
+            .Get<ushort>()
+            .Serialize(ref writer, unchecked((ushort)value.Length));
 
         if (value.Length == 0) return;
 
@@ -50,10 +51,10 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
-    public unsafe T[] Deserialize(ref BinaryReader reader)
+    public unsafe T[] Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider
-            .Get<System.UInt16>()
+        ushort length = FormatterProvider
+            .Get<ushort>()
             .Deserialize(ref reader);
 
         if (length == 0) return [];

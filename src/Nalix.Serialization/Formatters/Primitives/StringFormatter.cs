@@ -1,19 +1,19 @@
 using Nalix.Common.Exceptions;
-using Nalix.Environment;
+using Nalix.Serialization.Buffers;
 
-namespace Nalix.Serialization.Formatters;
+namespace Nalix.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Cung cấp serialize/deserialize cho kiểu string với hiệu năng cao (dùng unsafe, length dạng ushort).
 /// </summary>
-public sealed class StringFormatter : IFormatter<System.String>
+public sealed class StringFormatter : IFormatter<string>
 {
     /// <summary>
     /// Serializes a string value into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
-    public unsafe void Serialize(ref BinaryWriter writer, System.String value)
+    public unsafe void Serialize(ref DataWriter writer, string value)
     {
         if (value == null)
         {
@@ -29,7 +29,7 @@ public sealed class StringFormatter : IFormatter<System.String>
         }
 
         // Tính trước số byte sẽ cần khi encode UTF8
-        int byteCount = SerializationOptions.Encoding.GetByteCount(value);
+        int byteCount = Environment.SerializationOptions.Encoding.GetByteCount(value);
         if (byteCount > SerializationConstants.MaxString)
             throw new SerializationException("The string exceeds the allowed limit.");
 
@@ -43,7 +43,7 @@ public sealed class StringFormatter : IFormatter<System.String>
             fixed (byte* pDest = dest)
             {
                 // Encode trực tiếp vào dest
-                int bytesWritten = SerializationOptions.Encoding.GetBytes(src, value.Length, pDest, byteCount);
+                int bytesWritten = Environment.SerializationOptions.Encoding.GetBytes(src, value.Length, pDest, byteCount);
                 if (bytesWritten != byteCount)
                     throw new SerializationException("UTF8 encoding error for the string.");
             }
@@ -60,9 +60,9 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// <exception cref="SerializationException">
     /// Thrown if the string length exceeds the maximum allowed limit.
     /// </exception>
-    public unsafe System.String Deserialize(ref BinaryReader reader)
+    public unsafe string Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
+        ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
         if (length == 0) return string.Empty;
         if (length == SerializationConstants.Null) return null;
         if (length > SerializationConstants.MaxString)
@@ -73,7 +73,7 @@ public sealed class StringFormatter : IFormatter<System.String>
         string result;
         fixed (byte* src = dest)
         {
-            result = SerializationOptions.Encoding.GetString(src, length);
+            result = Environment.SerializationOptions.Encoding.GetString(src, length);
         }
 
         reader.Advance(length);

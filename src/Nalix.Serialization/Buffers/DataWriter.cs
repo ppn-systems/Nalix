@@ -1,12 +1,12 @@
 using Nalix.Serialization.Internal;
 
-namespace Nalix.Serialization;
+namespace Nalix.Serialization.Buffers;
 
 /// <summary>
 /// Provides functionality for writing serialized data with an internal buffer.
 /// </summary>
 /// <param name="initialSize">The initial size of the buffer segment.</param>
-public partial struct BinaryWriter(int initialSize)
+public struct DataWriter(int initialSize)
 {
     private BufferSegment _segment = new(initialSize);
 
