@@ -26,15 +26,42 @@ internal static partial class TypeMetadata
     private static PropertyInfo[] ComputeSerializableProperties(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type type)
     {
-        ReadOnlySpan<PropertyInfo> allProps = type.GetProperties(Flags);
-        SerializeLayout layout = GetLayout(type);
+        Console.WriteLine($"\n=== Scanning {type.Name} ===");
 
-        return layout switch
+        // Kiểm tra SerializePackable attribute
+        var attr = type.GetCustomAttribute<SerializePackableAttribute>();
+        Console.WriteLine($"SerializePackable attribute: {(attr != null ? "Yes" : "No")}");
+
+        ReadOnlySpan<PropertyInfo> allProps = type.GetProperties(Flags);
+        Console.WriteLine($"\nFound properties: {allProps.Length}");
+
+        // In ra tất cả properties tìm thấy
+        foreach (var prop in allProps)
+        {
+            Console.WriteLine($"\nProperty: {prop.Name}");
+            Console.WriteLine($"- Type: {prop.PropertyType}");
+            Console.WriteLine($"- CanRead: {prop.CanRead}");
+            Console.WriteLine($"- CanWrite: {prop.CanWrite}");
+            Console.WriteLine($"- SerializeIgnore: {prop.GetCustomAttribute<SerializeIgnoreAttribute>() != null}");
+        }
+
+        SerializeLayout layout = GetLayout(type);
+        Console.WriteLine($"\nLayout: {layout}");
+
+        var result = layout switch
         {
             SerializeLayout.Sequential => ProcessSequentialOptimized(allProps),
             SerializeLayout.Explicit => ProcessExplicitOptimized(allProps),
-            _ => []
+            _ => Array.Empty<PropertyInfo>()
         };
+
+        Console.WriteLine($"\nSelected for serialization: {result.Length}");
+        foreach (var prop in result)
+        {
+            Console.WriteLine($"- {prop.Name}");
+        }
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

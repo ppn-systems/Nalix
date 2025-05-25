@@ -95,10 +95,12 @@ public static class FormatterProvider
         if (type.IsValueType && !type.IsEnum)
         {
             ComplexTypeCache<T>.Struct = formatter;
+            return;
         }
         else if (type.IsClass)
         {
             ComplexTypeCache<T>.Class = formatter;
+            return;
         }
 
         throw new System.InvalidOperationException($"Unsupported type: {type.FullName}");

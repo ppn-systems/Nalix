@@ -359,16 +359,26 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
 
             if (obj is not TObj typedObj)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[ERROR] Type không khớp. Expected: {typeof(TObj).Name}, Got: {obj.GetType().Name}");
+                Console.ResetColor();
                 throw new InvalidCastException($"Expected object of type {typeof(TObj).Name}, but got {obj.GetType().Name}");
             }
 
             try
             {
                 var value = _getter(typedObj);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"[SUCCESS] Đã lấy giá trị {_propertyName} = {value}");
+
                 _formatter.Serialize(ref writer, value);
+                Console.WriteLine($"[SUCCESS] Đã serialize {_propertyName} thành công");
             }
             catch (Exception ex)
             {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[ERROR] Lỗi khi serialize {_propertyName}: {ex.Message}");
+                Console.ResetColor();
                 throw new SerializationException($"Failed to serialize property {_propertyName}", ex);
             }
         }

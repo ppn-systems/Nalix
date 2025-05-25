@@ -15,6 +15,9 @@
     <Reference Include="Nalix.Common">
       <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
     </Reference>
+    <Reference Include="Nalix.Serialization">
+      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Serialization.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

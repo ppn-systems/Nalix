@@ -10,6 +10,8 @@ public struct DataWriter(int initialSize)
 {
     private BufferSegment _segment = new(initialSize);
 
+    internal readonly int Position => _segment.WrittenCount;
+
     /// <summary>
     /// Xoá bộ nhớ đệm, trả lại ArrayPool.
     /// </summary>
@@ -41,11 +43,4 @@ public struct DataWriter(int initialSize)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly System.Span<byte> ToArray() => _segment.WrittenBuffer;
-
-    /// <summary>
-    /// Releases the resources used by the <see cref="DataWriter"/> instance.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Dispose() => _segment.Clear();
 }

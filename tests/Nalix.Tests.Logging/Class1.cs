@@ -7,33 +7,48 @@ namespace Nalix.Tests.Logging;
 public class Class1
 {
     // Example usage để test
-    public class TestClass
+    [SerializePackable(SerializeLayout.Sequential)]
+    public class TestClass : IFixedSizeSerializable
     {
-        [FieldOrder(0)]
-        private int _id;
+        [SerializeOrder(1)]
+        public int Id { get; set; }
 
-        [FieldOrder(1)]
-        private string _name;
+        [SerializeOrder(2)]
+        public string Name { get; set; }
 
-        public int Id
-        {
-            get => _id;
-            set => _id = value;
-        }
-
-        public string Name
-        {
-            get => _name;
-            set => _name = value;
-        }
+        [SerializeIgnore]
+        public static int Size => sizeof(int) + 100;
 
         public TestClass()
-        { }
+        {
+        }
 
         public TestClass(int id, string name)
         {
-            _id = id;
-            _name = name;
+            Id = id;
+            Name = name;
+        }
+    }
+
+    [SerializePackable(SerializeLayout.Sequential)]
+    public struct TestClass2(int id, string name)
+    {
+        private int _id = id;
+
+        private string _name = name;
+
+        [SerializeOrder(1)]
+        public int Id
+        {
+            readonly get => _id;
+            set => _id = value;
+        }
+
+        [SerializeOrder(2)]
+        public string Name
+        {
+            readonly get => _name;
+            set => _name = value;
         }
     }
 
@@ -41,9 +56,12 @@ public class Class1
     {
         // Test serialization
         var obj = new TestClass(123, "Hello");
-        byte[] data = BinarySerializer<TestClass>.SerializeToArray(obj);
-        var deserialized = BinarySerializer<TestClass>.DeserializeFromArray(data);
+        byte[] data = Serializer.Serialize(obj);
 
-        Console.WriteLine($"Deserialized: Id={deserialized.Id}, Name={deserialized.Name}");
+        var objn = new TestClass();
+        Serializer.Deserialize(data, ref objn);
+
+        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}");
+        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}");
     }
 }
