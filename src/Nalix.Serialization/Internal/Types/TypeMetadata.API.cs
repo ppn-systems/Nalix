@@ -1,5 +1,5 @@
-using Nalix.Common.Exceptions;
-using Nalix.Common.Serialization;
+using System;
+using System.Reflection;
 
 namespace Nalix.Serialization.Internal.Types;
 
@@ -17,26 +17,6 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int GetSizeOf<T>()
         => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
-
-    /// <summary>
-    /// Retrieves the serialization layout for a given type.
-    /// </summary>
-    /// <param name="type">The type to retrieve serialization layout for.</param>
-    /// <returns>The serialization layout of the type.</returns>
-    /// <exception cref="SerializationException">
-    /// Thrown if the type is not marked with <c>[SerializePackable]</c>.
-    /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static SerializeLayout GetLayout(System.Type type)
-        => _cache.GetOrAdd(type, t =>
-        {
-            SerializePackableAttribute attr = System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<SerializePackableAttribute>(t)
-                ?? throw new SerializationException($"Type {t} must be marked with [SerializePackable].");
-
-            return attr.SerializeLayout;
-        });
 
     /// <summary>
     /// Determines whether the specified type is unmanaged.
@@ -124,4 +104,18 @@ internal static partial class TypeMetadata
         // Kết luận: là kiểu ẩn danh nếu thỏa mãn tất cả điều kiện trên
         return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }
+
+    /// <summary>
+    /// Retrieves an array of serializable properties for the specified type.
+    /// </summary>
+    /// <param name="type">The type for which to retrieve serializable properties.</param>
+    /// <returns>An array of <see cref="System.Reflection.PropertyInfo"/> representing the serializable properties of the type.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
+        "IL2111:Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. " +
+        "Trimmer can't guarantee availability of the requirements of the method.", Justification = "<Pending>")]
+    public static PropertyInfo[] GetProperties(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type type)
+        => _cacheProperty.GetOrAdd(type, ComputeSerializableProperties);
 }

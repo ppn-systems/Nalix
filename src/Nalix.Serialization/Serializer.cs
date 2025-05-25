@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 
@@ -8,14 +6,19 @@ namespace Nalix.Serialization;
 
 public static class Serializer
 {
+    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes All =
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All;
+
     /// <summary>
     /// Serialize đối tượng thành mảng byte.
     /// </summary>
-    public static byte[] Serialize<T>(in T value)
+    public static byte[] Serialize<[
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
-        if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
-            var array = System.GC.AllocateUninitializedArray<byte>(Unsafe.SizeOf<T>());
+            byte[] array = System.GC.AllocateUninitializedArray<byte>(
+                System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
             return array;
@@ -26,16 +29,17 @@ public static class Serializer
     /// Deserialize từ mảng byte thành đối tượng.
     /// </summary>
     public static int Deserialize<[
-        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value)
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
+        System.ReadOnlySpan<byte> buffer, ref T value)
     {
-        if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
-            if (buffer.Length < Unsafe.SizeOf<T>())
+            if (buffer.Length < System.Runtime.CompilerServices.Unsafe.SizeOf<T>())
             {
-                throw new SerializationException($"{Unsafe.SizeOf<T>()}{buffer.Length}");
+                throw new SerializationException($"{System.Runtime.CompilerServices.Unsafe.SizeOf<T>()}{buffer.Length}");
             }
-            value = Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(buffer));
-            return Unsafe.SizeOf<T>();
+            value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(buffer));
+            return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
         var reader = new BinaryReader(buffer);

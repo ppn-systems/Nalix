@@ -5,6 +5,12 @@ namespace Nalix.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
+    private const System.Reflection.BindingFlags Flags =
+        System.Reflection.BindingFlags.Public |
+        System.Reflection.BindingFlags.Static |
+        System.Reflection.BindingFlags.NonPublic |
+        System.Reflection.BindingFlags.FlattenHierarchy;
+
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
         public static bool IsUnmanaged;
@@ -41,11 +47,7 @@ internal static partial class TypeMetadata
                     if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                     {
                         System.Reflection.PropertyInfo prop = type.GetProperty(
-                            nameof(IFixedSizeSerializable.Size),
-                            System.Reflection.BindingFlags.Public |
-                            System.Reflection.BindingFlags.Static |
-                            System.Reflection.BindingFlags.NonPublic |
-                            System.Reflection.BindingFlags.FlattenHierarchy
+                            nameof(IFixedSizeSerializable.Size), Flags
                         );
 
                         if (prop != null)
