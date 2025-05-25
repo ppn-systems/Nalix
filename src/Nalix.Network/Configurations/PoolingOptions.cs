@@ -2,7 +2,7 @@
 
 using Nalix.Network.Dispatch;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Shared.Configuration.Binding;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 
