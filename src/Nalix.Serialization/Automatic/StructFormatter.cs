@@ -17,7 +17,7 @@ namespace Nalix.Serialization.Automatic;
 /// Implements SOLID principles and follows Domain-Driven Design patterns.
 /// </summary>
 /// <typeparam name="T">The struct type to serialize.</typeparam>
-public sealed class StructSerializer<T> : IFormatter<T>, IDisposable where T : struct
+public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : struct
 {
     #region Fields and Properties
 
@@ -51,17 +51,17 @@ public sealed class StructSerializer<T> : IFormatter<T>, IDisposable where T : s
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of <see cref="StructSerializer{T}"/> with default options.
+    /// Initializes a new instance of <see cref="StructFormatter{T}"/> with default options.
     /// </summary>
-    public StructSerializer() : this(SerializationOptions.Default, null) { }
+    public StructFormatter() : this(SerializationOptions.Default, null) { }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="StructSerializer{T}"/> with custom options.
+    /// Initializes a new instance of <see cref="StructFormatter{T}"/> with custom options.
     /// </summary>
     /// <param name="options">Serialization configuration options.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public StructSerializer(SerializationOptions options, ILogger logger = null)
+    public StructFormatter(SerializationOptions options, ILogger logger = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger;
@@ -69,11 +69,11 @@ public sealed class StructSerializer<T> : IFormatter<T>, IDisposable where T : s
         try
         {
             _accessors = CreatePropertyAccessors();
-            _logger?.Info("StructSerializer<{0}> initialized with {1} properties", typeof(T).Name, _accessors.Length);
+            _logger?.Info("StructFormatter<{0}> initialized with {1} properties", typeof(T).Name, _accessors.Length);
         }
         catch (Exception ex)
         {
-            _logger?.Error($"Failed to initialize StructSerializer<{typeof(T).Name}>", ex);
+            _logger?.Error($"Failed to initialize StructFormatter<{typeof(T).Name}>", ex);
             throw new SerializationException($"Failed to initialize formatter for struct type {typeof(T).Name}", ex);
         }
     }
@@ -195,14 +195,14 @@ public sealed class StructSerializer<T> : IFormatter<T>, IDisposable where T : s
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
-        => ObjectDisposedException.ThrowIf(_disposed, nameof(StructSerializer<T>));
+        => ObjectDisposedException.ThrowIf(_disposed, nameof(StructFormatter<T>));
 
     #endregion Private Methods
 
     #region IDisposable Implementation
 
     /// <summary>
-    /// Releases all resources used by the StructSerializer.
+    /// Releases all resources used by the StructFormatter.
     /// </summary>
     public void Dispose()
     {
@@ -211,7 +211,7 @@ public sealed class StructSerializer<T> : IFormatter<T>, IDisposable where T : s
         ActivitySource.Dispose();
         _disposed = true;
 
-        _logger?.Debug("StructSerializer<{0}> disposed", typeof(T).Name);
+        _logger?.Debug("StructFormatter<{0}> disposed", typeof(T).Name);
     }
 
     #endregion IDisposable Implementation

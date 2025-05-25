@@ -23,7 +23,7 @@ public struct DataWriter(int initialSize)
     /// <param name="count">The number of bytes to advance.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(int count) => _segment.AdvanceWrite(count);
+    public void Advance(int count) => _segment.Advance(count);
 
     /// <summary>
     /// Retrieves a span of free buffer space with the specified length.
@@ -40,5 +40,12 @@ public struct DataWriter(int initialSize)
     /// <returns>A span of bytes representing the written data in the buffer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Span<byte> GetWrittenBuffer() => _segment.WrittenBuffer;
+    public readonly System.Span<byte> ToArray() => _segment.WrittenBuffer;
+
+    /// <summary>
+    /// Releases the resources used by the <see cref="DataWriter"/> instance.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Dispose() => _segment.Clear();
 }

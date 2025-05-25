@@ -17,7 +17,7 @@ namespace Nalix.Serialization.Automatic;
 /// Implements SOLID principles and follows Domain-Driven Design patterns.
 /// </summary>
 /// <typeparam name="T">The type of object to serialize.</typeparam>
-public sealed class ObjectSerializer<T> : IFormatter<T>, IDisposable where T : class, new()
+public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : class, new()
 {
     #region Fields and Properties
 
@@ -51,17 +51,17 @@ public sealed class ObjectSerializer<T> : IFormatter<T>, IDisposable where T : c
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ObjectSerializer{T}"/> with default options.
+    /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with default options.
     /// </summary>
-    public ObjectSerializer() : this(SerializationOptions.Default, null) { }
+    public ObjectFormatter() : this(SerializationOptions.Default, null) { }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ObjectSerializer{T}"/> with custom options.
+    /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with custom options.
     /// </summary>
     /// <param name="options">Serialization configuration options.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public ObjectSerializer(SerializationOptions options, ILogger logger = null)
+    public ObjectFormatter(SerializationOptions options, ILogger logger = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger;
@@ -69,11 +69,11 @@ public sealed class ObjectSerializer<T> : IFormatter<T>, IDisposable where T : c
         try
         {
             _accessors = CreatePropertyAccessors();
-            _logger?.Info("ObjectSerializer<{0}> initialized with {1} properties", typeof(T).Name, _accessors.Length);
+            _logger?.Info("ObjectFormatter<{0}> initialized with {1} properties", typeof(T).Name, _accessors.Length);
         }
         catch (Exception ex)
         {
-            _logger?.Error($"Failed to initialize ObjectSerializer<{typeof(T).Name}>", ex);
+            _logger?.Error($"Failed to initialize ObjectFormatter<{typeof(T).Name}>", ex);
             throw new SerializationException($"Failed to initialize formatter for type {typeof(T).Name}", ex);
         }
     }
@@ -215,14 +215,14 @@ public sealed class ObjectSerializer<T> : IFormatter<T>, IDisposable where T : c
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ThrowIfDisposed()
-        => ObjectDisposedException.ThrowIf(_disposed, nameof(ObjectSerializer<T>));
+        => ObjectDisposedException.ThrowIf(_disposed, nameof(ObjectFormatter<T>));
 
     #endregion Private Methods
 
     #region IDisposable Implementation
 
     /// <summary>
-    /// Releases all resources used by the ObjectSerializer.
+    /// Releases all resources used by the ObjectFormatter.
     /// </summary>
     public void Dispose()
     {
@@ -231,7 +231,7 @@ public sealed class ObjectSerializer<T> : IFormatter<T>, IDisposable where T : c
         ActivitySource.Dispose();
         _disposed = true;
 
-        _logger?.Debug("ObjectSerializer<{0}> disposed", typeof(T).Name);
+        _logger?.Debug("ObjectFormatter<{0}> disposed", typeof(T).Name);
     }
 
     #endregion IDisposable Implementation

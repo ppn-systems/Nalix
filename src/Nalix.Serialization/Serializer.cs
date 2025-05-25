@@ -26,11 +26,19 @@ public static class Serializer
             return array;
         }
 
+        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
         TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
         DataWriter writer = new(size);
 
-        var a = FormatterProvider.GetComplex<T>();
-        a.Serialize(ref writer, in value);
+        try
+        {
+            formatter.Serialize(ref writer, value);
+            return writer.ToArray().ToArray();
+        }
+        finally
+        {
+            writer.Dispose();
+        }
     }
 
     /// <summary>
@@ -50,6 +58,10 @@ public static class Serializer
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
-        var reader = new DataReader(buffer);
+        DataReader reader = new(buffer);
+        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+
+        value = formatter.Deserialize(ref reader);
+        return reader.BytesRead;
     }
 }

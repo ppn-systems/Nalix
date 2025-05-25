@@ -17,12 +17,12 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Gets the number of bytes that have been consumed from the buffer.
     /// </summary>
-    public readonly int Consumed => _position;
+    public readonly int BytesRead => _position;
 
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public readonly int Remaining => _length - _position;
+    public readonly int BytesRemaining => _length - _position;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DataReader"/> for a managed byte array.
@@ -117,8 +117,8 @@ public unsafe struct DataReader : System.IDisposable
     /// </exception>
     public readonly System.ReadOnlySpan<byte> GetSpan(int length)
     {
-        if (length > Remaining)
-            throw new SerializationException($"Không đủ dữ liệu: yêu cầu {length} bytes, chỉ còn {Remaining} bytes.");
+        if (length > BytesRemaining)
+            throw new SerializationException($"Không đủ dữ liệu: yêu cầu {length} bytes, chỉ còn {BytesRemaining} bytes.");
         return new System.ReadOnlySpan<byte>(_ptr + _position, length);
     }
 
@@ -132,8 +132,8 @@ public unsafe struct DataReader : System.IDisposable
     /// </exception>
     public readonly ref byte GetSpanReference(int sizeHint)
     {
-        if (sizeHint > Remaining)
-            throw new SerializationException($"Không đủ dữ liệu: yêu cầu {sizeHint} bytes, chỉ còn {Remaining} bytes.");
+        if (sizeHint > BytesRemaining)
+            throw new SerializationException($"Không đủ dữ liệu: yêu cầu {sizeHint} bytes, chỉ còn {BytesRemaining} bytes.");
         return ref *(_ptr + _position);
     }
 
@@ -148,8 +148,8 @@ public unsafe struct DataReader : System.IDisposable
     public void Advance(int count)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (count > Remaining)
-            throw new SerializationException($"Không thể advance {count} bytes, chỉ còn {Remaining} bytes.");
+        if (count > BytesRemaining)
+            throw new SerializationException($"Không thể advance {count} bytes, chỉ còn {BytesRemaining} bytes.");
         _position += count;
     }
 

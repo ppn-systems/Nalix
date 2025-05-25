@@ -4,7 +4,7 @@ namespace Nalix.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
+    public const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties;
 

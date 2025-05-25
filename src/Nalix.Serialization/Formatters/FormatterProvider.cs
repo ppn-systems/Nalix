@@ -1,3 +1,4 @@
+using Nalix.Serialization.Automatic;
 using Nalix.Serialization.Formatters.Cache;
 using Nalix.Serialization.Formatters.Collections;
 using Nalix.Serialization.Formatters.Primitives;
@@ -78,6 +79,14 @@ public static class FormatterProvider
         => FormatterCache<T>.Formatter = formatter
         ?? throw new System.ArgumentNullException(nameof(formatter));
 
+    /// <summary>
+    /// Registers a formatter for complex types, distinguishing between value types and reference types.
+    /// </summary>
+    /// <typeparam name="T">The type for which the formatter is being registered.</typeparam>
+    /// <param name="formatter">The formatter to register.</param>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown if the type is unsupported (neither a struct nor a class).
+    /// </exception>
     public static void RegisterComplex<T>(IFormatter<T> formatter)
     {
         // Check if the type is a value type and not an enum
@@ -85,12 +94,14 @@ public static class FormatterProvider
 
         if (type.IsValueType && !type.IsEnum)
         {
-            ComplexTypeCache<T>.Formatter = formatter;
+            ComplexTypeCache<T>.Struct = formatter;
         }
         else if (type.IsClass)
         {
-            ComplexTypeCache<T>.Formatter = formatter;
+            ComplexTypeCache<T>.Class = formatter;
         }
+
+        throw new System.InvalidOperationException($"Unsupported type: {type.FullName}");
     }
 
     /// <summary>
@@ -127,10 +138,36 @@ public static class FormatterProvider
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
-    public static IFormatter<T> GetComplex<T>()
+    public static IFormatter<T> GetComplex<[
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>()
     {
-        IFormatter<T> formatter = ComplexTypeCache<T>.Formatter;
-        if (formatter != null) return formatter;
+        IFormatter<T> formatter;
+        System.Type type = typeof(T);
+
+        if (type.IsValueType && !type.IsEnum)
+        {
+            formatter = ComplexTypeCache<T>.Struct;
+            if (formatter != null) return formatter;
+
+            dynamic @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
+                                              .MakeGenericType(type));
+
+            RegisterComplex<T>((IFormatter<T>)@struct);
+            return ComplexTypeCache<T>.Struct;
+        }
+        else if (type.IsClass)
+        {
+            formatter = ComplexTypeCache<T>.Class;
+            if (formatter != null) return formatter;
+
+            dynamic @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
+                                              .MakeGenericType(type));
+
+            RegisterComplex<T>((IFormatter<T>)@object);
+            return ComplexTypeCache<T>.Class;
+        }
+
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
     }
 }
