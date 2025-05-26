@@ -123,10 +123,7 @@ public static class FormatterProvider
         // Auto-register for enums
         if (typeof(T).IsEnum)
         {
-            EnumFormatter<T> enums = new();
-            Register<T>(enums);
-
-            return enums;
+            return FormatterEnum<T>();
         }
 
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
@@ -172,4 +169,15 @@ public static class FormatterProvider
 
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
     }
+
+    #region Private Methods
+
+    private static EnumFormatter<T> FormatterEnum<T>()
+    {
+        EnumFormatter<T> enumFormatter = new();
+        Register(enumFormatter);
+        return enumFormatter;
+    }
+
+    #endregion Private Methods
 }
