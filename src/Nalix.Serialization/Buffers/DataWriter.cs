@@ -47,6 +47,12 @@ public struct DataWriter
     public void Advance(int count) => _segment.Advance(count);
 
     /// <summary>
+    /// Expands the buffer to accommodate additional data.
+    /// </summary>
+    /// <param name="count">The number of bytes to expand.</param>
+    public void Expand(int count) => _segment.Expand(count);
+
+    /// <summary>
     /// Retrieves a span of free buffer space with the specified length.
     /// </summary>
     /// <param name="length">The requested length of the span.</param>

@@ -34,6 +34,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         if (value.Length == 0) return;
 
         int totalBytes = value.Length * TypeMetadata.SizeOf<T>();
+
+        writer.Expand(totalBytes);
         var span = writer.GetSpan(totalBytes);
 
         // Copy block memory

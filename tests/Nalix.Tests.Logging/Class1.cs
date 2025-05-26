@@ -67,18 +67,19 @@ public class Class1
         }
     }
 
+    [SerializePackable(SerializeLayout.Sequential)]
     public class TestClass3
     {
-        public int Id;
+        public int Id { get; set; }
 
-        public uint IDD;
+        public uint IDD { get; set; }
     }
 
     public static void Main()
     {
         Test1();
         Test2();
-        //Test3();
+        Test3();
     }
 
     public static void Test1()
@@ -121,6 +122,7 @@ public class Class1
         Console.WriteLine($"L={data.Length},D={BitConverter.ToString(data)}");
         var objn = new TestClass3();
         Serializer.Deserialize(data, ref objn);
+
         Console.WriteLine($"Serialized: Id={obj.Id}, IDD={obj.IDD}");
         Console.WriteLine($"Deserialized: Id={objn.Id}, IDD={objn.IDD}");
     }

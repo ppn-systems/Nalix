@@ -48,7 +48,18 @@ public static class Serializer
 
         if (kind == TypeKind.None)
         {
-            throw new SerializationException($"Type {typeof(T).FullName} is not serializable.");
+            DataWriter writer = new(256);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                return writer.ToArray().ToArray();
+            }
+            finally
+            {
+                writer.Clear();
+            }
         }
         else if (kind == TypeKind.UnmanagedSZArray)
         {

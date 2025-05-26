@@ -37,6 +37,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (byteCount > 0)
         {
+            writer.Expand(byteCount);
             System.Span<byte> dest = writer.GetSpan(byteCount);
 
             fixed (char* src = value)
