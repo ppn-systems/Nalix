@@ -44,7 +44,7 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsReferenceOrNullable<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
-        => Cache<T>.IsReferenceOrNullable;
+        => Cache<T>.IsReference || Cache<T>.IsNullable;
 
     /// <summary>
     /// Attempts to retrieve the fixed or unmanaged size of a type.

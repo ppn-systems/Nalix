@@ -54,7 +54,7 @@ public static class Serializer
             {
                 formatter.Serialize(ref writer, value);
 
-                return writer.ToArray().ToArray();
+                return writer.ToArray();
             }
             finally
             {
@@ -91,7 +91,7 @@ public static class Serializer
             {
                 formatter.Serialize(ref writer, value);
 
-                return writer.ToArray().ToArray();
+                return writer.ToArray();
             }
             finally
             {

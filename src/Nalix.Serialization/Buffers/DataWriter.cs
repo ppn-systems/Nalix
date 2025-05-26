@@ -9,7 +9,10 @@ public struct DataWriter
 {
     private BufferSegment _segment;
 
-    internal readonly int BytesWritten => _segment.WrittenCount;
+    /// <summary>
+    /// Gets the current buffer segment used for writing data.
+    /// </summary>
+    public readonly int BytesWritten => _segment.WrittenCount;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DataWriter"/> struct with the specified initial buffer size.
@@ -62,10 +65,9 @@ public struct DataWriter
     public readonly System.Span<byte> GetSpan(int length) => _segment.FreeBuffer[..length];
 
     /// <summary>
-    /// Retrieves the portion of the buffer that has been written to.
+    /// Retrieves a reference to the first byte in the free buffer space with the specified size hint.
     /// </summary>
-    /// <returns>A span of bytes representing the written data in the buffer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Span<byte> ToArray() => _segment.WrittenBuffer;
+    public readonly byte[] ToArray() => _segment.WrittenBuffer.ToArray();
 }

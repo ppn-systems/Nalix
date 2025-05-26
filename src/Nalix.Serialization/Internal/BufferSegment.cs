@@ -33,6 +33,11 @@ internal struct BufferSegment
         _buffer = buffer;
     }
 
+    public BufferSegment(System.Span<byte> buffer)
+        : this(buffer.ToArray())
+    {
+    }
+
     public readonly int WrittenCount => _written;
     public readonly bool IsNull => _buffer == null;
     public readonly int Length => _buffer?.Length ?? 0;

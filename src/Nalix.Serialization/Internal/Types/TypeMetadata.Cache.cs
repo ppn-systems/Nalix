@@ -15,23 +15,24 @@ internal static partial class TypeMetadata
     {
         public static bool IsUnmanaged;
         public static bool IsNullable;
-        public static bool IsReferenceOrNullable;
+        public static bool IsReference;
         public static bool IsUnmanagedSZArray;
         public static bool IsFixedSizeSerializable = false;
+        public static bool IsCompositeSerializable = false;
 
         public static int UnmanagedSZArrayElementSize;
         public static int SerializableFixedSize = 0;
+        public static int CompositeSerializableSize = 0;
 
         static Cache()
         {
+            System.Type type = typeof(T);
+
             try
             {
-                System.Type type = typeof(T);
-
+                IsReference = !type.IsValueType;
                 IsNullable = System.Nullable.GetUnderlyingType(type) != null;
                 IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
-
-                IsReferenceOrNullable = !type.IsValueType || IsNullable;
 
                 if (type.IsSZArray)
                 {
@@ -42,20 +43,23 @@ internal static partial class TypeMetadata
                         UnmanagedSZArrayElementSize = UnsafeSizeOf(elementType);
                     }
                 }
+                else if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
+                {
+                    System.Reflection.PropertyInfo prop = type.GetProperty(
+                        nameof(IFixedSizeSerializable.Size),
+                        System.Reflection.BindingFlags.Static | Flags
+                    );
+
+                    if (prop != null)
+                    {
+                        IsFixedSizeSerializable = true;
+                        SerializableFixedSize = (int)prop.GetValue(null)!;
+                    }
+                }
                 else
                 {
-                    if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
+                    if (type.IsClass || type.IsValueType)
                     {
-                        System.Reflection.PropertyInfo prop = type.GetProperty(
-                            nameof(IFixedSizeSerializable.Size),
-                            System.Reflection.BindingFlags.Static | Flags
-                        );
-
-                        if (prop != null)
-                        {
-                            IsFixedSizeSerializable = true;
-                            SerializableFixedSize = (int)prop.GetValue(null)!;
-                        }
                     }
                 }
             }
