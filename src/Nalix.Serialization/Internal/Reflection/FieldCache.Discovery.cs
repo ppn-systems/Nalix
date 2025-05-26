@@ -1,7 +1,6 @@
 using Nalix.Common.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -12,26 +11,44 @@ internal static partial class FieldCache<T>
 {
     #region Field Discovery
 
-    private static FieldSchema[] DiscoverFields()
+    private static FieldSchema[] DiscoverFields<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
     {
-        Type type = typeof(T);
+        Type type = typeof(TField);
         FieldInfo[] fields = type.GetFields(
             BindingFlags.Public |
             BindingFlags.NonPublic |
             BindingFlags.Instance);
 
         var includedFields = new List<FieldSchema>(fields.Length);
+        int sequentialOrder = 0;
 
         foreach (FieldInfo field in fields)
         {
             if (ShouldIgnoreField(field)) continue;
 
-            // Domain logic: xử lý order dựa trên layout strategy
-            int order = _layout is SerializeLayout.Explicit
-                ? GetExplicitOrder(field, includedFields.Count)
-                : includedFields.Count;
+            int order;
 
-            var metadata = new FieldSchema(
+            if (_layout is SerializeLayout.Explicit)
+            {
+                // Explicit: chỉ include fields có SerializeOrderAttribute
+                var explicitOrder = GetExplicitOrder(field);
+                if (explicitOrder is null)
+                {
+                    // ✅ Skip field không có order trong Explicit layout
+                    continue;
+                }
+                order = explicitOrder.Value;
+            }
+            else
+            {
+                // Sequential: auto-increment order
+                order = sequentialOrder++;
+            }
+
+            FieldSchema metadata = new(
                 order,
                 field.Name,
                 field.FieldType.IsValueType,
@@ -51,7 +68,7 @@ internal static partial class FieldCache<T>
     private static Dictionary<string, int> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
-        var index = new Dictionary<string, int>(_metadata.Length, StringComparer.Ordinal);
+        Dictionary<string, int> index = new(_metadata.Length, StringComparer.Ordinal);
 
         for (int i = 0; i < _metadata.Length; i++)
         {
@@ -62,44 +79,30 @@ internal static partial class FieldCache<T>
     }
 
     // Updated method to move the DynamicallyAccessedMembersAttribute to the parameter
-    [SuppressMessage("CodeQuality",
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
         "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [SuppressMessage("Trimming",
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static int GetExplicitOrder(FieldInfo field,
-        int defaultOrder)
+    private static int? GetExplicitOrder(FieldInfo field)
     {
-        var property = typeof(T).GetProperties()
+        PropertyInfo property = typeof(T).GetProperties()
             .FirstOrDefault(p =>
                 p.Name.Equals(field.Name, StringComparison.Ordinal) ||
                 IsBackingFieldFor(field, p));
 
         if (property is not null)
         {
-            var orderAttr = property.GetCustomAttribute<SerializeOrderAttribute>();
-            if (orderAttr is not null)
-            {
-                return orderAttr.Order;
-            }
+            SerializeOrderAttribute orderAttr = property.GetCustomAttribute<SerializeOrderAttribute>();
+            if (orderAttr is not null) return orderAttr.Order;
         }
 
-        // Domain rule: Explicit layout yêu cầu order được chỉ định
-        if (_layout is SerializeLayout.Explicit)
-        {
-            throw new InvalidOperationException(
-                $"Field '{field.Name}' in type '{typeof(T).Name}' requires SerializeOrderAttribute when using Explicit layout");
-        }
-
-        return defaultOrder;
+        return null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsBackingFieldFor(FieldInfo field, PropertyInfo property)
-    {
-        // Check compiler-generated backing field pattern
-        return field.Name == $"<{property.Name}>k__BackingField";
-    }
+        => field.Name == $"<{property.Name}>k__BackingField";
 
     #endregion Field Discovery
 

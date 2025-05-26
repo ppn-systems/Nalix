@@ -101,18 +101,4 @@ internal static partial class TypeMetadata
         // Kết luận: là kiểu ẩn danh nếu thỏa mãn tất cả điều kiện trên
         return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }
-
-    /// <summary>
-    /// Retrieves an array of serializable properties for the specified type.
-    /// </summary>
-    /// <param name="type">The type for which to retrieve serializable properties.</param>
-    /// <returns>An array of <see cref="System.Reflection.PropertyInfo"/> representing the serializable properties of the type.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
-        "IL2111:Method with parameters or return value with `DynamicallyAccessedMembersAttribute` is accessed via reflection. " +
-        "Trimmer can't guarantee availability of the requirements of the method.", Justification = "<Pending>")]
-    public static System.Reflection.PropertyInfo[] GetProperties(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] System.Type type)
-        => _cacheProperty.GetOrAdd(type, ComputeSerializableProperties);
 }

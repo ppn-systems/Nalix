@@ -2,498 +2,181 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Formatters;
-using Nalix.Serialization.Internal.Types;
+using Nalix.Serialization.Internal.Accessors;
+using Nalix.Serialization.Internal.Reflection;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Serialization.Automatic;
 
 /// <summary>
-/// Provides an optimized automatic serializer for objects, eliminating boxing
-/// and achieving near hand-written serialization performance.
-/// Implements SOLID principles and follows Domain-Driven Design patterns.
+/// Optimized field-based serializer eliminating boxing for maximum performance.
+/// Implements SOLID principles with Domain-Driven Design patterns.
 /// </summary>
-/// <typeparam name="T">The type of object to serialize.</typeparam>
+/// <typeparam name="T">The type to serialize.</typeparam>
 public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : class, new()
 {
-    #region Fields and Properties
+    #region Core Fields
 
     /// <summary>
-    /// Cached array of property accessors for efficient serialization.
-    /// </summary>
-    private readonly PropertyAccessor[] _accessors;
-
-    /// <summary>
-    /// Logger for diagnostic and error tracking.
+    /// Logger instance for tracking serialization diagnostics.
     /// </summary>
     private readonly ILogger _logger;
 
     /// <summary>
-    /// Activity source for telemetry and performance monitoring.
+    /// Array of cached field accessors for optimized serialization performance.
     /// </summary>
-    private static readonly ActivitySource ActivitySource = new($"Nalix.Serialization.{typeof(T).Name}");
+    private readonly FieldAccessor<T>[] _accessors;
 
     /// <summary>
-    /// Indicates whether this instance has been disposed.
+    /// Activity tracking source for tracing serialization operations.
+    /// </summary>
+    private static readonly ActivitySource _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
+
+    /// <summary>
+    /// Indicates whether the formatter has been disposed.
     /// </summary>
     private bool _disposed;
 
-    #endregion Fields and Properties
+    #endregion Core Fields
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with default options.
+    /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
     /// </summary>
-    public ObjectFormatter() : this(null) { }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with custom options.
-    /// </summary>
-    /// <param name="logger">Optional logger for diagnostics.</param>
-    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    /// <param name="logger">Optional logger for diagnostic purposes.</param>
+    /// <exception cref="SerializationException">
+    /// Thrown if initialization of property accessors fails.
+    /// </exception>
     public ObjectFormatter(ILogger logger = null)
     {
         _logger = logger;
 
         try
         {
-            _accessors = CreatePropertyAccessors();
-            _logger?.Info("ObjectFormatter<{0}> initialized with {1} properties", typeof(T).Name, _accessors.Length);
+            _accessors = CreateAccessors();
+            _logger?.Info("ObjectFormatter<{Type}> initialized: {Count} fields, {Layout} layout",
+                typeof(T).Name, _accessors.Length, FieldCache<T>.GetLayout());
         }
         catch (Exception ex)
         {
-            _logger?.Error($"Failed to initialize ObjectFormatter<{typeof(T).Name}>", ex);
-            throw new SerializationException($"Failed to initialize formatter for type {typeof(T).Name}", ex);
+            _logger?.Error("Failed to initialize ObjectFormatter<{Type}>: {Error}", typeof(T).Name, ex.Message);
+            throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }
     }
 
     #endregion Constructors
 
-    #region Public Methods
+    #region Serialization
 
     /// <summary>
-    /// Serializes the given object into the provided binary writer with comprehensive error handling.
+    /// Serializes an object into the provided binary writer.
     /// </summary>
     /// <param name="writer">The binary writer used for serialization.</param>
     /// <param name="value">The object to serialize.</param>
-    /// <exception cref="ArgumentNullException">Thrown when writer or value is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when formatter has been disposed.</exception>
-    /// <exception cref="SerializationException">Thrown when serialization fails.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization encounters an error.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(value, nameof(value));
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(value);
 
-        using var activity = ActivitySource.StartActivity($"Serialize.{typeof(T).Name}");
+        using var activity = _activitySource.StartActivity($"Serialize.{typeof(T).Name}");
 
         try
         {
-            // Serialize all properties
             for (int i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Serialize(ref writer, value);
             }
-
-            _logger?.Debug("Successfully serialized object of type {0}", typeof(T).Name);
         }
         catch (Exception ex) when (ex is not SerializationException)
         {
-            var serializationEx = new SerializationException($"Failed to serialize object of type {typeof(T).Name}", ex);
-            _logger?.Error("Serialization failed for type {0}:{1}", typeof(T).Name, serializationEx);
-            throw serializationEx;
+            throw new SerializationException($"Serialization failed for {typeof(T).Name}", ex);
         }
     }
 
     /// <summary>
-    /// Deserializes an object from the provided binary reader with comprehensive validation.
+    /// Deserializes an object from the provided binary reader.
     /// </summary>
     /// <param name="reader">The binary reader containing serialized data.</param>
     /// <returns>The deserialized object.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when reader is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when formatter has been disposed.</exception>
-    /// <exception cref="SerializationException">Thrown when deserialization fails.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="SerializationException">
+    /// Thrown if deserialization encounters an error.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
-        using var activity = ActivitySource.StartActivity($"Deserialize.{typeof(T).Name}");
+        using var activity = _activitySource.StartActivity($"Deserialize.{typeof(T).Name}");
 
         try
         {
-            T obj = CreateInstance();
+            var obj = Activator.CreateInstance<T>();
 
-            // Deserialize all properties
             for (int i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Deserialize(ref reader, obj);
             }
 
-            _logger?.Debug("Successfully deserialized object of type {0}", typeof(T).Name);
             return obj;
         }
         catch (Exception ex) when (ex is not SerializationException)
         {
-            var serializationEx = new SerializationException($"Failed to deserialize object of type {typeof(T).Name}", ex);
-            _logger?.Error("Deserialization failed for type {0}:{1}", typeof(T).Name, serializationEx);
-            throw serializationEx;
+            throw new SerializationException($"Deserialization failed for {typeof(T).Name}", ex);
         }
     }
 
-    #endregion Public Methods
+    #endregion Serialization
 
-    #region Private Methods
+    #region Private Implementation
 
     /// <summary>
-    /// Creates property accessors following the Open/Closed Principle.
+    /// Creates field accessors for the specified type.
     /// </summary>
-    /// <returns>Array of property accessors.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
-        "IL2087:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
-        "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private PropertyAccessor[] CreatePropertyAccessors()
+    /// <returns>An array of field accessors.</returns>
+    private FieldAccessor<T>[] CreateAccessors()
     {
-        var properties = TypeMetadata.GetProperties(typeof(T));
-        var accessors = new List<PropertyAccessor>(properties.Length);
+        ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
+        if (fields.Length is 0) return [];
 
-        Console.WriteLine($"\n[DEBUG] Scanning type: {typeof(T).FullName}");
-        Console.WriteLine($"[DEBUG] Found {properties.Length} properties");
+        var accessors = new FieldAccessor<T>[fields.Length];
 
-        foreach (var property in properties)
+        for (int i = 0; i < fields.Length; i++)
         {
-            Console.WriteLine($"\n[DEBUG] === Processing property: {property.Name} ===");
-            Console.WriteLine($" - Property type: {property.PropertyType}");
-            Console.WriteLine($" - CanRead: {property.CanRead}, CanWrite: {property.CanWrite}");
-
             try
             {
-                var accessor = PropertyAccessor.Create(property);
-                accessors.Add(accessor);
-                Console.WriteLine($"[DEBUG] ✔️ Successfully created accessor for: {property.Name}");
+                accessors[i] = FieldAccessor<T>.Create(fields[i], i);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] ❌ Failed to create accessor for: {property.Name}");
-                Console.WriteLine($"[ERROR] Message: {ex.Message}");
-
-                _logger?.Warn("Skipping property {0} due to error {1}", property.Name, ex);
+                _logger?.Warn("Skipping field {Field}: {Error}", fields[i].Name, ex.Message);
+                throw;
             }
         }
 
-        Console.WriteLine($"\n[DEBUG] Total accessors created: {accessors.Count}");
-        return [.. accessors];
+        return accessors;
     }
 
-    /// <summary>
-    /// Creates an instance of T using the most appropriate constructor.
-    /// </summary>
-    /// <returns>New instance of T.</returns>
-    private static T CreateInstance()
-    {
-        try
-        {
-            return Activator.CreateInstance<T>();
-        }
-        catch (Exception ex)
-        {
-            throw new SerializationException(
-                $"Cannot create instance of type {typeof(T).Name}. Ensure it has a parameterless constructor.", ex);
-        }
-    }
+    #endregion Private Implementation
+
+    #region Disposal
 
     /// <summary>
-    /// Throws ObjectDisposedException if this instance has been disposed.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfDisposed()
-        => ObjectDisposedException.ThrowIf(_disposed, nameof(ObjectFormatter<T>));
-
-    #endregion Private Methods
-
-    #region IDisposable Implementation
-
-    /// <summary>
-    /// Releases all resources used by the ObjectFormatter.
+    /// Disposes of the formatter, releasing any allocated resources.
     /// </summary>
     public void Dispose()
     {
         if (_disposed) return;
 
-        ActivitySource.Dispose();
+        _activitySource.Dispose();
         _disposed = true;
-
-        _logger?.Debug("ObjectFormatter<{0}> disposed", typeof(T).Name);
     }
 
-    #endregion IDisposable Implementation
-
-    #region Nested Types
-
-    /// <summary>
-    /// Abstract base class for property serialization following the Strategy Pattern.
-    /// </summary>
-    private abstract class PropertyAccessor
-    {
-        /// <summary>
-        /// Gets the name of the property this accessor handles.
-        /// </summary>
-        public abstract string PropertyName { get; }
-
-        /// <summary>
-        /// Serializes a property of the given object.
-        /// </summary>
-        /// <param name="writer">The binary writer used for serialization.</param>
-        /// <param name="obj">The object containing the property.</param>
-        public abstract void Serialize(ref DataWriter writer, T obj);
-
-        /// <summary>
-        /// Deserializes a property into the given object.
-        /// </summary>
-        /// <param name="reader">The binary reader containing serialized data.</param>
-        /// <param name="obj">The object to populate with deserialized data.</param>
-        public abstract void Deserialize(ref DataReader reader, T obj);
-
-        /// <summary>
-        /// Factory method that creates a strongly typed property accessor.
-        /// FIX: Sử dụng generic method helper để tránh lỗi arity
-        /// </summary>
-        public static PropertyAccessor Create(PropertyInfo property)
-        {
-            ArgumentNullException.ThrowIfNull(property, nameof(property));
-
-            Console.WriteLine($"[DEBUG] Creating accessor for property: {property.Name}");
-            Console.WriteLine($"[DEBUG] Property type: {property.PropertyType}");
-
-            try
-            {
-                // FIX: Sử dụng reflection để gọi generic method
-                var createMethod = typeof(PropertyAccessor)
-                    .GetMethod(nameof(CreateGeneric), BindingFlags.NonPublic | BindingFlags.Static)
-                    ?? throw new InvalidOperationException("CreateGeneric method not found");
-
-                var genericMethod = createMethod.MakeGenericMethod(property.PropertyType);
-                var result = genericMethod.Invoke(null, [property]);
-
-                return (PropertyAccessor)result!;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to create accessor for {property.Name}: {ex.Message}");
-                throw new SerializationException($"Failed to create accessor for property {property.Name}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Generic helper method to create PropertyAccessorImpl.
-        /// </summary>
-        private static PropertyAccessorImpl<TProp> CreateGeneric<TProp>(PropertyInfo property)
-        {
-            Console.WriteLine($"[DEBUG] Creating PropertyAccessorImpl<{typeof(T).Name}, {typeof(TProp).Name}>");
-            return new PropertyAccessorImpl<TProp>(property);
-        }
-    }
-
-    /// <summary>
-    /// FIX: Simplified PropertyAccessorImpl với chỉ 1 generic parameter
-    /// Strongly-typed property accessor implementation that eliminates boxing.
-    /// </summary>
-    /// <typeparam name="TProp">The property type.</typeparam>
-    private sealed class PropertyAccessorImpl<TProp> : PropertyAccessor, IDisposable
-    {
-        #region Fields
-
-        private readonly string _propertyName;
-        private readonly Func<T, TProp> _getter;
-        private readonly Action<T, TProp> _setter;
-        private readonly IFormatter<TProp> _formatter;
-        private bool _disposed;
-
-        #endregion Fields
-
-        #region Properties
-
-        /// <summary>
-        /// Gets the name of the property this accessor handles.
-        /// </summary>
-        public override string PropertyName => _propertyName;
-
-        #endregion Properties
-
-        #region Constructor
-
-        /// <summary>
-        /// Initializes a new property accessor with compile-time optimizations.
-        /// </summary>
-        /// <param name="property">The property information.</param>
-        public PropertyAccessorImpl(PropertyInfo property)
-        {
-            ArgumentNullException.ThrowIfNull(property, nameof(property));
-
-            Console.WriteLine($"[DEBUG] Initializing PropertyAccessorImpl<{typeof(TProp).Name}>");
-            Console.WriteLine($"[DEBUG] Property: {property.Name} of type {property.PropertyType}");
-
-            _propertyName = property.Name;
-
-            try
-            {
-                _getter = CreateOptimizedGetter(property);
-                _setter = CreateOptimizedSetter(property);
-                _formatter = FormatterProvider.Get<TProp>();
-
-                Console.WriteLine($"[DEBUG] ✔️ PropertyAccessorImpl initialized successfully for {property.Name}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to initialize PropertyAccessorImpl for {property.Name}: {ex.Message}");
-                throw new SerializationException($"Failed to create accessor for property {property.Name}", ex);
-            }
-        }
-
-        #endregion Constructor
-
-        #region Public Methods
-
-        /// <summary>
-        /// Serializes a property using type-safe, optimized access.
-        /// </summary>
-        public override void Serialize(ref DataWriter writer, T obj)
-        {
-            ThrowIfDisposed();
-            ArgumentNullException.ThrowIfNull(obj, nameof(obj));
-
-            try
-            {
-                var value = _getter(obj);
-                Console.WriteLine($"[DEBUG] Serializing {_propertyName} = {value}");
-                _formatter.Serialize(ref writer, value);
-                Console.WriteLine($"[DEBUG] ✔️ Serialized {_propertyName} successfully");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to serialize {_propertyName}: {ex.Message}");
-                throw new SerializationException($"Failed to serialize property {_propertyName}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Deserializes a property value using type-safe, optimized access.
-        /// </summary>
-        public override void Deserialize(ref DataReader reader, T obj)
-        {
-            ThrowIfDisposed();
-            ArgumentNullException.ThrowIfNull(obj, nameof(obj));
-
-            try
-            {
-                var value = _formatter.Deserialize(ref reader);
-                _setter(obj, value);
-                Console.WriteLine($"[DEBUG] ✔️ Deserialized {_propertyName} = {value}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Failed to deserialize {_propertyName}: {ex.Message}");
-                throw new SerializationException($"Failed to deserialize property {_propertyName}", ex);
-            }
-        }
-
-        #endregion Public Methods
-
-        #region Private Methods
-
-        /// <summary>
-        /// Creates an optimized getter using expression trees.
-        /// </summary>
-        private static Func<T, TProp> CreateOptimizedGetter(PropertyInfo property)
-        {
-            if (!property.CanRead)
-                throw new ArgumentException($"Property {property.Name} is not readable", nameof(property));
-
-            try
-            {
-                var param = Expression.Parameter(typeof(T), "obj");
-                var propertyAccess = Expression.Property(param, property);
-
-                // FIX: Thêm conversion nếu cần thiết
-                Expression body = propertyAccess;
-                if (property.PropertyType != typeof(TProp))
-                {
-                    body = Expression.Convert(propertyAccess, typeof(TProp));
-                }
-
-                var lambda = Expression.Lambda<Func<T, TProp>>(body, param);
-                return lambda.Compile();
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException($"Failed to create getter for property {property.Name}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Creates an optimized setter using expression trees.
-        /// </summary>
-        private static Action<T, TProp> CreateOptimizedSetter(PropertyInfo property)
-        {
-            if (!property.CanWrite)
-                throw new ArgumentException($"Property {property.Name} is not writable", nameof(property));
-
-            try
-            {
-                var objParam = Expression.Parameter(typeof(T), "obj");
-                var valueParam = Expression.Parameter(typeof(TProp), "value");
-
-                var propertyAccess = Expression.Property(objParam, property);
-
-                // FIX: Thêm conversion nếu cần thiết
-                Expression valueExpression = valueParam;
-                if (typeof(TProp) != property.PropertyType)
-                {
-                    valueExpression = Expression.Convert(valueParam, property.PropertyType);
-                }
-
-                var assignment = Expression.Assign(propertyAccess, valueExpression);
-                var lambda = Expression.Lambda<Action<T, TProp>>(assignment, objParam, valueParam);
-
-                return lambda.Compile();
-            }
-            catch (Exception ex)
-            {
-                throw new SerializationException($"Failed to create setter for property {property.Name}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Throws ObjectDisposedException if disposed.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void ThrowIfDisposed()
-            => ObjectDisposedException.ThrowIf(_disposed, nameof(PropertyAccessorImpl<TProp>));
-
-        #endregion Private Methods
-
-        #region IDisposable Implementation
-
-        /// <summary>
-        /// Releases resources used by this property accessor.
-        /// </summary>
-        public void Dispose()
-        {
-            _disposed = true;
-        }
-
-        #endregion IDisposable Implementation
-    }
-
-    #endregion Nested Types
+    #endregion Disposal
 }

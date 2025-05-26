@@ -4,10 +4,6 @@ namespace Nalix.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    public const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties;
-
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<bool>> _isRefCache;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<int>> _sizeOfFnCache;
 

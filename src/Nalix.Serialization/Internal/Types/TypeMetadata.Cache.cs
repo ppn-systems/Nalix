@@ -11,6 +11,10 @@ internal static partial class TypeMetadata
         System.Reflection.BindingFlags.NonPublic |
         System.Reflection.BindingFlags.FlattenHierarchy;
 
+    public const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties;
+
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
         public static bool IsUnmanaged;
@@ -20,9 +24,9 @@ internal static partial class TypeMetadata
         public static bool IsFixedSizeSerializable = false;
         public static bool IsCompositeSerializable = false;
 
-        public static int UnmanagedSZArrayElementSize;
         public static int SerializableFixedSize = 0;
         public static int CompositeSerializableSize = 0;
+        public static int UnmanagedSZArrayElementSize = 0;
 
         static Cache()
         {
@@ -60,6 +64,11 @@ internal static partial class TypeMetadata
                 {
                     if (type.IsClass || type.IsValueType)
                     {
+                        var (isFixed, isComposite, fixedSize, compositeSize) = CalculateCompositeTypeInfo<T>();
+                        IsFixedSizeSerializable = isFixed;
+                        IsCompositeSerializable = isComposite;
+                        SerializableFixedSize = fixedSize;
+                        CompositeSerializableSize = compositeSize;
                     }
                 }
             }
@@ -67,6 +76,7 @@ internal static partial class TypeMetadata
             {
                 IsUnmanagedSZArray = false;
                 IsFixedSizeSerializable = false;
+                IsCompositeSerializable = false;
             }
         }
     }

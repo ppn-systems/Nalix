@@ -22,7 +22,7 @@ internal static partial class FieldCache<T>
 
         if (orderGroups.Any())
         {
-            var duplicates = string.Join(", ",
+            System.String duplicates = string.Join(", ",
                 orderGroups.Select(g => $"Order {g.Key}: [{string.Join(", ", g.Select(f => f.Name))}]"));
 
             throw new InvalidOperationException(
