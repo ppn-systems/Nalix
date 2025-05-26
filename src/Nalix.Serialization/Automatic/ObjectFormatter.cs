@@ -27,11 +27,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     private readonly PropertyAccessor[] _accessors;
 
     /// <summary>
-    /// Configuration options for serialization behavior.
-    /// </summary>
-    private readonly SerializationCode _options;
-
-    /// <summary>
     /// Logger for diagnostic and error tracking.
     /// </summary>
     private readonly ILogger _logger;
@@ -53,17 +48,15 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with default options.
     /// </summary>
-    public ObjectFormatter() : this(SerializationCode.Default, null) { }
+    public ObjectFormatter() : this(null) { }
 
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with custom options.
     /// </summary>
-    /// <param name="options">Serialization configuration options.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public ObjectFormatter(SerializationCode options, ILogger logger = null)
+    public ObjectFormatter(ILogger logger = null)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger;
 
         try
@@ -162,6 +155,11 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// Creates property accessors following the Open/Closed Principle.
     /// </summary>
     /// <returns>Array of property accessors.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
+        "IL2087:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
+        "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private PropertyAccessor[] CreatePropertyAccessors()
     {
         var properties = TypeMetadata.GetProperties(typeof(T));
@@ -178,7 +176,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
 
             try
             {
-                var accessor = PropertyAccessor.Create(property, _options);
+                var accessor = PropertyAccessor.Create(property);
                 accessors.Add(accessor);
                 Console.WriteLine($"[DEBUG] ✔️ Successfully created accessor for: {property.Name}");
             }
@@ -186,9 +184,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
             {
                 Console.WriteLine($"[ERROR] ❌ Failed to create accessor for: {property.Name}");
                 Console.WriteLine($"[ERROR] Message: {ex.Message}");
-
-                if (_options.FailOnPropertyErrors)
-                    throw;
 
                 _logger?.Warn("Skipping property {0} due to error {1}", property.Name, ex);
             }
@@ -272,10 +267,9 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         /// Factory method that creates a strongly typed property accessor.
         /// FIX: Sử dụng generic method helper để tránh lỗi arity
         /// </summary>
-        public static PropertyAccessor Create(PropertyInfo property, SerializationCode options)
+        public static PropertyAccessor Create(PropertyInfo property)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             Console.WriteLine($"[DEBUG] Creating accessor for property: {property.Name}");
             Console.WriteLine($"[DEBUG] Property type: {property.PropertyType}");
@@ -284,15 +278,11 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
             {
                 // FIX: Sử dụng reflection để gọi generic method
                 var createMethod = typeof(PropertyAccessor)
-                    .GetMethod(nameof(CreateGeneric), BindingFlags.NonPublic | BindingFlags.Static);
-
-                if (createMethod is null)
-                {
-                    throw new InvalidOperationException("CreateGeneric method not found");
-                }
+                    .GetMethod(nameof(CreateGeneric), BindingFlags.NonPublic | BindingFlags.Static)
+                    ?? throw new InvalidOperationException("CreateGeneric method not found");
 
                 var genericMethod = createMethod.MakeGenericMethod(property.PropertyType);
-                var result = genericMethod.Invoke(null, [property, options]);
+                var result = genericMethod.Invoke(null, [property]);
 
                 return (PropertyAccessor)result!;
             }
@@ -304,12 +294,12 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         }
 
         /// <summary>
-        /// Generic helper method để tạo PropertyAccessorImpl
+        /// Generic helper method to create PropertyAccessorImpl.
         /// </summary>
-        private static PropertyAccessor CreateGeneric<TProp>(PropertyInfo property, SerializationCode options)
+        private static PropertyAccessorImpl<TProp> CreateGeneric<TProp>(PropertyInfo property)
         {
             Console.WriteLine($"[DEBUG] Creating PropertyAccessorImpl<{typeof(T).Name}, {typeof(TProp).Name}>");
-            return new PropertyAccessorImpl<TProp>(property, options);
+            return new PropertyAccessorImpl<TProp>(property);
         }
     }
 
@@ -326,7 +316,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         private readonly Func<T, TProp> _getter;
         private readonly Action<T, TProp> _setter;
         private readonly IFormatter<TProp> _formatter;
-        private readonly SerializationCode _options;
         private bool _disposed;
 
         #endregion Fields
@@ -346,17 +335,14 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         /// Initializes a new property accessor with compile-time optimizations.
         /// </summary>
         /// <param name="property">The property information.</param>
-        /// <param name="options">Serialization options.</param>
-        public PropertyAccessorImpl(PropertyInfo property, SerializationCode options)
+        public PropertyAccessorImpl(PropertyInfo property)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
 
             Console.WriteLine($"[DEBUG] Initializing PropertyAccessorImpl<{typeof(TProp).Name}>");
             Console.WriteLine($"[DEBUG] Property: {property.Name} of type {property.PropertyType}");
 
             _propertyName = property.Name;
-            _options = options;
 
             try
             {

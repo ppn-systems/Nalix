@@ -179,9 +179,6 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
             }
             catch (Exception ex)
             {
-                if (_options.FailOnPropertyErrors)
-                    throw;
-
                 _logger?.Warn("Skipping property {0} due to error: {1}", property.Name, ex.Message);
             }
         }

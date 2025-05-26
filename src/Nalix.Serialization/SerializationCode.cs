@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Serialization;
 
 /// <summary>
@@ -8,11 +6,6 @@ namespace Nalix.Serialization;
 /// </summary>
 public sealed record SerializationCode
 {
-    /// <summary>
-    /// Whether to include type metadata for version compatibility.
-    /// </summary>
-    public bool IncludeTypeMetadata { get; init; } = true;
-
     /// <summary>
     /// Whether to fail when a property cannot be processed.
     /// </summary>
@@ -32,9 +25,4 @@ public sealed record SerializationCode
     /// Default serialization options.
     /// </summary>
     public static SerializationCode Default { get; } = new();
-
-    /// <summary>
-    /// Custom naming strategy for properties.
-    /// </summary>
-    public Func<string, string> PropertyNamingStrategy { get; init; } = name => name;
 }
