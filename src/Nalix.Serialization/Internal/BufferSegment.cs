@@ -4,6 +4,8 @@ namespace Nalix.Serialization.Internal;
     System.Runtime.InteropServices.LayoutKind.Auto)]
 internal struct BufferSegment
 {
+    private readonly bool _rent;
+
     private int _written;
     private byte[] _buffer;
 
@@ -14,8 +16,21 @@ internal struct BufferSegment
             throw new System.ArgumentOutOfRangeException(nameof(size), "Size must be greater than zero.");
         }
 
+        _rent = true;
         _written = 0;
         _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+    }
+
+    public BufferSegment(byte[] buffer)
+    {
+        if (buffer.Length <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(buffer), "Size must be greater than zero.");
+        }
+
+        _rent = false;
+        _written = 0;
+        _buffer = buffer;
     }
 
     public readonly int WrittenCount => _written;
@@ -33,7 +48,7 @@ internal struct BufferSegment
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
-        if (_buffer != null)
+        if (_buffer != null && _rent == true)
         {
             System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
             _written = 0;

@@ -5,12 +5,31 @@ namespace Nalix.Serialization.Buffers;
 /// <summary>
 /// Provides functionality for writing serialized data with an internal buffer.
 /// </summary>
-/// <param name="initialSize">The initial size of the buffer segment.</param>
-public struct DataWriter(int initialSize)
+public struct DataWriter
 {
-    private BufferSegment _segment = new(initialSize);
+    private BufferSegment _segment;
 
-    internal readonly int Position => _segment.WrittenCount;
+    internal readonly int BytesWritten => _segment.WrittenCount;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DataWriter"/> struct with the specified initial buffer size.
+    /// </summary>
+    /// <param name="initialSize">The initial size of the buffer.</param>
+    public DataWriter(int initialSize) => _segment = new BufferSegment(initialSize);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DataWriter"/> struct with the specified byte array.
+    /// </summary>
+    /// <param name="bytes">The byte array to initialize the buffer with.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when the provided byte array is null or empty.</exception>
+    public DataWriter(byte[] bytes)
+    {
+        if (bytes == null || bytes.Length == 0)
+        {
+            throw new System.ArgumentNullException(nameof(bytes), "Buffer cannot be null or empty.");
+        }
+        _segment = new BufferSegment(bytes);
+    }
 
     /// <summary>
     /// Xoá bộ nhớ đệm, trả lại ArrayPool.

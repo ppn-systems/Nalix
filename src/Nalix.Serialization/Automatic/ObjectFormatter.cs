@@ -29,7 +29,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Configuration options for serialization behavior.
     /// </summary>
-    private readonly SerializationOptions _options;
+    private readonly SerializationCode _options;
 
     /// <summary>
     /// Logger for diagnostic and error tracking.
@@ -53,7 +53,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with default options.
     /// </summary>
-    public ObjectFormatter() : this(SerializationOptions.Default, null) { }
+    public ObjectFormatter() : this(SerializationCode.Default, null) { }
 
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/> with custom options.
@@ -61,7 +61,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <param name="options">Serialization configuration options.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public ObjectFormatter(SerializationOptions options, ILogger logger = null)
+    public ObjectFormatter(SerializationCode options, ILogger logger = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger;
@@ -162,25 +162,31 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// Creates property accessors following the Open/Closed Principle.
     /// </summary>
     /// <returns>Array of property accessors.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
-        "IL2087:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
-        "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     private PropertyAccessor[] CreatePropertyAccessors()
     {
         var properties = TypeMetadata.GetProperties(typeof(T));
         var accessors = new List<PropertyAccessor>(properties.Length);
 
+        Console.WriteLine($"\n[DEBUG] Scanning type: {typeof(T).FullName}");
+        Console.WriteLine($"[DEBUG] Found {properties.Length} properties");
+
         foreach (var property in properties)
         {
+            Console.WriteLine($"\n[DEBUG] === Processing property: {property.Name} ===");
+            Console.WriteLine($" - Property type: {property.PropertyType}");
+            Console.WriteLine($" - CanRead: {property.CanRead}, CanWrite: {property.CanWrite}");
+
             try
             {
                 var accessor = PropertyAccessor.Create(property, _options);
                 accessors.Add(accessor);
+                Console.WriteLine($"[DEBUG] ✔️ Successfully created accessor for: {property.Name}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] ❌ Failed to create accessor for: {property.Name}");
+                Console.WriteLine($"[ERROR] Message: {ex.Message}");
+
                 if (_options.FailOnPropertyErrors)
                     throw;
 
@@ -188,12 +194,12 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
             }
         }
 
+        Console.WriteLine($"\n[DEBUG] Total accessors created: {accessors.Count}");
         return [.. accessors];
     }
 
     /// <summary>
     /// Creates an instance of T using the most appropriate constructor.
-    /// Implements Dependency Inversion Principle support.
     /// </summary>
     /// <returns>New instance of T.</returns>
     private static T CreateInstance()
@@ -240,7 +246,6 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
 
     /// <summary>
     /// Abstract base class for property serialization following the Strategy Pattern.
-    /// Implements the Open/Closed Principle for extensibility.
     /// </summary>
     private abstract class PropertyAccessor
     {
@@ -265,40 +270,63 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
 
         /// <summary>
         /// Factory method that creates a strongly typed property accessor.
-        /// Implements the Factory Pattern for type-safe creation.
+        /// FIX: Sử dụng generic method helper để tránh lỗi arity
         /// </summary>
-        /// <param name="property">The property to generate an accessor for.</param>
-        /// <param name="options">Serialization options.</param>
-        /// <returns>A specialized property accessor.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when property or options is null.</exception>
-        public static PropertyAccessor Create(PropertyInfo property, SerializationOptions options)
+        public static PropertyAccessor Create(PropertyInfo property, SerializationCode options)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 
-            var accessorType = typeof(PropertyAccessorImpl<,>)
-                .MakeGenericType(typeof(T), property.PropertyType);
+            Console.WriteLine($"[DEBUG] Creating accessor for property: {property.Name}");
+            Console.WriteLine($"[DEBUG] Property type: {property.PropertyType}");
 
-            return (PropertyAccessor)Activator.CreateInstance(accessorType, property, options)!;
+            try
+            {
+                // FIX: Sử dụng reflection để gọi generic method
+                var createMethod = typeof(PropertyAccessor)
+                    .GetMethod(nameof(CreateGeneric), BindingFlags.NonPublic | BindingFlags.Static);
+
+                if (createMethod is null)
+                {
+                    throw new InvalidOperationException("CreateGeneric method not found");
+                }
+
+                var genericMethod = createMethod.MakeGenericMethod(property.PropertyType);
+                var result = genericMethod.Invoke(null, [property, options]);
+
+                return (PropertyAccessor)result!;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to create accessor for {property.Name}: {ex.Message}");
+                throw new SerializationException($"Failed to create accessor for property {property.Name}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Generic helper method để tạo PropertyAccessorImpl
+        /// </summary>
+        private static PropertyAccessor CreateGeneric<TProp>(PropertyInfo property, SerializationCode options)
+        {
+            Console.WriteLine($"[DEBUG] Creating PropertyAccessorImpl<{typeof(T).Name}, {typeof(TProp).Name}>");
+            return new PropertyAccessorImpl<TProp>(property, options);
         }
     }
 
     /// <summary>
+    /// FIX: Simplified PropertyAccessorImpl với chỉ 1 generic parameter
     /// Strongly-typed property accessor implementation that eliminates boxing.
-    /// Follows the Interface Segregation Principle with focused responsibilities.
     /// </summary>
-    /// <typeparam name="TObj">The object type containing the property.</typeparam>
     /// <typeparam name="TProp">The property type.</typeparam>
-    private sealed class PropertyAccessorImpl<TObj, TProp> : PropertyAccessor, IDisposable
-        where TObj : class
+    private sealed class PropertyAccessorImpl<TProp> : PropertyAccessor, IDisposable
     {
         #region Fields
 
         private readonly string _propertyName;
-        private readonly Func<TObj, TProp> _getter;
-        private readonly Action<TObj, TProp> _setter;
+        private readonly Func<T, TProp> _getter;
+        private readonly Action<T, TProp> _setter;
         private readonly IFormatter<TProp> _formatter;
-        private readonly SerializationOptions _options;
+        private readonly SerializationCode _options;
         private bool _disposed;
 
         #endregion Fields
@@ -319,10 +347,13 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         /// </summary>
         /// <param name="property">The property information.</param>
         /// <param name="options">Serialization options.</param>
-        public PropertyAccessorImpl(PropertyInfo property, SerializationOptions options)
+        public PropertyAccessorImpl(PropertyInfo property, SerializationCode options)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
+
+            Console.WriteLine($"[DEBUG] Initializing PropertyAccessorImpl<{typeof(TProp).Name}>");
+            Console.WriteLine($"[DEBUG] Property: {property.Name} of type {property.PropertyType}");
 
             _propertyName = property.Name;
             _options = options;
@@ -332,9 +363,12 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
                 _getter = CreateOptimizedGetter(property);
                 _setter = CreateOptimizedSetter(property);
                 _formatter = FormatterProvider.Get<TProp>();
+
+                Console.WriteLine($"[DEBUG] ✔️ PropertyAccessorImpl initialized successfully for {property.Name}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] Failed to initialize PropertyAccessorImpl for {property.Name}: {ex.Message}");
                 throw new SerializationException($"Failed to create accessor for property {property.Name}", ex);
             }
         }
@@ -346,39 +380,21 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         /// <summary>
         /// Serializes a property using type-safe, optimized access.
         /// </summary>
-        /// <param name="writer">The binary writer used for serialization.</param>
-        /// <param name="obj">The object containing the property.</param>
-        /// <exception cref="ArgumentNullException">Thrown when obj is null.</exception>
-        /// <exception cref="InvalidCastException">Thrown when obj is not of expected type.</exception>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public override void Serialize(ref DataWriter writer, T obj)
         {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(obj, nameof(obj));
 
-            if (obj is not TObj typedObj)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[ERROR] Type không khớp. Expected: {typeof(TObj).Name}, Got: {obj.GetType().Name}");
-                Console.ResetColor();
-                throw new InvalidCastException($"Expected object of type {typeof(TObj).Name}, but got {obj.GetType().Name}");
-            }
-
             try
             {
-                var value = _getter(typedObj);
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"[SUCCESS] Đã lấy giá trị {_propertyName} = {value}");
-
+                var value = _getter(obj);
+                Console.WriteLine($"[DEBUG] Serializing {_propertyName} = {value}");
                 _formatter.Serialize(ref writer, value);
-                Console.WriteLine($"[SUCCESS] Đã serialize {_propertyName} thành công");
+                Console.WriteLine($"[DEBUG] ✔️ Serialized {_propertyName} successfully");
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[ERROR] Lỗi khi serialize {_propertyName}: {ex.Message}");
-                Console.ResetColor();
+                Console.WriteLine($"[ERROR] Failed to serialize {_propertyName}: {ex.Message}");
                 throw new SerializationException($"Failed to serialize property {_propertyName}", ex);
             }
         }
@@ -386,29 +402,20 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         /// <summary>
         /// Deserializes a property value using type-safe, optimized access.
         /// </summary>
-        /// <param name="reader">The binary reader containing serialized data.</param>
-        /// <param name="obj">The object to populate with deserialized data.</param>
-        /// <exception cref="ArgumentNullException">Thrown when obj is null.</exception>
-        /// <exception cref="InvalidCastException">Thrown when obj is not of expected type.</exception>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public override void Deserialize(ref DataReader reader, T obj)
         {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(obj, nameof(obj));
 
-            if (obj is not TObj typedObj)
-            {
-                throw new InvalidCastException($"Expected object of type {typeof(TObj).Name}, but got {obj.GetType().Name}");
-            }
-
             try
             {
                 var value = _formatter.Deserialize(ref reader);
-                _setter(typedObj, value);
+                _setter(obj, value);
+                Console.WriteLine($"[DEBUG] ✔️ Deserialized {_propertyName} = {value}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR] Failed to deserialize {_propertyName}: {ex.Message}");
                 throw new SerializationException($"Failed to deserialize property {_propertyName}", ex);
             }
         }
@@ -418,24 +425,26 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         #region Private Methods
 
         /// <summary>
-        /// Creates an optimized getter using expression trees with comprehensive validation.
+        /// Creates an optimized getter using expression trees.
         /// </summary>
-        /// <param name="property">The property to create a getter for.</param>
-        /// <returns>Compiled getter function.</returns>
-        private static Func<TObj, TProp> CreateOptimizedGetter(PropertyInfo property)
+        private static Func<T, TProp> CreateOptimizedGetter(PropertyInfo property)
         {
             if (!property.CanRead)
                 throw new ArgumentException($"Property {property.Name} is not readable", nameof(property));
 
             try
             {
-                var param = Expression.Parameter(typeof(TObj), "obj");
-                var propertyAccess = Expression.Property(
-                    Expression.Convert(param, property.DeclaringType!),
-                    property
-                );
+                var param = Expression.Parameter(typeof(T), "obj");
+                var propertyAccess = Expression.Property(param, property);
 
-                var lambda = Expression.Lambda<Func<TObj, TProp>>(propertyAccess, param);
+                // FIX: Thêm conversion nếu cần thiết
+                Expression body = propertyAccess;
+                if (property.PropertyType != typeof(TProp))
+                {
+                    body = Expression.Convert(propertyAccess, typeof(TProp));
+                }
+
+                var lambda = Expression.Lambda<Func<T, TProp>>(body, param);
                 return lambda.Compile();
             }
             catch (Exception ex)
@@ -445,27 +454,29 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         }
 
         /// <summary>
-        /// Creates an optimized setter using expression trees with comprehensive validation.
+        /// Creates an optimized setter using expression trees.
         /// </summary>
-        /// <param name="property">The property to create a setter for.</param>
-        /// <returns>Compiled setter action.</returns>
-        private static Action<TObj, TProp> CreateOptimizedSetter(PropertyInfo property)
+        private static Action<T, TProp> CreateOptimizedSetter(PropertyInfo property)
         {
             if (!property.CanWrite)
                 throw new ArgumentException($"Property {property.Name} is not writable", nameof(property));
 
             try
             {
-                var objParam = Expression.Parameter(typeof(TObj), "obj");
+                var objParam = Expression.Parameter(typeof(T), "obj");
                 var valueParam = Expression.Parameter(typeof(TProp), "value");
 
-                var propertyAccess = Expression.Property(
-                    Expression.Convert(objParam, property.DeclaringType!),
-                    property
-                );
+                var propertyAccess = Expression.Property(objParam, property);
 
-                var assignment = Expression.Assign(propertyAccess, valueParam);
-                var lambda = Expression.Lambda<Action<TObj, TProp>>(assignment, objParam, valueParam);
+                // FIX: Thêm conversion nếu cần thiết
+                Expression valueExpression = valueParam;
+                if (typeof(TProp) != property.PropertyType)
+                {
+                    valueExpression = Expression.Convert(valueParam, property.PropertyType);
+                }
+
+                var assignment = Expression.Assign(propertyAccess, valueExpression);
+                var lambda = Expression.Lambda<Action<T, TProp>>(assignment, objParam, valueParam);
 
                 return lambda.Compile();
             }
@@ -481,7 +492,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         private void ThrowIfDisposed()
-            => ObjectDisposedException.ThrowIf(_disposed, nameof(PropertyAccessorImpl<TObj, TProp>));
+            => ObjectDisposedException.ThrowIf(_disposed, nameof(PropertyAccessorImpl<TProp>));
 
         #endregion Private Methods
 

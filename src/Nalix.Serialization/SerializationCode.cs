@@ -6,7 +6,7 @@ namespace Nalix.Serialization;
 /// Configuration options for serialization behavior.
 /// Implements the Strategy Pattern for flexible configuration.
 /// </summary>
-public sealed record SerializationOptions
+public sealed record SerializationCode
 {
     /// <summary>
     /// Whether to include type metadata for version compatibility.
@@ -31,7 +31,7 @@ public sealed record SerializationOptions
     /// <summary>
     /// Default serialization options.
     /// </summary>
-    public static SerializationOptions Default { get; } = new();
+    public static SerializationCode Default { get; } = new();
 
     /// <summary>
     /// Custom naming strategy for properties.

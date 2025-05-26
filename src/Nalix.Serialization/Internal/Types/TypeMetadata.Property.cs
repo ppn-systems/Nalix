@@ -52,7 +52,7 @@ internal static partial class TypeMetadata
         {
             SerializeLayout.Sequential => ProcessSequentialOptimized(allProps),
             SerializeLayout.Explicit => ProcessExplicitOptimized(allProps),
-            _ => Array.Empty<PropertyInfo>()
+            _ => []
         };
 
         Console.WriteLine($"\nSelected for serialization: {result.Length}");
@@ -85,19 +85,14 @@ internal static partial class TypeMetadata
             ref readonly var prop1 = ref allProps[i + 1];
             ref readonly var prop2 = ref allProps[i + 2];
             ref readonly var prop3 = ref allProps[i + 3];
-
-            if (IsValidPropertyFast(in prop0)) props.Add(prop0);
-            if (IsValidPropertyFast(in prop1)) props.Add(prop1);
-            if (IsValidPropertyFast(in prop2)) props.Add(prop2);
-            if (IsValidPropertyFast(in prop3)) props.Add(prop3);
         }
 
         // Handle remaining properties
         for (; i < length; i++)
         {
             ref readonly var prop = ref allProps[i];
-            if (IsValidPropertyFast(in prop))
-                props.Add(prop);
+
+            props.Add(prop);
         }
 
         return [.. props];
@@ -116,8 +111,6 @@ internal static partial class TypeMetadata
         // Single pass với early validation
         foreach (ref readonly var prop in allProps)
         {
-            if (!IsValidPropertyFast(in prop)) continue;
-
             // Cached attribute lookup
             var orderAttr = GetOrderAttributeFast(prop);
             if (orderAttr is not null)
@@ -139,17 +132,6 @@ internal static partial class TypeMetadata
         }
 
         return result;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidPropertyFast(ref readonly PropertyInfo prop)
-    {
-        // Branchless validation với bit operations
-        var canReadWrite = (prop.CanRead ? 1 : 0) | (prop.CanWrite ? 2 : 0);
-        if (canReadWrite != 3) return false;
-
-        // Fast attribute check với cached result
-        return GetIgnoreAttributeFast(prop) is null;
     }
 
     // Cached attribute accessors để tránh reflection overhead

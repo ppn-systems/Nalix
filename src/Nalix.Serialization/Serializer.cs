@@ -10,8 +10,17 @@ namespace Nalix.Serialization;
 /// </summary>
 public static class Serializer
 {
+    #region Constants
+
     private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes All =
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All;
+
+    // Magic numbers cho special cases
+    private static readonly byte[] NullArrayMarker = [255, 255, 255, 255];
+
+    private static readonly byte[] EmptyArrayMarker = [0, 0, 0, 0];
+
+    #endregion Constants
 
     /// <summary>
     /// Serializes an object into a byte array.
@@ -35,17 +44,52 @@ public static class Serializer
         }
 
         IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
-        TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-        DataWriter writer = new(size);
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
 
-        try
+        if (kind == TypeKind.None)
         {
-            formatter.Serialize(ref writer, value);
-            return writer.ToArray().ToArray();
+            throw new SerializationException($"Type {typeof(T).FullName} is not serializable.");
         }
-        finally
+        else if (kind == TypeKind.UnmanagedSZArray)
         {
-            writer.Clear();
+            if (value == null)
+            {
+                return NullArrayMarker;
+            }
+
+            System.Array srcArray = (System.Array)(object)value;
+            System.Int32 length = srcArray.Length;
+            if (length == 0) return EmptyArrayMarker;
+
+            System.Int32 dataSize = size * length;
+            System.Byte[] destArray = System.GC.AllocateUninitializedArray<byte>(dataSize + 4);
+            ref System.Byte head = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(destArray);
+
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref head, length);
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                ref System.Runtime.CompilerServices.Unsafe.Add(ref head, 4),
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(srcArray), (uint)dataSize);
+
+            return destArray;
+        }
+        else if (kind == TypeKind.FixedSizeSerializable)
+        {
+            DataWriter writer = new(size);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                return writer.ToArray().ToArray();
+            }
+            finally
+            {
+                writer.Clear();
+            }
+        }
+        else
+        {
+            throw new SerializationException($"Type {typeof(T).FullName} is not serializable.");
         }
     }
 
@@ -75,9 +119,51 @@ public static class Serializer
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
-        DataReader reader = new(buffer);
-        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
 
+        if (kind == TypeKind.UnmanagedSZArray)
+        {
+            if (buffer.Length >= 4 &&
+                buffer[0] == NullArrayMarker[0] && buffer[1] == NullArrayMarker[1] &&
+                buffer[2] == NullArrayMarker[2] && buffer[3] == NullArrayMarker[3])
+            {
+                value = default!;
+                return 4;
+            }
+
+            if (buffer.Length >= 4 &&
+                buffer[0] == EmptyArrayMarker[0] && buffer[1] == EmptyArrayMarker[1] &&
+                buffer[2] == EmptyArrayMarker[2] && buffer[3] == EmptyArrayMarker[3])
+            {
+                value = (T)(object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
+                return 4;
+            }
+
+            if (buffer.Length < 4)
+                throw new SerializationException("Buffer too small to contain array length.");
+
+            int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
+            int dataSize = size * length;
+
+            if (buffer.Length < dataSize + 4)
+                throw new SerializationException($"Expected {dataSize + 4} bytes, found {buffer.Length} bytes.");
+
+            System.Array arr = System.Array.CreateInstance(typeof(T).GetElementType()!, length);
+            ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
+
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                ref dest,
+                ref System.Runtime.CompilerServices.Unsafe.Add(
+                    ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4),
+                (uint)dataSize);
+
+            value = (T)(object)arr;
+            return dataSize + 4;
+        }
+
+        IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+        DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
         return reader.BytesRead;
     }

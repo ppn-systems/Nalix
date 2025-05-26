@@ -29,7 +29,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// <summary>
     /// Configuration options for serialization behavior.
     /// </summary>
-    private readonly SerializationOptions _options;
+    private readonly SerializationCode _options;
 
     /// <summary>
     /// Logger for diagnostic and error tracking.
@@ -53,7 +53,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// <summary>
     /// Initializes a new instance of <see cref="StructFormatter{T}"/> with default options.
     /// </summary>
-    public StructFormatter() : this(SerializationOptions.Default, null) { }
+    public StructFormatter() : this(SerializationCode.Default, null) { }
 
     /// <summary>
     /// Initializes a new instance of <see cref="StructFormatter{T}"/> with custom options.
@@ -61,7 +61,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// <param name="options">Serialization configuration options.</param>
     /// <param name="logger">Optional logger for diagnostics.</param>
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
-    public StructFormatter(SerializationOptions options, ILogger logger = null)
+    public StructFormatter(SerializationCode options, ILogger logger = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger;
@@ -110,7 +110,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         catch (Exception ex) when (ex is not SerializationException)
         {
             var serializationEx = new SerializationException($"Failed to serialize struct of type {typeof(T).Name}", ex);
-            _logger?.Error("Serialization failed for struct type {0}:{1}", typeof(T).Name, serializationEx);
+            _logger?.Error("Serialization failed for struct type {0}: {1}", typeof(T).Name, serializationEx.Message);
             throw serializationEx;
         }
     }
@@ -147,7 +147,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         catch (Exception ex) when (ex is not SerializationException)
         {
             var serializationEx = new SerializationException($"Failed to deserialize struct of type {typeof(T).Name}", ex);
-            _logger?.Error("Deserialization failed for struct type {0}:{1}", typeof(T).Name, serializationEx);
+            _logger?.Error("Deserialization failed for struct type {0}: {1}", typeof(T).Name, serializationEx.Message);
             throw serializationEx;
         }
     }
@@ -182,7 +182,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
                 if (_options.FailOnPropertyErrors)
                     throw;
 
-                _logger?.Warn("Skipping property {0} due to error {1}", property.Name, ex);
+                _logger?.Warn("Skipping property {0} due to error: {1}", property.Name, ex.Message);
             }
         }
 
@@ -208,10 +208,28 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     {
         if (_disposed) return;
 
-        ActivitySource.Dispose();
-        _disposed = true;
+        try
+        {
+            // Dispose property accessors if they implement IDisposable
+            for (int i = 0; i < _accessors.Length; i++)
+            {
+                if (_accessors[i] is IDisposable disposableAccessor)
+                {
+                    disposableAccessor.Dispose();
+                }
+            }
 
-        _logger?.Debug("StructFormatter<{0}> disposed", typeof(T).Name);
+            ActivitySource.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger?.Warn("Error during StructFormatter disposal: {0}", ex.Message);
+        }
+        finally
+        {
+            _disposed = true;
+            _logger?.Debug("StructFormatter<{0}> disposed", typeof(T).Name);
+        }
     }
 
     #endregion IDisposable Implementation
@@ -252,15 +270,40 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         /// <param name="options">Serialization options.</param>
         /// <returns>A specialized property accessor.</returns>
         /// <exception cref="ArgumentNullException">Thrown when property or options is null.</exception>
-        public static PropertyAccessor Create(PropertyInfo property, SerializationOptions options)
+        /// <exception cref="SerializationException">Thrown when accessor creation fails.</exception>
+        public static PropertyAccessor Create(PropertyInfo property, SerializationCode options)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
 
-            var accessorType = typeof(PropertyAccessorImpl<>)
-                .MakeGenericType(property.PropertyType);
+            try
+            {
+                // Sử dụng reflection để gọi generic method helper
+                var createMethod = typeof(PropertyAccessor)
+                    .GetMethod(nameof(CreateGeneric), BindingFlags.NonPublic | BindingFlags.Static);
 
-            return (PropertyAccessor)Activator.CreateInstance(accessorType, property, options)!;
+                if (createMethod is null)
+                {
+                    throw new InvalidOperationException("CreateGeneric method not found");
+                }
+
+                var genericMethod = createMethod.MakeGenericMethod(property.PropertyType);
+                var result = genericMethod.Invoke(null, [property, options]);
+
+                return (PropertyAccessor)result!;
+            }
+            catch (Exception ex)
+            {
+                throw new SerializationException($"Failed to create struct accessor for property {property.Name}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Generic helper method để tạo PropertyAccessorImpl
+        /// </summary>
+        private static PropertyAccessor CreateGeneric<TProp>(PropertyInfo property, SerializationCode options)
+        {
+            return new PropertyAccessorImpl<TProp>(property, options);
         }
     }
 
@@ -277,7 +320,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         private readonly Func<T, TProp> _getter;
         private readonly StructSetter _setter;
         private readonly IFormatter<TProp> _formatter;
-        private readonly SerializationOptions _options;
+        private readonly SerializationCode _options;
         private bool _disposed;
 
         #endregion Fields
@@ -309,7 +352,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         /// </summary>
         /// <param name="property">The property information.</param>
         /// <param name="options">Serialization options.</param>
-        public PropertyAccessorImpl(PropertyInfo property, SerializationOptions options)
+        public PropertyAccessorImpl(PropertyInfo property, SerializationCode options)
         {
             ArgumentNullException.ThrowIfNull(property, nameof(property));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
@@ -398,7 +441,14 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
                 var param = Expression.Parameter(typeof(T), "obj");
                 var propertyAccess = Expression.Property(param, property);
 
-                var lambda = Expression.Lambda<Func<T, TProp>>(propertyAccess, param);
+                // Handle type conversion if necessary
+                Expression body = propertyAccess;
+                if (property.PropertyType != typeof(TProp))
+                {
+                    body = Expression.Convert(propertyAccess, typeof(TProp));
+                }
+
+                var lambda = Expression.Lambda<Func<T, TProp>>(body, param);
                 return lambda.Compile();
             }
             catch (Exception ex)
@@ -423,9 +473,17 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
                 var valueParam = Expression.Parameter(typeof(TProp), "value");
 
                 var propertyAccess = Expression.Property(objParam, property);
-                var assignment = Expression.Assign(propertyAccess, valueParam);
 
+                // Handle type conversion if necessary
+                Expression valueExpression = valueParam;
+                if (typeof(TProp) != property.PropertyType)
+                {
+                    valueExpression = Expression.Convert(valueParam, property.PropertyType);
+                }
+
+                var assignment = Expression.Assign(propertyAccess, valueExpression);
                 var lambda = Expression.Lambda<StructSetter>(assignment, objParam, valueParam);
+
                 return lambda.Compile();
             }
             catch (Exception ex)
@@ -451,7 +509,20 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         /// </summary>
         public void Dispose()
         {
-            _disposed = true;
+            if (_disposed) return;
+
+            try
+            {
+                // Dispose formatter if it implements IDisposable
+                if (_formatter is IDisposable disposableFormatter)
+                {
+                    disposableFormatter.Dispose();
+                }
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
 
         #endregion IDisposable Implementation

@@ -7,7 +7,7 @@ internal static partial class TypeMetadata
 {
     private const System.Reflection.BindingFlags Flags =
         System.Reflection.BindingFlags.Public |
-        System.Reflection.BindingFlags.Static |
+        System.Reflection.BindingFlags.Instance |
         System.Reflection.BindingFlags.NonPublic |
         System.Reflection.BindingFlags.FlattenHierarchy;
 
@@ -47,7 +47,8 @@ internal static partial class TypeMetadata
                     if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                     {
                         System.Reflection.PropertyInfo prop = type.GetProperty(
-                            nameof(IFixedSizeSerializable.Size), Flags
+                            nameof(IFixedSizeSerializable.Size),
+                            System.Reflection.BindingFlags.Static | Flags
                         );
 
                         if (prop != null)
