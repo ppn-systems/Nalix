@@ -448,6 +448,11 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     LOCAL_POLICY = 503,
 
+    /// <summary>
+    /// Compression failed (e.g., invalid compressed data).
+    /// </summary>
+    COMPRESSION_FAILED = 504,
+
     #endregion
 
     #region 550–599: Session / Time / Clock
