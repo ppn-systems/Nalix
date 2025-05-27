@@ -61,12 +61,12 @@ public class ParallaxBackground(Vector2u viewport)
 
     private class Layer
     {
-        public IntRect Rect { get; }
+        public IntRect Rect;
         public Sprite Sprite { get; }
         public Texture Texture { get; }
 
         public System.Single Speed { get; }
-        public System.Single Offset { get; }
+        public System.Single Offset { get; set; }
 
         public Layer(
             Vector2u viewport, Texture texture,

@@ -26,7 +26,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// <summary>
     /// Logger instance for tracking serialization diagnostics.
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger _logger = null!;
 
     /// <summary>
     /// Activity tracking source for tracing serialization operations.
