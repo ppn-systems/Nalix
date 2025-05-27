@@ -31,12 +31,14 @@ public static class Serializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
-    public static byte[] Serialize<[
+    public static System.Byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
+        System.ArgumentNullException.ThrowIfNull(value, nameof(value));
+
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
-            byte[] array = System.GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
+            System.Byte[] array = System.GC.AllocateUninitializedArray<System.Byte>(TypeMetadata.SizeOf<T>());
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
 
@@ -44,9 +46,7 @@ public static class Serializer
         }
 
         IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-
-        System.Console.WriteLine($"Serializing type {typeof(T).FullName} with kind {kind}");
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
         if (kind == TypeKind.None)
         {
@@ -70,7 +70,7 @@ public static class Serializer
                 return NullArrayMarker;
             }
 
-            System.Array srcArray = (System.Array)(object)value;
+            System.Array srcArray = (System.Array)(System.Object)value;
             System.Int32 length = srcArray.Length;
             if (length == 0) return EmptyArrayMarker;
 
@@ -86,21 +86,6 @@ public static class Serializer
             return destArray;
         }
         else if (kind == TypeKind.FixedSizeSerializable)
-        {
-            DataWriter writer = new(size);
-
-            try
-            {
-                formatter.Serialize(ref writer, value);
-
-                return writer.ToArray();
-            }
-            finally
-            {
-                writer.Clear();
-            }
-        }
-        else if (kind == TypeKind.CompositeSerializable)
         {
             DataWriter writer = new(size);
 
@@ -131,10 +116,13 @@ public static class Serializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
-    public static int Deserialize<[
+    public static System.Int32 Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        System.ReadOnlySpan<byte> buffer, ref T value)
+        System.ReadOnlySpan<System.Byte> buffer, ref T value)
     {
+        if (buffer.IsEmpty)
+            throw new System.ArgumentException("Buffer cannot be empty", nameof(buffer));
+
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
@@ -148,8 +136,6 @@ public static class Serializer
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-
-        System.Console.WriteLine($"Deserializing type {typeof(T).FullName} with kind {kind}");
 
         if (kind == TypeKind.UnmanagedSZArray)
         {
@@ -165,30 +151,29 @@ public static class Serializer
                 buffer[0] == EmptyArrayMarker[0] && buffer[1] == EmptyArrayMarker[1] &&
                 buffer[2] == EmptyArrayMarker[2] && buffer[3] == EmptyArrayMarker[3])
             {
-                value = (T)(object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
+                value = (T)(System.Object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
                 return 4;
             }
 
             if (buffer.Length < 4)
                 throw new SerializationException("Buffer too small to contain array length.");
 
-            int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
+            System.Int32 length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int32>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
-            int dataSize = size * length;
 
+            System.Int32 dataSize = size * length;
             if (buffer.Length < dataSize + 4)
                 throw new SerializationException($"Expected {dataSize + 4} bytes, found {buffer.Length} bytes.");
 
             System.Array arr = System.Array.CreateInstance(typeof(T).GetElementType()!, length);
-            ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
+            ref System.Byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
 
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                 ref dest,
                 ref System.Runtime.CompilerServices.Unsafe.Add(
-                    ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4),
-                (uint)dataSize);
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4), (System.UInt32)dataSize);
 
-            value = (T)(object)arr;
+            value = (T)(System.Object)arr;
             return dataSize + 4;
         }
 

@@ -62,17 +62,12 @@ internal static partial class TypeMetadata
             size = Cache<T>.UnmanagedSZArrayElementSize;
             return TypeKind.UnmanagedSZArray;
         }
-        else if (Cache<T>.IsFixedSizeSerializable)
-        {
-            size = Cache<T>.SerializableFixedSize;
-            return TypeKind.FixedSizeSerializable;
-        }
         else
         {
-            if (Cache<T>.IsCompositeSerializable)
+            if (Cache<T>.IsFixedSizeSerializable)
             {
-                size = Cache<T>.CompositeSerializableSize;
-                return TypeKind.CompositeSerializable;
+                size = Cache<T>.SerializableFixedSize;
+                return TypeKind.FixedSizeSerializable;
             }
         }
 

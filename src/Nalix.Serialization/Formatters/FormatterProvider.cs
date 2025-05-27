@@ -1,4 +1,4 @@
-using Nalix.Serialization.Automatic;
+using Nalix.Serialization.Formatters.Automatic;
 using Nalix.Serialization.Formatters.Cache;
 using Nalix.Serialization.Formatters.Collections;
 using Nalix.Serialization.Formatters.Primitives;
@@ -149,7 +149,7 @@ public static class FormatterProvider
             formatter = ComplexTypeCache<T>.Struct;
             if (formatter != null) return formatter;
 
-            dynamic @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
+            object @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
                                               .MakeGenericType(type));
 
             RegisterComplex<T>((IFormatter<T>)@struct);
@@ -160,7 +160,7 @@ public static class FormatterProvider
             formatter = ComplexTypeCache<T>.Class;
             if (formatter != null) return formatter;
 
-            dynamic @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
+            object @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
                                               .MakeGenericType(type));
 
             RegisterComplex<T>((IFormatter<T>)@object);

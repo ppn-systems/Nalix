@@ -1,14 +1,13 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Serialization.Buffers;
-using Nalix.Serialization.Formatters;
 using Nalix.Serialization.Internal.Accessors;
 using Nalix.Serialization.Internal.Reflection;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Serialization.Automatic;
+namespace Nalix.Serialization.Formatters.Automatic;
 
 /// <summary>
 /// Optimized field-based serializer eliminating boxing for maximum performance.
@@ -46,14 +45,11 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
     /// </summary>
-    /// <param name="logger">Optional logger for diagnostic purposes.</param>
     /// <exception cref="SerializationException">
     /// Thrown if initialization of property accessors fails.
     /// </exception>
-    public ObjectFormatter(ILogger logger = null)
+    public ObjectFormatter()
     {
-        _logger = logger;
-
         try
         {
             _accessors = CreateAccessors();

@@ -47,25 +47,20 @@ internal static partial class TypeMetadata
                         UnmanagedSZArrayElementSize = UnsafeSizeOf(elementType);
                     }
                 }
-                else if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
-                {
-                    System.Reflection.PropertyInfo prop = type.GetProperty(
-                        nameof(IFixedSizeSerializable.Size),
-                        System.Reflection.BindingFlags.Static | Flags
-                    );
-
-                    if (prop != null)
-                    {
-                        IsFixedSizeSerializable = true;
-                        SerializableFixedSize = (int)prop.GetValue(null)!;
-                    }
-                }
                 else
                 {
-                    if (type.IsClass || type.IsValueType)
+                    if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                     {
-                        IsCompositeSerializable = true;
-                        CompositeSerializableSize = CalculateCompositeTypeInfo<T>();
+                        System.Reflection.PropertyInfo prop = type.GetProperty(
+                            nameof(IFixedSizeSerializable.Size),
+                            System.Reflection.BindingFlags.Static | Flags
+                        );
+
+                        if (prop != null)
+                        {
+                            IsFixedSizeSerializable = true;
+                            SerializableFixedSize = (int)prop.GetValue(null)!;
+                        }
                     }
                 }
             }

@@ -19,9 +19,4 @@ internal enum TypeKind : byte
     /// Represents a fixed-size serializable type.
     /// </summary>
     FixedSizeSerializable = 2,
-
-    /// <summary>
-    /// Represents a composite serializable type, which may include nested types or complex structures.
-    /// </summary>
-    CompositeSerializable = 3
 }

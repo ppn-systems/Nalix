@@ -54,6 +54,7 @@ public class Class1
             set => _id = value;
         }
 
+        [SerializeDynamicSize(200)]
         public string Name
         {
             readonly get => _name;
@@ -65,6 +66,10 @@ public class Class1
             readonly get => _floatValue;
             set => _floatValue = value;
         }
+
+        public TestClass2() : this(0, null!, 0)
+        {
+        }
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
@@ -72,7 +77,7 @@ public class Class1
     {
         public int Id { get; set; }
 
-        public uint IDD { get; set; }
+        public int IDD { get; set; }
     }
 
     public static void Main()
@@ -84,46 +89,57 @@ public class Class1
 
     public static void Test1()
     {
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
         // Test serialization
-        var obj = new TestClass2(123, "Hello", 3.14);
+        var obj = new TestClass(123, "Hello", EnumT.Value3);
         byte[] data = Serializer.Serialize(obj);
+        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.enumT}");
 
-        var objn = new TestClass2();
+        var objn = new TestClass();
         Serializer.Deserialize(data, ref objn);
+        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.enumT}");
 
-        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, F={obj.FloatValue}");
-        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, F={obj.FloatValue}");
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
     }
 
     public static void Test2()
     {
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
+
         // Test serialization
-        var obj = new TestClass(123, "Hello", EnumT.Value3);
+        var obj = new TestClass2(123, "Hello", 3.14);
         byte[] data = Serializer.Serialize(obj);
+        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, F={obj.FloatValue}");
 
-        Console.WriteLine($"L={data.Length},D={BitConverter.ToString(data)}");
-
-        var objn = new TestClass();
+        var objn = new TestClass2();
         Serializer.Deserialize(data, ref objn);
+        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, F={obj.FloatValue}");
 
-        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.enumT}");
-        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.enumT}");
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
     }
 
     public static void Test3()
     {
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
+
         var obj = new TestClass3()
         {
             Id = 123,
             IDD = 456
         };
-
         byte[] data = Serializer.Serialize(obj);
-        Console.WriteLine($"L={data.Length},D={BitConverter.ToString(data)}");
+        Console.WriteLine($"Serialized: Id={obj.Id}, IDD={obj.IDD}");
+
         var objn = new TestClass3();
         Serializer.Deserialize(data, ref objn);
-
-        Console.WriteLine($"Serialized: Id={obj.Id}, IDD={obj.IDD}");
         Console.WriteLine($"Deserialized: Id={objn.Id}, IDD={objn.IDD}");
+
+        Console.WriteLine("");
+        Console.WriteLine("========================================");
     }
 }
