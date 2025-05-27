@@ -23,7 +23,7 @@ public class Class1
 
         public string Name { get; set; }
 
-        public EnumT enumT { get; set; }
+        public EnumT EnumT { get; set; }
 
         public static int Size => sizeof(int) + MaxStringLenght;
 
@@ -35,7 +35,7 @@ public class Class1
         {
             Id = id;
             Name = name;
-            this.enumT = enumT;
+            EnumT = enumT;
         }
     }
 
@@ -93,12 +93,12 @@ public class Class1
         Console.WriteLine("========================================");
         // Test serialization
         var obj = new TestClass(123, "Hello", EnumT.Value3);
-        byte[] data = Serializer.Serialize(obj);
-        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.enumT}");
+        byte[] data = BitSerializer.Serialize(obj);
+        Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.EnumT}");
 
         var objn = new TestClass();
-        Serializer.Deserialize(data, ref objn);
-        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.enumT}");
+        BitSerializer.Deserialize(data, ref objn);
+        Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.EnumT}");
 
         Console.WriteLine("");
         Console.WriteLine("========================================");
@@ -111,11 +111,11 @@ public class Class1
 
         // Test serialization
         var obj = new TestClass2(123, "Hello", 3.14);
-        byte[] data = Serializer.Serialize(obj);
+        byte[] data = BitSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, F={obj.FloatValue}");
 
         var objn = new TestClass2();
-        Serializer.Deserialize(data, ref objn);
+        BitSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, F={obj.FloatValue}");
 
         Console.WriteLine("");
@@ -132,11 +132,11 @@ public class Class1
             Id = 123,
             IDD = 456
         };
-        byte[] data = Serializer.Serialize(obj);
+        byte[] data = BitSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, IDD={obj.IDD}");
 
         var objn = new TestClass3();
-        Serializer.Deserialize(data, ref objn);
+        BitSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, IDD={objn.IDD}");
 
         Console.WriteLine("");
