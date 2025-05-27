@@ -3,8 +3,6 @@ using Nalix.Common.Logging;
 using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Internal.Accessors;
 using Nalix.Serialization.Internal.Reflection;
-using System;
-using System.Diagnostics;
 
 namespace Nalix.Serialization.Formatters.Automatic;
 
@@ -13,7 +11,7 @@ namespace Nalix.Serialization.Formatters.Automatic;
 /// Implements SOLID principles with Domain-Driven Design patterns.
 /// </summary>
 /// <typeparam name="T">The type to serialize.</typeparam>
-public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : class, new()
+public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where T : class, new()
 {
     #region Core Fields
 
@@ -30,7 +28,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Activity tracking source for tracing serialization operations.
     /// </summary>
-    private static readonly ActivitySource _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
+    private static readonly System.Diagnostics.ActivitySource _activitySource;
 
     /// <summary>
     /// Indicates whether the formatter has been disposed.
@@ -40,6 +38,11 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     #endregion Core Fields
 
     #region Constructors
+
+    static ObjectFormatter()
+    {
+        _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
+    }
 
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
@@ -55,7 +58,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
             _logger?.Info("ObjectFormatter<{Type}> initialized: {Count} fields, {Layout} layout",
                 typeof(T).Name, _accessors.Length, FieldCache<T>.GetLayout());
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger?.Error("Failed to initialize ObjectFormatter<{Type}>: {Error}", typeof(T).Name, ex.Message);
             throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
@@ -78,8 +81,8 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        ArgumentNullException.ThrowIfNull(value);
+        System.ArgumentNullException.ThrowIfNull(value);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         using var activity = _activitySource.StartActivity($"Serialize.{typeof(T).Name}");
 
@@ -90,7 +93,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
                 _accessors[i].Serialize(ref writer, value);
             }
         }
-        catch (Exception ex) when (ex is not SerializationException)
+        catch (System.Exception ex) when (ex is not SerializationException)
         {
             throw new SerializationException($"Serialization failed for {typeof(T).Name}", ex);
         }
@@ -108,13 +111,13 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         using var activity = _activitySource.StartActivity($"Deserialize.{typeof(T).Name}");
 
         try
         {
-            var obj = Activator.CreateInstance<T>();
+            var obj = System.Activator.CreateInstance<T>();
 
             for (int i = 0; i < _accessors.Length; i++)
             {
@@ -123,7 +126,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
 
             return obj;
         }
-        catch (Exception ex) when (ex is not SerializationException)
+        catch (System.Exception ex) when (ex is not SerializationException)
         {
             throw new SerializationException($"Deserialization failed for {typeof(T).Name}", ex);
         }
@@ -141,7 +144,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private FieldAccessor<T>[] CreateAccessors()
     {
-        ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
+        System.ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
         if (fields.Length is 0) return [];
 
         var accessors = new FieldAccessor<T>[fields.Length];
@@ -152,7 +155,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
             {
                 accessors[i] = FieldAccessor<T>.Create(fields[i], i);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Warn("Skipping field {Field}: {Error}", fields[i].Name, ex.Message);
                 throw;

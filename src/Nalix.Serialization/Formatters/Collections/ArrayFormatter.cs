@@ -21,26 +21,26 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         {
             // Convention: -1 indicates a null array
             FormatterProvider
-                .Get<ushort>()
+                .Get<System.UInt16>()
                 .Serialize(ref writer, SerializationLimits.Null);
 
             return;
         }
 
         FormatterProvider
-            .Get<ushort>()
-            .Serialize(ref writer, unchecked((ushort)value.Length));
+            .Get<System.UInt16>()
+            .Serialize(ref writer, unchecked((System.UInt16)value.Length));
 
         if (value.Length == 0) return;
 
-        int totalBytes = value.Length * TypeMetadata.SizeOf<T>();
+        System.Int32 totalBytes = value.Length * TypeMetadata.SizeOf<T>();
 
         writer.Expand(totalBytes);
-        var span = writer.GetSpan(totalBytes);
+        System.Span<System.Byte> span = writer.GetSpan(totalBytes);
 
         // Copy block memory
         fixed (T* src = value)
-        fixed (byte* dst = span)
+        fixed (System.Byte* dst = span)
         {
             System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
         }
@@ -55,8 +55,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
     public unsafe T[] Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider
-            .Get<ushort>()
+        System.UInt16 length = FormatterProvider
+            .Get<System.UInt16>()
             .Deserialize(ref reader);
 
         if (length == 0) return [];
@@ -64,11 +64,11 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         if (length > SerializationLimits.MaxArray)
             throw new SerializationException("Array length out of range");
 
-        int total = length * TypeMetadata.SizeOf<T>();
-        System.ReadOnlySpan<byte> span = reader.GetSpan(total);
+        System.Int32 total = length * TypeMetadata.SizeOf<T>();
+        System.ReadOnlySpan<System.Byte> span = reader.GetSpan(total);
         T[] result = new T[length];
 
-        fixed (byte* src = span)
+        fixed (System.Byte* src = span)
         fixed (T* dst = result)
         {
             System.Buffer.MemoryCopy(src, dst, total, total);
