@@ -11,45 +11,45 @@ public sealed class GraphicsConfig : ConfigurationLoader
     /// <summary>
     /// Gets the frame limit for the application. Default value is 60.
     /// </summary>
-    public uint FrameLimit { get; init; } = 60;
+    public System.UInt32 FrameLimit { get; init; } = 60;
 
     /// <summary>
     /// Music volume from 0 (mute) to 100
     /// </summary>
-    public float MusicVolume { get; init; } = 50;
+    public System.Single MusicVolume { get; init; } = 50;
 
     /// <summary>
     /// Sound volume from 0 (mute) to 100
     /// </summary>
-    public float SoundVolume { get; init; } = 100;
+    public System.Single SoundVolume { get; init; } = 100;
 
     /// <summary>
     /// Gets the width of the screen. Default value is 1280.
     /// </summary>
-    public uint ScreenWidth { get; init; } = 1280;
+    public System.UInt32 ScreenWidth { get; init; } = 1280;
 
     /// <summary>
     /// Gets the height of the screen. Default value is 720.
     /// </summary>
-    public uint ScreenHeight { get; init; } = 720;
+    public System.UInt32 ScreenHeight { get; init; } = 720;
 
     /// <summary>
     /// Gets the title of the application. Default value is "Nalix".
     /// </summary>
-    public string Title { get; init; } = "Nalix";
+    public System.String Title { get; init; } = "Nalix";
 
     /// <summary>
     /// Gets the name of the main scene to be loaded. Default value is "main".
     /// </summary>
-    public string MainScene { get; init; } = "main";
+    public System.String MainScene { get; init; } = "main";
 
     /// <summary>
     /// Gets the namespace where scenes are located. Default value is "Scenes".
     /// </summary>
-    public string ScenesNamespace { get; init; } = "Scenes";
+    public System.String ScenesNamespace { get; init; } = "Scenes";
 
     /// <summary>
     /// Gets the base path for assets. Default value is <see cref="Directories.BasePath"/>.
     /// </summary>
-    public string AssetPath { get; init; } = Directories.BasePath;
+    public System.String AssetPath { get; init; } = Directories.BasePath;
 }

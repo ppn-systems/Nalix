@@ -18,17 +18,18 @@ public static class GameEngine
     /// <summary>
     /// Indicates whether debugging mode is enabled.
     /// </summary>
-    public static bool Debugging { get; private set; }
+    public static System.Boolean Debugging { get; private set; }
+
+    /// <summary>
+    /// Gets the dimensions (width and height) of the screen or viewport,
+    /// used to set the screen size for rendering purposes.
+    /// </summary>
+    public static Vector2u ScreenSize { get; private set; }
 
     /// <summary>
     /// Provides access to the assembly configuration.
     /// </summary>
     public static GraphicsConfig GraphicsConfig { get; private set; }
-
-    /// <summary>
-    /// Gets the dimensions (width and height) of the screen or viewport, used to set the screen size for rendering purposes.
-    /// </summary>
-    public static Vector2u ScreenSize { get; private set; }
 
     /// <summary>
     /// Static constructor to initialize the game configuration and window.
@@ -52,7 +53,7 @@ public static class GameEngine
     /// <param name="on">Set to true to enable debug mode, false to disable it.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetDebugMode(bool on) => Debugging = on;
+    public static void SetDebugMode(System.Boolean on) => Debugging = on;
 
     /// <summary>
     /// Opens the game window and starts the main game loop.
@@ -85,9 +86,9 @@ public static class GameEngine
     /// <param name="deltaTime">Time elapsed since the last update, in seconds.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Update(float deltaTime)
+    private static void Update(System.Single deltaTime)
     {
-        Input.Update(_window);
+        InputState.Update(_window);
         SceneManager.ProcessLoadScene();
         SceneManager.ProcessDestroyQueue();
         SceneManager.ProcessSpawnQueue();

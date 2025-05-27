@@ -1,40 +1,46 @@
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
-using System;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics;
 
 /// <summary>
-/// The Input class provides functionality for handling keyboard and mouse input using SFML.Window.
+/// The InputState class provides functionality for handling keyboard and mouse input using SFML.Window.
 /// </summary>
-public class Input
+public class InputState
 {
     /// <summary>
     /// ScreenSize dictionary that stores the current state of each keyboard key.
     /// </summary>
-    private static readonly Dictionary<Keyboard.Key, bool> KeyState = [];
+    private static readonly System.Collections.Generic.Dictionary<Keyboard.Key, System.Boolean> KeyState;
 
     /// <summary>
     /// ScreenSize dictionary that stores the previous state of each keyboard key.
     /// </summary>
-    private static readonly Dictionary<Keyboard.Key, bool> PreviousKeyState = [];
+    private static readonly System.Collections.Generic.Dictionary<Keyboard.Key, System.Boolean> PreviousKeyState;
 
     /// <summary>
     /// ScreenSize dictionary that stores the current state of each mouse button.
     /// </summary>
-    private static readonly Dictionary<Mouse.Button, bool> MouseButtonState = [];
+    private static readonly System.Collections.Generic.Dictionary<Mouse.Button, System.Boolean> MouseButtonState;
 
     /// <summary>
     /// ScreenSize dictionary that stores the previous state of each mouse button.
     /// </summary>
-    private static readonly Dictionary<Mouse.Button, bool> PreviousMouseButtonState = [];
+    private static readonly System.Collections.Generic.Dictionary<Mouse.Button, System.Boolean> PreviousMouseButtonState;
 
     /// <summary>
     /// ScreenSize tuple that stores the current position of the mouse (X, Y).
     /// </summary>
     private static Vector2i _mousePosition;
+
+    static InputState()
+    {
+        KeyState = [];
+        PreviousKeyState = [];
+        MouseButtonState = [];
+        PreviousMouseButtonState = [];
+    }
 
     /// <summary>
     /// Updates the state of all keys and the mouse position. Should be called once per frame.
@@ -44,16 +50,16 @@ public class Input
     public static void Update(RenderWindow window)
     {
         // Update the state of each key
-        foreach (Keyboard.Key key in Enum.GetValues<Keyboard.Key>())
+        foreach (Keyboard.Key key in System.Enum.GetValues<Keyboard.Key>())
         {
-            PreviousKeyState[key] = KeyState.TryGetValue(key, out bool value) && value;
+            PreviousKeyState[key] = KeyState.TryGetValue(key, out System.Boolean value) && value;
             KeyState[key] = Keyboard.IsKeyPressed(key);
         }
 
         // Update mouse button states
-        foreach (Mouse.Button button in Enum.GetValues<Mouse.Button>())
+        foreach (Mouse.Button button in System.Enum.GetValues<Mouse.Button>())
         {
-            PreviousMouseButtonState[button] = MouseButtonState.TryGetValue(button, out bool value) && value;
+            PreviousMouseButtonState[button] = MouseButtonState.TryGetValue(button, out System.Boolean value) && value;
             MouseButtonState[button] = Mouse.IsButtonPressed(button);
         }
 
@@ -70,7 +76,8 @@ public class Input
     /// <returns>True if the key is currently down; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsKeyDown(Keyboard.Key key) => KeyState.ContainsKey(key) && KeyState[key];
+    public static System.Boolean IsKeyDown(Keyboard.Key key)
+        => KeyState.ContainsKey(key) && KeyState[key];
 
     /// <summary>
     /// Checks if a key is currently not being pressed.
@@ -79,7 +86,8 @@ public class Input
     /// <returns>True if the key is currently up; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsKeyUp(Keyboard.Key key) => !KeyState.ContainsKey(key) || !KeyState[key];
+    public static System.Boolean IsKeyUp(Keyboard.Key key)
+        => !KeyState.ContainsKey(key) || !KeyState[key];
 
     /// <summary>
     /// Checks if a key was pressed for the first time this frame.
@@ -88,7 +96,8 @@ public class Input
     /// <returns>True if the key was pressed this frame; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsKeyPressed(Keyboard.Key key) => IsKeyDown(key) && !PreviousKeyState.ContainsKey(key);
+    public static System.Boolean IsKeyPressed(Keyboard.Key key)
+        => IsKeyDown(key) && !PreviousKeyState.ContainsKey(key);
 
     /// <summary>
     /// Checks if a key was released for the first time this frame.
@@ -97,7 +106,8 @@ public class Input
     /// <returns>True if the key was released this frame; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsKeyReleased(Keyboard.Key key) => !IsKeyDown(key) && PreviousKeyState.ContainsKey(key);
+    public static System.Boolean IsKeyReleased(Keyboard.Key key)
+        => !IsKeyDown(key) && PreviousKeyState.ContainsKey(key);
 
     #endregion Keyboard
 
@@ -118,7 +128,7 @@ public class Input
     /// <returns>True if the mouse button is currently down; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsMouseButtonDown(Mouse.Button button)
+    public static System.Boolean IsMouseButtonDown(Mouse.Button button)
         => MouseButtonState.ContainsKey(button) && MouseButtonState[button];
 
     /// <summary>
@@ -131,7 +141,7 @@ public class Input
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsMouseButtonPressed(Mouse.Button button)
+    public static System.Boolean IsMouseButtonPressed(Mouse.Button button)
         => IsMouseButtonDown(button) &&
            (!PreviousMouseButtonState.ContainsKey(button) ||
            !PreviousMouseButtonState[button]);
@@ -146,7 +156,7 @@ public class Input
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsMouseButtonReleased(Mouse.Button button)
+    public static System.Boolean IsMouseButtonReleased(Mouse.Button button)
         => !IsMouseButtonDown(button) &&
            PreviousMouseButtonState.ContainsKey(button) &&
            PreviousMouseButtonState[button];
@@ -157,7 +167,7 @@ public class Input
     /// <returns>ScreenSize tuple containing the X and Y position of the mouse.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static (float X, float Y) GetMousePositionTuple() => new(_mousePosition.X, _mousePosition.Y);
+    public static (System.Single X, System.Single Y) GetMousePositionTuple() => new(_mousePosition.X, _mousePosition.Y);
 
     #endregion Mouse
 }

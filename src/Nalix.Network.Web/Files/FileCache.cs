@@ -1,5 +1,4 @@
 using Nalix.Network.Web.Internal;
-using Nalix.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

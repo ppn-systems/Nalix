@@ -1,10 +1,5 @@
 using Nalix.Logging.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 
 namespace Nalix.Graphics.Assets;
 
@@ -12,43 +7,47 @@ namespace Nalix.Graphics.Assets;
 /// Asset management class. Handles loading/unloading of assets located in a specified root folder.
 /// Multiple instances of the AssetManager class can be used to simplify asset memory management.
 /// </summary>
-public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>
-    : IDisposable where T : class, IDisposable
+public abstract class AssetLoader<[
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] T>
+    : System.IDisposable where T : class, System.IDisposable
 {
     /// <summary>
     /// List of supported file endings for this AssetLoader
     /// </summary>
-    protected string[] _FileEndings;
+    protected System.String[] _FileEndings;
 
     /// <summary>
     /// Dictionary of loaded assets, where the key is the asset name and the value is the asset instance.
     /// </summary>
-    protected Dictionary<string, T> _Assets = [];
+    protected System.Collections.Generic.Dictionary<System.String, T> _Assets = [];
 
     /// <summary>
     /// List of supported file endings for this AssetLoader
     /// </summary>
-    public IEnumerable<string> FileEndings => _FileEndings;
+    public System.Collections.Generic.IEnumerable<System.String> FileEndings => _FileEndings;
 
     /// <summary>
     /// The root folder where assets are located.
     /// </summary>
-    public string RootFolder { get; set; }
+    public System.String RootFolder { get; set; }
 
     /// <summary>
     /// Indicates whether the asset loader should log debug information.
     /// </summary>
-    public bool Debug { get; set; }
+    public System.Boolean Debug { get; set; }
 
     /// <summary>
     /// Indicates whether the asset loader has been disposed.
     /// </summary>
-    public bool Disposed { get; private set; }
+    public System.Boolean Disposed { get; private set; }
 
-    internal AssetLoader(IEnumerable<string> supportedFileEndings, string assetRoot = "")
+    internal AssetLoader(
+        System.Collections.Generic.IEnumerable<System.String> supportedFileEndings,
+        System.String assetRoot = "")
     {
         RootFolder = assetRoot;
-        _FileEndings = [.. new[] { string.Empty }.Concat(supportedFileEndings).Distinct()];
+        _FileEndings = [.. new[] { System.String.Empty }.Concat(supportedFileEndings).Distinct()];
     }
 
     /// <summary>
@@ -64,14 +63,14 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual T Load(string name, byte[] rawData = null)
+    public virtual T Load(System.String name, System.Byte[] rawData = null)
     {
-        ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
-        ArgumentNullException.ThrowIfNull(name);
+        System.ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
+        System.ArgumentNullException.ThrowIfNull(name);
 
         if (_Assets.TryGetValue(name, out T value)) return value;
 
-        string input = null;
+        System.String input = null;
         try
         {
             T asset;
@@ -89,12 +88,12 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
 
             _Assets.Add(name, asset);
 
-            ($"[AssetLoader<{typeof(T).Name}>] Loaded asset '{name}' successfully from {input}").Debug();
+            $"[AssetLoader<{typeof(T).Name}>] Loaded asset '{name}' successfully from {input}".Debug();
             return asset;
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            ($"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. Input: {input ?? "null"}. Error: {ex.Message}\n{ex}").Error();
+            $"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. InputState: {input ?? "null"}. Error: {ex.Message}\n{ex}".Error();
             if (Debug) throw;
         }
 
@@ -108,23 +107,26 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual string[] LoadAllFilesInDirectory(bool logErrors = false)
+    public virtual System.String[] LoadAllFilesInDirectory(System.Boolean logErrors = false)
     {
-        var assetNames = new List<string>();
+        System.Collections.Generic.List<System.String> assetNames = [];
 
-        foreach (var file in Directory.EnumerateFiles(RootFolder))
+        foreach (System.String file in System.IO.Directory.EnumerateFiles(RootFolder))
         {
             try
             {
                 T asset = CreateInstanceFromPath(file);
-                string name = Path.GetFileNameWithoutExtension(file);
+                System.String name = System.IO.Path.GetFileNameWithoutExtension(file);
+
                 _Assets.Add(name, asset);
                 assetNames.Add(name);
 
                 if (Debug)
+                {
                     $"[AssetLoader<{typeof(T).Name}>] Loaded asset: '{name}' from file: '{file}'".Info();
+                }
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
                 if (logErrors)
                 {
@@ -143,18 +145,18 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private string ResolveFileEndings(string name)
+    private System.String ResolveFileEndings(System.String name)
     {
-        foreach (var ending in _FileEndings)
+        foreach (System.String ending in _FileEndings)
         {
-            var candidate = Path.Combine(RootFolder, $"{name}{ending}");
-            if (File.Exists(candidate))
+            System.String candidate = System.IO.Path.Combine(RootFolder, $"{name}{ending}");
+            if (System.IO.File.Exists(candidate))
+            {
                 return candidate;
+            }
         }
 
-        var attemptedPaths = _FileEndings
-            .Select(f => Path.Combine(RootFolder, $"{name}{f}"))
-            .ToArray();
+        System.String[] attemptedPaths = [.. _FileEndings.Select(f => System.IO.Path.Combine(RootFolder, $"{name}{f}"))];
 
         $"""
         [AssetLoader] Could not find a matching file for asset '{name}'.
@@ -162,10 +164,10 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
         Attempted paths:
         {string.Join("\n", attemptedPaths)}
         Root folder: {RootFolder}
-        Fallback path used: {Path.Combine(RootFolder, name)}
+        Fallback path used: {System.IO.Path.Combine(RootFolder, name)}
         """.Warn();
 
-        return Path.Combine(RootFolder, name);
+        return System.IO.Path.Combine(RootFolder, name);
     }
 
     /// <summary>
@@ -174,9 +176,9 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <param name="name"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Release(string name)
+    public void Release(System.String name)
     {
-        ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
+        System.ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
         if (!_Assets.TryGetValue(name, out T value)) return;
 
         value.Dispose();
@@ -191,7 +193,7 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -200,7 +202,7 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <param name="disposing"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(System.Boolean disposing)
     {
         if (Disposed) return;
         Disposed = true;
@@ -211,9 +213,9 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
             {
                 kvp.Value.Dispose();
             }
-            catch (Exception e)
+            catch (System.Exception e)
             {
-                ($"[AssetLoader<{typeof(T).Name}>] Failed to dispose asset '{kvp.Key}'. Error: {e.Message}\n{e}").Error();
+                $"[AssetLoader<{typeof(T).Name}>] Failed to dispose asset '{kvp.Key}'. Error: {e.Message}\n{e}".Error();
             }
         }
 
@@ -225,16 +227,15 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// </summary>
     /// <param name="rawData">The raw byte array representing the asset data.</param>
     /// <returns>An instance of <typeparamref name="T"/> created from the raw data.</returns>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="System.NotSupportedException">
     /// Thrown if this type <typeparamref name="T"/> does not support loading from raw data.
     /// Override this method in a derived class to provide a valid implementation.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual T CreateInstanceFromRawData(byte[] rawData)
-    {
-        throw new NotSupportedException($"{typeof(T).Name} does not support loading from raw data. Override this method.");
-    }
+        => throw new System.NotSupportedException(
+            $"{typeof(T).Name} does not support loading from raw data. Override this method.");
 
     /// <summary>
     /// Creates an instance of type <typeparamref name="T"/> from a file path.
@@ -243,14 +244,14 @@ public abstract class AssetLoader<[DynamicallyAccessedMembers(DynamicallyAccesse
     /// <returns>
     /// An instance of <typeparamref name="T"/> created using a constructor that accepts a single <see cref="string"/> argument.
     /// </returns>
-    /// <exception cref="MissingMethodException">
+    /// <exception cref="System.MissingMethodException">
     /// Thrown if <typeparamref name="T"/> does not have a public constructor accepting a <see cref="string"/> path.
     /// </exception>
-    /// <exception cref="TargetInvocationException">
+    /// <exception cref="System.Reflection.TargetInvocationException">
     /// Thrown if the constructor of <typeparamref name="T"/> throws an exception.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual T CreateInstanceFromPath(string path)
-        => (T)Activator.CreateInstance(typeof(T), [path]);
+        => (T)System.Activator.CreateInstance(typeof(T), [path]);
 }
