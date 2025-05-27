@@ -8,12 +8,12 @@ namespace Nalix.Graphics.Rendering.Object;
 /// </summary>
 public abstract class RenderObject : SceneObject
 {
-    private int _zIndex;
+    private System.Int32 _zIndex;
 
     /// <summary>
     /// Gets or sets whether the object is visible.
     /// </summary>
-    public bool Visible { get; private set; } = true;
+    public System.Boolean Visible { get; private set; } = true;
 
     /// <summary>
     /// Gets the drawable object to be rendered.
@@ -71,7 +71,7 @@ public abstract class RenderObject : SceneObject
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int CompareByZIndex(RenderObject r1, RenderObject r2)
+    public static System.Int32 CompareByZIndex(RenderObject r1, RenderObject r2)
     {
         if (r1 == null && r2 == null) return 0;
         if (r1 == null) return -1;

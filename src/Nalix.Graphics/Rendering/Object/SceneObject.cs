@@ -1,5 +1,4 @@
 using Nalix.Graphics.Scenes;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics.Rendering.Object;
 
@@ -9,27 +8,27 @@ namespace Nalix.Graphics.Rendering.Object;
 /// </summary>
 public abstract class SceneObject
 {
-    private readonly HashSet<string> _tags = [];
-
-    /// <summary>
-    /// Determines whether the object persists on a scene change. Default is false.
-    /// </summary>
-    public bool PersistOnSceneChange { get; protected set; } = false;
-
-    /// <summary>
-    /// Indicates whether the object has been initialized.
-    /// </summary>
-    public bool Initialized { get; private set; }
+    private readonly System.Collections.Generic.HashSet<string> _tags = [];
 
     /// <summary>
     /// Indicates whether the object is paused.
     /// </summary>
-    public bool Paused { get; private set; }
+    public System.Boolean Paused { get; private set; }
 
     /// <summary>
     /// Indicates whether the object is enabled and active.
     /// </summary>
-    public bool Enabled { get; private set; }
+    public System.Boolean Enabled { get; private set; }
+
+    /// <summary>
+    /// Indicates whether the object has been initialized.
+    /// </summary>
+    public System.Boolean Initialized { get; private set; }
+
+    /// <summary>
+    /// Determines whether the object persists on a scene change. Default is false.
+    /// </summary>
+    public System.Boolean PersistOnSceneChange { get; protected set; } = false;
 
     /// <summary>
     /// Called during the initialization phase for additional setup logic.
@@ -66,7 +65,7 @@ public abstract class SceneObject
     /// <param name="deltaTime">Time elapsed since the last update in seconds.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void Update(float deltaTime)
+    public virtual void Update(System.Single deltaTime)
     { }
 
     /// <summary>
@@ -75,7 +74,7 @@ public abstract class SceneObject
     /// <param name="tag">The tag to add.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AddTag(string tag) => _tags.Add(tag);
+    public void AddTag(System.String tag) => _tags.Add(tag);
 
     /// <summary>
     /// Checks if the object has a specific tag.
@@ -84,7 +83,7 @@ public abstract class SceneObject
     /// <returns>True if the object has the tag; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool HasTag(string tag) => _tags.Contains(tag);
+    public bool HasTag(System.String tag) => _tags.Contains(tag);
 
     /// <summary>
     /// Pauses the object, preventing it from updating.
@@ -120,7 +119,7 @@ public abstract class SceneObject
     /// <returns>True if the object is queued for destruction; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool ToBeDestroyed() => this.InDestroyQueue();
+    public System.Boolean ToBeDestroyed() => this.InDestroyQueue();
 
     /// <summary>
     /// Checks if the object is queued to be spawned.
@@ -128,7 +127,7 @@ public abstract class SceneObject
     /// <returns>True if the object is queued for spawning; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool ToBeSpawned() => this.InSpawnQueue();
+    public System.Boolean ToBeSpawned() => this.InSpawnQueue();
 
     /// <summary>
     /// Queues the object to be spawned in the scene.

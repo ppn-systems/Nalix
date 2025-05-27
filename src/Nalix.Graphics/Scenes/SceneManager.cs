@@ -1,10 +1,6 @@
 using Nalix.Graphics.Rendering.Object;
 using Nalix.Logging.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 
 namespace Nalix.Graphics.Scenes;
 
@@ -18,15 +14,15 @@ public static class SceneManager
     /// This event is invoked at the beginning of the next frame after all non-persisting objects have been queued to be destroyed
     /// and after the new objects have been queued to spawn, but before they are initialized.
     /// </summary>
-    public static event Action<string, string> SceneChanged;
+    public static event System.Action<System.String, System.String> SceneChanged;
 
-    private static string _nextScene = "";
     private static Scene _currentScene;
-    private static readonly List<Scene> _scenes = [];
+    private static System.String _nextScene = "";
 
-    private static readonly HashSet<SceneObject> _sceneObjects = [];
-    private static readonly HashSet<SceneObject> _spawnQueue = [];
-    private static readonly HashSet<SceneObject> _destroyQueue = [];
+    private static readonly System.Collections.Generic.List<Scene> _scenes = [];
+    private static readonly System.Collections.Generic.HashSet<SceneObject> _sceneObjects = [];
+    private static readonly System.Collections.Generic.HashSet<SceneObject> _spawnQueue = [];
+    private static readonly System.Collections.Generic.HashSet<SceneObject> _destroyQueue = [];
 
     /// <summary>
     /// Retrieves all objects in the scene of a specific type.
@@ -35,43 +31,52 @@ public static class SceneManager
     /// <returns>ScreenSize HashSet of all objects of the specified type.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static HashSet<T> AllObjects<T>() where T : SceneObject => [.. _sceneObjects.OfType<T>()];
+    public static System.Collections.Generic.HashSet<T> AllObjects<T>()
+        where T : SceneObject
+        => [.. _sceneObjects.OfType<T>()];
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static bool InDestroyQueue(this SceneObject o) => _destroyQueue.Contains(o);
+    internal static System.Boolean InDestroyQueue(this SceneObject o)
+        => _destroyQueue.Contains(o);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static bool InSpawnQueue(this SceneObject o)
+    internal static System.Boolean InSpawnQueue(this SceneObject o)
         => _spawnQueue.Contains(o);
 
     /// <summary>
     /// Creates instances of all classes inheriting from Scenes in the specified namespace.
     /// </summary>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
-    [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
-    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming",
+        "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' " +
+        "require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
+        "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
+        "The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void Instantiate()
     {
         // Get the types from the entry assembly that match the scene namespace
-        IEnumerable<Type> sceneTypes = Assembly.GetEntryAssembly()!
+        System.Collections.Generic.IEnumerable<System.Type> sceneTypes = System.Reflection.Assembly
+            .GetEntryAssembly()!
             .GetTypes()
             .Where(t => t.Namespace != null &&
                         t.Namespace.Contains(GameEngine.GraphicsConfig.ScenesNamespace));
 
         // HashSet to check for duplicate scene names efficiently
-        HashSet<string> sceneNames = [];
+        System.Collections.Generic.HashSet<string> sceneNames = [];
 
-        foreach (Type type in sceneTypes)
+        foreach (System.Type type in sceneTypes)
         {
             // Skip compiler-generated types (like anonymous types or internal generic types)
             if (type.Name.Contains('<')) continue;
 
             // Check if the class has the IgnoredLoadAttribute
-            if (type.GetCustomAttribute<IgnoredLoadAttribute>() != null)
+            if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IgnoredLoadAttribute>(type) != null)
             {
                 NLogixFx.Warn(
                     source: type.Name,
@@ -81,7 +86,7 @@ public static class SceneManager
             }
 
             // Attempt to find a constructor with no parameters
-            ConstructorInfo constructor = type.GetConstructor(Type.EmptyTypes);
+            System.Reflection.ConstructorInfo constructor = type.GetConstructor(System.Type.EmptyTypes);
             if (constructor == null) continue;
 
             // Instantiate the scene using the parameterless constructor
@@ -90,7 +95,7 @@ public static class SceneManager
             {
                 scene = (Scene)constructor.Invoke(null);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 // Handle any exceptions that occur during instantiation
                 NLogixFx.Error(
@@ -104,7 +109,7 @@ public static class SceneManager
             // Check for duplicate scene names
             if (sceneNames.Contains(scene.Name))
             {
-                throw new Exception($"Scenes with name {scene.Name} already exists.");
+                throw new System.Exception($"Scenes with name {scene.Name} already exists.");
             }
 
             // Add the scene name to the HashSet for future checks
@@ -124,7 +129,7 @@ public static class SceneManager
     /// <param name="name">The name of the scene to be loaded.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ChangeScene(string name) => _nextScene = name;
+    public static void ChangeScene(System.String name) => _nextScene = name;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -145,7 +150,7 @@ public static class SceneManager
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void LoadScene(string name)
+    private static void LoadScene(System.String name)
     {
         _currentScene = _scenes.First(scene => scene.Name == name);
         _currentScene.CreateScene();
@@ -162,7 +167,7 @@ public static class SceneManager
     {
         if (o.Initialized)
         {
-            throw new Exception($"Instance of SceneObject {nameof(o)} already exists in Scenes");
+            throw new System.Exception($"Instance of SceneObject {nameof(o)} already exists in Scenes");
         }
         if (!_spawnQueue.Add(o))
         {
@@ -176,7 +181,8 @@ public static class SceneManager
     /// <param name="sceneObjects">The collection of objects to be spawned.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void QueueSpawn(IEnumerable<SceneObject> sceneObjects)
+    public static void QueueSpawn(
+        System.Collections.Generic.IEnumerable<SceneObject> sceneObjects)
     {
         foreach (SceneObject o in sceneObjects)
         {
@@ -194,7 +200,7 @@ public static class SceneManager
     {
         if (!_sceneObjects.Contains(o) && !_spawnQueue.Contains(o))
         {
-            throw new Exception("Instance of SceneObject does not exist in the scene.");
+            throw new System.Exception("Instance of SceneObject does not exist in the scene.");
         }
         if (_spawnQueue.Remove(o)) { }
         else if (!_destroyQueue.Add(o))
@@ -209,7 +215,8 @@ public static class SceneManager
     /// <param name="sceneObjects">The collection of objects to be destroyed.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void QueueDestroy(IEnumerable<SceneObject> sceneObjects)
+    public static void QueueDestroy(
+        System.Collections.Generic.IEnumerable<SceneObject> sceneObjects)
     {
         foreach (SceneObject o in sceneObjects)
         {
@@ -253,7 +260,7 @@ public static class SceneManager
         {
             if (!_sceneObjects.Add(q))
             {
-                throw new Exception("Instance of queued SceneObject already exists in scene.");
+                throw new System.Exception("Instance of queued SceneObject already exists in scene.");
             }
         }
 
@@ -284,11 +291,12 @@ public static class SceneManager
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T FindByType<T>() where T : SceneObject
     {
-        HashSet<T> objects = AllObjects<T>();
+        System.Collections.Generic.HashSet<T> objects = AllObjects<T>();
         if (objects.Count != 0)
         {
             return objects.First();
         }
+
         return null;
     }
 }

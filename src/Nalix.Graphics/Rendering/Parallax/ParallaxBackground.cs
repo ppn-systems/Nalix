@@ -1,6 +1,5 @@
 using SFML.Graphics;
 using SFML.System;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics.Rendering.Parallax;
 
@@ -9,20 +8,23 @@ namespace Nalix.Graphics.Rendering.Parallax;
 /// </summary>
 public class ParallaxBackground(Vector2u viewport)
 {
-    private readonly List<Layer> _layers = [];
+    private readonly System.Collections.Generic.List<Layer> _layers = [];
     private readonly Vector2u _viewport = viewport;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ParallaxBackground"/> class with the specified viewport size.
     /// </summary>
-    public ParallaxBackground(uint width, uint height) : this(new Vector2u(width, height)) { }
+    public ParallaxBackground(System.UInt32 width, System.UInt32 height)
+        : this(new Vector2u(width, height))
+    {
+    }
 
     /// <summary>
     /// Adds a new layer to the parallax system.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AddLayer(Texture texture, float speed, bool autoScale)
+    public void AddLayer(Texture texture, System.Single speed, System.Boolean autoScale)
         => _layers.Add(new Layer(_viewport, texture, speed, autoScale));
 
     /// <summary>
@@ -30,14 +32,14 @@ public class ParallaxBackground(Vector2u viewport)
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Update(float deltaTime)
+    public void Update(System.Single deltaTime)
     {
-        foreach (var layer in _layers)
+        foreach (Layer layer in _layers)
         {
             layer.Offset += layer.Speed * deltaTime;
 
             // Wrap offset to avoid overflow
-            float textureWidth = layer.Texture.Size.X;
+            System.Single textureWidth = layer.Texture.Size.X;
             if (textureWidth > 0)
                 layer.Offset %= textureWidth;
 
@@ -54,32 +56,34 @@ public class ParallaxBackground(Vector2u viewport)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Draw(RenderTarget target)
     {
-        foreach (var layer in _layers)
-            target.Draw(layer.Sprite);
+        foreach (Layer layer in _layers) target.Draw(layer.Sprite);
     }
 
     private class Layer
     {
-        public Texture Texture { get; }
+        public IntRect Rect { get; }
         public Sprite Sprite { get; }
-        public float Speed { get; }
-        public float Offset;
-        public IntRect Rect; // cached rect
+        public Texture Texture { get; }
 
-        public Layer(Vector2u viewport, Texture texture, float speed, bool autoScale = false)
+        public System.Single Speed { get; }
+        public System.Single Offset { get; }
+
+        public Layer(
+            Vector2u viewport, Texture texture,
+            System.Single speed, System.Boolean autoScale = false)
         {
             Texture = texture;
             Speed = speed;
             Offset = 0;
 
             Texture.Repeated = true;
-            Rect = new IntRect(0, 0, (int)viewport.X, (int)viewport.Y);
+            Rect = new IntRect(0, 0, (System.Int32)viewport.X, (System.Int32)viewport.Y);
             Sprite = new Sprite(Texture) { TextureRect = Rect };
 
             if (autoScale)
             {
-                float scaleX = (float)viewport.X / texture.Size.X;
-                float scaleY = (float)viewport.Y / texture.Size.Y;
+                System.Single scaleX = (System.Single)viewport.X / texture.Size.X;
+                System.Single scaleY = (System.Single)viewport.Y / texture.Size.Y;
                 Sprite.Scale = new(scaleX, scaleY);
             }
         }

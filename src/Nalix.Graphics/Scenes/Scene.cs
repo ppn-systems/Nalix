@@ -1,5 +1,4 @@
 using Nalix.Graphics.Rendering.Object;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics.Scenes;
 
@@ -18,7 +17,7 @@ public abstract class Scene(string name)
     /// </summary>
     public readonly string Name = name;
 
-    private readonly List<SceneObject> _objects = [];
+    private readonly System.Collections.Generic.List<SceneObject> _objects = [];
 
     /// <summary>
     /// Retrieves the list of initial objects in the scene.
@@ -26,7 +25,7 @@ public abstract class Scene(string name)
     /// <returns>ScreenSize list of <see cref="SceneObject"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public List<SceneObject> GetObjects() => _objects;
+    public System.Collections.Generic.List<SceneObject> GetObjects() => _objects;
 
     /// <summary>
     /// Adds an object to the list of initial objects in the scene.
@@ -43,8 +42,8 @@ public abstract class Scene(string name)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void CreateScene()
     {
-        this.ClearObjects();
-        this.LoadObjects();
+        ClearObjects();
+        LoadObjects();
     }
 
     /// <summary>

@@ -8,20 +8,20 @@ namespace Nalix.Graphics.Scenes;
 /// <typeparam name="T">The type of information stored in the scene change info.</typeparam>
 public sealed class SceneChangeInfo<T> : SceneObject
 {
-    private bool _sceneChanged;
+    private System.Boolean _sceneChanged;
     private readonly T _info;
 
     /// <summary>
     /// Gets the name associated with this scene change info.
     /// </summary>
-    public string Name { get; }
+    public System.String Name { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SceneChangeInfo{T}"/> class with the specified information and name.
     /// </summary>
     /// <param name="info">The information to store.</param>
     /// <param name="name">The name associated with this scene change info.</param>
-    public SceneChangeInfo(T info, string name)
+    public SceneChangeInfo(T info, System.String name)
     {
         _info = info;
         Name = name;
@@ -57,7 +57,7 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// <param name="nextScene">The name of the next scene.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnSceneChange(string lastScene, string nextScene) => _sceneChanged = true;
+    private void OnSceneChange(System.String lastScene, System.String nextScene) => _sceneChanged = true;
 
     /// <summary>
     /// Updates the state of the SceneChangeInfo object and destroys it after a scene change.
@@ -65,7 +65,7 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// <param name="deltaTime">Time elapsed since the last update in seconds.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override void Update(float deltaTime)
+    public override void Update(System.Single deltaTime)
     {
         // Destroy this instance on the first frame after a new scene has been loaded
         if (_sceneChanged) Destroy();
@@ -79,7 +79,7 @@ public sealed class SceneChangeInfo<T> : SceneObject
     /// <returns>The stored information of type <typeparamref name="T"/> or the default value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static T Catch(string name, T defaultValue)
+    public static T Catch(System.String name, T defaultValue)
     {
         SceneChangeInfo<T> info = SceneManager.FindByType<SceneChangeInfo<T>>();
         if (info == null) return defaultValue;

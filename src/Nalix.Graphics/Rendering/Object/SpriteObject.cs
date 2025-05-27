@@ -30,7 +30,12 @@ public abstract class SpriteObject : RenderObject
     /// <param name="position">The position of the Sprite.</param>
     /// <param name="scale">The scale of the Sprite.</param>
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
-    public SpriteObject(Texture texture, IntRect rect, Vector2f position, Vector2f scale, float rotation)
+    public SpriteObject(
+        Texture texture,
+        IntRect rect,
+        Vector2f position,
+        Vector2f scale,
+        System.Single rotation)
     {
         Sprite = new Sprite(texture, rect);
         SetTransform(ref Sprite, position, scale, rotation);
@@ -43,7 +48,11 @@ public abstract class SpriteObject : RenderObject
     /// <param name="position">The position of the Sprite.</param>
     /// <param name="scale">The scale of the Sprite.</param>
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
-    public SpriteObject(Texture texture, Vector2f position, Vector2f scale, float rotation)
+    public SpriteObject(
+        Texture texture,
+        Vector2f position,
+        Vector2f scale,
+        System.Single rotation)
     {
         Sprite = new Sprite(texture);
         SetTransform(ref Sprite, position, scale, rotation);
@@ -79,7 +88,7 @@ public abstract class SpriteObject : RenderObject
     /// <param name="rotation">The rotation angle of the Sprite in degrees.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void SetTransform(ref Sprite s, Vector2f position, Vector2f scale, float rotation)
+    private static void SetTransform(ref Sprite s, Vector2f position, Vector2f scale, System.Single rotation)
     {
         s.Position = position;
         s.Scale = scale;
