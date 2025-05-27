@@ -77,7 +77,7 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
             LastPingTime = connection.LastPingTime,
         };
 
-        byte[] data = Serializer.Serialize(pingInfoDto);
+        byte[] data = BitSerializer.Serialize(pingInfoDto);
         return System.MemoryExtensions.AsMemory(data);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Serialization.Internal.Reflection;
@@ -13,7 +14,8 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            ThrowFieldTypeMismatch(metadata.Name, metadata.FieldType, typeof(TField));
+            throw new InvalidOperationException(
+                $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         return (TField)metadata.FieldInfo.GetValue(obj)!;
@@ -24,7 +26,7 @@ internal static partial class FieldCache<T>
     {
         if (!_fieldIndex.TryGetValue(fieldName, out var index))
         {
-            ThrowFieldNotFound(fieldName);
+            throw new ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
         }
 
         return GetValue<TField>(obj, index);
@@ -37,7 +39,8 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            ThrowFieldTypeMismatch(metadata.Name, metadata.FieldType, typeof(TField));
+            throw new InvalidOperationException(
+                $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         metadata.FieldInfo.SetValue(obj, value);
@@ -48,7 +51,7 @@ internal static partial class FieldCache<T>
     {
         if (!_fieldIndex.TryGetValue(fieldName, out var index))
         {
-            ThrowFieldNotFound(fieldName);
+            throw new ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
         }
 
         SetValue(obj, index, value);
@@ -69,7 +72,7 @@ internal static partial class FieldCache<T>
     {
         if (!_fieldIndex.TryGetValue(fieldName, out var index))
         {
-            ThrowFieldNotFound(fieldName);
+            throw new ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
         }
 
         return GetValueBoxed(obj, index);

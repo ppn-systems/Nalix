@@ -1,8 +1,5 @@
 using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Internal.Reflection;
-using System;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Serialization.Internal.Accessors;
 
@@ -34,26 +31,26 @@ internal abstract class FieldAccessor<T>
     /// <param name="schema">Field schema từ FieldCache.</param>
     /// <param name="index">Field index cho fast access.</param>
     /// <returns>Optimized field accessor instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldAccessor<T> Create(FieldSchema schema, int index)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
     {
-        ArgumentNullException.ThrowIfNull(schema.FieldInfo);
+        System.ArgumentNullException.ThrowIfNull(schema.FieldInfo);
 
         try
         {
             // TODO: Cache reflection calls cho production performance
-            var method = typeof(FieldAccessor<T>)
-                .GetMethod(nameof(CreateTyped), BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new InvalidOperationException("CreateTyped method not found");
+            System.Reflection.MethodInfo method = typeof(FieldAccessor<T>)
+                .GetMethod(nameof(CreateTyped),
+                System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.NonPublic)
+                ?? throw new System.InvalidOperationException("CreateTyped method not found");
 
-            var genericMethod = method.MakeGenericMethod(schema.FieldType);
-            var result = genericMethod.Invoke(null, [index]);
-
-            return (FieldAccessor<T>)result!;
+            return (FieldAccessor<T>)method.MakeGenericMethod(schema.FieldType).Invoke(null, [index])!;
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            throw new InvalidOperationException($"Failed to create accessor for field {schema.Name}", ex);
+            throw new System.InvalidOperationException($"Failed to create accessor for field {schema.Name}", ex);
         }
     }
 
@@ -61,5 +58,7 @@ internal abstract class FieldAccessor<T>
     /// Generic helper method tạo FieldAccessorImpl.
     /// Private để enforce factory pattern usage.
     /// </summary>
-    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(int index) => new(index);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(System.Int32 index) => new(index);
 }

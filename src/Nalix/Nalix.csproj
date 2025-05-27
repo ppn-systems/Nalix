@@ -31,8 +31,4 @@ Nalix is a high-performance .NET library that provides essential utilities for d
     <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Serialization\" />
-  </ItemGroup>
-
 </Project>

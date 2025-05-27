@@ -69,7 +69,7 @@ internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IP
             Encryption = connection.Encryption
         };
 
-        byte[] data = Serializer.Serialize(status);
+        byte[] data = BitSerializer.Serialize(status);
         return System.MemoryExtensions.AsMemory(data);
     }
 
