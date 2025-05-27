@@ -1,6 +1,6 @@
 using Nalix.Common.Security;
 
-namespace Nalix.Common.Attributes;
+namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// Specifies the minimum authority level required to execute a command.

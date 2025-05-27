@@ -1,4 +1,4 @@
-using Nalix.Common.Attributes;
+using Nalix.Common.Package.Attributes;
 using Nalix.Common.Security;
 using Nalix.Network.Configurations;
 using System.Collections.Concurrent;

@@ -1,6 +1,6 @@
 namespace Nalix.Network.Package;
 
-[System.Diagnostics.DebuggerDisplay("Packet {Id}: Id={Id}, Number={Number}, Length={Length}, Type={Type}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("Packet {Opcode}: Opcode={Opcode}, Number={Number}, Length={Length}, Type={Type}, Flags={Flags}")]
 public readonly partial struct Packet
 {
     /// <summary>

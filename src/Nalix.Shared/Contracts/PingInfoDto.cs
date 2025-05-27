@@ -1,4 +1,5 @@
 using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 
 namespace Nalix.Shared.Contracts;
 

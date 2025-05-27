@@ -112,7 +112,7 @@ public class MimeTypeResolver : IMimeTypeResolver
         new("CAB", ".cab", "application/vnd.ms-cab-compressed", new MimeTypePattern([0x4D, 0x53, 0x43, 0x46])), // MSCF
         new("DEB", ".deb", "application/x-debian-package", new MimeTypePattern([0x21, 0x3C, 0x61, 0x72, 0x63, 0x68, 0x3E])), // !<arch>
 
-        // Source Code
+        // Source Opcode
         new("RUST", ".rs", "text/x-rust", new MimeTypePattern([102, 110])),
         new("PY", ".py", "text/x-python", new MimeTypePattern([100, 101, 102])),
         new("CS", ".cs", "text/x-csharp", new MimeTypePattern([117, 115, 105, 110, 103])),

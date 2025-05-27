@@ -1,4 +1,4 @@
-namespace Nalix.Common.Attributes;
+namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// Custom attribute to specify a packet identifier for a class.
@@ -9,12 +9,12 @@ namespace Nalix.Common.Attributes;
 /// <remarks>
 /// Initializes a new instance of the <see cref="PacketOpcodeAttribute"/> method.
 /// </remarks>
-/// <param name="id">The unique identifier for the packet associated with the method.</param>
+/// <param name="opcode">The unique identifier for the packet associated with the method.</param>
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PacketOpcodeAttribute(ushort id) : System.Attribute
+public class PacketOpcodeAttribute(System.UInt16 opcode) : System.Attribute
 {
     /// <summary>
     /// Gets the packet identifier associated with the method.
     /// </summary>
-    public ushort Id { get; } = id;
+    public System.UInt16 Opcode { get; } = opcode;
 }

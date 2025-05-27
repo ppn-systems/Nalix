@@ -1,10 +1,10 @@
-using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Constants;
 using Nalix.Common.Cryptography;
 using Nalix.Common.Logging;
 using Nalix.Common.Package;
+using Nalix.Common.Package.Attributes;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Security;
 using Nalix.Serialization;

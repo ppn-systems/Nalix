@@ -1,6 +1,6 @@
-using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
+using Nalix.Common.Package.Attributes;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -118,7 +118,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     System.Linq.Enumerable.GroupBy(
                         methods,
                         m => System.Reflection.CustomAttributeExtensions
-                                .GetCustomAttribute<PacketOpcodeAttribute>(m)!.Id
+                                .GetCustomAttribute<PacketOpcodeAttribute>(m)!.Opcode
                     ),
                     g => System.Linq.Enumerable.Count(g) > 1
                 ),
@@ -141,7 +141,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             ushort id = System.Reflection.CustomAttributeExtensions
                         .GetCustomAttribute<PacketOpcodeAttribute>(method)!
-                        .Id;
+                        .Opcode;
 
             if (_handlers.ContainsKey(id))
             {

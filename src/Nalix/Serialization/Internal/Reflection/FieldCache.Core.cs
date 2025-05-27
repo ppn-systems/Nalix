@@ -1,4 +1,5 @@
 using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,4 @@
-namespace Nalix.Common.Attributes;
+namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// Marks a class as a packet controller responsible for handling packet commands.
@@ -12,21 +12,23 @@ namespace Nalix.Common.Attributes;
 /// <param name="version">The version of the packet controller. Defaults to "1.0".</param>
 [System.AttributeUsage(System.AttributeTargets.Class)]
 public sealed class PacketControllerAttribute(
-    string name = "Unknown", bool isActive = true, string version = "1.0") : System.Attribute
+    System.String name = "Unknown",
+    System.Boolean isActive = true,
+    System.String version = "1.0") : System.Attribute
 {
     /// <summary>
     /// The name of the packet controller, used for logging and debugging.
     /// If no name is provided, defaults to "Unknown".
     /// </summary>
-    public string Name { get; } = name;
-
-    /// <summary>
-    /// The active status of the packet controller. Default is true.
-    /// </summary>
-    public bool IsActive { get; } = isActive;
+    public System.String Name { get; } = name;
 
     /// <summary>
     /// The version of the packet controller. Default is "1.0".
     /// </summary>
-    public string Version { get; } = version;
+    public System.String Version { get; } = version;
+
+    /// <summary>
+    /// The active status of the packet controller. Default is true.
+    /// </summary>
+    public System.Boolean IsActive { get; } = isActive;
 }

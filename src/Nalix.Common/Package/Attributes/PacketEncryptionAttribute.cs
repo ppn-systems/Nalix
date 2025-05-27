@@ -1,4 +1,4 @@
-namespace Nalix.Common.Attributes;
+namespace Nalix.Common.Package.Attributes;
 
 /// <summary>
 /// Custom attribute to indicate if a method should have packet encryption.
@@ -12,10 +12,10 @@ namespace Nalix.Common.Attributes;
 /// </remarks>
 /// <param name="isEncrypted">Indicates if the method should be encrypted (default is true).</param>
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PacketEncryptionAttribute(bool isEncrypted = true) : System.Attribute
+public class PacketEncryptionAttribute(System.Boolean isEncrypted = true) : System.Attribute
 {
     /// <summary>
     /// Gets the encryption status of the method.
     /// </summary>
-    public bool IsEncrypted { get; } = isEncrypted;
+    public System.Boolean IsEncrypted { get; } = isEncrypted;
 }

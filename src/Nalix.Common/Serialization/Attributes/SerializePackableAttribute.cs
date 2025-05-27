@@ -1,4 +1,4 @@
-namespace Nalix.Common.Serialization;
+namespace Nalix.Common.Serialization.Attributes;
 
 /// <summary>
 /// An attribute that marks a class, struct, or interface as serializable with a specified layout.
