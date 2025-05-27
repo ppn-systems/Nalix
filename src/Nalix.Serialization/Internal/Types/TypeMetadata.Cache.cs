@@ -64,11 +64,8 @@ internal static partial class TypeMetadata
                 {
                     if (type.IsClass || type.IsValueType)
                     {
-                        var (isFixed, isComposite, fixedSize, compositeSize) = CalculateCompositeTypeInfo<T>();
-                        IsFixedSizeSerializable = isFixed;
-                        IsCompositeSerializable = isComposite;
-                        SerializableFixedSize = fixedSize;
-                        CompositeSerializableSize = compositeSize;
+                        IsCompositeSerializable = true;
+                        CompositeSerializableSize = CalculateCompositeTypeInfo<T>();
                     }
                 }
             }

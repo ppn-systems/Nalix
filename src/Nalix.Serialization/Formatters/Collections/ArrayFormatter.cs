@@ -22,7 +22,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             // Convention: -1 indicates a null array
             FormatterProvider
                 .Get<ushort>()
-                .Serialize(ref writer, SerializationConstants.Null);
+                .Serialize(ref writer, SerializationLimits.Null);
 
             return;
         }
@@ -60,8 +60,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             .Deserialize(ref reader);
 
         if (length == 0) return [];
-        if (length == SerializationConstants.Null) return null;
-        if (length > SerializationConstants.MaxArray)
+        if (length == SerializationLimits.Null) return null;
+        if (length > SerializationLimits.MaxArray)
             throw new SerializationException("Array length out of range");
 
         int total = length * TypeMetadata.SizeOf<T>();

@@ -18,7 +18,7 @@ public sealed class StringFormatter : IFormatter<string>
         if (value == null)
         {
             // 65535 biểu diễn null
-            FormatterProvider.Get<ushort>().Serialize(ref writer, SerializationConstants.Null);
+            FormatterProvider.Get<ushort>().Serialize(ref writer, SerializationLimits.Null);
             return;
         }
 
@@ -30,7 +30,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         // Tính trước số byte sẽ cần khi encode UTF8
         int byteCount = Environment.SerializationOptions.Encoding.GetByteCount(value);
-        if (byteCount > SerializationConstants.MaxString)
+        if (byteCount > SerializationLimits.MaxString)
             throw new SerializationException("The string exceeds the allowed limit.");
 
         FormatterProvider.Get<ushort>().Serialize(ref writer, (ushort)byteCount);
@@ -65,8 +65,8 @@ public sealed class StringFormatter : IFormatter<string>
     {
         ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
         if (length == 0) return string.Empty;
-        if (length == SerializationConstants.Null) return null;
-        if (length > SerializationConstants.MaxString)
+        if (length == SerializationLimits.Null) return null;
+        if (length > SerializationLimits.MaxString)
             throw new SerializationException("String length out of range");
 
         System.ReadOnlySpan<byte> dest = reader.GetSpan(length);

@@ -25,36 +25,9 @@ internal static partial class TypeMetadata
     }
 
     /// <summary>
-    /// Tính thông tin cho IFixedSizeSerializable types.
-    /// </summary>
-    private static (bool IsFixed, int Size) CalculateFixedSizeSerializableInfo(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type type)
-    {
-        try
-        {
-            var prop = type.GetProperty(
-                nameof(IFixedSizeSerializable.Size),
-                BindingFlags.Static | Flags
-            );
-
-            if (prop is not null)
-            {
-                var size = (int)prop.GetValue(null)!;
-                return (true, size);
-            }
-        }
-        catch
-        {
-            // Fall through
-        }
-
-        return (false, 0);
-    }
-
-    /// <summary>
     /// Tính thông tin cho composite types (class/struct thường).
     /// </summary>
-    private static (bool IsFixed, bool IsComposite, int FixedSize, int CompositeSize) CalculateCompositeTypeInfo<T>()
+    private static int CalculateCompositeTypeInfo<T>()
     {
         try
         {
@@ -62,29 +35,23 @@ internal static partial class TypeMetadata
 
             if (fields.Length is 0)
             {
-                return (true, false, 0, 0); // Empty type = fixed size 0
+                return 0; // Empty type = fixed size 0
             }
 
             var totalSize = CalculateTotalFieldsSize(fields);
 
-            if (totalSize > 0)
-            {
-                // Tất cả fields có fixed size
-                return (true, false, totalSize, 0);
-            }
-            else if (totalSize is 0)
+            if (totalSize is 0)
             {
                 // Có dynamic fields
-                var estimatedSize = CalculateEstimatedSize(fields);
-                return (false, true, 0, estimatedSize);
+                return CalculateEstimatedSize(fields);
             }
 
             // Error case
-            return (false, false, 0, 0);
+            return 0;
         }
         catch
         {
-            return (false, false, 0, 0);
+            return 0;
         }
     }
 
@@ -152,8 +119,7 @@ internal static partial class TypeMetadata
     /// Returns > 0 cho fixed size, 0 cho dynamic size, -1 cho unknown/error.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CalculateFieldSize(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type fieldType, FieldInfo fieldInfo)
+    private static int CalculateFieldSize(Type fieldType, FieldInfo fieldInfo)
     {
         // Dynamic types
         if (IsDynamicType(fieldType))
@@ -180,21 +146,13 @@ internal static partial class TypeMetadata
             return UnsafeSizeOf(fieldType);
         }
 
-        // IFixedSizeSerializable
-        if (typeof(IFixedSizeSerializable).IsAssignableFrom(fieldType))
-        {
-            var (isFixed, size) = CalculateFixedSizeSerializableInfo(fieldType);
-            return isFixed ? size : -1;
-        }
-
         return -1; // Unknown
     }
 
     /// <summary>
     /// Lấy estimated size cho dynamic field types.
     /// </summary>
-    private static int GetEstimatedFieldSize(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] Type fieldType, FieldInfo fieldInfo)
+    private static int GetEstimatedFieldSize(Type fieldType, FieldInfo fieldInfo)
     {
         // Kiểm tra SerializeDynamicSizeAttribute
         SerializeDynamicSizeAttribute dynamicAttr = fieldInfo.GetCustomAttribute<SerializeDynamicSizeAttribute>()

@@ -3,7 +3,7 @@ namespace Nalix.Serialization;
 /// <summary>
 /// Constants used in serialization for representing special values.
 /// </summary>
-public static class SerializationConstants
+public static class SerializationLimits
 {
     /// <summary>
     /// Represents a null value (System.UInt16.MaxValue = 65535).

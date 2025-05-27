@@ -46,6 +46,8 @@ public static class Serializer
         IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
 
+        System.Console.WriteLine($"Serializing type {typeof(T).FullName} with kind {kind}");
+
         if (kind == TypeKind.None)
         {
             DataWriter writer = new(256);
@@ -98,6 +100,21 @@ public static class Serializer
                 writer.Clear();
             }
         }
+        else if (kind == TypeKind.CompositeSerializable)
+        {
+            DataWriter writer = new(size);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                return writer.ToArray();
+            }
+            finally
+            {
+                writer.Clear();
+            }
+        }
         else
         {
             throw new SerializationException($"Type {typeof(T).FullName} is not serializable.");
@@ -131,6 +148,8 @@ public static class Serializer
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+
+        System.Console.WriteLine($"Deserializing type {typeof(T).FullName} with kind {kind}");
 
         if (kind == TypeKind.UnmanagedSZArray)
         {
