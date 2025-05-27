@@ -29,11 +29,11 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <param name="value">The unmanaged value to write.</param>
     public unsafe void Serialize(ref DataWriter writer, T value)
     {
-        int size = TypeMetadata.SizeOf<T>();
-        System.Span<byte> span = writer.GetSpan(size);
+        System.Int32 size = TypeMetadata.SizeOf<T>();
+        System.Span<System.Byte> span = writer.GetSpan(size);
 
         // Pin the span to get a pointer and write unaligned
-        fixed (byte* ptr = span)
+        fixed (System.Byte* ptr = span)
         {
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, value);
         }
@@ -49,10 +49,10 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     public unsafe T Deserialize(ref DataReader writer)
     {
         T value;
-        int size = TypeMetadata.SizeOf<T>();
-        System.ReadOnlySpan<byte> span = writer.GetSpan(size);
+        System.Int32 size = TypeMetadata.SizeOf<T>();
+        System.ReadOnlySpan<System.Byte> span = writer.GetSpan(size);
 
-        fixed (byte* ptr = span)
+        fixed (System.Byte* ptr = span)
         {
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ptr);
         }

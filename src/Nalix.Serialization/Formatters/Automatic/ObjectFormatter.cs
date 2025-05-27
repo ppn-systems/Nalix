@@ -5,7 +5,6 @@ using Nalix.Serialization.Internal.Accessors;
 using Nalix.Serialization.Internal.Reflection;
 using System;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Serialization.Formatters.Automatic;
 
@@ -75,7 +74,8 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -104,7 +104,8 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -136,6 +137,8 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// Creates field accessors for the specified type.
     /// </summary>
     /// <returns>An array of field accessors.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private FieldAccessor<T>[] CreateAccessors()
     {
         ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
@@ -166,6 +169,8 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, IDisposable where T : cl
     /// <summary>
     /// Disposes of the formatter, releasing any allocated resources.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed) return;

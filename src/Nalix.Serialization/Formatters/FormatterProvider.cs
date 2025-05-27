@@ -117,8 +117,7 @@ public static class FormatterProvider
     public static IFormatter<T> Get<T>()
     {
         IFormatter<T> formatter = FormatterCache<T>.Formatter;
-        if (formatter != null)
-            return formatter;
+        if (formatter != null) return formatter;
 
         // Auto-register for enums
         if (typeof(T).IsEnum)
@@ -149,7 +148,7 @@ public static class FormatterProvider
             formatter = ComplexTypeCache<T>.Struct;
             if (formatter != null) return formatter;
 
-            object @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
+            System.Object @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
                                               .MakeGenericType(type));
 
             RegisterComplex<T>((IFormatter<T>)@struct);
@@ -160,7 +159,7 @@ public static class FormatterProvider
             formatter = ComplexTypeCache<T>.Class;
             if (formatter != null) return formatter;
 
-            object @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
+            System.Object @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
                                               .MakeGenericType(type));
 
             RegisterComplex<T>((IFormatter<T>)@object);

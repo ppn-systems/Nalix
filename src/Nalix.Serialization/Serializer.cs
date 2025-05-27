@@ -60,7 +60,7 @@ public static class Serializer
             }
             finally
             {
-                writer.Clear();
+                writer.Dispose();
             }
         }
         else if (kind == TypeKind.UnmanagedSZArray)
@@ -97,7 +97,7 @@ public static class Serializer
             }
             finally
             {
-                writer.Clear();
+                writer.Dispose();
             }
         }
         else

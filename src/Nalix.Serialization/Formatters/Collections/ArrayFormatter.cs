@@ -1,6 +1,6 @@
+using Nalix.Common.Exceptions;
 using Nalix.Serialization.Buffers;
 using Nalix.Serialization.Internal.Types;
-using System.Runtime.Serialization;
 
 namespace Nalix.Serialization.Formatters.Collections;
 

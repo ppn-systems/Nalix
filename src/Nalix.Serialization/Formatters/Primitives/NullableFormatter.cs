@@ -49,8 +49,8 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// </exception>
     public T? Deserialize(ref DataReader reader)
     {
-        byte hasValue = FormatterProvider
-            .Get<byte>()
+        System.Byte hasValue = FormatterProvider
+            .Get<System.Byte>()
             .Deserialize(ref reader);
 
         if (hasValue == NoValueFlag) return null;
