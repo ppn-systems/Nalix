@@ -5,7 +5,7 @@ namespace Nalix.Shared.Contracts;
 /// <summary>
 /// Represents the status of a network connection, including compression and encryption details.
 /// </summary>
-public class ConnInfoDto
+public readonly struct ConnInfoDto
 {
     /// <summary>
     /// Gets the encryption mode used for the connection.

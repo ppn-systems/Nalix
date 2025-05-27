@@ -1,9 +1,12 @@
+using Nalix.Common.Serialization;
+
 namespace Nalix.Shared.Contracts;
 
 /// <summary>
 /// Represents diagnostic information about a connection's uptime and last ping latency.
 /// </summary>
-public class PingInfoDto
+[SerializePackable(SerializeLayout.Sequential)]
+public readonly struct PingInfoDto
 {
     /// <summary>
     /// Gets or sets the total duration (in milliseconds) since the connection was established.

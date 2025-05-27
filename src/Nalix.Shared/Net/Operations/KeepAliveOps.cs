@@ -77,8 +77,7 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
             LastPingTime = connection.LastPingTime,
         };
 
-        return TPacket.Create(
-            (ushort)ProtocolCommand.PingInfo, PacketType.String, PacketFlags.None,
-            PacketPriority.Low, JsonCodec.SerializeToMemory(pingInfoDto, NetJsonCxt.Default.PingInfoDto)).Serialize();
+        byte[] data = Serializer.Serialize(pingInfoDto);
+        return System.MemoryExtensions.AsMemory(data);
     }
 }

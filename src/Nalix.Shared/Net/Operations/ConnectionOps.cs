@@ -69,9 +69,8 @@ internal sealed class ConnectionOps<TPacket>(ILogger? logger) where TPacket : IP
             Encryption = connection.Encryption
         };
 
-        return TPacket.Create(
-            (ushort)ProtocolCommand.PingInfo, PacketType.String, PacketFlags.None,
-            PacketPriority.Low, JsonCodec.SerializeToMemory(status, NetJsonCxt.Default.ConnInfoDto)).Serialize();
+        byte[] data = Serializer.Serialize(status);
+        return System.MemoryExtensions.AsMemory(data);
     }
 
     #region Private Methods
