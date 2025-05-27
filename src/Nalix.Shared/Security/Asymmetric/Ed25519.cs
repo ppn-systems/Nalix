@@ -10,7 +10,6 @@ namespace Nalix.Shared.Security.Asymmetric;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Ed25519
 {
     #region Constants
