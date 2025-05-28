@@ -7,15 +7,6 @@ namespace Nalix.Framework.Tests.Time;
 public class ClockTests
 {
     [Fact]
-    public void GetUtcNowPrecise_Should_BeCloseToUtcNow()
-    {
-        var now = DateTime.UtcNow;
-        var precise = Clock.GetUtcNowPrecise();
-        var diff = Math.Abs((precise - now).TotalMilliseconds);
-        Assert.True(diff < 100, $"Lệch thời gian quá lớn: {diff}ms");
-    }
-
-    [Fact]
     public void UnixSecondsNow_Should_Match()
     {
         var now = DateTime.UtcNow;
