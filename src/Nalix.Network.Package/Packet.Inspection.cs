@@ -11,7 +11,7 @@ public readonly partial struct Packet
     /// <returns>True if the checksum is valid; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool IsValid() => Crc32.Compute(Payload.Span) == this.Checksum;
+    public System.Boolean IsValid() => Crc32.Compute(Payload.Span) == Checksum;
 
     /// <summary>
     /// Determines if the packet has expired based on the provided timeout.
@@ -20,14 +20,14 @@ public readonly partial struct Packet
     /// <returns>True if the packet has expired; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool IsExpired(long timeout)
+    public System.Boolean IsExpired(System.Int64 timeout)
     {
         // Use direct math operations for better performance
-        long currentTime = Clock.UnixMillisecondsNow();
+        System.Int64 currentTime = Clock.UnixMillisecondsNow();
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < this.Timestamp) return false;
-        return (currentTime - this.Timestamp) > timeout;
+        if (currentTime < Timestamp) return false;
+        return (currentTime - Timestamp) > timeout;
     }
 
     /// <summary>
@@ -37,14 +37,14 @@ public readonly partial struct Packet
     /// <returns>True if the packet has expired; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool IsExpired(System.TimeSpan timeout)
+    public System.Boolean IsExpired(System.TimeSpan timeout)
     {
         // Use direct math operations for better performance
-        long currentTime = Clock.UnixMillisecondsNow();
-        long timeoutMs = (long)timeout.TotalMilliseconds;
+        System.Int64 currentTime = Clock.UnixMillisecondsNow();
+        System.Int64 timeoutMs = (System.Int64)timeout.TotalMilliseconds;
 
         // Handle potential overflow (rare but possible)
-        if (currentTime < this.Timestamp) return false;
-        return (currentTime - this.Timestamp) > timeoutMs;
+        if (currentTime < Timestamp) return false;
+        return (currentTime - Timestamp) > timeoutMs;
     }
 }

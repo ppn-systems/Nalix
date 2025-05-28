@@ -9,10 +9,10 @@ public readonly partial struct Packet
     #region Constants
 
     // Cache the max packet size locally to avoid field access costs
-    private const int MaxPacketSize = PacketConstants.PacketSizeLimit;
+    private const System.Int32 MaxPacketSize = PacketConstants.PacketSizeLimit;
 
-    private const int MaxHeapAllocSize = PacketConstants.HeapAllocLimit;
-    private const int MaxStackAllocSize = PacketConstants.StackAllocLimit;
+    private const System.Int32 MaxHeapAllocSize = PacketConstants.HeapAllocLimit;
+    private const System.Int32 MaxStackAllocSize = PacketConstants.StackAllocLimit;
 
     #endregion Constants
 
@@ -23,10 +23,10 @@ public readonly partial struct Packet
         PacketType.None,
         PacketFlags.None,
         PacketPriority.Low,
-        System.Memory<byte>.Empty);
+        System.Memory<System.Byte>.Empty);
 
-    private readonly ulong _hash;
-    private readonly byte[]? _rentedBuffer;
+    private readonly System.UInt64 _hash;
+    private readonly System.Byte[]? _rentedBuffer;
 
     #endregion Fields
 
@@ -40,32 +40,32 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the total length of the packet including header and payload.
     /// </summary>
-    public ushort Length => (ushort)(PacketSize.Header + Payload.Length);
+    public System.UInt16 Length => (System.UInt16)(PacketSize.Header + Payload.Length);
 
     /// <summary>
     /// Gets the Number associated with the packet, which specifies an operation type.
     /// </summary>
-    public ushort OpCode { get; }
+    public System.UInt16 OpCode { get; }
 
     /// <summary>
     /// Gets the packet identifier, which is a unique identifier for this packet instance.
     /// </summary>
-    public byte Number { get; }
+    public System.Byte Number { get; }
 
     /// <summary>
     /// Gets the CRC32 checksum of the packet payload for integrity validation.
     /// </summary>
-    public uint Checksum { get; }
+    public System.UInt32 Checksum { get; }
 
     /// <summary>
     /// Gets the timestamp when the packet was created in microseconds since system startup.
     /// </summary>
-    public long Timestamp { get; }
+    public System.Int64 Timestamp { get; }
 
     /// <summary>
     /// Gets the packet Hash.
     /// </summary>
-    public ulong Hash => _hash;
+    public System.UInt64 Hash => _hash;
 
     /// <summary>
     /// Gets the packet type, which specifies the kind of packet.
@@ -85,7 +85,7 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the payload data being transmitted in this packet.
     /// </summary>
-    public System.Memory<byte> Payload { get; }
+    public System.Memory<System.Byte> Payload { get; }
 
     #endregion Properties
 }

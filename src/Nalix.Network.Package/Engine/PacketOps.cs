@@ -1,7 +1,5 @@
 using Nalix.Common.Constants;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
-using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 
 namespace Nalix.Network.Package.Engine;
@@ -59,28 +57,4 @@ public static class PacketOps
     public static bool IsValidChecksum(byte[] packet)
         => System.BitConverter.ToUInt32(packet, PacketOffset.Checksum)
         == Integrity.Crc32.Compute(packet[PacketOffset.Payload..]);
-
-    [System.Runtime.CompilerServices.MethodImpl(
-         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void CheckEncryption(in IPacket packet, byte[] key, bool isEncryption)
-    {
-        if (key.Length != 32)
-            throw new PackageException($"{(isEncryption ? "Encryption" : "Decryption")} key must be a 256-bit (32-byte) array.");
-
-        if (packet.Payload.IsEmpty)
-            throw new PackageException("Payload is empty and cannot be processed.");
-
-        bool encrypted = (packet.Flags & PacketFlags.Encrypted) != 0;
-
-        if (isEncryption)
-        {
-            if (encrypted)
-                throw new PackageException("Payload is already encrypted.");
-        }
-        else
-        {
-            if (!encrypted)
-                throw new PackageException("Payload is not encrypted and cannot be decrypted.");
-        }
-    }
 }

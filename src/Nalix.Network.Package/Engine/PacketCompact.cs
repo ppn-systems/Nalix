@@ -26,7 +26,7 @@ public static class PacketCompact
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet Compress(in Packet packet)
+    public static Packet? Compress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
@@ -35,14 +35,14 @@ public static class PacketCompact
             throw new PackageException("Payload is encrypted and cannot be compressed.");
 
         if (packet.Payload.Length < 512)
-            return packet;
+            return null;
 
         try
         {
-            System.Memory<byte> bytes = CompressLZ4(packet.Payload.Span);
+            System.Memory<System.Byte> bytes = CompressLZ4(packet.Payload.Span);
 
             if (bytes.Length >= packet.Payload.Length)
-                return packet;
+                return null;
 
             return new Packet(
                 packet.OpCode, packet.Number,
@@ -66,13 +66,13 @@ public static class PacketCompact
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet Decompress(in Packet packet)
+    public static Packet? Decompress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot decompress an empty payload.");
 
         if (!((packet.Flags & PacketFlags.Compressed) != 0))
-            return packet;
+            return null;
 
         try
         {
@@ -91,13 +91,13 @@ public static class PacketCompact
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Memory<byte> CompressLZ4(System.ReadOnlySpan<byte> input)
+    private static System.Memory<System.Byte> CompressLZ4(System.ReadOnlySpan<System.Byte> input)
     {
         // Estimate worst case size: input.Length + header + worst-case expansion
-        int size = Header.Size + LZ4Encoder.GetMaxLength(input.Length);
-        byte[] buffer = new byte[size];
+        System.Int32 size = Header.Size + LZ4Encoder.GetMaxLength(input.Length);
+        System.Byte[] buffer = new System.Byte[size];
 
-        int lenght = LZ4Codec.Encode(input, buffer);
+        System.Int32 lenght = LZ4Codec.Encode(input, buffer);
 
         if (lenght < 0)
             throw new PackageException("Compression failed due to insufficient buffer size.");
@@ -107,12 +107,12 @@ public static class PacketCompact
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Memory<byte> DecompressLZ4(System.ReadOnlySpan<byte> input)
+    private static System.Memory<System.Byte> DecompressLZ4(System.ReadOnlySpan<System.Byte> input)
     {
         if (input.Length < Header.Size)
             throw new PackageException("Compressed payload too small to contain a valid header.");
 
-        if (!LZ4Codec.Decode(input, out byte[]? buffer, out int written))
+        if (!LZ4Codec.Decode(input, out System.Byte[]? buffer, out System.Int32 written))
             throw new PackageException("Failed to decompress payload.");
 
         return System.MemoryExtensions.AsMemory(buffer, 0, written);

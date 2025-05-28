@@ -40,7 +40,11 @@ public static class PacketGuard
     public static Packet Encrypt(
         in Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
     {
-        PacketOps.CheckEncryption(packet, key, isEncryption: true);
+        if (packet.Payload.IsEmpty)
+            throw new PackageException("Payload is empty and cannot be processed.");
+
+        if ((packet.Flags & PacketFlags.Encrypted) == 0)
+            throw new PackageException("Payload is not encrypted and cannot be decrypted.");
 
         try
         {
@@ -84,7 +88,11 @@ public static class PacketGuard
     public static Packet Decrypt(
         in Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
     {
-        PacketOps.CheckEncryption(packet, key, isEncryption: false);
+        if (packet.Payload.IsEmpty)
+            throw new PackageException("Payload is empty and cannot be processed.");
+
+        if ((packet.Flags & PacketFlags.Encrypted) == 0)
+            throw new PackageException("Payload is not encrypted and cannot be decrypted.");
 
         try
         {

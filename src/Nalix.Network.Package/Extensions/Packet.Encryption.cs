@@ -18,7 +18,10 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the encrypted payload.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet EncryptPayload(this Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
+    public static Packet EncryptPayload(
+        this Packet packet,
+        System.Byte[] key,
+        EncryptionType algorithm = EncryptionType.XTEA)
         => PacketGuard.Encrypt(packet, key, algorithm);
 
     /// <summary>
@@ -31,6 +34,9 @@ public static class PacketEncryption
     /// <returns>A new IPacket instance with the decrypted payload.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet DecryptPayload(this Packet packet, byte[] key, EncryptionType algorithm = EncryptionType.XTEA)
+    public static Packet DecryptPayload(
+        this Packet packet,
+        System.Byte[] key,
+        EncryptionType algorithm = EncryptionType.XTEA)
         => PacketGuard.Decrypt(packet, key, algorithm);
 }

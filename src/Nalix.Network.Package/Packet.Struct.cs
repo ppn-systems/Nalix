@@ -32,14 +32,14 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         System.Byte[] payload)
     {
         System.Int32 length = payload.Length;
-        _rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(length);
+        _rentedBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
 
         // Unsafe copy from managed array to rented buffer
 
         unsafe
         {
-            fixed (byte* src = payload)
-            fixed (byte* dst = _rentedBuffer)
+            fixed (System.Byte* src = payload)
+            fixed (System.Byte* dst = _rentedBuffer)
             {
                 System.Runtime.CompilerServices.Unsafe
                     .CopyBlockUnaligned(dst, src, (System.UInt32)length);
@@ -54,7 +54,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
             type: type,
             flags: flags,
             priority: priority,
-            payload: new System.Memory<byte>(_rentedBuffer, 0, length)
+            payload: new System.Memory<System.Byte>(_rentedBuffer, 0, length)
         );
     }
 
@@ -65,8 +65,8 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort opCode, System.ReadOnlySpan<byte> payload)
-        : this(opCode, new System.Memory<byte>(payload.ToArray()))
+    public Packet(System.UInt16 opCode, System.ReadOnlySpan<System.Byte> payload)
+        : this(opCode, new System.Memory<System.Byte>(payload.ToArray()))
     {
     }
 
@@ -77,7 +77,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort opCode, System.Memory<byte> payload)
+    public Packet(System.UInt16 opCode, System.Memory<System.Byte> payload)
         : this(opCode, PacketType.Binary, PacketFlags.None, PacketPriority.Low, payload)
     {
     }
@@ -89,7 +89,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="s">The packet payload as a UTF-8 encoded string.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(ushort opCode, string s)
+    public Packet(System.UInt16 opCode, System.String s)
         : this(opCode, PacketType.String, PacketFlags.None, PacketPriority.Low, SerializationOptions.Encoding.GetBytes(s))
     {
     }
@@ -105,11 +105,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(
-        ushort opCode,
-        byte type,
-        byte flags,
-        byte priority,
-        System.Memory<byte> payload)
+        System.UInt16 opCode,
+        System.Byte type,
+        System.Byte flags,
+        System.Byte priority,
+        System.Memory<System.Byte> payload)
         : this(opCode, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
@@ -125,11 +125,11 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(
-        ushort opCode,
+        System.UInt16 opCode,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<byte> payload)
+        System.Memory<System.Byte> payload)
         : this(opCode, 0, 0, 0, type, flags, priority, payload)
     {
     }
@@ -147,15 +147,15 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     {
         // Only return large arrays to the pool
         if (Payload.Length > MaxHeapAllocSize &&
-            System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>
-            (Payload, out System.ArraySegment<byte> segment) &&
+            System.Runtime.InteropServices.MemoryMarshal.TryGetArray<System.Byte>
+            (Payload, out System.ArraySegment<System.Byte> segment) &&
             segment.Array is { } array)
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(array, clearArray: true);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(array, clearArray: true);
         }
 
         if (_rentedBuffer != null)
-            System.Buffers.ArrayPool<byte>.Shared.Return(_rentedBuffer, clearArray: true);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_rentedBuffer, clearArray: true);
     }
 
     #endregion IDisposable

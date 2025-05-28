@@ -18,7 +18,7 @@ public readonly partial struct Packet
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public string ToDetailedString()
+    public System.String ToDetailedString()
     {
         System.Text.StringBuilder sb = new();
 
@@ -36,16 +36,16 @@ public readonly partial struct Packet
             sb.Append("  Data: ");
 
             if (Payload.Length <= 32)
-                for (int i = 0; i < Payload.Length; i++)
+                for (System.Int32 i = 0; i < Payload.Length; i++)
                     sb.Append($"{Payload.Span[i]:X2} ");
             else
             {
-                for (int i = 0; i < 16; i++)
+                for (System.Int32 i = 0; i < 16; i++)
                     sb.Append($"{Payload.Span[i]:X2} ");
 
                 sb.Append("... ");
 
-                for (int i = Payload.Length - 16; i < Payload.Length; i++)
+                for (System.Int32 i = Payload.Length - 16; i < Payload.Length; i++)
                     sb.Append($"{Payload.Span[i]:X2} ");
             }
         }
@@ -59,7 +59,7 @@ public readonly partial struct Packet
     /// <returns>A string that represents this packet.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override string ToString()
+    public override System.String ToString()
         => $"Packet Number={Number}, Type={Type}, Number={OpCode}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
            $"Checksum={IsValid()}, Payload={Payload.Length} bytes, Size={Length} bytes";

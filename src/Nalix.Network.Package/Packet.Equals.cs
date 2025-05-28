@@ -1,3 +1,5 @@
+using Nalix.Common.Package;
+
 namespace Nalix.Network.Package;
 
 public readonly partial struct Packet : System.IEquatable<Packet>
@@ -8,16 +10,16 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>A hash code value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode()
+    public override System.Int32 GetHashCode()
     {
         // Initial hash with key fields
-        int hash = (byte)Type;
-        hash = (hash * 397) ^ (byte)Flags;
-        hash = (hash * 397) ^ (byte)OpCode;
-        hash = (hash * 397) ^ (byte)Priority;
+        System.Int32 hash = (System.Byte)Type;
+        hash = (hash * 397) ^ (System.Byte)Flags;
+        hash = (hash * 397) ^ (System.Byte)OpCode;
+        hash = (hash * 397) ^ (System.Byte)Priority;
 
         // For small payloads, use the full content
-        System.ReadOnlySpan<byte> span = Payload.Span;
+        System.ReadOnlySpan<System.Byte> span = Payload.Span;
 
         // Add payload contribution - handle cases efficiently
         if (span.Length > 0)
@@ -27,11 +29,11 @@ public readonly partial struct Packet : System.IEquatable<Packet>
 
             if (span.Length <= MaxStackAllocSize)
             {
-                for (int i = 0; i < span.Length; i += sizeof(int))
+                for (System.Int32 i = 0; i < span.Length; i += sizeof(System.Int32))
                 {
-                    int chunk = 0;
-                    int bytesToRead = System.Math.Min(sizeof(int), span.Length - i);
-                    for (int j = 0; j < bytesToRead; j++)
+                    System.Int32 chunk = 0;
+                    System.Int32 bytesToRead = System.Math.Min(sizeof(System.Int32), span.Length - i);
+                    for (System.Int32 j = 0; j < bytesToRead; j++)
                     {
                         chunk |= span[i + j] << (j * 8);
                     }
@@ -43,12 +45,12 @@ public readonly partial struct Packet : System.IEquatable<Packet>
                 // For larger payloads, use beginning, middle and end samples
 
                 // Beginning (up to 64 bytes)
-                int bytesToSample = System.Math.Min(64, span.Length);
-                for (int i = 0; i < bytesToSample; i += sizeof(int))
+                System.Int32 bytesToSample = System.Math.Min(64, span.Length);
+                for (System.Int32 i = 0; i < bytesToSample; i += sizeof(System.Int32))
                 {
-                    int chunk = 0;
-                    int bytesToRead = System.Math.Min(sizeof(int), bytesToSample - i);
-                    for (int j = 0; j < bytesToRead; j++)
+                    System.Int32 chunk = 0;
+                    System.Int32 bytesToRead = System.Math.Min(sizeof(System.Int32), bytesToSample - i);
+                    for (System.Int32 j = 0; j < bytesToRead; j++)
                     {
                         chunk |= span[i + j] << (j * 8);
                     }
@@ -58,12 +60,12 @@ public readonly partial struct Packet : System.IEquatable<Packet>
                 // End (up to 64 bytes)
                 if (span.Length > 128)
                 {
-                    int startIndex = span.Length - 64;
-                    for (int i = 0; i < 64; i += sizeof(int))
+                    System.Int32 startIndex = span.Length - 64;
+                    for (System.Int32 i = 0; i < 64; i += sizeof(System.Int32))
                     {
-                        int chunk = 0;
-                        int bytesToRead = System.Math.Min(sizeof(int), 64 - i);
-                        for (int j = 0; j < bytesToRead; j++)
+                        System.Int32 chunk = 0;
+                        System.Int32 bytesToRead = System.Math.Min(sizeof(System.Int32), 64 - i);
+                        for (System.Int32 j = 0; j < bytesToRead; j++)
                         {
                             chunk |= span[startIndex + i + j] << (j * 8);
                         }
@@ -72,7 +74,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
                 }
 
                 // Include the checksum for additional mixing
-                hash = (hash * 397) ^ (int)Checksum;
+                hash = (hash * 397) ^ (System.Int32)Checksum;
             }
         }
 
@@ -86,7 +88,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Common.Package.IPacket? other)
+    public System.Boolean Equals(IPacket? other)
     {
         if (other is null)
             return false;
@@ -101,8 +103,8 @@ public readonly partial struct Packet : System.IEquatable<Packet>
             return false;
         }
 
-        System.ReadOnlySpan<byte> span1 = Payload.Span;
-        System.ReadOnlySpan<byte> span2 = other.Payload.Span;
+        System.ReadOnlySpan<System.Byte> span1 = Payload.Span;
+        System.ReadOnlySpan<System.Byte> span2 = other.Payload.Span;
 
         if (span1.Length < 32)
             return System.MemoryExtensions.SequenceEqual(span1, span2);
@@ -118,7 +120,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Packet other) =>
+    public System.Boolean Equals(Packet other) =>
         Type == other.Type &&
         Flags == other.Flags &&
         OpCode == other.OpCode &&
@@ -133,7 +135,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the objects are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj) => obj is Packet packet && Equals(packet);
+    public override System.Boolean Equals(System.Object? obj) => obj is Packet packet && Equals(packet);
 
     /// <summary>
     /// Determines whether two packets are equal.
@@ -143,7 +145,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the packets are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Packet left, Packet right) => left.Equals(right);
+    public static System.Boolean operator ==(Packet left, Packet right) => left.Equals(right);
 
     /// <summary>
     /// Determines whether two packets are not equal.
@@ -153,5 +155,5 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     /// <returns>True if the packets are not equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Packet left, Packet right) => !left.Equals(right);
+    public static System.Boolean operator !=(Packet left, Packet right) => !left.Equals(right);
 }
