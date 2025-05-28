@@ -3,8 +3,8 @@ namespace Nalix.Common.Package;
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
-/// [Length (2 bytes)][Opcode  (2 bytes)][Number (1 byte)][Checksum (4 bytes)][Timestamp (8 bytes)]
-/// [Opcode   (2 bytes)][Type (1 byte)][Flags  (1 byte)][Priority  (1 byte)][Payload            ]
+/// [Length (2 bytes)][OpCode  (2 bytes)][Number (1 byte)][Checksum (4 bytes)][Timestamp (8 bytes)]
+/// [OpCode   (2 bytes)][Type (1 byte)][Flags  (1 byte)][Priority  (1 byte)][Payload            ]
 public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
 {
     #region Metadata
@@ -17,7 +17,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the command associated with the packet.
     /// </summary>
-    ushort Id { get; }
+    ushort OpCode { get; }
 
     /// <summary>
     /// Gets the sequence number of the packet.
@@ -75,9 +75,9 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// A 64-bit unsigned integer representing the packet's hash, composed of:
     /// <list type="bullet">
     /// <item><description><c>Number</c> (8 bits)</description></item>
-    /// <item><description><c>Opcode</c> (16 bits)</description></item>
+    /// <item><description><c>OpCode</c> (16 bits)</description></item>
     /// <item><description><c>Type</c> (8 bits)</description></item>
-    /// <item><description><c>Opcode</c> (8 bits)</description></item>
+    /// <item><description><c>OpCode</c> (8 bits)</description></item>
     /// <item><description><c>Flags</c> (8 bits)</description></item>
     /// <item><description>Lowest 40 bits of <c>Timestamp</c></description></item>
     /// </list>

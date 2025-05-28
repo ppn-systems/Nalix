@@ -23,7 +23,7 @@ public static partial class PacketSerializer
         if (buffer.Length < totalSize)
             throw new PackageException($"Buffer size ({buffer.Length}) is too small for packet size ({totalSize}).");
 
-        ushort id = packet.Id;
+        ushort id = packet.OpCode;
         long timestamp = packet.Timestamp;
         uint checksum = packet.Checksum;
 

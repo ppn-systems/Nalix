@@ -13,7 +13,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
         // Initial hash with key fields
         int hash = (byte)Type;
         hash = (hash * 397) ^ (byte)Flags;
-        hash = (hash * 397) ^ (byte)Id;
+        hash = (hash * 397) ^ (byte)OpCode;
         hash = (hash * 397) ^ (byte)Priority;
 
         // For small payloads, use the full content
@@ -94,7 +94,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
         // Quick field comparison first
         if (Type != other.Type ||
             Flags != other.Flags ||
-            Id != other.Id ||
+            OpCode != other.OpCode ||
             Priority != other.Priority ||
             Payload.Length != other.Payload.Length)
         {
@@ -121,7 +121,7 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     public bool Equals(Packet other) =>
         Type == other.Type &&
         Flags == other.Flags &&
-        Id == other.Id &&
+        OpCode == other.OpCode &&
         Priority == other.Priority &&
         Payload.Length == other.Payload.Length &&
         System.MemoryExtensions.SequenceEqual(Payload.Span, other.Payload.Span);

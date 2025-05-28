@@ -45,7 +45,7 @@ public static class PacketCompact
                 return packet;
 
             return new Packet(
-                packet.Id, packet.Number,
+                packet.OpCode, packet.Number,
                 packet.Checksum, packet.Timestamp, packet.Type,
                 packet.Flags | PacketFlags.Compressed, packet.Priority, bytes);
         }
@@ -77,7 +77,7 @@ public static class PacketCompact
         try
         {
             return new Packet(
-                packet.Id, packet.Number, packet.Checksum, packet.Timestamp,
+                packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
                 packet.Type, packet.Flags & ~PacketFlags.Compressed,
                 packet.Priority, DecompressLZ4(packet.Payload.Span));
         }

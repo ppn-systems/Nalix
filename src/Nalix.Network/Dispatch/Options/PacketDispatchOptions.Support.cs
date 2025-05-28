@@ -114,7 +114,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
             {
                 string message = $"Encrypted packet not allowed for command " +
-                                 $"'{attributes.Opcode.Opcode}' " +
+                                 $"'{attributes.Opcode.OpCode}' " +
                                  $"from connection {connection.RemoteEndPoint}.";
 
                 _logger?.Warn(message);
@@ -144,7 +144,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     catch (System.OperationCanceledException)
                     {
                         _logger?.Error("Packet '{0}' timed out after {1}ms.",
-                            attributes.Opcode.Opcode,
+                            attributes.Opcode.OpCode,
                             attributes.Timeout.TimeoutMilliseconds);
                         connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
 
@@ -163,27 +163,27 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                "Exception: {3}. Net: {4}, Exception Details: {5}",
-                                attributes.Opcode.Opcode,             // Opcode ID
+                                attributes.Opcode.OpCode,             // OpCode ID
                                 controllerInstance.GetType().Name,// ConnectionOps name
                                 method.Name,                      // Method name
                                 ex.GetType().Name,                // Exception type
                                 connection.RemoteEndPoint,        // Connection details for traceability
                                 ex.Message                        // Exception message itself
                 );
-                _errorHandler?.Invoke(ex, attributes.Opcode.Opcode);
+                _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             catch (System.Exception ex)
             {
-                _logger?.Error("Packet [Opcode={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
-                    attributes.Opcode.Opcode,
+                _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
+                    attributes.Opcode.OpCode,
                     controllerInstance.GetType().Name,
                     method.Name,
                     ex.GetType().Name,
                     ex.Message,
                     connection.RemoteEndPoint
                 );
-                _errorHandler?.Invoke(ex, attributes.Opcode.Opcode);
+                _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
             }
             finally

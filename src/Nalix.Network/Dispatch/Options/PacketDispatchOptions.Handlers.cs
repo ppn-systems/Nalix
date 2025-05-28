@@ -118,7 +118,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     System.Linq.Enumerable.GroupBy(
                         methods,
                         m => System.Reflection.CustomAttributeExtensions
-                                .GetCustomAttribute<PacketOpcodeAttribute>(m)!.Opcode
+                                .GetCustomAttribute<PacketOpcodeAttribute>(m)!.OpCode
                     ),
                     g => System.Linq.Enumerable.Count(g) > 1
                 ),
@@ -141,7 +141,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             ushort id = System.Reflection.CustomAttributeExtensions
                         .GetCustomAttribute<PacketOpcodeAttribute>(method)!
-                        .Opcode;
+                        .OpCode;
 
             if (_handlers.ContainsKey(id))
             {

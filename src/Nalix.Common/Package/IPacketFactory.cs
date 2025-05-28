@@ -1,5 +1,4 @@
 using Nalix.Common.Package.Enums;
-using Nalix.Common.Serialization;
 
 namespace Nalix.Common.Package;
 
@@ -15,15 +14,7 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// <param name="id">The unique identifier of the packet.</param>
     /// <param name="s">The string.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(ushort id, string s);
-
-    /// <summary>
-    /// Creates a packet using strongly-typed enums.
-    /// </summary>
-    /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="obj">The object.</param>
-    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(ushort id, ISerializable obj);
+    static abstract TPacket Create(System.UInt16 id, System.String s);
 
     /// <summary>
     /// Creates a packet using strongly-typed enums.
@@ -35,8 +26,21 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(
-        ushort id, PacketType type, PacketFlags flags,
-        PacketPriority priority, System.Memory<byte> payload);
+        System.UInt16 id, PacketType type, PacketFlags flags,
+        PacketPriority priority, System.Byte[] payload);
+
+    /// <summary>
+    /// Creates a packet using strongly-typed enums.
+    /// </summary>
+    /// <param name="id">The unique identifier of the packet.</param>
+    /// <param name="type">The type of the packet as an enum.</param>
+    /// <param name="flags">The flags associated with the packet as an enum.</param>
+    /// <param name="priority">The priority of the packet as an enum.</param>
+    /// <param name="payload">The payload data of the packet.</param>
+    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
+    static abstract TPacket Create(
+        System.UInt16 id, PacketType type, PacketFlags flags,
+        PacketPriority priority, System.Memory<System.Byte> payload);
 
     /// <summary>
     /// Creates a packet using primitive data types.
@@ -48,6 +52,6 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// <param name="payload">The payload data of the packet.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(
-        ushort id, byte type, byte flags,
-        byte priority, System.Memory<byte> payload);
+        System.UInt16 id, System.Byte type, System.Byte flags,
+        System.Byte priority, System.Memory<System.Byte> payload);
 }

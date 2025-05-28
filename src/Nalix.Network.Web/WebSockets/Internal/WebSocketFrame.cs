@@ -136,7 +136,7 @@ internal class WebSocketFrame
                    RSV1: {Rsv1}
                    RSV2: {Rsv2}
                    RSV3: {Rsv3}
-                 Opcode: {Opcode}
+                 OpCode: {Opcode}
                    MASK: {Mask}
          Payload Length: {payloadLen}
 Extended Payload Length: {extPayloadLen}

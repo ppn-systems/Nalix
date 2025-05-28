@@ -95,7 +95,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.
     /// </summary>
     /// <param name="packet">
-    /// The packet to be processed. Must contain a valid <c>Opcode</c> to resolve a handler.
+    /// The packet to be processed. Must contain a valid <c>OpCode</c> to resolve a handler.
     /// </param>
     /// <param name="connection">
     /// The connection from which the packet was received. Provides context such as the remote endpoint.
@@ -104,7 +104,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// A task that represents the asynchronous operation of handling the packet.
     /// </returns>
     /// <remarks>
-    /// This method attempts to resolve a packet handler using the packet's <c>Opcode</c> via <c>Options.TryResolveHandler</c>.
+    /// This method attempts to resolve a packet handler using the packet's <c>OpCode</c> via <c>Options.TryResolveHandler</c>.
     /// If a handler is found, it is invoked asynchronously with the provided <paramref name="packet"/> and
     /// <paramref name="connection"/>. Any exceptions thrown by the handler are caught and logged as errors.
     /// If no handler is found, a warning is logged instead.
@@ -119,12 +119,12 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
         TPacket packet,
         IConnection connection)
     {
-        if (Options.TryResolveHandler(packet.Id,
+        if (Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket,
             IConnection,
             System.Threading.Tasks.Task>? handler))
         {
-            Logger?.Debug($"[Dispatch] Processing packet Opcode: {packet.Id} from {connection.RemoteEndPoint}...");
+            Logger?.Debug($"[Dispatch] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");
 
             try
             {
@@ -135,15 +135,15 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
             catch (System.Exception ex)
             {
                 Logger?.Error(
-                    $"[Dispatch] Exception occurred while handling packet Opcode: " +
-                    $"{packet.Id} from {connection.RemoteEndPoint}. " +
+                    $"[Dispatch] Exception occurred while handling packet OpCode: " +
+                    $"{packet.OpCode} from {connection.RemoteEndPoint}. " +
                     $"Error: {ex.GetType().Name} - {ex.Message}", ex);
             }
 
             return;
         }
 
-        Logger?.Warn($"[Dispatch] No handler found for packet Opcode: {packet.Id} from {connection.RemoteEndPoint}.");
+        Logger?.Warn($"[Dispatch] No handler found for packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}.");
     }
 
     #endregion Ptotected Methods

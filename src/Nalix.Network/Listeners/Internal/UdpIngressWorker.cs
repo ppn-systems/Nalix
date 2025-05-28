@@ -115,7 +115,7 @@ internal class UdpIngressWorker
                 }
                 catch (System.Net.Sockets.SocketException ex)
                 {
-                    _logger.Error("[UDP] Socket error (Opcode: {0}): {1}", ex.SocketErrorCode, ex.Message);
+                    _logger.Error("[UDP] Socket error (OpCode: {0}): {1}", ex.SocketErrorCode, ex.Message);
                     if (ex.SocketErrorCode == System.Net.Sockets.SocketError.Interrupted)
                     {
                         _logger.Info("[UDP] Listener on {0} interrupted", Listener.Config.Port);

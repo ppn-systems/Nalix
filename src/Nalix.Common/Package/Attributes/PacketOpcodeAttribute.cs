@@ -16,5 +16,5 @@ public class PacketOpcodeAttribute(System.UInt16 opcode) : System.Attribute
     /// <summary>
     /// Gets the packet identifier associated with the method.
     /// </summary>
-    public System.UInt16 Opcode { get; } = opcode;
+    public System.UInt16 OpCode { get; } = opcode;
 }

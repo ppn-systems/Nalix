@@ -1,6 +1,7 @@
 namespace Nalix.Network.Package;
 
-[System.Diagnostics.DebuggerDisplay("Packet {Opcode}: Opcode={Opcode}, Number={Number}, Length={Length}, Type={Type}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay(
+    "Packet {OpCode}: OpCode={OpCode}, Number={Number}, Length={Length}, Type={Type}, Flags={Flags}")]
 public readonly partial struct Packet
 {
     /// <summary>
@@ -21,7 +22,7 @@ public readonly partial struct Packet
     {
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"Packet [{Id}]:");
+        sb.AppendLine($"Packet [{OpCode}]:");
         sb.AppendLine($"  Type: {Type}");
         sb.AppendLine($"  Flags: {Flags}");
         sb.AppendLine($"  Number: 0x{Number:X4}");
@@ -59,7 +60,7 @@ public readonly partial struct Packet
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"Packet Number={Number}, Type={Type}, Number={Id}, " +
+        => $"Packet Number={Number}, Type={Type}, Number={OpCode}, " +
            $"Flags={Flags}, Priority={Priority}, Timestamp={Timestamp}, " +
            $"Checksum={IsValid()}, Payload={Payload.Length} bytes, Size={Length} bytes";
 }

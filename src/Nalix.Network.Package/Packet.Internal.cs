@@ -13,13 +13,13 @@ public readonly partial struct Packet
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        ushort id,
-        byte number,
+        System.UInt16 opCode,
+        System.Byte number,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<byte> payload)
-        : this(id, number, 0, 0, type, flags, priority, payload)
+        System.Memory<System.Byte> payload)
+        : this(opCode, number, 0, 0, type, flags, priority, payload)
     {
     }
 
@@ -30,15 +30,15 @@ public readonly partial struct Packet
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        ushort id,
-        byte number,
-        uint checksum,
-        long timestamp,
-        byte type,
-        byte flags,
-        byte priority,
-        System.Memory<byte> payload)
-        : this(id, number, checksum, timestamp, (PacketType)type,
+        System.UInt16 opCode,
+        System.Byte number,
+        System.UInt32 checksum,
+        System.Int64 timestamp,
+        System.Byte type,
+        System.Byte flags,
+        System.Byte priority,
+        System.Memory<System.Byte> payload)
+        : this(opCode, number, checksum, timestamp, (PacketType)type,
               (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
@@ -50,14 +50,14 @@ public readonly partial struct Packet
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal Packet(
-        ushort id,
-        byte number,
-        uint checksum,
-        long timestamp,
+        System.UInt16 opCode,
+        System.Byte number,
+        System.UInt32 checksum,
+        System.Int64 timestamp,
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<byte> payload)
+        System.Memory<System.Byte> payload)
     {
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)
@@ -66,11 +66,11 @@ public readonly partial struct Packet
                 $"exceeds maximum allowed size ({MaxPacketSize} bytes)");
 
         // Initialize fields
-        Id = id;
+        OpCode = opCode;
         Type = type;
         Flags = flags;
         Priority = priority;
-        Number = number == 0 ? (byte)(timestamp % byte.MaxValue) : number;
+        Number = number == 0 ? (System.Byte)(timestamp % System.Byte.MaxValue) : number;
         Timestamp = timestamp == 0 ? Clock.UnixMillisecondsNow() : timestamp;
 
         // Create a secure copy of the payload to prevent external modification
@@ -82,7 +82,7 @@ public readonly partial struct Packet
         unchecked
         {
             _hash = ((ulong)Number << 56)
-                  | ((ulong)Id << 40)
+                  | ((ulong)OpCode << 40)
                   | ((ulong)Type << 32)
                   | ((ulong)Flags << 24)
                   | ((ulong)Timestamp & 0x000000FFFFFFUL);

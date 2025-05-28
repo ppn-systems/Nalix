@@ -60,7 +60,7 @@ internal class WebSocketFrameStream(Stream? stream, bool unmask = false)
         // RSV3
         Rsv rsv3 = (header[0] & 0x10) == 0x10 ? Rsv.On : Rsv.Off;
 
-        // Opcode
+        // OpCode
         byte opcode = (byte)(header[0] & 0x0f);
 
         // MASK

@@ -18,12 +18,24 @@ public readonly partial struct Packet
 
     #region Fields
 
+    private static readonly Packet _empty = new(
+        0,
+        PacketType.None,
+        PacketFlags.None,
+        PacketPriority.Low,
+        System.Memory<byte>.Empty);
+
     private readonly ulong _hash;
     private readonly byte[]? _rentedBuffer;
 
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Empty packet instance with default values.
+    /// </summary>
+    public static Packet Empty => _empty;
 
     /// <summary>
     /// Gets the total length of the packet including header and payload.
@@ -33,7 +45,7 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the Number associated with the packet, which specifies an operation type.
     /// </summary>
-    public ushort Id { get; }
+    public ushort OpCode { get; }
 
     /// <summary>
     /// Gets the packet identifier, which is a unique identifier for this packet instance.
